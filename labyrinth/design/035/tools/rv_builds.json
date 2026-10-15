@@ -1,0 +1,5386 @@
+{
+ "guardian|4": {
+  "rows": [
+   {
+    "id": "sluice_breaker_mace",
+    "name": "수문 부수개",
+    "rar": "epic",
+    "L": 17,
+    "style": "melee",
+    "interval": 0.72,
+    "effect": "thorns",
+    "eff_name": "수문 역류",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 1.83719,
+     "E": 1.7856800000000002,
+     "B": 1.7513400000000001,
+     "T": 1.7513400000000001
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "VIT": 26,
+     "STR": 18
+    },
+    "rel": {
+     "P": 1.0,
+     "E": 1.0,
+     "B": 1.0,
+     "T": 1.0
+    },
+    "top": 1.0
+   },
+   {
+    "id": "osric_drowned_axe",
+    "name": "오스릭의 익사 닻도끼",
+    "rar": "epic",
+    "L": 20,
+    "style": "melee",
+    "interval": 1.15,
+    "effect": "armor_break",
+    "eff_name": "닻 사슬",
+    "src": [
+     "B"
+    ],
+    "vals": {
+     "P": 1.585316,
+     "E": 1.613738,
+     "B": 1.6374229999999999,
+     "T": 1.697425
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "VIT": 32,
+     "STR": 21
+    },
+    "rel": {
+     "P": 0.863,
+     "E": 0.904,
+     "B": 0.935,
+     "T": 0.969
+    },
+    "top": 0.969
+   },
+   {
+    "id": "sluice_morning_star",
+    "name": "수문 모닝스타",
+    "rar": "epic",
+    "L": 17,
+    "style": "melee",
+    "interval": 0.77,
+    "effect": "feast",
+    "eff_name": "수문 삼킴",
+    "src": [
+     "V"
+    ],
+    "vals": {
+     "P": 1.6768889999999999,
+     "E": 1.5647849999999999,
+     "B": 1.5647849999999999,
+     "T": 1.5647849999999999
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "STR": 26,
+     "VIT": 18
+    },
+    "rel": {
+     "P": 0.913,
+     "E": 0.876,
+     "B": 0.893,
+     "T": 0.893
+    },
+    "top": 0.913
+   },
+   {
+    "id": "verdigris_great_axe",
+    "name": "녹청 큰도끼",
+    "rar": "rare",
+    "L": 19,
+    "style": "melee",
+    "interval": 1.05,
+    "effect": "armor_break",
+    "eff_name": "집게 부수기",
+    "src": [
+     "E"
+    ],
+    "vals": {
+     "P": 1.284662,
+     "E": 1.319141,
+     "B": 1.3472349999999997,
+     "T": 1.418747
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "STR": 25,
+     "VIT": 15,
+     "DEX": 10
+    },
+    "rel": {
+     "P": 0.699,
+     "E": 0.739,
+     "B": 0.769,
+     "T": 0.81
+    },
+    "top": 0.81
+   },
+   {
+    "id": "brine_katar",
+    "name": "소금물 주먹칼",
+    "rar": "rare",
+    "L": 19,
+    "style": "melee",
+    "interval": 0.45,
+    "effect": "rend",
+    "eff_name": "소금 상처",
+    "src": [
+     "V"
+    ],
+    "vals": {
+     "P": 1.259944,
+     "E": 1.327888,
+     "B": 1.327888,
+     "T": 1.327888
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "STR": 25,
+     "LUK": 15,
+     "VIT": 10
+    },
+    "rel": {
+     "P": 0.686,
+     "E": 0.744,
+     "B": 0.758,
+     "T": 0.758
+    },
+    "top": 0.758
+   }
+  ],
+  "n_viable": 3,
+  "viable_effects": [
+   "armor_break",
+   "feast",
+   "thorns"
+  ],
+  "strong_nonBF": [],
+  "dominant": [
+   "sluice_breaker_mace"
+  ],
+  "best_by_sit": {
+   "P": "sluice_breaker_mace",
+   "E": "sluice_breaker_mace",
+   "B": "sluice_breaker_mace",
+   "T": "sluice_breaker_mace"
+  }
+ },
+ "guardian|5": {
+  "rows": [
+   {
+    "id": "dawnbringer",
+    "name": "여명을 맹세한 검",
+    "rar": "legendary",
+    "L": 25,
+    "style": "melee",
+    "interval": 0.67,
+    "effect": "sanctify",
+    "eff_name": "여명의 빛",
+    "src": [
+     "B"
+    ],
+    "vals": {
+     "P": 2.17074,
+     "E": 2.17074,
+     "B": 2.17074,
+     "T": 2.19648
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "STR": 33,
+     "WIS": 20,
+     "VIT": 13
+    },
+    "rel": {
+     "P": 0.985,
+     "E": 1.0,
+     "B": 1.0,
+     "T": 1.0
+    },
+    "top": 1.0
+   },
+   {
+    "id": "ember_greatsword",
+    "name": "잿불 대검",
+    "rar": "legendary",
+    "L": 25,
+    "style": "melee",
+    "interval": 1.0,
+    "effect": "feast",
+    "eff_name": "불길 포식",
+    "src": [
+     "B"
+    ],
+    "vals": {
+     "P": 2.20286,
+     "E": 2.114324,
+     "B": 2.114324,
+     "T": 2.114324
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "STR": 33,
+     "VIT": 20,
+     "INT": 13
+    },
+    "rel": {
+     "P": 1.0,
+     "E": 0.974,
+     "B": 0.974,
+     "T": 0.963
+    },
+    "top": 1.0
+   },
+   {
+    "id": "slag_war_spear",
+    "name": "슬래그 창",
+    "rar": "epic",
+    "L": 24,
+    "style": "melee",
+    "interval": 0.87,
+    "effect": "thorns",
+    "eff_name": "슬래그 가시",
+    "src": [
+     "V"
+    ],
+    "vals": {
+     "P": 1.948425,
+     "E": 1.7841000000000002,
+     "B": 1.67455,
+     "T": 1.67455
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "VIT": 38,
+     "STR": 26
+    },
+    "rel": {
+     "P": 0.884,
+     "E": 0.822,
+     "B": 0.771,
+     "T": 0.762
+    },
+    "top": 0.884
+   },
+   {
+    "id": "anvil_oath_broadsword",
+    "name": "모루 서약 넓은검",
+    "rar": "epic",
+    "L": 24,
+    "style": "melee",
+    "interval": 0.7,
+    "effect": "steadfast",
+    "eff_name": "모루 서약",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 1.860672,
+     "E": 1.880054,
+     "B": 1.880054,
+     "T": 1.9205800000000002
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "VIT": 32,
+     "DEX": 19,
+     "STR": 13
+    },
+    "rel": {
+     "P": 0.845,
+     "E": 0.866,
+     "B": 0.866,
+     "T": 0.874
+    },
+    "top": 0.874
+   },
+   {
+    "id": "cinder_rapier",
+    "name": "불씨 레이피어",
+    "rar": "epic",
+    "L": 24,
+    "style": "melee",
+    "interval": 0.56,
+    "effect": "momentum",
+    "eff_name": "불씨 회전",
+    "src": [
+     "E"
+    ],
+    "vals": {
+     "P": 1.699854,
+     "E": 1.77489,
+     "B": 1.77489,
+     "T": 1.77489
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "STR": 32,
+     "DEX": 19,
+     "VIT": 13
+    },
+    "rel": {
+     "P": 0.772,
+     "E": 0.818,
+     "B": 0.818,
+     "T": 0.808
+    },
+    "top": 0.818
+   },
+   {
+    "id": "emberforge_warhammer",
+    "name": "잿불 단조 망치",
+    "rar": "epic",
+    "L": 22,
+    "style": "melee",
+    "interval": 0.75,
+    "effect": "armor_break",
+    "eff_name": "단조 망치질",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.534668,
+     "E": 1.591056,
+     "B": 1.6367760000000002,
+     "T": 1.7480280000000001
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "VIT": 35,
+     "STR": 23
+    },
+    "rel": {
+     "P": 0.697,
+     "E": 0.733,
+     "B": 0.754,
+     "T": 0.796
+    },
+    "top": 0.796
+   },
+   {
+    "id": "slag_flamberge",
+    "name": "슬래그 플랑베르주",
+    "rar": "epic",
+    "L": 24,
+    "style": "melee",
+    "interval": 1.05,
+    "effect": "rend",
+    "eff_name": "쇳물 상처",
+    "src": [
+     "T"
+    ],
+    "vals": {
+     "P": 1.5818670000000001,
+     "E": 1.686734,
+     "B": 1.686734,
+     "T": 1.686734
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "STR": 32,
+     "LUK": 19,
+     "VIT": 13
+    },
+    "rel": {
+     "P": 0.718,
+     "E": 0.777,
+     "B": 0.777,
+     "T": 0.768
+    },
+    "top": 0.777
+   }
+  ],
+  "n_viable": 2,
+  "viable_effects": [
+   "feast",
+   "sanctify"
+  ],
+  "strong_nonBF": [],
+  "dominant": [],
+  "best_by_sit": {
+   "P": "ember_greatsword",
+   "E": "dawnbringer",
+   "B": "dawnbringer",
+   "T": "dawnbringer"
+  }
+ },
+ "guardian|8": {
+  "rows": [
+   {
+    "id": "ink_great_maul",
+    "name": "봉인 대형 망치",
+    "rar": "epic",
+    "L": 38,
+    "style": "melee",
+    "interval": 1.18,
+    "effect": "armor_break",
+    "eff_name": "거꾸로 도장",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.712983,
+     "E": 1.817825,
+     "B": 1.8973019999999998,
+     "T": 2.1036040000000003
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "STR": 61,
+     "VIT": 41
+    },
+    "rel": {
+     "P": 0.836,
+     "E": 0.969,
+     "B": 1.0,
+     "T": 1.0
+    },
+    "top": 1.0
+   },
+   {
+    "id": "index_war_spear",
+    "name": "색인 창",
+    "rar": "epic",
+    "L": 38,
+    "style": "melee",
+    "interval": 0.87,
+    "effect": "thorns",
+    "eff_name": "대출 금지",
+    "src": [
+     "E"
+    ],
+    "vals": {
+     "P": 2.04927,
+     "E": 1.87644,
+     "B": 1.76122,
+     "T": 1.76122
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "VIT": 61,
+     "STR": 41
+    },
+    "rel": {
+     "P": 1.0,
+     "E": 1.0,
+     "B": 0.928,
+     "T": 0.837
+    },
+    "top": 1.0
+   },
+   {
+    "id": "ink_morning_star",
+    "name": "먹물 모닝스타",
+    "rar": "epic",
+    "L": 38,
+    "style": "melee",
+    "interval": 0.77,
+    "effect": "steadfast",
+    "eff_name": "차분한 먹",
+    "src": [
+     "T"
+    ],
+    "vals": {
+     "P": 1.770944,
+     "E": 1.7940720000000001,
+     "B": 1.7940720000000001,
+     "T": 1.84198
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "VIT": 61,
+     "STR": 41
+    },
+    "rel": {
+     "P": 0.864,
+     "E": 0.956,
+     "B": 0.946,
+     "T": 0.876
+    },
+    "top": 0.956
+   },
+   {
+    "id": "ink_flamberge",
+    "name": "먹물 플랑베르주",
+    "rar": "epic",
+    "L": 38,
+    "style": "melee",
+    "interval": 1.05,
+    "effect": "feast",
+    "eff_name": "먹물 삼킴",
+    "src": [
+     "V"
+    ],
+    "vals": {
+     "P": 1.821077,
+     "E": 1.625904,
+     "B": 1.625904,
+     "T": 1.625904
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "STR": 61,
+     "VIT": 41
+    },
+    "rel": {
+     "P": 0.889,
+     "E": 0.866,
+     "B": 0.857,
+     "T": 0.773
+    },
+    "top": 0.889
+   },
+   {
+    "id": "ink_bone_bow",
+    "name": "먹물 뼈 활",
+    "rar": "epic",
+    "L": 39,
+    "style": "ranged",
+    "interval": 1.15,
+    "effect": "leech",
+    "eff_name": "먹물 방울",
+    "src": [
+     "S"
+    ],
+    "vals": {
+     "P": 1.639602,
+     "E": 1.639602,
+     "B": 1.627074,
+     "T": 1.6035840000000001
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "VIT": 63,
+     "STR": 42
+    },
+    "rel": {
+     "P": 0.8,
+     "E": 0.874,
+     "B": 0.858,
+     "T": 0.762
+    },
+    "top": 0.874
+   }
+  ],
+  "n_viable": 3,
+  "viable_effects": [
+   "armor_break",
+   "steadfast",
+   "thorns"
+  ],
+  "strong_nonBF": [
+   "ink_great_maul",
+   "ink_morning_star",
+   "index_war_spear"
+  ],
+  "dominant": [],
+  "best_by_sit": {
+   "P": "index_war_spear",
+   "E": "index_war_spear",
+   "B": "ink_great_maul",
+   "T": "ink_great_maul"
+  }
+ },
+ "guardian|9": {
+  "rows": [
+   {
+    "id": "clock_greatsword",
+    "name": "톱니 대검",
+    "rar": "epic",
+    "L": 42,
+    "style": "melee",
+    "interval": 1.05,
+    "effect": "armor_break",
+    "eff_name": "맞물린 이",
+    "src": [
+     "S"
+    ],
+    "vals": {
+     "P": 1.7265149999999998,
+     "E": 1.8438840000000003,
+     "B": 1.9323360000000003,
+     "T": 2.163672
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "STR": 68,
+     "VIT": 45
+    },
+    "rel": {
+     "P": 0.781,
+     "E": 0.834,
+     "B": 0.915,
+     "T": 1.0
+    },
+    "top": 1.0
+   },
+   {
+    "id": "clock_broadsword",
+    "name": "놋쇠 넓은검",
+    "rar": "epic",
+    "L": 41,
+    "style": "melee",
+    "interval": 0.71,
+    "effect": "shield_bash",
+    "eff_name": "경비병 방패",
+    "src": [
+     "V"
+    ],
+    "vals": {
+     "P": 2.20966,
+     "E": 2.20966,
+     "B": 2.11072,
+     "T": 2.11072
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "VIT": 66,
+     "STR": 44
+    },
+    "rel": {
+     "P": 1.0,
+     "E": 1.0,
+     "B": 1.0,
+     "T": 0.976
+    },
+    "top": 1.0
+   },
+   {
+    "id": "clock_mace",
+    "name": "태엽 철퇴",
+    "rar": "epic",
+    "L": 41,
+    "style": "melee",
+    "interval": 0.71,
+    "effect": "steadfast",
+    "eff_name": "무거운 태엽",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.7677280000000002,
+     "E": 1.7908140000000001,
+     "B": 1.7908140000000001,
+     "T": 1.838635
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "VIT": 55,
+     "DEX": 33,
+     "STR": 22
+    },
+    "rel": {
+     "P": 0.8,
+     "E": 0.81,
+     "B": 0.848,
+     "T": 0.85
+    },
+    "top": 0.85
+   },
+   {
+    "id": "clock_longsword",
+    "name": "태엽 장검",
+    "rar": "epic",
+    "L": 41,
+    "style": "melee",
+    "interval": 0.67,
+    "effect": "hemorrhage",
+    "eff_name": "빨라지는 초침",
+    "src": [
+     "E"
+    ],
+    "vals": {
+     "P": 1.6852000000000003,
+     "E": 1.751076,
+     "B": 1.751076,
+     "T": 1.751076
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "STR": 55,
+     "LUK": 33,
+     "VIT": 22
+    },
+    "rel": {
+     "P": 0.763,
+     "E": 0.792,
+     "B": 0.83,
+     "T": 0.809
+    },
+    "top": 0.83
+   },
+   {
+    "id": "clock_morning_star",
+    "name": "조속기 모닝스타",
+    "rar": "epic",
+    "L": 41,
+    "style": "melee",
+    "interval": 0.77,
+    "effect": "feast",
+    "eff_name": "추의 박자",
+    "src": [
+     "E"
+    ],
+    "vals": {
+     "P": 1.8334960000000002,
+     "E": 1.6369920000000002,
+     "B": 1.6369920000000002,
+     "T": 1.6369920000000002
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "STR": 66,
+     "VIT": 44
+    },
+    "rel": {
+     "P": 0.83,
+     "E": 0.741,
+     "B": 0.776,
+     "T": 0.757
+    },
+    "top": 0.83
+   },
+   {
+    "id": "clock_falchion",
+    "name": "태엽 팔시온",
+    "rar": "epic",
+    "L": 41,
+    "style": "melee",
+    "interval": 0.62,
+    "effect": "leech",
+    "eff_name": "한 번 더 물기",
+    "src": [
+     "T"
+    ],
+    "vals": {
+     "P": 1.6971869999999998,
+     "E": 1.6971869999999998,
+     "B": 1.684219,
+     "T": 1.659904
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "STR": 66,
+     "VIT": 44
+    },
+    "rel": {
+     "P": 0.768,
+     "E": 0.768,
+     "B": 0.798,
+     "T": 0.767
+    },
+    "top": 0.798
+   }
+  ],
+  "n_viable": 2,
+  "viable_effects": [
+   "armor_break",
+   "shield_bash"
+  ],
+  "strong_nonBF": [
+   "clock_greatsword",
+   "clock_broadsword"
+  ],
+  "dominant": [],
+  "best_by_sit": {
+   "P": "clock_broadsword",
+   "E": "clock_broadsword",
+   "B": "clock_broadsword",
+   "T": "clock_greatsword"
+  }
+ },
+ "berserker|4": {
+  "rows": [
+   {
+    "id": "sluice_breaker_mace",
+    "name": "수문 부수개",
+    "rar": "epic",
+    "L": 17,
+    "style": "melee",
+    "interval": 0.72,
+    "effect": "thorns",
+    "eff_name": "수문 역류",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 1.83719,
+     "E": 1.7856800000000002,
+     "B": 1.7513400000000001,
+     "T": 1.7513400000000001
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "VIT": 26,
+     "STR": 18
+    },
+    "rel": {
+     "P": 1.0,
+     "E": 1.0,
+     "B": 1.0,
+     "T": 1.0
+    },
+    "top": 1.0
+   },
+   {
+    "id": "osric_drowned_axe",
+    "name": "오스릭의 익사 닻도끼",
+    "rar": "epic",
+    "L": 20,
+    "style": "melee",
+    "interval": 1.15,
+    "effect": "armor_break",
+    "eff_name": "닻 사슬",
+    "src": [
+     "B"
+    ],
+    "vals": {
+     "P": 1.585316,
+     "E": 1.613738,
+     "B": 1.6374229999999999,
+     "T": 1.697425
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "VIT": 32,
+     "STR": 21
+    },
+    "rel": {
+     "P": 0.863,
+     "E": 0.904,
+     "B": 0.935,
+     "T": 0.969
+    },
+    "top": 0.969
+   },
+   {
+    "id": "sluice_morning_star",
+    "name": "수문 모닝스타",
+    "rar": "epic",
+    "L": 17,
+    "style": "melee",
+    "interval": 0.77,
+    "effect": "feast",
+    "eff_name": "수문 삼킴",
+    "src": [
+     "V"
+    ],
+    "vals": {
+     "P": 1.6768889999999999,
+     "E": 1.5647849999999999,
+     "B": 1.5647849999999999,
+     "T": 1.5647849999999999
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "STR": 26,
+     "VIT": 18
+    },
+    "rel": {
+     "P": 0.913,
+     "E": 0.876,
+     "B": 0.893,
+     "T": 0.893
+    },
+    "top": 0.913
+   },
+   {
+    "id": "verdigris_great_axe",
+    "name": "녹청 큰도끼",
+    "rar": "rare",
+    "L": 19,
+    "style": "melee",
+    "interval": 1.05,
+    "effect": "armor_break",
+    "eff_name": "집게 부수기",
+    "src": [
+     "E"
+    ],
+    "vals": {
+     "P": 1.284662,
+     "E": 1.319141,
+     "B": 1.3472349999999997,
+     "T": 1.418747
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "STR": 25,
+     "VIT": 15,
+     "DEX": 10
+    },
+    "rel": {
+     "P": 0.699,
+     "E": 0.739,
+     "B": 0.769,
+     "T": 0.81
+    },
+    "top": 0.81
+   },
+   {
+    "id": "brine_katar",
+    "name": "소금물 주먹칼",
+    "rar": "rare",
+    "L": 19,
+    "style": "melee",
+    "interval": 0.45,
+    "effect": "rend",
+    "eff_name": "소금 상처",
+    "src": [
+     "V"
+    ],
+    "vals": {
+     "P": 1.259944,
+     "E": 1.327888,
+     "B": 1.327888,
+     "T": 1.327888
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "STR": 25,
+     "LUK": 15,
+     "VIT": 10
+    },
+    "rel": {
+     "P": 0.686,
+     "E": 0.744,
+     "B": 0.758,
+     "T": 0.758
+    },
+    "top": 0.758
+   }
+  ],
+  "n_viable": 3,
+  "viable_effects": [
+   "armor_break",
+   "feast",
+   "thorns"
+  ],
+  "strong_nonBF": [],
+  "dominant": [
+   "sluice_breaker_mace"
+  ],
+  "best_by_sit": {
+   "P": "sluice_breaker_mace",
+   "E": "sluice_breaker_mace",
+   "B": "sluice_breaker_mace",
+   "T": "sluice_breaker_mace"
+  }
+ },
+ "berserker|5": {
+  "rows": [
+   {
+    "id": "ember_greatsword",
+    "name": "잿불 대검",
+    "rar": "legendary",
+    "L": 25,
+    "style": "melee",
+    "interval": 1.0,
+    "effect": "feast",
+    "eff_name": "불길 포식",
+    "src": [
+     "B"
+    ],
+    "vals": {
+     "P": 2.20286,
+     "E": 2.114324,
+     "B": 2.114324,
+     "T": 2.114324
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "STR": 33,
+     "VIT": 20,
+     "INT": 13
+    },
+    "rel": {
+     "P": 1.0,
+     "E": 1.0,
+     "B": 1.0,
+     "T": 1.0
+    },
+    "top": 1.0
+   },
+   {
+    "id": "anvil_oath_broadsword",
+    "name": "모루 서약 넓은검",
+    "rar": "epic",
+    "L": 24,
+    "style": "melee",
+    "interval": 0.7,
+    "effect": "steadfast",
+    "eff_name": "모루 서약",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 1.860672,
+     "E": 1.880054,
+     "B": 1.880054,
+     "T": 1.9205800000000002
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "VIT": 32,
+     "DEX": 19,
+     "STR": 13
+    },
+    "rel": {
+     "P": 0.845,
+     "E": 0.889,
+     "B": 0.889,
+     "T": 0.908
+    },
+    "top": 0.908
+   },
+   {
+    "id": "slag_war_spear",
+    "name": "슬래그 창",
+    "rar": "epic",
+    "L": 24,
+    "style": "melee",
+    "interval": 0.87,
+    "effect": "thorns",
+    "eff_name": "슬래그 가시",
+    "src": [
+     "V"
+    ],
+    "vals": {
+     "P": 1.948425,
+     "E": 1.7841000000000002,
+     "B": 1.67455,
+     "T": 1.67455
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "VIT": 38,
+     "STR": 26
+    },
+    "rel": {
+     "P": 0.884,
+     "E": 0.844,
+     "B": 0.792,
+     "T": 0.792
+    },
+    "top": 0.884
+   },
+   {
+    "id": "cinder_rapier",
+    "name": "불씨 레이피어",
+    "rar": "epic",
+    "L": 24,
+    "style": "melee",
+    "interval": 0.56,
+    "effect": "momentum",
+    "eff_name": "불씨 회전",
+    "src": [
+     "E"
+    ],
+    "vals": {
+     "P": 1.699854,
+     "E": 1.77489,
+     "B": 1.77489,
+     "T": 1.77489
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "STR": 32,
+     "DEX": 19,
+     "VIT": 13
+    },
+    "rel": {
+     "P": 0.772,
+     "E": 0.839,
+     "B": 0.839,
+     "T": 0.839
+    },
+    "top": 0.839
+   },
+   {
+    "id": "emberforge_warhammer",
+    "name": "잿불 단조 망치",
+    "rar": "epic",
+    "L": 22,
+    "style": "melee",
+    "interval": 0.75,
+    "effect": "armor_break",
+    "eff_name": "단조 망치질",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.534668,
+     "E": 1.591056,
+     "B": 1.6367760000000002,
+     "T": 1.7480280000000001
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "VIT": 35,
+     "STR": 23
+    },
+    "rel": {
+     "P": 0.697,
+     "E": 0.753,
+     "B": 0.774,
+     "T": 0.827
+    },
+    "top": 0.827
+   },
+   {
+    "id": "slag_flamberge",
+    "name": "슬래그 플랑베르주",
+    "rar": "epic",
+    "L": 24,
+    "style": "melee",
+    "interval": 1.05,
+    "effect": "rend",
+    "eff_name": "쇳물 상처",
+    "src": [
+     "T"
+    ],
+    "vals": {
+     "P": 1.5818670000000001,
+     "E": 1.686734,
+     "B": 1.686734,
+     "T": 1.686734
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "STR": 32,
+     "LUK": 19,
+     "VIT": 13
+    },
+    "rel": {
+     "P": 0.718,
+     "E": 0.798,
+     "B": 0.798,
+     "T": 0.798
+    },
+    "top": 0.798
+   }
+  ],
+  "n_viable": 2,
+  "viable_effects": [
+   "feast",
+   "steadfast"
+  ],
+  "strong_nonBF": [],
+  "dominant": [
+   "ember_greatsword"
+  ],
+  "best_by_sit": {
+   "P": "ember_greatsword",
+   "E": "ember_greatsword",
+   "B": "ember_greatsword",
+   "T": "ember_greatsword"
+  }
+ },
+ "berserker|8": {
+  "rows": [
+   {
+    "id": "ink_great_maul",
+    "name": "봉인 대형 망치",
+    "rar": "epic",
+    "L": 38,
+    "style": "melee",
+    "interval": 1.18,
+    "effect": "armor_break",
+    "eff_name": "거꾸로 도장",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.712983,
+     "E": 1.817825,
+     "B": 1.8973019999999998,
+     "T": 2.1036040000000003
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "STR": 61,
+     "VIT": 41
+    },
+    "rel": {
+     "P": 0.836,
+     "E": 0.969,
+     "B": 1.0,
+     "T": 1.0
+    },
+    "top": 1.0
+   },
+   {
+    "id": "index_war_spear",
+    "name": "색인 창",
+    "rar": "epic",
+    "L": 38,
+    "style": "melee",
+    "interval": 0.87,
+    "effect": "thorns",
+    "eff_name": "대출 금지",
+    "src": [
+     "E"
+    ],
+    "vals": {
+     "P": 2.04927,
+     "E": 1.87644,
+     "B": 1.76122,
+     "T": 1.76122
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "VIT": 61,
+     "STR": 41
+    },
+    "rel": {
+     "P": 1.0,
+     "E": 1.0,
+     "B": 0.928,
+     "T": 0.837
+    },
+    "top": 1.0
+   },
+   {
+    "id": "ink_morning_star",
+    "name": "먹물 모닝스타",
+    "rar": "epic",
+    "L": 38,
+    "style": "melee",
+    "interval": 0.77,
+    "effect": "steadfast",
+    "eff_name": "차분한 먹",
+    "src": [
+     "T"
+    ],
+    "vals": {
+     "P": 1.770944,
+     "E": 1.7940720000000001,
+     "B": 1.7940720000000001,
+     "T": 1.84198
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "VIT": 61,
+     "STR": 41
+    },
+    "rel": {
+     "P": 0.864,
+     "E": 0.956,
+     "B": 0.946,
+     "T": 0.876
+    },
+    "top": 0.956
+   },
+   {
+    "id": "ink_flamberge",
+    "name": "먹물 플랑베르주",
+    "rar": "epic",
+    "L": 38,
+    "style": "melee",
+    "interval": 1.05,
+    "effect": "feast",
+    "eff_name": "먹물 삼킴",
+    "src": [
+     "V"
+    ],
+    "vals": {
+     "P": 1.821077,
+     "E": 1.625904,
+     "B": 1.625904,
+     "T": 1.625904
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "STR": 61,
+     "VIT": 41
+    },
+    "rel": {
+     "P": 0.889,
+     "E": 0.866,
+     "B": 0.857,
+     "T": 0.773
+    },
+    "top": 0.889
+   },
+   {
+    "id": "ink_bone_bow",
+    "name": "먹물 뼈 활",
+    "rar": "epic",
+    "L": 39,
+    "style": "ranged",
+    "interval": 1.15,
+    "effect": "leech",
+    "eff_name": "먹물 방울",
+    "src": [
+     "S"
+    ],
+    "vals": {
+     "P": 1.639602,
+     "E": 1.639602,
+     "B": 1.627074,
+     "T": 1.6035840000000001
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "VIT": 63,
+     "STR": 42
+    },
+    "rel": {
+     "P": 0.8,
+     "E": 0.874,
+     "B": 0.858,
+     "T": 0.762
+    },
+    "top": 0.874
+   }
+  ],
+  "n_viable": 3,
+  "viable_effects": [
+   "armor_break",
+   "steadfast",
+   "thorns"
+  ],
+  "strong_nonBF": [
+   "ink_great_maul",
+   "ink_morning_star",
+   "index_war_spear"
+  ],
+  "dominant": [],
+  "best_by_sit": {
+   "P": "index_war_spear",
+   "E": "index_war_spear",
+   "B": "ink_great_maul",
+   "T": "ink_great_maul"
+  }
+ },
+ "berserker|9": {
+  "rows": [
+   {
+    "id": "clock_greatsword",
+    "name": "톱니 대검",
+    "rar": "epic",
+    "L": 42,
+    "style": "melee",
+    "interval": 1.05,
+    "effect": "armor_break",
+    "eff_name": "맞물린 이",
+    "src": [
+     "S"
+    ],
+    "vals": {
+     "P": 1.7265149999999998,
+     "E": 1.8438840000000003,
+     "B": 1.9323360000000003,
+     "T": 2.163672
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "STR": 68,
+     "VIT": 45
+    },
+    "rel": {
+     "P": 0.781,
+     "E": 0.834,
+     "B": 0.915,
+     "T": 1.0
+    },
+    "top": 1.0
+   },
+   {
+    "id": "clock_broadsword",
+    "name": "놋쇠 넓은검",
+    "rar": "epic",
+    "L": 41,
+    "style": "melee",
+    "interval": 0.71,
+    "effect": "shield_bash",
+    "eff_name": "경비병 방패",
+    "src": [
+     "V"
+    ],
+    "vals": {
+     "P": 2.20966,
+     "E": 2.20966,
+     "B": 2.11072,
+     "T": 2.11072
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "VIT": 66,
+     "STR": 44
+    },
+    "rel": {
+     "P": 1.0,
+     "E": 1.0,
+     "B": 1.0,
+     "T": 0.976
+    },
+    "top": 1.0
+   },
+   {
+    "id": "clock_mace",
+    "name": "태엽 철퇴",
+    "rar": "epic",
+    "L": 41,
+    "style": "melee",
+    "interval": 0.71,
+    "effect": "steadfast",
+    "eff_name": "무거운 태엽",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.7677280000000002,
+     "E": 1.7908140000000001,
+     "B": 1.7908140000000001,
+     "T": 1.838635
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "VIT": 55,
+     "DEX": 33,
+     "STR": 22
+    },
+    "rel": {
+     "P": 0.8,
+     "E": 0.81,
+     "B": 0.848,
+     "T": 0.85
+    },
+    "top": 0.85
+   },
+   {
+    "id": "clock_longsword",
+    "name": "태엽 장검",
+    "rar": "epic",
+    "L": 41,
+    "style": "melee",
+    "interval": 0.67,
+    "effect": "hemorrhage",
+    "eff_name": "빨라지는 초침",
+    "src": [
+     "E"
+    ],
+    "vals": {
+     "P": 1.6852000000000003,
+     "E": 1.751076,
+     "B": 1.751076,
+     "T": 1.751076
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "STR": 55,
+     "LUK": 33,
+     "VIT": 22
+    },
+    "rel": {
+     "P": 0.763,
+     "E": 0.792,
+     "B": 0.83,
+     "T": 0.809
+    },
+    "top": 0.83
+   },
+   {
+    "id": "clock_morning_star",
+    "name": "조속기 모닝스타",
+    "rar": "epic",
+    "L": 41,
+    "style": "melee",
+    "interval": 0.77,
+    "effect": "feast",
+    "eff_name": "추의 박자",
+    "src": [
+     "E"
+    ],
+    "vals": {
+     "P": 1.8334960000000002,
+     "E": 1.6369920000000002,
+     "B": 1.6369920000000002,
+     "T": 1.6369920000000002
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "STR": 66,
+     "VIT": 44
+    },
+    "rel": {
+     "P": 0.83,
+     "E": 0.741,
+     "B": 0.776,
+     "T": 0.757
+    },
+    "top": 0.83
+   },
+   {
+    "id": "clock_falchion",
+    "name": "태엽 팔시온",
+    "rar": "epic",
+    "L": 41,
+    "style": "melee",
+    "interval": 0.62,
+    "effect": "leech",
+    "eff_name": "한 번 더 물기",
+    "src": [
+     "T"
+    ],
+    "vals": {
+     "P": 1.6971869999999998,
+     "E": 1.6971869999999998,
+     "B": 1.684219,
+     "T": 1.659904
+    },
+    "looks": [
+     "heavy"
+    ],
+    "req": {
+     "STR": 66,
+     "VIT": 44
+    },
+    "rel": {
+     "P": 0.768,
+     "E": 0.768,
+     "B": 0.798,
+     "T": 0.767
+    },
+    "top": 0.798
+   }
+  ],
+  "n_viable": 2,
+  "viable_effects": [
+   "armor_break",
+   "shield_bash"
+  ],
+  "strong_nonBF": [
+   "clock_greatsword",
+   "clock_broadsword"
+  ],
+  "dominant": [],
+  "best_by_sit": {
+   "P": "clock_broadsword",
+   "E": "clock_broadsword",
+   "B": "clock_broadsword",
+   "T": "clock_greatsword"
+  }
+ },
+ "hunter|4": {
+  "rows": [
+   {
+    "id": "tidecaller_bow",
+    "name": "조수 부르는 활",
+    "rar": "legendary",
+    "L": 20,
+    "style": "ranged",
+    "interval": 1.1,
+    "effect": "imbue",
+    "eff_name": "밀물 화살",
+    "src": [
+     "B"
+    ],
+    "vals": {
+     "P": 1.8272599999999999,
+     "E": 1.8272599999999999,
+     "B": 1.74932,
+     "T": 1.74932
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 26,
+     "VIT": 16,
+     "INT": 11
+    },
+    "rel": {
+     "P": 1.0,
+     "E": 1.0,
+     "B": 1.0,
+     "T": 0.971
+    },
+    "top": 1.0
+   },
+   {
+    "id": "eel_twin_bow",
+    "name": "장어 쌍현 활",
+    "rar": "epic",
+    "L": 17,
+    "style": "ranged",
+    "interval": 1.05,
+    "effect": "longshot",
+    "eff_name": "곧은 물길",
+    "src": [
+     "S"
+    ],
+    "vals": {
+     "P": 1.7590800000000002,
+     "E": 1.6166,
+     "B": 1.6166,
+     "T": 1.80155
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 22,
+     "LUK": 13,
+     "STR": 9
+    },
+    "rel": {
+     "P": 0.963,
+     "E": 0.885,
+     "B": 0.924,
+     "T": 1.0
+    },
+    "top": 1.0
+   },
+   {
+    "id": "brine_bladebow",
+    "name": "소금물 날활",
+    "rar": "rare",
+    "L": 19,
+    "style": "ranged",
+    "interval": 1.15,
+    "effect": "leech",
+    "eff_name": "소금물 흡수",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.2145199999999998,
+     "E": 1.2145199999999998,
+     "B": 1.2052399999999999,
+     "T": 1.18784
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 25,
+     "VIT": 15,
+     "STR": 10
+    },
+    "rel": {
+     "P": 0.665,
+     "E": 0.665,
+     "B": 0.689,
+     "T": 0.659
+    },
+    "top": 0.689
+   }
+  ],
+  "n_viable": 2,
+  "viable_effects": [
+   "imbue",
+   "longshot"
+  ],
+  "strong_nonBF": [
+   "eel_twin_bow"
+  ],
+  "dominant": [],
+  "best_by_sit": {
+   "P": "tidecaller_bow",
+   "E": "tidecaller_bow",
+   "B": "tidecaller_bow",
+   "T": "eel_twin_bow"
+  }
+ },
+ "hunter|5": {
+  "rows": [
+   {
+    "id": "bellows_composite_bow",
+    "name": "풀무 복합궁",
+    "rar": "epic",
+    "L": 24,
+    "style": "ranged",
+    "interval": 1.2,
+    "effect": "flurry",
+    "eff_name": "풀무 연사",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 1.926576,
+     "E": 1.926576,
+     "B": 1.926576,
+     "T": 1.926576
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 38,
+     "STR": 26
+    },
+    "rel": {
+     "P": 1.0,
+     "E": 1.0,
+     "B": 1.0,
+     "T": 1.0
+    },
+    "top": 1.0
+   },
+   {
+    "id": "bellows_bone_bow",
+    "name": "풀무 뼈 활",
+    "rar": "epic",
+    "L": 24,
+    "style": "ranged",
+    "interval": 1.15,
+    "effect": "hemorrhage",
+    "eff_name": "뜨거운 숨",
+    "src": [
+     "S"
+    ],
+    "vals": {
+     "P": 1.5972000000000002,
+     "E": 1.659636,
+     "B": 1.659636,
+     "T": 1.659636
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 32,
+     "LUK": 19,
+     "STR": 13
+    },
+    "rel": {
+     "P": 0.829,
+     "E": 0.861,
+     "B": 0.861,
+     "T": 0.861
+    },
+    "top": 0.861
+   }
+  ],
+  "n_viable": 1,
+  "viable_effects": [
+   "flurry"
+  ],
+  "strong_nonBF": [],
+  "dominant": [
+   "bellows_composite_bow"
+  ],
+  "best_by_sit": {
+   "P": "bellows_composite_bow",
+   "E": "bellows_composite_bow",
+   "B": "bellows_composite_bow",
+   "T": "bellows_composite_bow"
+  }
+ },
+ "hunter|8": {
+  "rows": [
+   {
+    "id": "ink_bone_bow",
+    "name": "먹물 뼈 활",
+    "rar": "epic",
+    "L": 39,
+    "style": "ranged",
+    "interval": 1.15,
+    "effect": "leech",
+    "eff_name": "먹물 방울",
+    "src": [
+     "S"
+    ],
+    "vals": {
+     "P": 1.639602,
+     "E": 1.639602,
+     "B": 1.627074,
+     "T": 1.6035840000000001
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "VIT": 63,
+     "STR": 42
+    },
+    "rel": {
+     "P": 1.0,
+     "E": 1.0,
+     "B": 1.0,
+     "T": 1.0
+    },
+    "top": 1.0
+   },
+   {
+    "id": "inkquill_hornbow",
+    "name": "깃펜 각궁",
+    "rar": "epic",
+    "L": 38,
+    "style": "ranged",
+    "interval": 1.0,
+    "effect": "rend",
+    "eff_name": "깃펜 베기",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 1.51536,
+     "E": 1.5957200000000002,
+     "B": 1.5957200000000002,
+     "T": 1.5957200000000002
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 51,
+     "STR": 31,
+     "LUK": 20
+    },
+    "rel": {
+     "P": 0.924,
+     "E": 0.973,
+     "B": 0.981,
+     "T": 0.995
+    },
+    "top": 0.995
+   }
+  ],
+  "n_viable": 2,
+  "viable_effects": [
+   "leech",
+   "rend"
+  ],
+  "strong_nonBF": [
+   "ink_bone_bow"
+  ],
+  "dominant": [
+   "ink_bone_bow"
+  ],
+  "best_by_sit": {
+   "P": "ink_bone_bow",
+   "E": "ink_bone_bow",
+   "B": "ink_bone_bow",
+   "T": "ink_bone_bow"
+  }
+ },
+ "hunter|9": {
+  "rows": [
+   {
+    "id": "springloaded_bow",
+    "name": "용수철 연발궁",
+    "rar": "epic",
+    "L": 41,
+    "style": "ranged",
+    "interval": 1.1,
+    "effect": "flurry",
+    "eff_name": "용수철 연발",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 1.9828800000000002,
+     "E": 1.9828800000000002,
+     "B": 1.9828800000000002,
+     "T": 1.9828800000000002
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 55,
+     "VIT": 33,
+     "STR": 22
+    },
+    "rel": {
+     "P": 1.0,
+     "E": 1.0,
+     "B": 1.0,
+     "T": 1.0
+    },
+    "top": 1.0
+   },
+   {
+    "id": "clock_blade_bow",
+    "name": "태엽 날활",
+    "rar": "epic",
+    "L": 41,
+    "style": "ranged",
+    "interval": 1.15,
+    "effect": "first_strike",
+    "eff_name": "빠른 첫 바늘",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.843824,
+     "E": 1.5336480000000001,
+     "B": 1.476208,
+     "T": 1.476208
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 55,
+     "LUK": 33,
+     "STR": 22
+    },
+    "rel": {
+     "P": 0.93,
+     "E": 0.773,
+     "B": 0.744,
+     "T": 0.744
+    },
+    "top": 0.93
+   }
+  ],
+  "n_viable": 2,
+  "viable_effects": [
+   "first_strike",
+   "flurry"
+  ],
+  "strong_nonBF": [],
+  "dominant": [
+   "springloaded_bow"
+  ],
+  "best_by_sit": {
+   "P": "springloaded_bow",
+   "E": "springloaded_bow",
+   "B": "springloaded_bow",
+   "T": "springloaded_bow"
+  }
+ },
+ "arcanist|4": {
+  "rows": [
+   {
+    "id": "brine_orb_staff",
+    "name": "소금물 구슬 지팡이",
+    "rar": "epic",
+    "L": 17,
+    "style": "caster",
+    "interval": 0.95,
+    "effect": "overcharge",
+    "eff_name": "소금물 구슬",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 2.16867,
+     "E": 1.7967600000000004,
+     "B": 1.7967600000000004,
+     "T": 1.7967600000000004
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "INT": 26,
+     "WIS": 18
+    },
+    "rel": {
+     "P": 1.0,
+     "E": 1.0,
+     "B": 1.0,
+     "T": 1.0
+    },
+    "top": 1.0
+   },
+   {
+    "id": "tidebell_censer",
+    "name": "조수종 향로",
+    "rar": "epic",
+    "L": 17,
+    "style": "caster",
+    "interval": 0.85,
+    "effect": "siphon",
+    "eff_name": "조수 순환",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 1.81258,
+     "E": 1.700776,
+     "B": 1.700776,
+     "T": 1.700776
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "INT": 26,
+     "WIS": 18
+    },
+    "rel": {
+     "P": 0.836,
+     "E": 0.947,
+     "B": 0.947,
+     "T": 0.947
+    },
+    "top": 0.947
+   },
+   {
+    "id": "tide_fork_staff",
+    "name": "조류의 삼지창 지팡이",
+    "rar": "rare",
+    "L": 19,
+    "style": "caster",
+    "interval": 0.9,
+    "effect": "chain_spark",
+    "eff_name": "조류 갈래",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.687,
+     "E": 1.205,
+     "B": 1.205,
+     "T": 1.205
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "INT": 30,
+     "VIT": 20
+    },
+    "rel": {
+     "P": 0.778,
+     "E": 0.671,
+     "B": 0.671,
+     "T": 0.671
+    },
+    "top": 0.778
+   },
+   {
+    "id": "brine_bell_scepter",
+    "name": "소금물 종 홀",
+    "rar": "rare",
+    "L": 19,
+    "style": "caster",
+    "interval": 0.8,
+    "effect": "steadfast",
+    "eff_name": "소금물 종",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.2917600000000002,
+     "E": 1.3086300000000002,
+     "B": 1.3086300000000002,
+     "T": 1.343575
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "VIT": 25,
+     "WIS": 15,
+     "INT": 10
+    },
+    "rel": {
+     "P": 0.596,
+     "E": 0.728,
+     "B": 0.728,
+     "T": 0.748
+    },
+    "top": 0.748
+   }
+  ],
+  "n_viable": 2,
+  "viable_effects": [
+   "overcharge",
+   "siphon"
+  ],
+  "strong_nonBF": [],
+  "dominant": [
+   "brine_orb_staff"
+  ],
+  "best_by_sit": {
+   "P": "brine_orb_staff",
+   "E": "brine_orb_staff",
+   "B": "brine_orb_staff",
+   "T": "brine_orb_staff"
+  }
+ },
+ "arcanist|5": {
+  "rows": [
+   {
+    "id": "crucible_chalice",
+    "name": "도가니 성배",
+    "rar": "epic",
+    "L": 22,
+    "style": "caster",
+    "interval": 0.75,
+    "effect": "exploit",
+    "eff_name": "도가니 열기",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.8840500000000002,
+     "E": 2.033236,
+     "B": 2.033236,
+     "T": 2.033236
+    },
+    "looks": [
+     "cloth"
+    ],
+    "req": {
+     "INT": 29,
+     "VIT": 17,
+     "DEX": 12
+    },
+    "rel": {
+     "P": 0.701,
+     "E": 1.0,
+     "B": 1.0,
+     "T": 1.0
+    },
+    "top": 1.0
+   },
+   {
+    "id": "embersong_scepter",
+    "name": "불씨노래 홀",
+    "rar": "epic",
+    "L": 24,
+    "style": "caster",
+    "interval": 0.77,
+    "effect": "overcharge",
+    "eff_name": "불씨 노래",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 2.689348,
+     "E": 2.019116,
+     "B": 2.019116,
+     "T": 2.019116
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "INT": 32,
+     "WIS": 19,
+     "VIT": 13
+    },
+    "rel": {
+     "P": 1.0,
+     "E": 0.993,
+     "B": 0.993,
+     "T": 0.993
+    },
+    "top": 1.0
+   },
+   {
+    "id": "cinder_crystal_staff",
+    "name": "불씨 수정 지팡이",
+    "rar": "epic",
+    "L": 24,
+    "style": "caster",
+    "interval": 0.9,
+    "effect": "death_burst",
+    "eff_name": "수정 폭발",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 2.064225,
+     "E": 1.619,
+     "B": 1.619,
+     "T": 1.619
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "INT": 32,
+     "WIS": 19,
+     "VIT": 13
+    },
+    "rel": {
+     "P": 0.768,
+     "E": 0.796,
+     "B": 0.796,
+     "T": 0.796
+    },
+    "top": 0.796
+   },
+   {
+    "id": "cinder_spiral_staff",
+    "name": "불씨 소용돌이 지팡이",
+    "rar": "epic",
+    "L": 22,
+    "style": "caster",
+    "interval": 0.9,
+    "effect": "imbue",
+    "eff_name": "불씨 소용돌이",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.5156680000000002,
+     "E": 1.5683360000000002,
+     "B": 1.5683360000000002,
+     "T": 1.5683360000000002
+    },
+    "looks": [
+     "cloth"
+    ],
+    "req": {
+     "INT": 29,
+     "VIT": 17,
+     "DEX": 12
+    },
+    "rel": {
+     "P": 0.564,
+     "E": 0.771,
+     "B": 0.771,
+     "T": 0.771
+    },
+    "top": 0.771
+   }
+  ],
+  "n_viable": 2,
+  "viable_effects": [
+   "exploit",
+   "overcharge"
+  ],
+  "strong_nonBF": [
+   "crucible_chalice"
+  ],
+  "dominant": [],
+  "best_by_sit": {
+   "P": "embersong_scepter",
+   "E": "crucible_chalice",
+   "B": "crucible_chalice",
+   "T": "crucible_chalice"
+  }
+ },
+ "arcanist|8": {
+  "rows": [
+   {
+    "id": "ink_spiral_staff",
+    "name": "먹물 소용돌이 지팡이",
+    "rar": "epic",
+    "L": 38,
+    "style": "caster",
+    "interval": 0.9,
+    "effect": "exploit",
+    "eff_name": "먹물 번짐",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 1.89036,
+     "E": 2.0153160000000003,
+     "B": 2.0153160000000003,
+     "T": 2.0153160000000003
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "INT": 51,
+     "VIT": 31,
+     "DEX": 20
+    },
+    "rel": {
+     "P": 0.82,
+     "E": 1.0,
+     "B": 1.0,
+     "T": 1.0
+    },
+    "top": 1.0
+   },
+   {
+    "id": "inkwell_staff",
+    "name": "먹물 서고 지팡이",
+    "rar": "legendary",
+    "L": 39,
+    "style": "caster",
+    "interval": 0.95,
+    "effect": "death_burst",
+    "eff_name": "번지는 먹물",
+    "src": [
+     "B"
+    ],
+    "vals": {
+     "P": 2.304894,
+     "E": 2.006,
+     "B": 2.006,
+     "T": 2.006
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "INT": 52,
+     "WIS": 32,
+     "VIT": 21
+    },
+    "rel": {
+     "P": 1.0,
+     "E": 0.995,
+     "B": 0.995,
+     "T": 0.995
+    },
+    "top": 1.0
+   },
+   {
+    "id": "lore_sun_scepter",
+    "name": "금서 해 홀",
+    "rar": "epic",
+    "L": 38,
+    "style": "caster",
+    "interval": 0.77,
+    "effect": "ward_aura",
+    "eff_name": "빛살 글귀",
+    "src": [
+     "V"
+    ],
+    "vals": {
+     "P": 1.73218,
+     "E": 1.73218,
+     "B": 1.73218,
+     "T": 1.781045
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "VIT": 51,
+     "WIS": 31,
+     "INT": 20
+    },
+    "rel": {
+     "P": 0.752,
+     "E": 0.86,
+     "B": 0.86,
+     "T": 0.884
+    },
+    "top": 0.884
+   },
+   {
+    "id": "lore_lamp_crook",
+    "name": "서고 등롱 지팡이",
+    "rar": "epic",
+    "L": 38,
+    "style": "caster",
+    "interval": 0.91,
+    "effect": "sanctify",
+    "eff_name": "되살린 글자",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.7090560000000001,
+     "E": 1.7090560000000001,
+     "B": 1.7090560000000001,
+     "T": 1.7491120000000002
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "VIT": 51,
+     "WIS": 31,
+     "INT": 20
+    },
+    "rel": {
+     "P": 0.741,
+     "E": 0.848,
+     "B": 0.848,
+     "T": 0.868
+    },
+    "top": 0.868
+   },
+   {
+    "id": "ink_chalice",
+    "name": "먹물 잔 홀",
+    "rar": "epic",
+    "L": 38,
+    "style": "caster",
+    "interval": 0.75,
+    "effect": "siphon",
+    "eff_name": "먹물 잔",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 1.892403,
+     "E": 1.658529,
+     "B": 1.658529,
+     "T": 1.658529
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "INT": 51,
+     "WIS": 31,
+     "VIT": 20
+    },
+    "rel": {
+     "P": 0.821,
+     "E": 0.823,
+     "B": 0.823,
+     "T": 0.823
+    },
+    "top": 0.823
+   }
+  ],
+  "n_viable": 2,
+  "viable_effects": [
+   "death_burst",
+   "exploit"
+  ],
+  "strong_nonBF": [],
+  "dominant": [],
+  "best_by_sit": {
+   "P": "inkwell_staff",
+   "E": "ink_spiral_staff",
+   "B": "ink_spiral_staff",
+   "T": "ink_spiral_staff"
+  }
+ },
+ "arcanist|9": {
+  "rows": [
+   {
+    "id": "orrery_staff",
+    "name": "태엽 천구 지팡이",
+    "rar": "epic",
+    "L": 41,
+    "style": "caster",
+    "interval": 0.95,
+    "effect": "overcharge",
+    "eff_name": "궤도 충전",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 2.6526170000000002,
+     "E": 1.9915390000000002,
+     "B": 1.9915390000000002,
+     "T": 1.9915390000000002
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "INT": 55,
+     "WIS": 33,
+     "VIT": 22
+    },
+    "rel": {
+     "P": 1.0,
+     "E": 0.983,
+     "B": 0.983,
+     "T": 0.983
+    },
+    "top": 1.0
+   },
+   {
+    "id": "tesla_coil_staff",
+    "name": "전격 코일 지팡이",
+    "rar": "legendary",
+    "L": 44,
+    "style": "caster",
+    "interval": 0.9,
+    "effect": "chain_spark",
+    "eff_name": "전격 코일",
+    "src": [
+     "B"
+    ],
+    "vals": {
+     "P": 2.497264,
+     "E": 2.027,
+     "B": 2.027,
+     "T": 2.027
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "INT": 60,
+     "WIS": 36,
+     "VIT": 23
+    },
+    "rel": {
+     "P": 0.941,
+     "E": 1.0,
+     "B": 1.0,
+     "T": 1.0
+    },
+    "top": 1.0
+   },
+   {
+    "id": "clock_antler_staff",
+    "name": "놋쇠 가지 지팡이",
+    "rar": "epic",
+    "L": 41,
+    "style": "caster",
+    "interval": 0.91,
+    "effect": "exploit",
+    "eff_name": "도는 가지",
+    "src": [
+     "V"
+    ],
+    "vals": {
+     "P": 1.8424,
+     "E": 1.988288,
+     "B": 1.988288,
+     "T": 1.988288
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "INT": 55,
+     "VIT": 33,
+     "DEX": 22
+    },
+    "rel": {
+     "P": 0.695,
+     "E": 0.981,
+     "B": 0.981,
+     "T": 0.981
+    },
+    "top": 0.981
+   },
+   {
+    "id": "clock_thurible_rod",
+    "name": "진동 향로봉",
+    "rar": "epic",
+    "L": 42,
+    "style": "caster",
+    "interval": 0.77,
+    "effect": "ward_aura",
+    "eff_name": "진자 박자",
+    "src": [
+     "S"
+    ],
+    "vals": {
+     "P": 1.73658,
+     "E": 1.73658,
+     "B": 1.73658,
+     "T": 1.78716
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "VIT": 56,
+     "WIS": 34,
+     "INT": 23
+    },
+    "rel": {
+     "P": 0.655,
+     "E": 0.857,
+     "B": 0.857,
+     "T": 0.882
+    },
+    "top": 0.882
+   },
+   {
+    "id": "clock_bell_scepter",
+    "name": "시보 종 홀",
+    "rar": "epic",
+    "L": 41,
+    "style": "caster",
+    "interval": 0.77,
+    "effect": "sanctify",
+    "eff_name": "정시 종",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.7117499999999999,
+     "E": 1.7117499999999999,
+     "B": 1.7117499999999999,
+     "T": 1.7535
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "VIT": 55,
+     "WIS": 33,
+     "INT": 22
+    },
+    "rel": {
+     "P": 0.645,
+     "E": 0.844,
+     "B": 0.844,
+     "T": 0.865
+    },
+    "top": 0.865
+   }
+  ],
+  "n_viable": 3,
+  "viable_effects": [
+   "chain_spark",
+   "exploit",
+   "overcharge"
+  ],
+  "strong_nonBF": [
+   "clock_antler_staff"
+  ],
+  "dominant": [],
+  "best_by_sit": {
+   "P": "orrery_staff",
+   "E": "tesla_coil_staff",
+   "B": "tesla_coil_staff",
+   "T": "tesla_coil_staff"
+  }
+ },
+ "priest|4": {
+  "rows": [
+   {
+    "id": "brine_orb_staff",
+    "name": "소금물 구슬 지팡이",
+    "rar": "epic",
+    "L": 17,
+    "style": "caster",
+    "interval": 0.95,
+    "effect": "overcharge",
+    "eff_name": "소금물 구슬",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 2.16867,
+     "E": 1.7967600000000004,
+     "B": 1.7967600000000004,
+     "T": 1.7967600000000004
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "INT": 26,
+     "WIS": 18
+    },
+    "rel": {
+     "P": 1.0,
+     "E": 1.0,
+     "B": 1.0,
+     "T": 1.0
+    },
+    "top": 1.0
+   },
+   {
+    "id": "tidebell_censer",
+    "name": "조수종 향로",
+    "rar": "epic",
+    "L": 17,
+    "style": "caster",
+    "interval": 0.85,
+    "effect": "siphon",
+    "eff_name": "조수 순환",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 1.81258,
+     "E": 1.700776,
+     "B": 1.700776,
+     "T": 1.700776
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "INT": 26,
+     "WIS": 18
+    },
+    "rel": {
+     "P": 0.836,
+     "E": 0.947,
+     "B": 0.947,
+     "T": 0.947
+    },
+    "top": 0.947
+   },
+   {
+    "id": "brine_bell_scepter",
+    "name": "소금물 종 홀",
+    "rar": "rare",
+    "L": 19,
+    "style": "caster",
+    "interval": 0.8,
+    "effect": "steadfast",
+    "eff_name": "소금물 종",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.2917600000000002,
+     "E": 1.3086300000000002,
+     "B": 1.3086300000000002,
+     "T": 1.343575
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "VIT": 25,
+     "WIS": 15,
+     "INT": 10
+    },
+    "rel": {
+     "P": 0.596,
+     "E": 0.728,
+     "B": 0.728,
+     "T": 0.748
+    },
+    "top": 0.748
+   },
+   {
+    "id": "verdigris_chime_rod",
+    "name": "녹청 풍경 홀",
+    "rar": "rare",
+    "L": 19,
+    "style": "caster",
+    "interval": 0.71,
+    "effect": "ward_aura",
+    "eff_name": "잔잔한 물살",
+    "src": [
+     "E"
+    ],
+    "vals": {
+     "P": 1.26587,
+     "E": 1.26587,
+     "B": 1.26587,
+     "T": 1.3027400000000002
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "WIS": 30,
+     "INT": 20
+    },
+    "rel": {
+     "P": 0.584,
+     "E": 0.705,
+     "B": 0.705,
+     "T": 0.725
+    },
+    "top": 0.725
+   },
+   {
+    "id": "tide_lamp_crook",
+    "name": "조수 등롱 지팡이",
+    "rar": "rare",
+    "L": 19,
+    "style": "caster",
+    "interval": 0.91,
+    "effect": "sanctify",
+    "eff_name": "수문 불빛",
+    "src": [
+     "T"
+    ],
+    "vals": {
+     "P": 1.2576749999999999,
+     "E": 1.2576749999999999,
+     "B": 1.2576749999999999,
+     "T": 1.28835
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "WIS": 25,
+     "VIT": 15,
+     "INT": 10
+    },
+    "rel": {
+     "P": 0.58,
+     "E": 0.7,
+     "B": 0.7,
+     "T": 0.717
+    },
+    "top": 0.717
+   }
+  ],
+  "n_viable": 2,
+  "viable_effects": [
+   "overcharge",
+   "siphon"
+  ],
+  "strong_nonBF": [],
+  "dominant": [
+   "brine_orb_staff"
+  ],
+  "best_by_sit": {
+   "P": "brine_orb_staff",
+   "E": "brine_orb_staff",
+   "B": "brine_orb_staff",
+   "T": "brine_orb_staff"
+  }
+ },
+ "priest|5": {
+  "rows": [
+   {
+    "id": "embersong_scepter",
+    "name": "불씨노래 홀",
+    "rar": "epic",
+    "L": 24,
+    "style": "caster",
+    "interval": 0.77,
+    "effect": "overcharge",
+    "eff_name": "불씨 노래",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 2.689348,
+     "E": 2.019116,
+     "B": 2.019116,
+     "T": 2.019116
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "INT": 32,
+     "WIS": 19,
+     "VIT": 13
+    },
+    "rel": {
+     "P": 1.0,
+     "E": 1.0,
+     "B": 1.0,
+     "T": 1.0
+    },
+    "top": 1.0
+   },
+   {
+    "id": "forge_chime_rod",
+    "name": "용광로 풍경 홀",
+    "rar": "epic",
+    "L": 24,
+    "style": "caster",
+    "interval": 0.71,
+    "effect": "ward_aura",
+    "eff_name": "망치 소리",
+    "src": [
+     "V"
+    ],
+    "vals": {
+     "P": 1.7170100000000001,
+     "E": 1.7170100000000001,
+     "B": 1.7170100000000001,
+     "T": 1.76702
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "WIS": 32,
+     "VIT": 19,
+     "INT": 13
+    },
+    "rel": {
+     "P": 0.638,
+     "E": 0.85,
+     "B": 0.85,
+     "T": 0.875
+    },
+    "top": 0.875
+   },
+   {
+    "id": "cinder_crystal_staff",
+    "name": "불씨 수정 지팡이",
+    "rar": "epic",
+    "L": 24,
+    "style": "caster",
+    "interval": 0.9,
+    "effect": "death_burst",
+    "eff_name": "수정 폭발",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 2.064225,
+     "E": 1.619,
+     "B": 1.619,
+     "T": 1.619
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "INT": 32,
+     "WIS": 19,
+     "VIT": 13
+    },
+    "rel": {
+     "P": 0.768,
+     "E": 0.802,
+     "B": 0.802,
+     "T": 0.802
+    },
+    "top": 0.802
+   }
+  ],
+  "n_viable": 1,
+  "viable_effects": [
+   "overcharge"
+  ],
+  "strong_nonBF": [],
+  "dominant": [
+   "embersong_scepter"
+  ],
+  "best_by_sit": {
+   "P": "embersong_scepter",
+   "E": "embersong_scepter",
+   "B": "embersong_scepter",
+   "T": "embersong_scepter"
+  }
+ },
+ "priest|8": {
+  "rows": [
+   {
+    "id": "inkwell_staff",
+    "name": "먹물 서고 지팡이",
+    "rar": "legendary",
+    "L": 39,
+    "style": "caster",
+    "interval": 0.95,
+    "effect": "death_burst",
+    "eff_name": "번지는 먹물",
+    "src": [
+     "B"
+    ],
+    "vals": {
+     "P": 2.304894,
+     "E": 2.006,
+     "B": 2.006,
+     "T": 2.006
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "INT": 52,
+     "WIS": 32,
+     "VIT": 21
+    },
+    "rel": {
+     "P": 1.0,
+     "E": 1.0,
+     "B": 1.0,
+     "T": 1.0
+    },
+    "top": 1.0
+   },
+   {
+    "id": "lore_sun_scepter",
+    "name": "금서 해 홀",
+    "rar": "epic",
+    "L": 38,
+    "style": "caster",
+    "interval": 0.77,
+    "effect": "ward_aura",
+    "eff_name": "빛살 글귀",
+    "src": [
+     "V"
+    ],
+    "vals": {
+     "P": 1.73218,
+     "E": 1.73218,
+     "B": 1.73218,
+     "T": 1.781045
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "VIT": 51,
+     "WIS": 31,
+     "INT": 20
+    },
+    "rel": {
+     "P": 0.752,
+     "E": 0.863,
+     "B": 0.863,
+     "T": 0.888
+    },
+    "top": 0.888
+   },
+   {
+    "id": "lore_lamp_crook",
+    "name": "서고 등롱 지팡이",
+    "rar": "epic",
+    "L": 38,
+    "style": "caster",
+    "interval": 0.91,
+    "effect": "sanctify",
+    "eff_name": "되살린 글자",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.7090560000000001,
+     "E": 1.7090560000000001,
+     "B": 1.7090560000000001,
+     "T": 1.7491120000000002
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "VIT": 51,
+     "WIS": 31,
+     "INT": 20
+    },
+    "rel": {
+     "P": 0.741,
+     "E": 0.852,
+     "B": 0.852,
+     "T": 0.872
+    },
+    "top": 0.872
+   },
+   {
+    "id": "ink_chalice",
+    "name": "먹물 잔 홀",
+    "rar": "epic",
+    "L": 38,
+    "style": "caster",
+    "interval": 0.75,
+    "effect": "siphon",
+    "eff_name": "먹물 잔",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 1.892403,
+     "E": 1.658529,
+     "B": 1.658529,
+     "T": 1.658529
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "INT": 51,
+     "WIS": 31,
+     "VIT": 20
+    },
+    "rel": {
+     "P": 0.821,
+     "E": 0.827,
+     "B": 0.827,
+     "T": 0.827
+    },
+    "top": 0.827
+   }
+  ],
+  "n_viable": 1,
+  "viable_effects": [
+   "death_burst"
+  ],
+  "strong_nonBF": [],
+  "dominant": [
+   "inkwell_staff"
+  ],
+  "best_by_sit": {
+   "P": "inkwell_staff",
+   "E": "inkwell_staff",
+   "B": "inkwell_staff",
+   "T": "inkwell_staff"
+  }
+ },
+ "priest|9": {
+  "rows": [
+   {
+    "id": "orrery_staff",
+    "name": "태엽 천구 지팡이",
+    "rar": "epic",
+    "L": 41,
+    "style": "caster",
+    "interval": 0.95,
+    "effect": "overcharge",
+    "eff_name": "궤도 충전",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 2.6526170000000002,
+     "E": 1.9915390000000002,
+     "B": 1.9915390000000002,
+     "T": 1.9915390000000002
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "INT": 55,
+     "WIS": 33,
+     "VIT": 22
+    },
+    "rel": {
+     "P": 1.0,
+     "E": 0.983,
+     "B": 0.983,
+     "T": 0.983
+    },
+    "top": 1.0
+   },
+   {
+    "id": "tesla_coil_staff",
+    "name": "전격 코일 지팡이",
+    "rar": "legendary",
+    "L": 44,
+    "style": "caster",
+    "interval": 0.9,
+    "effect": "chain_spark",
+    "eff_name": "전격 코일",
+    "src": [
+     "B"
+    ],
+    "vals": {
+     "P": 2.497264,
+     "E": 2.027,
+     "B": 2.027,
+     "T": 2.027
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "INT": 60,
+     "WIS": 36,
+     "VIT": 23
+    },
+    "rel": {
+     "P": 0.941,
+     "E": 1.0,
+     "B": 1.0,
+     "T": 1.0
+    },
+    "top": 1.0
+   },
+   {
+    "id": "clock_thurible_rod",
+    "name": "진동 향로봉",
+    "rar": "epic",
+    "L": 42,
+    "style": "caster",
+    "interval": 0.77,
+    "effect": "ward_aura",
+    "eff_name": "진자 박자",
+    "src": [
+     "S"
+    ],
+    "vals": {
+     "P": 1.73658,
+     "E": 1.73658,
+     "B": 1.73658,
+     "T": 1.78716
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "VIT": 56,
+     "WIS": 34,
+     "INT": 23
+    },
+    "rel": {
+     "P": 0.655,
+     "E": 0.857,
+     "B": 0.857,
+     "T": 0.882
+    },
+    "top": 0.882
+   },
+   {
+    "id": "clock_bell_scepter",
+    "name": "시보 종 홀",
+    "rar": "epic",
+    "L": 41,
+    "style": "caster",
+    "interval": 0.77,
+    "effect": "sanctify",
+    "eff_name": "정시 종",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.7117499999999999,
+     "E": 1.7117499999999999,
+     "B": 1.7117499999999999,
+     "T": 1.7535
+    },
+    "looks": [
+     "heavy",
+     "cloth"
+    ],
+    "req": {
+     "VIT": 55,
+     "WIS": 33,
+     "INT": 22
+    },
+    "rel": {
+     "P": 0.645,
+     "E": 0.844,
+     "B": 0.844,
+     "T": 0.865
+    },
+    "top": 0.865
+   }
+  ],
+  "n_viable": 2,
+  "viable_effects": [
+   "chain_spark",
+   "overcharge"
+  ],
+  "strong_nonBF": [],
+  "dominant": [],
+  "best_by_sit": {
+   "P": "orrery_staff",
+   "E": "tesla_coil_staff",
+   "B": "tesla_coil_staff",
+   "T": "tesla_coil_staff"
+  }
+ },
+ "shadow|4": {
+  "rows": [
+   {
+    "id": "sluice_breaker_mace",
+    "name": "수문 부수개",
+    "rar": "epic",
+    "L": 17,
+    "style": "melee",
+    "interval": 0.72,
+    "effect": "thorns",
+    "eff_name": "수문 역류",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 1.83719,
+     "E": 1.7856800000000002,
+     "B": 1.7513400000000001,
+     "T": 1.7513400000000001
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "VIT": 26,
+     "STR": 18
+    },
+    "rel": {
+     "P": 1.0,
+     "E": 0.977,
+     "B": 0.981,
+     "T": 0.972
+    },
+    "top": 1.0
+   },
+   {
+    "id": "drowned_anchor_cleaver",
+    "name": "익사한 닻날",
+    "rar": "epic",
+    "L": 17,
+    "style": "melee",
+    "interval": 1.0,
+    "effect": "berserk",
+    "eff_name": "가라앉는 분노",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 1.7515800000000001,
+     "E": 1.7848800000000002,
+     "B": 1.7848800000000002,
+     "T": 1.716615
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "STR": 26,
+     "LUK": 18
+    },
+    "rel": {
+     "P": 0.953,
+     "E": 0.977,
+     "B": 1.0,
+     "T": 0.953
+    },
+    "top": 1.0
+   },
+   {
+    "id": "tidecaller_bow",
+    "name": "조수 부르는 활",
+    "rar": "legendary",
+    "L": 20,
+    "style": "ranged",
+    "interval": 1.1,
+    "effect": "imbue",
+    "eff_name": "밀물 화살",
+    "src": [
+     "B"
+    ],
+    "vals": {
+     "P": 1.8272599999999999,
+     "E": 1.8272599999999999,
+     "B": 1.74932,
+     "T": 1.74932
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 26,
+     "VIT": 16,
+     "INT": 11
+    },
+    "rel": {
+     "P": 0.995,
+     "E": 1.0,
+     "B": 0.98,
+     "T": 0.971
+    },
+    "top": 1.0
+   },
+   {
+    "id": "eel_twin_bow",
+    "name": "장어 쌍현 활",
+    "rar": "epic",
+    "L": 17,
+    "style": "ranged",
+    "interval": 1.05,
+    "effect": "longshot",
+    "eff_name": "곧은 물길",
+    "src": [
+     "S"
+    ],
+    "vals": {
+     "P": 1.7590800000000002,
+     "E": 1.6166,
+     "B": 1.6166,
+     "T": 1.80155
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 22,
+     "LUK": 13,
+     "STR": 9
+    },
+    "rel": {
+     "P": 0.957,
+     "E": 0.885,
+     "B": 0.906,
+     "T": 1.0
+    },
+    "top": 1.0
+   },
+   {
+    "id": "osric_drowned_axe",
+    "name": "오스릭의 익사 닻도끼",
+    "rar": "epic",
+    "L": 20,
+    "style": "melee",
+    "interval": 1.15,
+    "effect": "armor_break",
+    "eff_name": "닻 사슬",
+    "src": [
+     "B"
+    ],
+    "vals": {
+     "P": 1.585316,
+     "E": 1.613738,
+     "B": 1.6374229999999999,
+     "T": 1.697425
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "VIT": 32,
+     "STR": 21
+    },
+    "rel": {
+     "P": 0.863,
+     "E": 0.883,
+     "B": 0.917,
+     "T": 0.942
+    },
+    "top": 0.942
+   },
+   {
+    "id": "sluice_morning_star",
+    "name": "수문 모닝스타",
+    "rar": "epic",
+    "L": 17,
+    "style": "melee",
+    "interval": 0.77,
+    "effect": "feast",
+    "eff_name": "수문 삼킴",
+    "src": [
+     "V"
+    ],
+    "vals": {
+     "P": 1.6768889999999999,
+     "E": 1.5647849999999999,
+     "B": 1.5647849999999999,
+     "T": 1.5647849999999999
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "STR": 26,
+     "VIT": 18
+    },
+    "rel": {
+     "P": 0.913,
+     "E": 0.856,
+     "B": 0.877,
+     "T": 0.869
+    },
+    "top": 0.913
+   },
+   {
+    "id": "brine_falchion",
+    "name": "소금물 팔시온",
+    "rar": "rare",
+    "L": 19,
+    "style": "melee",
+    "interval": 0.6,
+    "effect": "flurry",
+    "eff_name": "소금물 연타",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.59744,
+     "E": 1.59744,
+     "B": 1.59744,
+     "T": 1.59744
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 30,
+     "STR": 20
+    },
+    "rel": {
+     "P": 0.87,
+     "E": 0.874,
+     "B": 0.895,
+     "T": 0.887
+    },
+    "top": 0.895
+   },
+   {
+    "id": "drowned_executioner_axe",
+    "name": "익사자의 처형 도끼",
+    "rar": "epic",
+    "L": 17,
+    "style": "melee",
+    "interval": 1.18,
+    "effect": "execute",
+    "eff_name": "수문 형장",
+    "src": [
+     "S"
+    ],
+    "vals": {
+     "P": 1.5827039999999999,
+     "E": 1.630032,
+     "B": 1.5353759999999999,
+     "T": 1.5353759999999999
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 22,
+     "STR": 13,
+     "VIT": 9
+    },
+    "rel": {
+     "P": 0.861,
+     "E": 0.892,
+     "B": 0.86,
+     "T": 0.852
+    },
+    "top": 0.892
+   },
+   {
+    "id": "drowned_glaive",
+    "name": "익사자의 언월도",
+    "rar": "rare",
+    "L": 19,
+    "style": "melee",
+    "interval": 0.95,
+    "effect": "bloodrush",
+    "eff_name": "물살 추격",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.5558900000000002,
+     "E": 1.302,
+     "B": 1.302,
+     "T": 1.302
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "STR": 30,
+     "DEX": 20
+    },
+    "rel": {
+     "P": 0.847,
+     "E": 0.713,
+     "B": 0.729,
+     "T": 0.723
+    },
+    "top": 0.847
+   },
+   {
+    "id": "eel_kris",
+    "name": "녹물 장어 크리스",
+    "rar": "epic",
+    "L": 17,
+    "style": "melee",
+    "interval": 0.45,
+    "effect": "counterstep",
+    "eff_name": "미끄러지기",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 1.54846,
+     "E": 1.45394,
+     "B": 1.4219699999999997,
+     "T": 1.4052899999999997
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 26,
+     "STR": 18
+    },
+    "rel": {
+     "P": 0.843,
+     "E": 0.796,
+     "B": 0.797,
+     "T": 0.78
+    },
+    "top": 0.843
+   },
+   {
+    "id": "verdigris_great_axe",
+    "name": "녹청 큰도끼",
+    "rar": "rare",
+    "L": 19,
+    "style": "melee",
+    "interval": 1.05,
+    "effect": "armor_break",
+    "eff_name": "집게 부수기",
+    "src": [
+     "E"
+    ],
+    "vals": {
+     "P": 1.284662,
+     "E": 1.319141,
+     "B": 1.3472349999999997,
+     "T": 1.418747
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "STR": 25,
+     "VIT": 15,
+     "DEX": 10
+    },
+    "rel": {
+     "P": 0.699,
+     "E": 0.722,
+     "B": 0.755,
+     "T": 0.788
+    },
+    "top": 0.788
+   },
+   {
+    "id": "eelfin_sickle",
+    "name": "장어지느러미 낫",
+    "rar": "rare",
+    "L": 19,
+    "style": "melee",
+    "interval": 0.5,
+    "effect": "first_strike",
+    "eff_name": "지느러미 기습",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.425606,
+     "E": 1.192854,
+     "B": 1.1492129999999998,
+     "T": 1.1492129999999998
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 25,
+     "LUK": 15,
+     "STR": 10
+    },
+    "rel": {
+     "P": 0.776,
+     "E": 0.653,
+     "B": 0.644,
+     "T": 0.638
+    },
+    "top": 0.776
+   },
+   {
+    "id": "brine_katar",
+    "name": "소금물 주먹칼",
+    "rar": "rare",
+    "L": 19,
+    "style": "melee",
+    "interval": 0.45,
+    "effect": "rend",
+    "eff_name": "소금 상처",
+    "src": [
+     "V"
+    ],
+    "vals": {
+     "P": 1.259944,
+     "E": 1.327888,
+     "B": 1.327888,
+     "T": 1.327888
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "STR": 25,
+     "LUK": 15,
+     "VIT": 10
+    },
+    "rel": {
+     "P": 0.686,
+     "E": 0.727,
+     "B": 0.744,
+     "T": 0.737
+    },
+    "top": 0.744
+   },
+   {
+    "id": "brine_sabre",
+    "name": "소금물 사브르",
+    "rar": "rare",
+    "L": 19,
+    "style": "melee",
+    "interval": 0.61,
+    "effect": "rend",
+    "eff_name": "소금 톱날",
+    "src": [
+     "T"
+    ],
+    "vals": {
+     "P": 1.2190889999999999,
+     "E": 1.289178,
+     "B": 1.289178,
+     "T": 1.289178
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 25,
+     "LUK": 15,
+     "STR": 10
+    },
+    "rel": {
+     "P": 0.664,
+     "E": 0.706,
+     "B": 0.722,
+     "T": 0.716
+    },
+    "top": 0.722
+   },
+   {
+    "id": "brine_bladebow",
+    "name": "소금물 날활",
+    "rar": "rare",
+    "L": 19,
+    "style": "ranged",
+    "interval": 1.15,
+    "effect": "leech",
+    "eff_name": "소금물 흡수",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.2145199999999998,
+     "E": 1.2145199999999998,
+     "B": 1.2052399999999999,
+     "T": 1.18784
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 25,
+     "VIT": 15,
+     "STR": 10
+    },
+    "rel": {
+     "P": 0.661,
+     "E": 0.665,
+     "B": 0.675,
+     "T": 0.659
+    },
+    "top": 0.675
+   }
+  ],
+  "n_viable": 6,
+  "viable_effects": [
+   "armor_break",
+   "berserk",
+   "feast",
+   "imbue",
+   "longshot",
+   "thorns"
+  ],
+  "strong_nonBF": [
+   "eel_twin_bow"
+  ],
+  "dominant": [],
+  "best_by_sit": {
+   "P": "sluice_breaker_mace",
+   "E": "tidecaller_bow",
+   "B": "drowned_anchor_cleaver",
+   "T": "eel_twin_bow"
+  }
+ },
+ "shadow|5": {
+  "rows": [
+   {
+    "id": "ember_greatsword",
+    "name": "잿불 대검",
+    "rar": "legendary",
+    "L": 25,
+    "style": "melee",
+    "interval": 1.0,
+    "effect": "feast",
+    "eff_name": "불길 포식",
+    "src": [
+     "B"
+    ],
+    "vals": {
+     "P": 2.20286,
+     "E": 2.114324,
+     "B": 2.114324,
+     "T": 2.114324
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "STR": 33,
+     "VIT": 20,
+     "INT": 13
+    },
+    "rel": {
+     "P": 1.0,
+     "E": 1.0,
+     "B": 1.0,
+     "T": 1.0
+    },
+    "top": 1.0
+   },
+   {
+    "id": "ember_tanto",
+    "name": "잿불 탄토",
+    "rar": "epic",
+    "L": 24,
+    "style": "melee",
+    "interval": 0.5,
+    "effect": "backstab",
+    "eff_name": "잿속 칼끝",
+    "src": [
+     "V"
+    ],
+    "vals": {
+     "P": 1.5646400000000003,
+     "E": 1.64846,
+     "B": 1.64846,
+     "T": 1.9837399999999998
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 32,
+     "LUK": 19,
+     "STR": 13
+    },
+    "rel": {
+     "P": 0.71,
+     "E": 0.78,
+     "B": 0.78,
+     "T": 0.938
+    },
+    "top": 0.938
+   },
+   {
+    "id": "bellows_composite_bow",
+    "name": "풀무 복합궁",
+    "rar": "epic",
+    "L": 24,
+    "style": "ranged",
+    "interval": 1.2,
+    "effect": "flurry",
+    "eff_name": "풀무 연사",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 1.926576,
+     "E": 1.926576,
+     "B": 1.926576,
+     "T": 1.926576
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 38,
+     "STR": 26
+    },
+    "rel": {
+     "P": 0.875,
+     "E": 0.911,
+     "B": 0.911,
+     "T": 0.911
+    },
+    "top": 0.911
+   },
+   {
+    "id": "anvil_oath_broadsword",
+    "name": "모루 서약 넓은검",
+    "rar": "epic",
+    "L": 24,
+    "style": "melee",
+    "interval": 0.7,
+    "effect": "steadfast",
+    "eff_name": "모루 서약",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 1.860672,
+     "E": 1.880054,
+     "B": 1.880054,
+     "T": 1.9205800000000002
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "VIT": 32,
+     "DEX": 19,
+     "STR": 13
+    },
+    "rel": {
+     "P": 0.845,
+     "E": 0.889,
+     "B": 0.889,
+     "T": 0.908
+    },
+    "top": 0.908
+   },
+   {
+    "id": "slag_war_spear",
+    "name": "슬래그 창",
+    "rar": "epic",
+    "L": 24,
+    "style": "melee",
+    "interval": 0.87,
+    "effect": "thorns",
+    "eff_name": "슬래그 가시",
+    "src": [
+     "V"
+    ],
+    "vals": {
+     "P": 1.948425,
+     "E": 1.7841000000000002,
+     "B": 1.67455,
+     "T": 1.67455
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "VIT": 38,
+     "STR": 26
+    },
+    "rel": {
+     "P": 0.884,
+     "E": 0.844,
+     "B": 0.792,
+     "T": 0.792
+    },
+    "top": 0.884
+   },
+   {
+    "id": "cinder_rapier",
+    "name": "불씨 레이피어",
+    "rar": "epic",
+    "L": 24,
+    "style": "melee",
+    "interval": 0.56,
+    "effect": "momentum",
+    "eff_name": "불씨 회전",
+    "src": [
+     "E"
+    ],
+    "vals": {
+     "P": 1.699854,
+     "E": 1.77489,
+     "B": 1.77489,
+     "T": 1.77489
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "STR": 32,
+     "DEX": 19,
+     "VIT": 13
+    },
+    "rel": {
+     "P": 0.772,
+     "E": 0.839,
+     "B": 0.839,
+     "T": 0.839
+    },
+    "top": 0.839
+   },
+   {
+    "id": "emberforge_warhammer",
+    "name": "잿불 단조 망치",
+    "rar": "epic",
+    "L": 22,
+    "style": "melee",
+    "interval": 0.75,
+    "effect": "armor_break",
+    "eff_name": "단조 망치질",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.534668,
+     "E": 1.591056,
+     "B": 1.6367760000000002,
+     "T": 1.7480280000000001
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "VIT": 35,
+     "STR": 23
+    },
+    "rel": {
+     "P": 0.697,
+     "E": 0.753,
+     "B": 0.774,
+     "T": 0.827
+    },
+    "top": 0.827
+   },
+   {
+    "id": "cinder_dagger",
+    "name": "불씨 단검",
+    "rar": "epic",
+    "L": 24,
+    "style": "melee",
+    "interval": 0.45,
+    "effect": "first_strike",
+    "eff_name": "첫 불씨",
+    "src": [
+     "T"
+    ],
+    "vals": {
+     "P": 1.7892,
+     "E": 1.4937999999999998,
+     "B": 1.4392,
+     "T": 1.4392
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 32,
+     "LUK": 19,
+     "STR": 13
+    },
+    "rel": {
+     "P": 0.812,
+     "E": 0.707,
+     "B": 0.681,
+     "T": 0.681
+    },
+    "top": 0.812
+   },
+   {
+    "id": "slag_flamberge",
+    "name": "슬래그 플랑베르주",
+    "rar": "epic",
+    "L": 24,
+    "style": "melee",
+    "interval": 1.05,
+    "effect": "rend",
+    "eff_name": "쇳물 상처",
+    "src": [
+     "T"
+    ],
+    "vals": {
+     "P": 1.5818670000000001,
+     "E": 1.686734,
+     "B": 1.686734,
+     "T": 1.686734
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "STR": 32,
+     "LUK": 19,
+     "VIT": 13
+    },
+    "rel": {
+     "P": 0.718,
+     "E": 0.798,
+     "B": 0.798,
+     "T": 0.798
+    },
+    "top": 0.798
+   },
+   {
+    "id": "cinder_fang",
+    "name": "불씨 송곳니",
+    "rar": "epic",
+    "L": 24,
+    "style": "melee",
+    "interval": 0.47,
+    "effect": "imbue",
+    "eff_name": "불씨 송곳니",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 1.624414,
+     "E": 1.6793989999999999,
+     "B": 1.6793989999999999,
+     "T": 1.6793989999999999
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 32,
+     "VIT": 19,
+     "INT": 13
+    },
+    "rel": {
+     "P": 0.737,
+     "E": 0.794,
+     "B": 0.794,
+     "T": 0.794
+    },
+    "top": 0.794
+   },
+   {
+    "id": "anvil_executioner_axe",
+    "name": "모루 처형 도끼",
+    "rar": "epic",
+    "L": 24,
+    "style": "melee",
+    "interval": 1.18,
+    "effect": "execute",
+    "eff_name": "실패작 처분",
+    "src": [
+     "S"
+    ],
+    "vals": {
+     "P": 1.6153279999999999,
+     "E": 1.6661599999999999,
+     "B": 1.564496,
+     "T": 1.564496
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 38,
+     "STR": 26
+    },
+    "rel": {
+     "P": 0.733,
+     "E": 0.788,
+     "B": 0.74,
+     "T": 0.74
+    },
+    "top": 0.788
+   },
+   {
+    "id": "bellows_bone_bow",
+    "name": "풀무 뼈 활",
+    "rar": "epic",
+    "L": 24,
+    "style": "ranged",
+    "interval": 1.15,
+    "effect": "hemorrhage",
+    "eff_name": "뜨거운 숨",
+    "src": [
+     "S"
+    ],
+    "vals": {
+     "P": 1.5972000000000002,
+     "E": 1.659636,
+     "B": 1.659636,
+     "T": 1.659636
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 32,
+     "LUK": 19,
+     "STR": 13
+    },
+    "rel": {
+     "P": 0.725,
+     "E": 0.785,
+     "B": 0.785,
+     "T": 0.785
+    },
+    "top": 0.785
+   },
+   {
+    "id": "cinderdrake_glaive",
+    "name": "잿불 용 언월도",
+    "rar": "epic",
+    "L": 22,
+    "style": "melee",
+    "interval": 0.95,
+    "effect": "imbue",
+    "eff_name": "잿불 베기",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.5184,
+     "E": 1.57534,
+     "B": 1.57534,
+     "T": 1.57534
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 29,
+     "STR": 17,
+     "INT": 12
+    },
+    "rel": {
+     "P": 0.689,
+     "E": 0.745,
+     "B": 0.745,
+     "T": 0.745
+    },
+    "top": 0.745
+   }
+  ],
+  "n_viable": 4,
+  "viable_effects": [
+   "backstab",
+   "feast",
+   "flurry",
+   "steadfast"
+  ],
+  "strong_nonBF": [],
+  "dominant": [
+   "ember_greatsword"
+  ],
+  "best_by_sit": {
+   "P": "ember_greatsword",
+   "E": "ember_greatsword",
+   "B": "ember_greatsword",
+   "T": "ember_greatsword"
+  }
+ },
+ "shadow|8": {
+  "rows": [
+   {
+    "id": "index_keeper_sword",
+    "name": "색인 수호자의 넓은검",
+    "rar": "legendary",
+    "L": 39,
+    "style": "melee",
+    "interval": 0.73,
+    "effect": "execute",
+    "eff_name": "색인 말소",
+    "src": [
+     "B"
+    ],
+    "vals": {
+     "P": 2.1662160000000004,
+     "E": 2.1910200000000004,
+     "B": 2.1414120000000003,
+     "T": 2.1414120000000003
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "STR": 63,
+     "DEX": 42
+    },
+    "rel": {
+     "P": 1.0,
+     "E": 1.0,
+     "B": 1.0,
+     "T": 1.0
+    },
+    "top": 1.0
+   },
+   {
+    "id": "nightshade_dagger",
+    "name": "야음 단검",
+    "rar": "legendary",
+    "L": 39,
+    "style": "melee",
+    "interval": 0.45,
+    "effect": "first_strike",
+    "eff_name": "야음",
+    "src": [
+     "B"
+    ],
+    "vals": {
+     "P": 2.1660299999999997,
+     "E": 1.8578549999999998,
+     "B": 1.8015029999999996,
+     "T": 1.8015029999999996
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 52,
+     "LUK": 32,
+     "STR": 21
+    },
+    "rel": {
+     "P": 1.0,
+     "E": 0.848,
+     "B": 0.841,
+     "T": 0.841
+    },
+    "top": 1.0
+   },
+   {
+    "id": "ink_great_maul",
+    "name": "봉인 대형 망치",
+    "rar": "epic",
+    "L": 38,
+    "style": "melee",
+    "interval": 1.18,
+    "effect": "armor_break",
+    "eff_name": "거꾸로 도장",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.712983,
+     "E": 1.817825,
+     "B": 1.8973019999999998,
+     "T": 2.1036040000000003
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "STR": 61,
+     "VIT": 41
+    },
+    "rel": {
+     "P": 0.791,
+     "E": 0.83,
+     "B": 0.886,
+     "T": 0.982
+    },
+    "top": 0.982
+   },
+   {
+    "id": "ink_stiletto",
+    "name": "먹물 스틸레토",
+    "rar": "epic",
+    "L": 38,
+    "style": "melee",
+    "interval": 0.45,
+    "effect": "backstab",
+    "eff_name": "이름 지우기",
+    "src": [
+     "V"
+    ],
+    "vals": {
+     "P": 1.61504,
+     "E": 1.7015599999999997,
+     "B": 1.7015599999999997,
+     "T": 2.04764
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 51,
+     "LUK": 31,
+     "STR": 20
+    },
+    "rel": {
+     "P": 0.746,
+     "E": 0.777,
+     "B": 0.795,
+     "T": 0.956
+    },
+    "top": 0.956
+   },
+   {
+    "id": "index_war_spear",
+    "name": "색인 창",
+    "rar": "epic",
+    "L": 38,
+    "style": "melee",
+    "interval": 0.87,
+    "effect": "thorns",
+    "eff_name": "대출 금지",
+    "src": [
+     "E"
+    ],
+    "vals": {
+     "P": 2.04927,
+     "E": 1.87644,
+     "B": 1.76122,
+     "T": 1.76122
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "VIT": 61,
+     "STR": 41
+    },
+    "rel": {
+     "P": 0.946,
+     "E": 0.856,
+     "B": 0.822,
+     "T": 0.822
+    },
+    "top": 0.946
+   },
+   {
+    "id": "ink_morning_star",
+    "name": "먹물 모닝스타",
+    "rar": "epic",
+    "L": 38,
+    "style": "melee",
+    "interval": 0.77,
+    "effect": "steadfast",
+    "eff_name": "차분한 먹",
+    "src": [
+     "T"
+    ],
+    "vals": {
+     "P": 1.770944,
+     "E": 1.7940720000000001,
+     "B": 1.7940720000000001,
+     "T": 1.84198
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "VIT": 61,
+     "STR": 41
+    },
+    "rel": {
+     "P": 0.818,
+     "E": 0.819,
+     "B": 0.838,
+     "T": 0.86
+    },
+    "top": 0.86
+   },
+   {
+    "id": "index_cleaver",
+    "name": "색인 참마도",
+    "rar": "epic",
+    "L": 39,
+    "style": "melee",
+    "interval": 1.0,
+    "effect": "berserk",
+    "eff_name": "끝없는 번호",
+    "src": [
+     "S"
+    ],
+    "vals": {
+     "P": 1.7369819999999998,
+     "E": 1.8251999999999997,
+     "B": 1.8251999999999997,
+     "T": 1.6502849999999998
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "STR": 52,
+     "LUK": 32,
+     "VIT": 21
+    },
+    "rel": {
+     "P": 0.802,
+     "E": 0.833,
+     "B": 0.852,
+     "T": 0.771
+    },
+    "top": 0.852
+   },
+   {
+    "id": "ink_flamberge",
+    "name": "먹물 플랑베르주",
+    "rar": "epic",
+    "L": 38,
+    "style": "melee",
+    "interval": 1.05,
+    "effect": "feast",
+    "eff_name": "먹물 삼킴",
+    "src": [
+     "V"
+    ],
+    "vals": {
+     "P": 1.821077,
+     "E": 1.625904,
+     "B": 1.625904,
+     "T": 1.625904
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "STR": 61,
+     "VIT": 41
+    },
+    "rel": {
+     "P": 0.841,
+     "E": 0.742,
+     "B": 0.759,
+     "T": 0.759
+    },
+    "top": 0.841
+   },
+   {
+    "id": "ink_sabre",
+    "name": "먹물 사브르",
+    "rar": "epic",
+    "L": 38,
+    "style": "melee",
+    "interval": 0.61,
+    "effect": "momentum",
+    "eff_name": "흐르는 획",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.7010319999999999,
+     "E": 1.77612,
+     "B": 1.77612,
+     "T": 1.77612
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 61,
+     "STR": 41
+    },
+    "rel": {
+     "P": 0.785,
+     "E": 0.811,
+     "B": 0.829,
+     "T": 0.829
+    },
+    "top": 0.829
+   },
+   {
+    "id": "lore_sickle",
+    "name": "금서 갈고리낫",
+    "rar": "epic",
+    "L": 38,
+    "style": "melee",
+    "interval": 0.5,
+    "effect": "hemorrhage",
+    "eff_name": "붉은 잉크",
+    "src": [
+     "T"
+    ],
+    "vals": {
+     "P": 1.6522000000000001,
+     "E": 1.716786,
+     "B": 1.716786,
+     "T": 1.716786
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 51,
+     "LUK": 31,
+     "STR": 20
+    },
+    "rel": {
+     "P": 0.763,
+     "E": 0.784,
+     "B": 0.802,
+     "T": 0.802
+    },
+    "top": 0.802
+   },
+   {
+    "id": "ink_bone_bow",
+    "name": "먹물 뼈 활",
+    "rar": "epic",
+    "L": 39,
+    "style": "ranged",
+    "interval": 1.15,
+    "effect": "leech",
+    "eff_name": "먹물 방울",
+    "src": [
+     "S"
+    ],
+    "vals": {
+     "P": 1.639602,
+     "E": 1.639602,
+     "B": 1.627074,
+     "T": 1.6035840000000001
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "VIT": 63,
+     "STR": 42
+    },
+    "rel": {
+     "P": 0.757,
+     "E": 0.748,
+     "B": 0.76,
+     "T": 0.749
+    },
+    "top": 0.76
+   },
+   {
+    "id": "ink_rapier",
+    "name": "먹물 레이피어",
+    "rar": "epic",
+    "L": 38,
+    "style": "melee",
+    "interval": 0.56,
+    "effect": "counterstep",
+    "eff_name": "피하는 획",
+    "src": [
+     "E"
+    ],
+    "vals": {
+     "P": 1.644716,
+     "E": 1.524864,
+     "B": 1.484432,
+     "T": 1.464216
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 61,
+     "STR": 41
+    },
+    "rel": {
+     "P": 0.759,
+     "E": 0.696,
+     "B": 0.693,
+     "T": 0.684
+    },
+    "top": 0.759
+   },
+   {
+    "id": "inkquill_hornbow",
+    "name": "깃펜 각궁",
+    "rar": "epic",
+    "L": 38,
+    "style": "ranged",
+    "interval": 1.0,
+    "effect": "rend",
+    "eff_name": "깃펜 베기",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 1.51536,
+     "E": 1.5957200000000002,
+     "B": 1.5957200000000002,
+     "T": 1.5957200000000002
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 51,
+     "STR": 31,
+     "LUK": 20
+    },
+    "rel": {
+     "P": 0.7,
+     "E": 0.728,
+     "B": 0.745,
+     "T": 0.745
+    },
+    "top": 0.745
+   }
+  ],
+  "n_viable": 5,
+  "viable_effects": [
+   "armor_break",
+   "backstab",
+   "execute",
+   "first_strike",
+   "thorns"
+  ],
+  "strong_nonBF": [
+   "ink_great_maul",
+   "ink_stiletto"
+  ],
+  "dominant": [
+   "index_keeper_sword"
+  ],
+  "best_by_sit": {
+   "P": "index_keeper_sword",
+   "E": "index_keeper_sword",
+   "B": "index_keeper_sword",
+   "T": "index_keeper_sword"
+  }
+ },
+ "shadow|9": {
+  "rows": [
+   {
+    "id": "doomclock_executioner",
+    "name": "종말시계 단두도끼",
+    "rar": "legendary",
+    "L": 44,
+    "style": "melee",
+    "interval": 1.15,
+    "effect": "execute",
+    "eff_name": "종말의 초침",
+    "src": [
+     "B"
+    ],
+    "vals": {
+     "P": 2.298264,
+     "E": 2.32458,
+     "B": 2.271948,
+     "T": 2.271948
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "STR": 71,
+     "DEX": 48
+    },
+    "rel": {
+     "P": 1.0,
+     "E": 1.0,
+     "B": 1.0,
+     "T": 1.0
+    },
+    "top": 1.0
+   },
+   {
+    "id": "clock_broadsword",
+    "name": "놋쇠 넓은검",
+    "rar": "epic",
+    "L": 41,
+    "style": "melee",
+    "interval": 0.71,
+    "effect": "shield_bash",
+    "eff_name": "경비병 방패",
+    "src": [
+     "V"
+    ],
+    "vals": {
+     "P": 2.20966,
+     "E": 2.20966,
+     "B": 2.11072,
+     "T": 2.11072
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "VIT": 66,
+     "STR": 44
+    },
+    "rel": {
+     "P": 0.961,
+     "E": 0.951,
+     "B": 0.929,
+     "T": 0.929
+    },
+    "top": 0.961
+   },
+   {
+    "id": "regulator_greatsword",
+    "name": "조율기 대검",
+    "rar": "epic",
+    "L": 41,
+    "style": "melee",
+    "interval": 0.95,
+    "effect": "flurry",
+    "eff_name": "조율 박자",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 2.16953,
+     "E": 2.16953,
+     "B": 2.16953,
+     "T": 2.16953
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 55,
+     "STR": 33,
+     "VIT": 22
+    },
+    "rel": {
+     "P": 0.944,
+     "E": 0.933,
+     "B": 0.955,
+     "T": 0.955
+    },
+    "top": 0.955
+   },
+   {
+    "id": "clock_greatsword",
+    "name": "톱니 대검",
+    "rar": "epic",
+    "L": 42,
+    "style": "melee",
+    "interval": 1.05,
+    "effect": "armor_break",
+    "eff_name": "맞물린 이",
+    "src": [
+     "S"
+    ],
+    "vals": {
+     "P": 1.7265149999999998,
+     "E": 1.8438840000000003,
+     "B": 1.9323360000000003,
+     "T": 2.163672
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "STR": 68,
+     "VIT": 45
+    },
+    "rel": {
+     "P": 0.751,
+     "E": 0.793,
+     "B": 0.851,
+     "T": 0.952
+    },
+    "top": 0.952
+   },
+   {
+    "id": "clockguard_mace",
+    "name": "태엽 수비 철퇴",
+    "rar": "epic",
+    "L": 41,
+    "style": "melee",
+    "interval": 0.68,
+    "effect": "momentum",
+    "eff_name": "태엽 감기",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 2.053263,
+     "E": 2.128317,
+     "B": 2.128317,
+     "T": 2.128317
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 55,
+     "VIT": 33,
+     "STR": 22
+    },
+    "rel": {
+     "P": 0.893,
+     "E": 0.916,
+     "B": 0.937,
+     "T": 0.937
+    },
+    "top": 0.937
+   },
+   {
+    "id": "clock_katar",
+    "name": "톱니 주먹칼",
+    "rar": "epic",
+    "L": 41,
+    "style": "melee",
+    "interval": 0.45,
+    "effect": "backstab",
+    "eff_name": "소리 없는 톱니",
+    "src": [
+     "V"
+    ],
+    "vals": {
+     "P": 1.6228800000000003,
+     "E": 1.70982,
+     "B": 1.70982,
+     "T": 2.05758
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 55,
+     "STR": 33,
+     "LUK": 22
+    },
+    "rel": {
+     "P": 0.706,
+     "E": 0.736,
+     "B": 0.753,
+     "T": 0.906
+    },
+    "top": 0.906
+   },
+   {
+    "id": "springloaded_bow",
+    "name": "용수철 연발궁",
+    "rar": "epic",
+    "L": 41,
+    "style": "ranged",
+    "interval": 1.1,
+    "effect": "flurry",
+    "eff_name": "용수철 연발",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 1.9828800000000002,
+     "E": 1.9828800000000002,
+     "B": 1.9828800000000002,
+     "T": 1.9828800000000002
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 55,
+     "VIT": 33,
+     "STR": 22
+    },
+    "rel": {
+     "P": 0.863,
+     "E": 0.853,
+     "B": 0.873,
+     "T": 0.873
+    },
+    "top": 0.873
+   },
+   {
+    "id": "clock_mace",
+    "name": "태엽 철퇴",
+    "rar": "epic",
+    "L": 41,
+    "style": "melee",
+    "interval": 0.71,
+    "effect": "steadfast",
+    "eff_name": "무거운 태엽",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.7677280000000002,
+     "E": 1.7908140000000001,
+     "B": 1.7908140000000001,
+     "T": 1.838635
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "VIT": 55,
+     "DEX": 33,
+     "STR": 22
+    },
+    "rel": {
+     "P": 0.769,
+     "E": 0.77,
+     "B": 0.788,
+     "T": 0.809
+    },
+    "top": 0.809
+   },
+   {
+    "id": "mainspring_dagger",
+    "name": "태엽 단검",
+    "rar": "epic",
+    "L": 41,
+    "style": "melee",
+    "interval": 0.42,
+    "effect": "counterstep",
+    "eff_name": "태엽 반동",
+    "src": [
+     "F"
+    ],
+    "vals": {
+     "P": 1.8559080000000001,
+     "E": 1.7394980000000002,
+     "B": 1.7012489999999998,
+     "T": 1.6829560000000001
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 66,
+     "STR": 44
+    },
+    "rel": {
+     "P": 0.808,
+     "E": 0.748,
+     "B": 0.749,
+     "T": 0.741
+    },
+    "top": 0.808
+   },
+   {
+    "id": "clock_blade_bow",
+    "name": "태엽 날활",
+    "rar": "epic",
+    "L": 41,
+    "style": "ranged",
+    "interval": 1.15,
+    "effect": "first_strike",
+    "eff_name": "빠른 첫 바늘",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.843824,
+     "E": 1.5336480000000001,
+     "B": 1.476208,
+     "T": 1.476208
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "DEX": 55,
+     "LUK": 33,
+     "STR": 22
+    },
+    "rel": {
+     "P": 0.802,
+     "E": 0.66,
+     "B": 0.65,
+     "T": 0.65
+    },
+    "top": 0.802
+   },
+   {
+    "id": "clock_morning_star",
+    "name": "조속기 모닝스타",
+    "rar": "epic",
+    "L": 41,
+    "style": "melee",
+    "interval": 0.77,
+    "effect": "feast",
+    "eff_name": "추의 박자",
+    "src": [
+     "E"
+    ],
+    "vals": {
+     "P": 1.8334960000000002,
+     "E": 1.6369920000000002,
+     "B": 1.6369920000000002,
+     "T": 1.6369920000000002
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "STR": 66,
+     "VIT": 44
+    },
+    "rel": {
+     "P": 0.798,
+     "E": 0.704,
+     "B": 0.721,
+     "T": 0.721
+    },
+    "top": 0.798
+   },
+   {
+    "id": "clock_longsword",
+    "name": "태엽 장검",
+    "rar": "epic",
+    "L": 41,
+    "style": "melee",
+    "interval": 0.67,
+    "effect": "hemorrhage",
+    "eff_name": "빨라지는 초침",
+    "src": [
+     "E"
+    ],
+    "vals": {
+     "P": 1.6852000000000003,
+     "E": 1.751076,
+     "B": 1.751076,
+     "T": 1.751076
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "STR": 55,
+     "LUK": 33,
+     "VIT": 22
+    },
+    "rel": {
+     "P": 0.733,
+     "E": 0.753,
+     "B": 0.771,
+     "T": 0.771
+    },
+    "top": 0.771
+   },
+   {
+    "id": "clock_kris",
+    "name": "태엽 물결검",
+    "rar": "epic",
+    "L": 41,
+    "style": "melee",
+    "interval": 0.48,
+    "effect": "rend",
+    "eff_name": "도는 상처",
+    "src": [
+     "M"
+    ],
+    "vals": {
+     "P": 1.625088,
+     "E": 1.7141760000000001,
+     "B": 1.7141760000000001,
+     "T": 1.7141760000000001
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "STR": 55,
+     "DEX": 33,
+     "LUK": 22
+    },
+    "rel": {
+     "P": 0.707,
+     "E": 0.737,
+     "B": 0.754,
+     "T": 0.754
+    },
+    "top": 0.754
+   },
+   {
+    "id": "clock_falchion",
+    "name": "태엽 팔시온",
+    "rar": "epic",
+    "L": 41,
+    "style": "melee",
+    "interval": 0.62,
+    "effect": "leech",
+    "eff_name": "한 번 더 물기",
+    "src": [
+     "T"
+    ],
+    "vals": {
+     "P": 1.6971869999999998,
+     "E": 1.6971869999999998,
+     "B": 1.684219,
+     "T": 1.659904
+    },
+    "looks": [
+     "heavy",
+     "light"
+    ],
+    "req": {
+     "STR": 66,
+     "VIT": 44
+    },
+    "rel": {
+     "P": 0.738,
+     "E": 0.73,
+     "B": 0.741,
+     "T": 0.731
+    },
+    "top": 0.741
+   }
+  ],
+  "n_viable": 6,
+  "viable_effects": [
+   "armor_break",
+   "backstab",
+   "execute",
+   "flurry",
+   "momentum",
+   "shield_bash"
+  ],
+  "strong_nonBF": [
+   "clock_greatsword",
+   "clock_broadsword"
+  ],
+  "dominant": [
+   "doomclock_executioner"
+  ],
+  "best_by_sit": {
+   "P": "doomclock_executioner",
+   "E": "doomclock_executioner",
+   "B": "doomclock_executioner",
+   "T": "doomclock_executioner"
+  }
+ }
+}

@@ -1,0 +1,1304 @@
+{
+"solo|6|native|guardian|average|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 27.3,
+"boss_t": 376.1,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 27.3,
+"boss_t": 376.1,
+"deaths": []
+}
+},
+"solo|6|native|guardian|skilled|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 27.0,
+"boss_t": 379.1,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 27.0,
+"boss_t": 379.1,
+"deaths": []
+}
+},
+"solo|6|native|guardian|skilled|hard": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 39.2,
+"boss_t": 546.8,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 39.2,
+"boss_t": 546.8,
+"deaths": []
+}
+},
+"solo|6|native|berserker|average|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 10.3,
+"boss_t": 177.4,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 10.3,
+"boss_t": 177.4,
+"deaths": []
+}
+},
+"solo|6|native|berserker|skilled|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 10.9,
+"boss_t": 180.5,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 10.9,
+"boss_t": 180.5,
+"deaths": []
+}
+},
+"solo|6|native|berserker|skilled|hard": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 16.3,
+"boss_t": 259.0,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 16.3,
+"boss_t": 259.0,
+"deaths": []
+}
+},
+"solo|6|native|hunter|average|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 14.2,
+"boss_t": 182.2,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 14.2,
+"boss_t": 182.2,
+"deaths": []
+}
+},
+"solo|6|native|hunter|skilled|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 13.5,
+"boss_t": 165.2,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 13.5,
+"boss_t": 165.2,
+"deaths": []
+}
+},
+"solo|6|native|hunter|skilled|hard": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 17.9,
+"boss_t": 238.8,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 17.9,
+"boss_t": 238.8,
+"deaths": []
+}
+},
+"solo|6|native|arcanist|average|normal": {
+"look_spec": {
+"clear": 0.45,
+"room_t": 13.7,
+"boss_t": 181.0,
+"deaths": [
+[
+"보스",
+0.475
+],
+[
+"전투방",
+0.05
+]
+]
+},
+"gear_req": {
+"clear": 0.45,
+"room_t": 13.7,
+"boss_t": 181.0,
+"deaths": [
+[
+"보스",
+0.475
+],
+[
+"전투방",
+0.05
+]
+]
+}
+},
+"solo|6|native|arcanist|skilled|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 14.3,
+"boss_t": 182.0,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 14.3,
+"boss_t": 182.0,
+"deaths": []
+}
+},
+"solo|6|native|arcanist|skilled|hard": {
+"look_spec": {
+"clear": 0.1,
+"room_t": 19.5,
+"boss_t": 273.5,
+"deaths": [
+[
+"보스",
+0.825
+],
+[
+"전투방",
+0.075
+]
+]
+},
+"gear_req": {
+"clear": 0.1,
+"room_t": 19.5,
+"boss_t": 273.5,
+"deaths": [
+[
+"보스",
+0.825
+],
+[
+"전투방",
+0.075
+]
+]
+}
+},
+"solo|6|native|priest|average|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 48.2,
+"boss_t": 688.3,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 48.2,
+"boss_t": 688.3,
+"deaths": []
+}
+},
+"solo|6|native|priest|skilled|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 47.5,
+"boss_t": 681.0,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 47.5,
+"boss_t": 681.0,
+"deaths": []
+}
+},
+"solo|6|native|priest|skilled|hard": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 67.5,
+"boss_t": 1032.6,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 67.5,
+"boss_t": 1032.6,
+"deaths": []
+}
+},
+"solo|6|native|shadow|average|normal": {
+"look_spec": {
+"clear": 0.275,
+"room_t": 16.8,
+"boss_t": 259.7,
+"deaths": [
+[
+"보스",
+0.675
+],
+[
+"전투방",
+0.05
+]
+]
+},
+"gear_req": {
+"clear": 0.225,
+"room_t": 16.6,
+"boss_t": 261.5,
+"deaths": [
+[
+"보스",
+0.725
+],
+[
+"전투방",
+0.05
+]
+]
+}
+},
+"solo|6|native|shadow|skilled|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 16.6,
+"boss_t": 251.3,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 16.6,
+"boss_t": 251.3,
+"deaths": []
+}
+},
+"solo|6|native|shadow|skilled|hard": {
+"look_spec": {
+"clear": 0.05,
+"room_t": 24.3,
+"boss_t": 356.6,
+"deaths": [
+[
+"보스",
+0.85
+],
+[
+"전투방",
+0.1
+]
+]
+},
+"gear_req": {
+"clear": 0.05,
+"room_t": 24.3,
+"boss_t": 356.6,
+"deaths": [
+[
+"보스",
+0.85
+],
+[
+"전투방",
+0.1
+]
+]
+}
+},
+"solo|6|heavy|guardian|average|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 27.3,
+"boss_t": 376.1,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 27.3,
+"boss_t": 376.1,
+"deaths": []
+}
+},
+"solo|6|heavy|guardian|skilled|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 27.0,
+"boss_t": 379.1,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 27.0,
+"boss_t": 379.1,
+"deaths": []
+}
+},
+"solo|6|heavy|guardian|skilled|hard": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 39.2,
+"boss_t": 546.8,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 39.2,
+"boss_t": 546.8,
+"deaths": []
+}
+},
+"solo|6|heavy|berserker|average|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 10.3,
+"boss_t": 177.4,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 10.3,
+"boss_t": 177.4,
+"deaths": []
+}
+},
+"solo|6|heavy|berserker|skilled|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 10.9,
+"boss_t": 180.5,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 10.9,
+"boss_t": 180.5,
+"deaths": []
+}
+},
+"solo|6|heavy|berserker|skilled|hard": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 16.3,
+"boss_t": 259.0,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 16.3,
+"boss_t": 259.0,
+"deaths": []
+}
+},
+"solo|6|heavy|hunter|average|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 16.2,
+"boss_t": 205.9,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 16.2,
+"boss_t": 205.9,
+"deaths": []
+}
+},
+"solo|6|heavy|hunter|skilled|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 15.1,
+"boss_t": 184.1,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 15.1,
+"boss_t": 184.1,
+"deaths": []
+}
+},
+"solo|6|heavy|hunter|skilled|hard": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 21.3,
+"boss_t": 266.5,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 21.3,
+"boss_t": 266.5,
+"deaths": []
+}
+},
+"solo|6|heavy|arcanist|average|normal": {
+"look_spec": {
+"clear": 0.9,
+"room_t": 15.9,
+"boss_t": 220.7,
+"deaths": [
+[
+"보스",
+0.1
+]
+]
+},
+"gear_req": {
+"clear": 0.9,
+"room_t": 15.9,
+"boss_t": 220.7,
+"deaths": [
+[
+"보스",
+0.1
+]
+]
+}
+},
+"solo|6|heavy|arcanist|skilled|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 15.7,
+"boss_t": 222.1,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 15.7,
+"boss_t": 222.1,
+"deaths": []
+}
+},
+"solo|6|heavy|arcanist|skilled|hard": {
+"look_spec": {
+"clear": 0.725,
+"room_t": 22.2,
+"boss_t": 355.0,
+"deaths": [
+[
+"보스",
+0.275
+]
+]
+},
+"gear_req": {
+"clear": 0.725,
+"room_t": 22.2,
+"boss_t": 355.0,
+"deaths": [
+[
+"보스",
+0.275
+]
+]
+}
+},
+"solo|6|heavy|priest|average|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 48.2,
+"boss_t": 711.5,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 48.2,
+"boss_t": 711.5,
+"deaths": []
+}
+},
+"solo|6|heavy|priest|skilled|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 50.6,
+"boss_t": 705.3,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 50.6,
+"boss_t": 705.3,
+"deaths": []
+}
+},
+"solo|6|heavy|priest|skilled|hard": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 76.1,
+"boss_t": 1075.0,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 76.1,
+"boss_t": 1075.0,
+"deaths": []
+}
+},
+"solo|6|heavy|shadow|average|normal": {
+"look_spec": {
+"clear": 0.625,
+"room_t": 20.3,
+"boss_t": 312.6,
+"deaths": [
+[
+"보스",
+0.35
+],
+[
+"전투방",
+0.025
+]
+]
+},
+"gear_req": {
+"clear": 0.5,
+"room_t": 21.1,
+"boss_t": 313.2,
+"deaths": [
+[
+"보스",
+0.475
+],
+[
+"전투방",
+0.025
+]
+]
+}
+},
+"solo|6|heavy|shadow|skilled|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 20.3,
+"boss_t": 297.6,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 20.3,
+"boss_t": 297.6,
+"deaths": []
+}
+},
+"solo|6|heavy|shadow|skilled|hard": {
+"look_spec": {
+"clear": 0.45,
+"room_t": 28.6,
+"boss_t": 424.3,
+"deaths": [
+[
+"보스",
+0.55
+]
+]
+},
+"gear_req": {
+"clear": 0.45,
+"room_t": 28.6,
+"boss_t": 424.3,
+"deaths": [
+[
+"보스",
+0.55
+]
+]
+}
+},
+"solo|10|native|guardian|average|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 38.5,
+"boss_t": 444.8,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 38.5,
+"boss_t": 444.8,
+"deaths": []
+}
+},
+"solo|10|native|guardian|skilled|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 37.9,
+"boss_t": 385.7,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 37.9,
+"boss_t": 385.7,
+"deaths": []
+}
+},
+"solo|10|native|guardian|skilled|hard": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 53.5,
+"boss_t": 576.5,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 53.5,
+"boss_t": 576.5,
+"deaths": []
+}
+},
+"solo|10|native|berserker|average|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 7.5,
+"boss_t": 151.7,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 7.5,
+"boss_t": 151.7,
+"deaths": []
+}
+},
+"solo|10|native|berserker|skilled|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 8.2,
+"boss_t": 154.6,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 8.2,
+"boss_t": 154.6,
+"deaths": []
+}
+},
+"solo|10|native|berserker|skilled|hard": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 13.3,
+"boss_t": 220.8,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 13.3,
+"boss_t": 220.8,
+"deaths": []
+}
+},
+"solo|10|native|hunter|average|normal": {
+"look_spec": {
+"clear": 0.75,
+"room_t": 13.3,
+"boss_t": 156.9,
+"deaths": [
+[
+"보스",
+0.175
+],
+[
+"정예방",
+0.05
+]
+]
+},
+"gear_req": {
+"clear": 0.75,
+"room_t": 13.3,
+"boss_t": 156.9,
+"deaths": [
+[
+"보스",
+0.175
+],
+[
+"정예방",
+0.05
+]
+]
+}
+},
+"solo|10|native|hunter|skilled|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 13.0,
+"boss_t": 142.8,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 13.0,
+"boss_t": 142.8,
+"deaths": []
+}
+},
+"solo|10|native|hunter|skilled|hard": {
+"look_spec": {
+"clear": 0.925,
+"room_t": 19.2,
+"boss_t": 205.0,
+"deaths": [
+[
+"보스",
+0.075
+]
+]
+},
+"gear_req": {
+"clear": 0.925,
+"room_t": 19.2,
+"boss_t": 205.0,
+"deaths": [
+[
+"보스",
+0.075
+]
+]
+}
+},
+"solo|10|native|arcanist|average|normal": {
+"look_spec": {
+"clear": 0.875,
+"room_t": 7.8,
+"boss_t": 129.3,
+"deaths": [
+[
+"정예방",
+0.1
+],
+[
+"전투방",
+0.025
+]
+]
+},
+"gear_req": {
+"clear": 0.875,
+"room_t": 7.8,
+"boss_t": 129.3,
+"deaths": [
+[
+"정예방",
+0.1
+],
+[
+"전투방",
+0.025
+]
+]
+}
+},
+"solo|10|native|arcanist|skilled|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 8.2,
+"boss_t": 127.6,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 8.2,
+"boss_t": 127.6,
+"deaths": []
+}
+},
+"solo|10|native|arcanist|skilled|hard": {
+"look_spec": {
+"clear": 0.675,
+"room_t": 13.4,
+"boss_t": 179.0,
+"deaths": [
+[
+"보스",
+0.25
+],
+[
+"정예방",
+0.075
+]
+]
+},
+"gear_req": {
+"clear": 0.675,
+"room_t": 13.4,
+"boss_t": 179.0,
+"deaths": [
+[
+"보스",
+0.25
+],
+[
+"정예방",
+0.075
+]
+]
+}
+},
+"solo|10|native|priest|average|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 62.9,
+"boss_t": 809.4,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 62.9,
+"boss_t": 809.4,
+"deaths": []
+}
+},
+"solo|10|native|priest|skilled|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 55.6,
+"boss_t": 617.3,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 55.6,
+"boss_t": 617.3,
+"deaths": []
+}
+},
+"solo|10|native|priest|skilled|hard": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 82.1,
+"boss_t": 1067.9,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 82.1,
+"boss_t": 1067.9,
+"deaths": []
+}
+},
+"solo|10|native|shadow|average|normal": {
+"look_spec": {
+"clear": 0.0,
+"room_t": 17.8,
+"boss_t": null,
+"deaths": [
+[
+"전투방",
+0.45
+],
+[
+"정예방",
+0.45
+]
+]
+},
+"gear_req": {
+"clear": 0.0,
+"room_t": 17.8,
+"boss_t": null,
+"deaths": [
+[
+"전투방",
+0.45
+],
+[
+"정예방",
+0.45
+]
+]
+}
+},
+"solo|10|native|shadow|skilled|normal": {
+"look_spec": {
+"clear": 0.425,
+"room_t": 18.9,
+"boss_t": 221.6,
+"deaths": [
+[
+"보스",
+0.5
+],
+[
+"정예방",
+0.075
+]
+]
+},
+"gear_req": {
+"clear": 0.425,
+"room_t": 18.9,
+"boss_t": 221.6,
+"deaths": [
+[
+"보스",
+0.5
+],
+[
+"정예방",
+0.075
+]
+]
+}
+},
+"solo|10|native|shadow|skilled|hard": {
+"look_spec": {
+"clear": 0.0,
+"room_t": 26.2,
+"boss_t": null,
+"deaths": [
+[
+"정예방",
+0.6
+],
+[
+"전투방",
+0.4
+]
+]
+},
+"gear_req": {
+"clear": 0.0,
+"room_t": 26.2,
+"boss_t": null,
+"deaths": [
+[
+"정예방",
+0.6
+],
+[
+"전투방",
+0.4
+]
+]
+}
+},
+"solo|10|heavy|guardian|average|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 38.5,
+"boss_t": 444.8,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 38.5,
+"boss_t": 444.8,
+"deaths": []
+}
+},
+"solo|10|heavy|guardian|skilled|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 37.9,
+"boss_t": 385.7,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 37.9,
+"boss_t": 385.7,
+"deaths": []
+}
+},
+"solo|10|heavy|guardian|skilled|hard": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 53.5,
+"boss_t": 576.5,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 53.5,
+"boss_t": 576.5,
+"deaths": []
+}
+},
+"solo|10|heavy|berserker|average|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 7.5,
+"boss_t": 151.7,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 7.5,
+"boss_t": 151.7,
+"deaths": []
+}
+},
+"solo|10|heavy|berserker|skilled|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 8.2,
+"boss_t": 154.6,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 8.2,
+"boss_t": 154.6,
+"deaths": []
+}
+},
+"solo|10|heavy|berserker|skilled|hard": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 13.3,
+"boss_t": 220.8,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 13.3,
+"boss_t": 220.8,
+"deaths": []
+}
+},
+"solo|10|heavy|hunter|average|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 16.1,
+"boss_t": 187.5,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 16.1,
+"boss_t": 187.5,
+"deaths": []
+}
+},
+"solo|10|heavy|hunter|skilled|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 15.2,
+"boss_t": 164.7,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 15.2,
+"boss_t": 164.7,
+"deaths": []
+}
+},
+"solo|10|heavy|hunter|skilled|hard": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 22.1,
+"boss_t": 239.9,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 22.1,
+"boss_t": 239.9,
+"deaths": []
+}
+},
+"solo|10|heavy|arcanist|average|normal": {
+"look_spec": {
+"clear": 0.975,
+"room_t": 12.6,
+"boss_t": 195.5,
+"deaths": [
+[
+"보스",
+0.025
+]
+]
+},
+"gear_req": {
+"clear": 0.975,
+"room_t": 12.6,
+"boss_t": 195.5,
+"deaths": [
+[
+"보스",
+0.025
+]
+]
+}
+},
+"solo|10|heavy|arcanist|skilled|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 13.0,
+"boss_t": 188.7,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 13.0,
+"boss_t": 188.7,
+"deaths": []
+}
+},
+"solo|10|heavy|arcanist|skilled|hard": {
+"look_spec": {
+"clear": 0.7,
+"room_t": 20.2,
+"boss_t": 328.7,
+"deaths": [
+[
+"보스",
+0.3
+]
+]
+},
+"gear_req": {
+"clear": 0.7,
+"room_t": 20.2,
+"boss_t": 328.7,
+"deaths": [
+[
+"보스",
+0.3
+]
+]
+}
+},
+"solo|10|heavy|priest|average|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 113.0,
+"boss_t": 1193.7,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 113.0,
+"boss_t": 1193.7,
+"deaths": []
+}
+},
+"solo|10|heavy|priest|skilled|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 86.1,
+"boss_t": 1094.9,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 86.1,
+"boss_t": 1094.9,
+"deaths": []
+}
+},
+"solo|10|heavy|priest|skilled|hard": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 122.1,
+"boss_t": 1200.0,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 122.1,
+"boss_t": 1200.0,
+"deaths": []
+}
+},
+"solo|10|heavy|shadow|average|normal": {
+"look_spec": {
+"clear": 0.375,
+"room_t": 21.7,
+"boss_t": 304.1,
+"deaths": [
+[
+"보스",
+0.55
+],
+[
+"정예방",
+0.05
+]
+]
+},
+"gear_req": {
+"clear": 0.375,
+"room_t": 21.7,
+"boss_t": 304.1,
+"deaths": [
+[
+"보스",
+0.55
+],
+[
+"정예방",
+0.05
+]
+]
+}
+},
+"solo|10|heavy|shadow|skilled|normal": {
+"look_spec": {
+"clear": 1.0,
+"room_t": 21.9,
+"boss_t": 259.2,
+"deaths": []
+},
+"gear_req": {
+"clear": 1.0,
+"room_t": 21.9,
+"boss_t": 259.2,
+"deaths": []
+}
+},
+"solo|10|heavy|shadow|skilled|hard": {
+"look_spec": {
+"clear": 0.2,
+"room_t": 33.6,
+"boss_t": 379.2,
+"deaths": [
+[
+"보스",
+0.45
+],
+[
+"정예방",
+0.35
+]
+]
+},
+"gear_req": {
+"clear": 0.2,
+"room_t": 33.6,
+"boss_t": 379.2,
+"deaths": [
+[
+"보스",
+0.45
+],
+[
+"정예방",
+0.35
+]
+]
+}
+}
+}

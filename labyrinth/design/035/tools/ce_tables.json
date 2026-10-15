@@ -1,0 +1,7456 @@
+{
+ "weapons": {
+  "corridor_longsword": {
+   "src": "existing",
+   "name": "회랑 수비대 장검",
+   "shape": "longsword",
+   "style": "melee",
+   "kind": "physical",
+   "level": 1,
+   "rarity": "common",
+   "old_type": "sword_shield",
+   "old_damage": [
+    7,
+    8
+   ],
+   "old_rate": 1.5,
+   "interval": 0.67,
+   "per_hit": [
+    8,
+    10
+   ],
+   "rate_per_s": 1.49,
+   "dps_old": 11.25,
+   "dps_new": 13.43,
+   "dps_target": 13.31,
+   "rebase_c": 1.183,
+   "per_hit_factor": 1.2,
+   "skill_power": 9.14,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "mossback_warhammer": {
+   "src": "existing",
+   "name": "이끼등 전투망치",
+   "shape": "warhammer",
+   "style": "melee",
+   "kind": "physical",
+   "level": 3,
+   "rarity": "common",
+   "old_type": "sword_shield",
+   "old_damage": [
+    7,
+    8
+   ],
+   "old_rate": 1.5,
+   "interval": 0.75,
+   "per_hit": [
+    10,
+    11
+   ],
+   "rate_per_s": 1.33,
+   "dps_old": 11.25,
+   "dps_new": 14.0,
+   "dps_target": 13.82,
+   "rebase_c": 1.228,
+   "per_hit_factor": 1.4,
+   "skill_power": 9.52,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "grove_warden_maul": {
+   "src": "existing",
+   "name": "파수꾼의 이끼바위 망치",
+   "shape": "warhammer",
+   "style": "melee",
+   "kind": "physical",
+   "level": 5,
+   "rarity": "rare",
+   "old_type": "sword_shield",
+   "old_damage": [
+    9,
+    10
+   ],
+   "old_rate": 1.5,
+   "interval": 0.75,
+   "per_hit": [
+    13,
+    14
+   ],
+   "rate_per_s": 1.33,
+   "dps_old": 14.25,
+   "dps_new": 18.0,
+   "dps_target": 18.08,
+   "rebase_c": 1.269,
+   "per_hit_factor": 1.4211,
+   "skill_power": 12.24,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "minewarden_mace": {
+   "src": "existing",
+   "name": "갱도 감시자의 철퇴",
+   "shape": "mace",
+   "style": "melee",
+   "kind": "physical",
+   "level": 5,
+   "rarity": "uncommon",
+   "old_type": "sword_shield",
+   "old_damage": [
+    8,
+    10
+   ],
+   "old_rate": 1.5,
+   "interval": 0.72,
+   "per_hit": [
+    11,
+    14
+   ],
+   "rate_per_s": 1.39,
+   "dps_old": 13.5,
+   "dps_new": 17.36,
+   "dps_target": 17.13,
+   "rebase_c": 1.269,
+   "per_hit_factor": 1.3889,
+   "skill_power": 11.81,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "silkguard_falchion": {
+   "src": "existing",
+   "name": "은실 손잡이 팔시온",
+   "shape": "falchion",
+   "style": "melee",
+   "kind": "physical",
+   "level": 8,
+   "rarity": "uncommon",
+   "old_type": "sword_shield",
+   "old_damage": [
+    10,
+    11
+   ],
+   "old_rate": 1.5,
+   "interval": 0.58,
+   "per_hit": [
+    11,
+    13
+   ],
+   "rate_per_s": 1.72,
+   "dps_old": 15.75,
+   "dps_new": 20.69,
+   "dps_target": 20.83,
+   "rebase_c": 1.322,
+   "per_hit_factor": 1.1429,
+   "skill_power": 14.39,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "sporeward_broadsword": {
+   "src": "existing",
+   "name": "포자막이 넓은검",
+   "shape": "broadsword",
+   "style": "melee",
+   "kind": "physical",
+   "level": 11,
+   "rarity": "rare",
+   "old_type": "sword_shield",
+   "old_damage": [
+    12,
+    14
+   ],
+   "old_rate": 1.5,
+   "interval": 0.7,
+   "per_hit": [
+    17,
+    20
+   ],
+   "rate_per_s": 1.43,
+   "dps_old": 19.5,
+   "dps_new": 26.43,
+   "dps_target": 26.69,
+   "rebase_c": 1.369,
+   "per_hit_factor": 1.4231,
+   "skill_power": 17.98,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "sporecap_warhammer": {
+   "src": "existing",
+   "name": "포자갓 망치",
+   "shape": "warhammer",
+   "style": "melee",
+   "kind": "physical",
+   "level": 14,
+   "rarity": "rare",
+   "old_type": "sword_shield",
+   "old_damage": [
+    14,
+    16
+   ],
+   "old_rate": 1.5,
+   "interval": 0.75,
+   "per_hit": [
+    22,
+    25
+   ],
+   "rate_per_s": 1.33,
+   "dps_old": 22.5,
+   "dps_new": 31.33,
+   "dps_target": 31.7,
+   "rebase_c": 1.409,
+   "per_hit_factor": 1.5667,
+   "skill_power": 21.32,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "mycelking_guard_blade": {
+   "src": "existing",
+   "name": "균사왕 근위 넓은검",
+   "shape": "broadsword",
+   "style": "melee",
+   "kind": "physical",
+   "level": 15,
+   "rarity": "epic",
+   "old_type": "sword_shield",
+   "old_damage": [
+    16,
+    19
+   ],
+   "old_rate": 1.5,
+   "interval": 0.7,
+   "per_hit": [
+    24,
+    28
+   ],
+   "rate_per_s": 1.43,
+   "dps_old": 26.25,
+   "dps_new": 37.14,
+   "dps_target": 37.31,
+   "rebase_c": 1.421,
+   "per_hit_factor": 1.4857,
+   "skill_power": 25.27,
+   "weapon_skill_factor": 0.98,
+   "n_weapon_skills": 1
+  },
+  "sluice_breaker_mace": {
+   "src": "existing",
+   "name": "수문 부수개",
+   "shape": "mace",
+   "style": "melee",
+   "kind": "physical",
+   "level": 17,
+   "rarity": "epic",
+   "old_type": "sword_shield",
+   "old_damage": [
+    18,
+    21
+   ],
+   "old_rate": 1.5,
+   "interval": 0.72,
+   "per_hit": [
+    28,
+    33
+   ],
+   "rate_per_s": 1.39,
+   "dps_old": 29.25,
+   "dps_new": 42.36,
+   "dps_target": 42.25,
+   "rebase_c": 1.444,
+   "per_hit_factor": 1.5641,
+   "skill_power": 28.82,
+   "weapon_skill_factor": 0.98,
+   "n_weapon_skills": 2
+  },
+  "brine_falchion": {
+   "src": "existing",
+   "name": "소금물 팔시온",
+   "shape": "falchion",
+   "style": "melee",
+   "kind": "physical",
+   "level": 19,
+   "rarity": "rare",
+   "old_type": "sword_shield",
+   "old_damage": [
+    19,
+    21
+   ],
+   "old_rate": 1.5,
+   "interval": 0.6,
+   "per_hit": [
+    25,
+    28
+   ],
+   "rate_per_s": 1.67,
+   "dps_old": 30.0,
+   "dps_new": 44.17,
+   "dps_target": 43.97,
+   "rebase_c": 1.466,
+   "per_hit_factor": 1.325,
+   "skill_power": 30.54,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "emberforge_warhammer": {
+   "src": "existing",
+   "name": "잿불 단조 망치",
+   "shape": "warhammer",
+   "style": "melee",
+   "kind": "physical",
+   "level": 22,
+   "rarity": "epic",
+   "old_type": "sword_shield",
+   "old_damage": [
+    24,
+    27
+   ],
+   "old_rate": 1.5,
+   "interval": 0.75,
+   "per_hit": [
+    40,
+    46
+   ],
+   "rate_per_s": 1.33,
+   "dps_old": 38.25,
+   "dps_new": 57.33,
+   "dps_target": 57.18,
+   "rebase_c": 1.495,
+   "per_hit_factor": 1.6863,
+   "skill_power": 39.0,
+   "weapon_skill_factor": 0.98,
+   "n_weapon_skills": 1
+  },
+  "anvil_oath_broadsword": {
+   "src": "existing",
+   "name": "모루 서약 넓은검",
+   "shape": "broadsword",
+   "style": "melee",
+   "kind": "physical",
+   "level": 24,
+   "rarity": "epic",
+   "old_type": "sword_shield",
+   "old_damage": [
+    26,
+    30
+   ],
+   "old_rate": 1.5,
+   "interval": 0.7,
+   "per_hit": [
+    41,
+    48
+   ],
+   "rate_per_s": 1.43,
+   "dps_old": 42.0,
+   "dps_new": 63.57,
+   "dps_target": 63.53,
+   "rebase_c": 1.513,
+   "per_hit_factor": 1.5893,
+   "skill_power": 43.25,
+   "weapon_skill_factor": 0.98,
+   "n_weapon_skills": 2
+  },
+  "dawnbringer": {
+   "src": "existing",
+   "name": "여명을 맹세한 검",
+   "shape": "longsword",
+   "style": "melee",
+   "kind": "physical",
+   "level": 25,
+   "rarity": "legendary",
+   "old_type": "sword_shield",
+   "old_damage": [
+    30,
+    34
+   ],
+   "old_rate": 1.5,
+   "interval": 0.67,
+   "per_hit": [
+    46,
+    52
+   ],
+   "rate_per_s": 1.49,
+   "dps_old": 48.0,
+   "dps_new": 73.13,
+   "dps_target": 73.01,
+   "rebase_c": 1.521,
+   "per_hit_factor": 1.5312,
+   "skill_power": 49.75,
+   "weapon_skill_factor": 0.98,
+   "n_weapon_skills": 3
+  },
+  "frostgrave_mace": {
+   "src": "existing",
+   "name": "서리 묘지기의 철퇴",
+   "shape": "mace",
+   "style": "melee",
+   "kind": "physical",
+   "level": 27,
+   "rarity": "epic",
+   "old_type": "sword_shield",
+   "old_damage": [
+    30,
+    35
+   ],
+   "old_rate": 1.5,
+   "interval": 0.72,
+   "per_hit": [
+    50,
+    58
+   ],
+   "rate_per_s": 1.39,
+   "dps_old": 48.75,
+   "dps_new": 75.0,
+   "dps_target": 74.93,
+   "rebase_c": 1.537,
+   "per_hit_factor": 1.6615,
+   "skill_power": 51.02,
+   "weapon_skill_factor": 0.98,
+   "n_weapon_skills": 1
+  },
+  "resonant_longsword": {
+   "src": "existing",
+   "name": "공명 수정 장검",
+   "shape": "longsword",
+   "style": "melee",
+   "kind": "physical",
+   "level": 32,
+   "rarity": "rare",
+   "old_type": "sword_shield",
+   "old_damage": [
+    35,
+    41
+   ],
+   "old_rate": 1.5,
+   "interval": 0.67,
+   "per_hit": [
+    55,
+    65
+   ],
+   "rate_per_s": 1.49,
+   "dps_old": 57.0,
+   "dps_new": 89.55,
+   "dps_target": 89.64,
+   "rebase_c": 1.573,
+   "per_hit_factor": 1.5789,
+   "skill_power": 60.92,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "amethyst_falchion": {
+   "src": "existing",
+   "name": "자수정 팔시온",
+   "shape": "falchion",
+   "style": "melee",
+   "kind": "physical",
+   "level": 34,
+   "rarity": "rare",
+   "old_type": "sword_shield",
+   "old_damage": [
+    39,
+    44
+   ],
+   "old_rate": 1.5,
+   "interval": 0.62,
+   "per_hit": [
+    57,
+    65
+   ],
+   "rate_per_s": 1.61,
+   "dps_old": 62.25,
+   "dps_new": 98.39,
+   "dps_target": 98.69,
+   "rebase_c": 1.585,
+   "per_hit_factor": 1.4699,
+   "skill_power": 67.67,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "inkseal_warhammer": {
+   "src": "existing",
+   "name": "금서 봉인 망치",
+   "shape": "warhammer",
+   "style": "melee",
+   "kind": "physical",
+   "level": 38,
+   "rarity": "epic",
+   "old_type": "sword_shield",
+   "old_damage": [
+    49,
+    55
+   ],
+   "old_rate": 1.5,
+   "interval": 0.75,
+   "per_hit": [
+    89,
+    99
+   ],
+   "rate_per_s": 1.33,
+   "dps_old": 78.0,
+   "dps_new": 125.33,
+   "dps_target": 125.48,
+   "rebase_c": 1.609,
+   "per_hit_factor": 1.8077,
+   "skill_power": 85.26,
+   "weapon_skill_factor": 0.98,
+   "n_weapon_skills": 1
+  },
+  "index_keeper_sword": {
+   "src": "existing",
+   "name": "색인 수호자의 넓은검",
+   "shape": "broadsword",
+   "style": "melee",
+   "kind": "physical",
+   "level": 39,
+   "rarity": "legendary",
+   "old_type": "sword_shield",
+   "old_damage": [
+    55,
+    62
+   ],
+   "old_rate": 1.5,
+   "interval": 0.73,
+   "per_hit": [
+    97,
+    110
+   ],
+   "rate_per_s": 1.37,
+   "dps_old": 87.75,
+   "dps_new": 141.78,
+   "dps_target": 141.65,
+   "rebase_c": 1.614,
+   "per_hit_factor": 1.7692,
+   "skill_power": 96.45,
+   "weapon_skill_factor": 0.98,
+   "n_weapon_skills": 2
+  },
+  "clockguard_mace": {
+   "src": "existing",
+   "name": "태엽 수비 철퇴",
+   "shape": "mace",
+   "style": "melee",
+   "kind": "physical",
+   "level": 41,
+   "rarity": "epic",
+   "old_type": "sword_shield",
+   "old_damage": [
+    54,
+    62
+   ],
+   "old_rate": 1.5,
+   "interval": 0.68,
+   "per_hit": [
+    89,
+    103
+   ],
+   "rate_per_s": 1.47,
+   "dps_old": 87.0,
+   "dps_new": 141.18,
+   "dps_target": 141.34,
+   "rebase_c": 1.625,
+   "per_hit_factor": 1.6552,
+   "skill_power": 96.04,
+   "weapon_skill_factor": 0.98,
+   "n_weapon_skills": 2
+  },
+  "void_falchion": {
+   "src": "existing",
+   "name": "공허 팔시온",
+   "shape": "falchion",
+   "style": "melee",
+   "kind": "physical",
+   "level": 46,
+   "rarity": "epic",
+   "old_type": "sword_shield",
+   "old_damage": [
+    65,
+    74
+   ],
+   "old_rate": 1.5,
+   "interval": 0.62,
+   "per_hit": [
+    100,
+    113
+   ],
+   "rate_per_s": 1.61,
+   "dps_old": 104.25,
+   "dps_new": 171.77,
+   "dps_target": 171.84,
+   "rebase_c": 1.648,
+   "per_hit_factor": 1.5324,
+   "skill_power": 118.15,
+   "weapon_skill_factor": 0.969,
+   "n_weapon_skills": 1
+  },
+  "abyss_sentinel_longsword": {
+   "src": "existing",
+   "name": "심연 파수검",
+   "shape": "longsword",
+   "style": "melee",
+   "kind": "physical",
+   "level": 48,
+   "rarity": "legendary",
+   "old_type": "sword_shield",
+   "old_damage": [
+    76,
+    86
+   ],
+   "old_rate": 1.5,
+   "interval": 0.7,
+   "per_hit": [
+    132,
+    150
+   ],
+   "rate_per_s": 1.43,
+   "dps_old": 121.5,
+   "dps_new": 201.43,
+   "dps_target": 201.33,
+   "rebase_c": 1.657,
+   "per_hit_factor": 1.7407,
+   "skill_power": 137.03,
+   "weapon_skill_factor": 0.98,
+   "n_weapon_skills": 3
+  },
+  "celestial_oathkeeper": {
+   "src": "existing",
+   "name": "천궁의 맹세수호검",
+   "shape": "longsword",
+   "style": "melee",
+   "kind": "physical",
+   "level": 48,
+   "rarity": "mythic",
+   "old_type": "sword_shield",
+   "old_damage": [
+    85,
+    94
+   ],
+   "old_rate": 1.5,
+   "interval": 0.67,
+   "per_hit": [
+    142,
+    156
+   ],
+   "rate_per_s": 1.49,
+   "dps_old": 134.25,
+   "dps_new": 222.39,
+   "dps_target": 222.46,
+   "rebase_c": 1.657,
+   "per_hit_factor": 1.6648,
+   "skill_power": 151.28,
+   "weapon_skill_factor": 0.98,
+   "n_weapon_skills": 4
+  },
+  "rootcutter_greatsword": {
+   "src": "existing",
+   "name": "뿌리 베는 대검",
+   "shape": "greatsword",
+   "style": "melee",
+   "kind": "physical",
+   "level": 1,
+   "rarity": "common",
+   "old_type": "greatsword",
+   "old_damage": [
+    10,
+    12
+   ],
+   "old_rate": 0.95,
+   "interval": 1.0,
+   "per_hit": [
+    11,
+    14
+   ],
+   "rate_per_s": 1.0,
+   "dps_old": 10.45,
+   "dps_new": 12.5,
+   "dps_target": 12.36,
+   "rebase_c": 1.183,
+   "per_hit_factor": 1.1364,
+   "skill_power": 8.5,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "rootbound_scythe": {
+   "src": "existing",
+   "name": "뿌리 감긴 큰낫",
+   "shape": "war_scythe",
+   "style": "melee",
+   "kind": "physical",
+   "level": 3,
+   "rarity": "common",
+   "old_type": "greatsword",
+   "old_damage": [
+    11,
+    13
+   ],
+   "old_rate": 0.95,
+   "interval": 1.0,
+   "per_hit": [
+    13,
+    15
+   ],
+   "rate_per_s": 1.0,
+   "dps_old": 11.4,
+   "dps_new": 14.0,
+   "dps_target": 14.0,
+   "rebase_c": 1.228,
+   "per_hit_factor": 1.1667,
+   "skill_power": 9.52,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "ore_splitter_axe": {
+   "src": "existing",
+   "name": "광맥 쪼개개",
+   "shape": "great_axe",
+   "style": "melee",
+   "kind": "physical",
+   "level": 5,
+   "rarity": "uncommon",
+   "old_type": "greatsword",
+   "old_damage": [
+    12,
+    15
+   ],
+   "old_rate": 0.95,
+   "interval": 1.15,
+   "per_hit": [
+    17,
+    21
+   ],
+   "rate_per_s": 0.87,
+   "dps_old": 12.82,
+   "dps_new": 16.52,
+   "dps_target": 16.27,
+   "rebase_c": 1.269,
+   "per_hit_factor": 1.4074,
+   "skill_power": 11.24,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "silkspan_glaive": {
+   "src": "existing",
+   "name": "은실 언월도",
+   "shape": "glaive",
+   "style": "melee",
+   "kind": "physical",
+   "level": 8,
+   "rarity": "uncommon",
+   "old_type": "greatsword",
+   "old_damage": [
+    15,
+    17
+   ],
+   "old_rate": 0.95,
+   "interval": 0.9,
+   "per_hit": [
+    17,
+    19
+   ],
+   "rate_per_s": 1.11,
+   "dps_old": 15.2,
+   "dps_new": 20.0,
+   "dps_target": 20.1,
+   "rebase_c": 1.322,
+   "per_hit_factor": 1.125,
+   "skill_power": 13.61,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "silkqueen_reaper": {
+   "src": "existing",
+   "name": "베셀라의 거미다리 큰낫",
+   "shape": "war_scythe",
+   "style": "melee",
+   "kind": "physical",
+   "level": 10,
+   "rarity": "epic",
+   "old_type": "greatsword",
+   "old_damage": [
+    19,
+    22
+   ],
+   "old_rate": 0.95,
+   "interval": 1.0,
+   "per_hit": [
+    25,
+    28
+   ],
+   "rate_per_s": 1.0,
+   "dps_old": 19.47,
+   "dps_new": 26.5,
+   "dps_target": 26.37,
+   "rebase_c": 1.354,
+   "per_hit_factor": 1.2927,
+   "skill_power": 18.03,
+   "weapon_skill_factor": 1.547,
+   "n_weapon_skills": 1
+  },
+  "capsplitter_cleaver": {
+   "src": "existing",
+   "name": "갓 가르는 참마도",
+   "shape": "cleaver",
+   "style": "melee",
+   "kind": "physical",
+   "level": 11,
+   "rarity": "rare",
+   "old_type": "greatsword",
+   "old_damage": [
+    18,
+    22
+   ],
+   "old_rate": 0.95,
+   "interval": 0.9,
+   "per_hit": [
+    21,
+    26
+   ],
+   "rate_per_s": 1.11,
+   "dps_old": 19.0,
+   "dps_new": 26.11,
+   "dps_target": 26.01,
+   "rebase_c": 1.369,
+   "per_hit_factor": 1.175,
+   "skill_power": 17.76,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "mycel_scythe": {
+   "src": "existing",
+   "name": "균사 큰낫",
+   "shape": "war_scythe",
+   "style": "melee",
+   "kind": "physical",
+   "level": 14,
+   "rarity": "rare",
+   "old_type": "greatsword",
+   "old_damage": [
+    22,
+    25
+   ],
+   "old_rate": 0.95,
+   "interval": 1.0,
+   "per_hit": [
+    29,
+    34
+   ],
+   "rate_per_s": 1.0,
+   "dps_old": 22.32,
+   "dps_new": 31.5,
+   "dps_target": 31.46,
+   "rebase_c": 1.409,
+   "per_hit_factor": 1.3404,
+   "skill_power": 21.43,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "drowned_anchor_cleaver": {
+   "src": "existing",
+   "name": "익사한 닻날",
+   "shape": "cleaver",
+   "style": "melee",
+   "kind": "physical",
+   "level": 17,
+   "rarity": "epic",
+   "old_type": "greatsword",
+   "old_damage": [
+    28,
+    32
+   ],
+   "old_rate": 0.95,
+   "interval": 1.0,
+   "per_hit": [
+    38,
+    44
+   ],
+   "rate_per_s": 1.0,
+   "dps_old": 28.5,
+   "dps_new": 41.0,
+   "dps_target": 41.17,
+   "rebase_c": 1.444,
+   "per_hit_factor": 1.3667,
+   "skill_power": 27.89,
+   "weapon_skill_factor": 1.547,
+   "n_weapon_skills": 2
+  },
+  "drowned_glaive": {
+   "src": "existing",
+   "name": "익사자의 언월도",
+   "shape": "glaive",
+   "style": "melee",
+   "kind": "physical",
+   "level": 19,
+   "rarity": "rare",
+   "old_type": "greatsword",
+   "old_damage": [
+    29,
+    33
+   ],
+   "old_rate": 0.95,
+   "interval": 0.95,
+   "per_hit": [
+    38,
+    44
+   ],
+   "rate_per_s": 1.05,
+   "dps_old": 29.45,
+   "dps_new": 43.16,
+   "dps_target": 43.17,
+   "rebase_c": 1.466,
+   "per_hit_factor": 1.3226,
+   "skill_power": 29.36,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "osric_drowned_axe": {
+   "src": "existing",
+   "name": "오스릭의 익사 닻도끼",
+   "shape": "great_axe",
+   "style": "melee",
+   "kind": "physical",
+   "level": 20,
+   "rarity": "epic",
+   "old_type": "greatsword",
+   "old_damage": [
+    33,
+    38
+   ],
+   "old_rate": 0.95,
+   "interval": 1.15,
+   "per_hit": [
+    53,
+    61
+   ],
+   "rate_per_s": 0.87,
+   "dps_old": 33.73,
+   "dps_new": 49.57,
+   "dps_target": 49.77,
+   "rebase_c": 1.476,
+   "per_hit_factor": 1.6056,
+   "skill_power": 33.72,
+   "weapon_skill_factor": 1.547,
+   "n_weapon_skills": 1
+  },
+  "cinderdrake_glaive": {
+   "src": "existing",
+   "name": "잿불 용 언월도",
+   "shape": "glaive",
+   "style": "melee",
+   "kind": "physical",
+   "level": 22,
+   "rarity": "epic",
+   "old_type": "greatsword",
+   "old_damage": [
+    37,
+    42
+   ],
+   "old_rate": 0.95,
+   "interval": 0.95,
+   "per_hit": [
+    50,
+    57
+   ],
+   "rate_per_s": 1.05,
+   "dps_old": 37.52,
+   "dps_new": 56.32,
+   "dps_target": 56.1,
+   "rebase_c": 1.495,
+   "per_hit_factor": 1.3544,
+   "skill_power": 38.31,
+   "weapon_skill_factor": 1.547,
+   "n_weapon_skills": 1
+  },
+  "slagforged_greatsword": {
+   "src": "existing",
+   "name": "슬래그 단조 대검",
+   "shape": "greatsword",
+   "style": "melee",
+   "kind": "physical",
+   "level": 24,
+   "rarity": "epic",
+   "old_type": "greatsword",
+   "old_damage": [
+    40,
+    46
+   ],
+   "old_rate": 0.95,
+   "interval": 1.0,
+   "per_hit": [
+    58,
+    66
+   ],
+   "rate_per_s": 1.0,
+   "dps_old": 40.85,
+   "dps_new": 62.0,
+   "dps_target": 61.79,
+   "rebase_c": 1.513,
+   "per_hit_factor": 1.4419,
+   "skill_power": 42.18,
+   "weapon_skill_factor": 1.547,
+   "n_weapon_skills": 2
+  },
+  "ember_greatsword": {
+   "src": "existing",
+   "name": "잿불 대검",
+   "shape": "greatsword",
+   "style": "melee",
+   "kind": "physical",
+   "level": 25,
+   "rarity": "legendary",
+   "old_type": "greatsword",
+   "old_damage": [
+    46,
+    52
+   ],
+   "old_rate": 0.95,
+   "interval": 1.0,
+   "per_hit": [
+    67,
+    75
+   ],
+   "rate_per_s": 1.0,
+   "dps_old": 46.55,
+   "dps_new": 71.0,
+   "dps_target": 70.81,
+   "rebase_c": 1.521,
+   "per_hit_factor": 1.449,
+   "skill_power": 48.3,
+   "weapon_skill_factor": 1.547,
+   "n_weapon_skills": 3
+  },
+  "rime_reaper_scythe": {
+   "src": "existing",
+   "name": "서리 수확자의 큰낫",
+   "shape": "war_scythe",
+   "style": "melee",
+   "kind": "physical",
+   "level": 27,
+   "rarity": "epic",
+   "old_type": "greatsword",
+   "old_damage": [
+    47,
+    54
+   ],
+   "old_rate": 0.95,
+   "interval": 1.0,
+   "per_hit": [
+    69,
+    79
+   ],
+   "rate_per_s": 1.0,
+   "dps_old": 47.97,
+   "dps_new": 74.0,
+   "dps_target": 73.74,
+   "rebase_c": 1.537,
+   "per_hit_factor": 1.4653,
+   "skill_power": 50.34,
+   "weapon_skill_factor": 1.547,
+   "n_weapon_skills": 1
+  },
+  "amethyst_cleaver": {
+   "src": "existing",
+   "name": "자수정 참마도",
+   "shape": "cleaver",
+   "style": "melee",
+   "kind": "physical",
+   "level": 32,
+   "rarity": "rare",
+   "old_type": "greatsword",
+   "old_damage": [
+    54,
+    63
+   ],
+   "old_rate": 0.95,
+   "interval": 0.9,
+   "per_hit": [
+    72,
+    85
+   ],
+   "rate_per_s": 1.11,
+   "dps_old": 55.57,
+   "dps_new": 87.22,
+   "dps_target": 87.4,
+   "rebase_c": 1.573,
+   "per_hit_factor": 1.3419,
+   "skill_power": 59.33,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "geode_scythe": {
+   "src": "existing",
+   "name": "정동 큰낫",
+   "shape": "war_scythe",
+   "style": "melee",
+   "kind": "physical",
+   "level": 34,
+   "rarity": "rare",
+   "old_type": "greatsword",
+   "old_damage": [
+    60,
+    68
+   ],
+   "old_rate": 0.95,
+   "interval": 1.0,
+   "per_hit": [
+    90,
+    103
+   ],
+   "rate_per_s": 1.0,
+   "dps_old": 60.8,
+   "dps_new": 96.5,
+   "dps_target": 96.39,
+   "rebase_c": 1.585,
+   "per_hit_factor": 1.5078,
+   "skill_power": 65.65,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "lore_glaive": {
+   "src": "existing",
+   "name": "금서 언월도",
+   "shape": "glaive",
+   "style": "melee",
+   "kind": "physical",
+   "level": 38,
+   "rarity": "epic",
+   "old_type": "greatsword",
+   "old_damage": [
+    75,
+    86
+   ],
+   "old_rate": 0.95,
+   "interval": 0.95,
+   "per_hit": [
+    109,
+    125
+   ],
+   "rate_per_s": 1.05,
+   "dps_old": 76.47,
+   "dps_new": 123.16,
+   "dps_target": 123.03,
+   "rebase_c": 1.609,
+   "per_hit_factor": 1.4534,
+   "skill_power": 83.78,
+   "weapon_skill_factor": 1.547,
+   "n_weapon_skills": 1
+  },
+  "geode_sunderer": {
+   "src": "existing",
+   "name": "정동 파쇄 도끼",
+   "shape": "great_axe",
+   "style": "melee",
+   "kind": "physical",
+   "level": 35,
+   "rarity": "legendary",
+   "old_type": "greatsword",
+   "old_damage": [
+    73,
+    82
+   ],
+   "old_rate": 0.95,
+   "interval": 1.15,
+   "per_hit": [
+    127,
+    143
+   ],
+   "rate_per_s": 0.87,
+   "dps_old": 73.62,
+   "dps_new": 117.39,
+   "dps_target": 117.17,
+   "rebase_c": 1.592,
+   "per_hit_factor": 1.7419,
+   "skill_power": 79.86,
+   "weapon_skill_factor": 1.547,
+   "n_weapon_skills": 3
+  },
+  "regulator_greatsword": {
+   "src": "existing",
+   "name": "조율기 대검",
+   "shape": "greatsword",
+   "style": "melee",
+   "kind": "physical",
+   "level": 41,
+   "rarity": "epic",
+   "old_type": "greatsword",
+   "old_damage": [
+    84,
+    97
+   ],
+   "old_rate": 0.95,
+   "interval": 0.95,
+   "per_hit": [
+    123,
+    142
+   ],
+   "rate_per_s": 1.05,
+   "dps_old": 85.97,
+   "dps_new": 139.47,
+   "dps_target": 139.68,
+   "rebase_c": 1.625,
+   "per_hit_factor": 1.4641,
+   "skill_power": 94.88,
+   "weapon_skill_factor": 1.547,
+   "n_weapon_skills": 2
+  },
+  "void_scythe": {
+   "src": "existing",
+   "name": "공허의 큰낫",
+   "shape": "war_scythe",
+   "style": "melee",
+   "kind": "physical",
+   "level": 46,
+   "rarity": "epic",
+   "old_type": "greatsword",
+   "old_damage": [
+    101,
+    115
+   ],
+   "old_rate": 0.95,
+   "interval": 1.03,
+   "per_hit": [
+    163,
+    185
+   ],
+   "rate_per_s": 0.97,
+   "dps_old": 102.6,
+   "dps_new": 168.93,
+   "dps_target": 169.12,
+   "rebase_c": 1.648,
+   "per_hit_factor": 1.6111,
+   "skill_power": 114.92,
+   "weapon_skill_factor": 1.547,
+   "n_weapon_skills": 1
+  },
+  "doomclock_executioner": {
+   "src": "existing",
+   "name": "종말시계 단두도끼",
+   "shape": "great_axe",
+   "style": "melee",
+   "kind": "physical",
+   "level": 44,
+   "rarity": "legendary",
+   "old_type": "greatsword",
+   "old_damage": [
+    103,
+    116
+   ],
+   "old_rate": 0.95,
+   "interval": 1.15,
+   "per_hit": [
+    184,
+    208
+   ],
+   "rate_per_s": 0.87,
+   "dps_old": 104.02,
+   "dps_new": 170.43,
+   "dps_target": 170.52,
+   "rebase_c": 1.639,
+   "per_hit_factor": 1.79,
+   "skill_power": 115.94,
+   "weapon_skill_factor": 1.547,
+   "n_weapon_skills": 3
+  },
+  "bloodmoon_reaver": {
+   "src": "existing",
+   "name": "혈월의 수확자",
+   "shape": "great_axe",
+   "style": "melee",
+   "kind": "physical",
+   "level": 48,
+   "rarity": "mythic",
+   "old_type": "greatsword",
+   "old_damage": [
+    132,
+    146
+   ],
+   "old_rate": 0.95,
+   "interval": 1.15,
+   "per_hit": [
+    239,
+    264
+   ],
+   "rate_per_s": 0.87,
+   "dps_old": 132.05,
+   "dps_new": 218.7,
+   "dps_target": 218.82,
+   "rebase_c": 1.657,
+   "per_hit_factor": 1.8094,
+   "skill_power": 148.77,
+   "weapon_skill_factor": 1.547,
+   "n_weapon_skills": 4
+  },
+  "corridor_longbow": {
+   "src": "existing",
+   "name": "회랑 사냥 장궁",
+   "shape": "longbow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 1,
+   "rarity": "common",
+   "old_type": "bow",
+   "old_damage": [
+    9,
+    10
+   ],
+   "old_rate": 1.087,
+   "interval": 1.25,
+   "per_hit": [
+    15,
+    16
+   ],
+   "rate_per_s": 0.8,
+   "dps_old": 10.33,
+   "dps_new": 12.4,
+   "dps_target": 12.22,
+   "rebase_c": 1.183,
+   "per_hit_factor": 1.6316,
+   "skill_power": 8.78,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "mossvine_hornbow": {
+   "src": "existing",
+   "name": "이끼 덩굴 각궁",
+   "shape": "horn_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 3,
+   "rarity": "common",
+   "old_type": "bow",
+   "old_damage": [
+    9,
+    10
+   ],
+   "old_rate": 1.087,
+   "interval": 0.95,
+   "per_hit": [
+    11,
+    13
+   ],
+   "rate_per_s": 1.05,
+   "dps_old": 10.33,
+   "dps_new": 12.63,
+   "dps_target": 12.68,
+   "rebase_c": 1.228,
+   "per_hit_factor": 1.2632,
+   "skill_power": 8.94,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "grove_rootstring_bow": {
+   "src": "existing",
+   "name": "뿌리시위 파수궁",
+   "shape": "horn_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 5,
+   "rarity": "rare",
+   "old_type": "bow",
+   "old_damage": [
+    11,
+    13
+   ],
+   "old_rate": 1.087,
+   "interval": 1.0,
+   "per_hit": [
+    15,
+    18
+   ],
+   "rate_per_s": 1.0,
+   "dps_old": 13.04,
+   "dps_new": 16.5,
+   "dps_target": 16.55,
+   "rebase_c": 1.269,
+   "per_hit_factor": 1.375,
+   "skill_power": 11.68,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "silkstring_recurve": {
+   "src": "existing",
+   "name": "은실 시위 만곡궁",
+   "shape": "recurve_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 5,
+   "rarity": "uncommon",
+   "old_type": "bow",
+   "old_damage": [
+    10,
+    12
+   ],
+   "old_rate": 1.087,
+   "interval": 1.1,
+   "per_hit": [
+    15,
+    18
+   ],
+   "rate_per_s": 0.91,
+   "dps_old": 11.96,
+   "dps_new": 15.0,
+   "dps_target": 15.17,
+   "rebase_c": 1.269,
+   "per_hit_factor": 1.5,
+   "skill_power": 10.62,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "skitter_bladebow": {
+   "src": "existing",
+   "name": "갱도 거미 날활",
+   "shape": "blade_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 8,
+   "rarity": "uncommon",
+   "old_type": "bow",
+   "old_damage": [
+    13,
+    14
+   ],
+   "old_rate": 1.087,
+   "interval": 1.15,
+   "per_hit": [
+    22,
+    23
+   ],
+   "rate_per_s": 0.87,
+   "dps_old": 14.67,
+   "dps_new": 19.57,
+   "dps_target": 19.41,
+   "rebase_c": 1.322,
+   "per_hit_factor": 1.6667,
+   "skill_power": 13.85,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "glowcap_longbow": {
+   "src": "existing",
+   "name": "빛갓 장궁",
+   "shape": "longbow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 11,
+   "rarity": "rare",
+   "old_type": "bow",
+   "old_damage": [
+    15,
+    18
+   ],
+   "old_rate": 1.087,
+   "interval": 1.25,
+   "per_hit": [
+    28,
+    33
+   ],
+   "rate_per_s": 0.8,
+   "dps_old": 17.93,
+   "dps_new": 24.4,
+   "dps_target": 24.55,
+   "rebase_c": 1.369,
+   "per_hit_factor": 1.8485,
+   "skill_power": 17.27,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "mycel_hornbow": {
+   "src": "existing",
+   "name": "균사 각궁",
+   "shape": "horn_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 14,
+   "rarity": "rare",
+   "old_type": "bow",
+   "old_damage": [
+    19,
+    21
+   ],
+   "old_rate": 1.087,
+   "interval": 1.0,
+   "per_hit": [
+    29,
+    32
+   ],
+   "rate_per_s": 1.0,
+   "dps_old": 21.74,
+   "dps_new": 30.5,
+   "dps_target": 30.63,
+   "rebase_c": 1.409,
+   "per_hit_factor": 1.525,
+   "skill_power": 21.58,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "eelbone_recurve": {
+   "src": "existing",
+   "name": "장어뼈 만곡궁",
+   "shape": "recurve_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 17,
+   "rarity": "epic",
+   "old_type": "bow",
+   "old_damage": [
+    23,
+    27
+   ],
+   "old_rate": 1.087,
+   "interval": 1.1,
+   "per_hit": [
+    40,
+    46
+   ],
+   "rate_per_s": 0.91,
+   "dps_old": 27.17,
+   "dps_new": 39.09,
+   "dps_target": 39.25,
+   "rebase_c": 1.444,
+   "per_hit_factor": 1.72,
+   "skill_power": 27.66,
+   "weapon_skill_factor": 1.3,
+   "n_weapon_skills": 1
+  },
+  "brine_bladebow": {
+   "src": "existing",
+   "name": "소금물 날활",
+   "shape": "blade_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 19,
+   "rarity": "rare",
+   "old_type": "bow",
+   "old_damage": [
+    24,
+    28
+   ],
+   "old_rate": 1.087,
+   "interval": 1.15,
+   "per_hit": [
+    44,
+    51
+   ],
+   "rate_per_s": 0.87,
+   "dps_old": 28.26,
+   "dps_new": 41.3,
+   "dps_target": 41.43,
+   "rebase_c": 1.466,
+   "per_hit_factor": 1.8269,
+   "skill_power": 29.23,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "slagedge_bladebow": {
+   "src": "existing",
+   "name": "슬래그 날활",
+   "shape": "blade_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 22,
+   "rarity": "epic",
+   "old_type": "bow",
+   "old_damage": [
+    31,
+    35
+   ],
+   "old_rate": 1.087,
+   "interval": 1.25,
+   "per_hit": [
+    63,
+    71
+   ],
+   "rate_per_s": 0.8,
+   "dps_old": 35.87,
+   "dps_new": 53.6,
+   "dps_target": 53.62,
+   "rebase_c": 1.495,
+   "per_hit_factor": 2.0303,
+   "skill_power": 37.93,
+   "weapon_skill_factor": 1.3,
+   "n_weapon_skills": 1
+  },
+  "bellows_composite_bow": {
+   "src": "existing",
+   "name": "풀무 복합궁",
+   "shape": "composite_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 24,
+   "rarity": "epic",
+   "old_type": "bow",
+   "old_damage": [
+    34,
+    39
+   ],
+   "old_rate": 1.087,
+   "interval": 1.2,
+   "per_hit": [
+    67,
+    77
+   ],
+   "rate_per_s": 0.83,
+   "dps_old": 39.67,
+   "dps_new": 60.0,
+   "dps_target": 60.01,
+   "rebase_c": 1.513,
+   "per_hit_factor": 1.9726,
+   "skill_power": 42.46,
+   "weapon_skill_factor": 1.3,
+   "n_weapon_skills": 2
+  },
+  "tidecaller_bow": {
+   "src": "existing",
+   "name": "조수 부르는 활",
+   "shape": "recurve_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 20,
+   "rarity": "legendary",
+   "old_type": "bow",
+   "old_damage": [
+    30,
+    34
+   ],
+   "old_rate": 1.087,
+   "interval": 1.1,
+   "per_hit": [
+    53,
+    60
+   ],
+   "rate_per_s": 0.91,
+   "dps_old": 34.78,
+   "dps_new": 51.36,
+   "dps_target": 51.34,
+   "rebase_c": 1.476,
+   "per_hit_factor": 1.7656,
+   "skill_power": 36.35,
+   "weapon_skill_factor": 1.3,
+   "n_weapon_skills": 2
+  },
+  "frostbone_longbow": {
+   "src": "existing",
+   "name": "얼음뼈 장궁",
+   "shape": "longbow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 27,
+   "rarity": "epic",
+   "old_type": "bow",
+   "old_damage": [
+    39,
+    45
+   ],
+   "old_rate": 1.087,
+   "interval": 1.3,
+   "per_hit": [
+    85,
+    98
+   ],
+   "rate_per_s": 0.77,
+   "dps_old": 45.65,
+   "dps_new": 70.38,
+   "dps_target": 70.17,
+   "rebase_c": 1.537,
+   "per_hit_factor": 2.1786,
+   "skill_power": 49.81,
+   "weapon_skill_factor": 1.3,
+   "n_weapon_skills": 1
+  },
+  "prismstring_longbow": {
+   "src": "existing",
+   "name": "프리즘 시위 장궁",
+   "shape": "longbow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 32,
+   "rarity": "rare",
+   "old_type": "bow",
+   "old_damage": [
+    45,
+    53
+   ],
+   "old_rate": 1.087,
+   "interval": 1.25,
+   "per_hit": [
+    96,
+    113
+   ],
+   "rate_per_s": 0.8,
+   "dps_old": 53.26,
+   "dps_new": 83.6,
+   "dps_target": 83.76,
+   "rebase_c": 1.573,
+   "per_hit_factor": 2.1327,
+   "skill_power": 59.16,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "prism_hornbow": {
+   "src": "existing",
+   "name": "프리즘 각궁",
+   "shape": "horn_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 34,
+   "rarity": "rare",
+   "old_type": "bow",
+   "old_damage": [
+    50,
+    57
+   ],
+   "old_rate": 1.087,
+   "interval": 1.0,
+   "per_hit": [
+    86,
+    98
+   ],
+   "rate_per_s": 1.0,
+   "dps_old": 58.15,
+   "dps_new": 92.0,
+   "dps_target": 92.19,
+   "rebase_c": 1.585,
+   "per_hit_factor": 1.7196,
+   "skill_power": 65.11,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "inkquill_hornbow": {
+   "src": "existing",
+   "name": "깃펜 각궁",
+   "shape": "horn_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 38,
+   "rarity": "epic",
+   "old_type": "bow",
+   "old_damage": [
+    63,
+    72
+   ],
+   "old_rate": 1.087,
+   "interval": 1.0,
+   "per_hit": [
+    110,
+    126
+   ],
+   "rate_per_s": 1.0,
+   "dps_old": 73.37,
+   "dps_new": 118.0,
+   "dps_target": 118.03,
+   "rebase_c": 1.609,
+   "per_hit_factor": 1.7481,
+   "skill_power": 83.51,
+   "weapon_skill_factor": 1.3,
+   "n_weapon_skills": 1
+  },
+  "galewing_bow": {
+   "src": "existing",
+   "name": "질풍 날개 활",
+   "shape": "composite_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 35,
+   "rarity": "legendary",
+   "old_type": "bow",
+   "old_damage": [
+    60,
+    69
+   ],
+   "old_rate": 1.087,
+   "interval": 1.15,
+   "per_hit": [
+    120,
+    137
+   ],
+   "rate_per_s": 0.87,
+   "dps_old": 70.11,
+   "dps_new": 111.74,
+   "dps_target": 111.58,
+   "rebase_c": 1.592,
+   "per_hit_factor": 1.9922,
+   "skill_power": 79.08,
+   "weapon_skill_factor": 1.3,
+   "n_weapon_skills": 2
+  },
+  "springloaded_bow": {
+   "src": "existing",
+   "name": "용수철 연발궁",
+   "shape": "composite_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 41,
+   "rarity": "epic",
+   "old_type": "bow",
+   "old_damage": [
+    71,
+    81
+   ],
+   "old_rate": 1.087,
+   "interval": 1.1,
+   "per_hit": [
+    138,
+    157
+   ],
+   "rate_per_s": 0.91,
+   "dps_old": 82.61,
+   "dps_new": 134.09,
+   "dps_target": 134.21,
+   "rebase_c": 1.625,
+   "per_hit_factor": 1.9408,
+   "skill_power": 94.9,
+   "weapon_skill_factor": 1.3,
+   "n_weapon_skills": 2
+  },
+  "abyss_bladebow": {
+   "src": "existing",
+   "name": "심연 날활",
+   "shape": "blade_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 46,
+   "rarity": "epic",
+   "old_type": "bow",
+   "old_damage": [
+    85,
+    97
+   ],
+   "old_rate": 1.087,
+   "interval": 1.15,
+   "per_hit": [
+    175,
+    200
+   ],
+   "rate_per_s": 0.87,
+   "dps_old": 98.91,
+   "dps_new": 163.04,
+   "dps_target": 163.05,
+   "rebase_c": 1.648,
+   "per_hit_factor": 2.0604,
+   "skill_power": 115.38,
+   "weapon_skill_factor": 1.3,
+   "n_weapon_skills": 1
+  },
+  "quicksilver_longbow": {
+   "src": "existing",
+   "name": "수은 장궁",
+   "shape": "longbow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 44,
+   "rarity": "legendary",
+   "old_type": "bow",
+   "old_damage": [
+    86,
+    97
+   ],
+   "old_rate": 1.087,
+   "interval": 1.15,
+   "per_hit": [
+    176,
+    199
+   ],
+   "rate_per_s": 0.87,
+   "dps_old": 99.46,
+   "dps_new": 163.04,
+   "dps_target": 163.03,
+   "rebase_c": 1.639,
+   "per_hit_factor": 2.0492,
+   "skill_power": 115.38,
+   "weapon_skill_factor": 1.3,
+   "n_weapon_skills": 2
+  },
+  "tempest_bow": {
+   "src": "existing",
+   "name": "폭풍의 눈",
+   "shape": "composite_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 48,
+   "rarity": "mythic",
+   "old_type": "bow",
+   "old_damage": [
+    111,
+    122
+   ],
+   "old_rate": 1.087,
+   "interval": 1.15,
+   "per_hit": [
+    230,
+    253
+   ],
+   "rate_per_s": 0.87,
+   "dps_old": 126.63,
+   "dps_new": 210.0,
+   "dps_target": 209.83,
+   "rebase_c": 1.657,
+   "per_hit_factor": 2.073,
+   "skill_power": 148.62,
+   "weapon_skill_factor": 1.3,
+   "n_weapon_skills": 3
+  },
+  "lantern_staff": {
+   "src": "existing",
+   "name": "등불 지팡이",
+   "shape": "staff_orb",
+   "style": "caster",
+   "kind": "magic",
+   "level": 1,
+   "rarity": "common",
+   "old_type": "staff",
+   "old_damage": [
+    7,
+    8
+   ],
+   "old_rate": 1.1,
+   "interval": 0.95,
+   "per_hit": [
+    9,
+    10
+   ],
+   "rate_per_s": 1.05,
+   "dps_old": 8.25,
+   "dps_new": 10.0,
+   "dps_target": 9.76,
+   "rebase_c": 1.183,
+   "per_hit_factor": 1.2667,
+   "skill_power": 8.61,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "wayfarer_spiral_staff": {
+   "src": "existing",
+   "name": "길잡이의 소용돌이 지팡이",
+   "shape": "staff_spiral",
+   "style": "caster",
+   "kind": "magic",
+   "level": 3,
+   "rarity": "common",
+   "old_type": "staff",
+   "old_damage": [
+    8,
+    9
+   ],
+   "old_rate": 1.1,
+   "interval": 0.9,
+   "per_hit": [
+    10,
+    11
+   ],
+   "rate_per_s": 1.11,
+   "dps_old": 9.35,
+   "dps_new": 11.67,
+   "dps_target": 11.49,
+   "rebase_c": 1.228,
+   "per_hit_factor": 1.2353,
+   "skill_power": 10.04,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "grove_heartwood_staff": {
+   "src": "existing",
+   "name": "심재 반딧불 지팡이",
+   "shape": "staff_spiral",
+   "style": "caster",
+   "kind": "magic",
+   "level": 5,
+   "rarity": "rare",
+   "old_type": "staff",
+   "old_damage": [
+    10,
+    11
+   ],
+   "old_rate": 1.1,
+   "interval": 0.9,
+   "per_hit": [
+    12,
+    14
+   ],
+   "rate_per_s": 1.11,
+   "dps_old": 11.55,
+   "dps_new": 14.44,
+   "dps_target": 14.66,
+   "rebase_c": 1.269,
+   "per_hit_factor": 1.2381,
+   "skill_power": 12.43,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "ore_crystal_staff": {
+   "src": "existing",
+   "name": "광석 수정 지팡이",
+   "shape": "staff_crystal",
+   "style": "caster",
+   "kind": "magic",
+   "level": 5,
+   "rarity": "uncommon",
+   "old_type": "staff",
+   "old_damage": [
+    9,
+    11
+   ],
+   "old_rate": 1.1,
+   "interval": 0.9,
+   "per_hit": [
+    11,
+    14
+   ],
+   "rate_per_s": 1.11,
+   "dps_old": 11.0,
+   "dps_new": 13.89,
+   "dps_target": 13.96,
+   "rebase_c": 1.269,
+   "per_hit_factor": 1.25,
+   "skill_power": 11.95,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "miners_fork_staff": {
+   "src": "existing",
+   "name": "광부의 갈래 지팡이",
+   "shape": "staff_fork",
+   "style": "caster",
+   "kind": "magic",
+   "level": 8,
+   "rarity": "uncommon",
+   "old_type": "staff",
+   "old_damage": [
+    11,
+    12
+   ],
+   "old_rate": 1.1,
+   "interval": 0.9,
+   "per_hit": [
+    14,
+    16
+   ],
+   "rate_per_s": 1.11,
+   "dps_old": 12.65,
+   "dps_new": 16.67,
+   "dps_target": 16.73,
+   "rebase_c": 1.322,
+   "per_hit_factor": 1.3043,
+   "skill_power": 14.34,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "mycelium_staff": {
+   "src": "existing",
+   "name": "균사 고리 지팡이",
+   "shape": "staff_ring",
+   "style": "caster",
+   "kind": "magic",
+   "level": 11,
+   "rarity": "rare",
+   "old_type": "staff",
+   "old_damage": [
+    13,
+    15
+   ],
+   "old_rate": 1.1,
+   "interval": 0.9,
+   "per_hit": [
+    18,
+    20
+   ],
+   "rate_per_s": 1.11,
+   "dps_old": 15.4,
+   "dps_new": 21.11,
+   "dps_target": 21.08,
+   "rebase_c": 1.369,
+   "per_hit_factor": 1.3571,
+   "skill_power": 18.17,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "glowcap_spiral_staff": {
+   "src": "existing",
+   "name": "빛갓 소용돌이 지팡이",
+   "shape": "staff_spiral",
+   "style": "caster",
+   "kind": "magic",
+   "level": 14,
+   "rarity": "rare",
+   "old_type": "staff",
+   "old_damage": [
+    16,
+    18
+   ],
+   "old_rate": 1.1,
+   "interval": 0.9,
+   "per_hit": [
+    22,
+    25
+   ],
+   "rate_per_s": 1.11,
+   "dps_old": 18.7,
+   "dps_new": 26.11,
+   "dps_target": 26.35,
+   "rebase_c": 1.409,
+   "per_hit_factor": 1.3824,
+   "skill_power": 22.47,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "brine_orb_staff": {
+   "src": "existing",
+   "name": "소금물 구슬 지팡이",
+   "shape": "staff_orb",
+   "style": "caster",
+   "kind": "magic",
+   "level": 17,
+   "rarity": "epic",
+   "old_type": "staff",
+   "old_damage": [
+    20,
+    23
+   ],
+   "old_rate": 1.1,
+   "interval": 0.95,
+   "per_hit": [
+    30,
+    35
+   ],
+   "rate_per_s": 1.05,
+   "dps_old": 23.65,
+   "dps_new": 34.21,
+   "dps_target": 34.16,
+   "rebase_c": 1.444,
+   "per_hit_factor": 1.5116,
+   "skill_power": 29.44,
+   "weapon_skill_factor": 1.056,
+   "n_weapon_skills": 2
+  },
+  "tide_fork_staff": {
+   "src": "existing",
+   "name": "조류의 삼지창 지팡이",
+   "shape": "staff_fork",
+   "style": "caster",
+   "kind": "magic",
+   "level": 19,
+   "rarity": "rare",
+   "old_type": "staff",
+   "old_damage": [
+    21,
+    24
+   ],
+   "old_rate": 1.1,
+   "interval": 0.9,
+   "per_hit": [
+    30,
+    35
+   ],
+   "rate_per_s": 1.11,
+   "dps_old": 24.75,
+   "dps_new": 36.11,
+   "dps_target": 36.28,
+   "rebase_c": 1.466,
+   "per_hit_factor": 1.4444,
+   "skill_power": 31.08,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "osric_tide_trident": {
+   "src": "existing",
+   "name": "오스릭의 조수 삼지창",
+   "shape": "staff_fork",
+   "style": "caster",
+   "kind": "magic",
+   "level": 20,
+   "rarity": "epic",
+   "old_type": "staff",
+   "old_damage": [
+    23,
+    27
+   ],
+   "old_rate": 1.1,
+   "interval": 0.9,
+   "per_hit": [
+    34,
+    39
+   ],
+   "rate_per_s": 1.11,
+   "dps_old": 27.5,
+   "dps_new": 40.56,
+   "dps_target": 40.59,
+   "rebase_c": 1.476,
+   "per_hit_factor": 1.46,
+   "skill_power": 34.9,
+   "weapon_skill_factor": 1.056,
+   "n_weapon_skills": 1
+  },
+  "cinder_spiral_staff": {
+   "src": "existing",
+   "name": "불씨 소용돌이 지팡이",
+   "shape": "staff_spiral",
+   "style": "caster",
+   "kind": "magic",
+   "level": 22,
+   "rarity": "epic",
+   "old_type": "staff",
+   "old_damage": [
+    26,
+    30
+   ],
+   "old_rate": 1.1,
+   "interval": 0.9,
+   "per_hit": [
+    39,
+    44
+   ],
+   "rate_per_s": 1.11,
+   "dps_old": 30.8,
+   "dps_new": 46.11,
+   "dps_target": 46.04,
+   "rebase_c": 1.495,
+   "per_hit_factor": 1.4821,
+   "skill_power": 39.69,
+   "weapon_skill_factor": 1.056,
+   "n_weapon_skills": 1
+  },
+  "cinder_crystal_staff": {
+   "src": "existing",
+   "name": "불씨 수정 지팡이",
+   "shape": "staff_crystal",
+   "style": "caster",
+   "kind": "magic",
+   "level": 24,
+   "rarity": "epic",
+   "old_type": "staff",
+   "old_damage": [
+    29,
+    33
+   ],
+   "old_rate": 1.1,
+   "interval": 0.9,
+   "per_hit": [
+    44,
+    49
+   ],
+   "rate_per_s": 1.11,
+   "dps_old": 34.1,
+   "dps_new": 51.67,
+   "dps_target": 51.58,
+   "rebase_c": 1.513,
+   "per_hit_factor": 1.5,
+   "skill_power": 44.47,
+   "weapon_skill_factor": 1.056,
+   "n_weapon_skills": 2
+  },
+  "rimeheart_staff": {
+   "src": "existing",
+   "name": "서리심장 지팡이",
+   "shape": "staff_crystal",
+   "style": "caster",
+   "kind": "magic",
+   "level": 27,
+   "rarity": "legendary",
+   "old_type": "staff",
+   "old_damage": [
+    36,
+    41
+   ],
+   "old_rate": 1.1,
+   "interval": 0.9,
+   "per_hit": [
+    55,
+    62
+   ],
+   "rate_per_s": 1.11,
+   "dps_old": 42.35,
+   "dps_new": 65.0,
+   "dps_target": 65.09,
+   "rebase_c": 1.537,
+   "per_hit_factor": 1.5195,
+   "skill_power": 55.94,
+   "weapon_skill_factor": 1.056,
+   "n_weapon_skills": 3
+  },
+  "rimebell_staff": {
+   "src": "existing",
+   "name": "서리방울 고리 지팡이",
+   "shape": "staff_ring",
+   "style": "caster",
+   "kind": "magic",
+   "level": 27,
+   "rarity": "epic",
+   "old_type": "staff",
+   "old_damage": [
+    33,
+    38
+   ],
+   "old_rate": 1.1,
+   "interval": 0.9,
+   "per_hit": [
+    50,
+    58
+   ],
+   "rate_per_s": 1.11,
+   "dps_old": 39.05,
+   "dps_new": 60.0,
+   "dps_target": 60.02,
+   "rebase_c": 1.537,
+   "per_hit_factor": 1.5211,
+   "skill_power": 51.64,
+   "weapon_skill_factor": 1.056,
+   "n_weapon_skills": 1
+  },
+  "resonance_staff": {
+   "src": "existing",
+   "name": "공명 고리 지팡이",
+   "shape": "staff_ring",
+   "style": "caster",
+   "kind": "magic",
+   "level": 32,
+   "rarity": "rare",
+   "old_type": "staff",
+   "old_damage": [
+    38,
+    45
+   ],
+   "old_rate": 1.1,
+   "interval": 0.9,
+   "per_hit": [
+    59,
+    70
+   ],
+   "rate_per_s": 1.11,
+   "dps_old": 45.65,
+   "dps_new": 71.67,
+   "dps_target": 71.79,
+   "rebase_c": 1.573,
+   "per_hit_factor": 1.5542,
+   "skill_power": 61.68,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "resonant_fork_staff": {
+   "src": "existing",
+   "name": "공명 소리굽쇠 지팡이",
+   "shape": "staff_fork",
+   "style": "caster",
+   "kind": "magic",
+   "level": 34,
+   "rarity": "rare",
+   "old_type": "staff",
+   "old_damage": [
+    42,
+    48
+   ],
+   "old_rate": 1.1,
+   "interval": 0.9,
+   "per_hit": [
+    66,
+    75
+   ],
+   "rate_per_s": 1.11,
+   "dps_old": 49.5,
+   "dps_new": 78.33,
+   "dps_target": 78.48,
+   "rebase_c": 1.585,
+   "per_hit_factor": 1.5667,
+   "skill_power": 67.42,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "ink_spiral_staff": {
+   "src": "existing",
+   "name": "먹물 소용돌이 지팡이",
+   "shape": "staff_spiral",
+   "style": "caster",
+   "kind": "magic",
+   "level": 38,
+   "rarity": "epic",
+   "old_type": "staff",
+   "old_damage": [
+    53,
+    61
+   ],
+   "old_rate": 1.1,
+   "interval": 0.9,
+   "per_hit": [
+    84,
+    97
+   ],
+   "rate_per_s": 1.11,
+   "dps_old": 62.7,
+   "dps_new": 100.56,
+   "dps_target": 100.87,
+   "rebase_c": 1.609,
+   "per_hit_factor": 1.5877,
+   "skill_power": 86.54,
+   "weapon_skill_factor": 1.056,
+   "n_weapon_skills": 1
+  },
+  "inkwell_staff": {
+   "src": "existing",
+   "name": "먹물 서고 지팡이",
+   "shape": "staff_orb",
+   "style": "caster",
+   "kind": "magic",
+   "level": 39,
+   "rarity": "legendary",
+   "old_type": "staff",
+   "old_damage": [
+    61,
+    69
+   ],
+   "old_rate": 1.1,
+   "interval": 0.95,
+   "per_hit": [
+    103,
+    116
+   ],
+   "rate_per_s": 1.05,
+   "dps_old": 71.5,
+   "dps_new": 115.26,
+   "dps_target": 115.42,
+   "rebase_c": 1.614,
+   "per_hit_factor": 1.6846,
+   "skill_power": 99.2,
+   "weapon_skill_factor": 1.056,
+   "n_weapon_skills": 3
+  },
+  "orrery_staff": {
+   "src": "existing",
+   "name": "태엽 천구 지팡이",
+   "shape": "staff_orb",
+   "style": "caster",
+   "kind": "magic",
+   "level": 41,
+   "rarity": "epic",
+   "old_type": "staff",
+   "old_damage": [
+    60,
+    69
+   ],
+   "old_rate": 1.1,
+   "interval": 0.95,
+   "per_hit": [
+    102,
+    117
+   ],
+   "rate_per_s": 1.05,
+   "dps_old": 70.95,
+   "dps_new": 115.26,
+   "dps_target": 115.27,
+   "rebase_c": 1.625,
+   "per_hit_factor": 1.6977,
+   "skill_power": 99.2,
+   "weapon_skill_factor": 1.056,
+   "n_weapon_skills": 2
+  },
+  "void_fork_staff": {
+   "src": "existing",
+   "name": "공허 갈래 지팡이",
+   "shape": "staff_fork",
+   "style": "caster",
+   "kind": "magic",
+   "level": 46,
+   "rarity": "epic",
+   "old_type": "staff",
+   "old_damage": [
+    72,
+    82
+   ],
+   "old_rate": 1.1,
+   "interval": 0.9,
+   "per_hit": [
+    117,
+    134
+   ],
+   "rate_per_s": 1.11,
+   "dps_old": 84.7,
+   "dps_new": 139.44,
+   "dps_target": 139.62,
+   "rebase_c": 1.648,
+   "per_hit_factor": 1.6299,
+   "skill_power": 120.01,
+   "weapon_skill_factor": 1.056,
+   "n_weapon_skills": 1
+  },
+  "tesla_coil_staff": {
+   "src": "existing",
+   "name": "전격 코일 지팡이",
+   "shape": "staff_ring",
+   "style": "caster",
+   "kind": "magic",
+   "level": 44,
+   "rarity": "legendary",
+   "old_type": "staff",
+   "old_damage": [
+    73,
+    82
+   ],
+   "old_rate": 1.1,
+   "interval": 0.9,
+   "per_hit": [
+    119,
+    133
+   ],
+   "rate_per_s": 1.11,
+   "dps_old": 85.25,
+   "dps_new": 140.0,
+   "dps_target": 139.75,
+   "rebase_c": 1.639,
+   "per_hit_factor": 1.6258,
+   "skill_power": 120.49,
+   "weapon_skill_factor": 1.056,
+   "n_weapon_skills": 3
+  },
+  "voidheart_staff": {
+   "src": "existing",
+   "name": "공허의 심장 지팡이",
+   "shape": "staff_orb",
+   "style": "caster",
+   "kind": "magic",
+   "level": 48,
+   "rarity": "mythic",
+   "old_type": "staff",
+   "old_damage": [
+    94,
+    104
+   ],
+   "old_rate": 1.1,
+   "interval": 0.95,
+   "per_hit": [
+    163,
+    180
+   ],
+   "rate_per_s": 1.05,
+   "dps_old": 108.9,
+   "dps_new": 180.53,
+   "dps_target": 180.45,
+   "rebase_c": 1.657,
+   "per_hit_factor": 1.7323,
+   "skill_power": 155.37,
+   "weapon_skill_factor": 1.056,
+   "n_weapon_skills": 4
+  },
+  "acolyte_scepter": {
+   "src": "existing",
+   "name": "수련 사제의 홀",
+   "shape": "scepter",
+   "style": "caster",
+   "kind": "magic",
+   "level": 1,
+   "rarity": "common",
+   "old_type": "scepter",
+   "old_damage": [
+    6,
+    7
+   ],
+   "old_rate": 1.3,
+   "interval": 0.77,
+   "per_hit": [
+    7,
+    8
+   ],
+   "rate_per_s": 1.3,
+   "dps_old": 8.45,
+   "dps_new": 9.74,
+   "dps_target": 10.0,
+   "rebase_c": 1.183,
+   "per_hit_factor": 1.1538,
+   "skill_power": 8.38,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "grove_chalice": {
+   "src": "existing",
+   "name": "숲지기의 성배",
+   "shape": "chalice_scepter",
+   "style": "caster",
+   "kind": "magic",
+   "level": 3,
+   "rarity": "common",
+   "old_type": "scepter",
+   "old_damage": [
+    7,
+    8
+   ],
+   "old_rate": 1.3,
+   "interval": 0.75,
+   "per_hit": [
+    8,
+    10
+   ],
+   "rate_per_s": 1.33,
+   "dps_old": 9.75,
+   "dps_new": 12.0,
+   "dps_target": 11.98,
+   "rebase_c": 1.228,
+   "per_hit_factor": 1.2,
+   "skill_power": 10.33,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "miners_lamp_censer": {
+   "src": "existing",
+   "name": "광부의 등불 향로",
+   "shape": "censer_staff",
+   "style": "caster",
+   "kind": "magic",
+   "level": 5,
+   "rarity": "uncommon",
+   "old_type": "scepter",
+   "old_damage": [
+    8,
+    9
+   ],
+   "old_rate": 1.3,
+   "interval": 0.85,
+   "per_hit": [
+    11,
+    13
+   ],
+   "rate_per_s": 1.18,
+   "dps_old": 11.05,
+   "dps_new": 14.12,
+   "dps_target": 14.02,
+   "rebase_c": 1.269,
+   "per_hit_factor": 1.4118,
+   "skill_power": 12.15,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "miners_bell_scepter": {
+   "src": "existing",
+   "name": "갱도 경보종 홀",
+   "shape": "bell_scepter",
+   "style": "caster",
+   "kind": "magic",
+   "level": 8,
+   "rarity": "uncommon",
+   "old_type": "scepter",
+   "old_damage": [
+    9,
+    10
+   ],
+   "old_rate": 1.3,
+   "interval": 0.8,
+   "per_hit": [
+    12,
+    14
+   ],
+   "rate_per_s": 1.25,
+   "dps_old": 12.35,
+   "dps_new": 16.25,
+   "dps_target": 16.33,
+   "rebase_c": 1.322,
+   "per_hit_factor": 1.3684,
+   "skill_power": 13.99,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "silkqueen_spindle_censer": {
+   "src": "existing",
+   "name": "실잣는 물렛가락 향로",
+   "shape": "censer_staff",
+   "style": "caster",
+   "kind": "magic",
+   "level": 10,
+   "rarity": "epic",
+   "old_type": "scepter",
+   "old_damage": [
+    12,
+    13
+   ],
+   "old_rate": 1.3,
+   "interval": 0.85,
+   "per_hit": [
+    18,
+    19
+   ],
+   "rate_per_s": 1.18,
+   "dps_old": 16.25,
+   "dps_new": 21.76,
+   "dps_target": 22.0,
+   "rebase_c": 1.354,
+   "per_hit_factor": 1.48,
+   "skill_power": 18.73,
+   "weapon_skill_factor": 0.894,
+   "n_weapon_skills": 2
+  },
+  "bloom_scepter": {
+   "src": "existing",
+   "name": "공생꽃 홀",
+   "shape": "sun_scepter",
+   "style": "caster",
+   "kind": "magic",
+   "level": 11,
+   "rarity": "rare",
+   "old_type": "scepter",
+   "old_damage": [
+    11,
+    13
+   ],
+   "old_rate": 1.3,
+   "interval": 0.8,
+   "per_hit": [
+    16,
+    18
+   ],
+   "rate_per_s": 1.25,
+   "dps_old": 15.6,
+   "dps_new": 21.25,
+   "dps_target": 21.35,
+   "rebase_c": 1.369,
+   "per_hit_factor": 1.4167,
+   "skill_power": 18.29,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "bloom_chalice": {
+   "src": "existing",
+   "name": "공생꽃 성배",
+   "shape": "chalice_scepter",
+   "style": "caster",
+   "kind": "magic",
+   "level": 14,
+   "rarity": "rare",
+   "old_type": "scepter",
+   "old_damage": [
+    14,
+    15
+   ],
+   "old_rate": 1.3,
+   "interval": 0.75,
+   "per_hit": [
+    19,
+    21
+   ],
+   "rate_per_s": 1.33,
+   "dps_old": 18.85,
+   "dps_new": 26.67,
+   "dps_target": 26.56,
+   "rebase_c": 1.409,
+   "per_hit_factor": 1.3793,
+   "skill_power": 22.95,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "mycelking_scepter": {
+   "src": "existing",
+   "name": "균사왕의 왕홀",
+   "shape": "sun_scepter",
+   "style": "caster",
+   "kind": "magic",
+   "level": 15,
+   "rarity": "epic",
+   "old_type": "scepter",
+   "old_damage": [
+    15,
+    18
+   ],
+   "old_rate": 1.3,
+   "interval": 0.8,
+   "per_hit": [
+    22,
+    27
+   ],
+   "rate_per_s": 1.25,
+   "dps_old": 21.45,
+   "dps_new": 30.62,
+   "dps_target": 30.49,
+   "rebase_c": 1.421,
+   "per_hit_factor": 1.4848,
+   "skill_power": 26.36,
+   "weapon_skill_factor": 0.894,
+   "n_weapon_skills": 1
+  },
+  "tidebell_censer": {
+   "src": "existing",
+   "name": "조수종 향로",
+   "shape": "censer_staff",
+   "style": "caster",
+   "kind": "magic",
+   "level": 17,
+   "rarity": "epic",
+   "old_type": "scepter",
+   "old_damage": [
+    17,
+    20
+   ],
+   "old_rate": 1.3,
+   "interval": 0.85,
+   "per_hit": [
+    27,
+    32
+   ],
+   "rate_per_s": 1.18,
+   "dps_old": 24.05,
+   "dps_new": 34.71,
+   "dps_target": 34.74,
+   "rebase_c": 1.444,
+   "per_hit_factor": 1.5946,
+   "skill_power": 29.87,
+   "weapon_skill_factor": 0.894,
+   "n_weapon_skills": 2
+  },
+  "brine_bell_scepter": {
+   "src": "existing",
+   "name": "소금물 종 홀",
+   "shape": "bell_scepter",
+   "style": "caster",
+   "kind": "magic",
+   "level": 19,
+   "rarity": "rare",
+   "old_type": "scepter",
+   "old_damage": [
+    18,
+    20
+   ],
+   "old_rate": 1.3,
+   "interval": 0.8,
+   "per_hit": [
+    27,
+    31
+   ],
+   "rate_per_s": 1.25,
+   "dps_old": 24.7,
+   "dps_new": 36.25,
+   "dps_target": 36.21,
+   "rebase_c": 1.466,
+   "per_hit_factor": 1.5263,
+   "skill_power": 31.2,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "crucible_chalice": {
+   "src": "existing",
+   "name": "도가니 성배",
+   "shape": "chalice_scepter",
+   "style": "caster",
+   "kind": "magic",
+   "level": 22,
+   "rarity": "epic",
+   "old_type": "scepter",
+   "old_damage": [
+    22,
+    26
+   ],
+   "old_rate": 1.3,
+   "interval": 0.75,
+   "per_hit": [
+    32,
+    38
+   ],
+   "rate_per_s": 1.33,
+   "dps_old": 31.2,
+   "dps_new": 46.67,
+   "dps_target": 46.64,
+   "rebase_c": 1.495,
+   "per_hit_factor": 1.4583,
+   "skill_power": 40.16,
+   "weapon_skill_factor": 0.894,
+   "n_weapon_skills": 1
+  },
+  "embersong_scepter": {
+   "src": "existing",
+   "name": "불씨노래 홀",
+   "shape": "scepter",
+   "style": "caster",
+   "kind": "magic",
+   "level": 24,
+   "rarity": "epic",
+   "old_type": "scepter",
+   "old_damage": [
+    25,
+    28
+   ],
+   "old_rate": 1.3,
+   "interval": 0.77,
+   "per_hit": [
+    38,
+    42
+   ],
+   "rate_per_s": 1.3,
+   "dps_old": 34.45,
+   "dps_new": 51.95,
+   "dps_target": 52.11,
+   "rebase_c": 1.513,
+   "per_hit_factor": 1.5094,
+   "skill_power": 44.71,
+   "weapon_skill_factor": 0.894,
+   "n_weapon_skills": 2
+  },
+  "sanctum_scepter": {
+   "src": "existing",
+   "name": "성역의 홀",
+   "shape": "sun_scepter",
+   "style": "caster",
+   "kind": "magic",
+   "level": 27,
+   "rarity": "legendary",
+   "old_type": "scepter",
+   "old_damage": [
+    31,
+    35
+   ],
+   "old_rate": 1.3,
+   "interval": 0.8,
+   "per_hit": [
+    50,
+    56
+   ],
+   "rate_per_s": 1.25,
+   "dps_old": 42.9,
+   "dps_new": 66.25,
+   "dps_target": 65.94,
+   "rebase_c": 1.537,
+   "per_hit_factor": 1.6061,
+   "skill_power": 57.02,
+   "weapon_skill_factor": 0.894,
+   "n_weapon_skills": 3
+  },
+  "frost_vigil_censer": {
+   "src": "existing",
+   "name": "서리 철야 향로",
+   "shape": "censer_staff",
+   "style": "caster",
+   "kind": "magic",
+   "level": 27,
+   "rarity": "epic",
+   "old_type": "scepter",
+   "old_damage": [
+    29,
+    33
+   ],
+   "old_rate": 1.3,
+   "interval": 0.85,
+   "per_hit": [
+    49,
+    56
+   ],
+   "rate_per_s": 1.18,
+   "dps_old": 40.3,
+   "dps_new": 61.76,
+   "dps_target": 61.94,
+   "rebase_c": 1.537,
+   "per_hit_factor": 1.6935,
+   "skill_power": 53.16,
+   "weapon_skill_factor": 0.894,
+   "n_weapon_skills": 1
+  },
+  "prism_censer": {
+   "src": "existing",
+   "name": "프리즘 향로",
+   "shape": "censer_staff",
+   "style": "caster",
+   "kind": "magic",
+   "level": 32,
+   "rarity": "rare",
+   "old_type": "scepter",
+   "old_damage": [
+    33,
+    39
+   ],
+   "old_rate": 1.3,
+   "interval": 0.85,
+   "per_hit": [
+    57,
+    68
+   ],
+   "rate_per_s": 1.18,
+   "dps_old": 46.8,
+   "dps_new": 73.53,
+   "dps_target": 73.6,
+   "rebase_c": 1.573,
+   "per_hit_factor": 1.7361,
+   "skill_power": 63.28,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "crystal_bell_scepter": {
+   "src": "existing",
+   "name": "수정 종 홀",
+   "shape": "bell_scepter",
+   "style": "caster",
+   "kind": "magic",
+   "level": 34,
+   "rarity": "rare",
+   "old_type": "scepter",
+   "old_damage": [
+    37,
+    42
+   ],
+   "old_rate": 1.3,
+   "interval": 0.8,
+   "per_hit": [
+    61,
+    69
+   ],
+   "rate_per_s": 1.25,
+   "dps_old": 51.35,
+   "dps_new": 81.25,
+   "dps_target": 81.41,
+   "rebase_c": 1.585,
+   "per_hit_factor": 1.6456,
+   "skill_power": 69.93,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "ink_chalice": {
+   "src": "existing",
+   "name": "먹물 잔 홀",
+   "shape": "chalice_scepter",
+   "style": "caster",
+   "kind": "magic",
+   "level": 38,
+   "rarity": "epic",
+   "old_type": "scepter",
+   "old_damage": [
+    46,
+    53
+   ],
+   "old_rate": 1.3,
+   "interval": 0.75,
+   "per_hit": [
+    72,
+    83
+   ],
+   "rate_per_s": 1.33,
+   "dps_old": 64.35,
+   "dps_new": 103.33,
+   "dps_target": 103.52,
+   "rebase_c": 1.609,
+   "per_hit_factor": 1.5657,
+   "skill_power": 88.93,
+   "weapon_skill_factor": 0.894,
+   "n_weapon_skills": 1
+  },
+  "twin_light_scepter": {
+   "src": "existing",
+   "name": "양극광 홀",
+   "shape": "scepter",
+   "style": "caster",
+   "kind": "magic",
+   "level": 35,
+   "rarity": "legendary",
+   "old_type": "scepter",
+   "old_damage": [
+    44,
+    50
+   ],
+   "old_rate": 1.3,
+   "interval": 0.77,
+   "per_hit": [
+    70,
+    80
+   ],
+   "rate_per_s": 1.3,
+   "dps_old": 61.1,
+   "dps_new": 97.4,
+   "dps_target": 97.24,
+   "rebase_c": 1.592,
+   "per_hit_factor": 1.5957,
+   "skill_power": 83.83,
+   "weapon_skill_factor": 0.894,
+   "n_weapon_skills": 3
+  },
+  "pendulum_censer": {
+   "src": "existing",
+   "name": "진자 향로",
+   "shape": "censer_staff",
+   "style": "caster",
+   "kind": "magic",
+   "level": 41,
+   "rarity": "epic",
+   "old_type": "scepter",
+   "old_damage": [
+    52,
+    59
+   ],
+   "old_rate": 1.3,
+   "interval": 0.8,
+   "per_hit": [
+    88,
+    100
+   ],
+   "rate_per_s": 1.25,
+   "dps_old": 72.15,
+   "dps_new": 117.5,
+   "dps_target": 117.22,
+   "rebase_c": 1.625,
+   "per_hit_factor": 1.6937,
+   "skill_power": 101.13,
+   "weapon_skill_factor": 0.894,
+   "n_weapon_skills": 2
+  },
+  "abyss_bell_scepter": {
+   "src": "existing",
+   "name": "심연 울림종 홀",
+   "shape": "bell_scepter",
+   "style": "caster",
+   "kind": "magic",
+   "level": 46,
+   "rarity": "epic",
+   "old_type": "scepter",
+   "old_damage": [
+    62,
+    71
+   ],
+   "old_rate": 1.3,
+   "interval": 0.8,
+   "per_hit": [
+    106,
+    122
+   ],
+   "rate_per_s": 1.25,
+   "dps_old": 86.45,
+   "dps_new": 142.5,
+   "dps_target": 142.5,
+   "rebase_c": 1.648,
+   "per_hit_factor": 1.7143,
+   "skill_power": 122.64,
+   "weapon_skill_factor": 0.894,
+   "n_weapon_skills": 1
+  },
+  "aurora_scepter": {
+   "src": "existing",
+   "name": "오로라 성광 홀",
+   "shape": "sun_scepter",
+   "style": "caster",
+   "kind": "magic",
+   "level": 48,
+   "rarity": "legendary",
+   "old_type": "scepter",
+   "old_damage": [
+    72,
+    82
+   ],
+   "old_rate": 1.3,
+   "interval": 0.8,
+   "per_hit": [
+    124,
+    141
+   ],
+   "rate_per_s": 1.25,
+   "dps_old": 100.1,
+   "dps_new": 165.62,
+   "dps_target": 165.87,
+   "rebase_c": 1.657,
+   "per_hit_factor": 1.7208,
+   "skill_power": 142.55,
+   "weapon_skill_factor": 0.894,
+   "n_weapon_skills": 3
+  },
+  "seraph_scepter": {
+   "src": "existing",
+   "name": "치천사의 홀",
+   "shape": "sun_scepter",
+   "style": "caster",
+   "kind": "magic",
+   "level": 48,
+   "rarity": "mythic",
+   "old_type": "scepter",
+   "old_damage": [
+    81,
+    89
+   ],
+   "old_rate": 1.3,
+   "interval": 0.8,
+   "per_hit": [
+    140,
+    153
+   ],
+   "rate_per_s": 1.25,
+   "dps_old": 110.5,
+   "dps_new": 183.12,
+   "dps_target": 183.11,
+   "rebase_c": 1.657,
+   "per_hit_factor": 1.7235,
+   "skill_power": 157.61,
+   "weapon_skill_factor": 0.894,
+   "n_weapon_skills": 3
+  },
+  "moss_dirk": {
+   "src": "existing",
+   "name": "이끼 단도",
+   "shape": "dagger",
+   "style": "melee",
+   "kind": "physical",
+   "level": 1,
+   "rarity": "common",
+   "old_type": "dagger",
+   "old_damage": [
+    4,
+    5
+   ],
+   "old_rate": 2.2,
+   "interval": 0.45,
+   "per_hit": [
+    5,
+    6
+   ],
+   "rate_per_s": 2.22,
+   "dps_old": 9.9,
+   "dps_new": 12.22,
+   "dps_target": 11.71,
+   "rebase_c": 1.183,
+   "per_hit_factor": 1.2222,
+   "skill_power": 8.94,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "corridor_katar": {
+   "src": "existing",
+   "name": "회랑 주먹칼",
+   "shape": "katar",
+   "style": "melee",
+   "kind": "physical",
+   "level": 3,
+   "rarity": "common",
+   "old_type": "dagger",
+   "old_damage": [
+    4,
+    5
+   ],
+   "old_rate": 2.2,
+   "interval": 0.45,
+   "per_hit": [
+    5,
+    6
+   ],
+   "rate_per_s": 2.22,
+   "dps_old": 9.9,
+   "dps_new": 12.22,
+   "dps_target": 12.16,
+   "rebase_c": 1.228,
+   "per_hit_factor": 1.2222,
+   "skill_power": 8.94,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "skitter_fang": {
+   "src": "existing",
+   "name": "갱도 거미 송곳니",
+   "shape": "fang_blade",
+   "style": "melee",
+   "kind": "physical",
+   "level": 5,
+   "rarity": "uncommon",
+   "old_type": "dagger",
+   "old_damage": [
+    5,
+    6
+   ],
+   "old_rate": 2.2,
+   "interval": 0.47,
+   "per_hit": [
+    6,
+    8
+   ],
+   "rate_per_s": 2.13,
+   "dps_old": 12.1,
+   "dps_new": 14.89,
+   "dps_target": 15.35,
+   "rebase_c": 1.269,
+   "per_hit_factor": 1.2727,
+   "skill_power": 10.79,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "silk_sickle": {
+   "src": "existing",
+   "name": "은실 낫",
+   "shape": "sickle",
+   "style": "melee",
+   "kind": "physical",
+   "level": 8,
+   "rarity": "uncommon",
+   "old_type": "dagger",
+   "old_damage": [
+    6,
+    7
+   ],
+   "old_rate": 2.2,
+   "interval": 0.5,
+   "per_hit": [
+    9,
+    10
+   ],
+   "rate_per_s": 2.0,
+   "dps_old": 14.3,
+   "dps_new": 19.0,
+   "dps_target": 18.91,
+   "rebase_c": 1.322,
+   "per_hit_factor": 1.4615,
+   "skill_power": 13.59,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "silkqueen_fang": {
+   "src": "existing",
+   "name": "베셀라의 독니",
+   "shape": "fang_blade",
+   "style": "melee",
+   "kind": "physical",
+   "level": 10,
+   "rarity": "epic",
+   "old_type": "dagger",
+   "old_damage": [
+    8,
+    9
+   ],
+   "old_rate": 2.2,
+   "interval": 0.47,
+   "per_hit": [
+    11,
+    13
+   ],
+   "rate_per_s": 2.13,
+   "dps_old": 18.7,
+   "dps_new": 25.53,
+   "dps_target": 25.32,
+   "rebase_c": 1.354,
+   "per_hit_factor": 1.4118,
+   "skill_power": 18.5,
+   "weapon_skill_factor": 0.627,
+   "n_weapon_skills": 1
+  },
+  "spore_kris": {
+   "src": "existing",
+   "name": "포자 물결검",
+   "shape": "kris",
+   "style": "melee",
+   "kind": "physical",
+   "level": 11,
+   "rarity": "rare",
+   "old_type": "dagger",
+   "old_damage": [
+    7,
+    9
+   ],
+   "old_rate": 2.2,
+   "interval": 0.48,
+   "per_hit": [
+    10,
+    13
+   ],
+   "rate_per_s": 2.08,
+   "dps_old": 17.6,
+   "dps_new": 23.96,
+   "dps_target": 24.09,
+   "rebase_c": 1.369,
+   "per_hit_factor": 1.4375,
+   "skill_power": 17.28,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "spore_katar": {
+   "src": "existing",
+   "name": "포자 주먹칼",
+   "shape": "katar",
+   "style": "melee",
+   "kind": "physical",
+   "level": 14,
+   "rarity": "rare",
+   "old_type": "dagger",
+   "old_damage": [
+    9,
+    10
+   ],
+   "old_rate": 2.2,
+   "interval": 0.45,
+   "per_hit": [
+    13,
+    14
+   ],
+   "rate_per_s": 2.22,
+   "dps_old": 20.9,
+   "dps_new": 30.0,
+   "dps_target": 29.45,
+   "rebase_c": 1.409,
+   "per_hit_factor": 1.4211,
+   "skill_power": 21.95,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "mycelking_sporefang": {
+   "src": "existing",
+   "name": "포자왕의 송곳",
+   "shape": "kris",
+   "style": "melee",
+   "kind": "physical",
+   "level": 15,
+   "rarity": "epic",
+   "old_type": "dagger",
+   "old_damage": [
+    10,
+    11
+   ],
+   "old_rate": 2.2,
+   "interval": 0.48,
+   "per_hit": [
+    15,
+    17
+   ],
+   "rate_per_s": 2.08,
+   "dps_old": 23.1,
+   "dps_new": 33.33,
+   "dps_target": 32.83,
+   "rebase_c": 1.421,
+   "per_hit_factor": 1.5238,
+   "skill_power": 24.04,
+   "weapon_skill_factor": 0.63,
+   "n_weapon_skills": 1
+  },
+  "eel_kris": {
+   "src": "existing",
+   "name": "녹물 장어 크리스",
+   "shape": "kris",
+   "style": "melee",
+   "kind": "physical",
+   "level": 17,
+   "rarity": "epic",
+   "old_type": "dagger",
+   "old_damage": [
+    11,
+    13
+   ],
+   "old_rate": 2.2,
+   "interval": 0.45,
+   "per_hit": [
+    16,
+    18
+   ],
+   "rate_per_s": 2.22,
+   "dps_old": 26.4,
+   "dps_new": 37.78,
+   "dps_target": 38.13,
+   "rebase_c": 1.444,
+   "per_hit_factor": 1.4167,
+   "skill_power": 27.64,
+   "weapon_skill_factor": 0.621,
+   "n_weapon_skills": 1
+  },
+  "eelfin_sickle": {
+   "src": "existing",
+   "name": "장어지느러미 낫",
+   "shape": "sickle",
+   "style": "melee",
+   "kind": "physical",
+   "level": 19,
+   "rarity": "rare",
+   "old_type": "dagger",
+   "old_damage": [
+    12,
+    13
+   ],
+   "old_rate": 2.2,
+   "interval": 0.5,
+   "per_hit": [
+    19,
+    21
+   ],
+   "rate_per_s": 2.0,
+   "dps_old": 27.5,
+   "dps_new": 40.0,
+   "dps_target": 40.31,
+   "rebase_c": 1.466,
+   "per_hit_factor": 1.6,
+   "skill_power": 28.6,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "slag_katar": {
+   "src": "existing",
+   "name": "슬래그 주먹칼",
+   "shape": "katar",
+   "style": "melee",
+   "kind": "physical",
+   "level": 22,
+   "rarity": "epic",
+   "old_type": "dagger",
+   "old_damage": [
+    15,
+    17
+   ],
+   "old_rate": 2.2,
+   "interval": 0.45,
+   "per_hit": [
+    22,
+    25
+   ],
+   "rate_per_s": 2.22,
+   "dps_old": 35.2,
+   "dps_new": 52.22,
+   "dps_target": 52.62,
+   "rebase_c": 1.495,
+   "per_hit_factor": 1.4688,
+   "skill_power": 38.21,
+   "weapon_skill_factor": 0.621,
+   "n_weapon_skills": 1
+  },
+  "cinder_fang": {
+   "src": "existing",
+   "name": "불씨 송곳니",
+   "shape": "fang_blade",
+   "style": "melee",
+   "kind": "physical",
+   "level": 24,
+   "rarity": "epic",
+   "old_type": "dagger",
+   "old_damage": [
+    16,
+    19
+   ],
+   "old_rate": 2.2,
+   "interval": 0.47,
+   "per_hit": [
+    25,
+    30
+   ],
+   "rate_per_s": 2.13,
+   "dps_old": 38.5,
+   "dps_new": 58.51,
+   "dps_target": 58.24,
+   "rebase_c": 1.513,
+   "per_hit_factor": 1.5714,
+   "skill_power": 42.39,
+   "weapon_skill_factor": 0.627,
+   "n_weapon_skills": 2
+  },
+  "soulflame_kris": {
+   "src": "existing",
+   "name": "혼불 물결검",
+   "shape": "kris",
+   "style": "melee",
+   "kind": "physical",
+   "level": 27,
+   "rarity": "legendary",
+   "old_type": "dagger",
+   "old_damage": [
+    20,
+    23
+   ],
+   "old_rate": 2.2,
+   "interval": 0.48,
+   "per_hit": [
+    33,
+    37
+   ],
+   "rate_per_s": 2.08,
+   "dps_old": 47.3,
+   "dps_new": 72.92,
+   "dps_target": 72.7,
+   "rebase_c": 1.537,
+   "per_hit_factor": 1.6279,
+   "skill_power": 52.59,
+   "weapon_skill_factor": 0.63,
+   "n_weapon_skills": 2
+  },
+  "gravefrost_katar": {
+   "src": "existing",
+   "name": "묘역 서리 주먹칼",
+   "shape": "katar",
+   "style": "melee",
+   "kind": "physical",
+   "level": 27,
+   "rarity": "epic",
+   "old_type": "dagger",
+   "old_damage": [
+    19,
+    21
+   ],
+   "old_rate": 2.2,
+   "interval": 0.45,
+   "per_hit": [
+    29,
+    32
+   ],
+   "rate_per_s": 2.22,
+   "dps_old": 44.0,
+   "dps_new": 67.78,
+   "dps_target": 67.63,
+   "rebase_c": 1.537,
+   "per_hit_factor": 1.525,
+   "skill_power": 49.59,
+   "weapon_skill_factor": 0.621,
+   "n_weapon_skills": 1
+  },
+  "shardglass_dagger": {
+   "src": "existing",
+   "name": "파편유리 단검",
+   "shape": "dagger",
+   "style": "melee",
+   "kind": "physical",
+   "level": 32,
+   "rarity": "rare",
+   "old_type": "dagger",
+   "old_damage": [
+    22,
+    25
+   ],
+   "old_rate": 2.2,
+   "interval": 0.45,
+   "per_hit": [
+    34,
+    39
+   ],
+   "rate_per_s": 2.22,
+   "dps_old": 51.7,
+   "dps_new": 81.11,
+   "dps_target": 81.31,
+   "rebase_c": 1.573,
+   "per_hit_factor": 1.5532,
+   "skill_power": 59.35,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "shardglass_sickle": {
+   "src": "existing",
+   "name": "파편유리 낫",
+   "shape": "sickle",
+   "style": "melee",
+   "kind": "physical",
+   "level": 34,
+   "rarity": "rare",
+   "old_type": "dagger",
+   "old_damage": [
+    24,
+    27
+   ],
+   "old_rate": 2.2,
+   "interval": 0.5,
+   "per_hit": [
+    42,
+    47
+   ],
+   "rate_per_s": 2.0,
+   "dps_old": 56.1,
+   "dps_new": 89.0,
+   "dps_target": 88.94,
+   "rebase_c": 1.585,
+   "per_hit_factor": 1.7451,
+   "skill_power": 63.64,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "lorekeeper_katar": {
+   "src": "existing",
+   "name": "금서지기의 주먹칼",
+   "shape": "katar",
+   "style": "melee",
+   "kind": "physical",
+   "level": 38,
+   "rarity": "epic",
+   "old_type": "dagger",
+   "old_damage": [
+    30,
+    34
+   ],
+   "old_rate": 2.2,
+   "interval": 0.45,
+   "per_hit": [
+    48,
+    54
+   ],
+   "rate_per_s": 2.22,
+   "dps_old": 70.4,
+   "dps_new": 113.33,
+   "dps_target": 113.26,
+   "rebase_c": 1.609,
+   "per_hit_factor": 1.5938,
+   "skill_power": 82.92,
+   "weapon_skill_factor": 0.621,
+   "n_weapon_skills": 1
+  },
+  "nightshade_dagger": {
+   "src": "existing",
+   "name": "야음 단검",
+   "shape": "dagger",
+   "style": "melee",
+   "kind": "physical",
+   "level": 39,
+   "rarity": "legendary",
+   "old_type": "dagger",
+   "old_damage": [
+    34,
+    38
+   ],
+   "old_rate": 2.2,
+   "interval": 0.45,
+   "per_hit": [
+    54,
+    61
+   ],
+   "rate_per_s": 2.22,
+   "dps_old": 79.2,
+   "dps_new": 127.78,
+   "dps_target": 127.84,
+   "rebase_c": 1.614,
+   "per_hit_factor": 1.5972,
+   "skill_power": 93.49,
+   "weapon_skill_factor": 0.621,
+   "n_weapon_skills": 2
+  },
+  "mainspring_dagger": {
+   "src": "existing",
+   "name": "태엽 단검",
+   "shape": "dagger",
+   "style": "melee",
+   "kind": "physical",
+   "level": 41,
+   "rarity": "epic",
+   "old_type": "dagger",
+   "old_damage": [
+    34,
+    39
+   ],
+   "old_rate": 2.2,
+   "interval": 0.42,
+   "per_hit": [
+    51,
+    59
+   ],
+   "rate_per_s": 2.38,
+   "dps_old": 80.3,
+   "dps_new": 130.95,
+   "dps_target": 130.46,
+   "rebase_c": 1.625,
+   "per_hit_factor": 1.5068,
+   "skill_power": 97.43,
+   "weapon_skill_factor": 0.611,
+   "n_weapon_skills": 2
+  },
+  "abyss_sickle": {
+   "src": "existing",
+   "name": "심연 낫",
+   "shape": "sickle",
+   "style": "melee",
+   "kind": "physical",
+   "level": 46,
+   "rarity": "epic",
+   "old_type": "dagger",
+   "old_damage": [
+    40,
+    46
+   ],
+   "old_rate": 2.2,
+   "interval": 0.5,
+   "per_hit": [
+    73,
+    83
+   ],
+   "rate_per_s": 2.0,
+   "dps_old": 94.6,
+   "dps_new": 156.0,
+   "dps_target": 155.94,
+   "rebase_c": 1.648,
+   "per_hit_factor": 1.814,
+   "skill_power": 111.55,
+   "weapon_skill_factor": 0.636,
+   "n_weapon_skills": 1
+  },
+  "viper_fang": {
+   "src": "existing",
+   "name": "독사의 송곳니",
+   "shape": "fang_blade",
+   "style": "melee",
+   "kind": "physical",
+   "level": 48,
+   "rarity": "legendary",
+   "old_type": "dagger",
+   "old_damage": [
+    47,
+    53
+   ],
+   "old_rate": 2.2,
+   "interval": 0.45,
+   "per_hit": [
+    77,
+    87
+   ],
+   "rate_per_s": 2.22,
+   "dps_old": 110.0,
+   "dps_new": 182.22,
+   "dps_target": 182.28,
+   "rebase_c": 1.657,
+   "per_hit_factor": 1.64,
+   "skill_power": 133.33,
+   "weapon_skill_factor": 0.621,
+   "n_weapon_skills": 3
+  },
+  "eclipse_blade": {
+   "src": "existing",
+   "name": "일식의 칼날",
+   "shape": "dagger",
+   "style": "melee",
+   "kind": "physical",
+   "level": 48,
+   "rarity": "mythic",
+   "old_type": "dagger",
+   "old_damage": [
+    53,
+    58
+   ],
+   "old_rate": 2.2,
+   "interval": 0.43,
+   "per_hit": [
+    83,
+    91
+   ],
+   "rate_per_s": 2.33,
+   "dps_old": 122.1,
+   "dps_new": 202.33,
+   "dps_target": 202.33,
+   "rebase_c": 1.657,
+   "per_hit_factor": 1.5676,
+   "skill_power": 149.66,
+   "weapon_skill_factor": 0.615,
+   "n_weapon_skills": 4
+  },
+  "moss_bone_bow": {
+   "src": "gear_spec_new",
+   "name": "이끼 뼈 활",
+   "shape": "bone_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 5,
+   "rarity": "rare",
+   "gear_spec_damage": [
+    11,
+    13
+   ],
+   "gear_spec_speed": 1.2,
+   "interval": 1.15,
+   "per_hit": [
+    17,
+    21
+   ],
+   "rate_per_s": 0.87,
+   "dps_new": 16.52,
+   "skill_power": 11.69,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "corridor_executioner_axe": {
+   "src": "gear_spec_new",
+   "name": "회랑 처형 도끼",
+   "shape": "executioner_axe",
+   "style": "melee",
+   "kind": "physical",
+   "level": 5,
+   "rarity": "rare",
+   "gear_spec_damage": [
+    15,
+    17
+   ],
+   "gear_spec_speed": 0.85,
+   "interval": 1.18,
+   "per_hit": [
+    19,
+    22
+   ],
+   "rate_per_s": 0.85,
+   "dps_new": 17.37,
+   "skill_power": 11.82,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "rootgnaw_tanto": {
+   "src": "gear_spec_new",
+   "name": "뿌리 갉는 탄토",
+   "shape": "tanto",
+   "style": "melee",
+   "kind": "physical",
+   "level": 5,
+   "rarity": "rare",
+   "gear_spec_damage": [
+    6,
+    7
+   ],
+   "gear_spec_speed": 2.0,
+   "interval": 0.5,
+   "per_hit": [
+    8,
+    9
+   ],
+   "rate_per_s": 2.0,
+   "dps_new": 17.0,
+   "skill_power": 12.16,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "wayfarer_sabre": {
+   "src": "gear_spec_new",
+   "name": "길손의 사브르",
+   "shape": "sabre",
+   "style": "melee",
+   "kind": "physical",
+   "level": 3,
+   "rarity": "common",
+   "gear_spec_damage": [
+    6,
+    7
+   ],
+   "gear_spec_speed": 1.65,
+   "interval": 0.61,
+   "per_hit": [
+    7,
+    9
+   ],
+   "rate_per_s": 1.64,
+   "dps_new": 13.11,
+   "skill_power": 9.04,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "miners_great_maul": {
+   "src": "gear_spec_new",
+   "name": "광부의 대형 망치",
+   "shape": "great_maul",
+   "style": "melee",
+   "kind": "physical",
+   "level": 8,
+   "rarity": "uncommon",
+   "gear_spec_damage": [
+    17,
+    19
+   ],
+   "gear_spec_speed": 0.85,
+   "interval": 1.18,
+   "per_hit": [
+    23,
+    25
+   ],
+   "rate_per_s": 0.85,
+   "dps_new": 20.34,
+   "skill_power": 13.84,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "miners_lamp_crook": {
+   "src": "gear_spec_new",
+   "name": "광부의 등롱 지팡이",
+   "shape": "lamp_crook",
+   "style": "caster",
+   "kind": "magic",
+   "level": 8,
+   "rarity": "uncommon",
+   "gear_spec_damage": [
+    11,
+    12
+   ],
+   "gear_spec_speed": 1.1,
+   "interval": 0.91,
+   "per_hit": [
+    15,
+    16
+   ],
+   "rate_per_s": 1.1,
+   "dps_new": 17.03,
+   "skill_power": 14.66,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "ore_morning_star": {
+   "src": "gear_spec_new",
+   "name": "광석 모닝스타",
+   "shape": "morning_star",
+   "style": "melee",
+   "kind": "physical",
+   "level": 8,
+   "rarity": "uncommon",
+   "gear_spec_damage": [
+    11,
+    12
+   ],
+   "gear_spec_speed": 1.3,
+   "interval": 0.77,
+   "per_hit": [
+    15,
+    16
+   ],
+   "rate_per_s": 1.3,
+   "dps_new": 20.13,
+   "skill_power": 13.69,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "silk_twin_bow": {
+   "src": "gear_spec_new",
+   "name": "은실 쌍현 활",
+   "shape": "twin_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 8,
+   "rarity": "uncommon",
+   "gear_spec_damage": [
+    13,
+    14
+   ],
+   "gear_spec_speed": 1.2,
+   "interval": 1.05,
+   "per_hit": [
+    20,
+    21
+   ],
+   "rate_per_s": 0.95,
+   "dps_new": 19.52,
+   "skill_power": 13.82,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "skitter_stiletto": {
+   "src": "gear_spec_new",
+   "name": "갱도 거미 스틸레토",
+   "shape": "stiletto",
+   "style": "melee",
+   "kind": "physical",
+   "level": 8,
+   "rarity": "uncommon",
+   "gear_spec_damage": [
+    6,
+    7
+   ],
+   "gear_spec_speed": 2.2,
+   "interval": 0.45,
+   "per_hit": [
+    8,
+    9
+   ],
+   "rate_per_s": 2.22,
+   "dps_new": 18.89,
+   "skill_power": 13.82,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "silk_sabre": {
+   "src": "gear_spec_new",
+   "name": "은실 사브르",
+   "shape": "sabre",
+   "style": "melee",
+   "kind": "physical",
+   "level": 8,
+   "rarity": "uncommon",
+   "gear_spec_damage": [
+    8,
+    10
+   ],
+   "gear_spec_speed": 1.65,
+   "interval": 0.61,
+   "per_hit": [
+    11,
+    13
+   ],
+   "rate_per_s": 1.64,
+   "dps_new": 19.67,
+   "skill_power": 13.57,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "skitter_longbow": {
+   "src": "gear_spec_new",
+   "name": "거미줄 장궁",
+   "shape": "longbow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 8,
+   "rarity": "uncommon",
+   "gear_spec_damage": [
+    13,
+    14
+   ],
+   "gear_spec_speed": 1.2,
+   "interval": 1.25,
+   "per_hit": [
+    23,
+    25
+   ],
+   "rate_per_s": 0.8,
+   "dps_new": 19.2,
+   "skill_power": 13.59,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "silk_chime_rod": {
+   "src": "gear_spec_new",
+   "name": "은실 풍경 홀",
+   "shape": "chime_rod",
+   "style": "caster",
+   "kind": "magic",
+   "level": 8,
+   "rarity": "uncommon",
+   "gear_spec_damage": [
+    8,
+    10
+   ],
+   "gear_spec_speed": 1.4,
+   "interval": 0.71,
+   "per_hit": [
+    11,
+    13
+   ],
+   "rate_per_s": 1.41,
+   "dps_new": 16.9,
+   "skill_power": 14.55,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "silkcut_flamberge": {
+   "src": "gear_spec_new",
+   "name": "거미줄 끊는 플랑베르주",
+   "shape": "flamberge",
+   "style": "melee",
+   "kind": "physical",
+   "level": 8,
+   "rarity": "uncommon",
+   "gear_spec_damage": [
+    15,
+    17
+   ],
+   "gear_spec_speed": 0.95,
+   "interval": 1.05,
+   "per_hit": [
+    20,
+    22
+   ],
+   "rate_per_s": 0.95,
+   "dps_new": 20.0,
+   "skill_power": 13.61,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "ore_kris": {
+   "src": "gear_spec_new",
+   "name": "광맥 물결검",
+   "shape": "kris",
+   "style": "melee",
+   "kind": "physical",
+   "level": 8,
+   "rarity": "uncommon",
+   "gear_spec_damage": [
+    6,
+    7
+   ],
+   "gear_spec_speed": 2.1,
+   "interval": 0.48,
+   "per_hit": [
+    8,
+    9
+   ],
+   "rate_per_s": 2.08,
+   "dps_new": 17.71,
+   "skill_power": 12.77,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "ore_thurible_rod": {
+   "src": "gear_spec_new",
+   "name": "광석 향로봉",
+   "shape": "thurible_rod",
+   "style": "caster",
+   "kind": "magic",
+   "level": 8,
+   "rarity": "uncommon",
+   "gear_spec_damage": [
+    9,
+    10
+   ],
+   "gear_spec_speed": 1.3,
+   "interval": 0.77,
+   "per_hit": [
+    12,
+    13
+   ],
+   "rate_per_s": 1.3,
+   "dps_new": 16.23,
+   "skill_power": 13.97,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "pit_rapier": {
+   "src": "gear_spec_new",
+   "name": "감독관의 레이피어",
+   "shape": "rapier",
+   "style": "melee",
+   "kind": "physical",
+   "level": 8,
+   "rarity": "uncommon",
+   "gear_spec_damage": [
+    8,
+    9
+   ],
+   "gear_spec_speed": 1.8,
+   "interval": 0.56,
+   "per_hit": [
+    11,
+    12
+   ],
+   "rate_per_s": 1.79,
+   "dps_new": 20.54,
+   "skill_power": 14.37,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "pit_war_spear": {
+   "src": "gear_spec_new",
+   "name": "감독관의 창",
+   "shape": "war_spear",
+   "style": "melee",
+   "kind": "physical",
+   "level": 8,
+   "rarity": "uncommon",
+   "gear_spec_damage": [
+    12,
+    14
+   ],
+   "gear_spec_speed": 1.15,
+   "interval": 0.87,
+   "per_hit": [
+    16,
+    18
+   ],
+   "rate_per_s": 1.15,
+   "dps_new": 19.54,
+   "skill_power": 13.29,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "silk_antler_staff": {
+   "src": "gear_spec_new",
+   "name": "은실 감긴 사슴뿔 지팡이",
+   "shape": "antler_staff",
+   "style": "caster",
+   "kind": "magic",
+   "level": 8,
+   "rarity": "uncommon",
+   "gear_spec_damage": [
+    11,
+    12
+   ],
+   "gear_spec_speed": 1.1,
+   "interval": 0.91,
+   "per_hit": [
+    15,
+    16
+   ],
+   "rate_per_s": 1.1,
+   "dps_new": 17.03,
+   "skill_power": 14.66,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "mycel_warhammer": {
+   "src": "gear_spec_new",
+   "name": "균사 전투망치",
+   "shape": "warhammer",
+   "style": "melee",
+   "kind": "physical",
+   "level": 14,
+   "rarity": "rare",
+   "gear_spec_damage": [
+    15,
+    17
+   ],
+   "gear_spec_speed": 1.4,
+   "interval": 0.71,
+   "per_hit": [
+    21,
+    24
+   ],
+   "rate_per_s": 1.41,
+   "dps_new": 31.69,
+   "skill_power": 21.56,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "spore_stiletto": {
+   "src": "gear_spec_new",
+   "name": "포자 스틸레토",
+   "shape": "stiletto",
+   "style": "melee",
+   "kind": "physical",
+   "level": 14,
+   "rarity": "rare",
+   "gear_spec_damage": [
+    9,
+    10
+   ],
+   "gear_spec_speed": 2.2,
+   "interval": 0.45,
+   "per_hit": [
+    13,
+    14
+   ],
+   "rate_per_s": 2.22,
+   "dps_new": 30.0,
+   "skill_power": 21.95,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "glowcap_bone_bow": {
+   "src": "gear_spec_new",
+   "name": "빛갓 뼈 활",
+   "shape": "bone_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 14,
+   "rarity": "rare",
+   "gear_spec_damage": [
+    19,
+    21
+   ],
+   "gear_spec_speed": 1.2,
+   "interval": 1.15,
+   "per_hit": [
+    33,
+    37
+   ],
+   "rate_per_s": 0.87,
+   "dps_new": 30.43,
+   "skill_power": 21.54,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "spore_flamberge": {
+   "src": "gear_spec_new",
+   "name": "포자 플랑베르주",
+   "shape": "flamberge",
+   "style": "melee",
+   "kind": "physical",
+   "level": 14,
+   "rarity": "rare",
+   "gear_spec_damage": [
+    22,
+    25
+   ],
+   "gear_spec_speed": 0.95,
+   "interval": 1.05,
+   "per_hit": [
+    31,
+    35
+   ],
+   "rate_per_s": 0.95,
+   "dps_new": 31.43,
+   "skill_power": 21.38,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "mycel_dirk": {
+   "src": "gear_spec_new",
+   "name": "균사 단도",
+   "shape": "dagger",
+   "style": "melee",
+   "kind": "physical",
+   "level": 14,
+   "rarity": "rare",
+   "gear_spec_damage": [
+    9,
+    10
+   ],
+   "gear_spec_speed": 2.2,
+   "interval": 0.45,
+   "per_hit": [
+    13,
+    14
+   ],
+   "rate_per_s": 2.22,
+   "dps_new": 30.0,
+   "skill_power": 21.95,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "spore_thurible_rod": {
+   "src": "gear_spec_new",
+   "name": "포자 향로봉",
+   "shape": "thurible_rod",
+   "style": "caster",
+   "kind": "magic",
+   "level": 14,
+   "rarity": "rare",
+   "gear_spec_damage": [
+    14,
+    15
+   ],
+   "gear_spec_speed": 1.3,
+   "interval": 0.77,
+   "per_hit": [
+    20,
+    21
+   ],
+   "rate_per_s": 1.3,
+   "dps_new": 26.62,
+   "skill_power": 22.91,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "hypha_glaive": {
+   "src": "gear_spec_new",
+   "name": "균사 언월도",
+   "shape": "glaive",
+   "style": "melee",
+   "kind": "physical",
+   "level": 14,
+   "rarity": "rare",
+   "gear_spec_damage": [
+    21,
+    24
+   ],
+   "gear_spec_speed": 1.0,
+   "interval": 1.0,
+   "per_hit": [
+    29,
+    34
+   ],
+   "rate_per_s": 1.0,
+   "dps_new": 31.5,
+   "skill_power": 21.43,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "glowcap_rapier": {
+   "src": "gear_spec_new",
+   "name": "빛갓 레이피어",
+   "shape": "rapier",
+   "style": "melee",
+   "kind": "physical",
+   "level": 11,
+   "rarity": "rare",
+   "gear_spec_damage": [
+    10,
+    11
+   ],
+   "gear_spec_speed": 1.8,
+   "interval": 0.56,
+   "per_hit": [
+    14,
+    15
+   ],
+   "rate_per_s": 1.79,
+   "dps_new": 25.89,
+   "skill_power": 18.12,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "brine_sabre": {
+   "src": "gear_spec_new",
+   "name": "소금물 사브르",
+   "shape": "sabre",
+   "style": "melee",
+   "kind": "physical",
+   "level": 19,
+   "rarity": "rare",
+   "gear_spec_damage": [
+    16,
+    19
+   ],
+   "gear_spec_speed": 1.65,
+   "interval": 0.61,
+   "per_hit": [
+    24,
+    28
+   ],
+   "rate_per_s": 1.64,
+   "dps_new": 42.62,
+   "skill_power": 29.39,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "tide_lamp_crook": {
+   "src": "gear_spec_new",
+   "name": "조수 등롱 지팡이",
+   "shape": "lamp_crook",
+   "style": "caster",
+   "kind": "magic",
+   "level": 19,
+   "rarity": "rare",
+   "gear_spec_damage": [
+    21,
+    24
+   ],
+   "gear_spec_speed": 1.1,
+   "interval": 0.91,
+   "per_hit": [
+    31,
+    35
+   ],
+   "rate_per_s": 1.1,
+   "dps_new": 36.26,
+   "skill_power": 31.21,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "drowned_executioner_axe": {
+   "src": "gear_spec_new",
+   "name": "익사자의 처형 도끼",
+   "shape": "executioner_axe",
+   "style": "melee",
+   "kind": "physical",
+   "level": 17,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    31,
+    36
+   ],
+   "gear_spec_speed": 0.85,
+   "interval": 1.18,
+   "per_hit": [
+    45,
+    52
+   ],
+   "rate_per_s": 0.85,
+   "dps_new": 41.1,
+   "skill_power": 27.96,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "eel_twin_bow": {
+   "src": "gear_spec_new",
+   "name": "장어 쌍현 활",
+   "shape": "twin_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 17,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    23,
+    27
+   ],
+   "gear_spec_speed": 1.2,
+   "interval": 1.05,
+   "per_hit": [
+    38,
+    44
+   ],
+   "rate_per_s": 0.95,
+   "dps_new": 39.05,
+   "skill_power": 27.63,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "brine_katar": {
+   "src": "gear_spec_new",
+   "name": "소금물 주먹칼",
+   "shape": "katar",
+   "style": "melee",
+   "kind": "physical",
+   "level": 19,
+   "rarity": "rare",
+   "gear_spec_damage": [
+    12,
+    13
+   ],
+   "gear_spec_speed": 2.2,
+   "interval": 0.45,
+   "per_hit": [
+    17,
+    19
+   ],
+   "rate_per_s": 2.22,
+   "dps_new": 40.0,
+   "skill_power": 29.27,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "sluice_morning_star": {
+   "src": "gear_spec_new",
+   "name": "수문 모닝스타",
+   "shape": "morning_star",
+   "style": "melee",
+   "kind": "physical",
+   "level": 17,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    21,
+    23
+   ],
+   "gear_spec_speed": 1.3,
+   "interval": 0.77,
+   "per_hit": [
+    31,
+    33
+   ],
+   "rate_per_s": 1.3,
+   "dps_new": 41.56,
+   "skill_power": 28.27,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "verdigris_chime_rod": {
+   "src": "gear_spec_new",
+   "name": "녹청 풍경 홀",
+   "shape": "chime_rod",
+   "style": "caster",
+   "kind": "magic",
+   "level": 19,
+   "rarity": "rare",
+   "gear_spec_damage": [
+    16,
+    19
+   ],
+   "gear_spec_speed": 1.4,
+   "interval": 0.71,
+   "per_hit": [
+    23,
+    28
+   ],
+   "rate_per_s": 1.41,
+   "dps_new": 35.92,
+   "skill_power": 30.91,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "verdigris_great_axe": {
+   "src": "gear_spec_new",
+   "name": "녹청 큰도끼",
+   "shape": "great_axe",
+   "style": "melee",
+   "kind": "physical",
+   "level": 19,
+   "rarity": "rare",
+   "gear_spec_damage": [
+    29,
+    33
+   ],
+   "gear_spec_speed": 0.95,
+   "interval": 1.05,
+   "per_hit": [
+    43,
+    48
+   ],
+   "rate_per_s": 0.95,
+   "dps_new": 43.33,
+   "skill_power": 29.48,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "cinder_dagger": {
+   "src": "gear_spec_new",
+   "name": "불씨 단검",
+   "shape": "dagger",
+   "style": "melee",
+   "kind": "physical",
+   "level": 24,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    16,
+    19
+   ],
+   "gear_spec_speed": 2.2,
+   "interval": 0.45,
+   "per_hit": [
+    24,
+    28
+   ],
+   "rate_per_s": 2.22,
+   "dps_new": 57.78,
+   "skill_power": 42.27,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "slag_flamberge": {
+   "src": "gear_spec_new",
+   "name": "슬래그 플랑베르주",
+   "shape": "flamberge",
+   "style": "melee",
+   "kind": "physical",
+   "level": 24,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    40,
+    46
+   ],
+   "gear_spec_speed": 0.95,
+   "interval": 1.05,
+   "per_hit": [
+    60,
+    70
+   ],
+   "rate_per_s": 0.95,
+   "dps_new": 61.9,
+   "skill_power": 42.11,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "anvil_executioner_axe": {
+   "src": "gear_spec_new",
+   "name": "모루 처형 도끼",
+   "shape": "executioner_axe",
+   "style": "melee",
+   "kind": "physical",
+   "level": 24,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    45,
+    52
+   ],
+   "gear_spec_speed": 0.85,
+   "interval": 1.18,
+   "per_hit": [
+    68,
+    79
+   ],
+   "rate_per_s": 0.85,
+   "dps_new": 62.29,
+   "skill_power": 42.37,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "bellows_bone_bow": {
+   "src": "gear_spec_new",
+   "name": "풀무 뼈 활",
+   "shape": "bone_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 24,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    34,
+    39
+   ],
+   "gear_spec_speed": 1.2,
+   "interval": 1.15,
+   "per_hit": [
+    64,
+    74
+   ],
+   "rate_per_s": 0.87,
+   "dps_new": 60.0,
+   "skill_power": 42.46,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "ember_tanto": {
+   "src": "gear_spec_new",
+   "name": "잿불 탄토",
+   "shape": "tanto",
+   "style": "melee",
+   "kind": "physical",
+   "level": 24,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    18,
+    21
+   ],
+   "gear_spec_speed": 2.0,
+   "interval": 0.5,
+   "per_hit": [
+    27,
+    32
+   ],
+   "rate_per_s": 2.0,
+   "dps_new": 59.0,
+   "skill_power": 42.19,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "forge_chime_rod": {
+   "src": "gear_spec_new",
+   "name": "용광로 풍경 홀",
+   "shape": "chime_rod",
+   "style": "caster",
+   "kind": "magic",
+   "level": 24,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    23,
+    26
+   ],
+   "gear_spec_speed": 1.4,
+   "interval": 0.71,
+   "per_hit": [
+    35,
+    39
+   ],
+   "rate_per_s": 1.41,
+   "dps_new": 52.11,
+   "skill_power": 44.85,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "slag_war_spear": {
+   "src": "gear_spec_new",
+   "name": "슬래그 창",
+   "shape": "war_spear",
+   "style": "melee",
+   "kind": "physical",
+   "level": 24,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    33,
+    38
+   ],
+   "gear_spec_speed": 1.15,
+   "interval": 0.87,
+   "per_hit": [
+    50,
+    57
+   ],
+   "rate_per_s": 1.15,
+   "dps_new": 61.49,
+   "skill_power": 41.83,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "cinder_rapier": {
+   "src": "gear_spec_new",
+   "name": "불씨 레이피어",
+   "shape": "rapier",
+   "style": "melee",
+   "kind": "physical",
+   "level": 24,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    21,
+    23
+   ],
+   "gear_spec_speed": 1.8,
+   "interval": 0.56,
+   "per_hit": [
+    32,
+    35
+   ],
+   "rate_per_s": 1.79,
+   "dps_new": 59.82,
+   "skill_power": 41.86,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "forge_cleaver": {
+   "src": "gear_spec_new",
+   "name": "단조 참마도",
+   "shape": "cleaver",
+   "style": "melee",
+   "kind": "physical",
+   "level": 24,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    38,
+    44
+   ],
+   "gear_spec_speed": 1.0,
+   "interval": 1.0,
+   "per_hit": [
+    57,
+    67
+   ],
+   "rate_per_s": 1.0,
+   "dps_new": 62.0,
+   "skill_power": 42.18,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "frost_longsword": {
+   "src": "gear_spec_new",
+   "name": "서리 묘지기 장검",
+   "shape": "longsword",
+   "style": "melee",
+   "kind": "physical",
+   "level": 27,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    29,
+    34
+   ],
+   "gear_spec_speed": 1.5,
+   "interval": 0.67,
+   "per_hit": [
+    45,
+    52
+   ],
+   "rate_per_s": 1.49,
+   "dps_new": 72.39,
+   "skill_power": 49.24,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "frost_twin_bow": {
+   "src": "gear_spec_new",
+   "name": "서리 쌍현 활",
+   "shape": "twin_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 27,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    39,
+    45
+   ],
+   "gear_spec_speed": 1.2,
+   "interval": 1.05,
+   "per_hit": [
+    68,
+    79
+   ],
+   "rate_per_s": 0.95,
+   "dps_new": 70.0,
+   "skill_power": 49.54,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "rime_great_maul": {
+   "src": "gear_spec_new",
+   "name": "서리 대형 망치",
+   "shape": "great_maul",
+   "style": "melee",
+   "kind": "physical",
+   "level": 27,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    52,
+    60
+   ],
+   "gear_spec_speed": 0.85,
+   "interval": 1.18,
+   "per_hit": [
+    80,
+    93
+   ],
+   "rate_per_s": 0.85,
+   "dps_new": 73.31,
+   "skill_power": 49.87,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "rime_thurible_rod": {
+   "src": "gear_spec_new",
+   "name": "서리 향로봉",
+   "shape": "thurible_rod",
+   "style": "caster",
+   "kind": "magic",
+   "level": 27,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    28,
+    33
+   ],
+   "gear_spec_speed": 1.3,
+   "interval": 0.77,
+   "per_hit": [
+    43,
+    51
+   ],
+   "rate_per_s": 1.3,
+   "dps_new": 61.04,
+   "skill_power": 52.53,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "frost_stiletto": {
+   "src": "gear_spec_new",
+   "name": "서리 스틸레토",
+   "shape": "stiletto",
+   "style": "melee",
+   "kind": "physical",
+   "level": 27,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    19,
+    21
+   ],
+   "gear_spec_speed": 2.2,
+   "interval": 0.45,
+   "per_hit": [
+    29,
+    32
+   ],
+   "rate_per_s": 2.22,
+   "dps_new": 67.78,
+   "skill_power": 49.59,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "rime_morning_star": {
+   "src": "gear_spec_new",
+   "name": "서리 모닝스타",
+   "shape": "morning_star",
+   "style": "melee",
+   "kind": "physical",
+   "level": 27,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    34,
+    39
+   ],
+   "gear_spec_speed": 1.3,
+   "interval": 0.77,
+   "per_hit": [
+    52,
+    60
+   ],
+   "rate_per_s": 1.3,
+   "dps_new": 72.73,
+   "skill_power": 49.47,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "frost_antler_staff": {
+   "src": "gear_spec_new",
+   "name": "서리 사슴뿔 지팡이",
+   "shape": "antler_staff",
+   "style": "caster",
+   "kind": "magic",
+   "level": 28,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    35,
+    40
+   ],
+   "gear_spec_speed": 1.1,
+   "interval": 0.91,
+   "per_hit": [
+    54,
+    62
+   ],
+   "rate_per_s": 1.1,
+   "dps_new": 63.74,
+   "skill_power": 54.85,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "rime_composite_bow": {
+   "src": "gear_spec_new",
+   "name": "서리 복합궁",
+   "shape": "composite_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 28,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    41,
+    47
+   ],
+   "gear_spec_speed": 1.2,
+   "interval": 1.2,
+   "per_hit": [
+    82,
+    95
+   ],
+   "rate_per_s": 0.83,
+   "dps_new": 73.75,
+   "skill_power": 52.19,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "rime_great_axe": {
+   "src": "gear_spec_new",
+   "name": "서리 큰도끼",
+   "shape": "great_axe",
+   "style": "melee",
+   "kind": "physical",
+   "level": 28,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    49,
+    56
+   ],
+   "gear_spec_speed": 0.95,
+   "interval": 1.05,
+   "per_hit": [
+    76,
+    86
+   ],
+   "rate_per_s": 0.95,
+   "dps_new": 77.14,
+   "skill_power": 52.48,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "frost_tanto": {
+   "src": "gear_spec_new",
+   "name": "서리 탄토",
+   "shape": "tanto",
+   "style": "melee",
+   "kind": "physical",
+   "level": 27,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    21,
+    24
+   ],
+   "gear_spec_speed": 2.0,
+   "interval": 0.5,
+   "per_hit": [
+    32,
+    37
+   ],
+   "rate_per_s": 2.0,
+   "dps_new": 69.0,
+   "skill_power": 49.34,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "rime_chalice": {
+   "src": "gear_spec_new",
+   "name": "서리 잔 홀",
+   "shape": "chalice_scepter",
+   "style": "caster",
+   "kind": "magic",
+   "level": 27,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    28,
+    33
+   ],
+   "gear_spec_speed": 1.3,
+   "interval": 0.77,
+   "per_hit": [
+    43,
+    51
+   ],
+   "rate_per_s": 1.3,
+   "dps_new": 61.04,
+   "skill_power": 52.53,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "rime_flamberge": {
+   "src": "gear_spec_new",
+   "name": "서리 플랑베르주",
+   "shape": "flamberge",
+   "style": "melee",
+   "kind": "physical",
+   "level": 27,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    47,
+    53
+   ],
+   "gear_spec_speed": 0.95,
+   "interval": 1.05,
+   "per_hit": [
+    72,
+    81
+   ],
+   "rate_per_s": 0.95,
+   "dps_new": 72.86,
+   "skill_power": 49.56,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "frost_war_spear": {
+   "src": "gear_spec_new",
+   "name": "서리 창",
+   "shape": "war_spear",
+   "style": "melee",
+   "kind": "physical",
+   "level": 27,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    39,
+    44
+   ],
+   "gear_spec_speed": 1.15,
+   "interval": 0.87,
+   "per_hit": [
+    60,
+    68
+   ],
+   "rate_per_s": 1.15,
+   "dps_new": 73.56,
+   "skill_power": 50.04,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "rime_chime_rod": {
+   "src": "gear_spec_new",
+   "name": "묘역 풍경 홀",
+   "shape": "chime_rod",
+   "style": "caster",
+   "kind": "magic",
+   "level": 27,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    26,
+    30
+   ],
+   "gear_spec_speed": 1.4,
+   "interval": 0.71,
+   "per_hit": [
+    40,
+    46
+   ],
+   "rate_per_s": 1.41,
+   "dps_new": 60.56,
+   "skill_power": 52.12,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "geode_great_maul": {
+   "src": "gear_spec_new",
+   "name": "정동 대형 망치",
+   "shape": "great_maul",
+   "style": "melee",
+   "kind": "physical",
+   "level": 34,
+   "rarity": "rare",
+   "gear_spec_damage": [
+    67,
+    76
+   ],
+   "gear_spec_speed": 0.85,
+   "interval": 1.18,
+   "per_hit": [
+    106,
+    121
+   ],
+   "rate_per_s": 0.85,
+   "dps_new": 96.19,
+   "skill_power": 65.43,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "prism_lamp_crook": {
+   "src": "gear_spec_new",
+   "name": "프리즘 등롱 지팡이",
+   "shape": "lamp_crook",
+   "style": "caster",
+   "kind": "magic",
+   "level": 34,
+   "rarity": "rare",
+   "gear_spec_damage": [
+    42,
+    49
+   ],
+   "gear_spec_speed": 1.1,
+   "interval": 0.91,
+   "per_hit": [
+    67,
+    78
+   ],
+   "rate_per_s": 1.1,
+   "dps_new": 79.67,
+   "skill_power": 68.57,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "amethyst_executioner_axe": {
+   "src": "gear_spec_new",
+   "name": "자수정 처형 도끼",
+   "shape": "executioner_axe",
+   "style": "melee",
+   "kind": "physical",
+   "level": 35,
+   "rarity": "rare",
+   "gear_spec_damage": [
+    69,
+    80
+   ],
+   "gear_spec_speed": 0.85,
+   "interval": 1.18,
+   "per_hit": [
+    110,
+    128
+   ],
+   "rate_per_s": 0.85,
+   "dps_new": 100.85,
+   "skill_power": 68.6,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "prism_twin_bow": {
+   "src": "gear_spec_new",
+   "name": "프리즘 쌍현 활",
+   "shape": "twin_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 35,
+   "rarity": "rare",
+   "gear_spec_damage": [
+    52,
+    60
+   ],
+   "gear_spec_speed": 1.2,
+   "interval": 1.05,
+   "per_hit": [
+    94,
+    109
+   ],
+   "rate_per_s": 0.95,
+   "dps_new": 96.67,
+   "skill_power": 68.41,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "crystal_censer": {
+   "src": "gear_spec_new",
+   "name": "수정 향로",
+   "shape": "censer_staff",
+   "style": "caster",
+   "kind": "magic",
+   "level": 34,
+   "rarity": "rare",
+   "gear_spec_damage": [
+    39,
+    45
+   ],
+   "gear_spec_speed": 1.2,
+   "interval": 0.83,
+   "per_hit": [
+    62,
+    71
+   ],
+   "rate_per_s": 1.2,
+   "dps_new": 80.12,
+   "skill_power": 68.96,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "shardglass_tanto": {
+   "src": "gear_spec_new",
+   "name": "파편유리 탄토",
+   "shape": "tanto",
+   "style": "melee",
+   "kind": "physical",
+   "level": 34,
+   "rarity": "rare",
+   "gear_spec_damage": [
+    27,
+    31
+   ],
+   "gear_spec_speed": 2.0,
+   "interval": 0.5,
+   "per_hit": [
+    43,
+    49
+   ],
+   "rate_per_s": 2.0,
+   "dps_new": 92.0,
+   "skill_power": 65.78,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "resonance_chime_rod": {
+   "src": "gear_spec_new",
+   "name": "공명 풍경 홀",
+   "shape": "chime_rod",
+   "style": "caster",
+   "kind": "magic",
+   "level": 34,
+   "rarity": "rare",
+   "gear_spec_damage": [
+    34,
+    38
+   ],
+   "gear_spec_speed": 1.4,
+   "interval": 0.71,
+   "per_hit": [
+    54,
+    60
+   ],
+   "rate_per_s": 1.41,
+   "dps_new": 80.28,
+   "skill_power": 69.09,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "resonance_rapier": {
+   "src": "gear_spec_new",
+   "name": "공명 레이피어",
+   "shape": "rapier",
+   "style": "melee",
+   "kind": "physical",
+   "level": 34,
+   "rarity": "rare",
+   "gear_spec_damage": [
+    30,
+    35
+   ],
+   "gear_spec_speed": 1.8,
+   "interval": 0.56,
+   "per_hit": [
+    48,
+    56
+   ],
+   "rate_per_s": 1.79,
+   "dps_new": 92.86,
+   "skill_power": 64.97,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 0
+  },
+  "ink_great_maul": {
+   "src": "gear_spec_new",
+   "name": "봉인 대형 망치",
+   "shape": "great_maul",
+   "style": "melee",
+   "kind": "physical",
+   "level": 38,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    84,
+    96
+   ],
+   "gear_spec_speed": 0.85,
+   "interval": 1.18,
+   "per_hit": [
+    135,
+    155
+   ],
+   "rate_per_s": 0.85,
+   "dps_new": 122.88,
+   "skill_power": 83.59,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "ink_recurve": {
+   "src": "gear_spec_new",
+   "name": "먹물 만곡궁",
+   "shape": "recurve_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 38,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    63,
+    72
+   ],
+   "gear_spec_speed": 1.2,
+   "interval": 1.1,
+   "per_hit": [
+    121,
+    139
+   ],
+   "rate_per_s": 0.91,
+   "dps_new": 118.18,
+   "skill_power": 83.64,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "ink_sabre": {
+   "src": "gear_spec_new",
+   "name": "먹물 사브르",
+   "shape": "sabre",
+   "style": "melee",
+   "kind": "physical",
+   "level": 38,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    42,
+    49
+   ],
+   "gear_spec_speed": 1.65,
+   "interval": 0.61,
+   "per_hit": [
+    68,
+    79
+   ],
+   "rate_per_s": 1.64,
+   "dps_new": 120.49,
+   "skill_power": 83.09,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "lore_lamp_crook": {
+   "src": "gear_spec_new",
+   "name": "서고 등롱 지팡이",
+   "shape": "lamp_crook",
+   "style": "caster",
+   "kind": "magic",
+   "level": 38,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    54,
+    61
+   ],
+   "gear_spec_speed": 1.1,
+   "interval": 0.91,
+   "per_hit": [
+    87,
+    98
+   ],
+   "rate_per_s": 1.1,
+   "dps_new": 101.65,
+   "skill_power": 87.48,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "ink_morning_star": {
+   "src": "gear_spec_new",
+   "name": "먹물 모닝스타",
+   "shape": "morning_star",
+   "style": "melee",
+   "kind": "physical",
+   "level": 38,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    55,
+    63
+   ],
+   "gear_spec_speed": 1.3,
+   "interval": 0.77,
+   "per_hit": [
+    89,
+    101
+   ],
+   "rate_per_s": 1.3,
+   "dps_new": 123.38,
+   "skill_power": 83.93,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "lore_sickle": {
+   "src": "gear_spec_new",
+   "name": "금서 갈고리낫",
+   "shape": "sickle",
+   "style": "melee",
+   "kind": "physical",
+   "level": 38,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    34,
+    39
+   ],
+   "gear_spec_speed": 2.0,
+   "interval": 0.5,
+   "per_hit": [
+    55,
+    63
+   ],
+   "rate_per_s": 2.0,
+   "dps_new": 118.0,
+   "skill_power": 84.38,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "index_cleaver": {
+   "src": "gear_spec_new",
+   "name": "색인 참마도",
+   "shape": "cleaver",
+   "style": "melee",
+   "kind": "physical",
+   "level": 39,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    74,
+    85
+   ],
+   "gear_spec_speed": 1.0,
+   "interval": 1.0,
+   "per_hit": [
+    120,
+    137
+   ],
+   "rate_per_s": 1.0,
+   "dps_new": 128.5,
+   "skill_power": 87.41,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "ink_bone_bow": {
+   "src": "gear_spec_new",
+   "name": "먹물 뼈 활",
+   "shape": "bone_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 39,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    65,
+    75
+   ],
+   "gear_spec_speed": 1.2,
+   "interval": 1.15,
+   "per_hit": [
+    131,
+    151
+   ],
+   "rate_per_s": 0.87,
+   "dps_new": 122.61,
+   "skill_power": 86.77,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "lore_antler_staff": {
+   "src": "gear_spec_new",
+   "name": "금서 사슴뿔 지팡이",
+   "shape": "antler_staff",
+   "style": "caster",
+   "kind": "magic",
+   "level": 39,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    56,
+    64
+   ],
+   "gear_spec_speed": 1.1,
+   "interval": 0.91,
+   "per_hit": [
+    91,
+    103
+   ],
+   "rate_per_s": 1.1,
+   "dps_new": 106.59,
+   "skill_power": 91.74,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "ink_flamberge": {
+   "src": "gear_spec_new",
+   "name": "먹물 플랑베르주",
+   "shape": "flamberge",
+   "style": "melee",
+   "kind": "physical",
+   "level": 38,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    75,
+    86
+   ],
+   "gear_spec_speed": 0.95,
+   "interval": 1.05,
+   "per_hit": [
+    120,
+    138
+   ],
+   "rate_per_s": 0.95,
+   "dps_new": 122.86,
+   "skill_power": 83.58,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "ink_stiletto": {
+   "src": "gear_spec_new",
+   "name": "먹물 스틸레토",
+   "shape": "stiletto",
+   "style": "melee",
+   "kind": "physical",
+   "level": 38,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    30,
+    35
+   ],
+   "gear_spec_speed": 2.2,
+   "interval": 0.45,
+   "per_hit": [
+    48,
+    56
+   ],
+   "rate_per_s": 2.22,
+   "dps_new": 115.56,
+   "skill_power": 84.55,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "lore_sun_scepter": {
+   "src": "gear_spec_new",
+   "name": "금서 해 홀",
+   "shape": "sun_scepter",
+   "style": "caster",
+   "kind": "magic",
+   "level": 38,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    46,
+    52
+   ],
+   "gear_spec_speed": 1.3,
+   "interval": 0.77,
+   "per_hit": [
+    74,
+    84
+   ],
+   "rate_per_s": 1.3,
+   "dps_new": 102.6,
+   "skill_power": 88.3,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "index_war_spear": {
+   "src": "gear_spec_new",
+   "name": "색인 창",
+   "shape": "war_spear",
+   "style": "melee",
+   "kind": "physical",
+   "level": 38,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    62,
+    71
+   ],
+   "gear_spec_speed": 1.15,
+   "interval": 0.87,
+   "per_hit": [
+    100,
+    114
+   ],
+   "rate_per_s": 1.15,
+   "dps_new": 122.99,
+   "skill_power": 83.67,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "ink_rapier": {
+   "src": "gear_spec_new",
+   "name": "먹물 레이피어",
+   "shape": "rapier",
+   "style": "melee",
+   "kind": "physical",
+   "level": 38,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    38,
+    44
+   ],
+   "gear_spec_speed": 1.8,
+   "interval": 0.56,
+   "per_hit": [
+    62,
+    71
+   ],
+   "rate_per_s": 1.79,
+   "dps_new": 118.75,
+   "skill_power": 83.09,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "clock_bell_scepter": {
+   "src": "gear_spec_new",
+   "name": "시보 종 홀",
+   "shape": "bell_scepter",
+   "style": "caster",
+   "kind": "magic",
+   "level": 41,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    51,
+    58
+   ],
+   "gear_spec_speed": 1.3,
+   "interval": 0.77,
+   "per_hit": [
+    83,
+    94
+   ],
+   "rate_per_s": 1.3,
+   "dps_new": 114.94,
+   "skill_power": 98.92,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "clock_blade_bow": {
+   "src": "gear_spec_new",
+   "name": "태엽 날활",
+   "shape": "blade_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 41,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    71,
+    81
+   ],
+   "gear_spec_speed": 1.2,
+   "interval": 1.15,
+   "per_hit": [
+    144,
+    165
+   ],
+   "rate_per_s": 0.87,
+   "dps_new": 134.35,
+   "skill_power": 95.08,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "clock_kris": {
+   "src": "gear_spec_new",
+   "name": "태엽 물결검",
+   "shape": "kris",
+   "style": "melee",
+   "kind": "physical",
+   "level": 41,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    36,
+    41
+   ],
+   "gear_spec_speed": 2.1,
+   "interval": 0.48,
+   "per_hit": [
+    59,
+    67
+   ],
+   "rate_per_s": 2.08,
+   "dps_new": 131.25,
+   "skill_power": 94.66,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "clock_mace": {
+   "src": "gear_spec_new",
+   "name": "태엽 철퇴",
+   "shape": "mace",
+   "style": "melee",
+   "kind": "physical",
+   "level": 41,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    57,
+    65
+   ],
+   "gear_spec_speed": 1.4,
+   "interval": 0.71,
+   "per_hit": [
+    92,
+    105
+   ],
+   "rate_per_s": 1.41,
+   "dps_new": 138.73,
+   "skill_power": 94.38,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "clock_falchion": {
+   "src": "gear_spec_new",
+   "name": "태엽 팔시온",
+   "shape": "falchion",
+   "style": "melee",
+   "kind": "physical",
+   "level": 41,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    49,
+    57
+   ],
+   "gear_spec_speed": 1.6,
+   "interval": 0.62,
+   "per_hit": [
+    79,
+    92
+   ],
+   "rate_per_s": 1.61,
+   "dps_new": 137.9,
+   "skill_power": 94.85,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "clock_staff_orb": {
+   "src": "gear_spec_new",
+   "name": "태엽 구슬 지팡이",
+   "shape": "staff_orb",
+   "style": "caster",
+   "kind": "magic",
+   "level": 41,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    60,
+    69
+   ],
+   "gear_spec_speed": 1.1,
+   "interval": 0.91,
+   "per_hit": [
+    98,
+    112
+   ],
+   "rate_per_s": 1.1,
+   "dps_new": 115.38,
+   "skill_power": 99.31,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "clock_glaive": {
+   "src": "gear_spec_new",
+   "name": "자정 언월도",
+   "shape": "glaive",
+   "style": "melee",
+   "kind": "physical",
+   "level": 42,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    83,
+    95
+   ],
+   "gear_spec_speed": 1.0,
+   "interval": 1.0,
+   "per_hit": [
+    135,
+    155
+   ],
+   "rate_per_s": 1.0,
+   "dps_new": 145.0,
+   "skill_power": 98.64,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "clock_greatsword": {
+   "src": "gear_spec_new",
+   "name": "톱니 대검",
+   "shape": "greatsword",
+   "style": "melee",
+   "kind": "physical",
+   "level": 42,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    87,
+    100
+   ],
+   "gear_spec_speed": 0.95,
+   "interval": 1.05,
+   "per_hit": [
+    141,
+    163
+   ],
+   "rate_per_s": 0.95,
+   "dps_new": 144.76,
+   "skill_power": 98.48,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "clock_thurible_rod": {
+   "src": "gear_spec_new",
+   "name": "진동 향로봉",
+   "shape": "thurible_rod",
+   "style": "caster",
+   "kind": "magic",
+   "level": 42,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    53,
+    61
+   ],
+   "gear_spec_speed": 1.3,
+   "interval": 0.77,
+   "per_hit": [
+    86,
+    100
+   ],
+   "rate_per_s": 1.3,
+   "dps_new": 120.78,
+   "skill_power": 103.95,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "clock_antler_staff": {
+   "src": "gear_spec_new",
+   "name": "놋쇠 가지 지팡이",
+   "shape": "antler_staff",
+   "style": "caster",
+   "kind": "magic",
+   "level": 41,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    60,
+    69
+   ],
+   "gear_spec_speed": 1.1,
+   "interval": 0.91,
+   "per_hit": [
+    98,
+    112
+   ],
+   "rate_per_s": 1.1,
+   "dps_new": 115.38,
+   "skill_power": 99.31,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "clock_broadsword": {
+   "src": "gear_spec_new",
+   "name": "놋쇠 넓은검",
+   "shape": "broadsword",
+   "style": "melee",
+   "kind": "physical",
+   "level": 41,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    57,
+    65
+   ],
+   "gear_spec_speed": 1.4,
+   "interval": 0.71,
+   "per_hit": [
+    92,
+    105
+   ],
+   "rate_per_s": 1.41,
+   "dps_new": 138.73,
+   "skill_power": 94.38,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "clock_katar": {
+   "src": "gear_spec_new",
+   "name": "톱니 주먹칼",
+   "shape": "katar",
+   "style": "melee",
+   "kind": "physical",
+   "level": 41,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    34,
+    39
+   ],
+   "gear_spec_speed": 2.2,
+   "interval": 0.45,
+   "per_hit": [
+    55,
+    63
+   ],
+   "rate_per_s": 2.22,
+   "dps_new": 131.11,
+   "skill_power": 95.93,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "clock_longsword": {
+   "src": "gear_spec_new",
+   "name": "태엽 장검",
+   "shape": "longsword",
+   "style": "melee",
+   "kind": "physical",
+   "level": 41,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    53,
+    61
+   ],
+   "gear_spec_speed": 1.5,
+   "interval": 0.67,
+   "per_hit": [
+    86,
+    100
+   ],
+   "rate_per_s": 1.49,
+   "dps_new": 138.81,
+   "skill_power": 94.43,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "clock_morning_star": {
+   "src": "gear_spec_new",
+   "name": "조속기 모닝스타",
+   "shape": "morning_star",
+   "style": "melee",
+   "kind": "physical",
+   "level": 41,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    62,
+    70
+   ],
+   "gear_spec_speed": 1.3,
+   "interval": 0.77,
+   "per_hit": [
+    101,
+    114
+   ],
+   "rate_per_s": 1.3,
+   "dps_new": 139.61,
+   "skill_power": 94.97,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "abyss_great_maul": {
+   "src": "gear_spec_new",
+   "name": "심연 대형 망치",
+   "shape": "great_maul",
+   "style": "melee",
+   "kind": "physical",
+   "level": 46,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    113,
+    129
+   ],
+   "gear_spec_speed": 0.85,
+   "interval": 1.18,
+   "per_hit": [
+    187,
+    213
+   ],
+   "rate_per_s": 0.85,
+   "dps_new": 169.49,
+   "skill_power": 115.3,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "void_stiletto": {
+   "src": "gear_spec_new",
+   "name": "공허 스틸레토",
+   "shape": "stiletto",
+   "style": "melee",
+   "kind": "physical",
+   "level": 46,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    41,
+    46
+   ],
+   "gear_spec_speed": 2.2,
+   "interval": 0.45,
+   "per_hit": [
+    67,
+    75
+   ],
+   "rate_per_s": 2.22,
+   "dps_new": 157.78,
+   "skill_power": 115.44,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "void_twin_bow": {
+   "src": "gear_spec_new",
+   "name": "공허 쌍현 활",
+   "shape": "twin_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 46,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    85,
+    97
+   ],
+   "gear_spec_speed": 1.2,
+   "interval": 1.05,
+   "per_hit": [
+    160,
+    182
+   ],
+   "rate_per_s": 0.95,
+   "dps_new": 162.86,
+   "skill_power": 115.25,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "abyss_broadsword": {
+   "src": "gear_spec_new",
+   "name": "심연 넓은검",
+   "shape": "broadsword",
+   "style": "melee",
+   "kind": "physical",
+   "level": 46,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    69,
+    78
+   ],
+   "gear_spec_speed": 1.4,
+   "interval": 0.71,
+   "per_hit": [
+    113,
+    128
+   ],
+   "rate_per_s": 1.41,
+   "dps_new": 169.72,
+   "skill_power": 115.45,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "abyss_sabre": {
+   "src": "gear_spec_new",
+   "name": "심연 사브르",
+   "shape": "sabre",
+   "style": "melee",
+   "kind": "physical",
+   "level": 46,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    57,
+    66
+   ],
+   "gear_spec_speed": 1.65,
+   "interval": 0.61,
+   "per_hit": [
+    95,
+    109
+   ],
+   "rate_per_s": 1.64,
+   "dps_new": 167.21,
+   "skill_power": 115.31,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "void_lamp_crook": {
+   "src": "gear_spec_new",
+   "name": "공허 등롱 지팡이",
+   "shape": "lamp_crook",
+   "style": "caster",
+   "kind": "magic",
+   "level": 46,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    72,
+    83
+   ],
+   "gear_spec_speed": 1.1,
+   "interval": 0.91,
+   "per_hit": [
+    119,
+    137
+   ],
+   "rate_per_s": 1.1,
+   "dps_new": 140.66,
+   "skill_power": 121.06,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "abyss_bone_bow": {
+   "src": "gear_spec_new",
+   "name": "심연 뼈 활",
+   "shape": "bone_bow",
+   "style": "ranged",
+   "kind": "physical",
+   "level": 47,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    88,
+    100
+   ],
+   "gear_spec_speed": 1.2,
+   "interval": 1.15,
+   "per_hit": [
+    182,
+    206
+   ],
+   "rate_per_s": 0.87,
+   "dps_new": 168.7,
+   "skill_power": 119.38,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "abyss_executioner_axe": {
+   "src": "gear_spec_new",
+   "name": "심연 처형 도끼",
+   "shape": "executioner_axe",
+   "style": "melee",
+   "kind": "physical",
+   "level": 47,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    116,
+    134
+   ],
+   "gear_spec_speed": 0.85,
+   "interval": 1.18,
+   "per_hit": [
+    192,
+    222
+   ],
+   "rate_per_s": 0.85,
+   "dps_new": 175.42,
+   "skill_power": 119.34,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "abyss_antler_staff": {
+   "src": "gear_spec_new",
+   "name": "심연 가지 지팡이",
+   "shape": "antler_staff",
+   "style": "caster",
+   "kind": "magic",
+   "level": 46,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    72,
+    83
+   ],
+   "gear_spec_speed": 1.1,
+   "interval": 0.91,
+   "per_hit": [
+    119,
+    137
+   ],
+   "rate_per_s": 1.1,
+   "dps_new": 140.66,
+   "skill_power": 121.06,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "void_fang_blade": {
+   "src": "gear_spec_new",
+   "name": "공허 송곳니",
+   "shape": "fang_blade",
+   "style": "melee",
+   "kind": "physical",
+   "level": 46,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    43,
+    49
+   ],
+   "gear_spec_speed": 2.1,
+   "interval": 0.48,
+   "per_hit": [
+    72,
+    81
+   ],
+   "rate_per_s": 2.08,
+   "dps_new": 159.38,
+   "skill_power": 114.94,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "void_tanto": {
+   "src": "gear_spec_new",
+   "name": "공허 탄토",
+   "shape": "tanto",
+   "style": "melee",
+   "kind": "physical",
+   "level": 46,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    46,
+    52
+   ],
+   "gear_spec_speed": 2.0,
+   "interval": 0.5,
+   "per_hit": [
+    76,
+    86
+   ],
+   "rate_per_s": 2.0,
+   "dps_new": 162.0,
+   "skill_power": 115.84,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "abyss_ring_staff": {
+   "src": "gear_spec_new",
+   "name": "심연 고리 지팡이",
+   "shape": "staff_ring",
+   "style": "caster",
+   "kind": "magic",
+   "level": 46,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    72,
+    83
+   ],
+   "gear_spec_speed": 1.1,
+   "interval": 0.91,
+   "per_hit": [
+    119,
+    137
+   ],
+   "rate_per_s": 1.1,
+   "dps_new": 140.66,
+   "skill_power": 121.06,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  },
+  "abyss_war_spear": {
+   "src": "gear_spec_new",
+   "name": "문지기의 창",
+   "shape": "war_spear",
+   "style": "melee",
+   "kind": "physical",
+   "level": 46,
+   "rarity": "epic",
+   "gear_spec_damage": [
+    83,
+    96
+   ],
+   "gear_spec_speed": 1.15,
+   "interval": 0.87,
+   "per_hit": [
+    137,
+    158
+   ],
+   "rate_per_s": 1.15,
+   "dps_new": 169.54,
+   "skill_power": 115.33,
+   "weapon_skill_factor": null,
+   "n_weapon_skills": 1
+  }
+ },
+ "band_spread": {
+  "1-5": {
+   "n": 25,
+   "skill_power": [
+    8.4,
+    12.4,
+    1.48
+   ],
+   "per_hit": [
+    5.5,
+    20.5,
+    3.73
+   ],
+   "dps": [
+    9.7,
+    18.0
+   ]
+  },
+  "6-10": {
+   "n": 23,
+   "skill_power": [
+    12.8,
+    18.7,
+    1.47
+   ],
+   "per_hit": [
+    8.5,
+    26.5,
+    3.12
+   ],
+   "dps": [
+    16.2,
+    26.5
+   ]
+  },
+  "11-15": {
+   "n": 23,
+   "skill_power": [
+    17.3,
+    26.4,
+    1.53
+   ],
+   "per_hit": [
+    11.5,
+    35.0,
+    3.04
+   ],
+   "dps": [
+    21.1,
+    37.1
+   ]
+  },
+  "16-20": {
+   "n": 23,
+   "skill_power": [
+    27.6,
+    36.4,
+    1.32
+   ],
+   "per_hit": [
+    17.0,
+    57.0,
+    3.35
+   ],
+   "dps": [
+    34.2,
+    51.4
+   ]
+  },
+  "21-25": {
+   "n": 23,
+   "skill_power": [
+    37.9,
+    49.8,
+    1.31
+   ],
+   "per_hit": [
+    23.5,
+    73.5,
+    3.13
+   ],
+   "dps": [
+    46.1,
+    73.1
+   ]
+  },
+  "26-30": {
+   "n": 23,
+   "skill_power": [
+    49.2,
+    57.0,
+    1.16
+   ],
+   "per_hit": [
+    30.5,
+    91.5,
+    3.0
+   ],
+   "dps": [
+    60.0,
+    77.1
+   ]
+  },
+  "31-35": {
+   "n": 23,
+   "skill_power": [
+    59.2,
+    83.8,
+    1.42
+   ],
+   "per_hit": [
+    36.5,
+    135.0,
+    3.7
+   ],
+   "dps": [
+    71.7,
+    117.4
+   ]
+  },
+  "36-40": {
+   "n": 23,
+   "skill_power": [
+    82.9,
+    99.2,
+    1.2
+   ],
+   "per_hit": [
+    51.0,
+    145.0,
+    2.84
+   ],
+   "dps": [
+    100.6,
+    141.8
+   ]
+  },
+  "41-45": {
+   "n": 23,
+   "skill_power": [
+    94.4,
+    120.5,
+    1.28
+   ],
+   "per_hit": [
+    55.0,
+    196.0,
+    3.56
+   ],
+   "dps": [
+    114.9,
+    170.4
+   ]
+  },
+  "46-50": {
+   "n": 22,
+   "skill_power": [
+    111.5,
+    142.6,
+    1.28
+   ],
+   "per_hit": [
+    71.0,
+    207.0,
+    2.92
+   ],
+   "dps": [
+    139.4,
+    201.4
+   ]
+  }
+ },
+ "future": {
+  "1": {
+   "P_old": 7.0,
+   "c": 1.183,
+   "TP_new_common": 8.28
+  },
+  "5": {
+   "P_old": 8.31,
+   "c": 1.269,
+   "TP_new_common": 10.55
+  },
+  "10": {
+   "P_old": 10.83,
+   "c": 1.354,
+   "TP_new_common": 14.66
+  },
+  "15": {
+   "P_old": 14.32,
+   "c": 1.421,
+   "TP_new_common": 20.36
+  },
+  "20": {
+   "P_old": 18.79,
+   "c": 1.476,
+   "TP_new_common": 27.73
+  },
+  "25": {
+   "P_old": 24.23,
+   "c": 1.521,
+   "TP_new_common": 36.86
+  },
+  "30": {
+   "P_old": 30.65,
+   "c": 1.559,
+   "TP_new_common": 47.79
+  },
+  "35": {
+   "P_old": 38.04,
+   "c": 1.592,
+   "TP_new_common": 60.54
+  },
+  "40": {
+   "P_old": 46.41,
+   "c": 1.619,
+   "TP_new_common": 75.16
+  },
+  "45": {
+   "P_old": 55.75,
+   "c": 1.644,
+   "TP_new_common": 91.65
+  },
+  "50": {
+   "P_old": 66.07,
+   "c": 1.665,
+   "TP_new_common": 110.03
+  }
+ },
+ "tax": {
+  "L10|heavy|STR|single": {
+   "stats": {
+    "STR": 33,
+    "DEX": 3,
+    "VIT": 23,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 1.394,
+   "vit": 23,
+   "dps_vs_str": 0.0,
+   "vit_vs_str": 0
+  },
+  "L10|heavy|STR|split": {
+   "stats": {
+    "STR": 33,
+    "DEX": 3,
+    "VIT": 23,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 1.394,
+   "vit": 23,
+   "dps_vs_str": 0.0,
+   "vit_vs_str": 0
+  },
+  "L10|heavy|DEX|single": {
+   "stats": {
+    "STR": 13,
+    "DEX": 23,
+    "VIT": 23,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 1.332,
+   "vit": 23,
+   "dps_vs_str": -0.044,
+   "vit_vs_str": 0
+  },
+  "L10|heavy|DEX|split": {
+   "stats": {
+    "STR": 22,
+    "DEX": 14,
+    "VIT": 23,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 1.366,
+   "vit": 23,
+   "dps_vs_str": -0.02,
+   "vit_vs_str": 0
+  },
+  "L10|heavy|VIT|single": {
+   "stats": {
+    "STR": 33,
+    "DEX": 3,
+    "VIT": 23,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 1.394,
+   "vit": 23,
+   "dps_vs_str": 0.0,
+   "vit_vs_str": 0
+  },
+  "L10|heavy|VIT|split": {
+   "stats": {
+    "STR": 33,
+    "DEX": 3,
+    "VIT": 23,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 1.394,
+   "vit": 23,
+   "dps_vs_str": 0.0,
+   "vit_vs_str": 0
+  },
+  "L10|heavy|WIS|single": {
+   "stats": {
+    "STR": 13,
+    "DEX": 3,
+    "VIT": 23,
+    "WIS": 23,
+    "LUK": 3
+   },
+   "dps_index": 1.184,
+   "vit": 23,
+   "dps_vs_str": -0.151,
+   "vit_vs_str": 0
+  },
+  "L10|heavy|WIS|split": {
+   "stats": {
+    "STR": 22,
+    "DEX": 3,
+    "VIT": 23,
+    "WIS": 14,
+    "LUK": 3
+   },
+   "dps_index": 1.279,
+   "vit": 23,
+   "dps_vs_str": -0.082,
+   "vit_vs_str": 0
+  },
+  "L10|heavy|LUK|single": {
+   "stats": {
+    "STR": 13,
+    "DEX": 3,
+    "VIT": 23,
+    "WIS": 3,
+    "LUK": 23
+   },
+   "dps_index": 1.213,
+   "vit": 23,
+   "dps_vs_str": -0.13,
+   "vit_vs_str": 0
+  },
+  "L10|heavy|LUK|split": {
+   "stats": {
+    "STR": 22,
+    "DEX": 3,
+    "VIT": 23,
+    "WIS": 3,
+    "LUK": 14
+   },
+   "dps_index": 1.296,
+   "vit": 23,
+   "dps_vs_str": -0.07,
+   "vit_vs_str": 0
+  },
+  "L10|light|STR|single": {
+   "stats": {
+    "STR": 23,
+    "DEX": 23,
+    "VIT": 13,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 1.45,
+   "vit": 13,
+   "dps_vs_str": 0.0,
+   "vit_vs_str": 0
+  },
+  "L10|light|STR|split": {
+   "stats": {
+    "STR": 23,
+    "DEX": 23,
+    "VIT": 13,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 1.45,
+   "vit": 13,
+   "dps_vs_str": 0.0,
+   "vit_vs_str": 0
+  },
+  "L10|light|DEX|single": {
+   "stats": {
+    "STR": 23,
+    "DEX": 23,
+    "VIT": 13,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 1.45,
+   "vit": 13,
+   "dps_vs_str": 0.0,
+   "vit_vs_str": 0
+  },
+  "L10|light|DEX|split": {
+   "stats": {
+    "STR": 23,
+    "DEX": 23,
+    "VIT": 13,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 1.45,
+   "vit": 13,
+   "dps_vs_str": 0.0,
+   "vit_vs_str": 0
+  },
+  "L10|light|VIT|single": {
+   "stats": {
+    "STR": 13,
+    "DEX": 23,
+    "VIT": 23,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 1.332,
+   "vit": 23,
+   "dps_vs_str": -0.081,
+   "vit_vs_str": 10
+  },
+  "L10|light|VIT|split": {
+   "stats": {
+    "STR": 22,
+    "DEX": 23,
+    "VIT": 14,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 1.439,
+   "vit": 14,
+   "dps_vs_str": -0.008,
+   "vit_vs_str": 1
+  },
+  "L10|light|WIS|single": {
+   "stats": {
+    "STR": 13,
+    "DEX": 23,
+    "VIT": 3,
+    "WIS": 23,
+    "LUK": 3
+   },
+   "dps_index": 1.332,
+   "vit": 3,
+   "dps_vs_str": -0.081,
+   "vit_vs_str": -10
+  },
+  "L10|light|WIS|split": {
+   "stats": {
+    "STR": 18,
+    "DEX": 23,
+    "VIT": 7,
+    "WIS": 14,
+    "LUK": 3
+   },
+   "dps_index": 1.391,
+   "vit": 7,
+   "dps_vs_str": -0.041,
+   "vit_vs_str": -6
+  },
+  "L10|light|LUK|single": {
+   "stats": {
+    "STR": 13,
+    "DEX": 23,
+    "VIT": 3,
+    "WIS": 3,
+    "LUK": 23
+   },
+   "dps_index": 1.364,
+   "vit": 3,
+   "dps_vs_str": -0.059,
+   "vit_vs_str": -10
+  },
+  "L10|light|LUK|split": {
+   "stats": {
+    "STR": 18,
+    "DEX": 23,
+    "VIT": 7,
+    "WIS": 3,
+    "LUK": 14
+   },
+   "dps_index": 1.409,
+   "vit": 7,
+   "dps_vs_str": -0.028,
+   "vit_vs_str": -6
+  },
+  "L25|heavy|STR|single": {
+   "stats": {
+    "STR": 71,
+    "DEX": 3,
+    "VIT": 60,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 1.792,
+   "vit": 60,
+   "dps_vs_str": 0.0,
+   "vit_vs_str": 0
+  },
+  "L25|heavy|STR|split": {
+   "stats": {
+    "STR": 71,
+    "DEX": 3,
+    "VIT": 60,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 1.792,
+   "vit": 60,
+   "dps_vs_str": 0.0,
+   "vit_vs_str": 0
+  },
+  "L25|heavy|DEX|single": {
+   "stats": {
+    "STR": 14,
+    "DEX": 60,
+    "VIT": 60,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 1.636,
+   "vit": 60,
+   "dps_vs_str": -0.087,
+   "vit_vs_str": 0
+  },
+  "L25|heavy|DEX|split": {
+   "stats": {
+    "STR": 38,
+    "DEX": 36,
+    "VIT": 60,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 1.748,
+   "vit": 60,
+   "dps_vs_str": -0.025,
+   "vit_vs_str": 0
+  },
+  "L25|heavy|VIT|single": {
+   "stats": {
+    "STR": 71,
+    "DEX": 3,
+    "VIT": 60,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 1.792,
+   "vit": 60,
+   "dps_vs_str": 0.0,
+   "vit_vs_str": 0
+  },
+  "L25|heavy|VIT|split": {
+   "stats": {
+    "STR": 71,
+    "DEX": 3,
+    "VIT": 60,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 1.792,
+   "vit": 60,
+   "dps_vs_str": 0.0,
+   "vit_vs_str": 0
+  },
+  "L25|heavy|WIS|single": {
+   "stats": {
+    "STR": 14,
+    "DEX": 3,
+    "VIT": 60,
+    "WIS": 60,
+    "LUK": 3
+   },
+   "dps_index": 1.195,
+   "vit": 60,
+   "dps_vs_str": -0.333,
+   "vit_vs_str": 0
+  },
+  "L25|heavy|WIS|split": {
+   "stats": {
+    "STR": 38,
+    "DEX": 3,
+    "VIT": 60,
+    "WIS": 36,
+    "LUK": 3
+   },
+   "dps_index": 1.446,
+   "vit": 60,
+   "dps_vs_str": -0.193,
+   "vit_vs_str": 0
+  },
+  "L25|heavy|LUK|single": {
+   "stats": {
+    "STR": 14,
+    "DEX": 3,
+    "VIT": 60,
+    "WIS": 3,
+    "LUK": 60
+   },
+   "dps_index": 1.277,
+   "vit": 60,
+   "dps_vs_str": -0.287,
+   "vit_vs_str": 0
+  },
+  "L25|heavy|LUK|split": {
+   "stats": {
+    "STR": 38,
+    "DEX": 3,
+    "VIT": 60,
+    "WIS": 3,
+    "LUK": 36
+   },
+   "dps_index": 1.504,
+   "vit": 60,
+   "dps_vs_str": -0.161,
+   "vit_vs_str": 0
+  },
+  "L25|light|STR|single": {
+   "stats": {
+    "STR": 60,
+    "DEX": 60,
+    "VIT": 14,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 2.296,
+   "vit": 14,
+   "dps_vs_str": 0.0,
+   "vit_vs_str": 0
+  },
+  "L25|light|STR|split": {
+   "stats": {
+    "STR": 60,
+    "DEX": 60,
+    "VIT": 14,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 2.296,
+   "vit": 14,
+   "dps_vs_str": 0.0,
+   "vit_vs_str": 0
+  },
+  "L25|light|DEX|single": {
+   "stats": {
+    "STR": 50,
+    "DEX": 60,
+    "VIT": 24,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 2.152,
+   "vit": 24,
+   "dps_vs_str": -0.063,
+   "vit_vs_str": 10
+  },
+  "L25|light|DEX|split": {
+   "stats": {
+    "STR": 50,
+    "DEX": 60,
+    "VIT": 24,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 2.152,
+   "vit": 24,
+   "dps_vs_str": -0.063,
+   "vit_vs_str": 10
+  },
+  "L25|light|VIT|single": {
+   "stats": {
+    "STR": 14,
+    "DEX": 60,
+    "VIT": 60,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 1.636,
+   "vit": 60,
+   "dps_vs_str": -0.287,
+   "vit_vs_str": 46
+  },
+  "L25|light|VIT|split": {
+   "stats": {
+    "STR": 38,
+    "DEX": 60,
+    "VIT": 36,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 1.98,
+   "vit": 36,
+   "dps_vs_str": -0.138,
+   "vit_vs_str": 22
+  },
+  "L25|light|WIS|single": {
+   "stats": {
+    "STR": 14,
+    "DEX": 60,
+    "VIT": 3,
+    "WIS": 60,
+    "LUK": 3
+   },
+   "dps_index": 1.636,
+   "vit": 3,
+   "dps_vs_str": -0.287,
+   "vit_vs_str": -11
+  },
+  "L25|light|WIS|split": {
+   "stats": {
+    "STR": 33,
+    "DEX": 60,
+    "VIT": 8,
+    "WIS": 36,
+    "LUK": 3
+   },
+   "dps_index": 1.908,
+   "vit": 8,
+   "dps_vs_str": -0.169,
+   "vit_vs_str": -6
+  },
+  "L25|light|LUK|single": {
+   "stats": {
+    "STR": 14,
+    "DEX": 60,
+    "VIT": 3,
+    "WIS": 3,
+    "LUK": 60
+   },
+   "dps_index": 1.741,
+   "vit": 3,
+   "dps_vs_str": -0.242,
+   "vit_vs_str": -11
+  },
+  "L25|light|LUK|split": {
+   "stats": {
+    "STR": 33,
+    "DEX": 60,
+    "VIT": 8,
+    "WIS": 3,
+    "LUK": 36
+   },
+   "dps_index": 1.98,
+   "vit": 8,
+   "dps_vs_str": -0.138,
+   "vit_vs_str": -6
+  },
+  "L45|heavy|STR|single": {
+   "stats": {
+    "STR": 121,
+    "DEX": 3,
+    "VIT": 110,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 2.316,
+   "vit": 110,
+   "dps_vs_str": 0.0,
+   "vit_vs_str": 0
+  },
+  "L45|heavy|STR|split": {
+   "stats": {
+    "STR": 121,
+    "DEX": 3,
+    "VIT": 110,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 2.316,
+   "vit": 110,
+   "dps_vs_str": 0.0,
+   "vit_vs_str": 0
+  },
+  "L45|heavy|DEX|single": {
+   "stats": {
+    "STR": 14,
+    "DEX": 110,
+    "VIT": 110,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 2.061,
+   "vit": 110,
+   "dps_vs_str": -0.11,
+   "vit_vs_str": 0
+  },
+  "L45|heavy|DEX|split": {
+   "stats": {
+    "STR": 58,
+    "DEX": 66,
+    "VIT": 110,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 2.335,
+   "vit": 110,
+   "dps_vs_str": 0.008,
+   "vit_vs_str": 0
+  },
+  "L45|heavy|VIT|single": {
+   "stats": {
+    "STR": 121,
+    "DEX": 3,
+    "VIT": 110,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 2.316,
+   "vit": 110,
+   "dps_vs_str": 0.0,
+   "vit_vs_str": 0
+  },
+  "L45|heavy|VIT|split": {
+   "stats": {
+    "STR": 121,
+    "DEX": 3,
+    "VIT": 110,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 2.316,
+   "vit": 110,
+   "dps_vs_str": 0.0,
+   "vit_vs_str": 0
+  },
+  "L45|heavy|WIS|single": {
+   "stats": {
+    "STR": 14,
+    "DEX": 3,
+    "VIT": 110,
+    "WIS": 110,
+    "LUK": 3
+   },
+   "dps_index": 1.195,
+   "vit": 110,
+   "dps_vs_str": -0.484,
+   "vit_vs_str": 0
+  },
+  "L45|heavy|WIS|split": {
+   "stats": {
+    "STR": 58,
+    "DEX": 3,
+    "VIT": 110,
+    "WIS": 66,
+    "LUK": 3
+   },
+   "dps_index": 1.656,
+   "vit": 110,
+   "dps_vs_str": -0.285,
+   "vit_vs_str": 0
+  },
+  "L45|heavy|LUK|single": {
+   "stats": {
+    "STR": 14,
+    "DEX": 3,
+    "VIT": 110,
+    "WIS": 3,
+    "LUK": 110
+   },
+   "dps_index": 1.349,
+   "vit": 110,
+   "dps_vs_str": -0.418,
+   "vit_vs_str": 0
+  },
+  "L45|heavy|LUK|split": {
+   "stats": {
+    "STR": 58,
+    "DEX": 3,
+    "VIT": 110,
+    "WIS": 3,
+    "LUK": 66
+   },
+   "dps_index": 1.782,
+   "vit": 110,
+   "dps_vs_str": -0.231,
+   "vit_vs_str": 0
+  },
+  "L45|light|STR|single": {
+   "stats": {
+    "STR": 110,
+    "DEX": 110,
+    "VIT": 14,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 3.796,
+   "vit": 14,
+   "dps_vs_str": 0.0,
+   "vit_vs_str": 0
+  },
+  "L45|light|STR|split": {
+   "stats": {
+    "STR": 110,
+    "DEX": 110,
+    "VIT": 14,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 3.796,
+   "vit": 14,
+   "dps_vs_str": 0.0,
+   "vit_vs_str": 0
+  },
+  "L45|light|DEX|single": {
+   "stats": {
+    "STR": 85,
+    "DEX": 110,
+    "VIT": 39,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 3.344,
+   "vit": 39,
+   "dps_vs_str": -0.119,
+   "vit_vs_str": 25
+  },
+  "L45|light|DEX|split": {
+   "stats": {
+    "STR": 85,
+    "DEX": 110,
+    "VIT": 39,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 3.344,
+   "vit": 39,
+   "dps_vs_str": -0.119,
+   "vit_vs_str": 25
+  },
+  "L45|light|VIT|single": {
+   "stats": {
+    "STR": 14,
+    "DEX": 110,
+    "VIT": 110,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 2.061,
+   "vit": 110,
+   "dps_vs_str": -0.457,
+   "vit_vs_str": 96
+  },
+  "L45|light|VIT|split": {
+   "stats": {
+    "STR": 58,
+    "DEX": 110,
+    "VIT": 66,
+    "WIS": 3,
+    "LUK": 3
+   },
+   "dps_index": 2.856,
+   "vit": 66,
+   "dps_vs_str": -0.248,
+   "vit_vs_str": 52
+  },
+  "L45|light|WIS|single": {
+   "stats": {
+    "STR": 14,
+    "DEX": 110,
+    "VIT": 3,
+    "WIS": 110,
+    "LUK": 3
+   },
+   "dps_index": 2.061,
+   "vit": 3,
+   "dps_vs_str": -0.457,
+   "vit_vs_str": -11
+  },
+  "L45|light|WIS|split": {
+   "stats": {
+    "STR": 53,
+    "DEX": 110,
+    "VIT": 8,
+    "WIS": 66,
+    "LUK": 3
+   },
+   "dps_index": 2.766,
+   "vit": 8,
+   "dps_vs_str": -0.271,
+   "vit_vs_str": -6
+  },
+  "L45|light|LUK|single": {
+   "stats": {
+    "STR": 14,
+    "DEX": 110,
+    "VIT": 3,
+    "WIS": 3,
+    "LUK": 110
+   },
+   "dps_index": 2.297,
+   "vit": 3,
+   "dps_vs_str": -0.395,
+   "vit_vs_str": -11
+  },
+  "L45|light|LUK|split": {
+   "stats": {
+    "STR": 53,
+    "DEX": 110,
+    "VIT": 8,
+    "WIS": 3,
+    "LUK": 66
+   },
+   "dps_index": 2.953,
+   "vit": 8,
+   "dps_vs_str": -0.222,
+   "vit_vs_str": -6
+  }
+ },
+ "pvp": {
+  "L1 berserker->hunter": {
+   "old_hit_pct": 0.059,
+   "new_hit_pct": 0.06,
+   "old_ttk_s": 17.2,
+   "new_ttk_s": 16.0
+  },
+  "L1 shadow->guardian": {
+   "old_hit_pct": 0.011,
+   "new_hit_pct": 0.012,
+   "old_ttk_s": 37.0,
+   "new_ttk_s": 34.3
+  },
+  "L1 hunter->arcanist": {
+   "old_hit_pct": 0.065,
+   "new_hit_pct": 0.079,
+   "old_ttk_s": 11.7,
+   "new_ttk_s": 11.1
+  },
+  "L10 berserker->hunter": {
+   "old_hit_pct": 0.049,
+   "new_hit_pct": 0.046,
+   "old_ttk_s": 20.2,
+   "new_ttk_s": 18.3
+  },
+  "L10 shadow->guardian": {
+   "old_hit_pct": 0.009,
+   "new_hit_pct": 0.009,
+   "old_ttk_s": 39.6,
+   "new_ttk_s": 43.5
+  },
+  "L10 hunter->arcanist": {
+   "old_hit_pct": 0.063,
+   "new_hit_pct": 0.055,
+   "old_ttk_s": 10.2,
+   "new_ttk_s": 10.8
+  },
+  "L20 berserker->hunter": {
+   "old_hit_pct": 0.065,
+   "new_hit_pct": 0.067,
+   "old_ttk_s": 12.5,
+   "new_ttk_s": 10.9
+  },
+  "L20 shadow->guardian": {
+   "old_hit_pct": 0.01,
+   "new_hit_pct": 0.009,
+   "old_ttk_s": 31.3,
+   "new_ttk_s": 36.4
+  },
+  "L20 hunter->arcanist": {
+   "old_hit_pct": 0.087,
+   "new_hit_pct": 0.069,
+   "old_ttk_s": 7.1,
+   "new_ttk_s": 7.7
+  },
+  "L30 berserker->hunter": {
+   "old_hit_pct": 0.082,
+   "new_hit_pct": 0.088,
+   "old_ttk_s": 10.2,
+   "new_ttk_s": 9.0
+  },
+  "L30 shadow->guardian": {
+   "old_hit_pct": 0.01,
+   "new_hit_pct": 0.008,
+   "old_ttk_s": 26.3,
+   "new_ttk_s": 31.0
+  },
+  "L30 hunter->arcanist": {
+   "old_hit_pct": 0.102,
+   "new_hit_pct": 0.087,
+   "old_ttk_s": 5.9,
+   "new_ttk_s": 5.9
+  },
+  "L44 berserker->hunter": {
+   "old_hit_pct": 0.136,
+   "new_hit_pct": 0.144,
+   "old_ttk_s": 5.3,
+   "new_ttk_s": 4.5
+  },
+  "L44 shadow->guardian": {
+   "old_hit_pct": 0.016,
+   "new_hit_pct": 0.011,
+   "old_ttk_s": 15.0,
+   "new_ttk_s": 18.7
+  },
+  "L44 hunter->arcanist": {
+   "old_hit_pct": 0.185,
+   "new_hit_pct": 0.117,
+   "old_ttk_s": 3.1,
+   "new_ttk_s": 3.4
+  }
+ },
+ "check": {
+  "existing": 131,
+  "new": 106,
+  "dps_rounding_err_mean": 0.0046,
+  "dps_rounding_err_max": 0.0436
+ }
+}

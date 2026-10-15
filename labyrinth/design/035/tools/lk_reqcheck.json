@@ -1,0 +1,4236 @@
+{
+ "guardian|1-5": {
+  "plain": {
+   "level": 3,
+   "need": {
+    "VIT": 4,
+    "DEX": 2,
+    "STR": 4
+   },
+   "used": 0,
+   "have": 15,
+   "left": 15,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": null,
+  "light": null,
+  "cloth": null,
+  "shield": "oak_round_shield",
+  "ok_looks": [
+   "plain"
+  ]
+ },
+ "guardian|6-10": {
+  "plain": {
+   "level": 6,
+   "need": {
+    "VIT": 6,
+    "DEX": 2,
+    "STR": 9
+   },
+   "used": 4,
+   "have": 30,
+   "left": 26,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 8,
+   "need": {
+    "VIT": 12,
+    "STR": 12
+   },
+   "used": 12,
+   "have": 40,
+   "left": 28,
+   "tax": 0,
+   "ok": true,
+   "set": "pit_foreman",
+   "set_level": 8,
+   "with_shield_ok": true,
+   "with_shield_left": 28
+  },
+  "light": {
+   "level": 8,
+   "need": {
+    "DEX": 12,
+    "STR": 12,
+    "VIT": 8
+   },
+   "used": 18,
+   "have": 40,
+   "left": 22,
+   "tax": 0,
+   "ok": true,
+   "set": "webrunner",
+   "set_level": 8,
+   "with_shield_ok": true,
+   "with_shield_left": 21
+  },
+  "cloth": {
+   "level": 8,
+   "need": {
+    "INT": 12,
+    "WIS": 8,
+    "STR": 12,
+    "VIT": 8
+   },
+   "used": 25,
+   "have": 40,
+   "left": 15,
+   "tax": 11,
+   "ok": false,
+   "set": "silkweaver",
+   "set_level": 8,
+   "with_shield_ok": false,
+   "with_shield_left": 14
+  },
+  "shield": "ironbound_kite_shield",
+  "ok_looks": [
+   "heavy",
+   "light"
+  ]
+ },
+ "guardian|11-15": {
+  "plain": {
+   "level": 11,
+   "need": {
+    "VIT": 11,
+    "DEX": 2,
+    "STR": 17
+   },
+   "used": 16,
+   "have": 55,
+   "left": 39,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 11,
+   "need": {
+    "VIT": 12,
+    "STR": 17
+   },
+   "used": 17,
+   "have": 55,
+   "left": 38,
+   "tax": 0,
+   "ok": true,
+   "set": "pit_foreman",
+   "set_level": 8,
+   "with_shield_ok": true,
+   "with_shield_left": 46
+  },
+  "light": {
+   "level": 14,
+   "need": {
+    "DEX": 23,
+    "LUK": 14,
+    "STR": 23,
+    "VIT": 14
+   },
+   "used": 59,
+   "have": 70,
+   "left": 11,
+   "tax": 13,
+   "ok": true,
+   "set": "hypha_stalker",
+   "set_level": 14,
+   "with_shield_ok": true,
+   "with_shield_left": 6
+  },
+  "cloth": {
+   "level": 14,
+   "need": {
+    "WIS": 23,
+    "VIT": 14,
+    "STR": 23
+   },
+   "used": 46,
+   "have": 70,
+   "left": 24,
+   "tax": 0,
+   "ok": true,
+   "set": "spore_sage",
+   "set_level": 14,
+   "with_shield_ok": true,
+   "with_shield_left": 19
+  },
+  "shield": "verdigris_tower_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "guardian|16-20": {
+  "plain": {
+   "level": 16,
+   "need": {
+    "VIT": 16,
+    "DEX": 2,
+    "STR": 26
+   },
+   "used": 30,
+   "have": 80,
+   "left": 50,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 19,
+   "need": {
+    "VIT": 30,
+    "WIS": 20,
+    "STR": 30
+   },
+   "used": 66,
+   "have": 95,
+   "left": 29,
+   "tax": 0,
+   "ok": true,
+   "set": "verdigris_guard",
+   "set_level": 19,
+   "with_shield_ok": true,
+   "with_shield_left": 29
+  },
+  "light": {
+   "level": 16,
+   "need": {
+    "DEX": 23,
+    "LUK": 14,
+    "STR": 26,
+    "VIT": 16
+   },
+   "used": 64,
+   "have": 80,
+   "left": 16,
+   "tax": 13,
+   "ok": true,
+   "set": "hypha_stalker",
+   "set_level": 14,
+   "with_shield_ok": true,
+   "with_shield_left": 8
+  },
+  "cloth": {
+   "level": 16,
+   "need": {
+    "WIS": 23,
+    "VIT": 16,
+    "STR": 26
+   },
+   "used": 51,
+   "have": 80,
+   "left": 29,
+   "tax": 0,
+   "ok": true,
+   "set": "spore_sage",
+   "set_level": 14,
+   "with_shield_ok": true,
+   "with_shield_left": 21
+  },
+  "shield": "verdigris_tower_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "guardian|21-25": {
+  "plain": {
+   "level": 21,
+   "need": {
+    "VIT": 22,
+    "DEX": 2,
+    "STR": 34
+   },
+   "used": 44,
+   "have": 105,
+   "left": 61,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 25,
+   "need": {
+    "VIT": 40,
+    "STR": 40
+   },
+   "used": 68,
+   "have": 125,
+   "left": 57,
+   "tax": 0,
+   "ok": true,
+   "set": "forge_warden",
+   "set_level": 25,
+   "with_shield_ok": true,
+   "with_shield_left": 57
+  },
+  "light": {
+   "level": 24,
+   "need": {
+    "DEX": 39,
+    "STR": 39,
+    "VIT": 25
+   },
+   "used": 89,
+   "have": 120,
+   "left": 31,
+   "tax": 0,
+   "ok": true,
+   "set": "rimefang",
+   "set_level": 24,
+   "with_shield_ok": true,
+   "with_shield_left": 21
+  },
+  "cloth": {
+   "level": 24,
+   "need": {
+    "WIS": 23,
+    "VIT": 25,
+    "STR": 39
+   },
+   "used": 73,
+   "have": 120,
+   "left": 47,
+   "tax": 0,
+   "ok": true,
+   "set": "spore_sage",
+   "set_level": 14,
+   "fallback_from": "crypt_mourner",
+   "with_shield_ok": true,
+   "with_shield_left": 42
+  },
+  "shield": "anvil_face_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "guardian|26-30": {
+  "plain": {
+   "level": 26,
+   "need": {
+    "VIT": 28,
+    "DEX": 2,
+    "STR": 42
+   },
+   "used": 58,
+   "have": 130,
+   "left": 72,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 26,
+   "need": {
+    "VIT": 40,
+    "STR": 42
+   },
+   "used": 70,
+   "have": 130,
+   "left": 60,
+   "tax": 0,
+   "ok": true,
+   "set": "forge_warden",
+   "set_level": 25,
+   "with_shield_ok": true,
+   "with_shield_left": 37
+  },
+  "light": {
+   "level": 26,
+   "need": {
+    "DEX": 39,
+    "STR": 42,
+    "VIT": 28
+   },
+   "used": 95,
+   "have": 130,
+   "left": 35,
+   "tax": 0,
+   "ok": true,
+   "set": "rimefang",
+   "set_level": 24,
+   "with_shield_ok": true,
+   "with_shield_left": 0
+  },
+  "cloth": {
+   "level": 28,
+   "need": {
+    "WIS": 23,
+    "VIT": 30,
+    "STR": 45
+   },
+   "used": 84,
+   "have": 140,
+   "left": 56,
+   "tax": 0,
+   "ok": true,
+   "set": "spore_sage",
+   "set_level": 14,
+   "fallback_from": "frost_regalia",
+   "with_shield_ok": true,
+   "with_shield_left": 37
+  },
+  "shield": "frostgrave_tower_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "guardian|31-35": {
+  "plain": {
+   "level": 31,
+   "need": {
+    "VIT": 33,
+    "DEX": 2,
+    "STR": 50
+   },
+   "used": 71,
+   "have": 155,
+   "left": 84,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 34,
+   "need": {
+    "VIT": 56,
+    "STR": 56
+   },
+   "used": 100,
+   "have": 170,
+   "left": 70,
+   "tax": 0,
+   "ok": true,
+   "set": "geode_bastion",
+   "set_level": 34,
+   "with_shield_ok": true,
+   "with_shield_left": 38
+  },
+  "light": {
+   "level": 34,
+   "need": {
+    "DEX": 56,
+    "STR": 56,
+    "VIT": 36
+   },
+   "used": 134,
+   "have": 170,
+   "left": 36,
+   "tax": 0,
+   "ok": true,
+   "set": "shard_dancer",
+   "set_level": 34,
+   "with_shield_ok": false,
+   "with_shield_left": -16
+  },
+  "cloth": {
+   "level": 34,
+   "need": {
+    "INT": 39,
+    "WIS": 25,
+    "STR": 56,
+    "VIT": 36
+   },
+   "used": 141,
+   "have": 170,
+   "left": 29,
+   "tax": 38,
+   "ok": true,
+   "set": "crypt_mourner",
+   "set_level": 24,
+   "fallback_from": "lorekeeper",
+   "with_shield_ok": true,
+   "with_shield_left": 19
+  },
+  "shield": "prism_aegis",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "guardian|36-40": {
+  "plain": {
+   "level": 36,
+   "need": {
+    "VIT": 38,
+    "DEX": 2,
+    "STR": 59
+   },
+   "used": 85,
+   "have": 180,
+   "left": 95,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 36,
+   "need": {
+    "VIT": 56,
+    "STR": 59
+   },
+   "used": 103,
+   "have": 180,
+   "left": 77,
+   "tax": 0,
+   "ok": true,
+   "set": "geode_bastion",
+   "set_level": 34,
+   "with_shield_ok": true,
+   "with_shield_left": 41
+  },
+  "light": {
+   "level": 38,
+   "need": {
+    "DEX": 56,
+    "STR": 62,
+    "VIT": 41
+   },
+   "used": 145,
+   "have": 190,
+   "left": 45,
+   "tax": 0,
+   "ok": true,
+   "set": "shard_dancer",
+   "set_level": 34,
+   "fallback_from": "inkveil",
+   "with_shield_ok": false,
+   "with_shield_left": -13
+  },
+  "cloth": {
+   "level": 36,
+   "need": {
+    "INT": 45,
+    "WIS": 30,
+    "STR": 59,
+    "VIT": 38
+   },
+   "used": 157,
+   "have": 180,
+   "left": 23,
+   "tax": 44,
+   "ok": true,
+   "set": "frost_regalia",
+   "set_level": 28,
+   "fallback_from": "lorekeeper",
+   "with_shield_ok": true,
+   "with_shield_left": 9
+  },
+  "shield": "inkbound_kite_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "guardian|41-45": {
+  "plain": {
+   "level": 41,
+   "need": {
+    "VIT": 44,
+    "DEX": 2,
+    "STR": 67
+   },
+   "used": 99,
+   "have": 205,
+   "left": 106,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 44,
+   "need": {
+    "VIT": 72,
+    "STR": 72
+   },
+   "used": 132,
+   "have": 220,
+   "left": 88,
+   "tax": 0,
+   "ok": true,
+   "set": "clockwork_juggernaut",
+   "set_level": 44,
+   "with_shield_ok": true,
+   "with_shield_left": 88
+  },
+  "light": {
+   "level": 44,
+   "need": {
+    "DEX": 62,
+    "INT": 41,
+    "STR": 72,
+    "VIT": 47
+   },
+   "used": 207,
+   "have": 220,
+   "left": 13,
+   "tax": 40,
+   "ok": true,
+   "set": "inkveil",
+   "set_level": 38,
+   "fallback_from": "abyss_walker",
+   "with_shield_ok": false,
+   "with_shield_left": -7
+  },
+  "cloth": {
+   "level": 44,
+   "need": {
+    "INT": 56,
+    "VIT": 47,
+    "STR": 72
+   },
+   "used": 162,
+   "have": 220,
+   "left": 58,
+   "tax": 55,
+   "ok": true,
+   "set": "lorekeeper",
+   "set_level": 34,
+   "fallback_from": "starless_choir",
+   "with_shield_ok": true,
+   "with_shield_left": 38
+  },
+  "shield": "clockwork_bastion",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "guardian|46-50": {
+  "plain": {
+   "level": 46,
+   "need": {
+    "VIT": 50,
+    "DEX": 2,
+    "STR": 75
+   },
+   "used": 113,
+   "have": 230,
+   "left": 117,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 46,
+   "need": {
+    "VIT": 72,
+    "STR": 75
+   },
+   "used": 135,
+   "have": 230,
+   "left": 95,
+   "tax": 0,
+   "ok": true,
+   "set": "clockwork_juggernaut",
+   "set_level": 44,
+   "with_shield_ok": true,
+   "with_shield_left": 44
+  },
+  "light": {
+   "level": 46,
+   "need": {
+    "DEX": 72,
+    "LUK": 47,
+    "STR": 75,
+    "VIT": 50
+   },
+   "used": 229,
+   "have": 230,
+   "left": 1,
+   "tax": 46,
+   "ok": true,
+   "set": "abyss_walker",
+   "set_level": 44,
+   "with_shield_ok": false,
+   "with_shield_left": -72
+  },
+  "cloth": {
+   "level": 46,
+   "need": {
+    "WIS": 72,
+    "INT": 47,
+    "STR": 75,
+    "VIT": 50
+   },
+   "used": 229,
+   "have": 230,
+   "left": 1,
+   "tax": 46,
+   "ok": true,
+   "set": "starless_choir",
+   "set_level": 44,
+   "with_shield_ok": false,
+   "with_shield_left": -24
+  },
+  "shield": "void_bulwark_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "berserker|1-5": {
+  "plain": {
+   "level": 3,
+   "need": {
+    "VIT": 4,
+    "DEX": 2,
+    "STR": 4
+   },
+   "used": 0,
+   "have": 15,
+   "left": 15,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": null,
+  "light": null,
+  "cloth": null,
+  "shield": "oak_round_shield",
+  "ok_looks": [
+   "plain"
+  ]
+ },
+ "berserker|6-10": {
+  "plain": {
+   "level": 6,
+   "need": {
+    "VIT": 6,
+    "DEX": 2,
+    "STR": 9
+   },
+   "used": 3,
+   "have": 30,
+   "left": 27,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 8,
+   "need": {
+    "VIT": 12,
+    "STR": 12
+   },
+   "used": 12,
+   "have": 40,
+   "left": 28,
+   "tax": 0,
+   "ok": true,
+   "set": "pit_foreman",
+   "set_level": 8,
+   "with_shield_ok": true,
+   "with_shield_left": 28
+  },
+  "light": {
+   "level": 8,
+   "need": {
+    "DEX": 12,
+    "STR": 12,
+    "VIT": 8
+   },
+   "used": 17,
+   "have": 40,
+   "left": 23,
+   "tax": 0,
+   "ok": true,
+   "set": "webrunner",
+   "set_level": 8,
+   "with_shield_ok": true,
+   "with_shield_left": 22
+  },
+  "cloth": {
+   "level": 8,
+   "need": {
+    "INT": 12,
+    "WIS": 8,
+    "STR": 12,
+    "VIT": 8
+   },
+   "used": 26,
+   "have": 40,
+   "left": 14,
+   "tax": 18,
+   "ok": false,
+   "set": "silkweaver",
+   "set_level": 8,
+   "with_shield_ok": false,
+   "with_shield_left": 13
+  },
+  "shield": "ironbound_kite_shield",
+  "ok_looks": [
+   "heavy",
+   "light"
+  ]
+ },
+ "berserker|11-15": {
+  "plain": {
+   "level": 11,
+   "need": {
+    "VIT": 11,
+    "DEX": 2,
+    "STR": 17
+   },
+   "used": 16,
+   "have": 55,
+   "left": 39,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 11,
+   "need": {
+    "VIT": 12,
+    "STR": 17
+   },
+   "used": 17,
+   "have": 55,
+   "left": 38,
+   "tax": 0,
+   "ok": true,
+   "set": "pit_foreman",
+   "set_level": 8,
+   "with_shield_ok": true,
+   "with_shield_left": 46
+  },
+  "light": {
+   "level": 14,
+   "need": {
+    "DEX": 23,
+    "LUK": 14,
+    "STR": 23,
+    "VIT": 14
+   },
+   "used": 58,
+   "have": 70,
+   "left": 12,
+   "tax": 0,
+   "ok": true,
+   "set": "hypha_stalker",
+   "set_level": 14,
+   "with_shield_ok": true,
+   "with_shield_left": 7
+  },
+  "cloth": {
+   "level": 14,
+   "need": {
+    "WIS": 23,
+    "VIT": 14,
+    "STR": 23
+   },
+   "used": 47,
+   "have": 70,
+   "left": 23,
+   "tax": 22,
+   "ok": false,
+   "set": "spore_sage",
+   "set_level": 14,
+   "with_shield_ok": false,
+   "with_shield_left": 18
+  },
+  "shield": "verdigris_tower_shield",
+  "ok_looks": [
+   "heavy",
+   "light"
+  ]
+ },
+ "berserker|16-20": {
+  "plain": {
+   "level": 16,
+   "need": {
+    "VIT": 16,
+    "DEX": 2,
+    "STR": 26
+   },
+   "used": 30,
+   "have": 80,
+   "left": 50,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 19,
+   "need": {
+    "VIT": 30,
+    "WIS": 20,
+    "STR": 30
+   },
+   "used": 67,
+   "have": 95,
+   "left": 28,
+   "tax": 19,
+   "ok": true,
+   "set": "verdigris_guard",
+   "set_level": 19,
+   "with_shield_ok": true,
+   "with_shield_left": 28
+  },
+  "light": {
+   "level": 16,
+   "need": {
+    "DEX": 23,
+    "LUK": 14,
+    "STR": 26,
+    "VIT": 16
+   },
+   "used": 63,
+   "have": 80,
+   "left": 17,
+   "tax": 0,
+   "ok": true,
+   "set": "hypha_stalker",
+   "set_level": 14,
+   "with_shield_ok": true,
+   "with_shield_left": 9
+  },
+  "cloth": {
+   "level": 16,
+   "need": {
+    "INT": 12,
+    "WIS": 8,
+    "STR": 26,
+    "VIT": 16
+   },
+   "used": 48,
+   "have": 80,
+   "left": 32,
+   "tax": 18,
+   "ok": true,
+   "set": "silkweaver",
+   "set_level": 8,
+   "fallback_from": "spore_sage",
+   "with_shield_ok": true,
+   "with_shield_left": 24
+  },
+  "shield": "verdigris_tower_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "berserker|21-25": {
+  "plain": {
+   "level": 21,
+   "need": {
+    "VIT": 22,
+    "DEX": 2,
+    "STR": 34
+   },
+   "used": 44,
+   "have": 105,
+   "left": 61,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 25,
+   "need": {
+    "VIT": 40,
+    "STR": 40
+   },
+   "used": 68,
+   "have": 125,
+   "left": 57,
+   "tax": 0,
+   "ok": true,
+   "set": "forge_warden",
+   "set_level": 25,
+   "with_shield_ok": true,
+   "with_shield_left": 57
+  },
+  "light": {
+   "level": 24,
+   "need": {
+    "DEX": 39,
+    "STR": 39,
+    "VIT": 25
+   },
+   "used": 88,
+   "have": 120,
+   "left": 32,
+   "tax": 0,
+   "ok": true,
+   "set": "rimefang",
+   "set_level": 24,
+   "with_shield_ok": true,
+   "with_shield_left": 22
+  },
+  "cloth": {
+   "level": 24,
+   "need": {
+    "WIS": 23,
+    "VIT": 25,
+    "STR": 39
+   },
+   "used": 74,
+   "have": 120,
+   "left": 46,
+   "tax": 22,
+   "ok": true,
+   "set": "spore_sage",
+   "set_level": 14,
+   "fallback_from": "crypt_mourner",
+   "with_shield_ok": true,
+   "with_shield_left": 41
+  },
+  "shield": "anvil_face_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "berserker|26-30": {
+  "plain": {
+   "level": 26,
+   "need": {
+    "VIT": 28,
+    "DEX": 2,
+    "STR": 42
+   },
+   "used": 58,
+   "have": 130,
+   "left": 72,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 26,
+   "need": {
+    "VIT": 40,
+    "STR": 42
+   },
+   "used": 70,
+   "have": 130,
+   "left": 60,
+   "tax": 0,
+   "ok": true,
+   "set": "forge_warden",
+   "set_level": 25,
+   "with_shield_ok": true,
+   "with_shield_left": 36
+  },
+  "light": {
+   "level": 26,
+   "need": {
+    "DEX": 39,
+    "STR": 42,
+    "VIT": 28
+   },
+   "used": 94,
+   "have": 130,
+   "left": 36,
+   "tax": 0,
+   "ok": true,
+   "set": "rimefang",
+   "set_level": 24,
+   "with_shield_ok": true,
+   "with_shield_left": 0
+  },
+  "cloth": {
+   "level": 28,
+   "need": {
+    "WIS": 23,
+    "VIT": 30,
+    "STR": 45
+   },
+   "used": 85,
+   "have": 140,
+   "left": 55,
+   "tax": 22,
+   "ok": true,
+   "set": "spore_sage",
+   "set_level": 14,
+   "fallback_from": "frost_regalia",
+   "with_shield_ok": true,
+   "with_shield_left": 36
+  },
+  "shield": "frostgrave_tower_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "berserker|31-35": {
+  "plain": {
+   "level": 31,
+   "need": {
+    "VIT": 33,
+    "DEX": 2,
+    "STR": 50
+   },
+   "used": 71,
+   "have": 155,
+   "left": 84,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 34,
+   "need": {
+    "VIT": 56,
+    "STR": 56
+   },
+   "used": 100,
+   "have": 170,
+   "left": 70,
+   "tax": 0,
+   "ok": true,
+   "set": "geode_bastion",
+   "set_level": 34,
+   "with_shield_ok": true,
+   "with_shield_left": 38
+  },
+  "light": {
+   "level": 34,
+   "need": {
+    "DEX": 56,
+    "STR": 56,
+    "VIT": 36
+   },
+   "used": 133,
+   "have": 170,
+   "left": 37,
+   "tax": 0,
+   "ok": true,
+   "set": "shard_dancer",
+   "set_level": 34,
+   "with_shield_ok": false,
+   "with_shield_left": -15
+  },
+  "cloth": {
+   "level": 34,
+   "need": {
+    "WIS": 23,
+    "VIT": 36,
+    "STR": 56
+   },
+   "used": 102,
+   "have": 170,
+   "left": 68,
+   "tax": 22,
+   "ok": true,
+   "set": "spore_sage",
+   "set_level": 14,
+   "fallback_from": "lorekeeper",
+   "with_shield_ok": false,
+   "with_shield_left": 22
+  },
+  "shield": "prism_aegis",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "berserker|36-40": {
+  "plain": {
+   "level": 36,
+   "need": {
+    "VIT": 38,
+    "DEX": 2,
+    "STR": 59
+   },
+   "used": 85,
+   "have": 180,
+   "left": 95,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 36,
+   "need": {
+    "VIT": 56,
+    "STR": 59
+   },
+   "used": 103,
+   "have": 180,
+   "left": 77,
+   "tax": 0,
+   "ok": true,
+   "set": "geode_bastion",
+   "set_level": 34,
+   "with_shield_ok": true,
+   "with_shield_left": 41
+  },
+  "light": {
+   "level": 38,
+   "need": {
+    "DEX": 62,
+    "INT": 41,
+    "STR": 62,
+    "VIT": 41
+   },
+   "used": 190,
+   "have": 190,
+   "left": 0,
+   "tax": 40,
+   "ok": true,
+   "set": "inkveil",
+   "set_level": 38,
+   "with_shield_ok": false,
+   "with_shield_left": -21
+  },
+  "cloth": {
+   "level": 36,
+   "need": {
+    "WIS": 23,
+    "VIT": 38,
+    "STR": 59
+   },
+   "used": 107,
+   "have": 180,
+   "left": 73,
+   "tax": 22,
+   "ok": true,
+   "set": "spore_sage",
+   "set_level": 14,
+   "fallback_from": "lorekeeper",
+   "with_shield_ok": false,
+   "with_shield_left": 19
+  },
+  "shield": "inkbound_kite_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "berserker|41-45": {
+  "plain": {
+   "level": 41,
+   "need": {
+    "VIT": 44,
+    "DEX": 2,
+    "STR": 67
+   },
+   "used": 99,
+   "have": 205,
+   "left": 106,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 44,
+   "need": {
+    "VIT": 72,
+    "STR": 72
+   },
+   "used": 132,
+   "have": 220,
+   "left": 88,
+   "tax": 0,
+   "ok": true,
+   "set": "clockwork_juggernaut",
+   "set_level": 44,
+   "with_shield_ok": true,
+   "with_shield_left": 88
+  },
+  "light": {
+   "level": 44,
+   "need": {
+    "DEX": 62,
+    "INT": 41,
+    "STR": 72,
+    "VIT": 47
+   },
+   "used": 206,
+   "have": 220,
+   "left": 14,
+   "tax": 40,
+   "ok": true,
+   "set": "inkveil",
+   "set_level": 38,
+   "fallback_from": "abyss_walker",
+   "with_shield_ok": false,
+   "with_shield_left": -6
+  },
+  "cloth": {
+   "level": 44,
+   "need": {
+    "INT": 56,
+    "VIT": 47,
+    "STR": 72
+   },
+   "used": 162,
+   "have": 220,
+   "left": 58,
+   "tax": 55,
+   "ok": true,
+   "set": "lorekeeper",
+   "set_level": 34,
+   "fallback_from": "starless_choir",
+   "with_shield_ok": true,
+   "with_shield_left": 38
+  },
+  "shield": "clockwork_bastion",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "berserker|46-50": {
+  "plain": {
+   "level": 46,
+   "need": {
+    "VIT": 50,
+    "DEX": 2,
+    "STR": 75
+   },
+   "used": 113,
+   "have": 230,
+   "left": 117,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 46,
+   "need": {
+    "VIT": 72,
+    "STR": 75
+   },
+   "used": 135,
+   "have": 230,
+   "left": 95,
+   "tax": 0,
+   "ok": true,
+   "set": "clockwork_juggernaut",
+   "set_level": 44,
+   "with_shield_ok": true,
+   "with_shield_left": 43
+  },
+  "light": {
+   "level": 46,
+   "need": {
+    "DEX": 72,
+    "LUK": 47,
+    "STR": 75,
+    "VIT": 50
+   },
+   "used": 228,
+   "have": 230,
+   "left": 2,
+   "tax": 0,
+   "ok": true,
+   "set": "abyss_walker",
+   "set_level": 44,
+   "with_shield_ok": false,
+   "with_shield_left": -72
+  },
+  "cloth": {
+   "level": 46,
+   "need": {
+    "INT": 56,
+    "VIT": 50,
+    "STR": 75
+   },
+   "used": 168,
+   "have": 230,
+   "left": 62,
+   "tax": 55,
+   "ok": true,
+   "set": "lorekeeper",
+   "set_level": 34,
+   "fallback_from": "starless_choir",
+   "with_shield_ok": false,
+   "with_shield_left": -12
+  },
+  "shield": "void_bulwark_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "hunter|1-5": {
+  "plain": {
+   "level": 3,
+   "need": {
+    "VIT": 4,
+    "DEX": 4,
+    "STR": 2
+   },
+   "used": 1,
+   "have": 15,
+   "left": 14,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": null,
+  "light": null,
+  "cloth": null,
+  "shield": "oak_round_shield",
+  "ok_looks": [
+   "plain"
+  ]
+ },
+ "hunter|6-10": {
+  "plain": {
+   "level": 6,
+   "need": {
+    "VIT": 4,
+    "DEX": 9,
+    "STR": 6
+   },
+   "used": 6,
+   "have": 30,
+   "left": 24,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 8,
+   "need": {
+    "VIT": 12,
+    "STR": 8,
+    "DEX": 12
+   },
+   "used": 19,
+   "have": 40,
+   "left": 21,
+   "tax": 0,
+   "ok": true,
+   "set": "pit_foreman",
+   "set_level": 8,
+   "with_shield_ok": true,
+   "with_shield_left": 21
+  },
+  "light": {
+   "level": 8,
+   "need": {
+    "DEX": 12,
+    "STR": 8
+   },
+   "used": 10,
+   "have": 40,
+   "left": 30,
+   "tax": 0,
+   "ok": true,
+   "set": "webrunner",
+   "set_level": 8,
+   "with_shield_ok": true,
+   "with_shield_left": 24
+  },
+  "cloth": {
+   "level": 8,
+   "need": {
+    "INT": 12,
+    "WIS": 8,
+    "DEX": 12,
+    "STR": 8
+   },
+   "used": 26,
+   "have": 40,
+   "left": 14,
+   "tax": 16,
+   "ok": false,
+   "set": "silkweaver",
+   "set_level": 8,
+   "with_shield_ok": false,
+   "with_shield_left": 8
+  },
+  "shield": "ironbound_kite_shield",
+  "ok_looks": [
+   "heavy",
+   "light"
+  ]
+ },
+ "hunter|11-15": {
+  "plain": {
+   "level": 11,
+   "need": {
+    "VIT": 4,
+    "DEX": 17,
+    "STR": 11
+   },
+   "used": 19,
+   "have": 55,
+   "left": 36,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 11,
+   "need": {
+    "VIT": 12,
+    "STR": 11,
+    "DEX": 17
+   },
+   "used": 27,
+   "have": 55,
+   "left": 28,
+   "tax": 0,
+   "ok": true,
+   "set": "pit_foreman",
+   "set_level": 8,
+   "with_shield_ok": true,
+   "with_shield_left": 32
+  },
+  "light": {
+   "level": 14,
+   "need": {
+    "DEX": 23,
+    "LUK": 14,
+    "STR": 14
+   },
+   "used": 38,
+   "have": 70,
+   "left": 32,
+   "tax": 0,
+   "ok": true,
+   "set": "hypha_stalker",
+   "set_level": 14,
+   "with_shield_ok": true,
+   "with_shield_left": 15
+  },
+  "cloth": {
+   "level": 14,
+   "need": {
+    "INT": 12,
+    "WIS": 8,
+    "DEX": 23,
+    "STR": 14
+   },
+   "used": 43,
+   "have": 70,
+   "left": 27,
+   "tax": 16,
+   "ok": true,
+   "set": "silkweaver",
+   "set_level": 8,
+   "fallback_from": "spore_sage",
+   "with_shield_ok": true,
+   "with_shield_left": 16
+  },
+  "shield": "verdigris_tower_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "hunter|16-20": {
+  "plain": {
+   "level": 16,
+   "need": {
+    "VIT": 4,
+    "DEX": 26,
+    "STR": 16
+   },
+   "used": 33,
+   "have": 80,
+   "left": 47,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 19,
+   "need": {
+    "VIT": 30,
+    "WIS": 20,
+    "DEX": 30,
+    "STR": 20
+   },
+   "used": 85,
+   "have": 95,
+   "left": 10,
+   "tax": 18,
+   "ok": true,
+   "set": "verdigris_guard",
+   "set_level": 19,
+   "with_shield_ok": true,
+   "with_shield_left": 10
+  },
+  "light": {
+   "level": 16,
+   "need": {
+    "DEX": 26,
+    "LUK": 14,
+    "STR": 16
+   },
+   "used": 43,
+   "have": 80,
+   "left": 37,
+   "tax": 0,
+   "ok": true,
+   "set": "hypha_stalker",
+   "set_level": 14,
+   "with_shield_ok": true,
+   "with_shield_left": 16
+  },
+  "cloth": {
+   "level": 16,
+   "need": {
+    "INT": 12,
+    "WIS": 8,
+    "DEX": 26,
+    "STR": 16
+   },
+   "used": 48,
+   "have": 80,
+   "left": 32,
+   "tax": 16,
+   "ok": true,
+   "set": "silkweaver",
+   "set_level": 8,
+   "fallback_from": "spore_sage",
+   "with_shield_ok": true,
+   "with_shield_left": 11
+  },
+  "shield": "verdigris_tower_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "hunter|21-25": {
+  "plain": {
+   "level": 21,
+   "need": {
+    "VIT": 4,
+    "DEX": 34,
+    "STR": 22
+   },
+   "used": 47,
+   "have": 105,
+   "left": 58,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 25,
+   "need": {
+    "VIT": 40,
+    "STR": 26,
+    "DEX": 40
+   },
+   "used": 93,
+   "have": 125,
+   "left": 32,
+   "tax": 0,
+   "ok": true,
+   "set": "forge_warden",
+   "set_level": 25,
+   "with_shield_ok": true,
+   "with_shield_left": 32
+  },
+  "light": {
+   "level": 24,
+   "need": {
+    "DEX": 39,
+    "STR": 25
+   },
+   "used": 54,
+   "have": 120,
+   "left": 66,
+   "tax": 0,
+   "ok": true,
+   "set": "rimefang",
+   "set_level": 24,
+   "with_shield_ok": true,
+   "with_shield_left": 33
+  },
+  "cloth": {
+   "level": 24,
+   "need": {
+    "WIS": 23,
+    "VIT": 14,
+    "DEX": 39,
+    "STR": 25
+   },
+   "used": 86,
+   "have": 120,
+   "left": 34,
+   "tax": 21,
+   "ok": true,
+   "set": "spore_sage",
+   "set_level": 14,
+   "fallback_from": "crypt_mourner",
+   "with_shield_ok": true,
+   "with_shield_left": 17
+  },
+  "shield": "anvil_face_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "hunter|26-30": {
+  "plain": {
+   "level": 26,
+   "need": {
+    "VIT": 4,
+    "DEX": 42,
+    "STR": 28
+   },
+   "used": 61,
+   "have": 130,
+   "left": 69,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 26,
+   "need": {
+    "VIT": 40,
+    "STR": 28,
+    "DEX": 42
+   },
+   "used": 97,
+   "have": 130,
+   "left": 33,
+   "tax": 0,
+   "ok": true,
+   "set": "forge_warden",
+   "set_level": 25,
+   "with_shield_ok": true,
+   "with_shield_left": 10
+  },
+  "light": {
+   "level": 26,
+   "need": {
+    "DEX": 42,
+    "STR": 28
+   },
+   "used": 60,
+   "have": 130,
+   "left": 70,
+   "tax": 0,
+   "ok": true,
+   "set": "rimefang",
+   "set_level": 24,
+   "with_shield_ok": true,
+   "with_shield_left": 10
+  },
+  "cloth": {
+   "level": 28,
+   "need": {
+    "WIS": 23,
+    "VIT": 14,
+    "DEX": 45,
+    "STR": 30
+   },
+   "used": 97,
+   "have": 140,
+   "left": 43,
+   "tax": 21,
+   "ok": true,
+   "set": "spore_sage",
+   "set_level": 14,
+   "fallback_from": "frost_regalia",
+   "with_shield_ok": true,
+   "with_shield_left": 10
+  },
+  "shield": "frostgrave_tower_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "hunter|31-35": {
+  "plain": {
+   "level": 31,
+   "need": {
+    "VIT": 4,
+    "DEX": 50,
+    "STR": 33
+   },
+   "used": 74,
+   "have": 155,
+   "left": 81,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 34,
+   "need": {
+    "VIT": 56,
+    "STR": 36,
+    "DEX": 56
+   },
+   "used": 135,
+   "have": 170,
+   "left": 35,
+   "tax": 0,
+   "ok": true,
+   "set": "geode_bastion",
+   "set_level": 34,
+   "with_shield_ok": true,
+   "with_shield_left": 4
+  },
+  "light": {
+   "level": 34,
+   "need": {
+    "DEX": 56,
+    "STR": 36
+   },
+   "used": 82,
+   "have": 170,
+   "left": 88,
+   "tax": 0,
+   "ok": true,
+   "set": "shard_dancer",
+   "set_level": 34,
+   "with_shield_ok": true,
+   "with_shield_left": 4
+  },
+  "cloth": {
+   "level": 34,
+   "need": {
+    "WIS": 23,
+    "VIT": 14,
+    "DEX": 56,
+    "STR": 36
+   },
+   "used": 114,
+   "have": 170,
+   "left": 56,
+   "tax": 21,
+   "ok": true,
+   "set": "spore_sage",
+   "set_level": 14,
+   "fallback_from": "lorekeeper",
+   "with_shield_ok": false,
+   "with_shield_left": -8
+  },
+  "shield": "prism_aegis",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "hunter|36-40": {
+  "plain": {
+   "level": 36,
+   "need": {
+    "VIT": 4,
+    "DEX": 59,
+    "STR": 38
+   },
+   "used": 88,
+   "have": 180,
+   "left": 92,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 36,
+   "need": {
+    "VIT": 56,
+    "STR": 38,
+    "DEX": 59
+   },
+   "used": 140,
+   "have": 180,
+   "left": 40,
+   "tax": 0,
+   "ok": true,
+   "set": "geode_bastion",
+   "set_level": 34,
+   "with_shield_ok": true,
+   "with_shield_left": 5
+  },
+  "light": {
+   "level": 38,
+   "need": {
+    "DEX": 62,
+    "INT": 41,
+    "STR": 41
+   },
+   "used": 132,
+   "have": 190,
+   "left": 58,
+   "tax": 39,
+   "ok": true,
+   "set": "inkveil",
+   "set_level": 38,
+   "with_shield_ok": false,
+   "with_shield_left": -1
+  },
+  "cloth": {
+   "level": 36,
+   "need": {
+    "WIS": 23,
+    "VIT": 14,
+    "DEX": 59,
+    "STR": 38
+   },
+   "used": 119,
+   "have": 180,
+   "left": 61,
+   "tax": 21,
+   "ok": true,
+   "set": "spore_sage",
+   "set_level": 14,
+   "fallback_from": "lorekeeper",
+   "with_shield_ok": false,
+   "with_shield_left": -16
+  },
+  "shield": "inkbound_kite_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "hunter|41-45": {
+  "plain": {
+   "level": 41,
+   "need": {
+    "VIT": 4,
+    "DEX": 67,
+    "STR": 44
+   },
+   "used": 102,
+   "have": 205,
+   "left": 103,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 44,
+   "need": {
+    "VIT": 72,
+    "STR": 47,
+    "DEX": 72
+   },
+   "used": 178,
+   "have": 220,
+   "left": 42,
+   "tax": 0,
+   "ok": true,
+   "set": "clockwork_juggernaut",
+   "set_level": 44,
+   "with_shield_ok": true,
+   "with_shield_left": 42
+  },
+  "light": {
+   "level": 44,
+   "need": {
+    "DEX": 72,
+    "LUK": 47,
+    "STR": 47
+   },
+   "used": 153,
+   "have": 220,
+   "left": 67,
+   "tax": 0,
+   "ok": true,
+   "set": "abyss_walker",
+   "set_level": 44,
+   "with_shield_ok": false,
+   "with_shield_left": -2
+  },
+  "cloth": {
+   "level": 44,
+   "need": {
+    "INT": 56,
+    "VIT": 36,
+    "DEX": 72,
+    "STR": 47
+   },
+   "used": 196,
+   "have": 220,
+   "left": 24,
+   "tax": 54,
+   "ok": true,
+   "set": "lorekeeper",
+   "set_level": 34,
+   "fallback_from": "starless_choir",
+   "with_shield_ok": false,
+   "with_shield_left": -7
+  },
+  "shield": "clockwork_bastion",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "hunter|46-50": {
+  "plain": {
+   "level": 46,
+   "need": {
+    "VIT": 4,
+    "DEX": 75,
+    "STR": 50
+   },
+   "used": 116,
+   "have": 230,
+   "left": 114,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 46,
+   "need": {
+    "VIT": 72,
+    "STR": 50,
+    "DEX": 75
+   },
+   "used": 184,
+   "have": 230,
+   "left": 46,
+   "tax": 0,
+   "ok": true,
+   "set": "clockwork_juggernaut",
+   "set_level": 44,
+   "with_shield_ok": false,
+   "with_shield_left": -5
+  },
+  "light": {
+   "level": 46,
+   "need": {
+    "DEX": 75,
+    "LUK": 47,
+    "STR": 50
+   },
+   "used": 159,
+   "have": 230,
+   "left": 71,
+   "tax": 0,
+   "ok": true,
+   "set": "abyss_walker",
+   "set_level": 44,
+   "with_shield_ok": false,
+   "with_shield_left": -49
+  },
+  "cloth": {
+   "level": 46,
+   "need": {
+    "INT": 56,
+    "VIT": 36,
+    "DEX": 75,
+    "STR": 50
+   },
+   "used": 202,
+   "have": 230,
+   "left": 28,
+   "tax": 54,
+   "ok": true,
+   "set": "lorekeeper",
+   "set_level": 34,
+   "fallback_from": "starless_choir",
+   "with_shield_ok": false,
+   "with_shield_left": -59
+  },
+  "shield": "void_bulwark_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "arcanist|1-5": {
+  "plain": {
+   "level": 3,
+   "need": {
+    "VIT": 4,
+    "DEX": 2,
+    "INT": 4,
+    "WIS": 2
+   },
+   "used": 0,
+   "have": 15,
+   "left": 15,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": null,
+  "light": null,
+  "cloth": null,
+  "shield": "oak_round_shield",
+  "ok_looks": [
+   "plain"
+  ]
+ },
+ "arcanist|6-10": {
+  "plain": {
+   "level": 6,
+   "need": {
+    "VIT": 4,
+    "DEX": 2,
+    "INT": 9,
+    "WIS": 6
+   },
+   "used": 2,
+   "have": 30,
+   "left": 28,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 8,
+   "need": {
+    "VIT": 12,
+    "STR": 8,
+    "INT": 12,
+    "WIS": 8
+   },
+   "used": 22,
+   "have": 40,
+   "left": 18,
+   "tax": 7,
+   "ok": true,
+   "set": "pit_foreman",
+   "set_level": 8,
+   "with_shield_ok": true,
+   "with_shield_left": 18
+  },
+  "light": {
+   "level": 8,
+   "need": {
+    "DEX": 12,
+    "STR": 8,
+    "INT": 12,
+    "WIS": 8
+   },
+   "used": 24,
+   "have": 40,
+   "left": 16,
+   "tax": 17,
+   "ok": false,
+   "set": "webrunner",
+   "set_level": 8,
+   "with_shield_ok": false,
+   "with_shield_left": 11
+  },
+  "cloth": {
+   "level": 8,
+   "need": {
+    "INT": 12,
+    "WIS": 8
+   },
+   "used": 7,
+   "have": 40,
+   "left": 33,
+   "tax": 0,
+   "ok": true,
+   "set": "silkweaver",
+   "set_level": 8,
+   "with_shield_ok": true,
+   "with_shield_left": 23
+  },
+  "shield": "ironbound_kite_shield",
+  "ok_looks": [
+   "heavy",
+   "cloth"
+  ]
+ },
+ "arcanist|11-15": {
+  "plain": {
+   "level": 11,
+   "need": {
+    "VIT": 4,
+    "DEX": 2,
+    "INT": 17,
+    "WIS": 11
+   },
+   "used": 15,
+   "have": 55,
+   "left": 40,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 11,
+   "need": {
+    "VIT": 12,
+    "STR": 8,
+    "INT": 17,
+    "WIS": 11
+   },
+   "used": 30,
+   "have": 55,
+   "left": 25,
+   "tax": 7,
+   "ok": true,
+   "set": "pit_foreman",
+   "set_level": 8,
+   "with_shield_ok": true,
+   "with_shield_left": 26
+  },
+  "light": {
+   "level": 14,
+   "need": {
+    "DEX": 12,
+    "STR": 8,
+    "INT": 23,
+    "WIS": 14
+   },
+   "used": 41,
+   "have": 70,
+   "left": 29,
+   "tax": 17,
+   "ok": true,
+   "set": "webrunner",
+   "set_level": 8,
+   "fallback_from": "hypha_stalker",
+   "with_shield_ok": false,
+   "with_shield_left": 16
+  },
+  "cloth": {
+   "level": 14,
+   "need": {
+    "WIS": 23,
+    "VIT": 14,
+    "INT": 23
+   },
+   "used": 43,
+   "have": 70,
+   "left": 27,
+   "tax": 0,
+   "ok": true,
+   "set": "spore_sage",
+   "set_level": 14,
+   "with_shield_ok": true,
+   "with_shield_left": 8
+  },
+  "shield": "verdigris_tower_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "arcanist|16-20": {
+  "plain": {
+   "level": 16,
+   "need": {
+    "VIT": 4,
+    "DEX": 2,
+    "INT": 26,
+    "WIS": 16
+   },
+   "used": 29,
+   "have": 80,
+   "left": 51,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 19,
+   "need": {
+    "VIT": 30,
+    "WIS": 20,
+    "INT": 30
+   },
+   "used": 63,
+   "have": 95,
+   "left": 32,
+   "tax": 0,
+   "ok": true,
+   "set": "verdigris_guard",
+   "set_level": 19,
+   "with_shield_ok": true,
+   "with_shield_left": 18
+  },
+  "light": {
+   "level": 16,
+   "need": {
+    "DEX": 12,
+    "STR": 8,
+    "INT": 26,
+    "WIS": 16
+   },
+   "used": 46,
+   "have": 80,
+   "left": 34,
+   "tax": 17,
+   "ok": true,
+   "set": "webrunner",
+   "set_level": 8,
+   "fallback_from": "hypha_stalker",
+   "with_shield_ok": false,
+   "with_shield_left": 7
+  },
+  "cloth": {
+   "level": 16,
+   "need": {
+    "WIS": 23,
+    "VIT": 14,
+    "INT": 26
+   },
+   "used": 46,
+   "have": 80,
+   "left": 34,
+   "tax": 0,
+   "ok": true,
+   "set": "spore_sage",
+   "set_level": 14,
+   "with_shield_ok": true,
+   "with_shield_left": 10
+  },
+  "shield": "verdigris_tower_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "arcanist|21-25": {
+  "plain": {
+   "level": 21,
+   "need": {
+    "VIT": 4,
+    "DEX": 2,
+    "INT": 34,
+    "WIS": 22
+   },
+   "used": 43,
+   "have": 105,
+   "left": 62,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 25,
+   "need": {
+    "VIT": 40,
+    "STR": 26,
+    "INT": 40,
+    "WIS": 26
+   },
+   "used": 114,
+   "have": 125,
+   "left": 11,
+   "tax": 25,
+   "ok": true,
+   "set": "forge_warden",
+   "set_level": 25,
+   "with_shield_ok": true,
+   "with_shield_left": 11
+  },
+  "light": {
+   "level": 24,
+   "need": {
+    "DEX": 12,
+    "STR": 8,
+    "INT": 39,
+    "WIS": 25
+   },
+   "used": 68,
+   "have": 120,
+   "left": 52,
+   "tax": 17,
+   "ok": true,
+   "set": "webrunner",
+   "set_level": 8,
+   "fallback_from": "rimefang",
+   "with_shield_ok": false,
+   "with_shield_left": 11
+  },
+  "cloth": {
+   "level": 24,
+   "need": {
+    "INT": 39,
+    "WIS": 25
+   },
+   "used": 51,
+   "have": 120,
+   "left": 69,
+   "tax": 0,
+   "ok": true,
+   "set": "crypt_mourner",
+   "set_level": 24,
+   "with_shield_ok": true,
+   "with_shield_left": 13
+  },
+  "shield": "anvil_face_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "arcanist|26-30": {
+  "plain": {
+   "level": 26,
+   "need": {
+    "VIT": 4,
+    "DEX": 2,
+    "INT": 42,
+    "WIS": 28
+   },
+   "used": 57,
+   "have": 130,
+   "left": 73,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 26,
+   "need": {
+    "VIT": 40,
+    "STR": 26,
+    "INT": 42,
+    "WIS": 28
+   },
+   "used": 118,
+   "have": 130,
+   "left": 12,
+   "tax": 25,
+   "ok": true,
+   "set": "forge_warden",
+   "set_level": 25,
+   "with_shield_ok": true,
+   "with_shield_left": 15
+  },
+  "light": {
+   "level": 26,
+   "need": {
+    "DEX": 12,
+    "STR": 8,
+    "INT": 42,
+    "WIS": 28
+   },
+   "used": 74,
+   "have": 130,
+   "left": 56,
+   "tax": 17,
+   "ok": true,
+   "set": "webrunner",
+   "set_level": 8,
+   "fallback_from": "rimefang",
+   "with_shield_ok": true,
+   "with_shield_left": 23
+  },
+  "cloth": {
+   "level": 28,
+   "need": {
+    "INT": 45,
+    "WIS": 30
+   },
+   "used": 62,
+   "have": 140,
+   "left": 78,
+   "tax": 0,
+   "ok": true,
+   "set": "frost_regalia",
+   "set_level": 28,
+   "with_shield_ok": true,
+   "with_shield_left": 37
+  },
+  "shield": "frostgrave_tower_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "arcanist|31-35": {
+  "plain": {
+   "level": 31,
+   "need": {
+    "VIT": 4,
+    "DEX": 2,
+    "INT": 50,
+    "WIS": 33
+   },
+   "used": 70,
+   "have": 155,
+   "left": 85,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 34,
+   "need": {
+    "VIT": 56,
+    "STR": 36,
+    "INT": 56,
+    "WIS": 36
+   },
+   "used": 166,
+   "have": 170,
+   "left": 4,
+   "tax": 35,
+   "ok": true,
+   "set": "geode_bastion",
+   "set_level": 34,
+   "with_shield_ok": true,
+   "with_shield_left": 8
+  },
+  "light": {
+   "level": 34,
+   "need": {
+    "DEX": 23,
+    "LUK": 14,
+    "INT": 56,
+    "WIS": 36
+   },
+   "used": 113,
+   "have": 170,
+   "left": 57,
+   "tax": 34,
+   "ok": true,
+   "set": "hypha_stalker",
+   "set_level": 14,
+   "fallback_from": "shard_dancer",
+   "with_shield_ok": true,
+   "with_shield_left": 18
+  },
+  "cloth": {
+   "level": 34,
+   "need": {
+    "INT": 56,
+    "VIT": 36,
+    "WIS": 36
+   },
+   "used": 111,
+   "have": 170,
+   "left": 59,
+   "tax": 0,
+   "ok": true,
+   "set": "lorekeeper",
+   "set_level": 34,
+   "with_shield_ok": true,
+   "with_shield_left": 43
+  },
+  "shield": "prism_aegis",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "arcanist|36-40": {
+  "plain": {
+   "level": 36,
+   "need": {
+    "VIT": 4,
+    "DEX": 2,
+    "INT": 59,
+    "WIS": 38
+   },
+   "used": 84,
+   "have": 180,
+   "left": 96,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 36,
+   "need": {
+    "VIT": 56,
+    "STR": 36,
+    "INT": 59,
+    "WIS": 38
+   },
+   "used": 171,
+   "have": 180,
+   "left": 9,
+   "tax": 35,
+   "ok": true,
+   "set": "geode_bastion",
+   "set_level": 34,
+   "with_shield_ok": true,
+   "with_shield_left": 13
+  },
+  "light": {
+   "level": 38,
+   "need": {
+    "DEX": 23,
+    "LUK": 14,
+    "INT": 62,
+    "WIS": 41
+   },
+   "used": 124,
+   "have": 190,
+   "left": 66,
+   "tax": 34,
+   "ok": true,
+   "set": "hypha_stalker",
+   "set_level": 14,
+   "fallback_from": "inkveil",
+   "with_shield_ok": true,
+   "with_shield_left": 14
+  },
+  "cloth": {
+   "level": 36,
+   "need": {
+    "INT": 59,
+    "VIT": 36,
+    "WIS": 38
+   },
+   "used": 116,
+   "have": 180,
+   "left": 64,
+   "tax": 0,
+   "ok": true,
+   "set": "lorekeeper",
+   "set_level": 34,
+   "with_shield_ok": true,
+   "with_shield_left": 48
+  },
+  "shield": "inkbound_kite_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "arcanist|41-45": {
+  "plain": {
+   "level": 41,
+   "need": {
+    "VIT": 4,
+    "DEX": 2,
+    "INT": 67,
+    "WIS": 44
+   },
+   "used": 98,
+   "have": 205,
+   "left": 107,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 44,
+   "need": {
+    "VIT": 72,
+    "STR": 47,
+    "INT": 72,
+    "WIS": 47
+   },
+   "used": 220,
+   "have": 220,
+   "left": 0,
+   "tax": 46,
+   "ok": true,
+   "set": "clockwork_juggernaut",
+   "set_level": 44,
+   "with_shield_ok": true,
+   "with_shield_left": 0
+  },
+  "light": {
+   "level": 44,
+   "need": {
+    "DEX": 23,
+    "LUK": 14,
+    "INT": 72,
+    "WIS": 47
+   },
+   "used": 140,
+   "have": 220,
+   "left": 80,
+   "tax": 34,
+   "ok": true,
+   "set": "hypha_stalker",
+   "set_level": 14,
+   "fallback_from": "abyss_walker",
+   "with_shield_ok": false,
+   "with_shield_left": -26
+  },
+  "cloth": {
+   "level": 44,
+   "need": {
+    "WIS": 72,
+    "INT": 72
+   },
+   "used": 131,
+   "have": 220,
+   "left": 89,
+   "tax": 0,
+   "ok": true,
+   "set": "starless_choir",
+   "set_level": 44,
+   "with_shield_ok": false,
+   "with_shield_left": -25
+  },
+  "shield": "clockwork_bastion",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "arcanist|46-50": {
+  "plain": {
+   "level": 46,
+   "need": {
+    "VIT": 4,
+    "DEX": 2,
+    "INT": 75,
+    "WIS": 50
+   },
+   "used": 112,
+   "have": 230,
+   "left": 118,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 46,
+   "need": {
+    "VIT": 72,
+    "STR": 47,
+    "INT": 75,
+    "WIS": 50
+   },
+   "used": 226,
+   "have": 230,
+   "left": 4,
+   "tax": 46,
+   "ok": true,
+   "set": "clockwork_juggernaut",
+   "set_level": 44,
+   "with_shield_ok": true,
+   "with_shield_left": 1
+  },
+  "light": {
+   "level": 46,
+   "need": {
+    "DEX": 23,
+    "LUK": 14,
+    "INT": 75,
+    "WIS": 50
+   },
+   "used": 146,
+   "have": 230,
+   "left": 84,
+   "tax": 34,
+   "ok": true,
+   "set": "hypha_stalker",
+   "set_level": 14,
+   "fallback_from": "abyss_walker",
+   "with_shield_ok": true,
+   "with_shield_left": 13
+  },
+  "cloth": {
+   "level": 46,
+   "need": {
+    "WIS": 72,
+    "INT": 75
+   },
+   "used": 134,
+   "have": 230,
+   "left": 96,
+   "tax": 0,
+   "ok": true,
+   "set": "starless_choir",
+   "set_level": 44,
+   "with_shield_ok": true,
+   "with_shield_left": 25
+  },
+  "shield": "void_bulwark_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "priest|1-5": {
+  "plain": {
+   "level": 3,
+   "need": {
+    "VIT": 4,
+    "DEX": 2,
+    "WIS": 4,
+    "INT": 2
+   },
+   "used": 0,
+   "have": 15,
+   "left": 15,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": null,
+  "light": null,
+  "cloth": null,
+  "shield": "oak_round_shield",
+  "ok_looks": [
+   "plain"
+  ]
+ },
+ "priest|6-10": {
+  "plain": {
+   "level": 6,
+   "need": {
+    "VIT": 4,
+    "DEX": 2,
+    "WIS": 9,
+    "INT": 6
+   },
+   "used": 3,
+   "have": 30,
+   "left": 27,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 8,
+   "need": {
+    "VIT": 12,
+    "STR": 8,
+    "WIS": 12,
+    "INT": 8
+   },
+   "used": 23,
+   "have": 40,
+   "left": 17,
+   "tax": 7,
+   "ok": true,
+   "set": "pit_foreman",
+   "set_level": 8,
+   "with_shield_ok": true,
+   "with_shield_left": 17
+  },
+  "light": {
+   "level": 8,
+   "need": {
+    "DEX": 12,
+    "STR": 8,
+    "WIS": 12,
+    "INT": 8
+   },
+   "used": 25,
+   "have": 40,
+   "left": 15,
+   "tax": 17,
+   "ok": false,
+   "set": "webrunner",
+   "set_level": 8,
+   "with_shield_ok": false,
+   "with_shield_left": 10
+  },
+  "cloth": {
+   "level": 8,
+   "need": {
+    "INT": 12,
+    "WIS": 12
+   },
+   "used": 12,
+   "have": 40,
+   "left": 28,
+   "tax": 0,
+   "ok": true,
+   "set": "silkweaver",
+   "set_level": 8,
+   "with_shield_ok": true,
+   "with_shield_left": 18
+  },
+  "shield": "ironbound_kite_shield",
+  "ok_looks": [
+   "heavy",
+   "cloth"
+  ]
+ },
+ "priest|11-15": {
+  "plain": {
+   "level": 11,
+   "need": {
+    "VIT": 4,
+    "DEX": 2,
+    "WIS": 17,
+    "INT": 11
+   },
+   "used": 16,
+   "have": 55,
+   "left": 39,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 11,
+   "need": {
+    "VIT": 12,
+    "STR": 8,
+    "WIS": 17,
+    "INT": 11
+   },
+   "used": 31,
+   "have": 55,
+   "left": 24,
+   "tax": 7,
+   "ok": true,
+   "set": "pit_foreman",
+   "set_level": 8,
+   "with_shield_ok": true,
+   "with_shield_left": 25
+  },
+  "light": {
+   "level": 14,
+   "need": {
+    "DEX": 12,
+    "STR": 8,
+    "WIS": 23,
+    "INT": 14
+   },
+   "used": 42,
+   "have": 70,
+   "left": 28,
+   "tax": 17,
+   "ok": true,
+   "set": "webrunner",
+   "set_level": 8,
+   "fallback_from": "hypha_stalker",
+   "with_shield_ok": false,
+   "with_shield_left": 15
+  },
+  "cloth": {
+   "level": 14,
+   "need": {
+    "WIS": 23,
+    "VIT": 14,
+    "INT": 14
+   },
+   "used": 35,
+   "have": 70,
+   "left": 35,
+   "tax": 0,
+   "ok": true,
+   "set": "spore_sage",
+   "set_level": 14,
+   "with_shield_ok": true,
+   "with_shield_left": 16
+  },
+  "shield": "verdigris_tower_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "priest|16-20": {
+  "plain": {
+   "level": 16,
+   "need": {
+    "VIT": 4,
+    "DEX": 2,
+    "WIS": 26,
+    "INT": 16
+   },
+   "used": 30,
+   "have": 80,
+   "left": 50,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 19,
+   "need": {
+    "VIT": 30,
+    "WIS": 30,
+    "INT": 20
+   },
+   "used": 64,
+   "have": 95,
+   "left": 31,
+   "tax": 0,
+   "ok": true,
+   "set": "verdigris_guard",
+   "set_level": 19,
+   "with_shield_ok": true,
+   "with_shield_left": 17
+  },
+  "light": {
+   "level": 16,
+   "need": {
+    "DEX": 12,
+    "STR": 8,
+    "WIS": 26,
+    "INT": 16
+   },
+   "used": 47,
+   "have": 80,
+   "left": 33,
+   "tax": 17,
+   "ok": true,
+   "set": "webrunner",
+   "set_level": 8,
+   "fallback_from": "hypha_stalker",
+   "with_shield_ok": false,
+   "with_shield_left": 6
+  },
+  "cloth": {
+   "level": 16,
+   "need": {
+    "WIS": 26,
+    "VIT": 14,
+    "INT": 16
+   },
+   "used": 40,
+   "have": 80,
+   "left": 40,
+   "tax": 0,
+   "ok": true,
+   "set": "spore_sage",
+   "set_level": 14,
+   "with_shield_ok": true,
+   "with_shield_left": 16
+  },
+  "shield": "verdigris_tower_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "priest|21-25": {
+  "plain": {
+   "level": 21,
+   "need": {
+    "VIT": 4,
+    "DEX": 2,
+    "WIS": 34,
+    "INT": 22
+   },
+   "used": 44,
+   "have": 105,
+   "left": 61,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 25,
+   "need": {
+    "VIT": 40,
+    "STR": 26,
+    "WIS": 40,
+    "INT": 26
+   },
+   "used": 115,
+   "have": 125,
+   "left": 10,
+   "tax": 25,
+   "ok": true,
+   "set": "forge_warden",
+   "set_level": 25,
+   "with_shield_ok": true,
+   "with_shield_left": 10
+  },
+  "light": {
+   "level": 24,
+   "need": {
+    "DEX": 12,
+    "STR": 8,
+    "WIS": 39,
+    "INT": 25
+   },
+   "used": 69,
+   "have": 120,
+   "left": 51,
+   "tax": 17,
+   "ok": true,
+   "set": "webrunner",
+   "set_level": 8,
+   "fallback_from": "rimefang",
+   "with_shield_ok": false,
+   "with_shield_left": 10
+  },
+  "cloth": {
+   "level": 24,
+   "need": {
+    "INT": 39,
+    "WIS": 39
+   },
+   "used": 66,
+   "have": 120,
+   "left": 54,
+   "tax": 0,
+   "ok": true,
+   "set": "crypt_mourner",
+   "set_level": 24,
+   "with_shield_ok": false,
+   "with_shield_left": -2
+  },
+  "shield": "anvil_face_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "priest|26-30": {
+  "plain": {
+   "level": 26,
+   "need": {
+    "VIT": 4,
+    "DEX": 2,
+    "WIS": 42,
+    "INT": 28
+   },
+   "used": 58,
+   "have": 130,
+   "left": 72,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 26,
+   "need": {
+    "VIT": 40,
+    "STR": 26,
+    "WIS": 42,
+    "INT": 28
+   },
+   "used": 119,
+   "have": 130,
+   "left": 11,
+   "tax": 25,
+   "ok": true,
+   "set": "forge_warden",
+   "set_level": 25,
+   "with_shield_ok": true,
+   "with_shield_left": 16
+  },
+  "light": {
+   "level": 26,
+   "need": {
+    "DEX": 12,
+    "STR": 8,
+    "WIS": 42,
+    "INT": 28
+   },
+   "used": 75,
+   "have": 130,
+   "left": 55,
+   "tax": 17,
+   "ok": true,
+   "set": "webrunner",
+   "set_level": 8,
+   "fallback_from": "rimefang",
+   "with_shield_ok": true,
+   "with_shield_left": 24
+  },
+  "cloth": {
+   "level": 28,
+   "need": {
+    "INT": 45,
+    "WIS": 45
+   },
+   "used": 78,
+   "have": 140,
+   "left": 62,
+   "tax": 0,
+   "ok": true,
+   "set": "frost_regalia",
+   "set_level": 28,
+   "with_shield_ok": true,
+   "with_shield_left": 21
+  },
+  "shield": "frostgrave_tower_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "priest|31-35": {
+  "plain": {
+   "level": 31,
+   "need": {
+    "VIT": 4,
+    "DEX": 2,
+    "WIS": 50,
+    "INT": 33
+   },
+   "used": 71,
+   "have": 155,
+   "left": 84,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 34,
+   "need": {
+    "VIT": 56,
+    "STR": 36,
+    "WIS": 56,
+    "INT": 36
+   },
+   "used": 167,
+   "have": 170,
+   "left": 3,
+   "tax": 35,
+   "ok": true,
+   "set": "geode_bastion",
+   "set_level": 34,
+   "with_shield_ok": true,
+   "with_shield_left": 6
+  },
+  "light": {
+   "level": 34,
+   "need": {
+    "DEX": 23,
+    "LUK": 14,
+    "WIS": 56,
+    "INT": 36
+   },
+   "used": 114,
+   "have": 170,
+   "left": 56,
+   "tax": 34,
+   "ok": true,
+   "set": "hypha_stalker",
+   "set_level": 14,
+   "fallback_from": "shard_dancer",
+   "with_shield_ok": true,
+   "with_shield_left": 13
+  },
+  "cloth": {
+   "level": 34,
+   "need": {
+    "INT": 56,
+    "VIT": 36,
+    "WIS": 56
+   },
+   "used": 132,
+   "have": 170,
+   "left": 38,
+   "tax": 0,
+   "ok": true,
+   "set": "lorekeeper",
+   "set_level": 34,
+   "with_shield_ok": true,
+   "with_shield_left": 22
+  },
+  "shield": "prism_aegis",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "priest|36-40": {
+  "plain": {
+   "level": 36,
+   "need": {
+    "VIT": 4,
+    "DEX": 2,
+    "WIS": 59,
+    "INT": 38
+   },
+   "used": 85,
+   "have": 180,
+   "left": 95,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 36,
+   "need": {
+    "VIT": 56,
+    "STR": 36,
+    "WIS": 59,
+    "INT": 38
+   },
+   "used": 172,
+   "have": 180,
+   "left": 8,
+   "tax": 35,
+   "ok": true,
+   "set": "geode_bastion",
+   "set_level": 34,
+   "with_shield_ok": true,
+   "with_shield_left": 9
+  },
+  "light": {
+   "level": 38,
+   "need": {
+    "DEX": 23,
+    "LUK": 14,
+    "WIS": 62,
+    "INT": 41
+   },
+   "used": 125,
+   "have": 190,
+   "left": 65,
+   "tax": 34,
+   "ok": true,
+   "set": "hypha_stalker",
+   "set_level": 14,
+   "fallback_from": "inkveil",
+   "with_shield_ok": true,
+   "with_shield_left": 10
+  },
+  "cloth": {
+   "level": 36,
+   "need": {
+    "INT": 56,
+    "VIT": 36,
+    "WIS": 59
+   },
+   "used": 135,
+   "have": 180,
+   "left": 45,
+   "tax": 0,
+   "ok": true,
+   "set": "lorekeeper",
+   "set_level": 34,
+   "with_shield_ok": true,
+   "with_shield_left": 29
+  },
+  "shield": "inkbound_kite_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "priest|41-45": {
+  "plain": {
+   "level": 41,
+   "need": {
+    "VIT": 4,
+    "DEX": 2,
+    "WIS": 67,
+    "INT": 44
+   },
+   "used": 99,
+   "have": 205,
+   "left": 106,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 44,
+   "need": {
+    "VIT": 56,
+    "STR": 36,
+    "WIS": 72,
+    "INT": 47
+   },
+   "used": 194,
+   "have": 220,
+   "left": 26,
+   "tax": 35,
+   "ok": true,
+   "set": "geode_bastion",
+   "set_level": 34,
+   "fallback_from": "clockwork_juggernaut",
+   "with_shield_ok": true,
+   "with_shield_left": 7
+  },
+  "light": {
+   "level": 44,
+   "need": {
+    "DEX": 23,
+    "LUK": 14,
+    "WIS": 72,
+    "INT": 47
+   },
+   "used": 141,
+   "have": 220,
+   "left": 79,
+   "tax": 34,
+   "ok": true,
+   "set": "hypha_stalker",
+   "set_level": 14,
+   "fallback_from": "abyss_walker",
+   "with_shield_ok": false,
+   "with_shield_left": -27
+  },
+  "cloth": {
+   "level": 44,
+   "need": {
+    "WIS": 72,
+    "INT": 47
+   },
+   "used": 107,
+   "have": 220,
+   "left": 113,
+   "tax": 0,
+   "ok": true,
+   "set": "starless_choir",
+   "set_level": 44,
+   "with_shield_ok": false,
+   "with_shield_left": -1
+  },
+  "shield": "clockwork_bastion",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "priest|46-50": {
+  "plain": {
+   "level": 46,
+   "need": {
+    "VIT": 4,
+    "DEX": 2,
+    "WIS": 75,
+    "INT": 50
+   },
+   "used": 113,
+   "have": 230,
+   "left": 117,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 46,
+   "need": {
+    "VIT": 72,
+    "STR": 47,
+    "WIS": 75,
+    "INT": 50
+   },
+   "used": 227,
+   "have": 230,
+   "left": 3,
+   "tax": 46,
+   "ok": true,
+   "set": "clockwork_juggernaut",
+   "set_level": 44,
+   "with_shield_ok": true,
+   "with_shield_left": 0
+  },
+  "light": {
+   "level": 46,
+   "need": {
+    "DEX": 23,
+    "LUK": 14,
+    "WIS": 75,
+    "INT": 50
+   },
+   "used": 147,
+   "have": 230,
+   "left": 83,
+   "tax": 34,
+   "ok": true,
+   "set": "hypha_stalker",
+   "set_level": 14,
+   "fallback_from": "abyss_walker",
+   "with_shield_ok": true,
+   "with_shield_left": 12
+  },
+  "cloth": {
+   "level": 46,
+   "need": {
+    "WIS": 75,
+    "INT": 50
+   },
+   "used": 113,
+   "have": 230,
+   "left": 117,
+   "tax": 0,
+   "ok": true,
+   "set": "starless_choir",
+   "set_level": 44,
+   "with_shield_ok": true,
+   "with_shield_left": 46
+  },
+  "shield": "void_bulwark_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "shadow|1-5": {
+  "plain": {
+   "level": 3,
+   "need": {
+    "VIT": 4,
+    "DEX": 4,
+    "STR": 2
+   },
+   "used": 0,
+   "have": 15,
+   "left": 15,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": null,
+  "light": null,
+  "cloth": null,
+  "shield": "oak_round_shield",
+  "ok_looks": [
+   "plain"
+  ]
+ },
+ "shadow|6-10": {
+  "plain": {
+   "level": 6,
+   "need": {
+    "VIT": 4,
+    "DEX": 9,
+    "STR": 6
+   },
+   "used": 4,
+   "have": 30,
+   "left": 26,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 8,
+   "need": {
+    "VIT": 12,
+    "STR": 8,
+    "DEX": 12
+   },
+   "used": 16,
+   "have": 40,
+   "left": 24,
+   "tax": 0,
+   "ok": true,
+   "set": "pit_foreman",
+   "set_level": 8,
+   "with_shield_ok": true,
+   "with_shield_left": 24
+  },
+  "light": {
+   "level": 8,
+   "need": {
+    "DEX": 12,
+    "STR": 8
+   },
+   "used": 9,
+   "have": 40,
+   "left": 31,
+   "tax": 0,
+   "ok": true,
+   "set": "webrunner",
+   "set_level": 8,
+   "with_shield_ok": true,
+   "with_shield_left": 27
+  },
+  "cloth": {
+   "level": 8,
+   "need": {
+    "INT": 12,
+    "WIS": 8,
+    "DEX": 12,
+    "STR": 8
+   },
+   "used": 27,
+   "have": 40,
+   "left": 13,
+   "tax": 18,
+   "ok": false,
+   "set": "silkweaver",
+   "set_level": 8,
+   "with_shield_ok": false,
+   "with_shield_left": 9
+  },
+  "shield": "ironbound_kite_shield",
+  "ok_looks": [
+   "heavy",
+   "light"
+  ]
+ },
+ "shadow|11-15": {
+  "plain": {
+   "level": 11,
+   "need": {
+    "VIT": 4,
+    "DEX": 17,
+    "STR": 11
+   },
+   "used": 17,
+   "have": 55,
+   "left": 38,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 11,
+   "need": {
+    "VIT": 12,
+    "STR": 11,
+    "DEX": 17
+   },
+   "used": 24,
+   "have": 55,
+   "left": 31,
+   "tax": 0,
+   "ok": true,
+   "set": "pit_foreman",
+   "set_level": 8,
+   "with_shield_ok": true,
+   "with_shield_left": 35
+  },
+  "light": {
+   "level": 14,
+   "need": {
+    "DEX": 23,
+    "LUK": 14,
+    "STR": 14
+   },
+   "used": 36,
+   "have": 70,
+   "left": 34,
+   "tax": 0,
+   "ok": true,
+   "set": "hypha_stalker",
+   "set_level": 14,
+   "with_shield_ok": true,
+   "with_shield_left": 19
+  },
+  "cloth": {
+   "level": 14,
+   "need": {
+    "WIS": 23,
+    "VIT": 14,
+    "DEX": 23,
+    "STR": 14
+   },
+   "used": 57,
+   "have": 70,
+   "left": 13,
+   "tax": 22,
+   "ok": false,
+   "set": "spore_sage",
+   "set_level": 14,
+   "with_shield_ok": false,
+   "with_shield_left": 7
+  },
+  "shield": "verdigris_tower_shield",
+  "ok_looks": [
+   "heavy",
+   "light"
+  ]
+ },
+ "shadow|16-20": {
+  "plain": {
+   "level": 16,
+   "need": {
+    "VIT": 4,
+    "DEX": 26,
+    "STR": 16
+   },
+   "used": 31,
+   "have": 80,
+   "left": 49,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 19,
+   "need": {
+    "VIT": 30,
+    "WIS": 20,
+    "DEX": 30,
+    "STR": 20
+   },
+   "used": 83,
+   "have": 95,
+   "left": 12,
+   "tax": 19,
+   "ok": true,
+   "set": "verdigris_guard",
+   "set_level": 19,
+   "with_shield_ok": true,
+   "with_shield_left": 12
+  },
+  "light": {
+   "level": 16,
+   "need": {
+    "DEX": 26,
+    "LUK": 14,
+    "STR": 16
+   },
+   "used": 41,
+   "have": 80,
+   "left": 39,
+   "tax": 0,
+   "ok": true,
+   "set": "hypha_stalker",
+   "set_level": 14,
+   "with_shield_ok": true,
+   "with_shield_left": 20
+  },
+  "cloth": {
+   "level": 16,
+   "need": {
+    "INT": 12,
+    "WIS": 8,
+    "DEX": 26,
+    "STR": 16
+   },
+   "used": 49,
+   "have": 80,
+   "left": 31,
+   "tax": 18,
+   "ok": true,
+   "set": "silkweaver",
+   "set_level": 8,
+   "fallback_from": "spore_sage",
+   "with_shield_ok": true,
+   "with_shield_left": 12
+  },
+  "shield": "verdigris_tower_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "shadow|21-25": {
+  "plain": {
+   "level": 21,
+   "need": {
+    "VIT": 4,
+    "DEX": 34,
+    "STR": 22
+   },
+   "used": 45,
+   "have": 105,
+   "left": 60,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 25,
+   "need": {
+    "VIT": 40,
+    "STR": 26,
+    "DEX": 40
+   },
+   "used": 90,
+   "have": 125,
+   "left": 35,
+   "tax": 0,
+   "ok": true,
+   "set": "forge_warden",
+   "set_level": 25,
+   "with_shield_ok": true,
+   "with_shield_left": 35
+  },
+  "light": {
+   "level": 24,
+   "need": {
+    "DEX": 39,
+    "STR": 25
+   },
+   "used": 53,
+   "have": 120,
+   "left": 67,
+   "tax": 0,
+   "ok": true,
+   "set": "rimefang",
+   "set_level": 24,
+   "with_shield_ok": true,
+   "with_shield_left": 36
+  },
+  "cloth": {
+   "level": 24,
+   "need": {
+    "WIS": 23,
+    "VIT": 14,
+    "DEX": 39,
+    "STR": 25
+   },
+   "used": 84,
+   "have": 120,
+   "left": 36,
+   "tax": 22,
+   "ok": true,
+   "set": "spore_sage",
+   "set_level": 14,
+   "fallback_from": "crypt_mourner",
+   "with_shield_ok": true,
+   "with_shield_left": 19
+  },
+  "shield": "anvil_face_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "shadow|26-30": {
+  "plain": {
+   "level": 26,
+   "need": {
+    "VIT": 4,
+    "DEX": 42,
+    "STR": 28
+   },
+   "used": 59,
+   "have": 130,
+   "left": 71,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 26,
+   "need": {
+    "VIT": 40,
+    "STR": 28,
+    "DEX": 42
+   },
+   "used": 94,
+   "have": 130,
+   "left": 36,
+   "tax": 0,
+   "ok": true,
+   "set": "forge_warden",
+   "set_level": 25,
+   "with_shield_ok": true,
+   "with_shield_left": 12
+  },
+  "light": {
+   "level": 26,
+   "need": {
+    "DEX": 42,
+    "STR": 28
+   },
+   "used": 59,
+   "have": 130,
+   "left": 71,
+   "tax": 0,
+   "ok": true,
+   "set": "rimefang",
+   "set_level": 24,
+   "with_shield_ok": true,
+   "with_shield_left": 12
+  },
+  "cloth": {
+   "level": 28,
+   "need": {
+    "WIS": 23,
+    "VIT": 14,
+    "DEX": 45,
+    "STR": 30
+   },
+   "used": 95,
+   "have": 140,
+   "left": 45,
+   "tax": 22,
+   "ok": true,
+   "set": "spore_sage",
+   "set_level": 14,
+   "fallback_from": "frost_regalia",
+   "with_shield_ok": true,
+   "with_shield_left": 12
+  },
+  "shield": "frostgrave_tower_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "shadow|31-35": {
+  "plain": {
+   "level": 31,
+   "need": {
+    "VIT": 4,
+    "DEX": 50,
+    "STR": 33
+   },
+   "used": 72,
+   "have": 155,
+   "left": 83,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 34,
+   "need": {
+    "VIT": 56,
+    "STR": 36,
+    "DEX": 56
+   },
+   "used": 132,
+   "have": 170,
+   "left": 38,
+   "tax": 0,
+   "ok": true,
+   "set": "geode_bastion",
+   "set_level": 34,
+   "with_shield_ok": true,
+   "with_shield_left": 6
+  },
+  "light": {
+   "level": 34,
+   "need": {
+    "DEX": 56,
+    "STR": 36
+   },
+   "used": 81,
+   "have": 170,
+   "left": 89,
+   "tax": 0,
+   "ok": true,
+   "set": "shard_dancer",
+   "set_level": 34,
+   "with_shield_ok": true,
+   "with_shield_left": 6
+  },
+  "cloth": {
+   "level": 34,
+   "need": {
+    "WIS": 23,
+    "VIT": 14,
+    "DEX": 56,
+    "STR": 36
+   },
+   "used": 112,
+   "have": 170,
+   "left": 58,
+   "tax": 22,
+   "ok": true,
+   "set": "spore_sage",
+   "set_level": 14,
+   "fallback_from": "lorekeeper",
+   "with_shield_ok": false,
+   "with_shield_left": -7
+  },
+  "shield": "prism_aegis",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "shadow|36-40": {
+  "plain": {
+   "level": 36,
+   "need": {
+    "VIT": 4,
+    "DEX": 59,
+    "STR": 38
+   },
+   "used": 86,
+   "have": 180,
+   "left": 94,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 36,
+   "need": {
+    "VIT": 56,
+    "STR": 38,
+    "DEX": 59
+   },
+   "used": 137,
+   "have": 180,
+   "left": 43,
+   "tax": 0,
+   "ok": true,
+   "set": "geode_bastion",
+   "set_level": 34,
+   "with_shield_ok": true,
+   "with_shield_left": 7
+  },
+  "light": {
+   "level": 38,
+   "need": {
+    "DEX": 62,
+    "INT": 41,
+    "STR": 41
+   },
+   "used": 132,
+   "have": 190,
+   "left": 58,
+   "tax": 40,
+   "ok": true,
+   "set": "inkveil",
+   "set_level": 38,
+   "with_shield_ok": true,
+   "with_shield_left": 1
+  },
+  "cloth": {
+   "level": 36,
+   "need": {
+    "WIS": 23,
+    "VIT": 14,
+    "DEX": 59,
+    "STR": 38
+   },
+   "used": 117,
+   "have": 180,
+   "left": 63,
+   "tax": 22,
+   "ok": true,
+   "set": "spore_sage",
+   "set_level": 14,
+   "fallback_from": "lorekeeper",
+   "with_shield_ok": false,
+   "with_shield_left": -15
+  },
+  "shield": "inkbound_kite_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "shadow|41-45": {
+  "plain": {
+   "level": 41,
+   "need": {
+    "VIT": 4,
+    "DEX": 67,
+    "STR": 44
+   },
+   "used": 100,
+   "have": 205,
+   "left": 105,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 44,
+   "need": {
+    "VIT": 72,
+    "STR": 47,
+    "DEX": 72
+   },
+   "used": 175,
+   "have": 220,
+   "left": 45,
+   "tax": 0,
+   "ok": true,
+   "set": "clockwork_juggernaut",
+   "set_level": 44,
+   "with_shield_ok": true,
+   "with_shield_left": 45
+  },
+  "light": {
+   "level": 44,
+   "need": {
+    "DEX": 72,
+    "LUK": 47,
+    "STR": 47
+   },
+   "used": 151,
+   "have": 220,
+   "left": 69,
+   "tax": 0,
+   "ok": true,
+   "set": "abyss_walker",
+   "set_level": 44,
+   "with_shield_ok": true,
+   "with_shield_left": 2
+  },
+  "cloth": {
+   "level": 44,
+   "need": {
+    "INT": 56,
+    "VIT": 36,
+    "DEX": 72,
+    "STR": 47
+   },
+   "used": 194,
+   "have": 220,
+   "left": 26,
+   "tax": 55,
+   "ok": true,
+   "set": "lorekeeper",
+   "set_level": 34,
+   "fallback_from": "starless_choir",
+   "with_shield_ok": false,
+   "with_shield_left": -5
+  },
+  "shield": "clockwork_bastion",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ },
+ "shadow|46-50": {
+  "plain": {
+   "level": 46,
+   "need": {
+    "VIT": 4,
+    "DEX": 75,
+    "STR": 50
+   },
+   "used": 114,
+   "have": 230,
+   "left": 116,
+   "tax": 0,
+   "ok": true,
+   "set": "wayfarer",
+   "set_level": 3
+  },
+  "heavy": {
+   "level": 46,
+   "need": {
+    "VIT": 72,
+    "STR": 50,
+    "DEX": 75
+   },
+   "used": 181,
+   "have": 230,
+   "left": 49,
+   "tax": 0,
+   "ok": true,
+   "set": "clockwork_juggernaut",
+   "set_level": 44,
+   "with_shield_ok": false,
+   "with_shield_left": -3
+  },
+  "light": {
+   "level": 46,
+   "need": {
+    "DEX": 75,
+    "LUK": 47,
+    "STR": 50
+   },
+   "used": 157,
+   "have": 230,
+   "left": 73,
+   "tax": 0,
+   "ok": true,
+   "set": "abyss_walker",
+   "set_level": 44,
+   "with_shield_ok": false,
+   "with_shield_left": -46
+  },
+  "cloth": {
+   "level": 46,
+   "need": {
+    "INT": 56,
+    "VIT": 36,
+    "DEX": 75,
+    "STR": 50
+   },
+   "used": 200,
+   "have": 230,
+   "left": 30,
+   "tax": 55,
+   "ok": true,
+   "set": "lorekeeper",
+   "set_level": 34,
+   "fallback_from": "starless_choir",
+   "with_shield_ok": false,
+   "with_shield_left": -58
+  },
+  "shield": "void_bulwark_shield",
+  "ok_looks": [
+   "heavy",
+   "light",
+   "cloth"
+  ]
+ }
+}

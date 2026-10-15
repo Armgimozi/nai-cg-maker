@@ -1,0 +1,1029 @@
+{
+ "wayfarer_sabre": {
+  "effect": "counterstep",
+  "name": "길손의 발놀림",
+  "direction": "tempo",
+  "params": {
+   "pct": 0.2,
+   "window": 3,
+   "ms": 0.15
+  }
+ },
+ "corridor_executioner_axe": {
+  "effect": "execute",
+  "name": "마지막 판결",
+  "direction": "execute",
+  "params": {
+   "thr": 0.3,
+   "pct": 0.31
+  }
+ },
+ "moss_bone_bow": {
+  "effect": "bloodrush",
+  "name": "마디 사냥",
+  "direction": "execute",
+  "params": {
+   "pct": 0.48,
+   "ms": 0.1,
+   "duration": 3
+  }
+ },
+ "rootgnaw_tanto": {
+  "effect": "berserk",
+  "name": "갉아먹는 뿌리",
+  "direction": "frenzy",
+  "params": {
+   "pct": 0.03,
+   "ls": 0.06,
+   "thr": 0.3
+  }
+ },
+ "miners_great_maul": {
+  "effect": "death_burst",
+  "name": "갱도 붕괴",
+  "direction": "blast",
+  "params": {
+   "pct": 1.8,
+   "radius": 3.0
+  }
+ },
+ "miners_lamp_crook": {
+  "effect": "siphon",
+  "name": "등롱 기름",
+  "direction": "mana_flow",
+  "params": {
+   "mp": 0.12,
+   "cdr": 1.2
+  }
+ },
+ "ore_kris": {
+  "effect": "rend",
+  "name": "광맥 찢기",
+  "direction": "bleed_crit",
+  "params": {
+   "pct": 0.15,
+   "duration": 4,
+   "max_stacks": 5
+  }
+ },
+ "ore_morning_star": {
+  "effect": "armor_break",
+  "name": "광석 쪼개기",
+  "direction": "sunder",
+  "params": {
+   "pct": 0.08,
+   "max_stacks": 5,
+   "duration": 5
+  }
+ },
+ "ore_thurible_rod": {
+  "effect": "imbue",
+  "name": "광석 연기",
+  "direction": "affliction",
+  "params": {
+   "chance": 0.29,
+   "pct": 0.22,
+   "duration": 3,
+   "element": "burn"
+  }
+ },
+ "pit_rapier": {
+  "effect": "bloodrush",
+  "name": "다그치기",
+  "direction": "execute",
+  "params": {
+   "pct": 1.72,
+   "ms": 0.1,
+   "duration": 3
+  }
+ },
+ "pit_war_spear": {
+  "effect": "shield_bash",
+  "name": "입구 막기",
+  "direction": "bulwark",
+  "params": {
+   "n": 3,
+   "stun": 1.5,
+   "pct": 0.68,
+   "vuln": 0.14
+  }
+ },
+ "silk_antler_staff": {
+  "effect": "sanctify",
+  "name": "은실 축복",
+  "direction": "support",
+  "params": {
+   "pct": 0.28,
+   "radius": 8
+  }
+ },
+ "silk_chime_rod": {
+  "effect": "overcharge",
+  "name": "은실 울림",
+  "direction": "mana_flow",
+  "params": {
+   "pct": 2.6,
+   "window": 5,
+   "radius": 2.5
+  }
+ },
+ "silk_sabre": {
+  "effect": "berserk",
+  "name": "엉킨 분노",
+  "direction": "frenzy",
+  "params": {
+   "pct": 0.055,
+   "ls": 0.12,
+   "thr": 0.3
+  }
+ },
+ "silk_twin_bow": {
+  "effect": "flurry",
+  "name": "겹시위",
+  "direction": "tempo",
+  "params": {
+   "n": 4,
+   "pct": 1.6
+  }
+ },
+ "silkcut_flamberge": {
+  "effect": "cleave",
+  "name": "거미줄 끊기",
+  "direction": "blast",
+  "params": {
+   "pct": 0.7,
+   "radius": 2.5,
+   "targets": 2
+  }
+ },
+ "skitter_longbow": {
+  "effect": "first_strike",
+  "name": "소리 없는 줄",
+  "direction": "ambush",
+  "params": {
+   "pct": 1.0,
+   "cc": 0.2,
+   "window": 10
+  }
+ },
+ "skitter_stiletto": {
+  "effect": "backstab",
+  "name": "틈 찌르기",
+  "direction": "ambush",
+  "params": {
+   "pct": 0.6
+  }
+ },
+ "glowcap_rapier": {
+  "effect": "backstab",
+  "name": "어둠 찌르기",
+  "direction": "ambush",
+  "params": {
+   "pct": 0.6
+  }
+ },
+ "glowcap_bone_bow": {
+  "effect": "imbue",
+  "name": "빛갓 독",
+  "direction": "affliction",
+  "params": {
+   "chance": 0.38,
+   "pct": 0.22,
+   "duration": 3,
+   "element": "poison"
+  }
+ },
+ "hypha_glaive": {
+  "effect": "flurry",
+  "name": "낭창한 날",
+  "direction": "tempo",
+  "params": {
+   "n": 4,
+   "pct": 1.6
+  }
+ },
+ "mycel_dirk": {
+  "effect": "rend",
+  "name": "균사 상처",
+  "direction": "bleed_crit",
+  "params": {
+   "pct": 0.15,
+   "duration": 4,
+   "max_stacks": 5
+  }
+ },
+ "mycel_warhammer": {
+  "effect": "berserk",
+  "name": "포자 광란",
+  "direction": "frenzy",
+  "params": {
+   "pct": 0.055,
+   "ls": 0.12,
+   "thr": 0.3
+  }
+ },
+ "spore_flamberge": {
+  "effect": "bloodrush",
+  "name": "포자 추격",
+  "direction": "execute",
+  "params": {
+   "pct": 0.89,
+   "ms": 0.1,
+   "duration": 3
+  }
+ },
+ "spore_stiletto": {
+  "effect": "first_strike",
+  "name": "포자 첫 침",
+  "direction": "ambush",
+  "params": {
+   "pct": 2.88,
+   "cc": 0.2,
+   "window": 10
+  }
+ },
+ "spore_thurible_rod": {
+  "effect": "ward_aura",
+  "name": "공생 연기",
+  "direction": "support",
+  "params": {
+   "pct": 0.085,
+   "period": 8,
+   "radius": 8,
+   "duration": 6
+  }
+ },
+ "drowned_executioner_axe": {
+  "effect": "execute",
+  "name": "수문 형장",
+  "direction": "execute",
+  "params": {
+   "thr": 0.3,
+   "pct": 0.57
+  }
+ },
+ "eel_twin_bow": {
+  "effect": "longshot",
+  "name": "곧은 물길",
+  "direction": "ambush",
+  "params": {
+   "dist": 12,
+   "pct": 0.45,
+   "pierce": 1
+  }
+ },
+ "sluice_morning_star": {
+  "effect": "feast",
+  "name": "수문 삼킴",
+  "direction": "sustain",
+  "params": {
+   "heal": 0.06,
+   "ls": 0.06,
+   "duration": 4
+  }
+ },
+ "brine_katar": {
+  "effect": "rend",
+  "name": "소금 상처",
+  "direction": "bleed_crit",
+  "params": {
+   "pct": 0.15,
+   "duration": 4,
+   "max_stacks": 5
+  }
+ },
+ "brine_sabre": {
+  "effect": "rend",
+  "name": "소금 톱날",
+  "direction": "bleed_crit",
+  "params": {
+   "pct": 0.15,
+   "duration": 4,
+   "max_stacks": 5
+  }
+ },
+ "tide_lamp_crook": {
+  "effect": "sanctify",
+  "name": "수문 불빛",
+  "direction": "support",
+  "params": {
+   "pct": 0.28,
+   "radius": 8
+  }
+ },
+ "verdigris_chime_rod": {
+  "effect": "ward_aura",
+  "name": "잔잔한 물살",
+  "direction": "support",
+  "params": {
+   "pct": 0.09,
+   "period": 8,
+   "radius": 8,
+   "duration": 6
+  }
+ },
+ "verdigris_great_axe": {
+  "effect": "armor_break",
+  "name": "집게 부수기",
+  "direction": "sunder",
+  "params": {
+   "pct": 0.08,
+   "max_stacks": 5,
+   "duration": 5
+  }
+ },
+ "anvil_executioner_axe": {
+  "effect": "execute",
+  "name": "실패작 처분",
+  "direction": "execute",
+  "params": {
+   "thr": 0.3,
+   "pct": 0.6
+  }
+ },
+ "bellows_bone_bow": {
+  "effect": "hemorrhage",
+  "name": "뜨거운 숨",
+  "direction": "bleed_crit",
+  "params": {
+   "cc": 0.22,
+   "cd": 0.45
+  }
+ },
+ "cinder_dagger": {
+  "effect": "first_strike",
+  "name": "첫 불씨",
+  "direction": "ambush",
+  "params": {
+   "pct": 2.88,
+   "cc": 0.2,
+   "window": 10
+  }
+ },
+ "cinder_rapier": {
+  "effect": "momentum",
+  "name": "불씨 회전",
+  "direction": "tempo",
+  "params": {
+   "as": 0.06,
+   "max_stacks": 5,
+   "decay": 3
+  }
+ },
+ "ember_tanto": {
+  "effect": "backstab",
+  "name": "잿속 칼끝",
+  "direction": "ambush",
+  "params": {
+   "pct": 0.6
+  }
+ },
+ "forge_chime_rod": {
+  "effect": "ward_aura",
+  "name": "망치 소리",
+  "direction": "support",
+  "params": {
+   "pct": 0.09,
+   "period": 8,
+   "radius": 8,
+   "duration": 6
+  }
+ },
+ "forge_cleaver": {
+  "effect": "cleave",
+  "name": "쇠판 쓸기",
+  "direction": "blast",
+  "params": {
+   "pct": 0.7,
+   "radius": 2.5,
+   "targets": 3
+  }
+ },
+ "slag_flamberge": {
+  "effect": "rend",
+  "name": "쇳물 상처",
+  "direction": "bleed_crit",
+  "params": {
+   "pct": 0.15,
+   "duration": 4,
+   "max_stacks": 5
+  }
+ },
+ "slag_war_spear": {
+  "effect": "thorns",
+  "name": "슬래그 가시",
+  "direction": "bulwark",
+  "params": {
+   "pct": 0.7
+  }
+ },
+ "frost_longsword": {
+  "effect": "leech",
+  "name": "묘지기의 피",
+  "direction": "sustain",
+  "params": {
+   "pct": 0.14,
+   "cap": 0.03
+  }
+ },
+ "frost_stiletto": {
+  "effect": "rend",
+  "name": "얼음 송곳",
+  "direction": "bleed_crit",
+  "params": {
+   "pct": 0.15,
+   "duration": 4,
+   "max_stacks": 5
+  }
+ },
+ "frost_tanto": {
+  "effect": "counterstep",
+  "name": "서리 소매",
+  "direction": "tempo",
+  "params": {
+   "pct": 0.99,
+   "window": 3,
+   "ms": 0.15
+  }
+ },
+ "frost_twin_bow": {
+  "effect": "momentum",
+  "name": "팽팽한 얼음줄",
+  "direction": "tempo",
+  "params": {
+   "as": 0.06,
+   "max_stacks": 5,
+   "decay": 3
+  }
+ },
+ "frost_war_spear": {
+  "effect": "death_burst",
+  "name": "얼음 파편",
+  "direction": "blast",
+  "params": {
+   "pct": 1.8,
+   "radius": 3.0
+  }
+ },
+ "rime_chalice": {
+  "effect": "sanctify",
+  "name": "얼지 않는 물",
+  "direction": "support",
+  "params": {
+   "pct": 0.27,
+   "radius": 8
+  }
+ },
+ "rime_chime_rod": {
+  "effect": "thorns",
+  "name": "종지기의 꾸중",
+  "direction": "bulwark",
+  "params": {
+   "pct": 0.7
+  }
+ },
+ "rime_flamberge": {
+  "effect": "feast",
+  "name": "얼음 포식",
+  "direction": "sustain",
+  "params": {
+   "heal": 0.1,
+   "ls": 0.1,
+   "duration": 4
+  }
+ },
+ "rime_great_maul": {
+  "effect": "cleave",
+  "name": "묘비 깨기",
+  "direction": "blast",
+  "params": {
+   "pct": 0.7,
+   "radius": 2.5,
+   "targets": 3
+  }
+ },
+ "rime_morning_star": {
+  "effect": "shield_bash",
+  "name": "고드름 강타",
+  "direction": "bulwark",
+  "params": {
+   "n": 3,
+   "stun": 1.5,
+   "pct": 0.68,
+   "vuln": 0.14
+  }
+ },
+ "rime_thurible_rod": {
+  "effect": "siphon",
+  "name": "장례 향",
+  "direction": "mana_flow",
+  "params": {
+   "mp": 0.12,
+   "cdr": 1.2
+  }
+ },
+ "frost_antler_staff": {
+  "effect": "overcharge",
+  "name": "눈사슴 울음",
+  "direction": "mana_flow",
+  "params": {
+   "pct": 2.6,
+   "window": 5,
+   "radius": 2.5
+  }
+ },
+ "rime_composite_bow": {
+  "effect": "armor_break",
+  "name": "얼음 꿰뚫기",
+  "direction": "sunder",
+  "params": {
+   "pct": 0.08,
+   "max_stacks": 5,
+   "duration": 5
+  }
+ },
+ "rime_great_axe": {
+  "effect": "berserk",
+  "name": "금 간 분노",
+  "direction": "frenzy",
+  "params": {
+   "pct": 0.055,
+   "ls": 0.12,
+   "thr": 0.3
+  }
+ },
+ "crystal_censer": {
+  "effect": "ward_aura",
+  "name": "수정 막",
+  "direction": "support",
+  "params": {
+   "pct": 0.09,
+   "period": 8,
+   "radius": 8,
+   "duration": 6
+  }
+ },
+ "geode_great_maul": {
+  "effect": "leech",
+  "name": "결정 이빨",
+  "direction": "sustain",
+  "params": {
+   "pct": 0.14,
+   "cap": 0.03
+  }
+ },
+ "prism_lamp_crook": {
+  "effect": "imbue",
+  "name": "뜨거운 갈래",
+  "direction": "affliction",
+  "params": {
+   "chance": 0.34,
+   "pct": 0.22,
+   "duration": 3,
+   "element": "burn"
+  }
+ },
+ "resonance_chime_rod": {
+  "effect": "overcharge",
+  "name": "어긋난 음",
+  "direction": "mana_flow",
+  "params": {
+   "pct": 2.6,
+   "window": 5,
+   "radius": 2.5
+  }
+ },
+ "resonance_rapier": {
+  "effect": "flurry",
+  "name": "네 번째 음",
+  "direction": "tempo",
+  "params": {
+   "n": 4,
+   "pct": 1.6
+  }
+ },
+ "shardglass_tanto": {
+  "effect": "first_strike",
+  "name": "늦은 그림자",
+  "direction": "ambush",
+  "params": {
+   "pct": 2.54,
+   "cc": 0.2,
+   "window": 10
+  }
+ },
+ "amethyst_executioner_axe": {
+  "effect": "berserk",
+  "name": "짙어지는 보석",
+  "direction": "frenzy",
+  "params": {
+   "pct": 0.055,
+   "ls": 0.12,
+   "thr": 0.3
+  }
+ },
+ "prism_twin_bow": {
+  "effect": "exploit",
+  "name": "무지개 틈",
+  "direction": "affliction",
+  "params": {
+   "pct": 0.35
+  }
+ },
+ "index_war_spear": {
+  "effect": "thorns",
+  "name": "대출 금지",
+  "direction": "bulwark",
+  "params": {
+   "pct": 0.7
+  }
+ },
+ "ink_flamberge": {
+  "effect": "feast",
+  "name": "먹물 삼킴",
+  "direction": "sustain",
+  "params": {
+   "heal": 0.1,
+   "ls": 0.1,
+   "duration": 4
+  }
+ },
+ "ink_great_maul": {
+  "effect": "armor_break",
+  "name": "거꾸로 도장",
+  "direction": "sunder",
+  "params": {
+   "pct": 0.08,
+   "max_stacks": 5,
+   "duration": 5
+  }
+ },
+ "ink_morning_star": {
+  "effect": "steadfast",
+  "name": "차분한 먹",
+  "direction": "bulwark",
+  "params": {
+   "thr": 0.7,
+   "dr": 0.18
+  }
+ },
+ "ink_rapier": {
+  "effect": "counterstep",
+  "name": "피하는 획",
+  "direction": "tempo",
+  "params": {
+   "pct": 0.86,
+   "window": 3,
+   "ms": 0.15
+  }
+ },
+ "ink_recurve": {
+  "effect": "chain_spark",
+  "name": "먹줄 번개",
+  "direction": "blast",
+  "params": {
+   "chance": 0.3,
+   "pct": 1.0,
+   "targets": 4
+  }
+ },
+ "ink_sabre": {
+  "effect": "momentum",
+  "name": "흐르는 획",
+  "direction": "tempo",
+  "params": {
+   "as": 0.06,
+   "max_stacks": 5,
+   "decay": 3
+  }
+ },
+ "ink_stiletto": {
+  "effect": "backstab",
+  "name": "이름 지우기",
+  "direction": "ambush",
+  "params": {
+   "pct": 0.6
+  }
+ },
+ "lore_lamp_crook": {
+  "effect": "sanctify",
+  "name": "되살린 글자",
+  "direction": "support",
+  "params": {
+   "pct": 0.27,
+   "radius": 8
+  }
+ },
+ "lore_sickle": {
+  "effect": "hemorrhage",
+  "name": "붉은 잉크",
+  "direction": "bleed_crit",
+  "params": {
+   "cc": 0.22,
+   "cd": 0.45
+  }
+ },
+ "lore_sun_scepter": {
+  "effect": "ward_aura",
+  "name": "빛살 글귀",
+  "direction": "support",
+  "params": {
+   "pct": 0.085,
+   "period": 8,
+   "radius": 8,
+   "duration": 6
+  }
+ },
+ "index_cleaver": {
+  "effect": "berserk",
+  "name": "끝없는 번호",
+  "direction": "frenzy",
+  "params": {
+   "pct": 0.055,
+   "ls": 0.12,
+   "thr": 0.3
+  }
+ },
+ "ink_bone_bow": {
+  "effect": "leech",
+  "name": "먹물 방울",
+  "direction": "sustain",
+  "params": {
+   "pct": 0.14,
+   "cap": 0.03
+  }
+ },
+ "lore_antler_staff": {
+  "effect": "imbue",
+  "name": "책갈피 독",
+  "direction": "affliction",
+  "params": {
+   "chance": 0.34,
+   "pct": 0.22,
+   "duration": 3,
+   "element": "poison"
+  }
+ },
+ "clock_antler_staff": {
+  "effect": "exploit",
+  "name": "도는 가지",
+  "direction": "affliction",
+  "params": {
+   "pct": 0.35
+  }
+ },
+ "clock_bell_scepter": {
+  "effect": "sanctify",
+  "name": "정시 종",
+  "direction": "support",
+  "params": {
+   "pct": 0.28,
+   "radius": 8
+  }
+ },
+ "clock_blade_bow": {
+  "effect": "first_strike",
+  "name": "빠른 첫 바늘",
+  "direction": "ambush",
+  "params": {
+   "pct": 1.09,
+   "cc": 0.2,
+   "window": 10
+  }
+ },
+ "clock_broadsword": {
+  "effect": "shield_bash",
+  "name": "경비병 방패",
+  "direction": "bulwark",
+  "params": {
+   "n": 4,
+   "stun": 1.5,
+   "pct": 0.9,
+   "vuln": 0.14
+  }
+ },
+ "clock_falchion": {
+  "effect": "leech",
+  "name": "한 번 더 물기",
+  "direction": "sustain",
+  "params": {
+   "pct": 0.14,
+   "cap": 0.03
+  }
+ },
+ "clock_katar": {
+  "effect": "backstab",
+  "name": "소리 없는 톱니",
+  "direction": "ambush",
+  "params": {
+   "pct": 0.6
+  }
+ },
+ "clock_kris": {
+  "effect": "rend",
+  "name": "도는 상처",
+  "direction": "bleed_crit",
+  "params": {
+   "pct": 0.15,
+   "duration": 4,
+   "max_stacks": 5
+  }
+ },
+ "clock_longsword": {
+  "effect": "hemorrhage",
+  "name": "빨라지는 초침",
+  "direction": "bleed_crit",
+  "params": {
+   "cc": 0.22,
+   "cd": 0.45
+  }
+ },
+ "clock_mace": {
+  "effect": "steadfast",
+  "name": "무거운 태엽",
+  "direction": "bulwark",
+  "params": {
+   "thr": 0.7,
+   "dr": 0.18
+  }
+ },
+ "clock_morning_star": {
+  "effect": "feast",
+  "name": "추의 박자",
+  "direction": "sustain",
+  "params": {
+   "heal": 0.1,
+   "ls": 0.1,
+   "duration": 4
+  }
+ },
+ "clock_staff_orb": {
+  "effect": "imbue",
+  "name": "기름 구슬",
+  "direction": "affliction",
+  "params": {
+   "chance": 0.34,
+   "pct": 0.22,
+   "duration": 3,
+   "element": "burn"
+  }
+ },
+ "clock_glaive": {
+  "effect": "berserk",
+  "name": "열두 시",
+  "direction": "frenzy",
+  "params": {
+   "pct": 0.055,
+   "ls": 0.12,
+   "thr": 0.3
+  }
+ },
+ "clock_greatsword": {
+  "effect": "armor_break",
+  "name": "맞물린 이",
+  "direction": "sunder",
+  "params": {
+   "pct": 0.08,
+   "max_stacks": 5,
+   "duration": 5
+  }
+ },
+ "clock_thurible_rod": {
+  "effect": "ward_aura",
+  "name": "진자 박자",
+  "direction": "support",
+  "params": {
+   "pct": 0.09,
+   "period": 8,
+   "radius": 8,
+   "duration": 6
+  }
+ },
+ "abyss_antler_staff": {
+  "effect": "overcharge",
+  "name": "감긴 눈",
+  "direction": "mana_flow",
+  "params": {
+   "pct": 2.6,
+   "window": 5,
+   "radius": 2.5
+  }
+ },
+ "abyss_broadsword": {
+  "effect": "hemorrhage",
+  "name": "휘는 물길",
+  "direction": "bleed_crit",
+  "params": {
+   "cc": 0.22,
+   "cd": 0.45
+  }
+ },
+ "abyss_great_maul": {
+  "effect": "armor_break",
+  "name": "늦은 메아리",
+  "direction": "sunder",
+  "params": {
+   "pct": 0.08,
+   "max_stacks": 5,
+   "duration": 5
+  }
+ },
+ "abyss_ring_staff": {
+  "effect": "siphon",
+  "name": "이어진 고리",
+  "direction": "mana_flow",
+  "params": {
+   "mp": 0.12,
+   "cdr": 1.2
+  }
+ },
+ "abyss_sabre": {
+  "effect": "flurry",
+  "name": "뻗는 촉수",
+  "direction": "tempo",
+  "params": {
+   "n": 4,
+   "pct": 1.6
+  }
+ },
+ "abyss_war_spear": {
+  "effect": "shield_bash",
+  "name": "문 앞의 창",
+  "direction": "bulwark",
+  "params": {
+   "n": 3,
+   "stun": 1.5,
+   "pct": 0.68,
+   "vuln": 0.14
+  }
+ },
+ "void_fang_blade": {
+  "effect": "counterstep",
+  "name": "먼저 움직임",
+  "direction": "tempo",
+  "params": {
+   "pct": 1.04,
+   "window": 3,
+   "ms": 0.15
+  }
+ },
+ "void_lamp_crook": {
+  "effect": "sanctify",
+  "name": "어둠 등불",
+  "direction": "support",
+  "params": {
+   "pct": 0.28,
+   "radius": 8
+  }
+ },
+ "void_stiletto": {
+  "effect": "rend",
+  "name": "빛 먹는 끝",
+  "direction": "bleed_crit",
+  "params": {
+   "pct": 0.15,
+   "duration": 4,
+   "max_stacks": 5
+  }
+ },
+ "void_tanto": {
+  "effect": "first_strike",
+  "name": "보이는 순간",
+  "direction": "ambush",
+  "params": {
+   "pct": 2.54,
+   "cc": 0.2,
+   "window": 10
+  }
+ },
+ "void_twin_bow": {
+  "effect": "momentum",
+  "name": "틈 사이로",
+  "direction": "tempo",
+  "params": {
+   "as": 0.06,
+   "max_stacks": 5,
+   "decay": 3
+  }
+ },
+ "abyss_bone_bow": {
+  "effect": "longshot",
+  "name": "가까운 과녁",
+  "direction": "ambush",
+  "params": {
+   "dist": 12,
+   "pct": 0.45,
+   "pierce": 2
+  }
+ },
+ "abyss_executioner_axe": {
+  "effect": "berserk",
+  "name": "떨리는 날",
+  "direction": "frenzy",
+  "params": {
+   "pct": 0.055,
+   "ls": 0.12,
+   "thr": 0.3
+  }
+ }
+}

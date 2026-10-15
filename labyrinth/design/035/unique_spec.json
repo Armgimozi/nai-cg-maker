@@ -1,0 +1,3141 @@
+{
+ "version": 1,
+ "directions": {
+  "bleed_crit": {
+   "name": "출혈치명",
+   "meaning": "치명타가 터질 때마다 출혈을 쌓고, 쌓인 출혈로 큰 피해를 낸다. 치명타 확률·치명 피해(LUK·DEX)와 가벼운 가죽 방어구가 어울린다.",
+   "typical_hooks": [
+    "on_crit",
+    "vs_state",
+    "on_hit"
+   ],
+   "pairs_stats": [
+    "LUK",
+    "DEX"
+   ],
+   "pairs_armor": "light"
+  },
+  "sustain": {
+   "name": "유지흡혈",
+   "meaning": "때리거나 잡을 때 체력을 되찾아 오래 버틴다. 혼자 다니는 근접 빌드의 기본기. VIT·STR 과 판금, 흡혈 스탯이 어울린다.",
+   "typical_hooks": [
+    "on_hit",
+    "on_kill",
+    "hp_below"
+   ],
+   "pairs_stats": [
+    "VIT",
+    "STR"
+   ],
+   "pairs_armor": "heavy"
+  },
+  "bulwark": {
+   "name": "방벽제어",
+   "meaning": "맞아 주면서 되갚고, 기절·밀치기·보호막으로 싸움 흐름을 쥔다. VIT 와 판금·방패, 피해 감소가 어울린다.",
+   "typical_hooks": [
+    "on_hurt",
+    "nth_hit",
+    "hp_above"
+   ],
+   "pairs_stats": [
+    "VIT",
+    "STR"
+   ],
+   "pairs_armor": "heavy"
+  },
+  "blast": {
+   "name": "폭발범위",
+   "meaning": "한 대가 주변으로 번진다. 베기 여파·연쇄 번개·처치 폭발로 몰려오는 적을 한꺼번에 정리한다. STR·INT 와 사냥(일반 몹) 위주.",
+   "typical_hooks": [
+    "on_hit",
+    "on_kill",
+    "nth_hit"
+   ],
+   "pairs_stats": [
+    "STR",
+    "INT"
+   ],
+   "pairs_armor": "any"
+  },
+  "execute": {
+   "name": "처형",
+   "meaning": "체력이 낮은 적에게 마무리 피해가 커지고, 잡으면 다음 한 방이 강해진다. 정예·보스의 마지막 구간을 줄인다.",
+   "typical_hooks": [
+    "vs_state",
+    "on_kill"
+   ],
+   "pairs_stats": [
+    "STR",
+    "DEX"
+   ],
+   "pairs_armor": "any"
+  },
+  "tempo": {
+   "name": "속공",
+   "meaning": "계속 때릴수록 빨라지고, 몇 번째 공격마다 덤이 붙는다. 공격 속도·이동 속도(DEX)와 가죽 방어구가 어울린다. 멈추면 잃는다.",
+   "typical_hooks": [
+    "on_hit",
+    "nth_hit",
+    "on_dodge"
+   ],
+   "pairs_stats": [
+    "DEX",
+    "LUK"
+   ],
+   "pairs_armor": "light"
+  },
+  "mana_flow": {
+   "name": "마나순환",
+   "meaning": "마나를 되찾고 재사용 대기를 줄여 무기 스킬·직업 스킬을 더 자주 쓴다. INT·WIS 와 천 방어구, 재사용 감소가 어울린다.",
+   "typical_hooks": [
+    "on_kill",
+    "on_hit",
+    "on_skill"
+   ],
+   "pairs_stats": [
+    "INT",
+    "WIS"
+   ],
+   "pairs_armor": "cloth"
+  },
+  "support": {
+   "name": "지원",
+   "meaning": "때리면 근처 아군이 회복하거나 보호막·강화를 받는다. 파티에서 빛나고 혼자일 때는 자신에게 약하게 돌아온다. WIS 와 천 방어구.",
+   "typical_hooks": [
+    "on_hit",
+    "aura",
+    "on_skill"
+   ],
+   "pairs_stats": [
+    "WIS",
+    "VIT"
+   ],
+   "pairs_armor": "cloth"
+  },
+  "affliction": {
+   "name": "상태이상",
+   "meaning": "불태우기·중독·빙결·감전을 걸고, 걸린 적에게 더 세게 들어간다. 지속 피해로 싸우는 원거리·마법 빌드. INT·DEX.",
+   "typical_hooks": [
+    "on_hit",
+    "vs_state",
+    "aura"
+   ],
+   "pairs_stats": [
+    "INT",
+    "DEX"
+   ],
+   "pairs_armor": "any"
+  },
+  "ambush": {
+   "name": "기습",
+   "meaning": "처음 때리는 한 방·등 뒤 공격·멀리서 쏜 한 발이 강하다. 치고 빠지는 단검·활 빌드. DEX 와 가죽 방어구, 이동 속도가 어울린다.",
+   "typical_hooks": [
+    "first_hit",
+    "vs_state",
+    "on_dodge"
+   ],
+   "pairs_stats": [
+    "DEX",
+    "LUK"
+   ],
+   "pairs_armor": "light"
+  },
+  "frenzy": {
+   "name": "광기",
+   "meaning": "체력이 낮을수록 강해지는 위험한 빌드. 흡혈이나 회피로 아슬아슬하게 버티는 맛. STR 과 가벼운 방어구가 어울린다.",
+   "typical_hooks": [
+    "hp_below",
+    "on_hurt",
+    "on_kill"
+   ],
+   "pairs_stats": [
+    "STR",
+    "LUK"
+   ],
+   "pairs_armor": "light"
+  },
+  "sunder": {
+   "name": "파쇄",
+   "meaning": "적의 방어를 깎고 받는 피해를 늘려 긴 싸움(정예·보스)을 짧게 만든다. 파티 전체가 이득을 본다. STR·VIT.",
+   "typical_hooks": [
+    "on_hit",
+    "nth_hit",
+    "on_crit"
+   ],
+   "pairs_stats": [
+    "STR",
+    "VIT"
+   ],
+   "pairs_armor": "heavy"
+  }
+ },
+ "effects": {
+  "rend": {
+   "name": "찢는 치명",
+   "direction": "bleed_crit",
+   "hook": "on_crit",
+   "desc_template": "치명타 시 출혈 (중첩당 초당 공격력 {pct}%, 최대 {max_stacks})",
+   "params_schema": {
+    "pct": {
+     "unit": "공격력·피해 비율",
+     "ref": 0.06,
+     "kind": "강도 비례",
+     "max": 0.15
+    },
+    "duration": {
+     "unit": "초",
+     "ref": 4,
+     "kind": "고정",
+     "max": null
+    },
+    "max_stacks": {
+     "unit": "중첩",
+     "ref": 5,
+     "kind": "고정",
+     "max": null
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {
+    "per_target": 0.4
+   },
+   "pvp_rule": "출혈 피해 ×0.5, 플레이어에게는 최대 3중첩",
+   "note": "출혈 중첩은 StatusEffectService bleed 에 stacks 를 더한다(venom 과 같은 방식). 기본 공격·스킬 치명타 모두.",
+   "ranged_only": false
+  },
+  "hemorrhage": {
+   "name": "피 냄새",
+   "direction": "bleed_crit",
+   "hook": "vs_state",
+   "desc_template": "출혈 중인 적에게 치명 확률 +{cc}%, 치명 피해 +{cd}%",
+   "params_schema": {
+    "cc": {
+     "unit": "치명 확률",
+     "ref": 0.1,
+     "kind": "강도 비례",
+     "max": 0.22
+    },
+    "cd": {
+     "unit": "치명 피해",
+     "ref": 0.2,
+     "kind": "강도 비례",
+     "max": 0.45
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {},
+   "pvp_rule": "그대로 (치명 피해는 PvP 상한이 막는다)",
+   "note": "출혈을 거는 다른 수단(직업 스킬·무기 스킬·rend)과 짝. 혼자서는 아무것도 안 한다.",
+   "ranged_only": false
+  },
+  "leech": {
+   "name": "생명 흡수",
+   "direction": "sustain",
+   "hook": "on_hit",
+   "desc_template": "기본 공격 피해의 {pct}% 회복 (초당 최대 HP {cap}%까지)",
+   "params_schema": {
+    "pct": {
+     "unit": "공격력·피해 비율",
+     "ref": 0.06,
+     "kind": "강도 비례",
+     "max": 0.14
+    },
+    "cap": {
+     "unit": "최대 HP 비율",
+     "ref": 0.03,
+     "kind": "고정",
+     "max": null
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {
+    "per_second_cap": "max_hp*cap"
+   },
+   "pvp_rule": "회복량 ×0.5",
+   "note": "흡혈 스탯과 별도 합산. 회복 상한이 있어 보스전 무한 유지는 안 된다.",
+   "ranged_only": false
+  },
+  "feast": {
+   "name": "포식",
+   "direction": "sustain",
+   "hook": "on_kill",
+   "desc_template": "처치 시 최대 HP {heal}% 회복, {duration}초간 흡혈 +{ls}%",
+   "params_schema": {
+    "heal": {
+     "unit": "최대 HP 비율",
+     "ref": 0.04,
+     "kind": "강도 비례",
+     "max": 0.1
+    },
+    "ls": {
+     "unit": "흡혈",
+     "ref": 0.04,
+     "kind": "강도 비례",
+     "max": 0.1
+    },
+    "duration": {
+     "unit": "초",
+     "ref": 4,
+     "kind": "고정",
+     "max": null
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {
+    "global": 1.0
+   },
+   "pvp_rule": "플레이어 처치에도 발동 (재발동 1초 그대로)",
+   "note": "보스 소환체도 처치로 친다. 몹이 적은 보스전에서는 약하다(장단점).",
+   "ranged_only": false
+  },
+  "thorns": {
+   "name": "가시 반격",
+   "direction": "bulwark",
+   "hook": "on_hurt",
+   "desc_template": "맞으면 줄기 전 피해의 {pct}%를 되돌린다 (근접만)",
+   "params_schema": {
+    "pct": {
+     "unit": "공격력·피해 비율",
+     "ref": 0.3,
+     "kind": "강도 비례",
+     "max": 0.7
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {
+    "per_attacker": 0.5
+   },
+   "pvp_rule": "되돌리는 피해 ×0.5, PvP 상한 적용",
+   "note": "줄기 전 피해 기준이라 피해 감소·방어를 쌓아도 반사가 줄지 않는다 → 판금 탱커의 공격 수단.",
+   "ranged_only": false
+  },
+  "shield_bash": {
+   "name": "방패 강타",
+   "direction": "bulwark",
+   "hook": "nth_hit",
+   "desc_template": "{n}번째 공격마다 기절 {stun}초 + 공격력 {pct}%",
+   "params_schema": {
+    "n": {
+     "unit": "번째",
+     "ref": 5,
+     "kind": "레벨 단계",
+     "max": null
+    },
+    "stun": {
+     "unit": "초",
+     "ref": 0.8,
+     "kind": "강도 비례",
+     "max": 1.5
+    },
+    "pct": {
+     "unit": "공격력·피해 비율",
+     "ref": 0.4,
+     "kind": "강도 비례",
+     "max": 0.9
+    },
+    "vuln": {
+     "unit": "받는 피해",
+     "ref": 0.06,
+     "kind": "강도 비례",
+     "max": 0.14
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {
+    "per_target_stun_immunity": 6.0
+   },
+   "pvp_rule": "기절 대신 느려짐 40% 1초",
+   "note": "같은 적은 6초 동안 다시 기절하지 않는다(기절 잠금 방지). 보스는 기절 면역 → 받는 피해 증가 3초.",
+   "ranged_only": false
+  },
+  "steadfast": {
+   "name": "굳건함",
+   "direction": "bulwark",
+   "hook": "hp_above",
+   "desc_template": "HP {thr}% 이상이면 받는 피해 -{dr}%, 밀려나지 않음",
+   "params_schema": {
+    "thr": {
+     "unit": "HP 비율",
+     "ref": 0.7,
+     "kind": "고정",
+     "max": null
+    },
+    "dr": {
+     "unit": "받는 피해 감소",
+     "ref": 0.08,
+     "kind": "강도 비례",
+     "max": 0.18
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {},
+   "pvp_rule": "그대로",
+   "note": "체력 재생·회복을 받는 판금 빌드용. 한 번 무너지면 효과가 꺼진다(장단점).",
+   "ranged_only": false
+  },
+  "cleave": {
+   "name": "휩쓸기",
+   "direction": "blast",
+   "hook": "on_hit",
+   "desc_template": "기본 공격이 주변 {radius}칸 적 {targets}명에게 공격력 {pct}%",
+   "params_schema": {
+    "pct": {
+     "unit": "공격력·피해 비율",
+     "ref": 0.3,
+     "kind": "강도 비례",
+     "max": 0.7
+    },
+    "radius": {
+     "unit": "칸",
+     "ref": 2.5,
+     "kind": "고정",
+     "max": null
+    },
+    "targets": {
+     "unit": "명",
+     "ref": 2,
+     "kind": "레벨 단계",
+     "max": null
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {},
+   "pvp_rule": "휩쓸린 플레이어는 ×0.5",
+   "note": "주 대상 1명뿐이면 아무 효과 없음 → 사냥 빌드. 활·지팡이는 맞은 자리 기준.",
+   "ranged_only": false
+  },
+  "chain_spark": {
+   "name": "연쇄 번개",
+   "direction": "blast",
+   "hook": "on_hit",
+   "desc_template": "{chance}% 확률로 번개가 {targets}명에게 튐 (공격력 {pct}%)",
+   "params_schema": {
+    "chance": {
+     "unit": "확률",
+     "ref": 0.2,
+     "kind": "고정",
+     "max": null
+    },
+    "pct": {
+     "unit": "공격력·피해 비율",
+     "ref": 0.45,
+     "kind": "강도 비례",
+     "max": 1.0
+    },
+    "targets": {
+     "unit": "명",
+     "ref": 2,
+     "kind": "레벨 단계",
+     "max": null
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {
+    "global": 1.0
+   },
+   "pvp_rule": "번개 피해 ×0.5, 아군·안전지대 플레이어는 건너뜀",
+   "note": "마법 피해. 튀는 대상은 주 대상 6칸 안의 적만(TargetFilter).",
+   "ranged_only": false
+  },
+  "death_burst": {
+   "name": "시체 폭발",
+   "direction": "blast",
+   "hook": "on_kill",
+   "desc_template": "처치한 적이 터져 {radius}칸 안 적에게 공격력 {pct}%",
+   "params_schema": {
+    "pct": {
+     "unit": "공격력·피해 비율",
+     "ref": 0.8,
+     "kind": "강도 비례",
+     "max": 1.8
+    },
+    "radius": {
+     "unit": "칸",
+     "ref": 3.0,
+     "kind": "고정",
+     "max": null
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {
+    "global": 0.5
+   },
+   "pvp_rule": "플레이어를 처치하면 터지지 않음",
+   "note": "폭발로 죽은 적은 다시 터지지 않는다(연쇄 없음). 보스·정예 단일전에서는 거의 쓸모없다.",
+   "ranged_only": false
+  },
+  "execute": {
+   "name": "마무리",
+   "direction": "execute",
+   "hook": "vs_state",
+   "desc_template": "HP {thr}% 이하 적에게 피해 +{pct}% (보스는 60%만)",
+   "params_schema": {
+    "thr": {
+     "unit": "HP 비율",
+     "ref": 0.3,
+     "kind": "고정",
+     "max": null
+    },
+    "pct": {
+     "unit": "공격력·피해 비율",
+     "ref": 0.25,
+     "kind": "강도 비례",
+     "max": 0.6
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {},
+   "pvp_rule": "+피해 ×0.5",
+   "note": "정예·보스의 마지막 구간을 줄인다. 앞 70%에서는 아무것도 안 한다.",
+   "ranged_only": false
+  },
+  "bloodrush": {
+   "name": "추격",
+   "direction": "execute",
+   "hook": "on_kill",
+   "desc_template": "처치하면 다음 공격 피해 +{pct}%, {duration}초간 이동 +{ms}%",
+   "params_schema": {
+    "pct": {
+     "unit": "공격력·피해 비율",
+     "ref": 0.6,
+     "kind": "강도 비례",
+     "max": 1.4
+    },
+    "ms": {
+     "unit": "이동 속도",
+     "ref": 0.1,
+     "kind": "고정",
+     "max": null
+    },
+    "duration": {
+     "unit": "초",
+     "ref": 3,
+     "kind": "고정",
+     "max": null
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {
+    "global": 1.0
+   },
+   "pvp_rule": "+피해 ×0.5",
+   "note": "몹 무리를 하나씩 끊어 가는 빌드. 다음 공격은 스킬도 된다.",
+   "ranged_only": false
+  },
+  "momentum": {
+   "name": "가속",
+   "direction": "tempo",
+   "hook": "on_hit",
+   "desc_template": "적중마다 공격 속도 +{as}% ({max_stacks}중첩), {decay}초 쉬면 사라짐",
+   "params_schema": {
+    "as": {
+     "unit": "공격 속도",
+     "ref": 0.03,
+     "kind": "강도 비례",
+     "max": 0.06
+    },
+    "max_stacks": {
+     "unit": "중첩",
+     "ref": 5,
+     "kind": "고정",
+     "max": null
+    },
+    "decay": {
+     "unit": "초",
+     "ref": 3,
+     "kind": "고정",
+     "max": null
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {},
+   "pvp_rule": "그대로",
+   "note": "멈추면 잃는다. 이동하며 치는 가죽 빌드. 공격 속도 상한(+60%)은 StatCalculator 가 지킨다.",
+   "ranged_only": false
+  },
+  "flurry": {
+   "name": "연타",
+   "direction": "tempo",
+   "hook": "nth_hit",
+   "desc_template": "{n}번째 공격마다 공격력 {pct}%의 추가 타격",
+   "params_schema": {
+    "n": {
+     "unit": "번째",
+     "ref": 4,
+     "kind": "고정",
+     "max": null
+    },
+    "pct": {
+     "unit": "공격력·피해 비율",
+     "ref": 0.7,
+     "kind": "강도 비례",
+     "max": 1.6
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {},
+   "pvp_rule": "추가 타격 ×0.5",
+   "note": "추가 타격은 치명타가 날 수 있고 흡혈은 없다. 공격 속도와 곱으로 좋아진다.",
+   "ranged_only": false
+  },
+  "counterstep": {
+   "name": "흘려치기",
+   "direction": "tempo",
+   "hook": "on_dodge",
+   "desc_template": "회피하면 {window}초 안 다음 공격 치명타 확정, 피해 +{pct}%",
+   "params_schema": {
+    "pct": {
+     "unit": "공격력·피해 비율",
+     "ref": 0.3,
+     "kind": "강도 비례",
+     "max": 0.7
+    },
+    "window": {
+     "unit": "초",
+     "ref": 3,
+     "kind": "고정",
+     "max": null
+    },
+    "ms": {
+     "unit": "이동 속도",
+     "ref": 0.15,
+     "kind": "고정",
+     "max": null
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {
+    "global": 2.0
+   },
+   "pvp_rule": "+피해 ×0.5",
+   "note": "회피 스탯(가죽·DEX)이 있어야 굴러간다. 2초 이동 +15%.",
+   "ranged_only": false
+  },
+  "siphon": {
+   "name": "마력 흡수",
+   "direction": "mana_flow",
+   "hook": "on_kill",
+   "desc_template": "처치 시 MP {mp}% 회복, 무기 스킬 대기 -{cdr}초",
+   "params_schema": {
+    "mp": {
+     "unit": "최대 MP 비율",
+     "ref": 0.05,
+     "kind": "강도 비례",
+     "max": 0.12
+    },
+    "cdr": {
+     "unit": "초",
+     "ref": 0.5,
+     "kind": "강도 비례",
+     "max": 1.2
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {
+    "global": 0.5
+   },
+   "pvp_rule": "플레이어 처치 시 그대로",
+   "note": "몹이 많은 층에서 스킬을 계속 돌린다. 보스 단일전에서는 약하다.",
+   "ranged_only": false
+  },
+  "overcharge": {
+   "name": "과부하",
+   "direction": "mana_flow",
+   "hook": "on_skill",
+   "desc_template": "스킬을 쓰면 다음 기본 공격이 공격력 {pct}% 폭발",
+   "params_schema": {
+    "pct": {
+     "unit": "공격력·피해 비율",
+     "ref": 1.2,
+     "kind": "강도 비례",
+     "max": 2.6
+    },
+    "window": {
+     "unit": "초",
+     "ref": 5,
+     "kind": "고정",
+     "max": null
+    },
+    "radius": {
+     "unit": "칸",
+     "ref": 2.5,
+     "kind": "고정",
+     "max": null
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {
+    "global": 3.0
+   },
+   "pvp_rule": "폭발 피해 ×0.5",
+   "note": "무기 스킬·직업 스킬 모두. 반경 2.5칸 적 최대 4명, 마법 피해. 5초 안에 쳐야 한다.",
+   "ranged_only": false
+  },
+  "sanctify": {
+   "name": "축성",
+   "direction": "support",
+   "hook": "on_hit",
+   "desc_template": "적중 시 {radius}칸 안 가장 다친 아군을 공격력 {pct}% 치유",
+   "params_schema": {
+    "pct": {
+     "unit": "공격력·피해 비율",
+     "ref": 0.12,
+     "kind": "강도 비례",
+     "max": 0.28
+    },
+    "radius": {
+     "unit": "칸",
+     "ref": 8,
+     "kind": "고정",
+     "max": null
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {
+    "global": 0.5
+   },
+   "pvp_rule": "아군 = 나 + 같은 파티. 혼자면 자신에게 절반",
+   "note": "치유량 = 공격력 × pct + 치유력(heal_power) × 0.3. 때리는 사제·성기사 빌드.",
+   "ranged_only": false
+  },
+  "ward_aura": {
+   "name": "수호 기운",
+   "direction": "support",
+   "hook": "aura",
+   "desc_template": "{period}초마다 {radius}칸 아군에게 최대 HP {pct}% 보호막",
+   "params_schema": {
+    "pct": {
+     "unit": "공격력·피해 비율",
+     "ref": 0.04,
+     "kind": "강도 비례",
+     "max": 0.09
+    },
+    "period": {
+     "unit": "초",
+     "ref": 8,
+     "kind": "고정",
+     "max": null
+    },
+    "radius": {
+     "unit": "칸",
+     "ref": 8,
+     "kind": "고정",
+     "max": null
+    },
+    "duration": {
+     "unit": "초",
+     "ref": 6,
+     "kind": "고정",
+     "max": null
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {
+    "period": 8
+   },
+   "pvp_rule": "같은 파티만, 마을 안전지대 안에서는 멈춤",
+   "note": "전투 중(최근 5초 안에 피해를 주거나 받음)일 때만. 최대 5명, 자신 포함.",
+   "ranged_only": false
+  },
+  "imbue": {
+   "name": "원소 부여",
+   "direction": "affliction",
+   "hook": "on_hit",
+   "desc_template": {
+    "burn": "{chance}% 확률로 {duration}초 불태움 (초당 공격력 {pct}%)",
+    "poison": "{chance}% 확률로 독 1중첩 (초당 공격력 {pct}%, 최대 5)",
+    "frost": "{chance}% 확률로 서리 1중첩, 5중첩이면 빙결 1초"
+   },
+   "params_schema": {
+    "chance": {
+     "unit": "확률",
+     "ref": 0.25,
+     "kind": "고정",
+     "max": null
+    },
+    "pct": {
+     "unit": "공격력·피해 비율",
+     "ref": 0.1,
+     "kind": "강도 비례",
+     "max": 0.22
+    },
+    "duration": {
+     "unit": "초",
+     "ref": 3,
+     "kind": "고정",
+     "max": null
+    },
+    "element": {
+     "unit": "burn|poison|frost",
+     "kind": "무기마다 지정"
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {
+    "per_target": 1.0
+   },
+   "pvp_rule": "지속 피해 ×0.5, 빙결 대신 느려짐",
+   "note": "element = burn | poison | frost. 서리는 중첩당 느려짐 8%, 보스는 빙결 대신 받는 피해 +5%(3초).",
+   "ranged_only": false
+  },
+  "exploit": {
+   "name": "약점 파고들기",
+   "direction": "affliction",
+   "hook": "vs_state",
+   "desc_template": "상태이상 걸린 적에게 피해 +{pct}% (2개면 1.6배)",
+   "params_schema": {
+    "pct": {
+     "unit": "공격력·피해 비율",
+     "ref": 0.15,
+     "kind": "강도 비례",
+     "max": 0.35
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {},
+   "pvp_rule": "+피해 ×0.5",
+   "note": "불태움·독·출혈·서리·느려짐·약화·실명·표식 중 하나라도. 거는 수단은 직업·무기 스킬·imbue.",
+   "ranged_only": false
+  },
+  "first_strike": {
+   "name": "선제",
+   "direction": "ambush",
+   "hook": "first_hit",
+   "desc_template": "처음 때리는 적에게 피해 +{pct}%, 치명 확률 +{cc}%",
+   "params_schema": {
+    "pct": {
+     "unit": "공격력·피해 비율",
+     "ref": 0.8,
+     "kind": "강도 비례",
+     "max": 1.8
+    },
+    "cc": {
+     "unit": "치명 확률",
+     "ref": 0.2,
+     "kind": "고정",
+     "max": null
+    },
+    "window": {
+     "unit": "초",
+     "ref": 10,
+     "kind": "고정",
+     "max": null
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {
+    "boss": 30.0
+   },
+   "pvp_rule": "+피해 ×0.5",
+   "note": "'처음' = 이 적을 최근 10초 동안 안 때림. 보스는 30초에 한 번. 치고 빠지는 빌드.",
+   "ranged_only": false
+  },
+  "backstab": {
+   "name": "등 찌르기",
+   "direction": "ambush",
+   "hook": "vs_state",
+   "desc_template": "적의 등 뒤에서 때리면 피해 +{pct}%",
+   "params_schema": {
+    "pct": {
+     "unit": "공격력·피해 비율",
+     "ref": 0.25,
+     "kind": "강도 비례",
+     "max": 0.6
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {},
+   "pvp_rule": "+피해 ×0.5",
+   "note": "등 뒤 = 대상이 보는 방향 뒤쪽 120°. 그림자 급소 찌르기(치명 +20%)와 겹친다. 탱커가 있는 파티에서 강하다.",
+   "ranged_only": false
+  },
+  "longshot": {
+   "name": "관통 사격",
+   "direction": "ambush",
+   "hook": "on_hit",
+   "desc_template": "{dist}칸 밖 적에게 피해 +{pct}%, 화살·탄이 {pierce}명 더 꿰뚫음",
+   "params_schema": {
+    "dist": {
+     "unit": "칸",
+     "ref": 12,
+     "kind": "고정",
+     "max": null
+    },
+    "pct": {
+     "unit": "공격력·피해 비율",
+     "ref": 0.2,
+     "kind": "강도 비례",
+     "max": 0.45
+    },
+    "pierce": {
+     "unit": "명",
+     "ref": 1,
+     "kind": "레벨 단계",
+     "max": null
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {},
+   "pvp_rule": "+피해 ×0.5",
+   "note": "활·지팡이 전용. 꿰뚫을 때마다 피해 -20%. 가까이 붙으면 약해진다(장단점).",
+   "ranged_only": true
+  },
+  "berserk": {
+   "name": "광기",
+   "direction": "frenzy",
+   "hook": "hp_below",
+   "desc_template": "잃은 HP 10%마다 피해 +{pct}%, 빈사 흡혈 +{ls}%",
+   "params_schema": {
+    "pct": {
+     "unit": "공격력·피해 비율",
+     "ref": 0.025,
+     "kind": "강도 비례",
+     "max": 0.055
+    },
+    "ls": {
+     "unit": "흡혈",
+     "ref": 0.05,
+     "kind": "강도 비례",
+     "max": 0.12
+    },
+    "thr": {
+     "unit": "HP 비율",
+     "ref": 0.3,
+     "kind": "고정",
+     "max": null
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {},
+   "pvp_rule": "+피해 ×0.5",
+   "note": "광전사 피의 분노와 합쳐 최대 +50%. 판금·회복 없이 아슬아슬하게 버티는 빌드.",
+   "ranged_only": false
+  },
+  "armor_break": {
+   "name": "갑옷 부수기",
+   "direction": "sunder",
+   "hook": "on_hit",
+   "desc_template": "적중마다 대상 방어 -{pct}% ({max_stacks}중첩, {duration}초)",
+   "params_schema": {
+    "pct": {
+     "unit": "공격력·피해 비율",
+     "ref": 0.04,
+     "kind": "강도 비례",
+     "max": 0.08
+    },
+    "max_stacks": {
+     "unit": "중첩",
+     "ref": 5,
+     "kind": "고정",
+     "max": null
+    },
+    "duration": {
+     "unit": "초",
+     "ref": 5,
+     "kind": "고정",
+     "max": null
+    }
+   },
+   "scaling": "강도 s = B/0.10 (B = clamp(0.08 + 0.6×gap, 0.04, 0.28)); '강도 비례' 값 = ref × s (max 로 자름)",
+   "icd": {
+    "per_target": 0.3
+   },
+   "pvp_rule": "플레이어에게는 최대 3중첩",
+   "note": "깎인 방어는 파티 전원의 공격에 적용 → 긴 싸움(정예·보스)에서 빛난다. 일반 몹은 금방 죽어 손해.",
+   "ranged_only": false
+  }
+ },
+ "rules": {
+  "budget": "B = clamp(0.08 + 0.6 × gap, 0.04, 0.28). gap = (같은 무기 종류·같은 5레벨 구간 최고 기본 성능 ÷ 이 무기 기본 성능) − 1. Lv1 일반 = 0.04, Lv3 일반 ≤ 0.06",
+  "strength": "s = B / 0.10",
+  "base_power": "P = 무기 피해 중앙값 × (1 + Σ 부가 스탯 가치 + 0.10 × 무기 스킬 수) — tools/ue_gen.py power()",
+  "template": "desc_template 의 {키}% 는 저장값(0~1) × 100 으로, {키}초 는 그대로 표시. imbue 는 element 별 템플릿",
+  "procs": "기본 공격(스킬·패턴·지속 피해·고유 효과 피해가 아닌 것)만 적중 훅을 켠다. rend·hemorrhage·execute·exploit·backstab·first_strike·berserk·armor_break·imbue 는 스킬 적중에도 (재발동 그대로). 고유 효과가 낸 피해(source unique:*)는 어떤 훅도 다시 켜지 않는다."
+ },
+ "assignments": {
+  "corridor_longbow": {
+   "effect": "rend",
+   "name": "사냥 상처",
+   "direction": "bleed_crit",
+   "params": {
+    "pct": 0.025,
+    "duration": 4,
+    "max_stacks": 5
+   },
+   "strength": 0.4,
+   "budget": 0.04,
+   "tooltip": [
+    "✧ 고유 사냥 상처",
+    "  치명타 시 출혈 (중첩당 초당 공격력 2.5%, 최대 5)"
+   ],
+   "tooltip_folded": "✧ 사냥 상처 치명타 → 출혈 2.5%"
+  },
+  "mossvine_hornbow": {
+   "effect": "momentum",
+   "name": "덩굴 당기기",
+   "direction": "tempo",
+   "params": {
+    "as": 0.02,
+    "max_stacks": 5,
+    "decay": 3
+   },
+   "strength": 0.6,
+   "budget": 0.06,
+   "tooltip": [
+    "✧ 고유 덩굴 당기기",
+    "  적중마다 공격 속도 +2% (5중첩), 3초 쉬면 사라짐"
+   ],
+   "tooltip_folded": "✧ 덩굴 당기기 적중 공속 +2%×5"
+  },
+  "grove_rootstring_bow": {
+   "effect": "imbue",
+   "name": "뿌리 가시",
+   "direction": "affliction",
+   "params": {
+    "chance": 0.25,
+    "pct": 0.08,
+    "duration": 3,
+    "element": "poison"
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 뿌리 가시 (재발동 1초)",
+    "  25% 확률로 독 1중첩 (초당 공격력 8%, 최대 5)"
+   ],
+   "tooltip_folded": "✧ 뿌리 가시 적중 → 독 중첩"
+  },
+  "silkstring_recurve": {
+   "effect": "first_strike",
+   "name": "소리 없는 시위",
+   "direction": "ambush",
+   "params": {
+    "pct": 1.18,
+    "cc": 0.2,
+    "window": 10
+   },
+   "strength": 1.48,
+   "budget": 0.148,
+   "tooltip": [
+    "✧ 고유 소리 없는 시위",
+    "  처음 때리는 적에게 피해 +118%, 치명 확률 +20%"
+   ],
+   "tooltip_folded": "✧ 소리 없는 시위 첫 타 +118%"
+  },
+  "skitter_bladebow": {
+   "effect": "rend",
+   "name": "거미 날",
+   "direction": "bleed_crit",
+   "params": {
+    "pct": 0.05,
+    "duration": 4,
+    "max_stacks": 5
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 거미 날",
+    "  치명타 시 출혈 (중첩당 초당 공격력 5%, 최대 5)"
+   ],
+   "tooltip_folded": "✧ 거미 날 치명타 → 출혈 5%"
+  },
+  "glowcap_longbow": {
+   "effect": "execute",
+   "name": "빛 아래 드러남",
+   "direction": "execute",
+   "params": {
+    "thr": 0.3,
+    "pct": 0.51
+   },
+   "strength": 2.03,
+   "budget": 0.203,
+   "tooltip": [
+    "✧ 고유 빛 아래 드러남",
+    "  HP 30% 이하 적에게 피해 +51% (보스는 60%만)"
+   ],
+   "tooltip_folded": "✧ 빛 아래 드러남 빈사 적 +51%"
+  },
+  "mycel_hornbow": {
+   "effect": "counterstep",
+   "name": "포자 안개 걸음",
+   "direction": "tempo",
+   "params": {
+    "pct": 0.24,
+    "window": 3,
+    "ms": 0.15
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 포자 안개 걸음 (재발동 2초)",
+    "  회피하면 3초 안 다음 공격 치명타 확정, 피해 +24%"
+   ],
+   "tooltip_folded": "✧ 포자 안개 걸음 회피 → 확정 치명"
+  },
+  "eelbone_recurve": {
+   "effect": "chain_spark",
+   "name": "뼛속 전기",
+   "direction": "blast",
+   "params": {
+    "chance": 0.2,
+    "pct": 1.0,
+    "targets": 3
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 뼛속 전기 (재발동 1초)",
+    "  20% 확률로 번개가 3명에게 튐 (공격력 100%)"
+   ],
+   "tooltip_folded": "✧ 뼛속 전기 번개 3명 100%"
+  },
+  "brine_bladebow": {
+   "effect": "leech",
+   "name": "소금물 흡수",
+   "direction": "sustain",
+   "params": {
+    "pct": 0.14,
+    "cap": 0.03
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 소금물 흡수",
+    "  기본 공격 피해의 14% 회복 (초당 최대 HP 3%까지)"
+   ],
+   "tooltip_folded": "✧ 소금물 흡수 적중 회복 14%"
+  },
+  "tidecaller_bow": {
+   "effect": "imbue",
+   "name": "밀물 화살",
+   "direction": "affliction",
+   "params": {
+    "chance": 0.25,
+    "pct": 0.08,
+    "duration": 3,
+    "element": "frost"
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 밀물 화살 (재발동 1초)",
+    "  25% 확률로 서리 1중첩, 5중첩이면 빙결 1초"
+   ],
+   "tooltip_folded": "✧ 밀물 화살 적중 → 서리"
+  },
+  "slagedge_bladebow": {
+   "effect": "overcharge",
+   "name": "쇳물 장전",
+   "direction": "mana_flow",
+   "params": {
+    "pct": 2.53,
+    "window": 5,
+    "radius": 2.5
+   },
+   "strength": 2.11,
+   "budget": 0.211,
+   "tooltip": [
+    "✧ 고유 쇳물 장전 (재발동 3초)",
+    "  스킬을 쓰면 다음 기본 공격이 공격력 253% 폭발"
+   ],
+   "tooltip_folded": "✧ 쇳물 장전 스킬 후 폭발 253%"
+  },
+  "bellows_composite_bow": {
+   "effect": "flurry",
+   "name": "풀무 연사",
+   "direction": "tempo",
+   "params": {
+    "n": 4,
+    "pct": 0.56
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 풀무 연사",
+    "  4번째 공격마다 공격력 56%의 추가 타격"
+   ],
+   "tooltip_folded": "✧ 풀무 연사 4타 추가 56%"
+  },
+  "frostbone_longbow": {
+   "effect": "imbue",
+   "name": "얼음뼈 화살",
+   "direction": "affliction",
+   "params": {
+    "chance": 0.25,
+    "pct": 0.08,
+    "duration": 3,
+    "element": "frost"
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 얼음뼈 화살 (재발동 1초)",
+    "  25% 확률로 서리 1중첩, 5중첩이면 빙결 1초"
+   ],
+   "tooltip_folded": "✧ 얼음뼈 화살 적중 → 서리"
+  },
+  "prismstring_longbow": {
+   "effect": "chain_spark",
+   "name": "빛 갈래",
+   "direction": "blast",
+   "params": {
+    "chance": 0.2,
+    "pct": 1.0,
+    "targets": 3
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 빛 갈래 (재발동 1초)",
+    "  20% 확률로 번개가 3명에게 튐 (공격력 100%)"
+   ],
+   "tooltip_folded": "✧ 빛 갈래 번개 3명 100%"
+  },
+  "prism_hornbow": {
+   "effect": "momentum",
+   "name": "무지개 궤적",
+   "direction": "tempo",
+   "params": {
+    "as": 0.06,
+    "max_stacks": 5,
+    "decay": 3
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 무지개 궤적",
+    "  적중마다 공격 속도 +6% (5중첩), 3초 쉬면 사라짐"
+   ],
+   "tooltip_folded": "✧ 무지개 궤적 적중 공속 +6%×5"
+  },
+  "galewing_bow": {
+   "effect": "longshot",
+   "name": "바람길",
+   "direction": "ambush",
+   "params": {
+    "dist": 12,
+    "pct": 0.16,
+    "pierce": 2
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 바람길",
+    "  12칸 밖 적에게 피해 +16%, 화살·탄이 2명 더 꿰뚫음"
+   ],
+   "tooltip_folded": "✧ 바람길 원거리 +16%"
+  },
+  "inkquill_hornbow": {
+   "effect": "rend",
+   "name": "깃펜 베기",
+   "direction": "bleed_crit",
+   "params": {
+    "pct": 0.05,
+    "duration": 4,
+    "max_stacks": 5
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 깃펜 베기",
+    "  치명타 시 출혈 (중첩당 초당 공격력 5%, 최대 5)"
+   ],
+   "tooltip_folded": "✧ 깃펜 베기 치명타 → 출혈 5%"
+  },
+  "springloaded_bow": {
+   "effect": "flurry",
+   "name": "용수철 연발",
+   "direction": "tempo",
+   "params": {
+    "n": 4,
+    "pct": 1.6
+   },
+   "strength": 2.37,
+   "budget": 0.237,
+   "tooltip": [
+    "✧ 고유 용수철 연발",
+    "  4번째 공격마다 공격력 160%의 추가 타격"
+   ],
+   "tooltip_folded": "✧ 용수철 연발 4타 추가 160%"
+  },
+  "quicksilver_longbow": {
+   "effect": "exploit",
+   "name": "수은 침투",
+   "direction": "affliction",
+   "params": {
+    "pct": 0.12
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 수은 침투",
+    "  상태이상 걸린 적에게 피해 +12% (2개면 1.6배)"
+   ],
+   "tooltip_folded": "✧ 수은 침투 상태이상 적 +12%"
+  },
+  "abyss_bladebow": {
+   "effect": "execute",
+   "name": "심연의 대답",
+   "direction": "execute",
+   "params": {
+    "thr": 0.3,
+    "pct": 0.6
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 심연의 대답",
+    "  HP 30% 이하 적에게 피해 +60% (보스는 60%만)"
+   ],
+   "tooltip_folded": "✧ 심연의 대답 빈사 적 +60%"
+  },
+  "tempest_bow": {
+   "effect": "chain_spark",
+   "name": "폭풍 갈래",
+   "direction": "blast",
+   "params": {
+    "chance": 0.2,
+    "pct": 0.36,
+    "targets": 4
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 폭풍 갈래 (재발동 1초)",
+    "  20% 확률로 번개가 4명에게 튐 (공격력 36%)"
+   ],
+   "tooltip_folded": "✧ 폭풍 갈래 번개 4명 36%"
+  },
+  "moss_dirk": {
+   "effect": "backstab",
+   "name": "이끼 그늘",
+   "direction": "ambush",
+   "params": {
+    "pct": 0.1
+   },
+   "strength": 0.4,
+   "budget": 0.04,
+   "tooltip": [
+    "✧ 고유 이끼 그늘",
+    "  적의 등 뒤에서 때리면 피해 +10%"
+   ],
+   "tooltip_folded": "✧ 이끼 그늘 등 뒤 +10%"
+  },
+  "corridor_katar": {
+   "effect": "flurry",
+   "name": "주먹칼 연타",
+   "direction": "tempo",
+   "params": {
+    "n": 4,
+    "pct": 0.42
+   },
+   "strength": 0.6,
+   "budget": 0.06,
+   "tooltip": [
+    "✧ 고유 주먹칼 연타",
+    "  4번째 공격마다 공격력 42%의 추가 타격"
+   ],
+   "tooltip_folded": "✧ 주먹칼 연타 4타 추가 42%"
+  },
+  "skitter_fang": {
+   "effect": "imbue",
+   "name": "거미 독",
+   "direction": "affliction",
+   "params": {
+    "chance": 0.25,
+    "pct": 0.08,
+    "duration": 3,
+    "element": "poison"
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 거미 독 (재발동 1초)",
+    "  25% 확률로 독 1중첩 (초당 공격력 8%, 최대 5)"
+   ],
+   "tooltip_folded": "✧ 거미 독 적중 → 독 중첩"
+  },
+  "silk_sickle": {
+   "effect": "leech",
+   "name": "은빛 진액",
+   "direction": "sustain",
+   "params": {
+    "pct": 0.14,
+    "cap": 0.03
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 은빛 진액",
+    "  기본 공격 피해의 14% 회복 (초당 최대 HP 3%까지)"
+   ],
+   "tooltip_folded": "✧ 은빛 진액 적중 회복 14%"
+  },
+  "silkqueen_fang": {
+   "effect": "exploit",
+   "name": "여왕의 독",
+   "direction": "affliction",
+   "params": {
+    "pct": 0.12
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 여왕의 독",
+    "  상태이상 걸린 적에게 피해 +12% (2개면 1.6배)"
+   ],
+   "tooltip_folded": "✧ 여왕의 독 상태이상 적 +12%"
+  },
+  "spore_kris": {
+   "effect": "rend",
+   "name": "아물지 않는 상처",
+   "direction": "bleed_crit",
+   "params": {
+    "pct": 0.15,
+    "duration": 4,
+    "max_stacks": 5
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 아물지 않는 상처",
+    "  치명타 시 출혈 (중첩당 초당 공격력 15%, 최대 5)"
+   ],
+   "tooltip_folded": "✧ 아물지 않는 상처 치명타 → 출혈 15%"
+  },
+  "spore_katar": {
+   "effect": "death_burst",
+   "name": "포자 터짐",
+   "direction": "blast",
+   "params": {
+    "pct": 1.75,
+    "radius": 3.0
+   },
+   "strength": 2.19,
+   "budget": 0.219,
+   "tooltip": [
+    "✧ 고유 포자 터짐",
+    "  처치한 적이 터져 3칸 안 적에게 공격력 175%"
+   ],
+   "tooltip_folded": "✧ 포자 터짐 처치 폭발 175%"
+  },
+  "mycelking_sporefang": {
+   "effect": "imbue",
+   "name": "포자 송곳",
+   "direction": "affliction",
+   "params": {
+    "chance": 0.25,
+    "pct": 0.08,
+    "duration": 3,
+    "element": "poison"
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 포자 송곳 (재발동 1초)",
+    "  25% 확률로 독 1중첩 (초당 공격력 8%, 최대 5)"
+   ],
+   "tooltip_folded": "✧ 포자 송곳 적중 → 독 중첩"
+  },
+  "eel_kris": {
+   "effect": "counterstep",
+   "name": "미끄러지기",
+   "direction": "tempo",
+   "params": {
+    "pct": 0.24,
+    "window": 3,
+    "ms": 0.15
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 미끄러지기 (재발동 2초)",
+    "  회피하면 3초 안 다음 공격 치명타 확정, 피해 +24%"
+   ],
+   "tooltip_folded": "✧ 미끄러지기 회피 → 확정 치명"
+  },
+  "eelfin_sickle": {
+   "effect": "first_strike",
+   "name": "지느러미 기습",
+   "direction": "ambush",
+   "params": {
+    "pct": 1.1,
+    "cc": 0.2,
+    "window": 10
+   },
+   "strength": 1.38,
+   "budget": 0.138,
+   "tooltip": [
+    "✧ 고유 지느러미 기습",
+    "  처음 때리는 적에게 피해 +110%, 치명 확률 +20%"
+   ],
+   "tooltip_folded": "✧ 지느러미 기습 첫 타 +110%"
+  },
+  "slag_katar": {
+   "effect": "berserk",
+   "name": "슬래그 열기",
+   "direction": "frenzy",
+   "params": {
+    "pct": 0.055,
+    "ls": 0.11,
+    "thr": 0.3
+   },
+   "strength": 2.14,
+   "budget": 0.214,
+   "tooltip": [
+    "✧ 고유 슬래그 열기",
+    "  잃은 HP 10%마다 피해 +5.5%, 빈사 흡혈 +11%"
+   ],
+   "tooltip_folded": "✧ 슬래그 열기 다칠수록 +5.5%/10%"
+  },
+  "cinder_fang": {
+   "effect": "imbue",
+   "name": "불씨 송곳니",
+   "direction": "affliction",
+   "params": {
+    "chance": 0.25,
+    "pct": 0.08,
+    "duration": 3,
+    "element": "burn"
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 불씨 송곳니 (재발동 1초)",
+    "  25% 확률로 3초 불태움 (초당 공격력 8%)"
+   ],
+   "tooltip_folded": "✧ 불씨 송곳니 적중 → 불태움"
+  },
+  "soulflame_kris": {
+   "effect": "hemorrhage",
+   "name": "혼불 상처",
+   "direction": "bleed_crit",
+   "params": {
+    "cc": 0.08,
+    "cd": 0.16
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 혼불 상처",
+    "  출혈 중인 적에게 치명 확률 +8%, 치명 피해 +16%"
+   ],
+   "tooltip_folded": "✧ 혼불 상처 출혈 적에게 치명 +8%"
+  },
+  "gravefrost_katar": {
+   "effect": "backstab",
+   "name": "묘역 그림자",
+   "direction": "ambush",
+   "params": {
+    "pct": 0.53
+   },
+   "strength": 2.1,
+   "budget": 0.21,
+   "tooltip": [
+    "✧ 고유 묘역 그림자",
+    "  적의 등 뒤에서 때리면 피해 +53%"
+   ],
+   "tooltip_folded": "✧ 묘역 그림자 등 뒤 +53%"
+  },
+  "shardglass_dagger": {
+   "effect": "rend",
+   "name": "유리 파편",
+   "direction": "bleed_crit",
+   "params": {
+    "pct": 0.07,
+    "duration": 4,
+    "max_stacks": 5
+   },
+   "strength": 1.19,
+   "budget": 0.119,
+   "tooltip": [
+    "✧ 고유 유리 파편",
+    "  치명타 시 출혈 (중첩당 초당 공격력 7%, 최대 5)"
+   ],
+   "tooltip_folded": "✧ 유리 파편 치명타 → 출혈 7%"
+  },
+  "shardglass_sickle": {
+   "effect": "bloodrush",
+   "name": "유리 낫질",
+   "direction": "execute",
+   "params": {
+    "pct": 0.48,
+    "ms": 0.1,
+    "duration": 3
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 유리 낫질 (재발동 1초)",
+    "  처치하면 다음 공격 피해 +48%, 3초간 이동 +10%"
+   ],
+   "tooltip_folded": "✧ 유리 낫질 처치 → 다음 +48%"
+  },
+  "lorekeeper_katar": {
+   "effect": "siphon",
+   "name": "금서 흡수",
+   "direction": "mana_flow",
+   "params": {
+    "mp": 0.12,
+    "cdr": 1.2
+   },
+   "strength": 2.42,
+   "budget": 0.242,
+   "tooltip": [
+    "✧ 고유 금서 흡수",
+    "  처치 시 MP 12% 회복, 무기 스킬 대기 -1.2초"
+   ],
+   "tooltip_folded": "✧ 금서 흡수 처치 → MP 12%"
+  },
+  "nightshade_dagger": {
+   "effect": "first_strike",
+   "name": "야음",
+   "direction": "ambush",
+   "params": {
+    "pct": 0.64,
+    "cc": 0.2,
+    "window": 10
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 야음",
+    "  처음 때리는 적에게 피해 +64%, 치명 확률 +20%"
+   ],
+   "tooltip_folded": "✧ 야음 첫 타 +64%"
+  },
+  "mainspring_dagger": {
+   "effect": "momentum",
+   "name": "태엽 가속",
+   "direction": "tempo",
+   "params": {
+    "as": 0.025,
+    "max_stacks": 5,
+    "decay": 3
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 태엽 가속",
+    "  적중마다 공격 속도 +2.5% (5중첩), 3초 쉬면 사라짐"
+   ],
+   "tooltip_folded": "✧ 태엽 가속 적중 공속 +2.5%×5"
+  },
+  "abyss_sickle": {
+   "effect": "feast",
+   "name": "심연 포식",
+   "direction": "sustain",
+   "params": {
+    "heal": 0.1,
+    "ls": 0.1,
+    "duration": 4
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 심연 포식 (재발동 1초)",
+    "  처치 시 최대 HP 10% 회복, 4초간 흡혈 +10%"
+   ],
+   "tooltip_folded": "✧ 심연 포식 처치 → HP 10%"
+  },
+  "viper_fang": {
+   "effect": "exploit",
+   "name": "독사의 기다림",
+   "direction": "affliction",
+   "params": {
+    "pct": 0.33
+   },
+   "strength": 2.22,
+   "budget": 0.222,
+   "tooltip": [
+    "✧ 고유 독사의 기다림",
+    "  상태이상 걸린 적에게 피해 +33% (2개면 1.6배)"
+   ],
+   "tooltip_folded": "✧ 독사의 기다림 상태이상 적 +33%"
+  },
+  "eclipse_blade": {
+   "effect": "backstab",
+   "name": "일식",
+   "direction": "ambush",
+   "params": {
+    "pct": 0.2
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 일식",
+    "  적의 등 뒤에서 때리면 피해 +20%"
+   ],
+   "tooltip_folded": "✧ 일식 등 뒤 +20%"
+  },
+  "rootcutter_greatsword": {
+   "effect": "cleave",
+   "name": "뿌리 베기",
+   "direction": "blast",
+   "params": {
+    "pct": 0.12,
+    "radius": 2.5,
+    "targets": 2
+   },
+   "strength": 0.4,
+   "budget": 0.04,
+   "tooltip": [
+    "✧ 고유 뿌리 베기",
+    "  기본 공격이 주변 2.5칸 적 2명에게 공격력 12%"
+   ],
+   "tooltip_folded": "✧ 뿌리 베기 주변 2명 12%"
+  },
+  "rootbound_scythe": {
+   "effect": "leech",
+   "name": "뿌리 빨기",
+   "direction": "sustain",
+   "params": {
+    "pct": 0.035,
+    "cap": 0.03
+   },
+   "strength": 0.6,
+   "budget": 0.06,
+   "tooltip": [
+    "✧ 고유 뿌리 빨기",
+    "  기본 공격 피해의 3.5% 회복 (초당 최대 HP 3%까지)"
+   ],
+   "tooltip_folded": "✧ 뿌리 빨기 적중 회복 3.5%"
+  },
+  "ore_splitter_axe": {
+   "effect": "armor_break",
+   "name": "광맥 쪼개기",
+   "direction": "sunder",
+   "params": {
+    "pct": 0.03,
+    "max_stacks": 5,
+    "duration": 5
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 광맥 쪼개기",
+    "  적중마다 대상 방어 -3% (5중첩, 5초)"
+   ],
+   "tooltip_folded": "✧ 광맥 쪼개기 방어 -3%×5"
+  },
+  "silkspan_glaive": {
+   "effect": "execute",
+   "name": "실 끊기",
+   "direction": "execute",
+   "params": {
+    "thr": 0.3,
+    "pct": 0.6
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 실 끊기",
+    "  HP 30% 이하 적에게 피해 +60% (보스는 60%만)"
+   ],
+   "tooltip_folded": "✧ 실 끊기 빈사 적 +60%"
+  },
+  "silkqueen_reaper": {
+   "effect": "rend",
+   "name": "거미다리 찢기",
+   "direction": "bleed_crit",
+   "params": {
+    "pct": 0.05,
+    "duration": 4,
+    "max_stacks": 5
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 거미다리 찢기",
+    "  치명타 시 출혈 (중첩당 초당 공격력 5%, 최대 5)"
+   ],
+   "tooltip_folded": "✧ 거미다리 찢기 치명타 → 출혈 5%"
+  },
+  "capsplitter_cleaver": {
+   "effect": "death_burst",
+   "name": "포자 터뜨리기",
+   "direction": "blast",
+   "params": {
+    "pct": 1.42,
+    "radius": 3.0
+   },
+   "strength": 1.77,
+   "budget": 0.177,
+   "tooltip": [
+    "✧ 고유 포자 터뜨리기",
+    "  처치한 적이 터져 3칸 안 적에게 공격력 142%"
+   ],
+   "tooltip_folded": "✧ 포자 터뜨리기 처치 폭발 142%"
+  },
+  "mycel_scythe": {
+   "effect": "feast",
+   "name": "균사 포식",
+   "direction": "sustain",
+   "params": {
+    "heal": 0.03,
+    "ls": 0.03,
+    "duration": 4
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 균사 포식 (재발동 1초)",
+    "  처치 시 최대 HP 3% 회복, 4초간 흡혈 +3%"
+   ],
+   "tooltip_folded": "✧ 균사 포식 처치 → HP 3%"
+  },
+  "drowned_anchor_cleaver": {
+   "effect": "berserk",
+   "name": "가라앉는 분노",
+   "direction": "frenzy",
+   "params": {
+    "pct": 0.035,
+    "ls": 0.075,
+    "thr": 0.3
+   },
+   "strength": 1.49,
+   "budget": 0.149,
+   "tooltip": [
+    "✧ 고유 가라앉는 분노",
+    "  잃은 HP 10%마다 피해 +3.5%, 빈사 흡혈 +7.5%"
+   ],
+   "tooltip_folded": "✧ 가라앉는 분노 다칠수록 +3.5%/10%"
+  },
+  "drowned_glaive": {
+   "effect": "bloodrush",
+   "name": "물살 추격",
+   "direction": "execute",
+   "params": {
+    "pct": 1.4,
+    "ms": 0.1,
+    "duration": 3
+   },
+   "strength": 2.51,
+   "budget": 0.251,
+   "tooltip": [
+    "✧ 고유 물살 추격 (재발동 1초)",
+    "  처치하면 다음 공격 피해 +140%, 3초간 이동 +10%"
+   ],
+   "tooltip_folded": "✧ 물살 추격 처치 → 다음 +140%"
+  },
+  "osric_drowned_axe": {
+   "effect": "armor_break",
+   "name": "닻 사슬",
+   "direction": "sunder",
+   "params": {
+    "pct": 0.03,
+    "max_stacks": 5,
+    "duration": 5
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 닻 사슬",
+    "  적중마다 대상 방어 -3% (5중첩, 5초)"
+   ],
+   "tooltip_folded": "✧ 닻 사슬 방어 -3%×5"
+  },
+  "cinderdrake_glaive": {
+   "effect": "imbue",
+   "name": "잿불 베기",
+   "direction": "affliction",
+   "params": {
+    "chance": 0.25,
+    "pct": 0.22,
+    "duration": 3,
+    "element": "burn"
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 잿불 베기 (재발동 1초)",
+    "  25% 확률로 3초 불태움 (초당 공격력 22%)"
+   ],
+   "tooltip_folded": "✧ 잿불 베기 적중 → 불태움"
+  },
+  "slagforged_greatsword": {
+   "effect": "cleave",
+   "name": "슬래그 휩쓸기",
+   "direction": "blast",
+   "params": {
+    "pct": 0.7,
+    "radius": 2.5,
+    "targets": 3
+   },
+   "strength": 2.52,
+   "budget": 0.252,
+   "tooltip": [
+    "✧ 고유 슬래그 휩쓸기",
+    "  기본 공격이 주변 2.5칸 적 3명에게 공격력 70%"
+   ],
+   "tooltip_folded": "✧ 슬래그 휩쓸기 주변 3명 70%"
+  },
+  "ember_greatsword": {
+   "effect": "feast",
+   "name": "불길 포식",
+   "direction": "sustain",
+   "params": {
+    "heal": 0.03,
+    "ls": 0.03,
+    "duration": 4
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 불길 포식 (재발동 1초)",
+    "  처치 시 최대 HP 3% 회복, 4초간 흡혈 +3%"
+   ],
+   "tooltip_folded": "✧ 불길 포식 처치 → HP 3%"
+  },
+  "rime_reaper_scythe": {
+   "effect": "execute",
+   "name": "서리 수확",
+   "direction": "execute",
+   "params": {
+    "thr": 0.3,
+    "pct": 0.2
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 서리 수확",
+    "  HP 30% 이하 적에게 피해 +20% (보스는 60%만)"
+   ],
+   "tooltip_folded": "✧ 서리 수확 빈사 적 +20%"
+  },
+  "amethyst_cleaver": {
+   "effect": "rend",
+   "name": "자수정 파편",
+   "direction": "bleed_crit",
+   "params": {
+    "pct": 0.15,
+    "duration": 4,
+    "max_stacks": 5
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 자수정 파편",
+    "  치명타 시 출혈 (중첩당 초당 공격력 15%, 최대 5)"
+   ],
+   "tooltip_folded": "✧ 자수정 파편 치명타 → 출혈 15%"
+  },
+  "geode_scythe": {
+   "effect": "cleave",
+   "name": "정동 휩쓸기",
+   "direction": "blast",
+   "params": {
+    "pct": 0.7,
+    "radius": 2.5,
+    "targets": 3
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 정동 휩쓸기",
+    "  기본 공격이 주변 2.5칸 적 3명에게 공격력 70%"
+   ],
+   "tooltip_folded": "✧ 정동 휩쓸기 주변 3명 70%"
+  },
+  "geode_sunderer": {
+   "effect": "armor_break",
+   "name": "정동 파쇄",
+   "direction": "sunder",
+   "params": {
+    "pct": 0.03,
+    "max_stacks": 5,
+    "duration": 5
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 정동 파쇄",
+    "  적중마다 대상 방어 -3% (5중첩, 5초)"
+   ],
+   "tooltip_folded": "✧ 정동 파쇄 방어 -3%×5"
+  },
+  "lore_glaive": {
+   "effect": "overcharge",
+   "name": "금서 해방",
+   "direction": "mana_flow",
+   "params": {
+    "pct": 0.96,
+    "window": 5,
+    "radius": 2.5
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 금서 해방 (재발동 3초)",
+    "  스킬을 쓰면 다음 기본 공격이 공격력 96% 폭발"
+   ],
+   "tooltip_folded": "✧ 금서 해방 스킬 후 폭발 96%"
+  },
+  "regulator_greatsword": {
+   "effect": "momentum",
+   "name": "조율 가속",
+   "direction": "tempo",
+   "params": {
+    "as": 0.06,
+    "max_stacks": 5,
+    "decay": 3
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 조율 가속",
+    "  적중마다 공격 속도 +6% (5중첩), 3초 쉬면 사라짐"
+   ],
+   "tooltip_folded": "✧ 조율 가속 적중 공속 +6%×5"
+  },
+  "doomclock_executioner": {
+   "effect": "execute",
+   "name": "종말의 초침",
+   "direction": "execute",
+   "params": {
+    "thr": 0.3,
+    "pct": 0.2
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 종말의 초침",
+    "  HP 30% 이하 적에게 피해 +20% (보스는 60%만)"
+   ],
+   "tooltip_folded": "✧ 종말의 초침 빈사 적 +20%"
+  },
+  "void_scythe": {
+   "effect": "death_burst",
+   "name": "공허 붕괴",
+   "direction": "blast",
+   "params": {
+    "pct": 1.8,
+    "radius": 3.0
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 공허 붕괴",
+    "  처치한 적이 터져 3칸 안 적에게 공격력 180%"
+   ],
+   "tooltip_folded": "✧ 공허 붕괴 처치 폭발 180%"
+  },
+  "bloodmoon_reaver": {
+   "effect": "berserk",
+   "name": "혈월 광기",
+   "direction": "frenzy",
+   "params": {
+    "pct": 0.02,
+    "ls": 0.04,
+    "thr": 0.3
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 혈월 광기",
+    "  잃은 HP 10%마다 피해 +2%, 빈사 흡혈 +4%"
+   ],
+   "tooltip_folded": "✧ 혈월 광기 다칠수록 +2%/10%"
+  },
+  "acolyte_scepter": {
+   "effect": "sanctify",
+   "name": "수련 기도",
+   "direction": "support",
+   "params": {
+    "pct": 0.05,
+    "radius": 8
+   },
+   "strength": 0.4,
+   "budget": 0.04,
+   "tooltip": [
+    "✧ 고유 수련 기도",
+    "  적중 시 8칸 안 가장 다친 아군을 공격력 5% 치유"
+   ],
+   "tooltip_folded": "✧ 수련 기도 적중 → 아군 치유"
+  },
+  "grove_chalice": {
+   "effect": "siphon",
+   "name": "숲지기 이슬",
+   "direction": "mana_flow",
+   "params": {
+    "mp": 0.03,
+    "cdr": 0.3
+   },
+   "strength": 0.6,
+   "budget": 0.06,
+   "tooltip": [
+    "✧ 고유 숲지기 이슬",
+    "  처치 시 MP 3% 회복, 무기 스킬 대기 -0.3초"
+   ],
+   "tooltip_folded": "✧ 숲지기 이슬 처치 → MP 3%"
+  },
+  "miners_lamp_censer": {
+   "effect": "imbue",
+   "name": "등불 그을음",
+   "direction": "affliction",
+   "params": {
+    "chance": 0.25,
+    "pct": 0.08,
+    "duration": 3,
+    "element": "burn"
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 등불 그을음 (재발동 1초)",
+    "  25% 확률로 3초 불태움 (초당 공격력 8%)"
+   ],
+   "tooltip_folded": "✧ 등불 그을음 적중 → 불태움"
+  },
+  "miners_bell_scepter": {
+   "effect": "shield_bash",
+   "name": "경보종",
+   "direction": "bulwark",
+   "params": {
+    "n": 4,
+    "stun": 1.5,
+    "pct": 0.9,
+    "vuln": 0.14
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 경보종",
+    "  4번째 공격마다 기절 1.5초 + 공격력 90%"
+   ],
+   "tooltip_folded": "✧ 경보종 4타 기절 1.5초"
+  },
+  "silkqueen_spindle_censer": {
+   "effect": "ward_aura",
+   "name": "실잣기 장막",
+   "direction": "support",
+   "params": {
+    "pct": 0.03,
+    "period": 8,
+    "radius": 8,
+    "duration": 6
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 실잣기 장막",
+    "  8초마다 8칸 아군에게 최대 HP 3% 보호막"
+   ],
+   "tooltip_folded": "✧ 실잣기 장막 보호막 3%/8초"
+  },
+  "bloom_scepter": {
+   "effect": "sanctify",
+   "name": "공생꽃",
+   "direction": "support",
+   "params": {
+    "pct": 0.28,
+    "radius": 8
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 공생꽃",
+    "  적중 시 8칸 안 가장 다친 아군을 공격력 28% 치유"
+   ],
+   "tooltip_folded": "✧ 공생꽃 적중 → 아군 치유"
+  },
+  "bloom_chalice": {
+   "effect": "leech",
+   "name": "공생 수액",
+   "direction": "sustain",
+   "params": {
+    "pct": 0.14,
+    "cap": 0.03
+   },
+   "strength": 2.59,
+   "budget": 0.259,
+   "tooltip": [
+    "✧ 고유 공생 수액",
+    "  기본 공격 피해의 14% 회복 (초당 최대 HP 3%까지)"
+   ],
+   "tooltip_folded": "✧ 공생 수액 적중 회복 14%"
+  },
+  "mycelking_scepter": {
+   "effect": "armor_break",
+   "name": "왕의 판결",
+   "direction": "sunder",
+   "params": {
+    "pct": 0.03,
+    "max_stacks": 5,
+    "duration": 5
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 왕의 판결",
+    "  적중마다 대상 방어 -3% (5중첩, 5초)"
+   ],
+   "tooltip_folded": "✧ 왕의 판결 방어 -3%×5"
+  },
+  "tidebell_censer": {
+   "effect": "siphon",
+   "name": "조수 순환",
+   "direction": "mana_flow",
+   "params": {
+    "mp": 0.04,
+    "cdr": 0.4
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 조수 순환",
+    "  처치 시 MP 4% 회복, 무기 스킬 대기 -0.4초"
+   ],
+   "tooltip_folded": "✧ 조수 순환 처치 → MP 4%"
+  },
+  "brine_bell_scepter": {
+   "effect": "steadfast",
+   "name": "소금물 종",
+   "direction": "bulwark",
+   "params": {
+    "thr": 0.7,
+    "dr": 0.18
+   },
+   "strength": 2.38,
+   "budget": 0.238,
+   "tooltip": [
+    "✧ 고유 소금물 종",
+    "  HP 70% 이상이면 받는 피해 -18%, 밀려나지 않음"
+   ],
+   "tooltip_folded": "✧ 소금물 종 HP 높으면 피해 -18%"
+  },
+  "crucible_chalice": {
+   "effect": "imbue",
+   "name": "도가니 불",
+   "direction": "affliction",
+   "params": {
+    "chance": 0.25,
+    "pct": 0.21,
+    "duration": 3,
+    "element": "burn"
+   },
+   "strength": 2.07,
+   "budget": 0.207,
+   "tooltip": [
+    "✧ 고유 도가니 불 (재발동 1초)",
+    "  25% 확률로 3초 불태움 (초당 공격력 21%)"
+   ],
+   "tooltip_folded": "✧ 도가니 불 적중 → 불태움"
+  },
+  "embersong_scepter": {
+   "effect": "overcharge",
+   "name": "불씨 노래",
+   "direction": "mana_flow",
+   "params": {
+    "pct": 0.96,
+    "window": 5,
+    "radius": 2.5
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 불씨 노래 (재발동 3초)",
+    "  스킬을 쓰면 다음 기본 공격이 공격력 96% 폭발"
+   ],
+   "tooltip_folded": "✧ 불씨 노래 스킬 후 폭발 96%"
+  },
+  "sanctum_scepter": {
+   "effect": "ward_aura",
+   "name": "성역",
+   "direction": "support",
+   "params": {
+    "pct": 0.03,
+    "period": 8,
+    "radius": 8,
+    "duration": 6
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 성역",
+    "  8초마다 8칸 아군에게 최대 HP 3% 보호막"
+   ],
+   "tooltip_folded": "✧ 성역 보호막 3%/8초"
+  },
+  "frost_vigil_censer": {
+   "effect": "imbue",
+   "name": "서리 향",
+   "direction": "affliction",
+   "params": {
+    "chance": 0.25,
+    "pct": 0.22,
+    "duration": 3,
+    "element": "frost"
+   },
+   "strength": 2.64,
+   "budget": 0.264,
+   "tooltip": [
+    "✧ 고유 서리 향 (재발동 1초)",
+    "  25% 확률로 서리 1중첩, 5중첩이면 빙결 1초"
+   ],
+   "tooltip_folded": "✧ 서리 향 적중 → 서리"
+  },
+  "prism_censer": {
+   "effect": "sanctify",
+   "name": "프리즘 빛",
+   "direction": "support",
+   "params": {
+    "pct": 0.28,
+    "radius": 8
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 프리즘 빛",
+    "  적중 시 8칸 안 가장 다친 아군을 공격력 28% 치유"
+   ],
+   "tooltip_folded": "✧ 프리즘 빛 적중 → 아군 치유"
+  },
+  "crystal_bell_scepter": {
+   "effect": "shield_bash",
+   "name": "수정 종소리",
+   "direction": "bulwark",
+   "params": {
+    "n": 4,
+    "stun": 1.5,
+    "pct": 0.9,
+    "vuln": 0.14
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 수정 종소리",
+    "  4번째 공격마다 기절 1.5초 + 공격력 90%"
+   ],
+   "tooltip_folded": "✧ 수정 종소리 4타 기절 1.5초"
+  },
+  "twin_light_scepter": {
+   "effect": "chain_spark",
+   "name": "양극 광선",
+   "direction": "blast",
+   "params": {
+    "chance": 0.2,
+    "pct": 0.36,
+    "targets": 4
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 양극 광선 (재발동 1초)",
+    "  20% 확률로 번개가 4명에게 튐 (공격력 36%)"
+   ],
+   "tooltip_folded": "✧ 양극 광선 번개 4명 36%"
+  },
+  "ink_chalice": {
+   "effect": "siphon",
+   "name": "먹물 잔",
+   "direction": "mana_flow",
+   "params": {
+    "mp": 0.04,
+    "cdr": 0.4
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 먹물 잔",
+    "  처치 시 MP 4% 회복, 무기 스킬 대기 -0.4초"
+   ],
+   "tooltip_folded": "✧ 먹물 잔 처치 → MP 4%"
+  },
+  "pendulum_censer": {
+   "effect": "flurry",
+   "name": "진자 박자",
+   "direction": "tempo",
+   "params": {
+    "n": 4,
+    "pct": 0.56
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 진자 박자",
+    "  4번째 공격마다 공격력 56%의 추가 타격"
+   ],
+   "tooltip_folded": "✧ 진자 박자 4타 추가 56%"
+  },
+  "abyss_bell_scepter": {
+   "effect": "steadfast",
+   "name": "심연 울림",
+   "direction": "bulwark",
+   "params": {
+    "thr": 0.7,
+    "dr": 0.18
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 심연 울림",
+    "  HP 70% 이상이면 받는 피해 -18%, 밀려나지 않음"
+   ],
+   "tooltip_folded": "✧ 심연 울림 HP 높으면 피해 -18%"
+  },
+  "aurora_scepter": {
+   "effect": "siphon",
+   "name": "오로라 순환",
+   "direction": "mana_flow",
+   "params": {
+    "mp": 0.1,
+    "cdr": 1.0
+   },
+   "strength": 2.04,
+   "budget": 0.204,
+   "tooltip": [
+    "✧ 고유 오로라 순환",
+    "  처치 시 MP 10% 회복, 무기 스킬 대기 -1초"
+   ],
+   "tooltip_folded": "✧ 오로라 순환 처치 → MP 10%"
+  },
+  "seraph_scepter": {
+   "effect": "ward_aura",
+   "name": "치천사의 날개",
+   "direction": "support",
+   "params": {
+    "pct": 0.03,
+    "period": 8,
+    "radius": 8,
+    "duration": 6
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 치천사의 날개",
+    "  8초마다 8칸 아군에게 최대 HP 3% 보호막"
+   ],
+   "tooltip_folded": "✧ 치천사의 날개 보호막 3%/8초"
+  },
+  "lantern_staff": {
+   "effect": "imbue",
+   "name": "등불 불씨",
+   "direction": "affliction",
+   "params": {
+    "chance": 0.25,
+    "pct": 0.04,
+    "duration": 3,
+    "element": "burn"
+   },
+   "strength": 0.4,
+   "budget": 0.04,
+   "tooltip": [
+    "✧ 고유 등불 불씨 (재발동 1초)",
+    "  25% 확률로 3초 불태움 (초당 공격력 4%)"
+   ],
+   "tooltip_folded": "✧ 등불 불씨 적중 → 불태움"
+  },
+  "wayfarer_spiral_staff": {
+   "effect": "overcharge",
+   "name": "소용돌이 모으기",
+   "direction": "mana_flow",
+   "params": {
+    "pct": 0.72,
+    "window": 5,
+    "radius": 2.5
+   },
+   "strength": 0.6,
+   "budget": 0.06,
+   "tooltip": [
+    "✧ 고유 소용돌이 모으기 (재발동 3초)",
+    "  스킬을 쓰면 다음 기본 공격이 공격력 72% 폭발"
+   ],
+   "tooltip_folded": "✧ 소용돌이 모으기 스킬 후 폭발 72%"
+  },
+  "grove_heartwood_staff": {
+   "effect": "chain_spark",
+   "name": "반딧불 튀기",
+   "direction": "blast",
+   "params": {
+    "chance": 0.2,
+    "pct": 0.36,
+    "targets": 2
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 반딧불 튀기 (재발동 1초)",
+    "  20% 확률로 번개가 2명에게 튐 (공격력 36%)"
+   ],
+   "tooltip_folded": "✧ 반딧불 튀기 번개 2명 36%"
+  },
+  "ore_crystal_staff": {
+   "effect": "ward_aura",
+   "name": "수정 장막",
+   "direction": "support",
+   "params": {
+    "pct": 0.05,
+    "period": 8,
+    "radius": 8,
+    "duration": 6
+   },
+   "strength": 1.25,
+   "budget": 0.125,
+   "tooltip": [
+    "✧ 고유 수정 장막",
+    "  8초마다 8칸 아군에게 최대 HP 5% 보호막"
+   ],
+   "tooltip_folded": "✧ 수정 장막 보호막 5%/8초"
+  },
+  "miners_fork_staff": {
+   "effect": "execute",
+   "name": "갈래 찌르기",
+   "direction": "execute",
+   "params": {
+    "thr": 0.3,
+    "pct": 0.2
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 갈래 찌르기",
+    "  HP 30% 이하 적에게 피해 +20% (보스는 60%만)"
+   ],
+   "tooltip_folded": "✧ 갈래 찌르기 빈사 적 +20%"
+  },
+  "mycelium_staff": {
+   "effect": "death_burst",
+   "name": "균사 폭발",
+   "direction": "blast",
+   "params": {
+    "pct": 1.65,
+    "radius": 3.0
+   },
+   "strength": 2.06,
+   "budget": 0.206,
+   "tooltip": [
+    "✧ 고유 균사 폭발",
+    "  처치한 적이 터져 3칸 안 적에게 공격력 165%"
+   ],
+   "tooltip_folded": "✧ 균사 폭발 처치 폭발 165%"
+  },
+  "glowcap_spiral_staff": {
+   "effect": "siphon",
+   "name": "빛갓 흡수",
+   "direction": "mana_flow",
+   "params": {
+    "mp": 0.04,
+    "cdr": 0.4
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 빛갓 흡수",
+    "  처치 시 MP 4% 회복, 무기 스킬 대기 -0.4초"
+   ],
+   "tooltip_folded": "✧ 빛갓 흡수 처치 → MP 4%"
+  },
+  "brine_orb_staff": {
+   "effect": "overcharge",
+   "name": "소금물 구슬",
+   "direction": "mana_flow",
+   "params": {
+    "pct": 1.49,
+    "window": 5,
+    "radius": 2.5
+   },
+   "strength": 1.24,
+   "budget": 0.124,
+   "tooltip": [
+    "✧ 고유 소금물 구슬 (재발동 3초)",
+    "  스킬을 쓰면 다음 기본 공격이 공격력 149% 폭발"
+   ],
+   "tooltip_folded": "✧ 소금물 구슬 스킬 후 폭발 149%"
+  },
+  "tide_fork_staff": {
+   "effect": "chain_spark",
+   "name": "조류 갈래",
+   "direction": "blast",
+   "params": {
+    "chance": 0.2,
+    "pct": 1.0,
+    "targets": 3
+   },
+   "strength": 2.48,
+   "budget": 0.248,
+   "tooltip": [
+    "✧ 고유 조류 갈래 (재발동 1초)",
+    "  20% 확률로 번개가 3명에게 튐 (공격력 100%)"
+   ],
+   "tooltip_folded": "✧ 조류 갈래 번개 3명 100%"
+  },
+  "osric_tide_trident": {
+   "effect": "imbue",
+   "name": "조수 냉기",
+   "direction": "affliction",
+   "params": {
+    "chance": 0.25,
+    "pct": 0.08,
+    "duration": 3,
+    "element": "frost"
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 조수 냉기 (재발동 1초)",
+    "  25% 확률로 서리 1중첩, 5중첩이면 빙결 1초"
+   ],
+   "tooltip_folded": "✧ 조수 냉기 적중 → 서리"
+  },
+  "cinder_spiral_staff": {
+   "effect": "imbue",
+   "name": "불씨 소용돌이",
+   "direction": "affliction",
+   "params": {
+    "chance": 0.25,
+    "pct": 0.21,
+    "duration": 3,
+    "element": "burn"
+   },
+   "strength": 2.13,
+   "budget": 0.213,
+   "tooltip": [
+    "✧ 고유 불씨 소용돌이 (재발동 1초)",
+    "  25% 확률로 3초 불태움 (초당 공격력 21%)"
+   ],
+   "tooltip_folded": "✧ 불씨 소용돌이 적중 → 불태움"
+  },
+  "cinder_crystal_staff": {
+   "effect": "death_burst",
+   "name": "수정 폭발",
+   "direction": "blast",
+   "params": {
+    "pct": 0.64,
+    "radius": 3.0
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 수정 폭발",
+    "  처치한 적이 터져 3칸 안 적에게 공격력 64%"
+   ],
+   "tooltip_folded": "✧ 수정 폭발 처치 폭발 64%"
+  },
+  "rimeheart_staff": {
+   "effect": "exploit",
+   "name": "서리심장",
+   "direction": "affliction",
+   "params": {
+    "pct": 0.12
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 서리심장",
+    "  상태이상 걸린 적에게 피해 +12% (2개면 1.6배)"
+   ],
+   "tooltip_folded": "✧ 서리심장 상태이상 적 +12%"
+  },
+  "rimebell_staff": {
+   "effect": "execute",
+   "name": "서리방울 깨기",
+   "direction": "execute",
+   "params": {
+    "thr": 0.3,
+    "pct": 0.6
+   },
+   "strength": 2.68,
+   "budget": 0.268,
+   "tooltip": [
+    "✧ 고유 서리방울 깨기",
+    "  HP 30% 이하 적에게 피해 +60% (보스는 60%만)"
+   ],
+   "tooltip_folded": "✧ 서리방울 깨기 빈사 적 +60%"
+  },
+  "resonance_staff": {
+   "effect": "chain_spark",
+   "name": "공명 울림",
+   "direction": "blast",
+   "params": {
+    "chance": 0.2,
+    "pct": 0.51,
+    "targets": 3
+   },
+   "strength": 1.14,
+   "budget": 0.114,
+   "tooltip": [
+    "✧ 고유 공명 울림 (재발동 1초)",
+    "  20% 확률로 번개가 3명에게 튐 (공격력 51%)"
+   ],
+   "tooltip_folded": "✧ 공명 울림 번개 3명 51%"
+  },
+  "resonant_fork_staff": {
+   "effect": "overcharge",
+   "name": "소리굽쇠",
+   "direction": "mana_flow",
+   "params": {
+    "pct": 0.96,
+    "window": 5,
+    "radius": 2.5
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 소리굽쇠 (재발동 3초)",
+    "  스킬을 쓰면 다음 기본 공격이 공격력 96% 폭발"
+   ],
+   "tooltip_folded": "✧ 소리굽쇠 스킬 후 폭발 96%"
+  },
+  "ink_spiral_staff": {
+   "effect": "exploit",
+   "name": "먹물 번짐",
+   "direction": "affliction",
+   "params": {
+    "pct": 0.35
+   },
+   "strength": 2.6,
+   "budget": 0.26,
+   "tooltip": [
+    "✧ 고유 먹물 번짐",
+    "  상태이상 걸린 적에게 피해 +35% (2개면 1.6배)"
+   ],
+   "tooltip_folded": "✧ 먹물 번짐 상태이상 적 +35%"
+  },
+  "inkwell_staff": {
+   "effect": "death_burst",
+   "name": "번지는 먹물",
+   "direction": "blast",
+   "params": {
+    "pct": 0.64,
+    "radius": 3.0
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 번지는 먹물",
+    "  처치한 적이 터져 3칸 안 적에게 공격력 64%"
+   ],
+   "tooltip_folded": "✧ 번지는 먹물 처치 폭발 64%"
+  },
+  "orrery_staff": {
+   "effect": "overcharge",
+   "name": "궤도 충전",
+   "direction": "mana_flow",
+   "params": {
+    "pct": 2.6,
+    "window": 5,
+    "radius": 2.5
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 궤도 충전 (재발동 3초)",
+    "  스킬을 쓰면 다음 기본 공격이 공격력 260% 폭발"
+   ],
+   "tooltip_folded": "✧ 궤도 충전 스킬 후 폭발 260%"
+  },
+  "tesla_coil_staff": {
+   "effect": "chain_spark",
+   "name": "전격 코일",
+   "direction": "blast",
+   "params": {
+    "chance": 0.2,
+    "pct": 0.36,
+    "targets": 4
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 전격 코일 (재발동 1초)",
+    "  20% 확률로 번개가 4명에게 튐 (공격력 36%)"
+   ],
+   "tooltip_folded": "✧ 전격 코일 번개 4명 36%"
+  },
+  "void_fork_staff": {
+   "effect": "execute",
+   "name": "공허 갈래",
+   "direction": "execute",
+   "params": {
+    "thr": 0.3,
+    "pct": 0.6
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 공허 갈래",
+    "  HP 30% 이하 적에게 피해 +60% (보스는 60%만)"
+   ],
+   "tooltip_folded": "✧ 공허 갈래 빈사 적 +60%"
+  },
+  "voidheart_staff": {
+   "effect": "exploit",
+   "name": "공허 침식",
+   "direction": "affliction",
+   "params": {
+    "pct": 0.12
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 공허 침식",
+    "  상태이상 걸린 적에게 피해 +12% (2개면 1.6배)"
+   ],
+   "tooltip_folded": "✧ 공허 침식 상태이상 적 +12%"
+  },
+  "corridor_longsword": {
+   "effect": "leech",
+   "name": "수비대의 끈기",
+   "direction": "sustain",
+   "params": {
+    "pct": 0.025,
+    "cap": 0.03
+   },
+   "strength": 0.4,
+   "budget": 0.04,
+   "tooltip": [
+    "✧ 고유 수비대의 끈기",
+    "  기본 공격 피해의 2.5% 회복 (초당 최대 HP 3%까지)"
+   ],
+   "tooltip_folded": "✧ 수비대의 끈기 적중 회복 2.5%"
+  },
+  "mossback_warhammer": {
+   "effect": "armor_break",
+   "name": "이끼등 찍기",
+   "direction": "sunder",
+   "params": {
+    "pct": 0.025,
+    "max_stacks": 5,
+    "duration": 5
+   },
+   "strength": 0.6,
+   "budget": 0.06,
+   "tooltip": [
+    "✧ 고유 이끼등 찍기",
+    "  적중마다 대상 방어 -2.5% (5중첩, 5초)"
+   ],
+   "tooltip_folded": "✧ 이끼등 찍기 방어 -2.5%×5"
+  },
+  "grove_warden_maul": {
+   "effect": "steadfast",
+   "name": "이끼바위",
+   "direction": "bulwark",
+   "params": {
+    "thr": 0.7,
+    "dr": 0.065
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 이끼바위",
+    "  HP 70% 이상이면 받는 피해 -6.5%, 밀려나지 않음"
+   ],
+   "tooltip_folded": "✧ 이끼바위 HP 높으면 피해 -6.5%"
+  },
+  "minewarden_mace": {
+   "effect": "sanctify",
+   "name": "갱도 등불",
+   "direction": "support",
+   "params": {
+    "pct": 0.19,
+    "radius": 8
+   },
+   "strength": 1.55,
+   "budget": 0.155,
+   "tooltip": [
+    "✧ 고유 갱도 등불",
+    "  적중 시 8칸 안 가장 다친 아군을 공격력 19% 치유"
+   ],
+   "tooltip_folded": "✧ 갱도 등불 적중 → 아군 치유"
+  },
+  "silkguard_falchion": {
+   "effect": "momentum",
+   "name": "은실 손놀림",
+   "direction": "tempo",
+   "params": {
+    "as": 0.025,
+    "max_stacks": 5,
+    "decay": 3
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 은실 손놀림",
+    "  적중마다 공격 속도 +2.5% (5중첩), 3초 쉬면 사라짐"
+   ],
+   "tooltip_folded": "✧ 은실 손놀림 적중 공속 +2.5%×5"
+  },
+  "sporeward_broadsword": {
+   "effect": "leech",
+   "name": "포자 빨아들이기",
+   "direction": "sustain",
+   "params": {
+    "pct": 0.14,
+    "cap": 0.03
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 포자 빨아들이기",
+    "  기본 공격 피해의 14% 회복 (초당 최대 HP 3%까지)"
+   ],
+   "tooltip_folded": "✧ 포자 빨아들이기 적중 회복 14%"
+  },
+  "sporecap_warhammer": {
+   "effect": "armor_break",
+   "name": "갓 내려찍기",
+   "direction": "sunder",
+   "params": {
+    "pct": 0.08,
+    "max_stacks": 5,
+    "duration": 5
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 갓 내려찍기",
+    "  적중마다 대상 방어 -8% (5중첩, 5초)"
+   ],
+   "tooltip_folded": "✧ 갓 내려찍기 방어 -8%×5"
+  },
+  "mycelking_guard_blade": {
+   "effect": "shield_bash",
+   "name": "근위의 방패",
+   "direction": "bulwark",
+   "params": {
+    "n": 5,
+    "stun": 0.6,
+    "pct": 0.32,
+    "vuln": 0.05
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 근위의 방패",
+    "  5번째 공격마다 기절 0.6초 + 공격력 32%"
+   ],
+   "tooltip_folded": "✧ 근위의 방패 5타 기절 0.6초"
+  },
+  "sluice_breaker_mace": {
+   "effect": "thorns",
+   "name": "수문 역류",
+   "direction": "bulwark",
+   "params": {
+    "pct": 0.24
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 수문 역류",
+    "  맞으면 줄기 전 피해의 24%를 되돌린다 (근접만)"
+   ],
+   "tooltip_folded": "✧ 수문 역류 반사 24%"
+  },
+  "brine_falchion": {
+   "effect": "flurry",
+   "name": "소금물 연타",
+   "direction": "tempo",
+   "params": {
+    "n": 4,
+    "pct": 1.6
+   },
+   "strength": 2.38,
+   "budget": 0.238,
+   "tooltip": [
+    "✧ 고유 소금물 연타",
+    "  4번째 공격마다 공격력 160%의 추가 타격"
+   ],
+   "tooltip_folded": "✧ 소금물 연타 4타 추가 160%"
+  },
+  "emberforge_warhammer": {
+   "effect": "armor_break",
+   "name": "단조 망치질",
+   "direction": "sunder",
+   "params": {
+    "pct": 0.08,
+    "max_stacks": 5,
+    "duration": 5
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 단조 망치질",
+    "  적중마다 대상 방어 -8% (5중첩, 5초)"
+   ],
+   "tooltip_folded": "✧ 단조 망치질 방어 -8%×5"
+  },
+  "anvil_oath_broadsword": {
+   "effect": "steadfast",
+   "name": "모루 서약",
+   "direction": "bulwark",
+   "params": {
+    "thr": 0.7,
+    "dr": 0.18
+   },
+   "strength": 2.49,
+   "budget": 0.249,
+   "tooltip": [
+    "✧ 고유 모루 서약",
+    "  HP 70% 이상이면 받는 피해 -18%, 밀려나지 않음"
+   ],
+   "tooltip_folded": "✧ 모루 서약 HP 높으면 피해 -18%"
+  },
+  "dawnbringer": {
+   "effect": "sanctify",
+   "name": "여명의 빛",
+   "direction": "support",
+   "params": {
+    "pct": 0.095,
+    "radius": 8
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 여명의 빛",
+    "  적중 시 8칸 안 가장 다친 아군을 공격력 9.5% 치유"
+   ],
+   "tooltip_folded": "✧ 여명의 빛 적중 → 아군 치유"
+  },
+  "frostgrave_mace": {
+   "effect": "imbue",
+   "name": "묘지 서리",
+   "direction": "affliction",
+   "params": {
+    "chance": 0.25,
+    "pct": 0.08,
+    "duration": 3,
+    "element": "frost"
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 묘지 서리 (재발동 1초)",
+    "  25% 확률로 서리 1중첩, 5중첩이면 빙결 1초"
+   ],
+   "tooltip_folded": "✧ 묘지 서리 적중 → 서리"
+  },
+  "resonant_longsword": {
+   "effect": "shield_bash",
+   "name": "공명 강타",
+   "direction": "bulwark",
+   "params": {
+    "n": 5,
+    "stun": 0.8,
+    "pct": 0.38,
+    "vuln": 0.06
+   },
+   "strength": 0.96,
+   "budget": 0.096,
+   "tooltip": [
+    "✧ 고유 공명 강타",
+    "  5번째 공격마다 기절 0.8초 + 공격력 38%"
+   ],
+   "tooltip_folded": "✧ 공명 강타 5타 기절 0.8초"
+  },
+  "amethyst_falchion": {
+   "effect": "rend",
+   "name": "자수정 칼날",
+   "direction": "bleed_crit",
+   "params": {
+    "pct": 0.05,
+    "duration": 4,
+    "max_stacks": 5
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 자수정 칼날",
+    "  치명타 시 출혈 (중첩당 초당 공격력 5%, 최대 5)"
+   ],
+   "tooltip_folded": "✧ 자수정 칼날 치명타 → 출혈 5%"
+  },
+  "inkseal_warhammer": {
+   "effect": "siphon",
+   "name": "봉인 풀기",
+   "direction": "mana_flow",
+   "params": {
+    "mp": 0.12,
+    "cdr": 1.2
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 봉인 풀기",
+    "  처치 시 MP 12% 회복, 무기 스킬 대기 -1.2초"
+   ],
+   "tooltip_folded": "✧ 봉인 풀기 처치 → MP 12%"
+  },
+  "index_keeper_sword": {
+   "effect": "execute",
+   "name": "색인 말소",
+   "direction": "execute",
+   "params": {
+    "thr": 0.3,
+    "pct": 0.2
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 색인 말소",
+    "  HP 30% 이하 적에게 피해 +20% (보스는 60%만)"
+   ],
+   "tooltip_folded": "✧ 색인 말소 빈사 적 +20%"
+  },
+  "clockguard_mace": {
+   "effect": "momentum",
+   "name": "태엽 감기",
+   "direction": "tempo",
+   "params": {
+    "as": 0.025,
+    "max_stacks": 5,
+    "decay": 3
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 태엽 감기",
+    "  적중마다 공격 속도 +2.5% (5중첩), 3초 쉬면 사라짐"
+   ],
+   "tooltip_folded": "✧ 태엽 감기 적중 공속 +2.5%×5"
+  },
+  "void_falchion": {
+   "effect": "leech",
+   "name": "공허 흡수",
+   "direction": "sustain",
+   "params": {
+    "pct": 0.14,
+    "cap": 0.03
+   },
+   "strength": 2.8,
+   "budget": 0.28,
+   "tooltip": [
+    "✧ 고유 공허 흡수",
+    "  기본 공격 피해의 14% 회복 (초당 최대 HP 3%까지)"
+   ],
+   "tooltip_folded": "✧ 공허 흡수 적중 회복 14%"
+  },
+  "abyss_sentinel_longsword": {
+   "effect": "thorns",
+   "name": "심연 가시",
+   "direction": "bulwark",
+   "params": {
+    "pct": 0.7
+   },
+   "strength": 2.5,
+   "budget": 0.25,
+   "tooltip": [
+    "✧ 고유 심연 가시",
+    "  맞으면 줄기 전 피해의 70%를 되돌린다 (근접만)"
+   ],
+   "tooltip_folded": "✧ 심연 가시 반사 70%"
+  },
+  "celestial_oathkeeper": {
+   "effect": "ward_aura",
+   "name": "천궁의 맹세",
+   "direction": "support",
+   "params": {
+    "pct": 0.03,
+    "period": 8,
+    "radius": 8,
+    "duration": 6
+   },
+   "strength": 0.8,
+   "budget": 0.08,
+   "tooltip": [
+    "✧ 고유 천궁의 맹세",
+    "  8초마다 8칸 아군에게 최대 HP 3% 보호막"
+   ],
+   "tooltip_folded": "✧ 천궁의 맹세 보호막 3%/8초"
+  }
+ }
+}

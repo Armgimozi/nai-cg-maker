@@ -1,0 +1,3305 @@
+{
+ "by_class_band": {
+  "guardian|1": {
+   "P": 5,
+   "wearable": 25,
+   "good": 17,
+   "good_kind": 13,
+   "good_ids": [
+    "corridor_longsword",
+    "mossback_warhammer",
+    "grove_warden_maul",
+    "rootcutter_greatsword",
+    "rootbound_scythe",
+    "ore_splitter_axe",
+    "corridor_longbow",
+    "mossvine_hornbow",
+    "moss_dirk",
+    "corridor_katar",
+    "moss_bone_bow",
+    "corridor_executioner_axe",
+    "wayfarer_sabre"
+   ],
+   "styles": {
+    "melee": 10,
+    "ranged": 3
+   },
+   "example": {
+    "set": "wayfarer",
+    "look": "light",
+    "set_L": 3,
+    "shield": "oak_round_shield",
+    "tax": 0.0,
+    "need": 0,
+    "req": {
+     "VIT": 4,
+     "DEX": 2
+    }
+   }
+  },
+  "berserker|1": {
+   "P": 5,
+   "wearable": 25,
+   "good": 15,
+   "good_kind": 13,
+   "good_ids": [
+    "corridor_longsword",
+    "mossback_warhammer",
+    "grove_warden_maul",
+    "rootcutter_greatsword",
+    "rootbound_scythe",
+    "ore_splitter_axe",
+    "corridor_longbow",
+    "mossvine_hornbow",
+    "moss_dirk",
+    "corridor_katar",
+    "moss_bone_bow",
+    "corridor_executioner_axe",
+    "wayfarer_sabre"
+   ],
+   "styles": {
+    "melee": 10,
+    "ranged": 3
+   },
+   "example": {
+    "set": "wayfarer",
+    "look": "light",
+    "set_L": 3,
+    "shield": null,
+    "tax": 0.0,
+    "need": 0,
+    "req": {
+     "VIT": 4,
+     "DEX": 2
+    }
+   }
+  },
+  "hunter|1": {
+   "P": 5,
+   "wearable": 25,
+   "good": 19,
+   "good_kind": 15,
+   "good_ids": [
+    "corridor_longsword",
+    "mossback_warhammer",
+    "grove_warden_maul",
+    "rootcutter_greatsword",
+    "rootbound_scythe",
+    "ore_splitter_axe",
+    "corridor_longbow",
+    "mossvine_hornbow",
+    "grove_rootstring_bow",
+    "moss_dirk",
+    "corridor_katar",
+    "skitter_fang",
+    "moss_bone_bow",
+    "corridor_executioner_axe",
+    "wayfarer_sabre"
+   ],
+   "styles": {
+    "melee": 11,
+    "ranged": 4
+   },
+   "example": {
+    "set": "wayfarer",
+    "look": "light",
+    "set_L": 3,
+    "shield": null,
+    "tax": 0.0,
+    "need": 1,
+    "req": {
+     "VIT": 4,
+     "DEX": 2
+    }
+   }
+  },
+  "arcanist|1": {
+   "P": 5,
+   "wearable": 25,
+   "good": 17,
+   "good_kind": 7,
+   "good_ids": [
+    "lantern_staff",
+    "wayfarer_spiral_staff",
+    "grove_heartwood_staff",
+    "ore_crystal_staff",
+    "acolyte_scepter",
+    "grove_chalice",
+    "miners_lamp_censer"
+   ],
+   "styles": {
+    "caster": 7
+   },
+   "example": {
+    "set": "wayfarer",
+    "look": "light",
+    "set_L": 3,
+    "shield": null,
+    "tax": 0.0,
+    "need": 0,
+    "req": {
+     "VIT": 4,
+     "DEX": 2
+    }
+   }
+  },
+  "priest|1": {
+   "P": 5,
+   "wearable": 25,
+   "good": 18,
+   "good_kind": 7,
+   "good_ids": [
+    "lantern_staff",
+    "wayfarer_spiral_staff",
+    "grove_heartwood_staff",
+    "ore_crystal_staff",
+    "acolyte_scepter",
+    "grove_chalice",
+    "miners_lamp_censer"
+   ],
+   "styles": {
+    "caster": 7
+   },
+   "example": {
+    "set": "wayfarer",
+    "look": "light",
+    "set_L": 3,
+    "shield": null,
+    "tax": 0.0,
+    "need": 0,
+    "req": {
+     "VIT": 4,
+     "DEX": 2
+    }
+   }
+  },
+  "shadow|1": {
+   "P": 5,
+   "wearable": 25,
+   "good": 19,
+   "good_kind": 17,
+   "good_ids": [
+    "corridor_longsword",
+    "mossback_warhammer",
+    "grove_warden_maul",
+    "rootcutter_greatsword",
+    "rootbound_scythe",
+    "ore_splitter_axe",
+    "corridor_longbow",
+    "mossvine_hornbow",
+    "grove_rootstring_bow",
+    "silkstring_recurve",
+    "moss_dirk",
+    "corridor_katar",
+    "skitter_fang",
+    "moss_bone_bow",
+    "corridor_executioner_axe",
+    "rootgnaw_tanto",
+    "wayfarer_sabre"
+   ],
+   "styles": {
+    "melee": 12,
+    "ranged": 5
+   },
+   "example": {
+    "set": "wayfarer",
+    "look": "light",
+    "set_L": 3,
+    "shield": null,
+    "tax": 0.0,
+    "need": 0,
+    "req": {
+     "VIT": 4,
+     "DEX": 2
+    }
+   }
+  },
+  "guardian|2": {
+   "P": 10,
+   "wearable": 23,
+   "good": 6,
+   "good_kind": 5,
+   "good_ids": [
+    "silkspan_glaive",
+    "miners_great_maul",
+    "ore_morning_star",
+    "silkcut_flamberge",
+    "pit_war_spear"
+   ],
+   "styles": {
+    "melee": 5
+   },
+   "example": {
+    "set": "pit_foreman",
+    "look": "heavy",
+    "set_L": 8,
+    "shield": "ironbound_kite_shield",
+    "tax": 0.12,
+    "need": 18,
+    "req": {
+     "STR": 12,
+     "DEX": 8,
+     "VIT": 12
+    }
+   }
+  },
+  "berserker|2": {
+   "P": 10,
+   "wearable": 23,
+   "good": 6,
+   "good_kind": 5,
+   "good_ids": [
+    "silkspan_glaive",
+    "miners_great_maul",
+    "ore_morning_star",
+    "silkcut_flamberge",
+    "pit_war_spear"
+   ],
+   "styles": {
+    "melee": 5
+   },
+   "example": {
+    "set": "pit_foreman",
+    "look": "heavy",
+    "set_L": 8,
+    "shield": null,
+    "tax": 0.1,
+    "need": 17,
+    "req": {
+     "STR": 12,
+     "DEX": 8,
+     "VIT": 12
+    }
+   }
+  },
+  "hunter|2": {
+   "P": 10,
+   "wearable": 23,
+   "good": 12,
+   "good_kind": 11,
+   "good_ids": [
+    "silkguard_falchion",
+    "silkspan_glaive",
+    "silkqueen_reaper",
+    "silk_sickle",
+    "miners_great_maul",
+    "ore_morning_star",
+    "silk_twin_bow",
+    "silkcut_flamberge",
+    "ore_kris",
+    "pit_rapier",
+    "pit_war_spear"
+   ],
+   "styles": {
+    "melee": 10,
+    "ranged": 1
+   },
+   "example": {
+    "set": "pit_foreman",
+    "look": "heavy",
+    "set_L": 8,
+    "shield": null,
+    "tax": 0.0,
+    "need": 19,
+    "req": {
+     "DEX": 12,
+     "STR": 8,
+     "VIT": 12
+    }
+   }
+  },
+  "arcanist|2": {
+   "P": 10,
+   "wearable": 23,
+   "good": 5,
+   "good_kind": 4,
+   "good_ids": [
+    "miners_fork_staff",
+    "miners_bell_scepter",
+    "silk_chime_rod",
+    "ore_thurible_rod"
+   ],
+   "styles": {
+    "caster": 4
+   },
+   "example": {
+    "set": "wayfarer",
+    "look": "light",
+    "set_L": 3,
+    "shield": null,
+    "tax": 0.0,
+    "need": 7,
+    "req": {
+     "INT": 12,
+     "VIT": 8,
+     "DEX": 2
+    }
+   }
+  },
+  "priest|2": {
+   "P": 10,
+   "wearable": 23,
+   "good": 7,
+   "good_kind": 6,
+   "good_ids": [
+    "miners_fork_staff",
+    "miners_bell_scepter",
+    "silkqueen_spindle_censer",
+    "miners_lamp_crook",
+    "silk_chime_rod",
+    "silk_antler_staff"
+   ],
+   "styles": {
+    "caster": 6
+   },
+   "example": {
+    "set": "silkweaver",
+    "look": "cloth",
+    "set_L": 8,
+    "shield": null,
+    "tax": 0.095,
+    "need": 16,
+    "req": {
+     "INT": 12,
+     "VIT": 8,
+     "WIS": 12
+    }
+   }
+  },
+  "shadow|2": {
+   "P": 10,
+   "wearable": 23,
+   "good": 12,
+   "good_kind": 11,
+   "good_ids": [
+    "silkguard_falchion",
+    "silkspan_glaive",
+    "silkqueen_reaper",
+    "silk_sickle",
+    "miners_great_maul",
+    "ore_morning_star",
+    "silk_twin_bow",
+    "silkcut_flamberge",
+    "ore_kris",
+    "pit_rapier",
+    "pit_war_spear"
+   ],
+   "styles": {
+    "melee": 10,
+    "ranged": 1
+   },
+   "example": {
+    "set": "pit_foreman",
+    "look": "heavy",
+    "set_L": 8,
+    "shield": null,
+    "tax": 0.0,
+    "need": 16,
+    "req": {
+     "DEX": 12,
+     "STR": 8,
+     "VIT": 12
+    }
+   }
+  },
+  "guardian|3": {
+   "P": 15,
+   "wearable": 23,
+   "good": 5,
+   "good_kind": 5,
+   "good_ids": [
+    "sporeward_broadsword",
+    "sporecap_warhammer",
+    "mycelking_guard_blade",
+    "capsplitter_cleaver",
+    "mycel_scythe"
+   ],
+   "styles": {
+    "melee": 5
+   },
+   "example": {
+    "set": "pit_foreman",
+    "look": "heavy",
+    "set_L": 8,
+    "shield": "verdigris_tower_shield",
+    "tax": 0.0,
+    "need": 27,
+    "req": {
+     "VIT": 23,
+     "STR": 16
+    }
+   }
+  },
+  "berserker|3": {
+   "P": 15,
+   "wearable": 23,
+   "good": 6,
+   "good_kind": 6,
+   "good_ids": [
+    "sporeward_broadsword",
+    "sporecap_warhammer",
+    "mycelking_guard_blade",
+    "capsplitter_cleaver",
+    "mycel_scythe",
+    "spore_flamberge"
+   ],
+   "styles": {
+    "melee": 6
+   },
+   "example": {
+    "set": "pit_foreman",
+    "look": "heavy",
+    "set_L": 8,
+    "shield": null,
+    "tax": 0.0,
+    "need": 16,
+    "req": {
+     "VIT": 17,
+     "STR": 11
+    }
+   }
+  },
+  "hunter|3": {
+   "P": 15,
+   "wearable": 23,
+   "good": 11,
+   "good_kind": 11,
+   "good_ids": [
+    "sporeward_broadsword",
+    "sporecap_warhammer",
+    "mycelking_guard_blade",
+    "capsplitter_cleaver",
+    "mycel_scythe",
+    "glowcap_longbow",
+    "mycel_hornbow",
+    "spore_kris",
+    "mycel_warhammer",
+    "spore_flamberge",
+    "hypha_glaive"
+   ],
+   "styles": {
+    "melee": 9,
+    "ranged": 2
+   },
+   "example": {
+    "set": "hypha_stalker",
+    "look": "light",
+    "set_L": 14,
+    "shield": null,
+    "tax": 0.0,
+    "need": 33,
+    "req": {
+     "VIT": 17,
+     "STR": 11,
+     "DEX": 18
+    }
+   }
+  },
+  "arcanist|3": {
+   "P": 15,
+   "wearable": 23,
+   "good": 3,
+   "good_kind": 2,
+   "good_ids": [
+    "mycelium_staff",
+    "bloom_chalice"
+   ],
+   "styles": {
+    "caster": 2
+   },
+   "example": {
+    "set": "wayfarer",
+    "look": "light",
+    "set_L": 3,
+    "shield": null,
+    "tax": 0.0,
+    "need": 15,
+    "req": {
+     "INT": 17,
+     "VIT": 11,
+     "DEX": 2
+    }
+   }
+  },
+  "priest|3": {
+   "P": 15,
+   "wearable": 23,
+   "good": 7,
+   "good_kind": 5,
+   "good_ids": [
+    "mycelium_staff",
+    "glowcap_spiral_staff",
+    "bloom_scepter",
+    "mycelking_scepter",
+    "spore_thurible_rod"
+   ],
+   "styles": {
+    "caster": 5
+   },
+   "example": {
+    "set": "silkweaver",
+    "look": "cloth",
+    "set_L": 8,
+    "shield": null,
+    "tax": 0.093,
+    "need": 24,
+    "req": {
+     "INT": 17,
+     "VIT": 11,
+     "WIS": 12
+    }
+   }
+  },
+  "shadow|3": {
+   "P": 15,
+   "wearable": 23,
+   "good": 11,
+   "good_kind": 11,
+   "good_ids": [
+    "sporeward_broadsword",
+    "sporecap_warhammer",
+    "mycelking_guard_blade",
+    "capsplitter_cleaver",
+    "mycel_scythe",
+    "glowcap_longbow",
+    "mycel_hornbow",
+    "spore_kris",
+    "mycel_warhammer",
+    "spore_flamberge",
+    "hypha_glaive"
+   ],
+   "styles": {
+    "melee": 9,
+    "ranged": 2
+   },
+   "example": {
+    "set": "hypha_stalker",
+    "look": "light",
+    "set_L": 14,
+    "shield": null,
+    "tax": 0.0,
+    "need": 30,
+    "req": {
+     "VIT": 17,
+     "STR": 11,
+     "DEX": 18
+    }
+   }
+  },
+  "guardian|4": {
+   "P": 20,
+   "wearable": 23,
+   "good": 5,
+   "good_kind": 5,
+   "good_ids": [
+    "sluice_breaker_mace",
+    "osric_drowned_axe",
+    "brine_bladebow",
+    "sluice_morning_star",
+    "verdigris_great_axe"
+   ],
+   "styles": {
+    "melee": 4,
+    "ranged": 1
+   },
+   "example": {
+    "set": "verdigris_guard",
+    "look": "heavy",
+    "set_L": 19,
+    "shield": "verdigris_tower_shield",
+    "tax": 0.0,
+    "need": 38,
+    "req": {
+     "VIT": 30,
+     "STR": 20
+    }
+   }
+  },
+  "berserker|4": {
+   "P": 20,
+   "wearable": 23,
+   "good": 5,
+   "good_kind": 5,
+   "good_ids": [
+    "sluice_breaker_mace",
+    "osric_drowned_axe",
+    "brine_bladebow",
+    "sluice_morning_star",
+    "verdigris_great_axe"
+   ],
+   "styles": {
+    "melee": 4,
+    "ranged": 1
+   },
+   "example": {
+    "set": "verdigris_guard",
+    "look": "heavy",
+    "set_L": 19,
+    "shield": null,
+    "tax": 0.0,
+    "need": 38,
+    "req": {
+     "VIT": 30,
+     "STR": 20
+    }
+   }
+  },
+  "hunter|4": {
+   "P": 20,
+   "wearable": 23,
+   "good": 12,
+   "good_kind": 12,
+   "good_ids": [
+    "sluice_breaker_mace",
+    "brine_falchion",
+    "drowned_anchor_cleaver",
+    "drowned_glaive",
+    "osric_drowned_axe",
+    "brine_bladebow",
+    "tidecaller_bow",
+    "eel_kris",
+    "eelfin_sickle",
+    "drowned_executioner_axe",
+    "sluice_morning_star",
+    "verdigris_great_axe"
+   ],
+   "styles": {
+    "melee": 10,
+    "ranged": 2
+   },
+   "example": {
+    "set": "verdigris_guard",
+    "look": "heavy",
+    "set_L": 19,
+    "shield": null,
+    "tax": 0.0,
+    "need": 45,
+    "req": {
+     "VIT": 30,
+     "STR": 20
+    }
+   }
+  },
+  "arcanist|4": {
+   "P": 20,
+   "wearable": 23,
+   "good": 3,
+   "good_kind": 3,
+   "good_ids": [
+    "brine_orb_staff",
+    "tide_fork_staff",
+    "brine_bell_scepter"
+   ],
+   "styles": {
+    "caster": 3
+   },
+   "example": {
+    "set": "spore_sage",
+    "look": "cloth",
+    "set_L": 14,
+    "shield": null,
+    "tax": 0.14,
+    "need": 38,
+    "req": {
+     "INT": 26,
+     "WIS": 18,
+     "VIT": 11
+    }
+   }
+  },
+  "priest|4": {
+   "P": 20,
+   "wearable": 23,
+   "good": 5,
+   "good_kind": 5,
+   "good_ids": [
+    "brine_orb_staff",
+    "tidebell_censer",
+    "brine_bell_scepter",
+    "tide_lamp_crook",
+    "verdigris_chime_rod"
+   ],
+   "styles": {
+    "caster": 5
+   },
+   "example": {
+    "set": "spore_sage",
+    "look": "cloth",
+    "set_L": 14,
+    "shield": null,
+    "tax": 0.132,
+    "need": 39,
+    "req": {
+     "INT": 26,
+     "WIS": 18,
+     "VIT": 11
+    }
+   }
+  },
+  "shadow|4": {
+   "P": 20,
+   "wearable": 23,
+   "good": 12,
+   "good_kind": 12,
+   "good_ids": [
+    "sluice_breaker_mace",
+    "brine_falchion",
+    "drowned_anchor_cleaver",
+    "drowned_glaive",
+    "osric_drowned_axe",
+    "brine_bladebow",
+    "tidecaller_bow",
+    "eel_kris",
+    "eelfin_sickle",
+    "drowned_executioner_axe",
+    "sluice_morning_star",
+    "verdigris_great_axe"
+   ],
+   "styles": {
+    "melee": 10,
+    "ranged": 2
+   },
+   "example": {
+    "set": "verdigris_guard",
+    "look": "heavy",
+    "set_L": 19,
+    "shield": null,
+    "tax": 0.0,
+    "need": 42,
+    "req": {
+     "VIT": 30,
+     "STR": 20
+    }
+   }
+  },
+  "guardian|5": {
+   "P": 25,
+   "wearable": 23,
+   "good": 6,
+   "good_kind": 6,
+   "good_ids": [
+    "emberforge_warhammer",
+    "anvil_oath_broadsword",
+    "dawnbringer",
+    "ember_greatsword",
+    "slag_war_spear",
+    "forge_cleaver"
+   ],
+   "styles": {
+    "melee": 6
+   },
+   "example": {
+    "set": "forge_warden",
+    "look": "heavy",
+    "set_L": 25,
+    "shield": "anvil_face_shield",
+    "tax": 0.0,
+    "need": 63,
+    "req": {
+     "STR": 35,
+     "VIT": 40
+    }
+   }
+  },
+  "berserker|5": {
+   "P": 25,
+   "wearable": 23,
+   "good": 5,
+   "good_kind": 5,
+   "good_ids": [
+    "emberforge_warhammer",
+    "anvil_oath_broadsword",
+    "ember_greatsword",
+    "slag_war_spear",
+    "forge_cleaver"
+   ],
+   "styles": {
+    "melee": 5
+   },
+   "example": {
+    "set": "forge_warden",
+    "look": "heavy",
+    "set_L": 25,
+    "shield": null,
+    "tax": 0.0,
+    "need": 63,
+    "req": {
+     "STR": 35,
+     "VIT": 40
+    }
+   }
+  },
+  "hunter|5": {
+   "P": 25,
+   "wearable": 23,
+   "good": 11,
+   "good_kind": 11,
+   "good_ids": [
+    "emberforge_warhammer",
+    "anvil_oath_broadsword",
+    "dawnbringer",
+    "cinderdrake_glaive",
+    "ember_greatsword",
+    "bellows_composite_bow",
+    "cinder_fang",
+    "anvil_executioner_axe",
+    "slag_war_spear",
+    "cinder_rapier",
+    "forge_cleaver"
+   ],
+   "styles": {
+    "melee": 10,
+    "ranged": 1
+   },
+   "example": {
+    "set": "forge_warden",
+    "look": "heavy",
+    "set_L": 25,
+    "shield": null,
+    "tax": 0.0,
+    "need": 70,
+    "req": {
+     "STR": 35,
+     "VIT": 40
+    }
+   }
+  },
+  "arcanist|5": {
+   "P": 25,
+   "wearable": 23,
+   "good": 2,
+   "good_kind": 2,
+   "good_ids": [
+    "cinder_spiral_staff",
+    "cinder_crystal_staff"
+   ],
+   "styles": {
+    "caster": 2
+   },
+   "example": {
+    "set": "spore_sage",
+    "look": "cloth",
+    "set_L": 14,
+    "shield": null,
+    "tax": 0.104,
+    "need": 46,
+    "req": {
+     "INT": 29,
+     "VIT": 17,
+     "DEX": 12,
+     "WIS": 7
+    }
+   }
+  },
+  "priest|5": {
+   "P": 25,
+   "wearable": 23,
+   "good": 2,
+   "good_kind": 2,
+   "good_ids": [
+    "embersong_scepter",
+    "forge_chime_rod"
+   ],
+   "styles": {
+    "caster": 2
+   },
+   "example": {
+    "set": "crypt_mourner",
+    "look": "cloth",
+    "set_L": 24,
+    "shield": null,
+    "tax": 0.084,
+    "need": 67,
+    "req": {
+     "WIS": 38,
+     "INT": 26,
+     "VIT": 19
+    }
+   }
+  },
+  "shadow|5": {
+   "P": 25,
+   "wearable": 23,
+   "good": 10,
+   "good_kind": 10,
+   "good_ids": [
+    "emberforge_warhammer",
+    "anvil_oath_broadsword",
+    "cinderdrake_glaive",
+    "ember_greatsword",
+    "bellows_composite_bow",
+    "cinder_fang",
+    "anvil_executioner_axe",
+    "slag_war_spear",
+    "cinder_rapier",
+    "forge_cleaver"
+   ],
+   "styles": {
+    "melee": 9,
+    "ranged": 1
+   },
+   "example": {
+    "set": "forge_warden",
+    "look": "heavy",
+    "set_L": 25,
+    "shield": null,
+    "tax": 0.0,
+    "need": 67,
+    "req": {
+     "STR": 35,
+     "VIT": 40
+    }
+   }
+  },
+  "guardian|6": {
+   "P": 30,
+   "wearable": 23,
+   "good": 5,
+   "good_kind": 5,
+   "good_ids": [
+    "frost_longsword",
+    "rime_great_maul",
+    "rime_morning_star",
+    "rime_composite_bow",
+    "rime_flamberge"
+   ],
+   "styles": {
+    "melee": 4,
+    "ranged": 1
+   },
+   "example": {
+    "set": "forge_warden",
+    "look": "heavy",
+    "set_L": 25,
+    "shield": "anvil_face_shield",
+    "tax": 0.0,
+    "need": 71,
+    "req": {
+     "STR": 43,
+     "VIT": 40
+    }
+   }
+  },
+  "berserker|6": {
+   "P": 30,
+   "wearable": 23,
+   "good": 5,
+   "good_kind": 5,
+   "good_ids": [
+    "frost_longsword",
+    "rime_great_maul",
+    "rime_morning_star",
+    "rime_composite_bow",
+    "rime_flamberge"
+   ],
+   "styles": {
+    "melee": 4,
+    "ranged": 1
+   },
+   "example": {
+    "set": "forge_warden",
+    "look": "heavy",
+    "set_L": 25,
+    "shield": null,
+    "tax": 0.0,
+    "need": 71,
+    "req": {
+     "STR": 43,
+     "VIT": 40
+    }
+   }
+  },
+  "hunter|6": {
+   "P": 30,
+   "wearable": 23,
+   "good": 11,
+   "good_kind": 11,
+   "good_ids": [
+    "rime_reaper_scythe",
+    "frostbone_longbow",
+    "frost_longsword",
+    "frost_twin_bow",
+    "rime_great_maul",
+    "frost_stiletto",
+    "rime_morning_star",
+    "rime_composite_bow",
+    "rime_great_axe",
+    "frost_tanto",
+    "rime_flamberge"
+   ],
+   "styles": {
+    "melee": 8,
+    "ranged": 3
+   },
+   "example": {
+    "set": "forge_warden",
+    "look": "heavy",
+    "set_L": 25,
+    "shield": null,
+    "tax": 0.004,
+    "need": 99,
+    "req": {
+     "STR": 43,
+     "DEX": 29,
+     "VIT": 40
+    }
+   }
+  },
+  "arcanist|6": {
+   "P": 30,
+   "wearable": 23,
+   "good": 4,
+   "good_kind": 4,
+   "good_ids": [
+    "rimebell_staff",
+    "frost_vigil_censer",
+    "frost_war_spear",
+    "rime_chime_rod"
+   ],
+   "styles": {
+    "caster": 3,
+    "melee": 1
+   },
+   "example": {
+    "set": "cinder_cantor",
+    "look": "cloth",
+    "set_L": 23,
+    "shield": null,
+    "tax": 0.14,
+    "need": 66,
+    "req": {
+     "INT": 36,
+     "VIT": 22,
+     "DEX": 14,
+     "WIS": 13
+    }
+   }
+  },
+  "priest|6": {
+   "P": 30,
+   "wearable": 23,
+   "good": 5,
+   "good_kind": 5,
+   "good_ids": [
+    "sanctum_scepter",
+    "rime_thurible_rod",
+    "frost_antler_staff",
+    "rime_chalice",
+    "rime_chime_rod"
+   ],
+   "styles": {
+    "caster": 5
+   },
+   "example": {
+    "set": "crypt_mourner",
+    "look": "cloth",
+    "set_L": 24,
+    "shield": null,
+    "tax": 0.0,
+    "need": 56,
+    "req": {
+     "WIS": 36,
+     "VIT": 22,
+     "INT": 14
+    }
+   }
+  },
+  "shadow|6": {
+   "P": 30,
+   "wearable": 23,
+   "good": 11,
+   "good_kind": 11,
+   "good_ids": [
+    "rime_reaper_scythe",
+    "frostbone_longbow",
+    "frost_longsword",
+    "frost_twin_bow",
+    "rime_great_maul",
+    "frost_stiletto",
+    "rime_morning_star",
+    "rime_composite_bow",
+    "rime_great_axe",
+    "frost_tanto",
+    "rime_flamberge"
+   ],
+   "styles": {
+    "melee": 8,
+    "ranged": 3
+   },
+   "example": {
+    "set": "forge_warden",
+    "look": "heavy",
+    "set_L": 25,
+    "shield": null,
+    "tax": 0.0,
+    "need": 96,
+    "req": {
+     "STR": 43,
+     "DEX": 29,
+     "VIT": 40
+    }
+   }
+  },
+  "guardian|7": {
+   "P": 35,
+   "wearable": 23,
+   "good": 4,
+   "good_kind": 4,
+   "good_ids": [
+    "resonant_longsword",
+    "geode_sunderer",
+    "prismstring_longbow",
+    "geode_great_maul"
+   ],
+   "styles": {
+    "melee": 3,
+    "ranged": 1
+   },
+   "example": {
+    "set": "forge_warden",
+    "look": "heavy",
+    "set_L": 25,
+    "shield": "anvil_face_shield",
+    "tax": 0.0,
+    "need": 74,
+    "req": {
+     "VIT": 52,
+     "STR": 34
+    }
+   }
+  },
+  "berserker|7": {
+   "P": 35,
+   "wearable": 23,
+   "good": 4,
+   "good_kind": 4,
+   "good_ids": [
+    "resonant_longsword",
+    "geode_sunderer",
+    "prismstring_longbow",
+    "geode_great_maul"
+   ],
+   "styles": {
+    "melee": 3,
+    "ranged": 1
+   },
+   "example": {
+    "set": "forge_warden",
+    "look": "heavy",
+    "set_L": 25,
+    "shield": null,
+    "tax": 0.0,
+    "need": 74,
+    "req": {
+     "VIT": 52,
+     "STR": 34
+    }
+   }
+  },
+  "hunter|7": {
+   "P": 35,
+   "wearable": 23,
+   "good": 9,
+   "good_kind": 9,
+   "good_ids": [
+    "resonant_longsword",
+    "amethyst_falchion",
+    "amethyst_cleaver",
+    "geode_sunderer",
+    "prismstring_longbow",
+    "prism_hornbow",
+    "shardglass_sickle",
+    "geode_great_maul",
+    "resonance_rapier"
+   ],
+   "styles": {
+    "melee": 7,
+    "ranged": 2
+   },
+   "example": {
+    "set": "geode_bastion",
+    "look": "heavy",
+    "set_L": 34,
+    "shield": null,
+    "tax": 0.0,
+    "need": 91,
+    "req": {
+     "VIT": 52,
+     "STR": 34,
+     "DEX": 18
+    }
+   }
+  },
+  "arcanist|7": {
+   "P": 35,
+   "wearable": 23,
+   "good": 3,
+   "good_kind": 3,
+   "good_ids": [
+    "resonance_staff",
+    "crystal_bell_scepter",
+    "twin_light_scepter"
+   ],
+   "styles": {
+    "caster": 3
+   },
+   "example": {
+    "set": "cinder_cantor",
+    "look": "cloth",
+    "set_L": 23,
+    "shield": null,
+    "tax": 0.051,
+    "need": 82,
+    "req": {
+     "INT": 52,
+     "VIT": 34,
+     "WIS": 13
+    }
+   }
+  },
+  "priest|7": {
+   "P": 35,
+   "wearable": 23,
+   "good": 6,
+   "good_kind": 5,
+   "good_ids": [
+    "resonant_fork_staff",
+    "prism_censer",
+    "crystal_bell_scepter",
+    "twin_light_scepter",
+    "crystal_censer"
+   ],
+   "styles": {
+    "caster": 5
+   },
+   "example": {
+    "set": "crypt_mourner",
+    "look": "cloth",
+    "set_L": 24,
+    "shield": null,
+    "tax": 0.086,
+    "need": 94,
+    "req": {
+     "WIS": 55,
+     "INT": 36,
+     "VIT": 19
+    }
+   }
+  },
+  "shadow|7": {
+   "P": 35,
+   "wearable": 23,
+   "good": 9,
+   "good_kind": 9,
+   "good_ids": [
+    "resonant_longsword",
+    "amethyst_falchion",
+    "amethyst_cleaver",
+    "geode_sunderer",
+    "prismstring_longbow",
+    "prism_hornbow",
+    "shardglass_sickle",
+    "geode_great_maul",
+    "resonance_rapier"
+   ],
+   "styles": {
+    "melee": 7,
+    "ranged": 2
+   },
+   "example": {
+    "set": "geode_bastion",
+    "look": "heavy",
+    "set_L": 34,
+    "shield": null,
+    "tax": 0.0,
+    "need": 88,
+    "req": {
+     "VIT": 52,
+     "STR": 34,
+     "DEX": 18
+    }
+   }
+  },
+  "guardian|8": {
+   "P": 40,
+   "wearable": 23,
+   "good": 5,
+   "good_kind": 5,
+   "good_ids": [
+    "ink_great_maul",
+    "ink_morning_star",
+    "ink_bone_bow",
+    "ink_flamberge",
+    "index_war_spear"
+   ],
+   "styles": {
+    "melee": 4,
+    "ranged": 1
+   },
+   "example": {
+    "set": "forge_warden",
+    "look": "heavy",
+    "set_L": 25,
+    "shield": "anvil_face_shield",
+    "tax": 0.0,
+    "need": 90,
+    "req": {
+     "STR": 61,
+     "VIT": 41
+    }
+   }
+  },
+  "berserker|8": {
+   "P": 40,
+   "wearable": 23,
+   "good": 5,
+   "good_kind": 5,
+   "good_ids": [
+    "ink_great_maul",
+    "ink_morning_star",
+    "ink_bone_bow",
+    "ink_flamberge",
+    "index_war_spear"
+   ],
+   "styles": {
+    "melee": 4,
+    "ranged": 1
+   },
+   "example": {
+    "set": "forge_warden",
+    "look": "heavy",
+    "set_L": 25,
+    "shield": null,
+    "tax": 0.0,
+    "need": 90,
+    "req": {
+     "STR": 61,
+     "VIT": 41
+    }
+   }
+  },
+  "hunter|8": {
+   "P": 40,
+   "wearable": 23,
+   "good": 10,
+   "good_kind": 10,
+   "good_ids": [
+    "index_keeper_sword",
+    "nightshade_dagger",
+    "ink_great_maul",
+    "ink_sabre",
+    "ink_morning_star",
+    "index_cleaver",
+    "ink_bone_bow",
+    "ink_flamberge",
+    "index_war_spear",
+    "ink_rapier"
+   ],
+   "styles": {
+    "melee": 9,
+    "ranged": 1
+   },
+   "example": {
+    "set": "geode_bastion",
+    "look": "heavy",
+    "set_L": 34,
+    "shield": null,
+    "tax": 0.0,
+    "need": 138,
+    "req": {
+     "DEX": 63,
+     "STR": 42,
+     "VIT": 46
+    }
+   }
+  },
+  "arcanist|8": {
+   "P": 40,
+   "wearable": 23,
+   "good": 1,
+   "good_kind": 1,
+   "good_ids": [
+    "inkwell_staff"
+   ],
+   "styles": {
+    "caster": 1
+   },
+   "example": {
+    "set": "frost_regalia",
+    "look": "cloth",
+    "set_L": 28,
+    "shield": null,
+    "tax": 0.09,
+    "need": 110,
+    "req": {
+     "INT": 63,
+     "VIT": 42,
+     "WIS": 22
+    }
+   }
+  },
+  "priest|8": {
+   "P": 40,
+   "wearable": 23,
+   "good": 2,
+   "good_kind": 2,
+   "good_ids": [
+    "lore_lamp_crook",
+    "lore_sun_scepter"
+   ],
+   "styles": {
+    "caster": 2
+   },
+   "example": {
+    "set": "frost_regalia",
+    "look": "cloth",
+    "set_L": 28,
+    "shield": null,
+    "tax": 0.071,
+    "need": 104,
+    "req": {
+     "WIS": 51,
+     "VIT": 31,
+     "INT": 38
+    }
+   }
+  },
+  "shadow|8": {
+   "P": 40,
+   "wearable": 23,
+   "good": 10,
+   "good_kind": 10,
+   "good_ids": [
+    "index_keeper_sword",
+    "nightshade_dagger",
+    "ink_great_maul",
+    "ink_sabre",
+    "ink_morning_star",
+    "index_cleaver",
+    "ink_bone_bow",
+    "ink_flamberge",
+    "index_war_spear",
+    "ink_rapier"
+   ],
+   "styles": {
+    "melee": 9,
+    "ranged": 1
+   },
+   "example": {
+    "set": "geode_bastion",
+    "look": "heavy",
+    "set_L": 34,
+    "shield": null,
+    "tax": 0.0,
+    "need": 135,
+    "req": {
+     "DEX": 63,
+     "STR": 42,
+     "VIT": 46
+    }
+   }
+  },
+  "guardian|9": {
+   "P": 45,
+   "wearable": 23,
+   "good": 5,
+   "good_kind": 5,
+   "good_ids": [
+    "clock_mace",
+    "clock_falchion",
+    "clock_greatsword",
+    "clock_broadsword",
+    "clock_morning_star"
+   ],
+   "styles": {
+    "melee": 5
+   },
+   "example": {
+    "set": "clockwork_juggernaut",
+    "look": "heavy",
+    "set_L": 44,
+    "shield": "clockwork_bastion",
+    "tax": 0.0,
+    "need": 107,
+    "req": {
+     "VIT": 71,
+     "STR": 48
+    }
+   }
+  },
+  "berserker|9": {
+   "P": 45,
+   "wearable": 23,
+   "good": 5,
+   "good_kind": 5,
+   "good_ids": [
+    "clock_mace",
+    "clock_falchion",
+    "clock_greatsword",
+    "clock_broadsword",
+    "clock_morning_star"
+   ],
+   "styles": {
+    "melee": 5
+   },
+   "example": {
+    "set": "clockwork_juggernaut",
+    "look": "heavy",
+    "set_L": 44,
+    "shield": null,
+    "tax": 0.0,
+    "need": 107,
+    "req": {
+     "VIT": 71,
+     "STR": 48
+    }
+   }
+  },
+  "hunter|9": {
+   "P": 45,
+   "wearable": 23,
+   "good": 12,
+   "good_kind": 12,
+   "good_ids": [
+    "clockguard_mace",
+    "regulator_greatsword",
+    "doomclock_executioner",
+    "springloaded_bow",
+    "mainspring_dagger",
+    "clock_blade_bow",
+    "clock_kris",
+    "clock_mace",
+    "clock_falchion",
+    "clock_greatsword",
+    "clock_broadsword",
+    "clock_morning_star"
+   ],
+   "styles": {
+    "melee": 10,
+    "ranged": 2
+   },
+   "example": {
+    "set": "clockwork_juggernaut",
+    "look": "heavy",
+    "set_L": 44,
+    "shield": null,
+    "tax": 0.0,
+    "need": 172,
+    "req": {
+     "DEX": 66,
+     "STR": 48,
+     "VIT": 71
+    }
+   }
+  },
+  "arcanist|9": {
+   "P": 45,
+   "wearable": 23,
+   "good": 1,
+   "good_kind": 1,
+   "good_ids": [
+    "tesla_coil_staff"
+   ],
+   "styles": {
+    "caster": 1
+   },
+   "example": {
+    "set": "starless_choir",
+    "look": "cloth",
+    "set_L": 44,
+    "shield": null,
+    "tax": 0.084,
+    "need": 125,
+    "req": {
+     "INT": 71,
+     "VIT": 48,
+     "WIS": 23
+    }
+   }
+  },
+  "priest|9": {
+   "P": 45,
+   "wearable": 23,
+   "good": 3,
+   "good_kind": 3,
+   "good_ids": [
+    "orrery_staff",
+    "clock_bell_scepter",
+    "clock_thurible_rod"
+   ],
+   "styles": {
+    "caster": 3
+   },
+   "example": {
+    "set": "clock_astrologer",
+    "look": "cloth",
+    "set_L": 42,
+    "shield": null,
+    "tax": 0.078,
+    "need": 117,
+    "req": {
+     "WIS": 66,
+     "INT": 44,
+     "VIT": 23
+    }
+   }
+  },
+  "shadow|9": {
+   "P": 45,
+   "wearable": 23,
+   "good": 12,
+   "good_kind": 12,
+   "good_ids": [
+    "clockguard_mace",
+    "regulator_greatsword",
+    "doomclock_executioner",
+    "springloaded_bow",
+    "mainspring_dagger",
+    "clock_blade_bow",
+    "clock_kris",
+    "clock_mace",
+    "clock_falchion",
+    "clock_greatsword",
+    "clock_broadsword",
+    "clock_morning_star"
+   ],
+   "styles": {
+    "melee": 10,
+    "ranged": 2
+   },
+   "example": {
+    "set": "clockwork_juggernaut",
+    "look": "heavy",
+    "set_L": 44,
+    "shield": null,
+    "tax": 0.0,
+    "need": 169,
+    "req": {
+     "DEX": 66,
+     "STR": 48,
+     "VIT": 71
+    }
+   }
+  },
+  "guardian|10": {
+   "P": 50,
+   "wearable": 22,
+   "good": 4,
+   "good_kind": 4,
+   "good_ids": [
+    "abyss_sentinel_longsword",
+    "abyss_sickle",
+    "abyss_great_maul",
+    "abyss_war_spear"
+   ],
+   "styles": {
+    "melee": 4
+   },
+   "example": {
+    "set": "clockwork_juggernaut",
+    "look": "heavy",
+    "set_L": 44,
+    "shield": "clockwork_bastion",
+    "tax": 0.096,
+    "need": 131,
+    "req": {
+     "VIT": 71,
+     "STR": 48,
+     "WIS": 26
+    }
+   }
+  },
+  "berserker|10": {
+   "P": 50,
+   "wearable": 22,
+   "good": 4,
+   "good_kind": 4,
+   "good_ids": [
+    "abyss_sentinel_longsword",
+    "abyss_sickle",
+    "abyss_great_maul",
+    "abyss_war_spear"
+   ],
+   "styles": {
+    "melee": 4
+   },
+   "example": {
+    "set": "clockwork_juggernaut",
+    "look": "heavy",
+    "set_L": 44,
+    "shield": null,
+    "tax": 0.1,
+    "need": 132,
+    "req": {
+     "VIT": 71,
+     "STR": 48,
+     "WIS": 26
+    }
+   }
+  },
+  "hunter|10": {
+   "P": 50,
+   "wearable": 22,
+   "good": 11,
+   "good_kind": 11,
+   "good_ids": [
+    "void_falchion",
+    "abyss_sentinel_longsword",
+    "abyss_bladebow",
+    "abyss_sickle",
+    "viper_fang",
+    "abyss_great_maul",
+    "void_twin_bow",
+    "abyss_broadsword",
+    "abyss_sabre",
+    "void_fang_blade",
+    "abyss_war_spear"
+   ],
+   "styles": {
+    "melee": 9,
+    "ranged": 2
+   },
+   "example": {
+    "set": "clockwork_juggernaut",
+    "look": "heavy",
+    "set_L": 44,
+    "shield": null,
+    "tax": 0.0,
+    "need": 168,
+    "req": {
+     "DEX": 62,
+     "VIT": 71,
+     "STR": 48
+    }
+   }
+  },
+  "arcanist|10": {
+   "P": 50,
+   "wearable": 22,
+   "good": 2,
+   "good_kind": 2,
+   "good_ids": [
+    "abyss_bell_scepter",
+    "aurora_scepter"
+   ],
+   "styles": {
+    "caster": 2
+   },
+   "example": {
+    "set": "starless_choir",
+    "look": "cloth",
+    "set_L": 44,
+    "shield": null,
+    "tax": 0.076,
+    "need": 140,
+    "req": {
+     "VIT": 74,
+     "INT": 60,
+     "WIS": 23
+    }
+   }
+  },
+  "priest|10": {
+   "P": 50,
+   "wearable": 22,
+   "good": 4,
+   "good_kind": 4,
+   "good_ids": [
+    "abyss_bell_scepter",
+    "aurora_scepter",
+    "void_lamp_crook",
+    "abyss_ring_staff"
+   ],
+   "styles": {
+    "caster": 4
+   },
+   "example": {
+    "set": "clock_astrologer",
+    "look": "cloth",
+    "set_L": 42,
+    "shield": null,
+    "tax": 0.083,
+    "need": 164,
+    "req": {
+     "VIT": 74,
+     "INT": 50,
+     "WIS": 56
+    }
+   }
+  },
+  "shadow|10": {
+   "P": 50,
+   "wearable": 22,
+   "good": 11,
+   "good_kind": 11,
+   "good_ids": [
+    "void_falchion",
+    "abyss_sentinel_longsword",
+    "abyss_bladebow",
+    "abyss_sickle",
+    "viper_fang",
+    "abyss_great_maul",
+    "void_twin_bow",
+    "abyss_broadsword",
+    "abyss_sabre",
+    "void_fang_blade",
+    "abyss_war_spear"
+   ],
+   "styles": {
+    "melee": 9,
+    "ranged": 2
+   },
+   "example": {
+    "set": "clockwork_juggernaut",
+    "look": "heavy",
+    "set_L": 44,
+    "shield": null,
+    "tax": 0.0,
+    "need": 165,
+    "req": {
+     "DEX": 62,
+     "VIT": 71,
+     "STR": 48
+    }
+   }
+  }
+ },
+ "short": [
+  [
+   "arcanist",
+   3,
+   2
+  ],
+  [
+   "arcanist",
+   5,
+   2
+  ],
+  [
+   "priest",
+   5,
+   2
+  ],
+  [
+   "arcanist",
+   8,
+   1
+  ],
+  [
+   "priest",
+   8,
+   2
+  ],
+  [
+   "arcanist",
+   9,
+   1
+  ],
+  [
+   "arcanist",
+   10,
+   2
+  ]
+ ],
+ "per_weapon": {
+  "corridor_longsword": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "mossback_warhammer": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "grove_warden_maul": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "minewarden_mace": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "silkguard_falchion": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "sporeward_broadsword": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "sporecap_warhammer": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "mycelking_guard_blade": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "sluice_breaker_mace": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "brine_falchion": [
+   "hunter",
+   "shadow"
+  ],
+  "emberforge_warhammer": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "anvil_oath_broadsword": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "dawnbringer": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "priest",
+   "shadow"
+  ],
+  "frostgrave_mace": [
+   "hunter",
+   "shadow"
+  ],
+  "resonant_longsword": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "amethyst_falchion": [
+   "hunter",
+   "shadow"
+  ],
+  "inkseal_warhammer": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "priest",
+   "shadow"
+  ],
+  "index_keeper_sword": [
+   "hunter",
+   "shadow"
+  ],
+  "clockguard_mace": [
+   "hunter",
+   "shadow"
+  ],
+  "void_falchion": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "abyss_sentinel_longsword": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "celestial_oathkeeper": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "rootcutter_greatsword": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "rootbound_scythe": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "ore_splitter_axe": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "silkspan_glaive": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "silkqueen_reaper": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "capsplitter_cleaver": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "mycel_scythe": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "drowned_anchor_cleaver": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "drowned_glaive": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "osric_drowned_axe": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "cinderdrake_glaive": [
+   "hunter",
+   "shadow"
+  ],
+  "slagforged_greatsword": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "ember_greatsword": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "rime_reaper_scythe": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "amethyst_cleaver": [
+   "hunter",
+   "shadow"
+  ],
+  "geode_scythe": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "lore_glaive": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "geode_sunderer": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "regulator_greatsword": [
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "void_scythe": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "doomclock_executioner": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "bloodmoon_reaver": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "corridor_longbow": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "mossvine_hornbow": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "grove_rootstring_bow": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "silkstring_recurve": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "skitter_bladebow": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "glowcap_longbow": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "mycel_hornbow": [
+   "hunter",
+   "shadow"
+  ],
+  "eelbone_recurve": [
+   "arcanist",
+   "priest"
+  ],
+  "brine_bladebow": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "slagedge_bladebow": [
+   "arcanist",
+   "priest"
+  ],
+  "bellows_composite_bow": [
+   "hunter",
+   "shadow"
+  ],
+  "tidecaller_bow": [
+   "hunter",
+   "shadow"
+  ],
+  "frostbone_longbow": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "prismstring_longbow": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "prism_hornbow": [
+   "hunter",
+   "shadow"
+  ],
+  "inkquill_hornbow": [
+   "hunter",
+   "shadow"
+  ],
+  "galewing_bow": [],
+  "springloaded_bow": [
+   "hunter",
+   "shadow"
+  ],
+  "abyss_bladebow": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "quicksilver_longbow": [
+   "hunter",
+   "shadow"
+  ],
+  "tempest_bow": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "lantern_staff": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "wayfarer_spiral_staff": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "grove_heartwood_staff": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "ore_crystal_staff": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "miners_fork_staff": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "mycelium_staff": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "glowcap_spiral_staff": [
+   "arcanist",
+   "priest"
+  ],
+  "brine_orb_staff": [
+   "arcanist",
+   "priest"
+  ],
+  "tide_fork_staff": [
+   "arcanist",
+   "priest"
+  ],
+  "osric_tide_trident": [
+   "arcanist"
+  ],
+  "cinder_spiral_staff": [
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "cinder_crystal_staff": [
+   "arcanist",
+   "priest"
+  ],
+  "rimeheart_staff": [
+   "arcanist"
+  ],
+  "rimebell_staff": [
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "resonance_staff": [
+   "arcanist",
+   "priest"
+  ],
+  "resonant_fork_staff": [
+   "priest"
+  ],
+  "ink_spiral_staff": [
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "inkwell_staff": [
+   "arcanist",
+   "priest"
+  ],
+  "orrery_staff": [
+   "priest"
+  ],
+  "void_fork_staff": [],
+  "tesla_coil_staff": [
+   "arcanist",
+   "priest"
+  ],
+  "voidheart_staff": [
+   "arcanist",
+   "priest"
+  ],
+  "acolyte_scepter": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "grove_chalice": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "miners_lamp_censer": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "miners_bell_scepter": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "silkqueen_spindle_censer": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "bloom_scepter": [
+   "arcanist",
+   "priest"
+  ],
+  "bloom_chalice": [
+   "hunter",
+   "arcanist",
+   "priest"
+  ],
+  "mycelking_scepter": [
+   "arcanist",
+   "priest"
+  ],
+  "tidebell_censer": [
+   "arcanist",
+   "priest"
+  ],
+  "brine_bell_scepter": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "crucible_chalice": [
+   "arcanist"
+  ],
+  "embersong_scepter": [
+   "priest"
+  ],
+  "sanctum_scepter": [
+   "arcanist",
+   "priest"
+  ],
+  "frost_vigil_censer": [
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "prism_censer": [
+   "priest"
+  ],
+  "crystal_bell_scepter": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "ink_chalice": [
+   "arcanist",
+   "priest"
+  ],
+  "twin_light_scepter": [
+   "arcanist",
+   "priest"
+  ],
+  "pendulum_censer": [
+   "priest"
+  ],
+  "abyss_bell_scepter": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "aurora_scepter": [
+   "arcanist",
+   "priest"
+  ],
+  "seraph_scepter": [
+   "arcanist",
+   "priest"
+  ],
+  "moss_dirk": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "corridor_katar": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "skitter_fang": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "silk_sickle": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "silkqueen_fang": [
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "spore_kris": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "spore_katar": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "mycelking_sporefang": [
+   "hunter",
+   "arcanist",
+   "shadow"
+  ],
+  "eel_kris": [
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "eelfin_sickle": [
+   "hunter",
+   "shadow"
+  ],
+  "slag_katar": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "cinder_fang": [
+   "hunter",
+   "shadow"
+  ],
+  "soulflame_kris": [
+   "hunter",
+   "shadow"
+  ],
+  "gravefrost_katar": [],
+  "shardglass_dagger": [
+   "hunter",
+   "shadow"
+  ],
+  "shardglass_sickle": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "lorekeeper_katar": [
+   "arcanist"
+  ],
+  "nightshade_dagger": [
+   "hunter",
+   "shadow"
+  ],
+  "mainspring_dagger": [
+   "hunter",
+   "shadow"
+  ],
+  "abyss_sickle": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "viper_fang": [
+   "hunter",
+   "shadow"
+  ],
+  "eclipse_blade": [
+   "hunter",
+   "shadow"
+  ],
+  "moss_bone_bow": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "corridor_executioner_axe": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "rootgnaw_tanto": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "wayfarer_sabre": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "miners_great_maul": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "miners_lamp_crook": [
+   "arcanist",
+   "priest"
+  ],
+  "ore_morning_star": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "silk_twin_bow": [
+   "hunter",
+   "shadow"
+  ],
+  "skitter_stiletto": [
+   "hunter",
+   "shadow"
+  ],
+  "silk_sabre": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "skitter_longbow": [
+   "hunter",
+   "shadow"
+  ],
+  "silk_chime_rod": [
+   "arcanist",
+   "priest"
+  ],
+  "silkcut_flamberge": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "ore_kris": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "ore_thurible_rod": [
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "pit_rapier": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "pit_war_spear": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "silk_antler_staff": [
+   "arcanist",
+   "priest"
+  ],
+  "mycel_warhammer": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "spore_stiletto": [
+   "hunter",
+   "shadow"
+  ],
+  "glowcap_bone_bow": [
+   "hunter",
+   "arcanist"
+  ],
+  "spore_flamberge": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "mycel_dirk": [
+   "hunter",
+   "shadow"
+  ],
+  "spore_thurible_rod": [
+   "arcanist",
+   "priest"
+  ],
+  "hypha_glaive": [
+   "hunter",
+   "shadow"
+  ],
+  "glowcap_rapier": [
+   "hunter",
+   "shadow"
+  ],
+  "brine_sabre": [
+   "hunter",
+   "shadow"
+  ],
+  "tide_lamp_crook": [
+   "arcanist",
+   "priest"
+  ],
+  "drowned_executioner_axe": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "eel_twin_bow": [
+   "hunter",
+   "shadow"
+  ],
+  "brine_katar": [
+   "hunter",
+   "shadow"
+  ],
+  "sluice_morning_star": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "verdigris_chime_rod": [
+   "arcanist",
+   "priest"
+  ],
+  "verdigris_great_axe": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "cinder_dagger": [],
+  "slag_flamberge": [
+   "hunter",
+   "shadow"
+  ],
+  "anvil_executioner_axe": [
+   "hunter",
+   "shadow"
+  ],
+  "bellows_bone_bow": [
+   "hunter",
+   "shadow"
+  ],
+  "ember_tanto": [],
+  "forge_chime_rod": [
+   "arcanist",
+   "priest"
+  ],
+  "slag_war_spear": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "cinder_rapier": [
+   "hunter",
+   "shadow"
+  ],
+  "forge_cleaver": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "frost_longsword": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "frost_twin_bow": [
+   "hunter",
+   "shadow"
+  ],
+  "rime_great_maul": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "rime_thurible_rod": [
+   "priest"
+  ],
+  "frost_stiletto": [
+   "hunter",
+   "shadow"
+  ],
+  "rime_morning_star": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "frost_antler_staff": [
+   "priest"
+  ],
+  "rime_composite_bow": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "rime_great_axe": [
+   "hunter",
+   "shadow"
+  ],
+  "frost_tanto": [
+   "hunter",
+   "shadow"
+  ],
+  "rime_chalice": [
+   "priest"
+  ],
+  "rime_flamberge": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "frost_war_spear": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "shadow"
+  ],
+  "rime_chime_rod": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "geode_great_maul": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "prism_lamp_crook": [
+   "arcanist"
+  ],
+  "amethyst_executioner_axe": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "prism_twin_bow": [],
+  "crystal_censer": [
+   "arcanist",
+   "priest"
+  ],
+  "shardglass_tanto": [],
+  "resonance_chime_rod": [
+   "arcanist",
+   "priest"
+  ],
+  "resonance_rapier": [
+   "hunter",
+   "shadow"
+  ],
+  "ink_great_maul": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "ink_recurve": [
+   "hunter",
+   "arcanist",
+   "shadow"
+  ],
+  "ink_sabre": [
+   "hunter",
+   "shadow"
+  ],
+  "lore_lamp_crook": [
+   "arcanist",
+   "priest"
+  ],
+  "ink_morning_star": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "lore_sickle": [
+   "hunter",
+   "shadow"
+  ],
+  "index_cleaver": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "ink_bone_bow": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "lore_antler_staff": [],
+  "ink_flamberge": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "ink_stiletto": [],
+  "lore_sun_scepter": [
+   "priest"
+  ],
+  "index_war_spear": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "ink_rapier": [
+   "hunter",
+   "shadow"
+  ],
+  "clock_bell_scepter": [
+   "priest"
+  ],
+  "clock_blade_bow": [
+   "hunter",
+   "shadow"
+  ],
+  "clock_kris": [
+   "hunter",
+   "shadow"
+  ],
+  "clock_mace": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "clock_falchion": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "clock_staff_orb": [],
+  "clock_glaive": [
+   "hunter",
+   "shadow"
+  ],
+  "clock_greatsword": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "clock_thurible_rod": [
+   "arcanist",
+   "priest"
+  ],
+  "clock_antler_staff": [
+   "hunter",
+   "arcanist",
+   "priest"
+  ],
+  "clock_broadsword": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "clock_katar": [],
+  "clock_longsword": [
+   "hunter",
+   "shadow"
+  ],
+  "clock_morning_star": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "abyss_great_maul": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "void_stiletto": [
+   "hunter",
+   "shadow"
+  ],
+  "void_twin_bow": [
+   "hunter",
+   "shadow"
+  ],
+  "abyss_broadsword": [
+   "hunter",
+   "shadow"
+  ],
+  "abyss_sabre": [
+   "hunter",
+   "shadow"
+  ],
+  "void_lamp_crook": [
+   "arcanist",
+   "priest"
+  ],
+  "abyss_bone_bow": [],
+  "abyss_executioner_axe": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "abyss_antler_staff": [
+   "arcanist",
+   "priest"
+  ],
+  "void_fang_blade": [
+   "hunter",
+   "shadow"
+  ],
+  "void_tanto": [],
+  "abyss_ring_staff": [
+   "priest"
+  ],
+  "abyss_war_spear": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ]
+ },
+ "orphans": [
+  "galewing_bow",
+  "void_fork_staff",
+  "gravefrost_katar",
+  "cinder_dagger",
+  "ember_tanto",
+  "prism_twin_bow",
+  "shardglass_tanto",
+  "lore_antler_staff",
+  "ink_stiletto",
+  "clock_staff_orb",
+  "clock_katar",
+  "abyss_bone_bow",
+  "void_tanto"
+ ],
+ "per_set": {
+  "novice": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "wayfarer": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "pit_foreman": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "webrunner": [
+   "hunter",
+   "shadow"
+  ],
+  "silkweaver": [
+   "priest"
+  ],
+  "verdigris_guard": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "hypha_stalker": [
+   "hunter",
+   "shadow"
+  ],
+  "spore_sage": [
+   "arcanist",
+   "priest"
+  ],
+  "emberforged": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "rimefang": [
+   "hunter",
+   "shadow"
+  ],
+  "crypt_mourner": [
+   "priest"
+  ],
+  "geode_bastion": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "shard_dancer": [
+   "hunter",
+   "shadow"
+  ],
+  "lorekeeper": [
+   "arcanist",
+   "priest"
+  ],
+  "clockwork_juggernaut": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "abyss_walker": [
+   "hunter",
+   "shadow"
+  ],
+  "starless_choir": [
+   "arcanist",
+   "priest"
+  ],
+  "forge_warden": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "shadow"
+  ],
+  "frost_regalia": [
+   "arcanist",
+   "priest"
+  ],
+  "inkveil": [
+   "hunter",
+   "shadow"
+  ],
+  "mycel_carapace": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "priest",
+   "shadow"
+  ],
+  "sluice_diver": [
+   "hunter",
+   "shadow"
+  ],
+  "cinder_cantor": [
+   "arcanist",
+   "priest"
+  ],
+  "rime_stalker": [
+   "hunter",
+   "shadow"
+  ],
+  "index_bulwark": [
+   "guardian",
+   "berserker",
+   "hunter",
+   "arcanist",
+   "priest",
+   "shadow"
+  ],
+  "clock_astrologer": [
+   "priest"
+  ]
+ }
+}

@@ -1,0 +1,242 @@
+{
+ "guardian|1": {
+  "n": 14,
+  "nonBF_epic": 0
+ },
+ "guardian|2": {
+  "n": 8,
+  "nonBF_epic": 0
+ },
+ "guardian|3": {
+  "n": 7,
+  "nonBF_epic": 0
+ },
+ "guardian|4": {
+  "n": 5,
+  "nonBF_epic": 1
+ },
+ "guardian|5": {
+  "n": 7,
+  "nonBF_epic": 4
+ },
+ "guardian|6": {
+  "n": 5,
+  "nonBF_epic": 5
+ },
+ "guardian|7": {
+  "n": 5,
+  "nonBF_epic": 0
+ },
+ "guardian|8": {
+  "n": 5,
+  "nonBF_epic": 5
+ },
+ "guardian|9": {
+  "n": 6,
+  "nonBF_epic": 6
+ },
+ "guardian|10": {
+  "n": 5,
+  "nonBF_epic": 2
+ },
+ "berserker|1": {
+  "n": 14,
+  "nonBF_epic": 0
+ },
+ "berserker|2": {
+  "n": 8,
+  "nonBF_epic": 0
+ },
+ "berserker|3": {
+  "n": 8,
+  "nonBF_epic": 0
+ },
+ "berserker|4": {
+  "n": 5,
+  "nonBF_epic": 1
+ },
+ "berserker|5": {
+  "n": 6,
+  "nonBF_epic": 4
+ },
+ "berserker|6": {
+  "n": 5,
+  "nonBF_epic": 5
+ },
+ "berserker|7": {
+  "n": 5,
+  "nonBF_epic": 0
+ },
+ "berserker|8": {
+  "n": 5,
+  "nonBF_epic": 5
+ },
+ "berserker|9": {
+  "n": 6,
+  "nonBF_epic": 6
+ },
+ "berserker|10": {
+  "n": 5,
+  "nonBF_epic": 2
+ },
+ "hunter|1": {
+  "n": 4,
+  "nonBF_epic": 0
+ },
+ "hunter|2": {
+  "n": 2,
+  "nonBF_epic": 0
+ },
+ "hunter|3": {
+  "n": 2,
+  "nonBF_epic": 0
+ },
+ "hunter|4": {
+  "n": 3,
+  "nonBF_epic": 1
+ },
+ "hunter|5": {
+  "n": 2,
+  "nonBF_epic": 1
+ },
+ "hunter|6": {
+  "n": 3,
+  "nonBF_epic": 2
+ },
+ "hunter|7": {
+  "n": 3,
+  "nonBF_epic": 0
+ },
+ "hunter|8": {
+  "n": 2,
+  "nonBF_epic": 1
+ },
+ "hunter|9": {
+  "n": 2,
+  "nonBF_epic": 1
+ },
+ "hunter|10": {
+  "n": 2,
+  "nonBF_epic": 1
+ },
+ "arcanist|1": {
+  "n": 7,
+  "nonBF_epic": 0
+ },
+ "arcanist|2": {
+  "n": 5,
+  "nonBF_epic": 0
+ },
+ "arcanist|3": {
+  "n": 4,
+  "nonBF_epic": 0
+ },
+ "arcanist|4": {
+  "n": 4,
+  "nonBF_epic": 0
+ },
+ "arcanist|5": {
+  "n": 4,
+  "nonBF_epic": 2
+ },
+ "arcanist|6": {
+  "n": 3,
+  "nonBF_epic": 1
+ },
+ "arcanist|7": {
+  "n": 4,
+  "nonBF_epic": 0
+ },
+ "arcanist|8": {
+  "n": 5,
+  "nonBF_epic": 2
+ },
+ "arcanist|9": {
+  "n": 5,
+  "nonBF_epic": 3
+ },
+ "arcanist|10": {
+  "n": 5,
+  "nonBF_epic": 2
+ },
+ "priest|1": {
+  "n": 6,
+  "nonBF_epic": 0
+ },
+ "priest|2": {
+  "n": 6,
+  "nonBF_epic": 0
+ },
+ "priest|3": {
+  "n": 4,
+  "nonBF_epic": 0
+ },
+ "priest|4": {
+  "n": 5,
+  "nonBF_epic": 0
+ },
+ "priest|5": {
+  "n": 3,
+  "nonBF_epic": 1
+ },
+ "priest|6": {
+  "n": 4,
+  "nonBF_epic": 3
+ },
+ "priest|7": {
+  "n": 5,
+  "nonBF_epic": 0
+ },
+ "priest|8": {
+  "n": 4,
+  "nonBF_epic": 2
+ },
+ "priest|9": {
+  "n": 4,
+  "nonBF_epic": 2
+ },
+ "priest|10": {
+  "n": 5,
+  "nonBF_epic": 3
+ },
+ "shadow|1": {
+  "n": 17,
+  "nonBF_epic": 0
+ },
+ "shadow|2": {
+  "n": 14,
+  "nonBF_epic": 0
+ },
+ "shadow|3": {
+  "n": 15,
+  "nonBF_epic": 0
+ },
+ "shadow|4": {
+  "n": 15,
+  "nonBF_epic": 3
+ },
+ "shadow|5": {
+  "n": 13,
+  "nonBF_epic": 9
+ },
+ "shadow|6": {
+  "n": 13,
+  "nonBF_epic": 9
+ },
+ "shadow|7": {
+  "n": 13,
+  "nonBF_epic": 0
+ },
+ "shadow|8": {
+  "n": 13,
+  "nonBF_epic": 10
+ },
+ "shadow|9": {
+  "n": 14,
+  "nonBF_epic": 9
+ },
+ "shadow|10": {
+  "n": 13,
+  "nonBF_epic": 8
+ }
+}

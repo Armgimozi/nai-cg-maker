@@ -1,0 +1,14 @@
+{
+ "rules_old|0.2|average|normal": 0.3,
+ "rules_old|0.2|skilled|hard": 0.16,
+ "req_only|0.2|average|normal": 0.66,
+ "req_only|0.2|skilled|hard": 0.44,
+ "looks|0.0|average|normal": 0.61,
+ "looks|0.0|skilled|hard": 0.5,
+ "looks|0.1|average|normal": 0.83,
+ "looks|0.1|skilled|hard": 0.72,
+ "looks|0.15|average|normal": 0.86,
+ "looks|0.15|skilled|hard": 0.74,
+ "looks|0.2|average|normal": 0.88,
+ "looks|0.2|skilled|hard": 0.81
+}

@@ -1,0 +1,426 @@
+{
+ "guardian|5": {
+  "eelfin_sickle": {
+   "room_dps": 62.0,
+   "taken": 0.045,
+   "clear_avg": 1.0,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 303,
+   "interval": 0.5,
+   "style": "melee",
+   "kind": "physical"
+  },
+  "brine_falchion": {
+   "room_dps": 67.7,
+   "taken": 0.025,
+   "clear_avg": 1.0,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 279,
+   "interval": 0.6,
+   "style": "melee",
+   "kind": "physical"
+  },
+  "drowned_glaive": {
+   "room_dps": 66.2,
+   "taken": 0.024,
+   "clear_avg": 1.0,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 288,
+   "interval": 0.95,
+   "style": "melee",
+   "kind": "physical"
+  },
+  "brine_bladebow": {
+   "room_dps": 62.8,
+   "taken": 0.044,
+   "clear_avg": 1.0,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 298,
+   "interval": 1.15,
+   "style": "ranged",
+   "kind": "physical"
+  }
+ },
+ "berserker|5": {
+  "eelfin_sickle": {
+   "room_dps": 168.8,
+   "taken": 0.115,
+   "clear_avg": 1.0,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 148,
+   "interval": 0.5,
+   "style": "melee",
+   "kind": "physical"
+  },
+  "brine_falchion": {
+   "room_dps": 207.8,
+   "taken": 0.088,
+   "clear_avg": 1.0,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 128,
+   "interval": 0.6,
+   "style": "melee",
+   "kind": "physical"
+  },
+  "drowned_glaive": {
+   "room_dps": 185.9,
+   "taken": 0.098,
+   "clear_avg": 1.0,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 135,
+   "interval": 0.95,
+   "style": "melee",
+   "kind": "physical"
+  },
+  "brine_bladebow": {
+   "room_dps": 172.8,
+   "taken": 0.122,
+   "clear_avg": 1.0,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 145,
+   "interval": 1.15,
+   "style": "ranged",
+   "kind": "physical"
+  }
+ },
+ "hunter|5": {
+  "eelfin_sickle": {
+   "room_dps": 73.3,
+   "taken": 0.35,
+   "clear_avg": 0.1,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 395,
+   "interval": 0.5,
+   "style": "melee",
+   "kind": "physical"
+  },
+  "brine_falchion": {
+   "room_dps": 90.1,
+   "taken": 0.315,
+   "clear_avg": 0.25,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 317,
+   "interval": 0.6,
+   "style": "melee",
+   "kind": "physical"
+  },
+  "drowned_glaive": {
+   "room_dps": 87.6,
+   "taken": 0.275,
+   "clear_avg": 0.3,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 322,
+   "interval": 0.95,
+   "style": "melee",
+   "kind": "physical"
+  },
+  "brine_bladebow": {
+   "room_dps": 127.4,
+   "taken": 0.2,
+   "clear_avg": 1.0,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 138,
+   "interval": 1.15,
+   "style": "ranged",
+   "kind": "physical"
+  }
+ },
+ "arcanist|5": {
+  "brine_bell_scepter": {
+   "room_dps": 107.9,
+   "taken": 0.461,
+   "clear_avg": 0.0,
+   "clear_skilled": 0.85,
+   "boss_t_skilled": 182,
+   "interval": 0.8,
+   "style": "caster",
+   "kind": "magic"
+  },
+  "tide_fork_staff": {
+   "room_dps": 130.8,
+   "taken": 0.248,
+   "clear_avg": 0.85,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 153,
+   "interval": 0.9,
+   "style": "caster",
+   "kind": "magic"
+  }
+ },
+ "priest|5": {
+  "brine_bell_scepter": {
+   "room_dps": 44.9,
+   "taken": 0.516,
+   "clear_avg": 1.0,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 429,
+   "interval": 0.8,
+   "style": "caster",
+   "kind": "magic"
+  },
+  "tide_fork_staff": {
+   "room_dps": 60.2,
+   "taken": 0.592,
+   "clear_avg": 1.0,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 323,
+   "interval": 0.9,
+   "style": "caster",
+   "kind": "magic"
+  }
+ },
+ "shadow|5": {
+  "eelfin_sickle": {
+   "room_dps": 88.4,
+   "taken": 0.334,
+   "clear_avg": 0.575,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 209,
+   "interval": 0.5,
+   "style": "melee",
+   "kind": "physical"
+  },
+  "brine_falchion": {
+   "room_dps": 103.4,
+   "taken": 0.313,
+   "clear_avg": 0.825,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 168,
+   "interval": 0.6,
+   "style": "melee",
+   "kind": "physical"
+  },
+  "drowned_glaive": {
+   "room_dps": 107.8,
+   "taken": 0.246,
+   "clear_avg": 0.875,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 165,
+   "interval": 0.95,
+   "style": "melee",
+   "kind": "physical"
+  },
+  "brine_bladebow": {
+   "room_dps": 88.4,
+   "taken": 0.333,
+   "clear_avg": 0.575,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 180,
+   "interval": 1.15,
+   "style": "ranged",
+   "kind": "physical"
+  }
+ },
+ "guardian|10": {
+  "mainspring_dagger": {
+   "room_dps": 282.5,
+   "taken": 0.156,
+   "clear_avg": 0.775,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 343,
+   "interval": 0.42,
+   "style": "melee",
+   "kind": "physical"
+  },
+  "clockguard_mace": {
+   "room_dps": 265.2,
+   "taken": 0.101,
+   "clear_avg": 0.925,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 380,
+   "interval": 0.68,
+   "style": "melee",
+   "kind": "physical"
+  },
+  "regulator_greatsword": {
+   "room_dps": 265.4,
+   "taken": 0.12,
+   "clear_avg": 0.9,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 386,
+   "interval": 0.95,
+   "style": "melee",
+   "kind": "physical"
+  },
+  "springloaded_bow": {
+   "room_dps": 281.2,
+   "taken": 0.144,
+   "clear_avg": 1.0,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 351,
+   "interval": 1.1,
+   "style": "ranged",
+   "kind": "physical"
+  }
+ },
+ "berserker|10": {
+  "mainspring_dagger": {
+   "room_dps": 1215.3,
+   "taken": 0.223,
+   "clear_avg": 1.0,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 143,
+   "interval": 0.42,
+   "style": "melee",
+   "kind": "physical"
+  },
+  "clockguard_mace": {
+   "room_dps": 1200.5,
+   "taken": 0.171,
+   "clear_avg": 1.0,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 151,
+   "interval": 0.68,
+   "style": "melee",
+   "kind": "physical"
+  },
+  "regulator_greatsword": {
+   "room_dps": 1191.0,
+   "taken": 0.189,
+   "clear_avg": 1.0,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 154,
+   "interval": 0.95,
+   "style": "melee",
+   "kind": "physical"
+  },
+  "springloaded_bow": {
+   "room_dps": 1164.0,
+   "taken": 0.214,
+   "clear_avg": 1.0,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 143,
+   "interval": 1.1,
+   "style": "ranged",
+   "kind": "physical"
+  }
+ },
+ "hunter|10": {
+  "mainspring_dagger": {
+   "room_dps": 409.8,
+   "taken": 0.628,
+   "clear_avg": 0.0,
+   "clear_skilled": 0.0,
+   "boss_t_skilled": null,
+   "interval": 0.42,
+   "style": "melee",
+   "kind": "physical"
+  },
+  "clockguard_mace": {
+   "room_dps": 497.3,
+   "taken": 0.558,
+   "clear_avg": 0.0,
+   "clear_skilled": 0.375,
+   "boss_t_skilled": 368,
+   "interval": 0.68,
+   "style": "melee",
+   "kind": "physical"
+  },
+  "regulator_greatsword": {
+   "room_dps": 532.1,
+   "taken": 0.609,
+   "clear_avg": 0.0,
+   "clear_skilled": 0.35,
+   "boss_t_skilled": 342,
+   "interval": 0.95,
+   "style": "melee",
+   "kind": "physical"
+  },
+  "springloaded_bow": {
+   "room_dps": 697.7,
+   "taken": 0.398,
+   "clear_avg": 0.45,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 151,
+   "interval": 1.1,
+   "style": "ranged",
+   "kind": "physical"
+  }
+ },
+ "arcanist|10": {
+  "pendulum_censer": {
+   "room_dps": 511.1,
+   "taken": 1.402,
+   "clear_avg": 0.0,
+   "clear_skilled": 0.0,
+   "boss_t_skilled": null,
+   "interval": 0.8,
+   "style": "caster",
+   "kind": "magic"
+  },
+  "orrery_staff": {
+   "room_dps": 717.5,
+   "taken": 0.561,
+   "clear_avg": 0.0,
+   "clear_skilled": 0.575,
+   "boss_t_skilled": 203,
+   "interval": 0.95,
+   "style": "caster",
+   "kind": "magic"
+  }
+ },
+ "priest|10": {
+  "pendulum_censer": {
+   "room_dps": 141.5,
+   "taken": 2.674,
+   "clear_avg": 1.0,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 825,
+   "interval": 0.8,
+   "style": "caster",
+   "kind": "magic"
+  },
+  "orrery_staff": {
+   "room_dps": 216.3,
+   "taken": 2.839,
+   "clear_avg": 0.925,
+   "clear_skilled": 1.0,
+   "boss_t_skilled": 491,
+   "interval": 0.95,
+   "style": "caster",
+   "kind": "magic"
+  }
+ },
+ "shadow|10": {
+  "mainspring_dagger": {
+   "room_dps": 491.5,
+   "taken": 0.657,
+   "clear_avg": 0.0,
+   "clear_skilled": 0.2,
+   "boss_t_skilled": 237,
+   "interval": 0.42,
+   "style": "melee",
+   "kind": "physical"
+  },
+  "clockguard_mace": {
+   "room_dps": 613.8,
+   "taken": 0.533,
+   "clear_avg": 0.0,
+   "clear_skilled": 0.775,
+   "boss_t_skilled": 187,
+   "interval": 0.68,
+   "style": "melee",
+   "kind": "physical"
+  },
+  "regulator_greatsword": {
+   "room_dps": 658.0,
+   "taken": 0.561,
+   "clear_avg": 0.0,
+   "clear_skilled": 0.925,
+   "boss_t_skilled": 170,
+   "interval": 0.95,
+   "style": "melee",
+   "kind": "physical"
+  },
+  "springloaded_bow": {
+   "room_dps": 476.1,
+   "taken": 0.72,
+   "clear_avg": 0.0,
+   "clear_skilled": 0.5,
+   "boss_t_skilled": 188,
+   "interval": 1.1,
+   "style": "ranged",
+   "kind": "physical"
+  }
+ }
+}

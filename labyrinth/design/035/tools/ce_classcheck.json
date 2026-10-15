@@ -1,0 +1,1658 @@
+{
+ "det": {
+  "guardian|1": {
+   "weapon": "corridor_longsword",
+   "old_dps": 16.6,
+   "new_dps": 17.5,
+   "dps": 0.052,
+   "old_ehp": 386,
+   "new_ehp": 386,
+   "ehp": 0.002,
+   "old_hp": 297,
+   "new_hp": 297,
+   "old_heal_power": 3,
+   "new_heal_power": 3,
+   "old_stats": {
+    "STR": 9,
+    "DEX": 2,
+    "INT": 1,
+    "VIT": 17,
+    "WIS": 2,
+    "LUK": 1
+   },
+   "new_stats": {
+    "STR": 9,
+    "DEX": 2,
+    "INT": 1,
+    "VIT": 17,
+    "WIS": 2,
+    "LUK": 1
+   },
+   "new_alloc": {
+    "STR": 2,
+    "VIT": 3
+   },
+   "noreset_dps": 0.052,
+   "noreset_ehp": 0.002,
+   "old_basic": 14.5,
+   "old_skill": 2.1,
+   "new_basic": 15.2,
+   "new_skill": 2.3,
+   "speed_old": 0.008,
+   "speed_new": 0.01,
+   "crit_old": 0.056,
+   "crit_new": 0.058,
+   "evasion_new": 0.002,
+   "interval": 0.67,
+   "per_hit": [
+    8,
+    10
+   ]
+  },
+  "guardian|10": {
+   "weapon": "silkguard_falchion",
+   "old_dps": 33.4,
+   "new_dps": 33.6,
+   "dps": 0.007,
+   "old_ehp": 1020,
+   "new_ehp": 1023,
+   "ehp": 0.003,
+   "old_hp": 646,
+   "new_hp": 646,
+   "old_heal_power": 3,
+   "new_heal_power": 3,
+   "old_stats": {
+    "STR": 31,
+    "DEX": 4,
+    "INT": 1,
+    "VIT": 45,
+    "WIS": 2,
+    "LUK": 3
+   },
+   "new_stats": {
+    "STR": 31,
+    "DEX": 4,
+    "INT": 1,
+    "VIT": 45,
+    "WIS": 2,
+    "LUK": 3
+   },
+   "new_alloc": {
+    "STR": 20,
+    "VIT": 30
+   },
+   "noreset_dps": 0.007,
+   "noreset_ehp": 0.003,
+   "old_basic": 29.2,
+   "old_skill": 4.2,
+   "new_basic": 29.2,
+   "new_skill": 4.4,
+   "speed_old": 0.037,
+   "speed_new": 0.041,
+   "crit_old": 0.064,
+   "crit_new": 0.068,
+   "evasion_new": 0.016,
+   "interval": 0.58,
+   "per_hit": [
+    11,
+    13
+   ]
+  },
+  "guardian|25": {
+   "weapon": "brine_falchion",
+   "old_dps": 97.2,
+   "new_dps": 94.2,
+   "dps": -0.031,
+   "old_ehp": 2983,
+   "new_ehp": 2993,
+   "ehp": 0.003,
+   "old_hp": 1433,
+   "new_hp": 1433,
+   "old_heal_power": 3,
+   "new_heal_power": 3,
+   "old_stats": {
+    "STR": 67,
+    "DEX": 4,
+    "INT": 1,
+    "VIT": 96,
+    "WIS": 2,
+    "LUK": 3
+   },
+   "new_stats": {
+    "STR": 67,
+    "DEX": 4,
+    "INT": 1,
+    "VIT": 96,
+    "WIS": 2,
+    "LUK": 3
+   },
+   "new_alloc": {
+    "STR": 50,
+    "VIT": 75
+   },
+   "noreset_dps": -0.031,
+   "noreset_ehp": 0.003,
+   "old_basic": 85.2,
+   "old_skill": 12.0,
+   "new_basic": 81.9,
+   "new_skill": 12.3,
+   "speed_old": 0.053,
+   "speed_new": 0.057,
+   "crit_old": 0.083,
+   "crit_new": 0.087,
+   "evasion_new": 0.004,
+   "interval": 0.6,
+   "per_hit": [
+    25,
+    28
+   ]
+  },
+  "guardian|45": {
+   "weapon": "clockguard_mace",
+   "old_dps": 452.2,
+   "new_dps": 439.6,
+   "dps": -0.028,
+   "old_ehp": 7345,
+   "new_ehp": 7393,
+   "ehp": 0.006,
+   "old_hp": 2524,
+   "new_hp": 2524,
+   "old_heal_power": 10,
+   "new_heal_power": 10,
+   "old_stats": {
+    "STR": 124,
+    "DEX": 8,
+    "INT": 6,
+    "VIT": 167,
+    "WIS": 7,
+    "LUK": 1
+   },
+   "new_stats": {
+    "STR": 124,
+    "DEX": 8,
+    "INT": 6,
+    "VIT": 167,
+    "WIS": 7,
+    "LUK": 1
+   },
+   "new_alloc": {
+    "STR": 95,
+    "VIT": 130
+   },
+   "noreset_dps": -0.028,
+   "noreset_ehp": 0.006,
+   "old_basic": 396.6,
+   "old_skill": 55.5,
+   "new_basic": 381.1,
+   "new_skill": 58.5,
+   "speed_old": 0.155,
+   "speed_new": 0.163,
+   "crit_old": 0.065,
+   "crit_new": 0.073,
+   "evasion_new": 0.008,
+   "interval": 0.68,
+   "per_hit": [
+    89,
+    103
+   ]
+  },
+  "berserker|1": {
+   "weapon": "rootcutter_greatsword",
+   "old_dps": 20.1,
+   "new_dps": 21.6,
+   "dps": 0.08,
+   "old_ehp": 266,
+   "new_ehp": 266,
+   "ehp": 0.002,
+   "old_hp": 240,
+   "new_hp": 240,
+   "old_heal_power": 2,
+   "new_heal_power": 2,
+   "old_stats": {
+    "STR": 13,
+    "DEX": 3,
+    "INT": 1,
+    "VIT": 12,
+    "WIS": 1,
+    "LUK": 1
+   },
+   "new_stats": {
+    "STR": 13,
+    "DEX": 3,
+    "INT": 1,
+    "VIT": 12,
+    "WIS": 1,
+    "LUK": 1
+   },
+   "new_alloc": {
+    "STR": 3,
+    "VIT": 2
+   },
+   "noreset_dps": 0.08,
+   "noreset_ehp": 0.002,
+   "old_basic": 13.7,
+   "old_skill": 6.3,
+   "new_basic": 14.8,
+   "new_skill": 6.9,
+   "speed_old": 0.012,
+   "speed_new": 0.015,
+   "crit_old": 0.057,
+   "crit_new": 0.06,
+   "evasion_new": 0.003,
+   "interval": 1.0,
+   "per_hit": [
+    11,
+    14
+   ]
+  },
+  "berserker|10": {
+   "weapon": "silkspan_glaive",
+   "old_dps": 50.1,
+   "new_dps": 51.1,
+   "dps": 0.019,
+   "old_ehp": 633,
+   "new_ehp": 636,
+   "ehp": 0.004,
+   "old_hp": 488,
+   "new_hp": 488,
+   "old_heal_power": 2,
+   "new_heal_power": 2,
+   "old_stats": {
+    "STR": 44,
+    "DEX": 5,
+    "INT": 1,
+    "VIT": 30,
+    "WIS": 1,
+    "LUK": 3
+   },
+   "new_stats": {
+    "STR": 44,
+    "DEX": 5,
+    "INT": 1,
+    "VIT": 30,
+    "WIS": 1,
+    "LUK": 3
+   },
+   "new_alloc": {
+    "STR": 30,
+    "VIT": 20
+   },
+   "noreset_dps": 0.019,
+   "noreset_ehp": 0.004,
+   "old_basic": 30.1,
+   "old_skill": 20.1,
+   "new_basic": 30.6,
+   "new_skill": 20.5,
+   "speed_old": 0.02,
+   "speed_new": 0.025,
+   "crit_old": 0.065,
+   "crit_new": 0.07,
+   "evasion_new": 0.017,
+   "interval": 0.9,
+   "per_hit": [
+    17,
+    19
+   ]
+  },
+  "berserker|25": {
+   "weapon": "drowned_glaive",
+   "old_dps": 166.4,
+   "new_dps": 167.0,
+   "dps": 0.003,
+   "old_ehp": 2003,
+   "new_ehp": 2012,
+   "ehp": 0.004,
+   "old_hp": 1182,
+   "new_hp": 1182,
+   "old_heal_power": 2,
+   "new_heal_power": 2,
+   "old_stats": {
+    "STR": 91,
+    "DEX": 5,
+    "INT": 1,
+    "VIT": 69,
+    "WIS": 1,
+    "LUK": 3
+   },
+   "new_stats": {
+    "STR": 91,
+    "DEX": 5,
+    "INT": 1,
+    "VIT": 69,
+    "WIS": 1,
+    "LUK": 3
+   },
+   "new_alloc": {
+    "STR": 71,
+    "VIT": 54
+   },
+   "noreset_dps": 0.003,
+   "noreset_ehp": 0.004,
+   "old_basic": 107.2,
+   "old_skill": 59.2,
+   "new_basic": 107.3,
+   "new_skill": 59.7,
+   "speed_old": 0.02,
+   "speed_new": 0.025,
+   "crit_old": 0.084,
+   "crit_new": 0.089,
+   "evasion_new": 0.005,
+   "interval": 0.95,
+   "per_hit": [
+    38,
+    44
+   ]
+  },
+  "berserker|45": {
+   "weapon": "regulator_greatsword",
+   "old_dps": 847.2,
+   "new_dps": 880.7,
+   "dps": 0.04,
+   "old_ehp": 3831,
+   "new_ehp": 3859,
+   "ehp": 0.007,
+   "old_hp": 1886,
+   "new_hp": 1886,
+   "old_heal_power": 9,
+   "new_heal_power": 9,
+   "old_stats": {
+    "STR": 167,
+    "DEX": 9,
+    "INT": 6,
+    "VIT": 112,
+    "WIS": 6,
+    "LUK": 1
+   },
+   "new_stats": {
+    "STR": 167,
+    "DEX": 9,
+    "INT": 6,
+    "VIT": 112,
+    "WIS": 6,
+    "LUK": 1
+   },
+   "new_alloc": {
+    "STR": 135,
+    "VIT": 90
+   },
+   "noreset_dps": 0.04,
+   "noreset_ehp": 0.007,
+   "old_basic": 545.7,
+   "old_skill": 301.5,
+   "new_basic": 552.1,
+   "new_skill": 328.7,
+   "speed_old": 0.159,
+   "speed_new": 0.168,
+   "crit_old": 0.066,
+   "crit_new": 0.075,
+   "evasion_new": 0.009,
+   "interval": 0.95,
+   "per_hit": [
+    123,
+    142
+   ]
+  },
+  "hunter|1": {
+   "weapon": "corridor_longbow",
+   "old_dps": 21.2,
+   "new_dps": 25.1,
+   "dps": 0.184,
+   "old_ehp": 165,
+   "new_ehp": 167,
+   "ehp": 0.01,
+   "old_hp": 160,
+   "new_hp": 160,
+   "old_heal_power": 3,
+   "new_heal_power": 3,
+   "old_stats": {
+    "STR": 2,
+    "DEX": 13,
+    "INT": 2,
+    "VIT": 7,
+    "WIS": 2,
+    "LUK": 3
+   },
+   "new_stats": {
+    "STR": 3,
+    "DEX": 12,
+    "INT": 2,
+    "VIT": 7,
+    "WIS": 2,
+    "LUK": 3
+   },
+   "new_alloc": {
+    "STR": 1,
+    "DEX": 2,
+    "VIT": 2
+   },
+   "noreset_dps": 0.178,
+   "noreset_ehp": 0.011,
+   "old_basic": 15.6,
+   "old_skill": 5.6,
+   "new_basic": 18.3,
+   "new_skill": 6.8,
+   "speed_old": 0.052,
+   "speed_new": 0.06,
+   "crit_old": 0.087,
+   "crit_new": 0.097,
+   "evasion_new": 0.012,
+   "interval": 1.25,
+   "per_hit": [
+    15,
+    16
+   ]
+  },
+  "hunter|10": {
+   "weapon": "skitter_bladebow",
+   "old_dps": 54.5,
+   "new_dps": 56.7,
+   "dps": 0.039,
+   "old_ehp": 433,
+   "new_ehp": 411,
+   "ehp": -0.049,
+   "old_hp": 356,
+   "new_hp": 332,
+   "old_heal_power": 3,
+   "new_heal_power": 3,
+   "old_stats": {
+    "STR": 2,
+    "DEX": 49,
+    "INT": 2,
+    "VIT": 23,
+    "WIS": 2,
+    "LUK": 5
+   },
+   "new_stats": {
+    "STR": 15,
+    "DEX": 39,
+    "INT": 2,
+    "VIT": 20,
+    "WIS": 2,
+    "LUK": 5
+   },
+   "new_alloc": {
+    "STR": 13,
+    "DEX": 20,
+    "VIT": 17
+   },
+   "noreset_dps": -0.037,
+   "noreset_ehp": 0.042,
+   "old_basic": 41.7,
+   "old_skill": 12.8,
+   "new_basic": 43.4,
+   "new_skill": 13.2,
+   "speed_old": 0.208,
+   "speed_new": 0.207,
+   "crit_old": 0.142,
+   "crit_new": 0.166,
+   "evasion_new": 0.059,
+   "interval": 1.15,
+   "per_hit": [
+    22,
+    23
+   ]
+  },
+  "hunter|25": {
+   "weapon": "brine_bladebow",
+   "old_dps": 177.5,
+   "new_dps": 181.5,
+   "dps": 0.023,
+   "old_ehp": 1110,
+   "new_ehp": 1054,
+   "ehp": -0.051,
+   "old_hp": 763,
+   "new_hp": 699,
+   "old_heal_power": 3,
+   "new_heal_power": 3,
+   "old_stats": {
+    "STR": 6,
+    "DEX": 101,
+    "INT": 2,
+    "VIT": 53,
+    "WIS": 2,
+    "LUK": 9
+   },
+   "new_stats": {
+    "STR": 39,
+    "DEX": 76,
+    "INT": 2,
+    "VIT": 45,
+    "WIS": 2,
+    "LUK": 9
+   },
+   "new_alloc": {
+    "STR": 33,
+    "DEX": 50,
+    "VIT": 42
+   },
+   "noreset_dps": -0.139,
+   "noreset_ehp": 0.089,
+   "old_basic": 133.0,
+   "old_skill": 44.4,
+   "new_basic": 137.8,
+   "new_skill": 43.7,
+   "speed_old": 0.427,
+   "speed_new": 0.403,
+   "crit_old": 0.256,
+   "crit_new": 0.294,
+   "evasion_new": 0.093,
+   "interval": 1.15,
+   "per_hit": [
+    44,
+    51
+   ]
+  },
+  "hunter|45": {
+   "weapon": "springloaded_bow",
+   "old_dps": 951.7,
+   "new_dps": 961.3,
+   "dps": 0.01,
+   "old_ehp": 2139,
+   "new_ehp": 2095,
+   "ehp": -0.021,
+   "old_hp": 1196,
+   "new_hp": 1084,
+   "old_heal_power": 10,
+   "new_heal_power": 10,
+   "old_stats": {
+    "STR": 8,
+    "DEX": 179,
+    "INT": 7,
+    "VIT": 93,
+    "WIS": 7,
+    "LUK": 9
+   },
+   "new_stats": {
+    "STR": 67,
+    "DEX": 134,
+    "INT": 7,
+    "VIT": 79,
+    "WIS": 7,
+    "LUK": 9
+   },
+   "new_alloc": {
+    "STR": 59,
+    "DEX": 90,
+    "VIT": 76
+   },
+   "noreset_dps": -0.302,
+   "noreset_ehp": 0.177,
+   "old_basic": 684.5,
+   "old_skill": 267.2,
+   "new_basic": 705.9,
+   "new_skill": 255.4,
+   "speed_old": 0.6,
+   "speed_new": 0.6,
+   "crit_old": 0.417,
+   "crit_new": 0.484,
+   "evasion_new": 0.193,
+   "interval": 1.1,
+   "per_hit": [
+    138,
+    157
+   ]
+  },
+  "arcanist|1": {
+   "weapon": "lantern_staff",
+   "old_dps": 20.0,
+   "new_dps": 21.6,
+   "dps": 0.081,
+   "old_ehp": 185,
+   "new_ehp": 185,
+   "ehp": 0.002,
+   "old_hp": 178,
+   "new_hp": 178,
+   "old_heal_power": 6,
+   "new_heal_power": 6,
+   "old_stats": {
+    "STR": 1,
+    "DEX": 2,
+    "INT": 14,
+    "VIT": 8,
+    "WIS": 4,
+    "LUK": 1
+   },
+   "new_stats": {
+    "STR": 1,
+    "DEX": 2,
+    "INT": 14,
+    "VIT": 8,
+    "WIS": 4,
+    "LUK": 1
+   },
+   "new_alloc": {
+    "INT": 3,
+    "VIT": 2
+   },
+   "noreset_dps": 0.081,
+   "noreset_ehp": 0.002,
+   "old_basic": 10.9,
+   "old_skill": 9.0,
+   "new_basic": 11.8,
+   "new_skill": 9.7,
+   "speed_old": 0.008,
+   "speed_new": 0.01,
+   "crit_old": 0.056,
+   "crit_new": 0.058,
+   "evasion_new": 0.002,
+   "interval": 0.95,
+   "per_hit": [
+    9,
+    10
+   ]
+  },
+  "arcanist|10": {
+   "weapon": "miners_fork_staff",
+   "old_dps": 50.5,
+   "new_dps": 50.9,
+   "dps": 0.008,
+   "old_ehp": 429,
+   "new_ehp": 431,
+   "ehp": 0.003,
+   "old_hp": 365,
+   "new_hp": 365,
+   "old_heal_power": 9,
+   "new_heal_power": 9,
+   "old_stats": {
+    "STR": 1,
+    "DEX": 4,
+    "INT": 46,
+    "VIT": 24,
+    "WIS": 6,
+    "LUK": 3
+   },
+   "new_stats": {
+    "STR": 1,
+    "DEX": 4,
+    "INT": 46,
+    "VIT": 24,
+    "WIS": 6,
+    "LUK": 3
+   },
+   "new_alloc": {
+    "INT": 30,
+    "VIT": 20
+   },
+   "noreset_dps": 0.008,
+   "noreset_ehp": 0.003,
+   "old_basic": 25.6,
+   "old_skill": 24.9,
+   "new_basic": 25.8,
+   "new_skill": 25.1,
+   "speed_old": 0.016,
+   "speed_new": 0.02,
+   "crit_old": 0.077,
+   "crit_new": 0.082,
+   "evasion_new": 0.016,
+   "interval": 0.9,
+   "per_hit": [
+    14,
+    16
+   ]
+  },
+  "arcanist|25": {
+   "weapon": "tide_fork_staff",
+   "old_dps": 172.2,
+   "new_dps": 169.2,
+   "dps": -0.018,
+   "old_ehp": 1060,
+   "new_ehp": 1063,
+   "ehp": 0.003,
+   "old_hp": 757,
+   "new_hp": 757,
+   "old_heal_power": 30,
+   "new_heal_power": 30,
+   "old_stats": {
+    "STR": 5,
+    "DEX": 4,
+    "INT": 98,
+    "VIT": 54,
+    "WIS": 13,
+    "LUK": 3
+   },
+   "new_stats": {
+    "STR": 5,
+    "DEX": 4,
+    "INT": 98,
+    "VIT": 54,
+    "WIS": 13,
+    "LUK": 3
+   },
+   "new_alloc": {
+    "INT": 75,
+    "VIT": 50
+   },
+   "noreset_dps": -0.018,
+   "noreset_ehp": 0.003,
+   "old_basic": 79.8,
+   "old_skill": 92.4,
+   "new_basic": 78.4,
+   "new_skill": 90.7,
+   "speed_old": 0.016,
+   "speed_new": 0.02,
+   "crit_old": 0.11,
+   "crit_new": 0.114,
+   "evasion_new": 0.004,
+   "interval": 0.9,
+   "per_hit": [
+    30,
+    35
+   ]
+  },
+  "arcanist|45": {
+   "weapon": "orrery_staff",
+   "old_dps": 924.7,
+   "new_dps": 948.3,
+   "dps": 0.025,
+   "old_ehp": 1919,
+   "new_ehp": 1931,
+   "ehp": 0.006,
+   "old_hp": 1170,
+   "new_hp": 1170,
+   "old_heal_power": 52,
+   "new_heal_power": 52,
+   "old_stats": {
+    "STR": 7,
+    "DEX": 8,
+    "INT": 174,
+    "VIT": 94,
+    "WIS": 22,
+    "LUK": 1
+   },
+   "new_stats": {
+    "STR": 7,
+    "DEX": 8,
+    "INT": 174,
+    "VIT": 94,
+    "WIS": 22,
+    "LUK": 1
+   },
+   "new_alloc": {
+    "INT": 135,
+    "VIT": 90
+   },
+   "noreset_dps": 0.025,
+   "noreset_ehp": 0.006,
+   "old_basic": 356.5,
+   "old_skill": 568.3,
+   "new_basic": 358.2,
+   "new_skill": 590.1,
+   "speed_old": 0.086,
+   "speed_new": 0.095,
+   "crit_old": 0.065,
+   "crit_new": 0.073,
+   "evasion_new": 0.008,
+   "interval": 0.95,
+   "per_hit": [
+    102,
+    117
+   ]
+  },
+  "priest|1": {
+   "weapon": "acolyte_scepter",
+   "old_dps": 10.2,
+   "new_dps": 11.7,
+   "dps": 0.141,
+   "old_ehp": 174,
+   "new_ehp": 174,
+   "ehp": 0.002,
+   "old_hp": 168,
+   "new_hp": 168,
+   "old_heal_power": 21,
+   "new_heal_power": 20,
+   "old_stats": {
+    "STR": 1,
+    "DEX": 2,
+    "INT": 4,
+    "VIT": 8,
+    "WIS": 13,
+    "LUK": 1
+   },
+   "new_stats": {
+    "STR": 1,
+    "DEX": 2,
+    "INT": 5,
+    "VIT": 8,
+    "WIS": 12,
+    "LUK": 1
+   },
+   "new_alloc": {
+    "INT": 1,
+    "VIT": 2,
+    "WIS": 2
+   },
+   "noreset_dps": 0.13,
+   "noreset_ehp": 0.002,
+   "old_basic": 10.2,
+   "old_skill": 0.0,
+   "new_basic": 11.7,
+   "new_skill": 0.0,
+   "speed_old": 0.008,
+   "speed_new": 0.01,
+   "crit_old": 0.056,
+   "crit_new": 0.058,
+   "evasion_new": 0.002,
+   "interval": 0.77,
+   "per_hit": [
+    7,
+    8
+   ]
+  },
+  "priest|10": {
+   "weapon": "miners_bell_scepter",
+   "old_dps": 20.5,
+   "new_dps": 22.8,
+   "dps": 0.108,
+   "old_ehp": 428,
+   "new_ehp": 418,
+   "ehp": -0.023,
+   "old_hp": 364,
+   "new_hp": 356,
+   "old_heal_power": 63,
+   "new_heal_power": 56,
+   "old_stats": {
+    "STR": 1,
+    "DEX": 4,
+    "INT": 8,
+    "VIT": 24,
+    "WIS": 42,
+    "LUK": 3
+   },
+   "new_stats": {
+    "STR": 1,
+    "DEX": 4,
+    "INT": 14,
+    "VIT": 23,
+    "WIS": 37,
+    "LUK": 3
+   },
+   "new_alloc": {
+    "INT": 6,
+    "VIT": 19,
+    "WIS": 25
+   },
+   "noreset_dps": 0.049,
+   "noreset_ehp": 0.003,
+   "old_basic": 19.4,
+   "old_skill": 1.1,
+   "new_basic": 21.5,
+   "new_skill": 1.3,
+   "speed_old": 0.016,
+   "speed_new": 0.02,
+   "crit_old": 0.064,
+   "crit_new": 0.068,
+   "evasion_new": 0.016,
+   "interval": 0.8,
+   "per_hit": [
+    12,
+    14
+   ]
+  },
+  "priest|25": {
+   "weapon": "brine_bell_scepter",
+   "old_dps": 58.4,
+   "new_dps": 57.5,
+   "dps": -0.015,
+   "old_ehp": 1166,
+   "new_ehp": 1154,
+   "ehp": -0.011,
+   "old_hp": 771,
+   "new_hp": 763,
+   "old_heal_power": 156,
+   "new_heal_power": 137,
+   "old_stats": {
+    "STR": 5,
+    "DEX": 4,
+    "INT": 13,
+    "VIT": 54,
+    "WIS": 97,
+    "LUK": 3
+   },
+   "new_stats": {
+    "STR": 5,
+    "DEX": 4,
+    "INT": 27,
+    "VIT": 53,
+    "WIS": 84,
+    "LUK": 3
+   },
+   "new_alloc": {
+    "INT": 14,
+    "VIT": 49,
+    "WIS": 62
+   },
+   "noreset_dps": -0.125,
+   "noreset_ehp": 0.003,
+   "old_basic": 55.2,
+   "old_skill": 3.2,
+   "new_basic": 54.2,
+   "new_skill": 3.3,
+   "speed_old": 0.016,
+   "speed_new": 0.02,
+   "crit_old": 0.083,
+   "crit_new": 0.087,
+   "evasion_new": 0.004,
+   "interval": 0.8,
+   "per_hit": [
+    27,
+    31
+   ]
+  },
+  "priest|45": {
+   "weapon": "pendulum_censer",
+   "old_dps": 254.5,
+   "new_dps": 231.4,
+   "dps": -0.091,
+   "old_ehp": 1975,
+   "new_ehp": 1949,
+   "ehp": -0.013,
+   "old_hp": 1204,
+   "new_hp": 1188,
+   "old_heal_power": 318,
+   "new_heal_power": 284,
+   "old_stats": {
+    "STR": 7,
+    "DEX": 8,
+    "INT": 22,
+    "VIT": 94,
+    "WIS": 173,
+    "LUK": 1
+   },
+   "new_stats": {
+    "STR": 7,
+    "DEX": 8,
+    "INT": 47,
+    "VIT": 92,
+    "WIS": 150,
+    "LUK": 1
+   },
+   "new_alloc": {
+    "INT": 25,
+    "VIT": 88,
+    "WIS": 112
+   },
+   "noreset_dps": -0.249,
+   "noreset_ehp": 0.006,
+   "old_basic": 238.7,
+   "old_skill": 15.8,
+   "new_basic": 215.5,
+   "new_skill": 15.9,
+   "speed_old": 0.086,
+   "speed_new": 0.095,
+   "crit_old": 0.065,
+   "crit_new": 0.073,
+   "evasion_new": 0.008,
+   "interval": 0.8,
+   "per_hit": [
+    88,
+    100
+   ]
+  },
+  "shadow|1": {
+   "weapon": "moss_dirk",
+   "old_dps": 15.3,
+   "new_dps": 17.2,
+   "dps": 0.122,
+   "old_ehp": 199,
+   "new_ehp": 201,
+   "ehp": 0.01,
+   "old_hp": 190,
+   "new_hp": 190,
+   "old_heal_power": 2,
+   "new_heal_power": 2,
+   "old_stats": {
+    "STR": 3,
+    "DEX": 13,
+    "INT": 1,
+    "VIT": 9,
+    "WIS": 1,
+    "LUK": 4
+   },
+   "new_stats": {
+    "STR": 4,
+    "DEX": 12,
+    "INT": 1,
+    "VIT": 9,
+    "WIS": 1,
+    "LUK": 4
+   },
+   "new_alloc": {
+    "STR": 1,
+    "DEX": 2,
+    "VIT": 2
+   },
+   "noreset_dps": 0.119,
+   "noreset_ehp": 0.011,
+   "old_basic": 13.1,
+   "old_skill": 2.2,
+   "new_basic": 14.7,
+   "new_skill": 2.5,
+   "speed_old": 0.052,
+   "speed_new": 0.06,
+   "crit_old": 0.089,
+   "crit_new": 0.1,
+   "evasion_new": 0.012,
+   "interval": 0.45,
+   "per_hit": [
+    5,
+    6
+   ]
+  },
+  "shadow|10": {
+   "weapon": "silk_sickle",
+   "old_dps": 36.6,
+   "new_dps": 35.8,
+   "dps": -0.022,
+   "old_ehp": 474,
+   "new_ehp": 442,
+   "ehp": -0.068,
+   "old_hp": 387,
+   "new_hp": 355,
+   "old_heal_power": 2,
+   "new_heal_power": 2,
+   "old_stats": {
+    "STR": 3,
+    "DEX": 49,
+    "INT": 1,
+    "VIT": 25,
+    "WIS": 1,
+    "LUK": 6
+   },
+   "new_stats": {
+    "STR": 17,
+    "DEX": 39,
+    "INT": 1,
+    "VIT": 21,
+    "WIS": 1,
+    "LUK": 6
+   },
+   "new_alloc": {
+    "STR": 14,
+    "DEX": 20,
+    "VIT": 16
+   },
+   "noreset_dps": -0.088,
+   "noreset_ehp": 0.042,
+   "old_basic": 31.9,
+   "old_skill": 4.7,
+   "new_basic": 30.9,
+   "new_skill": 4.9,
+   "speed_old": 0.208,
+   "speed_new": 0.207,
+   "crit_old": 0.144,
+   "crit_new": 0.168,
+   "evasion_new": 0.059,
+   "interval": 0.5,
+   "per_hit": [
+    9,
+    10
+   ]
+  },
+  "shadow|25": {
+   "weapon": "eelfin_sickle",
+   "old_dps": 133.0,
+   "new_dps": 126.3,
+   "dps": -0.05,
+   "old_ehp": 1164,
+   "new_ehp": 1077,
+   "ehp": -0.075,
+   "old_hp": 794,
+   "new_hp": 714,
+   "old_heal_power": 2,
+   "new_heal_power": 2,
+   "old_stats": {
+    "STR": 7,
+    "DEX": 101,
+    "INT": 1,
+    "VIT": 55,
+    "WIS": 1,
+    "LUK": 10
+   },
+   "new_stats": {
+    "STR": 42,
+    "DEX": 76,
+    "INT": 1,
+    "VIT": 45,
+    "WIS": 1,
+    "LUK": 10
+   },
+   "new_alloc": {
+    "STR": 35,
+    "DEX": 50,
+    "VIT": 40
+   },
+   "noreset_dps": -0.189,
+   "noreset_ehp": 0.089,
+   "old_basic": 111.5,
+   "old_skill": 21.5,
+   "new_basic": 102.8,
+   "new_skill": 23.6,
+   "speed_old": 0.427,
+   "speed_new": 0.403,
+   "crit_old": 0.259,
+   "crit_new": 0.297,
+   "evasion_new": 0.093,
+   "interval": 0.5,
+   "per_hit": [
+    19,
+    21
+   ]
+  },
+  "shadow|45": {
+   "weapon": "mainspring_dagger",
+   "old_dps": 758.1,
+   "new_dps": 746.8,
+   "dps": -0.015,
+   "old_ehp": 2208,
+   "new_ehp": 2080,
+   "ehp": -0.058,
+   "old_hp": 1227,
+   "new_hp": 1083,
+   "old_heal_power": 9,
+   "new_heal_power": 9,
+   "old_stats": {
+    "STR": 9,
+    "DEX": 179,
+    "INT": 6,
+    "VIT": 95,
+    "WIS": 6,
+    "LUK": 10
+   },
+   "new_stats": {
+    "STR": 72,
+    "DEX": 134,
+    "INT": 6,
+    "VIT": 77,
+    "WIS": 6,
+    "LUK": 10
+   },
+   "new_alloc": {
+    "STR": 63,
+    "DEX": 90,
+    "VIT": 72
+   },
+   "noreset_dps": -0.321,
+   "noreset_ehp": 0.177,
+   "old_basic": 623.1,
+   "old_skill": 135.0,
+   "new_basic": 580.7,
+   "new_skill": 166.1,
+   "speed_old": 0.6,
+   "speed_new": 0.6,
+   "crit_old": 0.42,
+   "crit_new": 0.486,
+   "evasion_new": 0.193,
+   "interval": 0.42,
+   "per_hit": [
+    51,
+    59
+   ]
+  }
+ },
+ "ttk": {
+  "F1|guardian": {
+   "level": 1,
+   "mob_hp": 63,
+   "boss_hp": 2040,
+   "mob_old": 3.9,
+   "mob_new": 3.7,
+   "boss_old": 132,
+   "boss_new": 126
+  },
+  "F1|berserker": {
+   "level": 1,
+   "mob_hp": 63,
+   "boss_hp": 2040,
+   "mob_old": 3.2,
+   "mob_new": 3.0,
+   "boss_old": 110,
+   "boss_new": 102
+  },
+  "F1|hunter": {
+   "level": 1,
+   "mob_hp": 63,
+   "boss_hp": 2040,
+   "mob_old": 3.1,
+   "mob_new": 2.6,
+   "boss_old": 104,
+   "boss_new": 88
+  },
+  "F1|arcanist": {
+   "level": 1,
+   "mob_hp": 63,
+   "boss_hp": 2040,
+   "mob_old": 3.2,
+   "mob_new": 3.0,
+   "boss_old": 110,
+   "boss_new": 102
+  },
+  "F1|priest": {
+   "level": 1,
+   "mob_hp": 63,
+   "boss_hp": 2040,
+   "mob_old": 6.3,
+   "mob_new": 5.5,
+   "boss_old": 215,
+   "boss_new": 188
+  },
+  "F1|shadow": {
+   "level": 1,
+   "mob_hp": 63,
+   "boss_hp": 2040,
+   "mob_old": 4.2,
+   "mob_new": 3.8,
+   "boss_old": 144,
+   "boss_new": 128
+  },
+  "F3|guardian": {
+   "level": 10,
+   "mob_hp": 125,
+   "boss_hp": 6375,
+   "mob_old": 3.9,
+   "mob_new": 3.9,
+   "boss_old": 214,
+   "boss_new": 212
+  },
+  "F3|berserker": {
+   "level": 10,
+   "mob_hp": 125,
+   "boss_hp": 6375,
+   "mob_old": 2.6,
+   "mob_new": 2.6,
+   "boss_old": 142,
+   "boss_new": 140
+  },
+  "F3|hunter": {
+   "level": 10,
+   "mob_hp": 125,
+   "boss_hp": 6375,
+   "mob_old": 2.4,
+   "mob_new": 2.3,
+   "boss_old": 131,
+   "boss_new": 126
+  },
+  "F3|arcanist": {
+   "level": 10,
+   "mob_hp": 125,
+   "boss_hp": 6375,
+   "mob_old": 2.6,
+   "mob_new": 2.6,
+   "boss_old": 141,
+   "boss_new": 140
+  },
+  "F3|priest": {
+   "level": 10,
+   "mob_hp": 125,
+   "boss_hp": 6375,
+   "mob_old": 6.4,
+   "mob_new": 5.8,
+   "boss_old": 348,
+   "boss_new": 314
+  },
+  "F3|shadow": {
+   "level": 10,
+   "mob_hp": 125,
+   "boss_hp": 6375,
+   "mob_old": 3.6,
+   "mob_new": 3.7,
+   "boss_old": 195,
+   "boss_new": 200
+  },
+  "F5|guardian": {
+   "level": 20,
+   "mob_hp": 323,
+   "boss_hp": 15300,
+   "mob_old": 4.2,
+   "mob_new": 4.2,
+   "boss_old": 218,
+   "boss_new": 218
+  },
+  "F5|berserker": {
+   "level": 20,
+   "mob_hp": 323,
+   "boss_hp": 15300,
+   "mob_old": 2.5,
+   "mob_new": 2.4,
+   "boss_old": 127,
+   "boss_new": 123
+  },
+  "F5|hunter": {
+   "level": 20,
+   "mob_hp": 323,
+   "boss_hp": 15300,
+   "mob_old": 2.4,
+   "mob_new": 2.3,
+   "boss_old": 123,
+   "boss_new": 120
+  },
+  "F5|arcanist": {
+   "level": 20,
+   "mob_hp": 323,
+   "boss_hp": 15300,
+   "mob_old": 2.4,
+   "mob_new": 2.4,
+   "boss_old": 126,
+   "boss_new": 124
+  },
+  "F5|priest": {
+   "level": 20,
+   "mob_hp": 323,
+   "boss_hp": 15300,
+   "mob_old": 6.8,
+   "mob_new": 6.6,
+   "boss_old": 350,
+   "boss_new": 340
+  },
+  "F5|shadow": {
+   "level": 20,
+   "mob_hp": 323,
+   "boss_hp": 15300,
+   "mob_old": 3.3,
+   "mob_new": 3.4,
+   "boss_old": 169,
+   "boss_new": 175
+  },
+  "F7|guardian": {
+   "level": 30,
+   "mob_hp": 638,
+   "boss_hp": 30600,
+   "mob_old": 4.5,
+   "mob_new": 4.7,
+   "boss_old": 239,
+   "boss_new": 249
+  },
+  "F7|berserker": {
+   "level": 30,
+   "mob_hp": 638,
+   "boss_hp": 30600,
+   "mob_old": 2.4,
+   "mob_new": 2.4,
+   "boss_old": 126,
+   "boss_new": 125
+  },
+  "F7|hunter": {
+   "level": 30,
+   "mob_hp": 638,
+   "boss_hp": 30600,
+   "mob_old": 2.3,
+   "mob_new": 2.1,
+   "boss_old": 121,
+   "boss_new": 112
+  },
+  "F7|arcanist": {
+   "level": 30,
+   "mob_hp": 638,
+   "boss_hp": 30600,
+   "mob_old": 2.2,
+   "mob_new": 2.2,
+   "boss_old": 117,
+   "boss_new": 118
+  },
+  "F7|priest": {
+   "level": 30,
+   "mob_hp": 638,
+   "boss_hp": 30600,
+   "mob_old": 7.2,
+   "mob_new": 7.7,
+   "boss_old": 384,
+   "boss_new": 408
+  },
+  "F7|shadow": {
+   "level": 30,
+   "mob_hp": 638,
+   "boss_hp": 30600,
+   "mob_old": 3.0,
+   "mob_new": 3.0,
+   "boss_old": 158,
+   "boss_new": 159
+  },
+  "F10|guardian": {
+   "level": 45,
+   "mob_hp": 2122,
+   "boss_hp": 80750,
+   "mob_old": 6.6,
+   "mob_new": 6.8,
+   "boss_old": 279,
+   "boss_new": 287
+  },
+  "F10|berserker": {
+   "level": 45,
+   "mob_hp": 2122,
+   "boss_hp": 80750,
+   "mob_old": 3.5,
+   "mob_new": 3.4,
+   "boss_old": 149,
+   "boss_new": 143
+  },
+  "F10|hunter": {
+   "level": 45,
+   "mob_hp": 2122,
+   "boss_hp": 80750,
+   "mob_old": 3.1,
+   "mob_new": 3.1,
+   "boss_old": 132,
+   "boss_new": 131
+  },
+  "F10|arcanist": {
+   "level": 45,
+   "mob_hp": 2122,
+   "boss_hp": 80750,
+   "mob_old": 3.2,
+   "mob_new": 3.2,
+   "boss_old": 136,
+   "boss_new": 133
+  },
+  "F10|priest": {
+   "level": 45,
+   "mob_hp": 2122,
+   "boss_hp": 80750,
+   "mob_old": 11.8,
+   "mob_new": 12.9,
+   "boss_old": 495,
+   "boss_new": 544
+  },
+  "F10|shadow": {
+   "level": 45,
+   "mob_hp": 2122,
+   "boss_hp": 80750,
+   "mob_old": 3.9,
+   "mob_new": 4.0,
+   "boss_old": 166,
+   "boss_new": 169
+  }
+ },
+ "sim": {
+  "guardian|F1": {
+   "old_dps": 13.9,
+   "new_dps": 14.8,
+   "dps": 0.067,
+   "old_taken": 0.185,
+   "new_taken": 0.179,
+   "taken": -0.03
+  },
+  "guardian|F3": {
+   "old_dps": 29.1,
+   "new_dps": 27.9,
+   "dps": -0.042,
+   "old_taken": 0.123,
+   "new_taken": 0.118,
+   "taken": -0.041
+  },
+  "guardian|F6": {
+   "old_dps": 73.6,
+   "new_dps": 68.7,
+   "dps": -0.067,
+   "old_taken": 0.046,
+   "new_taken": 0.049,
+   "taken": 0.08
+  },
+  "guardian|F10": {
+   "old_dps": 277.9,
+   "new_dps": 275.1,
+   "dps": -0.01,
+   "old_taken": 0.081,
+   "new_taken": 0.08,
+   "taken": -0.013
+  },
+  "berserker|F1": {
+   "old_dps": 20.4,
+   "new_dps": 22.1,
+   "dps": 0.083,
+   "old_taken": 0.205,
+   "new_taken": 0.186,
+   "taken": -0.095
+  },
+  "berserker|F3": {
+   "old_dps": 57.3,
+   "new_dps": 58.3,
+   "dps": 0.017,
+   "old_taken": 0.116,
+   "new_taken": 0.108,
+   "taken": -0.064
+  },
+  "berserker|F6": {
+   "old_dps": 170.3,
+   "new_dps": 171.2,
+   "dps": 0.005,
+   "old_taken": 0.146,
+   "new_taken": 0.145,
+   "taken": -0.004
+  },
+  "berserker|F10": {
+   "old_dps": 1243.4,
+   "new_dps": 1336.1,
+   "dps": 0.075,
+   "old_taken": 0.168,
+   "new_taken": 0.151,
+   "taken": -0.098
+  },
+  "hunter|F1": {
+   "old_dps": 19.7,
+   "new_dps": 23.6,
+   "dps": 0.2,
+   "old_taken": 0.16,
+   "new_taken": 0.138,
+   "taken": -0.135
+  },
+  "hunter|F3": {
+   "old_dps": 50.1,
+   "new_dps": 51.1,
+   "dps": 0.019,
+   "old_taken": 0.14,
+   "new_taken": 0.15,
+   "taken": 0.073
+  },
+  "hunter|F6": {
+   "old_dps": 134.4,
+   "new_dps": 134.1,
+   "dps": -0.002,
+   "old_taken": 0.226,
+   "new_taken": 0.239,
+   "taken": 0.058
+  },
+  "hunter|F10": {
+   "old_dps": 767.5,
+   "new_dps": 737.5,
+   "dps": -0.039,
+   "old_taken": 0.298,
+   "new_taken": 0.302,
+   "taken": 0.013
+  },
+  "arcanist|F1": {
+   "old_dps": 17.3,
+   "new_dps": 18.9,
+   "dps": 0.091,
+   "old_taken": 0.259,
+   "new_taken": 0.235,
+   "taken": -0.094
+  },
+  "arcanist|F3": {
+   "old_dps": 48.1,
+   "new_dps": 48.1,
+   "dps": 0.002,
+   "old_taken": 0.187,
+   "new_taken": 0.187,
+   "taken": -0.001
+  },
+  "arcanist|F6": {
+   "old_dps": 131.1,
+   "new_dps": 126.9,
+   "dps": -0.033,
+   "old_taken": 0.344,
+   "new_taken": 0.359,
+   "taken": 0.045
+  },
+  "arcanist|F10": {
+   "old_dps": 796.9,
+   "new_dps": 833.2,
+   "dps": 0.046,
+   "old_taken": 0.439,
+   "new_taken": 0.421,
+   "taken": -0.041
+  },
+  "priest|F1": {
+   "old_dps": 7.8,
+   "new_dps": 9.0,
+   "dps": 0.154,
+   "old_taken": 0.571,
+   "new_taken": 0.502,
+   "taken": -0.121
+  },
+  "priest|F3": {
+   "old_dps": 17.0,
+   "new_dps": 19.3,
+   "dps": 0.138,
+   "old_taken": 0.558,
+   "new_taken": 0.502,
+   "taken": -0.101
+  },
+  "priest|F6": {
+   "old_dps": 43.6,
+   "new_dps": 44.2,
+   "dps": 0.015,
+   "old_taken": 0.776,
+   "new_taken": 0.79,
+   "taken": 0.017
+  },
+  "priest|F10": {
+   "old_dps": 156.3,
+   "new_dps": 147.8,
+   "dps": -0.055,
+   "old_taken": 2.068,
+   "new_taken": 2.226,
+   "taken": 0.077
+  },
+  "shadow|F1": {
+   "old_dps": 13.5,
+   "new_dps": 16.0,
+   "dps": 0.179,
+   "old_taken": 0.29,
+   "new_taken": 0.248,
+   "taken": -0.143
+  },
+  "shadow|F3": {
+   "old_dps": 31.8,
+   "new_dps": 32.4,
+   "dps": 0.016,
+   "old_taken": 0.232,
+   "new_taken": 0.23,
+   "taken": -0.008
+  },
+  "shadow|F6": {
+   "old_dps": 97.5,
+   "new_dps": 93.6,
+   "dps": -0.04,
+   "old_taken": 0.357,
+   "new_taken": 0.407,
+   "taken": 0.14
+  },
+  "shadow|F10": {
+   "old_dps": 527.2,
+   "new_dps": 513.3,
+   "dps": -0.026,
+   "old_taken": 0.527,
+   "new_taken": 0.546,
+   "taken": 0.035
+  }
+ }
+}

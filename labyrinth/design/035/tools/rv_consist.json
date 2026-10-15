@@ -1,0 +1,706 @@
+{
+ "id_collisions_with_items_yml": [],
+ "new_weapon_ids": 106,
+ "new_armor_piece_ids": 24,
+ "dup_new_ids": [],
+ "dup_names": [],
+ "gear_vs_D_unique_mismatch": 30,
+ "gear_vs_D_unique_mismatch_examples": [
+  [
+   "spore_stiletto",
+   "first_strike",
+   "first_strike"
+  ],
+  [
+   "clock_staff_orb",
+   "imbue",
+   "imbue"
+  ],
+  [
+   "pit_rapier",
+   "bloodrush",
+   "bloodrush"
+  ],
+  [
+   "ink_rapier",
+   "counterstep",
+   "counterstep"
+  ],
+  [
+   "moss_bone_bow",
+   "bloodrush",
+   "bloodrush"
+  ],
+  [
+   "cinder_dagger",
+   "first_strike",
+   "first_strike"
+  ],
+  [
+   "sluice_morning_star",
+   "feast",
+   "feast"
+  ],
+  [
+   "mycel_dirk",
+   "hemorrhage",
+   "rend"
+  ]
+ ],
+ "interval_mismatch": [],
+ "per_hit_mismatch": [
+  [
+   "pit_rapier",
+   [
+    10,
+    12
+   ],
+   [
+    11,
+    12
+   ]
+  ],
+  [
+   "tide_lamp_crook",
+   [
+    30,
+    34
+   ],
+   [
+    31,
+    35
+   ]
+  ],
+  [
+   "ore_kris",
+   [
+    8,
+    10
+   ],
+   [
+    8,
+    9
+   ]
+  ],
+  [
+   "brine_sabre",
+   [
+    23,
+    28
+   ],
+   [
+    24,
+    28
+   ]
+  ],
+  [
+   "verdigris_chime_rod",
+   [
+    22,
+    28
+   ],
+   [
+    23,
+    28
+   ]
+  ],
+  [
+   "verdigris_great_axe",
+   [
+    42,
+    48
+   ],
+   [
+    43,
+    48
+   ]
+  ]
+ ],
+ "armor_req_same": 27,
+ "armor_req_differ": 92,
+ "armor_req_examples": [
+  [
+   "abyss_walker_boots",
+   {
+    "DEX": 60,
+    "STR": 36,
+    "VIT": 23
+   },
+   {
+    "DEX": 72,
+    "LUK": 47
+   }
+  ],
+  [
+   "abyss_walker_chest",
+   {
+    "DEX": 60,
+    "STR": 36,
+    "VIT": 23
+   },
+   {
+    "DEX": 72,
+    "LUK": 47
+   }
+  ],
+  [
+   "abyss_walker_helm",
+   {
+    "DEX": 60,
+    "STR": 36,
+    "VIT": 23
+   },
+   {
+    "DEX": 72,
+    "LUK": 47
+   }
+  ],
+  [
+   "abyss_walker_legs",
+   {
+    "DEX": 60,
+    "STR": 36,
+    "VIT": 23
+   },
+   {
+    "DEX": 72,
+    "LUK": 47
+   }
+  ],
+  [
+   "cinder_cantor_boots",
+   {
+    "INT": 30,
+    "VIT": 18,
+    "WIS": 13
+   },
+   {
+    "INT": 37,
+    "WIS": 24
+   }
+  ],
+  [
+   "cinder_cantor_chest",
+   {
+    "INT": 30,
+    "VIT": 18,
+    "WIS": 13
+   },
+   {
+    "INT": 37,
+    "WIS": 24
+   }
+  ],
+  [
+   "cinder_cantor_helm",
+   {
+    "INT": 30,
+    "VIT": 18,
+    "WIS": 13
+   },
+   {
+    "INT": 37,
+    "WIS": 24
+   }
+  ],
+  [
+   "cinder_cantor_legs",
+   {
+    "INT": 30,
+    "VIT": 18,
+    "WIS": 13
+   },
+   {
+    "INT": 37,
+    "WIS": 24
+   }
+  ],
+  [
+   "clock_astrologer_boots",
+   {
+    "WIS": 56,
+    "INT": 34,
+    "VIT": 23
+   },
+   {
+    "WIS": 69,
+    "INT": 45
+   }
+  ],
+  [
+   "clock_astrologer_chest",
+   {
+    "WIS": 56,
+    "INT": 34,
+    "VIT": 23
+   },
+   {
+    "WIS": 69,
+    "INT": 45
+   }
+  ],
+  [
+   "clock_astrologer_helm",
+   {
+    "WIS": 56,
+    "INT": 34,
+    "VIT": 23
+   },
+   {
+    "WIS": 69,
+    "INT": 45
+   }
+  ],
+  [
+   "clock_astrologer_legs",
+   {
+    "WIS": 56,
+    "INT": 34,
+    "VIT": 23
+   },
+   {
+    "WIS": 69,
+    "INT": 45
+   }
+  ]
+ ],
+ "armor_only_in_look": [],
+ "armor_only_in_gear": [],
+ "budget_diff_levels": [
+  [
+   6,
+   14,
+   15
+  ],
+  [
+   10,
+   25,
+   26
+  ],
+  [
+   14,
+   36,
+   37
+  ],
+  [
+   18,
+   47,
+   48
+  ],
+  [
+   22,
+   58,
+   59
+  ],
+  [
+   26,
+   69,
+   70
+  ],
+  [
+   30,
+   80,
+   81
+  ],
+  [
+   34,
+   91,
+   92
+  ],
+  [
+   38,
+   102,
+   103
+  ],
+  [
+   42,
+   113,
+   114
+  ],
+  [
+   46,
+   124,
+   125
+  ],
+  [
+   50,
+   135,
+   136
+  ]
+ ],
+ "level_windows_sample": [
+  [
+   "26–30",
+   [
+    20,
+    35
+   ],
+   [
+    5,
+    6,
+    7
+   ],
+   14
+  ],
+  [
+   "36–40",
+   [
+    30,
+    45
+   ],
+   [
+    7,
+    8,
+    9
+   ],
+   14
+  ],
+  [
+   "11–15",
+   [
+    5,
+    20
+   ],
+   [
+    2,
+    3,
+    4
+   ],
+   8
+  ],
+  [
+   "41–45",
+   [
+    35,
+    50
+   ],
+   [
+    8,
+    9,
+    10
+   ],
+   14
+  ],
+  [
+   "6–10",
+   [
+    1,
+    15
+   ],
+   [
+    1,
+    2,
+    3
+   ],
+   14
+  ],
+  [
+   "1–5",
+   [
+    1,
+    10
+   ],
+   [
+    1,
+    2
+   ],
+   4
+  ],
+  [
+   "21–25",
+   [
+    15,
+    30
+   ],
+   [
+    4,
+    5,
+    6
+   ],
+   9
+  ],
+  [
+   "46–50",
+   [
+    40,
+    50
+   ],
+   [
+    9,
+    10
+   ],
+   13
+  ],
+  [
+   "31–35",
+   [
+    25,
+    40
+   ],
+   [
+    6,
+    7,
+    8
+   ],
+   8
+  ],
+  [
+   "16–20",
+   [
+    10,
+    25
+   ],
+   [
+    3,
+    4,
+    5
+   ],
+   8
+  ]
+ ],
+ "epic_plus_multi_source_tags": [
+  [
+   "emberforge_warhammer",
+   "epic",
+   [
+    "drop",
+    "chest"
+   ]
+  ],
+  [
+   "cinderdrake_glaive",
+   "epic",
+   [
+    "drop",
+    "chest"
+   ]
+  ],
+  [
+   "slagedge_bladebow",
+   "epic",
+   [
+    "drop",
+    "chest"
+   ]
+  ],
+  [
+   "cinder_spiral_staff",
+   "epic",
+   [
+    "drop",
+    "chest"
+   ]
+  ],
+  [
+   "crucible_chalice",
+   "epic",
+   [
+    "drop",
+    "chest"
+   ]
+  ],
+  [
+   "slag_katar",
+   "epic",
+   [
+    "drop",
+    "chest"
+   ]
+  ],
+  [
+   "rime_great_maul",
+   "epic",
+   [
+    "drop",
+    "chest"
+   ]
+  ],
+  [
+   "rime_thurible_rod",
+   "epic",
+   [
+    "drop",
+    "chest"
+   ]
+  ],
+  [
+   "frost_longsword",
+   "epic",
+   [
+    "drop",
+    "chest"
+   ]
+  ],
+  [
+   "abyss_great_maul",
+   "epic",
+   [
+    "drop",
+    "chest"
+   ]
+  ],
+  [
+   "ink_sabre",
+   "epic",
+   [
+    "drop",
+    "chest"
+   ]
+  ],
+  [
+   "ink_great_maul",
+   "epic",
+   [
+    "drop",
+    "chest"
+   ]
+  ],
+  [
+   "ink_recurve",
+   "epic",
+   [
+    "drop",
+    "chest"
+   ]
+  ],
+  [
+   "clock_blade_bow",
+   "epic",
+   [
+    "drop",
+    "chest"
+   ]
+  ],
+  [
+   "void_twin_bow",
+   "epic",
+   [
+    "drop",
+    "chest"
+   ]
+  ],
+  [
+   "lore_lamp_crook",
+   "epic",
+   [
+    "drop",
+    "chest"
+   ]
+  ],
+  [
+   "frost_twin_bow",
+   "epic",
+   [
+    "drop",
+    "chest"
+   ]
+  ],
+  [
+   "clock_mace",
+   "epic",
+   [
+    "drop",
+    "chest"
+   ]
+  ],
+  [
+   "void_stiletto",
+   "epic",
+   [
+    "drop",
+    "chest"
+   ]
+  ],
+  [
+   "clock_bell_scepter",
+   "epic",
+   [
+    "drop",
+    "chest"
+   ]
+  ],
+  [
+   "clock_kris",
+   "epic",
+   [
+    "drop",
+    "chest"
+   ]
+  ]
+ ],
+ "source_tag_counts_all_weapons": {
+  "drop": 62,
+  "chest": 62,
+  "craft": 63,
+  "boss": 35,
+  "special": 22,
+  "hoard": 24,
+  "elite": 17,
+  "trial": 20,
+  "shop": 3
+ },
+ "new_weapon_shapes": {
+  "antler_staff": 5,
+  "flamberge": 5,
+  "war_spear": 5,
+  "stiletto": 5,
+  "staff_orb": 1,
+  "chalice_scepter": 1,
+  "great_maul": 5,
+  "thurible_rod": 4,
+  "chime_rod": 5,
+  "rapier": 5,
+  "longsword": 2,
+  "cleaver": 2,
+  "lamp_crook": 5,
+  "bone_bow": 5,
+  "glaive": 2,
+  "dagger": 2,
+  "executioner_axe": 5,
+  "broadsword": 2,
+  "falchion": 1,
+  "morning_star": 5,
+  "staff_ring": 1,
+  "kris": 2,
+  "sabre": 5,
+  "censer_staff": 1,
+  "tanto": 5,
+  "katar": 2,
+  "recurve_bow": 1,
+  "blade_bow": 1,
+  "twin_bow": 5,
+  "sickle": 1,
+  "mace": 1,
+  "composite_bow": 1,
+  "warhammer": 1,
+  "longbow": 1,
+  "bell_scepter": 1,
+  "great_axe": 2,
+  "greatsword": 1,
+  "sun_scepter": 1,
+  "fang_blade": 1
+ },
+ "new_shapes_spec": [
+  "executioner_axe",
+  "flamberge",
+  "great_maul",
+  "sabre",
+  "morning_star",
+  "rapier",
+  "stiletto",
+  "tanto",
+  "war_spear",
+  "bone_bow",
+  "twin_bow",
+  "antler_staff",
+  "lamp_crook",
+  "thurible_rod",
+  "chime_rod"
+ ],
+ "old_shapes": 30,
+ "shapes_unknown": [],
+ "ua_count": 237,
+ "ua_missing": [],
+ "new_weapon_skill_count": 67,
+ "pvp_skill_mult_keys": 38
+}

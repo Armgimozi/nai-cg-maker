@@ -1,0 +1,404 @@
+{
+ "corridor_longbow": [
+  "gear_f01_common"
+ ],
+ "mossvine_hornbow": [
+  "gear_f01_common",
+  "recipe:mossvine_hornbow"
+ ],
+ "grove_rootstring_bow": [
+  "floor01_boss",
+  "recipe:grove_rootstring_bow"
+ ],
+ "silkstring_recurve": [
+  "gear_f02_common"
+ ],
+ "skitter_bladebow": [
+  "recipe:skitter_bladebow"
+ ],
+ "glowcap_longbow": [
+  "gear_f03_common"
+ ],
+ "mycel_hornbow": [
+  "recipe:mycel_hornbow"
+ ],
+ "eelbone_recurve": [
+  "recipe:eelbone_recurve"
+ ],
+ "brine_bladebow": [
+  "gear_f04_common"
+ ],
+ "tidecaller_bow": [
+  "floor04_boss"
+ ],
+ "slagedge_bladebow": [
+  "gear_f05_common"
+ ],
+ "bellows_composite_bow": [
+  "recipe:bellows_composite_bow"
+ ],
+ "frostbone_longbow": [
+  "recipe:frostbone_longbow"
+ ],
+ "prismstring_longbow": [
+  "gear_f07_common"
+ ],
+ "prism_hornbow": [
+  "recipe:prism_hornbow"
+ ],
+ "galewing_bow": [
+  "floor07_boss"
+ ],
+ "inkquill_hornbow": [
+  "recipe:inkquill_hornbow"
+ ],
+ "springloaded_bow": [
+  "recipe:springloaded_bow"
+ ],
+ "quicksilver_longbow": [
+  "floor09_boss"
+ ],
+ "abyss_bladebow": [
+  "recipe:abyss_bladebow"
+ ],
+ "tempest_bow": [
+  "floor10_boss"
+ ],
+ "moss_dirk": [
+  "gear_f01_common"
+ ],
+ "corridor_katar": [
+  "gear_f01_common",
+  "recipe:corridor_katar"
+ ],
+ "skitter_fang": [
+  "gear_f02_common"
+ ],
+ "silk_sickle": [
+  "recipe:silk_sickle"
+ ],
+ "silkqueen_fang": [
+  "floor02_boss"
+ ],
+ "spore_kris": [
+  "gear_f03_common"
+ ],
+ "spore_katar": [
+  "recipe:spore_katar"
+ ],
+ "mycelking_sporefang": [
+  "floor03_boss"
+ ],
+ "eel_kris": [
+  "recipe:eel_kris"
+ ],
+ "eelfin_sickle": [
+  "gear_f04_common"
+ ],
+ "slag_katar": [
+  "gear_f05_common"
+ ],
+ "cinder_fang": [
+  "recipe:cinder_fang"
+ ],
+ "soulflame_kris": [
+  "floor06_boss"
+ ],
+ "gravefrost_katar": [
+  "recipe:gravefrost_katar"
+ ],
+ "shardglass_dagger": [
+  "gear_f07_common"
+ ],
+ "shardglass_sickle": [
+  "recipe:shardglass_sickle"
+ ],
+ "lorekeeper_katar": [
+  "recipe:lorekeeper_katar"
+ ],
+ "nightshade_dagger": [
+  "floor08_boss"
+ ],
+ "mainspring_dagger": [
+  "recipe:mainspring_dagger"
+ ],
+ "abyss_sickle": [
+  "recipe:abyss_sickle"
+ ],
+ "viper_fang": [
+  "floor10_boss"
+ ],
+ "eclipse_blade": [
+  "floor10_boss"
+ ],
+ "rootcutter_greatsword": [
+  "gear_f01_common"
+ ],
+ "rootbound_scythe": [
+  "gear_f01_common",
+  "recipe:rootbound_scythe"
+ ],
+ "ore_splitter_axe": [
+  "gear_f02_common"
+ ],
+ "silkspan_glaive": [
+  "recipe:silkspan_glaive"
+ ],
+ "silkqueen_reaper": [
+  "floor02_boss"
+ ],
+ "capsplitter_cleaver": [
+  "gear_f03_common"
+ ],
+ "mycel_scythe": [
+  "recipe:mycel_scythe"
+ ],
+ "drowned_anchor_cleaver": [
+  "recipe:drowned_anchor_cleaver"
+ ],
+ "drowned_glaive": [
+  "gear_f04_common"
+ ],
+ "osric_drowned_axe": [
+  "floor04_boss"
+ ],
+ "cinderdrake_glaive": [
+  "gear_f05_common"
+ ],
+ "slagforged_greatsword": [
+  "recipe:slagforged_greatsword"
+ ],
+ "ember_greatsword": [
+  "floor05_boss"
+ ],
+ "rime_reaper_scythe": [
+  "recipe:rime_reaper_scythe"
+ ],
+ "amethyst_cleaver": [
+  "gear_f07_common"
+ ],
+ "geode_scythe": [
+  "recipe:geode_scythe"
+ ],
+ "geode_sunderer": [
+  "floor07_boss"
+ ],
+ "lore_glaive": [
+  "recipe:lore_glaive"
+ ],
+ "regulator_greatsword": [
+  "recipe:regulator_greatsword"
+ ],
+ "doomclock_executioner": [
+  "floor09_boss"
+ ],
+ "void_scythe": [
+  "recipe:void_scythe"
+ ],
+ "bloodmoon_reaver": [
+  "floor10_boss"
+ ],
+ "acolyte_scepter": [
+  "gear_f01_common"
+ ],
+ "grove_chalice": [
+  "gear_f01_common",
+  "recipe:grove_chalice"
+ ],
+ "miners_lamp_censer": [
+  "gear_f02_common"
+ ],
+ "miners_bell_scepter": [
+  "recipe:miners_bell_scepter"
+ ],
+ "silkqueen_spindle_censer": [
+  "floor02_boss"
+ ],
+ "bloom_scepter": [
+  "gear_f03_common"
+ ],
+ "bloom_chalice": [
+  "recipe:bloom_chalice"
+ ],
+ "mycelking_scepter": [
+  "floor03_boss"
+ ],
+ "tidebell_censer": [
+  "recipe:tidebell_censer"
+ ],
+ "brine_bell_scepter": [
+  "gear_f04_common"
+ ],
+ "crucible_chalice": [
+  "gear_f05_common"
+ ],
+ "embersong_scepter": [
+  "recipe:embersong_scepter"
+ ],
+ "sanctum_scepter": [
+  "floor06_boss"
+ ],
+ "frost_vigil_censer": [
+  "recipe:frost_vigil_censer"
+ ],
+ "prism_censer": [
+  "gear_f07_common"
+ ],
+ "crystal_bell_scepter": [
+  "recipe:crystal_bell_scepter"
+ ],
+ "twin_light_scepter": [
+  "floor07_boss"
+ ],
+ "ink_chalice": [
+  "recipe:ink_chalice"
+ ],
+ "pendulum_censer": [
+  "recipe:pendulum_censer"
+ ],
+ "abyss_bell_scepter": [
+  "recipe:abyss_bell_scepter"
+ ],
+ "aurora_scepter": [
+  "floor10_boss"
+ ],
+ "seraph_scepter": [
+  "floor10_boss"
+ ],
+ "lantern_staff": [
+  "gear_f01_common"
+ ],
+ "wayfarer_spiral_staff": [
+  "gear_f01_common",
+  "recipe:wayfarer_spiral_staff"
+ ],
+ "grove_heartwood_staff": [
+  "floor01_boss",
+  "recipe:grove_heartwood_staff"
+ ],
+ "ore_crystal_staff": [
+  "gear_f02_common"
+ ],
+ "miners_fork_staff": [
+  "recipe:miners_fork_staff"
+ ],
+ "mycelium_staff": [
+  "gear_f03_common"
+ ],
+ "glowcap_spiral_staff": [
+  "recipe:glowcap_spiral_staff"
+ ],
+ "brine_orb_staff": [
+  "recipe:brine_orb_staff"
+ ],
+ "tide_fork_staff": [
+  "gear_f04_common"
+ ],
+ "osric_tide_trident": [
+  "floor04_boss"
+ ],
+ "cinder_spiral_staff": [
+  "gear_f05_common"
+ ],
+ "cinder_crystal_staff": [
+  "recipe:cinder_crystal_staff"
+ ],
+ "rimeheart_staff": [
+  "floor06_boss"
+ ],
+ "rimebell_staff": [
+  "recipe:rimebell_staff"
+ ],
+ "resonance_staff": [
+  "gear_f07_common"
+ ],
+ "resonant_fork_staff": [
+  "recipe:resonant_fork_staff"
+ ],
+ "ink_spiral_staff": [
+  "recipe:ink_spiral_staff"
+ ],
+ "inkwell_staff": [
+  "floor08_boss"
+ ],
+ "orrery_staff": [
+  "recipe:orrery_staff"
+ ],
+ "tesla_coil_staff": [
+  "floor09_boss"
+ ],
+ "void_fork_staff": [
+  "recipe:void_fork_staff"
+ ],
+ "voidheart_staff": [
+  "floor10_boss"
+ ],
+ "corridor_longsword": [
+  "gear_f01_common"
+ ],
+ "mossback_warhammer": [
+  "gear_f01_common",
+  "recipe:mossback_warhammer"
+ ],
+ "grove_warden_maul": [
+  "floor01_boss",
+  "recipe:grove_warden_maul"
+ ],
+ "minewarden_mace": [
+  "gear_f02_common"
+ ],
+ "silkguard_falchion": [
+  "recipe:silkguard_falchion"
+ ],
+ "sporeward_broadsword": [
+  "gear_f03_common"
+ ],
+ "sporecap_warhammer": [
+  "recipe:sporecap_warhammer"
+ ],
+ "mycelking_guard_blade": [
+  "floor03_boss"
+ ],
+ "sluice_breaker_mace": [
+  "recipe:sluice_breaker_mace"
+ ],
+ "brine_falchion": [
+  "gear_f04_common"
+ ],
+ "emberforge_warhammer": [
+  "gear_f05_common"
+ ],
+ "anvil_oath_broadsword": [
+  "recipe:anvil_oath_broadsword"
+ ],
+ "dawnbringer": [
+  "floor05_boss"
+ ],
+ "frostgrave_mace": [
+  "recipe:frostgrave_mace"
+ ],
+ "resonant_longsword": [
+  "gear_f07_common"
+ ],
+ "amethyst_falchion": [
+  "recipe:amethyst_falchion"
+ ],
+ "inkseal_warhammer": [
+  "recipe:inkseal_warhammer"
+ ],
+ "index_keeper_sword": [
+  "floor08_boss"
+ ],
+ "clockguard_mace": [
+  "recipe:clockguard_mace"
+ ],
+ "void_falchion": [
+  "recipe:void_falchion"
+ ],
+ "abyss_sentinel_longsword": [
+  "floor10_boss"
+ ],
+ "celestial_oathkeeper": [
+  "floor10_boss"
+ ]
+}

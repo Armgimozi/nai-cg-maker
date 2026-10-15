@@ -1,0 +1,2014 @@
+{
+ "class_skills": {
+  "shield_bash": "physical",
+  "taunting_roar": "none",
+  "guardian_oath": "none",
+  "bulwark_citadel": "none",
+  "spin_slash": "physical",
+  "ground_cleaver": "physical",
+  "blood_frenzy": "none",
+  "ruinous_leap": "physical",
+  "piercing_arrow": "physical",
+  "hunters_mark": "none",
+  "evasive_trap": "physical",
+  "arrow_storm": "physical",
+  "arcane_bolt": "magic",
+  "frost_nova": "magic",
+  "phase_blink": "magic",
+  "meteor_fall": "magic",
+  "healing_light": "none",
+  "purifying_wave": "magic",
+  "sacred_ward": "none",
+  "resurrection_hymn": "none",
+  "shadow_strike": "physical",
+  "smoke_veil": "none",
+  "venom_blades": "physical",
+  "shadow_execution": "physical"
+ },
+ "class_skill_notes": {
+  "shield_bash": "부채꼴 타격 1.2 + 기절",
+  "taunting_roar": "도발 + 받는 피해 감소",
+  "guardian_oath": "피해 대신 받기(되돌린 몫은 fixed) + 보호막",
+  "bulwark_citadel": "방벽: 피해 감소·밀림 면역·적 둔화",
+  "spin_slash": "원형 1.4 + 출혈(물리 지속)",
+  "ground_cleaver": "직선 1.8 + 띄우기",
+  "blood_frenzy": "HP 바쳐 공속·피해·흡혈 버프",
+  "ruinous_leap": "도약 3.5 + 받는 피해 +15%",
+  "piercing_arrow": "관통 화살 2.0",
+  "hunters_mark": "표식: 받는 피해 +20%",
+  "evasive_trap": "덫 1.0 + 속박",
+  "arrow_storm": "화살비 0.6 × 8틱",
+  "arcane_bolt": "마력탄 2.0",
+  "frost_nova": "서리 고리 1.2 + 빙결",
+  "phase_blink": "잔상 폭발 1.0",
+  "meteor_fall": "운석 5.0 + 불태움(마법 지속)",
+  "healing_light": "치유 (WIS 치유력)",
+  "purifying_wave": "파동 0.8 + 정화·회복",
+  "sacred_ward": "보호막 + 피해 +10%",
+  "resurrection_hymn": "부활·회복",
+  "shadow_strike": "돌진 찌르기 1.8 / 등 뒤 3.0",
+  "smoke_veil": "연막: 회피·은신 (다음 공격 +50%)",
+  "venom_blades": "독날: 독 중첩(물리 지속)",
+  "shadow_execution": "순회 베기 2.2"
+ },
+ "weapon_skills": {
+  "mycelking_guard_blade:RIGHT": "physical",
+  "sluice_breaker_mace:RIGHT": "physical",
+  "sluice_breaker_mace:SNEAK_RIGHT": "physical",
+  "emberforge_warhammer:RIGHT": "hybrid",
+  "anvil_oath_broadsword:RIGHT": "physical",
+  "anvil_oath_broadsword:SNEAK_RIGHT": "hybrid",
+  "dawnbringer:RIGHT": "physical",
+  "dawnbringer:SNEAK_LEFT": "physical",
+  "dawnbringer:SNEAK_RIGHT": "none",
+  "frostgrave_mace:RIGHT": "physical",
+  "inkseal_warhammer:RIGHT": "physical",
+  "index_keeper_sword:RIGHT": "magic",
+  "index_keeper_sword:SNEAK_RIGHT": "physical",
+  "clockguard_mace:RIGHT": "physical",
+  "clockguard_mace:SNEAK_RIGHT": "none",
+  "void_falchion:RIGHT": "physical",
+  "abyss_sentinel_longsword:RIGHT": "physical",
+  "abyss_sentinel_longsword:SNEAK_LEFT": "physical",
+  "abyss_sentinel_longsword:SNEAK_RIGHT": "physical",
+  "celestial_oathkeeper:LEFT": "physical",
+  "celestial_oathkeeper:RIGHT": "physical",
+  "celestial_oathkeeper:SNEAK_LEFT": "hybrid",
+  "celestial_oathkeeper:SNEAK_RIGHT": "none",
+  "silkqueen_reaper:RIGHT": "physical",
+  "drowned_anchor_cleaver:RIGHT": "physical",
+  "drowned_anchor_cleaver:SNEAK_RIGHT": "physical",
+  "osric_drowned_axe:RIGHT": "physical",
+  "cinderdrake_glaive:SNEAK_RIGHT": "hybrid",
+  "slagforged_greatsword:RIGHT": "hybrid",
+  "slagforged_greatsword:SNEAK_RIGHT": "hybrid",
+  "ember_greatsword:LEFT": "hybrid",
+  "ember_greatsword:RIGHT": "hybrid",
+  "ember_greatsword:SNEAK_RIGHT": "hybrid",
+  "rime_reaper_scythe:RIGHT": "physical",
+  "lore_glaive:RIGHT": "physical",
+  "geode_sunderer:RIGHT": "physical",
+  "geode_sunderer:SNEAK_LEFT": "physical",
+  "geode_sunderer:SNEAK_RIGHT": "physical",
+  "regulator_greatsword:RIGHT": "physical",
+  "regulator_greatsword:SNEAK_RIGHT": "physical",
+  "void_scythe:RIGHT": "physical",
+  "doomclock_executioner:RIGHT": "physical",
+  "doomclock_executioner:SNEAK_LEFT": "none",
+  "doomclock_executioner:SNEAK_RIGHT": "physical",
+  "bloodmoon_reaver:LEFT": "physical",
+  "bloodmoon_reaver:RIGHT": "physical",
+  "bloodmoon_reaver:SNEAK_LEFT": "none",
+  "bloodmoon_reaver:SNEAK_RIGHT": "physical",
+  "eelbone_recurve:SNEAK_RIGHT": "hybrid",
+  "slagedge_bladebow:SNEAK_RIGHT": "hybrid",
+  "bellows_composite_bow:SNEAK_LEFT": "hybrid",
+  "bellows_composite_bow:SNEAK_RIGHT": "hybrid",
+  "tidecaller_bow:SNEAK_LEFT": "physical",
+  "tidecaller_bow:SNEAK_RIGHT": "physical",
+  "frostbone_longbow:SNEAK_RIGHT": "physical",
+  "inkquill_hornbow:SNEAK_RIGHT": "physical",
+  "galewing_bow:SNEAK_LEFT": "physical",
+  "galewing_bow:SNEAK_RIGHT": "physical",
+  "springloaded_bow:SNEAK_LEFT": "physical",
+  "springloaded_bow:SNEAK_RIGHT": "physical",
+  "abyss_bladebow:SNEAK_LEFT": "physical",
+  "quicksilver_longbow:SNEAK_LEFT": "physical",
+  "quicksilver_longbow:SNEAK_RIGHT": "physical",
+  "tempest_bow:LEFT": "physical",
+  "tempest_bow:SNEAK_LEFT": "hybrid",
+  "tempest_bow:SNEAK_RIGHT": "hybrid",
+  "brine_orb_staff:RIGHT": "magic",
+  "brine_orb_staff:SNEAK_RIGHT": "magic",
+  "osric_tide_trident:RIGHT": "magic",
+  "cinder_spiral_staff:RIGHT": "magic",
+  "cinder_crystal_staff:RIGHT": "magic",
+  "cinder_crystal_staff:SNEAK_RIGHT": "magic",
+  "rimeheart_staff:LEFT": "magic",
+  "rimeheart_staff:RIGHT": "magic",
+  "rimeheart_staff:SNEAK_RIGHT": "magic",
+  "rimebell_staff:RIGHT": "magic",
+  "ink_spiral_staff:RIGHT": "magic",
+  "inkwell_staff:RIGHT": "magic",
+  "inkwell_staff:SNEAK_LEFT": "magic",
+  "inkwell_staff:SNEAK_RIGHT": "magic",
+  "orrery_staff:RIGHT": "magic",
+  "orrery_staff:SNEAK_RIGHT": "magic",
+  "void_fork_staff:SNEAK_RIGHT": "magic",
+  "tesla_coil_staff:RIGHT": "magic",
+  "tesla_coil_staff:SNEAK_LEFT": "magic",
+  "tesla_coil_staff:SNEAK_RIGHT": "magic",
+  "voidheart_staff:LEFT": "magic",
+  "voidheart_staff:RIGHT": "magic",
+  "voidheart_staff:SNEAK_LEFT": "hybrid",
+  "voidheart_staff:SNEAK_RIGHT": "magic",
+  "silkqueen_spindle_censer:RIGHT": "none",
+  "silkqueen_spindle_censer:SNEAK_RIGHT": "none",
+  "mycelking_scepter:RIGHT": "none",
+  "tidebell_censer:RIGHT": "none",
+  "tidebell_censer:SNEAK_RIGHT": "none",
+  "crucible_chalice:RIGHT": "magic",
+  "embersong_scepter:RIGHT": "none",
+  "embersong_scepter:SNEAK_RIGHT": "magic",
+  "sanctum_scepter:RIGHT": "none",
+  "sanctum_scepter:SNEAK_LEFT": "magic",
+  "sanctum_scepter:SNEAK_RIGHT": "none",
+  "frost_vigil_censer:RIGHT": "none",
+  "ink_chalice:RIGHT": "none",
+  "twin_light_scepter:RIGHT": "magic",
+  "twin_light_scepter:SNEAK_LEFT": "none",
+  "twin_light_scepter:SNEAK_RIGHT": "none",
+  "pendulum_censer:RIGHT": "none",
+  "pendulum_censer:SNEAK_RIGHT": "none",
+  "abyss_bell_scepter:RIGHT": "magic",
+  "aurora_scepter:RIGHT": "none",
+  "aurora_scepter:SNEAK_LEFT": "magic",
+  "aurora_scepter:SNEAK_RIGHT": "none",
+  "seraph_scepter:RIGHT": "none",
+  "seraph_scepter:SNEAK_LEFT": "magic",
+  "seraph_scepter:SNEAK_RIGHT": "none",
+  "silkqueen_fang:RIGHT": "physical",
+  "mycelking_sporefang:RIGHT": "physical",
+  "eel_kris:RIGHT": "physical",
+  "slag_katar:RIGHT": "hybrid",
+  "cinder_fang:RIGHT": "hybrid",
+  "cinder_fang:SNEAK_RIGHT": "hybrid",
+  "soulflame_kris:RIGHT": "hybrid",
+  "soulflame_kris:SNEAK_RIGHT": "hybrid",
+  "gravefrost_katar:RIGHT": "physical",
+  "lorekeeper_katar:RIGHT": "physical",
+  "nightshade_dagger:RIGHT": "physical",
+  "nightshade_dagger:SNEAK_LEFT": "physical",
+  "mainspring_dagger:RIGHT": "physical",
+  "mainspring_dagger:SNEAK_RIGHT": "physical",
+  "abyss_sickle:RIGHT": "physical",
+  "viper_fang:RIGHT": "physical",
+  "viper_fang:SNEAK_LEFT": "physical",
+  "viper_fang:SNEAK_RIGHT": "physical",
+  "eclipse_blade:LEFT": "physical",
+  "eclipse_blade:RIGHT": "physical",
+  "eclipse_blade:SNEAK_LEFT": "physical",
+  "eclipse_blade:SNEAK_RIGHT": "physical",
+  "drowned_executioner_axe:RIGHT": "physical",
+  "eel_twin_bow:SNEAK_RIGHT": "physical",
+  "sluice_morning_star:RIGHT": "physical",
+  "cinder_dagger:RIGHT": "physical",
+  "slag_flamberge:RIGHT": "physical",
+  "anvil_executioner_axe:RIGHT": "physical",
+  "bellows_bone_bow:SNEAK_RIGHT": "physical",
+  "ember_tanto:RIGHT": "physical",
+  "forge_chime_rod:RIGHT": "magic",
+  "slag_war_spear:RIGHT": "physical",
+  "cinder_rapier:RIGHT": "physical",
+  "forge_cleaver:RIGHT": "physical",
+  "frost_longsword:RIGHT": "physical",
+  "frost_twin_bow:SNEAK_RIGHT": "physical",
+  "rime_great_maul:RIGHT": "physical",
+  "rime_thurible_rod:RIGHT": "magic",
+  "frost_stiletto:RIGHT": "physical",
+  "rime_morning_star:RIGHT": "physical",
+  "frost_antler_staff:RIGHT": "magic",
+  "rime_composite_bow:SNEAK_RIGHT": "physical",
+  "rime_great_axe:RIGHT": "physical",
+  "frost_tanto:RIGHT": "physical",
+  "rime_chalice:RIGHT": "magic",
+  "rime_flamberge:RIGHT": "physical",
+  "frost_war_spear:RIGHT": "physical",
+  "rime_chime_rod:RIGHT": "magic",
+  "ink_great_maul:RIGHT": "physical",
+  "ink_recurve:SNEAK_RIGHT": "physical",
+  "ink_sabre:RIGHT": "physical",
+  "lore_lamp_crook:RIGHT": "magic",
+  "ink_morning_star:RIGHT": "physical",
+  "lore_sickle:RIGHT": "physical",
+  "index_cleaver:RIGHT": "physical",
+  "ink_bone_bow:SNEAK_RIGHT": "physical",
+  "lore_antler_staff:RIGHT": "hybrid",
+  "ink_flamberge:RIGHT": "physical",
+  "ink_stiletto:RIGHT": "physical",
+  "lore_sun_scepter:RIGHT": "magic",
+  "index_war_spear:RIGHT": "physical",
+  "ink_rapier:RIGHT": "physical",
+  "clock_bell_scepter:RIGHT": "magic",
+  "clock_blade_bow:SNEAK_RIGHT": "physical",
+  "clock_kris:RIGHT": "physical",
+  "clock_mace:RIGHT": "physical",
+  "clock_falchion:RIGHT": "physical",
+  "clock_staff_orb:RIGHT": "magic",
+  "clock_glaive:RIGHT": "physical",
+  "clock_greatsword:RIGHT": "physical",
+  "clock_thurible_rod:RIGHT": "magic",
+  "clock_antler_staff:RIGHT": "magic",
+  "clock_broadsword:RIGHT": "physical",
+  "clock_katar:RIGHT": "physical",
+  "clock_longsword:RIGHT": "physical",
+  "clock_morning_star:RIGHT": "physical",
+  "abyss_great_maul:RIGHT": "physical",
+  "void_stiletto:RIGHT": "physical",
+  "void_twin_bow:SNEAK_RIGHT": "physical",
+  "abyss_broadsword:RIGHT": "physical",
+  "abyss_sabre:RIGHT": "physical",
+  "void_lamp_crook:RIGHT": "magic",
+  "abyss_bone_bow:SNEAK_RIGHT": "physical",
+  "abyss_executioner_axe:RIGHT": "physical",
+  "abyss_antler_staff:RIGHT": "magic",
+  "void_fang_blade:RIGHT": "physical",
+  "void_tanto:RIGHT": "physical",
+  "abyss_ring_staff:RIGHT": "magic",
+  "abyss_war_spear:RIGHT": "physical"
+ },
+ "weapon_skill_detail": {
+  "mycelking_guard_blade:RIGHT": {
+   "name": "근위 포자벽",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "sluice_breaker_mace:RIGHT": {
+   "name": "수문 막기",
+   "impl": "riposte",
+   "parts": [
+    "fixed",
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "sluice_breaker_mace:SNEAK_RIGHT": {
+   "name": "수문 해일",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "emberforge_warhammer:RIGHT": {
+   "name": "단조 강타",
+   "impl": "mechanics",
+   "parts": [
+    "magic",
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "anvil_oath_broadsword:RIGHT": {
+   "name": "모루의 맹세",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "anvil_oath_broadsword:SNEAK_RIGHT": {
+   "name": "불꽃 담금질",
+   "impl": "mechanics",
+   "parts": [
+    "magic",
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "dawnbringer:RIGHT": {
+   "name": "여명의 방벽",
+   "impl": "riposte",
+   "parts": [
+    "fixed",
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "dawnbringer:SNEAK_LEFT": {
+   "name": "새벽 파쇄",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "dawnbringer:SNEAK_RIGHT": {
+   "name": "새벽 성역",
+   "impl": "sanctuary",
+   "parts": [],
+   "weapon_default": "physical"
+  },
+  "frostgrave_mace:RIGHT": {
+   "name": "묘지기의 종",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "inkseal_warhammer:RIGHT": {
+   "name": "인장 내려찍기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "index_keeper_sword:RIGHT": {
+   "name": "봉인 문장",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "physical"
+  },
+  "index_keeper_sword:SNEAK_RIGHT": {
+   "name": "떠도는 책장",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "clockguard_mace:RIGHT": {
+   "name": "시계추 강타",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "clockguard_mace:SNEAK_RIGHT": {
+   "name": "태엽 감기",
+   "impl": "empower",
+   "parts": [],
+   "weapon_default": "physical"
+  },
+  "void_falchion:RIGHT": {
+   "name": "공허 가르기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "abyss_sentinel_longsword:RIGHT": {
+   "name": "심연 끌개",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "abyss_sentinel_longsword:SNEAK_LEFT": {
+   "name": "해일 검기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "abyss_sentinel_longsword:SNEAK_RIGHT": {
+   "name": "심연의 문",
+   "impl": "riposte",
+   "parts": [
+    "fixed",
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "celestial_oathkeeper:LEFT": {
+   "name": "성좌 검기",
+   "impl": "slash_wave",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "celestial_oathkeeper:RIGHT": {
+   "name": "천궁 방벽",
+   "impl": "riposte",
+   "parts": [
+    "fixed",
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "celestial_oathkeeper:SNEAK_LEFT": {
+   "name": "유성 낙하",
+   "impl": "mechanics",
+   "parts": [
+    "magic",
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "celestial_oathkeeper:SNEAK_RIGHT": {
+   "name": "별자리 성역",
+   "impl": "sanctuary",
+   "parts": [],
+   "weapon_default": "physical"
+  },
+  "silkqueen_reaper:RIGHT": {
+   "name": "거미다리 휩쓸기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "drowned_anchor_cleaver:RIGHT": {
+   "name": "닻 던지기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "drowned_anchor_cleaver:SNEAK_RIGHT": {
+   "name": "침몰",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "osric_drowned_axe:RIGHT": {
+   "name": "수문 내려찍기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "cinderdrake_glaive:SNEAK_RIGHT": {
+   "name": "용의 숨결",
+   "impl": "mechanics",
+   "parts": [
+    "magic",
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "slagforged_greatsword:RIGHT": {
+   "name": "쇳물 붓기",
+   "impl": "mechanics",
+   "parts": [
+    "magic",
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "slagforged_greatsword:SNEAK_RIGHT": {
+   "name": "용광로 폭발",
+   "impl": "mechanics",
+   "parts": [
+    "magic",
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "ember_greatsword:LEFT": {
+   "name": "잿불 검기",
+   "impl": "slash_wave",
+   "parts": [
+    "magic",
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "ember_greatsword:RIGHT": {
+   "name": "잿불 돌진",
+   "impl": "mechanics",
+   "parts": [
+    "magic",
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "ember_greatsword:SNEAK_RIGHT": {
+   "name": "용암 균열",
+   "impl": "mechanics",
+   "parts": [
+    "magic",
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "rime_reaper_scythe:RIGHT": {
+   "name": "서리꽃 수확",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "lore_glaive:RIGHT": {
+   "name": "필경 돌진",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "geode_sunderer:RIGHT": {
+   "name": "정동 낙하",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "geode_sunderer:SNEAK_LEFT": {
+   "name": "공명 파열",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "geode_sunderer:SNEAK_RIGHT": {
+   "name": "수정 폭쇄",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "regulator_greatsword:RIGHT": {
+   "name": "태엽 돌진",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "regulator_greatsword:SNEAK_RIGHT": {
+   "name": "톱니 투척",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "void_scythe:RIGHT": {
+   "name": "공허 거두기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "doomclock_executioner:RIGHT": {
+   "name": "톱니 선풍",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "doomclock_executioner:SNEAK_LEFT": {
+   "name": "시간 가속",
+   "impl": "empower",
+   "parts": [],
+   "weapon_default": "physical"
+  },
+  "doomclock_executioner:SNEAK_RIGHT": {
+   "name": "자정의 일격",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "bloodmoon_reaver:LEFT": {
+   "name": "만월 학살",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "bloodmoon_reaver:RIGHT": {
+   "name": "혈월 참",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "bloodmoon_reaver:SNEAK_LEFT": {
+   "name": "만월의 갈증",
+   "impl": "empower",
+   "parts": [],
+   "weapon_default": "physical"
+  },
+  "bloodmoon_reaver:SNEAK_RIGHT": {
+   "name": "피의 질주",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "eelbone_recurve:SNEAK_RIGHT": {
+   "name": "전기뱀장어 화살",
+   "impl": "mechanics",
+   "parts": [
+    "magic",
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "slagedge_bladebow:SNEAK_RIGHT": {
+   "name": "쇳물 관통탄",
+   "impl": "mechanics",
+   "parts": [
+    "magic",
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "bellows_composite_bow:SNEAK_LEFT": {
+   "name": "잿더미 비",
+   "impl": "mechanics",
+   "parts": [
+    "magic",
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "bellows_composite_bow:SNEAK_RIGHT": {
+   "name": "풀무 화살",
+   "impl": "mechanics",
+   "parts": [
+    "magic",
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "tidecaller_bow:SNEAK_LEFT": {
+   "name": "밀물 결계",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "tidecaller_bow:SNEAK_RIGHT": {
+   "name": "물보라 화살",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "frostbone_longbow:SNEAK_RIGHT": {
+   "name": "고드름 화살",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "inkquill_hornbow:SNEAK_RIGHT": {
+   "name": "깃펜 산탄",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "galewing_bow:SNEAK_LEFT": {
+   "name": "회오리 화살",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "galewing_bow:SNEAK_RIGHT": {
+   "name": "돌풍 화살",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "springloaded_bow:SNEAK_LEFT": {
+   "name": "용수철 도약",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "springloaded_bow:SNEAK_RIGHT": {
+   "name": "연발 사격",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "abyss_bladebow:SNEAK_LEFT": {
+   "name": "물러서며 베기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "quicksilver_longbow:SNEAK_LEFT": {
+   "name": "수은비",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "quicksilver_longbow:SNEAK_RIGHT": {
+   "name": "분열 수은탄",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "tempest_bow:LEFT": {
+   "name": "번개 화살",
+   "impl": "missile",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "tempest_bow:SNEAK_LEFT": {
+   "name": "폭풍의 눈",
+   "impl": "mechanics",
+   "parts": [
+    "magic",
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "tempest_bow:SNEAK_RIGHT": {
+   "name": "천둥 화살",
+   "impl": "mechanics",
+   "parts": [
+    "magic",
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "brine_orb_staff:RIGHT": {
+   "name": "거품 탄막",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "brine_orb_staff:SNEAK_RIGHT": {
+   "name": "물감옥",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "osric_tide_trident:RIGHT": {
+   "name": "역류 소용돌이",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "cinder_spiral_staff:RIGHT": {
+   "name": "나선 불기둥",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "cinder_crystal_staff:RIGHT": {
+   "name": "불씨 화구",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "cinder_crystal_staff:SNEAK_RIGHT": {
+   "name": "불씨 폭발",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "rimeheart_staff:LEFT": {
+   "name": "서리 파편",
+   "impl": "missile",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "rimeheart_staff:RIGHT": {
+   "name": "빙하 광선",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "rimeheart_staff:SNEAK_RIGHT": {
+   "name": "서리 별",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "rimebell_staff:RIGHT": {
+   "name": "얼음 방울",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "ink_spiral_staff:RIGHT": {
+   "name": "먹구름 장막",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "inkwell_staff:RIGHT": {
+   "name": "먹물 탄",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "inkwell_staff:SNEAK_LEFT": {
+   "name": "필사 정령",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "inkwell_staff:SNEAK_RIGHT": {
+   "name": "잉크 소용돌이",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "orrery_staff:RIGHT": {
+   "name": "궤도 톱니",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "orrery_staff:SNEAK_RIGHT": {
+   "name": "천체 정렬",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "void_fork_staff:SNEAK_RIGHT": {
+   "name": "공허 쌍탄",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "tesla_coil_staff:RIGHT": {
+   "name": "연쇄 전격",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "tesla_coil_staff:SNEAK_LEFT": {
+   "name": "과부하",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "tesla_coil_staff:SNEAK_RIGHT": {
+   "name": "전자기장",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "voidheart_staff:LEFT": {
+   "name": "공허탄",
+   "impl": "missile",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "voidheart_staff:RIGHT": {
+   "name": "사건의 지평선",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "voidheart_staff:SNEAK_LEFT": {
+   "name": "차원 베기",
+   "impl": "mechanics",
+   "parts": [
+    "magic",
+    "physical"
+   ],
+   "weapon_default": "magic"
+  },
+  "voidheart_staff:SNEAK_RIGHT": {
+   "name": "별 붕괴",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "silkqueen_spindle_censer:RIGHT": {
+   "name": "은실 붕대",
+   "impl": "mend",
+   "parts": [],
+   "weapon_default": "magic"
+  },
+  "silkqueen_spindle_censer:SNEAK_RIGHT": {
+   "name": "은실 고치 요람",
+   "impl": "mechanics",
+   "parts": [],
+   "weapon_default": "magic"
+  },
+  "mycelking_scepter:RIGHT": {
+   "name": "포자의 은총",
+   "impl": "mechanics",
+   "parts": [],
+   "weapon_default": "magic"
+  },
+  "tidebell_censer:RIGHT": {
+   "name": "물방울 축복",
+   "impl": "mend",
+   "parts": [],
+   "weapon_default": "magic"
+  },
+  "tidebell_censer:SNEAK_RIGHT": {
+   "name": "조수의 종",
+   "impl": "mechanics",
+   "parts": [],
+   "weapon_default": "magic"
+  },
+  "crucible_chalice:RIGHT": {
+   "name": "도가니 축복",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "embersong_scepter:RIGHT": {
+   "name": "불씨의 노래",
+   "impl": "mechanics",
+   "parts": [],
+   "weapon_default": "magic"
+  },
+  "embersong_scepter:SNEAK_RIGHT": {
+   "name": "정화의 불꽃",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "sanctum_scepter:RIGHT": {
+   "name": "성광의 축복",
+   "impl": "mend",
+   "parts": [],
+   "weapon_default": "magic"
+  },
+  "sanctum_scepter:SNEAK_LEFT": {
+   "name": "성광 심판",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "sanctum_scepter:SNEAK_RIGHT": {
+   "name": "성역 전개",
+   "impl": "sanctuary",
+   "parts": [],
+   "weapon_default": "magic"
+  },
+  "frost_vigil_censer:RIGHT": {
+   "name": "철야의 등불",
+   "impl": "mechanics",
+   "parts": [],
+   "weapon_default": "magic"
+  },
+  "ink_chalice:RIGHT": {
+   "name": "먹물 성찬",
+   "impl": "mechanics",
+   "parts": [],
+   "weapon_default": "magic"
+  },
+  "twin_light_scepter:RIGHT": {
+   "name": "분광선",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "twin_light_scepter:SNEAK_LEFT": {
+   "name": "굴절 장막",
+   "impl": "mechanics",
+   "parts": [],
+   "weapon_default": "magic"
+  },
+  "twin_light_scepter:SNEAK_RIGHT": {
+   "name": "프리즘 보호막",
+   "impl": "mend",
+   "parts": [],
+   "weapon_default": "magic"
+  },
+  "pendulum_censer:RIGHT": {
+   "name": "시간 되감기",
+   "impl": "mechanics",
+   "parts": [],
+   "weapon_default": "magic"
+  },
+  "pendulum_censer:SNEAK_RIGHT": {
+   "name": "고요의 박자",
+   "impl": "sanctuary",
+   "parts": [],
+   "weapon_default": "magic"
+  },
+  "abyss_bell_scepter:RIGHT": {
+   "name": "심연의 메아리",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "aurora_scepter:RIGHT": {
+   "name": "극광의 물결",
+   "impl": "mend",
+   "parts": [],
+   "weapon_default": "magic"
+  },
+  "aurora_scepter:SNEAK_LEFT": {
+   "name": "극광 띠",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "aurora_scepter:SNEAK_RIGHT": {
+   "name": "오로라 장막",
+   "impl": "sanctuary",
+   "parts": [],
+   "weapon_default": "magic"
+  },
+  "seraph_scepter:RIGHT": {
+   "name": "치천의 숨결",
+   "impl": "mend",
+   "parts": [],
+   "weapon_default": "magic"
+  },
+  "seraph_scepter:SNEAK_LEFT": {
+   "name": "심판의 창",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic"
+  },
+  "seraph_scepter:SNEAK_RIGHT": {
+   "name": "여섯 날개의 성역",
+   "impl": "sanctuary",
+   "parts": [],
+   "weapon_default": "magic"
+  },
+  "silkqueen_fang:RIGHT": {
+   "name": "여왕의 독니",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "mycelking_sporefang:RIGHT": {
+   "name": "포자 송곳 투척",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "eel_kris:RIGHT": {
+   "name": "뱀장어 찌르기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "slag_katar:RIGHT": {
+   "name": "달군 쇠 연타",
+   "impl": "mechanics",
+   "parts": [
+    "magic",
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "cinder_fang:RIGHT": {
+   "name": "불씨 잠행",
+   "impl": "shadow_step",
+   "parts": [
+    "magic",
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "cinder_fang:SNEAK_RIGHT": {
+   "name": "불티 부채",
+   "impl": "mechanics",
+   "parts": [
+    "magic",
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "soulflame_kris:RIGHT": {
+   "name": "혼불 잠행",
+   "impl": "mechanics",
+   "parts": [
+    "magic",
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "soulflame_kris:SNEAK_RIGHT": {
+   "name": "도깨비불 궤도",
+   "impl": "mechanics",
+   "parts": [
+    "magic",
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "gravefrost_katar:RIGHT": {
+   "name": "서리 도굴",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "lorekeeper_katar:RIGHT": {
+   "name": "책갈피 표식",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "nightshade_dagger:RIGHT": {
+   "name": "그림자 질주",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "nightshade_dagger:SNEAK_LEFT": {
+   "name": "야음 폭발",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "mainspring_dagger:RIGHT": {
+   "name": "태엽 연격",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "mainspring_dagger:SNEAK_RIGHT": {
+   "name": "역회전",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "abyss_sickle:RIGHT": {
+   "name": "낫 갈고리",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "viper_fang:RIGHT": {
+   "name": "독침 투척",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "viper_fang:SNEAK_LEFT": {
+   "name": "독니 처형",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "viper_fang:SNEAK_RIGHT": {
+   "name": "맹독 폭발",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "eclipse_blade:LEFT": {
+   "name": "흑일 검기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "eclipse_blade:RIGHT": {
+   "name": "흑일 잠행",
+   "impl": "shadow_step",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "eclipse_blade:SNEAK_LEFT": {
+   "name": "코로나 칼날",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "eclipse_blade:SNEAK_RIGHT": {
+   "name": "개기일식",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical"
+  },
+  "drowned_executioner_axe:RIGHT": {
+   "name": "물살 목 치기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "eel_twin_bow:SNEAK_RIGHT": {
+   "name": "물살 기습 화살",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "sluice_morning_star:RIGHT": {
+   "name": "물살 피 마시기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "cinder_dagger:RIGHT": {
+   "name": "불티 그림자 걸음",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "slag_flamberge:RIGHT": {
+   "name": "불티 가르기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "anvil_executioner_axe:RIGHT": {
+   "name": "불티 목 치기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "bellows_bone_bow:SNEAK_RIGHT": {
+   "name": "불티 가시 화살",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "ember_tanto:RIGHT": {
+   "name": "불티 등 뒤 일격",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "forge_chime_rod:RIGHT": {
+   "name": "불티 축복의 원",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic",
+   "src": "gear_spec_new"
+  },
+  "slag_war_spear:RIGHT": {
+   "name": "불티 버티기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "cinder_rapier:RIGHT": {
+   "name": "불티 칼바람",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "forge_cleaver:RIGHT": {
+   "name": "불티 폭쇄",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "frost_longsword:RIGHT": {
+   "name": "서리 피 마시기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "frost_twin_bow:SNEAK_RIGHT": {
+   "name": "서리 연사",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "rime_great_maul:RIGHT": {
+   "name": "서리 폭쇄",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "rime_thurible_rod:RIGHT": {
+   "name": "서리 연쇄 섬광",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic",
+   "src": "gear_spec_new"
+  },
+  "frost_stiletto:RIGHT": {
+   "name": "서리 가르기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "rime_morning_star:RIGHT": {
+   "name": "서리 버티기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "frost_antler_staff:RIGHT": {
+   "name": "서리 흐름",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic",
+   "src": "gear_spec_new"
+  },
+  "rime_composite_bow:SNEAK_RIGHT": {
+   "name": "서리 꿰뚫는 화살",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "rime_great_axe:RIGHT": {
+   "name": "서리 광란",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "frost_tanto:RIGHT": {
+   "name": "서리 칼바람",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "rime_chalice:RIGHT": {
+   "name": "서리 축복의 원",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic",
+   "src": "gear_spec_new"
+  },
+  "rime_flamberge:RIGHT": {
+   "name": "서리 삼키기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "frost_war_spear:RIGHT": {
+   "name": "서리 내려찍기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "rime_chime_rod:RIGHT": {
+   "name": "서리 방벽",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic",
+   "src": "gear_spec_new"
+  },
+  "ink_great_maul:RIGHT": {
+   "name": "먹물 짓찧기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "ink_recurve:SNEAK_RIGHT": {
+   "name": "먹물 폭발 화살",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "ink_sabre:RIGHT": {
+   "name": "먹물 칼바람",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "lore_lamp_crook:RIGHT": {
+   "name": "먹물 축복의 원",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic",
+   "src": "gear_spec_new"
+  },
+  "ink_morning_star:RIGHT": {
+   "name": "먹물 버티기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "lore_sickle:RIGHT": {
+   "name": "먹물 가르기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "index_cleaver:RIGHT": {
+   "name": "먹물 광란",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "ink_bone_bow:SNEAK_RIGHT": {
+   "name": "먹물 흡혈 화살",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "lore_antler_staff:RIGHT": {
+   "name": "먹물 비",
+   "impl": "mechanics",
+   "parts": [
+    "magic",
+    "physical"
+   ],
+   "weapon_default": "magic",
+   "src": "gear_spec_new"
+  },
+  "ink_flamberge:RIGHT": {
+   "name": "먹물 피 마시기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "ink_stiletto:RIGHT": {
+   "name": "먹물 그림자 걸음",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "lore_sun_scepter:RIGHT": {
+   "name": "먹물 돌봄",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic",
+   "src": "gear_spec_new"
+  },
+  "index_war_spear:RIGHT": {
+   "name": "먹물 방벽",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "ink_rapier:RIGHT": {
+   "name": "먹물 회전 칼날",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "clock_bell_scepter:RIGHT": {
+   "name": "톱니 축복의 원",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic",
+   "src": "gear_spec_new"
+  },
+  "clock_blade_bow:SNEAK_RIGHT": {
+   "name": "톱니 기습 화살",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "clock_kris:RIGHT": {
+   "name": "톱니 가르기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "clock_mace:RIGHT": {
+   "name": "톱니 버티기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "clock_falchion:RIGHT": {
+   "name": "톱니 피 마시기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "clock_staff_orb:RIGHT": {
+   "name": "톱니 비",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic",
+   "src": "gear_spec_new"
+  },
+  "clock_glaive:RIGHT": {
+   "name": "톱니 광란",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "clock_greatsword:RIGHT": {
+   "name": "톱니 짓찧기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "clock_thurible_rod:RIGHT": {
+   "name": "톱니 돌봄",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic",
+   "src": "gear_spec_new"
+  },
+  "clock_antler_staff:RIGHT": {
+   "name": "톱니 장막",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic",
+   "src": "gear_spec_new"
+  },
+  "clock_broadsword:RIGHT": {
+   "name": "톱니 방벽",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "clock_katar:RIGHT": {
+   "name": "톱니 그림자 걸음",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "clock_longsword:RIGHT": {
+   "name": "톱니 난도질",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "clock_morning_star:RIGHT": {
+   "name": "톱니 삼키기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "abyss_great_maul:RIGHT": {
+   "name": "공허 짓찧기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "void_stiletto:RIGHT": {
+   "name": "공허 난도질",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "void_twin_bow:SNEAK_RIGHT": {
+   "name": "공허 연사",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "abyss_broadsword:RIGHT": {
+   "name": "공허 가르기 Ⅱ",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "abyss_sabre:RIGHT": {
+   "name": "공허 칼바람",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "void_lamp_crook:RIGHT": {
+   "name": "공허 축복의 원",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic",
+   "src": "gear_spec_new"
+  },
+  "abyss_bone_bow:SNEAK_RIGHT": {
+   "name": "공허 기습 화살",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "abyss_executioner_axe:RIGHT": {
+   "name": "공허 광란",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "abyss_antler_staff:RIGHT": {
+   "name": "공허 연쇄 섬광",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic",
+   "src": "gear_spec_new"
+  },
+  "void_fang_blade:RIGHT": {
+   "name": "공허 회전 칼날",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "void_tanto:RIGHT": {
+   "name": "공허 그림자 걸음",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  },
+  "abyss_ring_staff:RIGHT": {
+   "name": "공허 흐름",
+   "impl": "mechanics",
+   "parts": [
+    "magic"
+   ],
+   "weapon_default": "magic",
+   "src": "gear_spec_new"
+  },
+  "abyss_war_spear:RIGHT": {
+   "name": "공허 버티기",
+   "impl": "mechanics",
+   "parts": [
+    "physical"
+   ],
+   "weapon_default": "physical",
+   "src": "gear_spec_new"
+  }
+ },
+ "passives": {
+  "iron_will": "none",
+  "bloodrage": "multiplier (모든 종류)",
+  "keen_eye": "physical (끝까지 당긴 화살 +30%)",
+  "arcane_resonance": "multiplier (모든 종류)",
+  "grace": "magic (+10% 마법 피해 — 새 줄)",
+  "vital_point": "multiplier (치명·공속)"
+ },
+ "status": {
+  "bleed": "physical",
+  "poison": "physical",
+  "venom": "physical",
+  "wither": "physical",
+  "burn": "magic",
+  "shock": "magic",
+  "frost": "none (둔화·빙결만, 피해 없음)"
+ },
+ "unique_effects": {
+  "rend": "physical",
+  "hemorrhage": "none",
+  "leech": "none",
+  "feast": "none",
+  "thorns": "fixed",
+  "shield_bash": "physical",
+  "steadfast": "none",
+  "cleave": "physical",
+  "chain_spark": "magic",
+  "death_burst": "physical",
+  "execute": "none",
+  "bloodrush": "none",
+  "momentum": "none",
+  "flurry": "physical",
+  "counterstep": "none",
+  "siphon": "none",
+  "overcharge": "magic",
+  "sanctify": "none",
+  "ward_aura": "none",
+  "imbue": "element",
+  "exploit": "none",
+  "first_strike": "none",
+  "backstab": "none",
+  "longshot": "none",
+  "berserk": "none",
+  "armor_break": "none"
+ },
+ "unique_notes": {
+  "rend": "출혈 지속 — 스킬 위력 기준",
+  "hemorrhage": "치명 보정",
+  "leech": "회복 (한 방 피해 비율)",
+  "feast": "회복",
+  "thorns": "받은 피해 비율 되돌림 — 스탯 무관",
+  "shield_bash": "한 방 공격력 40% + 기절",
+  "steadfast": "받는 피해 감소",
+  "cleave": "한 방 공격력 30% (무기 종류 따라: 시전 무기면 magic)",
+  "chain_spark": "번개 — 한 방 공격력 45% × INT 배율",
+  "death_burst": "처치 폭발 — 스킬 위력 80% (시전 무기면 magic)",
+  "execute": "곱하기 보정",
+  "bloodrush": "곱하기 보정",
+  "momentum": "공속",
+  "flurry": "한 방 공격력 70% 추가 타격 (무기 종류 따름)",
+  "counterstep": "치명·곱하기",
+  "siphon": "MP·재사용",
+  "overcharge": "폭발 — 스킬 위력 120%",
+  "sanctify": "치유 = 한 방 공격력 × 비율 + 치유력",
+  "ward_aura": "보호막",
+  "imbue": "burn/shock = magic, poison = physical, frost = 피해 없음 — 스킬 위력 기준",
+  "exploit": "곱하기",
+  "first_strike": "곱하기",
+  "backstab": "곱하기",
+  "longshot": "곱하기",
+  "berserk": "곱하기",
+  "armor_break": "방어 깎기"
+ }
+}
