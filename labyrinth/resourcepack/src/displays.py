@@ -94,10 +94,13 @@ def _fp_scale(m: Model):
     return s, s / s_h
 
 
-def weapon(m: Model, two_handed=False, gui_rot=(18, 22, -45), fp_yaw=90):
+def weapon(m: Model, two_handed=False, gui_rot=(18, 22, -45), fp_yaw=90, fp_mul=1.0):
     """Upright melee weapon held by its grip (8, 1, 8).  fp_yaw: first-person y rotation — 90 = vanilla's axe angle
-    (edge seen from behind); crescent blades turn further so their face shows while swinging (voxel/weapons.HOLD)."""
+    (edge seen from behind); crescent blades turn further so their face shows while swinging (voxel/weapons.HOLD).
+    fp_mul: extra first-person scale for a shape whose bulk sits where the swing crosses the screen centre (a big
+    block head sweeps more of the centre than its silhouette area says) — voxel/weapons.HOLD[shape]['fp_mul']."""
     fp, wide = _fp_scale(m)
+    fp = max(0.4, fp * fp_mul)
     tp0 = 0.9 if two_handed else 0.85
     # third person shrinks with the width rule too, at most 20 % (it never blocks the view)
     r3, l3 = held(TP_REF[0], tp0 * max(0.8, wide), (TP_REF[0], TP_REF[1], tp0))
@@ -185,7 +188,8 @@ def trinket(m: Model, gui_rot=(15, 25, 0)):
 
 def voxel_weapon(m: Model, two_handed=False):
     from .voxel import weapons as VW      # per-shape hold angle of the template that built this item
-    weapon(m, two_handed=two_handed, gui_rot=(20, 24, -45), fp_yaw=VW.hold_of(m.name).get('fp_yaw', 90))
+    hold = VW.hold_of(m.name)
+    weapon(m, two_handed=two_handed, gui_rot=(20, 24, -45), fp_yaw=hold.get('fp_yaw', 90), fp_mul=hold.get('fp_mul', 1.0))
     # pass 2: leave a margin in the slot like the owner's reference pack (silhouette reads, aura fits)
     m.display['gui'] = fit_transform(m, (20, 24, -45), target=14.5, max_scale=1.6)
     m.display['fixed'] = fit_transform(m, (0, 180, -45), target=14.5, max_scale=1.6)

@@ -108,14 +108,17 @@ def _fold(u):
     return (0.05, 0.05, 0.0, -0.12)[u % 4]
 
 
-def paint_set(look, look_kind: str, seed: int):
-    """Returns (humanoid_img, leggings_img)."""
+def paint_set(look, look_kind: str, seed: int, set_id: str | None = None):
+    """Returns (humanoid_img, leggings_img).  set_id: sets with their own motif (SET_MOTIFS) get it painted on top
+    of the look's base design (before the gap filling, so they stay gap-free like every other set)."""
     hum = Painter(look, seed)
     leg = Painter(look, seed + 1)
     kind = look_kind if look_kind in ('heavy', 'light', 'cloth') else 'heavy'
     {'heavy': _heavy, 'light': _light, 'cloth': _cloth}[kind](hum, leg, look)
-    _style_touches(hum, leg, look, kind)
+    _style_touches(hum, leg, look, kind, SET_CRACK.get(set_id))
     _trims(hum, leg, look, kind, look.level)
+    if set_id in SET_MOTIFS:
+        SET_MOTIFS[set_id](hum, leg, look)
     _cover(hum, leg, look, kind)
     _shell_rims(hum, leg)
     _seams(hum, leg)
@@ -626,11 +629,13 @@ def _lum(c):
     return (c[0] * 0.3 + c[1] * 0.59 + c[2] * 0.11) / 255
 
 
-def _style_touches(hum: Painter, leg: Painter, lk, kind):
-    """중갑 재질의 버릇: 녹(녹슨 철) · 녹청(구리) · 달아오른 틈(흑철) · 결정 면(수정) · 리벳 줄(태엽)."""
+def _style_touches(hum: Painter, leg: Painter, lk, kind, crack=None):
+    """중갑 재질의 버릇: 녹(녹슨 철) · 녹청(구리) · 달아오른 틈(흑철, crack = 틈 색을 세트가 정함) · 결정 면(수정) ·
+    리벳 줄(태엽) · 포자 점(뼈: 어두운 틈 텍셀 12% 를 연분홍 포자로)."""
     style = lk.style
-    if kind != 'heavy' or style not in ('rusted_iron', 'copper', 'dark_iron', 'crystal', 'clockwork'):
+    if kind != 'heavy' or style not in ('rusted_iron', 'copper', 'dark_iron', 'crystal', 'clockwork', 'bone'):
         return
+    spore = mix(shade(lk.accent, 0.85), (255, 214, 236), 0.45)
     dark_cut = _lum(shade(lk.main, 0.16)) + 0.01                             # 이보다 어두우면 틈·그림자
     for pt, salt in ((hum, 3), (leg, 5)):
         for y in range(16, 32):
@@ -645,7 +650,9 @@ def _style_touches(hum: Painter, leg: Painter, lk, kind):
                 elif style == 'copper' and (dark or r < 0.06):
                     pt.put(x, y, mix(c, lk.patina, 0.5 if dark else 0.35))
                 elif style == 'dark_iron' and dark and r < 0.55:
-                    pt.put(x, y, mix(c, shade(lk.accent, 0.4), 0.55))
+                    pt.put(x, y, mix(c, crack or shade(lk.accent, 0.4), 0.55))
+                elif style == 'bone' and dark and r < 0.12:
+                    pt.put(x, y, spore)
                 elif style == 'crystal' and _lum(c) > _lum(shade(lk.main, 0.6)) and r < 0.12:
                     pt.put(x, y, shade(lk.accent, 0.85))
     if style == 'clockwork':
@@ -779,6 +786,198 @@ def _trims(hum: Painter, leg: Painter, lk, kind, lvl):
         x0, y0, w, h = ARM['outer']
         for (dx, dy) in ((1, 1), (2, 1), (1, 2), (2, 2)):
             glow_px(hum, x0 + dx, y0 + dy, glow_core)
+
+
+# ───────────────────────────── 세트 무늬 (0.3.5 새 세트, gear_spec §10) ─────────────────────────────
+# 모양(heavy·light·cloth)의 바탕 위에 세트마다 한두 가지 무늬만 얹는다. 등급 보석(가슴 가운데)은 피해서 그린다.
+# 몸통 앞·뒤의 바깥 두 열(0·1·6·7)은 서 있을 때 팔 상자와 같은 평면이라 _seams 가 한 색으로 덮는다 → 무늬는 2~5열에.
+# 무늬는 _cover 앞이라 빈칸이 생겨도 밑받침이 메운다(피부가 비치지 않음 — validate 가 확인).
+
+def _px(pt: Painter, rects, face, i, j, c):
+    x0, y0, w, h = rects[face]
+    if 0 <= i < w and 0 <= j < h:
+        pt.put(x0 + i, y0 + j, c)
+
+
+def _tint(pt: Painter, rects, face, i, j, c, k):
+    x0, y0, w, h = rects[face]
+    if 0 <= i < w and 0 <= j < h:
+        old = pt.px[x0 + i, y0 + j]
+        if old[3]:
+            pt.px[x0 + i, y0 + j] = mix(old, c, k)[:3] + (old[3],)
+
+
+def _gem_box(lk, kind):
+    """가슴 보석 자리 (등급 2 이상): front 의 (i0, j0, i1, j1) 또는 None."""
+    if lk.level < 2:
+        return None
+    gy = GEM_ROW[kind]
+    return (2, gy - 1, 5, gy + 2)
+
+
+def _free(box, i, j):
+    return box is None or not (box[0] <= i <= box[2] and box[1] <= j <= box[3])
+
+
+def _motif_mycel_carapace(hum: Painter, leg: Painter, lk):
+    """균사 갑각 (판금): 흉갑 앞뒤를 갑충 등딱지처럼 마디로 나누고 이음매에 흰 균사 실(점선),
+    견갑은 버섯 갓(분홍빛 갓 + 아랫단 주름), 각반 무릎에 갓 주름."""
+    M, A = lk.main, lk.accent
+    seam = shade(M, 0.12)
+    thread = mix(shade(M, 0.95), (255, 244, 250), 0.6)
+    cap = mix(shade(A, 0.6), (236, 170, 214), 0.3)
+    gem = _gem_box(lk, 'heavy')
+    for name, rows in (('front', (7,)), ('back', (4, 7))):                     # 등딱지 마디 이음매
+        for j in rows:
+            for i in range(2, 6):
+                if name == 'back' or _free(gem, i, j):
+                    _px(hum, BODY, name, i, j, thread if (i + j) % 2 else seam)
+    for j in (5, 6):                                                             # 등: 가운데 균사 띠
+        _px(hum, BODY, 'back', 3, j, thread)
+    for name in ('outer', 'front', 'back', 'inner'):
+        for i in range(4):
+            for j in range(3):
+                _tint(hum, ARM, name, i, j, cap, 0.38)
+            _px(hum, ARM, name, i, 3, thread if i % 2 == 0 else seam)           # 갓 아래 주름
+    for (i, j) in ((1, 1), (2, 2), (0, 2)):
+        _px(hum, ARM, 'top', i, j, thread)                                      # 갓 윗면 포자 점
+    for name in ('front', 'outer'):
+        for i in range(4):
+            _tint(leg, LEG, name, i, 4, cap, 0.45)
+            _px(leg, LEG, name, i, 5, thread if i % 2 else seam)                # 무릎 갓 주름
+
+
+def _motif_sluice_diver(hum: Painter, leg: Painter, lk):
+    """수로 잠수부 (가죽): 조끼 앞판 가로 호흡관 끈 3줄 + 구리 버클 2개, 등에 둥근 공기통 자국,
+    장화 앞코 물갈퀴(어두운 청록), 앞면에만 밝은 물방울 점."""
+    M, G = lk.main, lk.grip
+    strap, strap_hi = shade(G, 0.24), shade(G, 0.42)
+    copper = mix(shade(lk.orn, 0.75), (196, 120, 60), 0.55)
+    teal = mix(shade(M, 0.2), (20, 86, 92), 0.55)
+    drop = mix(lk.pal.light, (255, 255, 255), 0.5)
+    gem = _gem_box(lk, 'light')
+    for j in ((2, 6, 8) if gem is None else (6, 8)):                             # 호흡관 끈 (+ 벨트 = 세 줄)
+        for i in range(8):
+            _px(hum, BODY, 'front', i, j, strap if (i + j) % 3 else strap_hi)
+    for (i, j) in ((2, 6), (5, 8)):
+        _px(hum, BODY, 'front', i, j, copper)
+    for j in range(12):                                                          # 등: 둥근 공기통 자국
+        for i in range(8):
+            d = ((i - 3.5) ** 2 + ((j - 5.0) * 0.85) ** 2) ** 0.5
+            if abs(d - 1.9) < 0.6:
+                _px(hum, BODY, 'back', i, j, shade(M, 0.16) if i + j > 8 else shade(M, 0.66))
+    _px(hum, BODY, 'back', 3, 2, copper)                                         # 밸브
+    _px(hum, BODY, 'back', 4, 2, copper)
+    for name in ('front',):                                                      # 장화 앞코 물갈퀴 3갈래
+        for i in range(4):
+            _px(hum, LEG, name, i, 11, teal)
+            _px(hum, LEG, name, i, 10, teal if i in (0, 3) else shade(M, 0.36))
+    _px(hum, LEG, 'bottom', 1, 0, teal)
+    _px(hum, LEG, 'bottom', 2, 0, teal)
+    for (i, j) in ((2, 7), (5, 7), (3, 1)):                                      # 물방울 (앞면만)
+        if _free(gem, i, j):
+            _px(hum, BODY, 'front', i, j, drop)
+
+
+def _motif_cinder_cantor(hum: Painter, leg: Painter, lk):
+    """잿불 성가자 (천): 성가복 아랫단 3px 를 숯빛으로 그을리고 그 윗줄에 불티 4개(발광 아님),
+    가슴에 금색 악보 줄, 소매 끝은 그을음 그라데이션."""
+    soot = (22, 15, 12)
+    ember = (255, 150, 52)
+    gold, gold_lo = shade(lk.orn, 0.82), shade(lk.orn, 0.5)
+    for name in ('front', 'back', 'left', 'right'):
+        w = BODY[name][2]
+        for j, k in ((9, 0.25), (10, 0.42), (11, 0.6)):
+            for i in range(w):
+                _tint(hum, BODY, name, i, j, soot, k)
+    for name in ('front', 'back'):
+        for i in (2, 5):
+            _px(hum, BODY, name, i, 9, ember)
+    for j in (4, 5, 6):                                                          # 악보 줄: 앞 (가운데 수놓은 판 양옆)·등
+        for i in (2, 5):
+            _px(hum, BODY, 'front', i, j, gold if j != 5 else gold_lo)
+        for i in range(2, 6):
+            _px(hum, BODY, 'back', i, j, gold if j != 5 else gold_lo)
+    for (i, j) in ((3, 5), (5, 4)):                                              # 음표
+        _px(hum, BODY, 'back', i, j, shade(lk.main, 0.1))
+    for name in ('outer', 'front', 'back', 'inner'):
+        for j, k in ((9, 0.2), (10, 0.36), (11, 0.52)):
+            for i in range(4):
+                _tint(hum, ARM, name, i, j, soot, k)
+
+
+def _fur(pt: Painter, rects, faces, j_edge, j_in, c1, c2):
+    """2px 털 테두리: 바깥 줄은 꽉, 안쪽 줄은 지그재그 (밝은 두 색 번갈아)."""
+    for name in faces:
+        w = rects[name][2]
+        for i in range(w):
+            _px(pt, rects, name, i, j_edge, c1 if i % 2 else c2)
+            if i % 2 == 0:
+                _px(pt, rects, name, i, j_in, c2 if i % 4 else c1)
+
+
+def _motif_rime_stalker(hum: Painter, leg: Painter, lk):
+    """서리 추적자 (가죽): 목깃·아랫단·소매·장화 목에 흰 털 테두리(지그재그), 등에 늑대 발자국 3개(어두운 청색).
+    앞판 사선 가죽끈은 가죽 모양의 바탕 끈이 이미 있다."""
+    L = lk.pal.light
+    f1, f2 = mix(L, (255, 255, 255), 0.6), mix(L, (214, 230, 244), 0.35)
+    paw = mix(shade(lk.main, 0.12), (24, 40, 92), 0.5)
+    body = ('front', 'back', 'left', 'right')
+    _fur(hum, BODY, body, 0, 1, f1, f2)
+    _fur(hum, BODY, body, 11, 10, f1, f2)
+    _fur(hum, ARM, ('outer', 'front', 'back', 'inner'), 11, 10, f1, f2)
+    _fur(hum, LEG, ('outer', 'front', 'back', 'inner'), 7, 8, f1, f2)           # 장화 털 커프
+    for (x, y) in ((2, 2), (3, 5), (2, 8)):
+        for (i, j) in ((0, 0), (2, 0), (1, 1), (1, 2)):
+            _px(hum, BODY, 'back', x + i, y + j, paw)
+
+
+def _motif_index_bulwark(hum: Painter, leg: Painter, lk):
+    """색인 방벽 (판금, 흑철): 흉갑 앞판을 책 표지처럼 금 테두리 1px, 등판에 색인 룬 글자(3×5 RUNES),
+    견갑 아래 책 띠(가죽색 2px). 흑철 틈은 달아오른 빛 대신 남색 (SET_CRACK)."""
+    gold, gold_hi = shade(lk.orn, 0.7), shade(lk.orn, 0.92)
+    for j in range(2, 10):                                                       # 책 표지 금 테 (보석 = 걸쇠)
+        for i in range(2, 6):
+            if i in (2, 5) or j in (2, 9):
+                _px(hum, BODY, 'front', i, j, gold_hi if j == 2 else gold)
+    from .materials import rune_bit
+    for gi, x0, y0 in ((2, 2, 2), (5, 3, 7)):                                   # 등판 색인 번호
+        for yy in range(5):
+            for xx in range(3):
+                if rune_bit(gi, xx, yy):
+                    _px(hum, BODY, 'back', x0 + xx, y0 + yy, gold)
+    strap, strap_hi = shade(lk.grip, 0.38), shade(lk.grip, 0.6)
+    for name in ('outer', 'front', 'back', 'inner'):
+        for i in range(4):
+            _px(hum, ARM, name, i, 4, strap_hi)
+            _px(hum, ARM, name, i, 5, strap)
+
+
+def _motif_clock_astrologer(hum: Painter, leg: Painter, lk):
+    """태엽 점성술사 (천, 비단): 예복 앞뒤에 별자리 점(밝은 금)과 잇는 선(어두운 금), 허리띠에 톱니 단추 3개,
+    소매 끝에 시계 눈금 줄. 전설이 아니라 발광 없음."""
+    star, line = mix(shade(lk.orn, 0.95), (255, 250, 220), 0.4), shade(lk.orn, 0.42)
+    for name, stars, lines in (('front', ((2, 4), (5, 6), (2, 9)), ((2, 5), (5, 5))),
+                               ('back', ((2, 1), (3, 5), (5, 2), (5, 6), (4, 4)), ((2, 2), (3, 4), (5, 3), (5, 5)))):
+        for (i, j) in lines:
+            _px(hum, BODY, name, i, j, line)
+        for (i, j) in stars:
+            _px(hum, BODY, name, i, j, star)
+    for i in (2, 5):
+        _px(hum, BODY, 'front', i, 7, shade(lk.orn, 0.9))                       # 톱니 단추
+        _px(hum, BODY, 'front', i, 8, shade(lk.orn, 0.55))
+    _px(hum, BODY, 'back', 3, 7, shade(lk.orn, 0.9))
+    for name in ('outer', 'front', 'back', 'inner'):
+        for i in range(4):
+            _px(hum, ARM, name, i, 10, shade(lk.orn, 0.85) if i % 2 == 0 else shade(lk.main, 0.18))
+
+
+SET_MOTIFS = {
+    'mycel_carapace': _motif_mycel_carapace, 'sluice_diver': _motif_sluice_diver,
+    'cinder_cantor': _motif_cinder_cantor, 'rime_stalker': _motif_rime_stalker,
+    'index_bulwark': _motif_index_bulwark, 'clock_astrologer': _motif_clock_astrologer,
+}
+SET_CRACK = {'index_bulwark': (30, 44, 96)}     # 흑철 틈 색 (기본 = 세트 강조색의 달아오른 빛)
 
 
 # ───────────────────────────── 껍데기: 빈틈 채우기 · 테두리 · 겹치는 면 ─────────────────────────────

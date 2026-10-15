@@ -53,35 +53,17 @@ labyrinth/
   - **투구는 3D 모델을 머리에 씌운다**: 투구는 `EQUIPPABLE(slot=head)` 에 `assetId` 를 **넣지 않는다**
     (그래야 아이템 모델이 머리 display 로 렌더링됨). 상의·하의·신발만 장비 에셋 레이어 사용.
   - 플러그인은 `DataComponentTypes.ITEM_MODEL = Key.key("labyrinth", id)` 로 지정. CustomModelData 안 씀.
-  - 활(`type: bow`)은 당김 단계 모델 `<id>_pulling_0..2` 도 생성 (바닐라 bow 정의와 같은 구조, 자체 텍스처).
+  - 활(`model.shape` 가 팩의 활 모양 — `resourcepack/src/voxel/weapons.py` `BOWS`: longbow·recurve_bow·composite_bow·horn_bow·
+    blade_bow·bone_bow·twin_bow)은 당김 단계 모델 `<id>_pulling_0..2` 도 생성 (바닐라 bow 정의와 같은 구조, 자체 텍스처).
+    원거리 무기(`attack.style: ranged`)는 활 모양이어야 한다 (`tools/check_assets.py` 가 확인).
 - **방어구 세트**: YAML `armor_set` 값 `<set>` → 장비 에셋 `labyrinth:<set>`
   - `assets/labyrinth/equipment/<set>.json`, 텍스처 `assets/labyrinth/textures/entity/equipment/humanoid/<set>.png`,
     `.../humanoid_leggings/<set>.png` (64x32 바닐라 레이아웃)
   - 플러그인은 `EQUIPPABLE` 컴포넌트의 `assetId = labyrinth:<set>`.
-- **어깨·등 3D 장식**: 상의(`armor_slot: chest`)가 있는 세트 `<set>` 마다 부위 `<part>` ∈ `shoulder_l | shoulder_r | back`
-  (Java `items.ArmorPieceLayout.Part` 가 원본) → 아이템 모델 `labyrinth:armor_piece/<set>/<part>`
-  - `assets/labyrinth/items/armor_piece/<set>/<part>.json`, 모델 `models/armor_piece/<set>/<part>.json`, 텍스처 `textures/armor_piece/<set>/<part>.png`
-    (생성: `resourcepack/src/armor_pieces.py`, 검사: `validate.validate_armor_pieces` · `tools/check_assets.py`).
-  - 등 부분 종류 = items.yml `sets.<id>.back` (`plate` 등판 | `quiver` 화살통 | `cape` 망토·두건 | `pack` 담요 말이·배낭), 없으면 look 기본값
-    (heavy → plate, light → quiver, cloth → cape). 공용(모든 직업) 세트(novice·wayfarer)는 `pack`.
-  - **투구 여유**: 세트마다 그 세트 투구의 팩 모델(CustomHeadLayer: translate(0,−0.25,0)·R180y·scale(0.625,−0.625,−0.625), `display.head` 항등 —
-    목 위 (−0.625(x−8), 4+0.625(y−8), −0.625(z−8)) px) + 맨머리를, 목 축 기준 한 바퀴(머리 ±50° 회전을 덮음)·고개 −20°~+25°·서기/웅크리기로
-    쓸고 지나간 부피에서 0.5px 안의 장식 복셀을 지운다(잘린 면은 테두리 색, 부스러기 제거). `validate` 는 투구·맨머리와 장식 요소의
-    겹침 부피를 머리 yaw 0·±25·±50(서기)·0·±50(웅크리기)에서 재서 0.25px³ 넘으면 오류(통계 `armor_piece_helmet_overlap_px3`).
-    견갑은 팔 바깥쪽 위로, 등판·망토·배낭 윗단은 어깨선 아래로 그려 잘리는 양을 줄였다.
-  - **모델 계약**: 피벗 (8,8,8) = 부위 기준점, 모델 1단위 = 스킨 1px, `display.fixed` = 항등. 모델 −Z = 착용자 앞, −X = 착용자 왼쪽.
-    기준점(발에서 스킨 px, 서기): 어깨 = 팔 회전축 (±6, 22, 0), 등 = 목 (0, 24, 0) — 몸통 갑옷 뒷면은 z −3.
-  - **Java 배치**: `ItemsModule` 의 `ArmorCosmetics` 가 ItemDisplay 3개를 **플레이어의 탑승물**로 붙인다(FIXED, yaw = 몸 yaw,
-    teleport_duration = update_ticks). 몸 yaw 는 서버 `getBodyYaw()` 가 아니라 `ArmorPieceLayout.BodyYaw` 로 매 틱 직접 계산한다 —
-    Paper 26.3 은 `ServerGamePacketListenerImpl.tickPlayer` 가 `doTick` 직전에 xo/zo 를 현재 위치로 맞춰 서버 몸 yaw 가 이동 방향을
-    안 따라간다(머리 ±50° 제한·팔 휘두르기에만 반응). `BodyYaw` = 바닐라 클라이언트 계산(이동 방향 목표 · 뒷걸음 반대 · 휘두르기 6틱 동안
-    보는 방향 · ×0.3 · 머리와 50°(막기 15°) 제한 · 4블록 넘는 이동은 보는 방향으로 초기화), 패킷은 update_ticks 마다 바뀌었을 때만. Transformation = `ArmorPieceLayout.place(part, stance, SCALE 속성)` — translation = 좌석(서기 1.8 / 웅크리기 1.5
-    블록) 기준 부위 기준점, 회전 = X축 숙임(웅크리기 팔 0.4 · 몸통 0.5 rad), scale = 0.9375. 표의 `// @layout-table` 줄은
-    `resourcepack/preview_armor.py` 가 그대로 읽어 미리보기를 그린다(형식 유지, `ArmorPieceLayoutTest` 가 확인).
-  - 착용자에게는 기본으로 `hideEntity` (스폰 전에) — 서버는 1인칭/3인칭을 모르므로 **혼자서는 F5 로도 내 장식이 안 보인다**
-    (`/미궁 장식 내화면 켜기` = ext `cosmetics.armor_pieces_self` 면 숨기지 않음). 착용자 시점 관전자, 착용자를 `hidePlayer`/`hideEntity` 로
-    못 보는 시청자(`!viewer.canSee(wearer)` — 그 클라이언트엔 탈것이 없어 장식이 허공에 뜬다)에게도 숨김(update_ticks 마다 맞춤, 스폰 때는
-    스폰 패킷 전에). 비영속 + `Keys.FX = armor_piece:<uuid>` 임시 태그(`ArmorCosmetics.isPiece`).
+- **어깨·등 3D 장식 (없앰)**: 0.3.4.2 에서 런타임(서비스·명령·config·자가 진단)이 빠졌고, 0.3.5 에서 팩 생성기
+  (`resourcepack/src/armor_pieces.py`·`preview_armor.py`)와 팩 검사(`validate`·`tools/check_assets.py`)도 지웠다 —
+  팩에 `armor_piece/…` 모델이 더는 없다. 남은 Java(`items.ArmorPieceLayout`·`ArmorCosmetics`·테스트)는 P6 에서 지운다.
+  items.yml `sets.<id>.back` 은 이제 아무도 읽지 않는다.
   - **플레이어를 다른 월드로 옮길 때는 `core.Teleports.to(p, loc)`**: Paper 26.3 `CraftPlayer#teleport0` 는 탑승물이 있는 플레이어의 월드 간
     teleport 를 이벤트 없이 false 로 거부한다(같은 월드는 탑승물이 따라옴). `Teleports.to` 는 월드가 다를 때만 탑승물을 먼저 내리고, 장식은
     월드 이동 뒤 다음 갱신 때 다시 생긴다. (다른 플러그인이 `Player#teleport` 로 월드를 옮기면 실패할 수 있다 — 그런 서버는
@@ -197,6 +179,10 @@ labyrinth/
   `preview_mobs.png`(몹·보스를 YAML pivot 에 조립한 정면 3/4 렌더)·`preview_mob_atlases.png`·`preview_npcs.png`·
   `preview_ui.png`(GUI 배경 15종 + 실제 슬롯 격자, HUD 액션바 조합 모의, 글리프 전체)·
   `preview_vanilla_gui.png`(바닐라 화면 테마·등급별 툴팁·보스바·버튼·핫바, 안내 글 + 시전 막대가 얹힌 HUD 모의).
+  `--extra-items auto|off|FILE,...` (기본 auto): items.yml 에 아직 없는 장비 정의를 팩에만 더한다 — 0.3.5 새 장비
+  (`labyrinth/tools/data/035/gear_spec.json` 의 무기 106 · 방어구 6세트)를 P3 가 items.yml 에 넣기 전까지. items.yml 에 그 id 가
+  하나라도 생기면 auto 는 아무것도 더하지 않는다(items.yml 이 다시 유일한 원본, `src/extra_items.py`).
+  손에 든 모습 확인: `python tools/hold_preview.py --shapes <모양들>` (같은 --extra-items) — 시트·metrics 를 같은 무게 기존 모양과 비교.
   생성기는 `generate.py` 의 `BUILDERS` 레지스트리(공유 `Ctx` → `ctx.add(path, bytes)`)로 확장한다: 몹·UI 글리프·NPC 스킨·나머지 fx 스타일
   단계는 자기 모듈을 `src/` 에 두고 BUILDERS 에 추가. 3D 모델 엔진 `src/model.py`(Model/El/bake/UV 아틀라스/display 맞춤),
   재질 셰이더 `src/materials.py`, 애니메이션 `src/effects.py`, 미리보기 렌더러 `src/render.py` 를 재사용할 것.
