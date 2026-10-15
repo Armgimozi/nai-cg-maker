@@ -1,14 +1,19 @@
 package kr.labyrinth.items.enhance;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import kr.labyrinth.Services;
+import kr.labyrinth.content.Content;
+import kr.labyrinth.content.EnhanceDef;
 import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.core.Log;
 import kr.labyrinth.core.Text;
 import kr.labyrinth.data.PlayerData;
 import kr.labyrinth.event.EnhanceEvent;
+import kr.labyrinth.ui.UiTheme;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
@@ -21,32 +26,51 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
 /**
- * 대장장이 강화 (GDD §11.13): 확인(대상·단계·강화석·골드) → 골드·강화석 소모 → 판정 → 단계 기록·다시 그리기 →
+ * 대장장이 강화 (GDD §11.13): 확인(대상·단계·골드·강화석·장비 재료) → 전부 있을 때만 한꺼번에 소모 → 판정 → 단계 기록·다시 그리기 →
  * {@link EnhanceEvent} → 망치질 연출 뒤 결과 연출(성공 빛·소리 / 실패 소리 / 하락 경고). +8 이상 성공은 서버 전체 방송.
  * 판정은 클릭 순간 끝나고(창을 닫아도 결과는 같다), 연출만 0.8초 늦게 보인다.
  */
 public final class EnhanceService {
 
     /** 강화할 수 없는 이유. */
-    public enum Problem { NONE, DISABLED, NO_ITEM, VANILLA, NOT_ENHANCEABLE, MAX_LEVEL, NO_STONES, NO_GOLD, CHANGED }
+    public enum Problem { NONE, DISABLED, NO_ITEM, VANILLA, NOT_ENHANCEABLE, MAX_LEVEL, NO_STONES, NO_MATERIALS, NO_GOLD, CHANGED }
 
     /**
      * 지금 강화하면 어떻게 되는가 (창 표시용, 소모 없음).
+     * @param cost      이번 시도 비용 (골드·강화석·장비 재료, 최대 단계 등이면 null)
+     * @param checks    비용 줄마다 보유 개수 (강화석이 맨 앞)
      * @param downgrade 실패하면 한 단계 내려가는가
      */
-    public record Plan(ItemDef def, int level, int target, double chance, long gold, String stone, int stones,
-                       int haveStones, int haveScrolls, boolean downgrade, Problem problem) {
+    public record Plan(ItemDef def, int level, int target, double chance, EnhanceCost cost, List<EnhanceCost.Check> checks,
+                       int haveScrolls, boolean downgrade, Problem problem) {
         public boolean ok() { return problem == Problem.NONE; }
+
+        public long gold() { return cost == null ? 0 : cost.gold(); }
+
+        /** 강화석 줄 확인 (없으면 null). */
+        public EnhanceCost.Check stone() {
+            for (EnhanceCost.Check c : checks) if (c.line().stone()) return c;
+            return null;
+        }
+
+        /** 장비 재료 줄 확인 (강화석 제외, enhance.yml 순서). */
+        public List<EnhanceCost.Check> materials() {
+            List<EnhanceCost.Check> out = new ArrayList<>();
+            for (EnhanceCost.Check c : checks) if (!c.line().stone()) out.add(c);
+            return out;
+        }
     }
 
-    /** 강화 한 번의 결과. */
-    public record Result(EnhanceRules.Outcome outcome, int from, int to, ItemStack item, long gold, int stones) {}
+    /** 강화 한 번의 결과 (paid = 낸 재료 줄). */
+    public record Result(EnhanceRules.Outcome outcome, int from, int to, ItemStack item, long gold, List<EnhanceCost.Line> paid) {}
 
     /** 망치질 연출 길이(틱) — 이 뒤에 결과 연출과 창 갱신. */
     public static final long REVEAL_TICKS = 16L;
 
     private final Services services;
     private EnhanceGlow glow;
+    /** glyphs.yml {@code menus.enhance.slots} 원문 — 강화 창 배경 소켓 자리 (없으면 null, 시작 · reload 때 읽음). */
+    private volatile Map<String, Object> menuSlots;
 
     public EnhanceService(Services services) { this.services = services; }
 
@@ -64,6 +88,29 @@ public final class EnhanceService {
 
     private void configure() {
         Enhancement.configure(services.plugin().getConfig().getConfigurationSection("enhance"));
+        warnTable(services.content());
+        menuSlots = EnhanceLayout.readSlots(services.plugin().getDataFolder().toPath().resolve("content").resolve("glyphs.yml"));
+    }
+
+    /** 강화 창 비용 줄 배치 — 전용 배경을 깔면 그 소켓 자리, 아니면(글리프 끔) 왼쪽부터 차례로. */
+    EnhanceLayout layout() {
+        return EnhanceLayout.of(menuSlots, UiTheme.background("enhance", 6) != null);
+    }
+
+    /** enhance.yml 확인 결과를 시작·reload 때 한 번 알린다 (없는 재료·장비, 항목이 없는 장비 = 강화석·골드만). */
+    private static void warnTable(Content content) {
+        EnhanceDef t = content.enhance();
+        if (!t.loaded()) {
+            Log.warn("[강화] content/enhance.yml 이 없어 모든 장비가 강화석·골드만 듭니다 (장비별 재료 없음).");
+            return;
+        }
+        for (String w : t.warnings()) Log.warn("[강화] enhance.yml " + w);
+        List<String> missing = new ArrayList<>();
+        for (ItemDef d : content.items().values()) if (EnhanceRules.enhanceable(d) && !t.has(d.id())) missing.add(d.id());
+        if (!missing.isEmpty()) {
+            Log.warn("[강화] enhance.yml 에 항목이 없는 장비 " + missing.size() + "개는 강화석·골드만 듭니다 (예: "
+                    + String.join(", ", missing.subList(0, Math.min(5, missing.size()))) + ") — tools/gen_enhance.py 로 다시 만들 수 있습니다.");
+        }
     }
 
     public EnhanceRules rules() { return Enhancement.rules(); }
@@ -79,6 +126,20 @@ public final class EnhanceService {
             if (services.items().defOf(s).map(d -> d.id().equals(itemId)).orElse(false)) n += s.getAmount();
         }
         return n;
+    }
+
+    /** 플레이어 가방 + 골드 주머니 (EnhanceCost.pay 가 전부 확인한 뒤에만 뺀다). */
+    private EnhanceCost.Purse purse(Player p) {
+        PlayerData d = services.data().get(p);
+        return new EnhanceCost.Purse() {
+            @Override public long gold() { return d.gold(); }
+
+            @Override public int count(String item) { return EnhanceService.this.count(p, item); }
+
+            @Override public boolean takeGold(long amount) { return d.takeGold(amount); }
+
+            @Override public void take(String item, int amount) { remove(p, item, amount); }
+        };
     }
 
     private void remove(Player p, String itemId, int amount) {
@@ -106,19 +167,22 @@ public final class EnhanceService {
         int target = level + 1;
         String protection = r.config().protectionItem();
         int scrolls = count(p, protection);
-        if (!r.config().enabled()) return new Plan(def, level, target, 0, 0, null, 0, 0, scrolls, false, Problem.DISABLED);
-        if (stack == null || stack.isEmpty()) return new Plan(null, 0, 1, 0, 0, null, 0, 0, scrolls, false, Problem.NO_ITEM);
-        if (def == null) return new Plan(null, 0, 1, 0, 0, null, 0, 0, scrolls, false, Problem.VANILLA);
-        if (!EnhanceRules.enhanceable(def)) return new Plan(def, 0, 1, 0, 0, null, 0, 0, scrolls, false, Problem.NOT_ENHANCEABLE);
+        if (!r.config().enabled()) return new Plan(def, level, target, 0, null, List.of(), scrolls, false, Problem.DISABLED);
+        if (stack == null || stack.isEmpty()) return new Plan(null, 0, 1, 0, null, List.of(), scrolls, false, Problem.NO_ITEM);
+        if (def == null) return new Plan(null, 0, 1, 0, null, List.of(), scrolls, false, Problem.VANILLA);
+        if (!EnhanceRules.enhanceable(def)) return new Plan(def, 0, 1, 0, null, List.of(), scrolls, false, Problem.NOT_ENHANCEABLE);
         boolean down = r.downgradesOnFail(level);
-        if (level >= r.maxLevel()) return new Plan(def, level, level, 0, 0, null, 0, 0, scrolls, false, Problem.MAX_LEVEL);
-        String stone = r.stoneFor(def);
-        int need = r.stoneCount(target);
-        int have = count(p, stone);
-        long gold = r.gold(def, target, services.stats().get(p).craftDiscount());
-        Problem problem = have < need ? Problem.NO_STONES
-                : services.data().get(p).gold() < gold ? Problem.NO_GOLD : Problem.NONE;
-        return new Plan(def, level, target, r.chance(target), gold, stone, need, have, scrolls, down, problem);
+        if (level >= r.maxLevel()) return new Plan(def, level, level, 0, null, List.of(), scrolls, false, Problem.MAX_LEVEL);
+        EnhanceCost cost = r.cost(def, target, services.stats().get(p).craftDiscount(), services.content().enhance());
+        List<EnhanceCost.Check> checks = cost.check(id -> count(p, id));
+        Problem problem = Problem.NONE;
+        for (EnhanceCost.Check c : checks) {
+            if (c.ok()) continue;
+            problem = c.line().stone() ? Problem.NO_STONES : Problem.NO_MATERIALS;
+            if (problem == Problem.NO_STONES) break;
+        }
+        if (problem == Problem.NONE && services.data().get(p).gold() < cost.gold()) problem = Problem.NO_GOLD;
+        return new Plan(def, level, target, r.chance(target), cost, List.copyOf(checks), scrolls, down, problem);
     }
 
     /** 안내 문구. */
@@ -131,6 +195,7 @@ public final class EnhanceService {
             case NOT_ENHANCEABLE -> "무기·방어구·방패만 강화할 수 있습니다. (장신구·재료 불가)";
             case MAX_LEVEL -> "이미 최대 단계입니다.";
             case NO_STONES -> "강화석이 부족합니다.";
+            case NO_MATERIALS -> "강화 재료가 부족합니다.";
             case NO_GOLD -> "골드가 부족합니다.";
             case CHANGED -> "고른 장비가 바뀌었습니다. 다시 골라 주세요.";
         };
@@ -157,18 +222,18 @@ public final class EnhanceService {
             return null;
         }
         EnhanceRules r = rules();
-        PlayerData d = services.data().get(p);
-        if (!d.takeGold(plan.gold())) {
-            Text.error(p, message(Problem.NO_GOLD));
+        // 전부 아니면 아무것도: 골드·강화석·재료를 모두 확인한 뒤에만 한꺼번에 가져간다
+        if (!plan.cost().pay(purse(p))) {
+            Plan again = plan(p, cur);
+            Text.error(p, message(again.ok() ? Problem.NO_GOLD : again.problem()));
             return null;
         }
-        remove(p, plan.stone(), plan.stones());
         boolean useScroll = protect && plan.downgrade() && plan.haveScrolls() > 0;
         EnhanceRules.Outcome o = r.resolve(plan.level(), ThreadLocalRandom.current().nextDouble(), useScroll);
         if (EnhanceRules.consumesProtection(o)) remove(p, r.config().protectionItem(), 1);
         int to = EnhanceRules.levelAfter(plan.level(), o);
 
-        // 소모 뒤 칸이 비었을 수 있으니(강화석이 같은 칸?) 장비는 원래 칸에서 다시 꺼내 고친다
+        // 소모 뒤 칸이 비었을 수 있으니(재료가 같은 칸?) 장비는 원래 칸에서 다시 꺼내 고친다
         ItemStack item = inv.getItem(slot);
         if (item == null || !item.isSimilar(expected)) item = cur;
         Enhancement.setLevel(item, to);
@@ -176,7 +241,7 @@ public final class EnhanceService {
         inv.setItem(slot, item);
         services.stats().markDirty(p);
         services.hud().refresh(p);
-        Result res = new Result(o, plan.level(), to, item.clone(), plan.gold(), plan.stones());
+        Result res = new Result(o, plan.level(), to, item.clone(), plan.gold(), plan.cost().lines());
         try {
             Bukkit.getPluginManager().callEvent(new EnhanceEvent(p, plan.def(), item.clone(), plan.level(), to,
                     o.name().toLowerCase(java.util.Locale.ROOT)));
@@ -254,7 +319,7 @@ public final class EnhanceService {
                 p.spawnParticle(Particle.SMOKE, at, 14, 0.2, 0.15, 0.2, 0.02);
                 p.showTitle(Title.title(Text.mm("<#c8c8d0>강화 실패"),
                         Text.mm("<gray>+" + res.from() + " 그대로 · 재료가 사라졌습니다"), times));
-                Text.send(p, "<#c8c8d0>강화 실패</#c8c8d0> <item> <gray>— 단계는 그대로, 골드·강화석이 사라졌습니다.",
+                Text.send(p, "<#c8c8d0>강화 실패</#c8c8d0> <item> <gray>— 단계는 그대로, 골드·강화석·재료가 사라졌습니다.",
                         Text.ph("item", name));
             }
             case DOWNGRADE -> {
@@ -304,7 +369,8 @@ public final class EnhanceService {
     // ── 자가 진단 ─────────────────────────────────────────────────────────
 
     /**
-     * 자가 진단용: 강화할 수 있는 모든 장비를 만들어 0~최대 단계로 기록·다시 그리기·스탯을 확인한다.
+     * 자가 진단용: 강화할 수 있는 모든 장비를 만들어 0~최대 단계로 기록·다시 그리기·스탯을 확인하고,
+     * 단계마다 비용(골드·강화석·enhance.yml 재료)이 실제 아이템을 가리키는지 본다. 재료를 소모하지 않는다.
      * @return 확인한 아이템 수
      */
     public static int selfCheck(Services services) {
@@ -328,6 +394,16 @@ public final class EnhanceService {
             }
             if (r.stoneFor(def) == null || services.content().item(r.stoneFor(def)) == null) {
                 throw new IllegalStateException(def.id() + " 강화석 정의 없음: " + r.stoneFor(def));
+            }
+            // 비용 계산만 (가방은 보지 않는다 — 재료 없이도 돌아야 하는 자가 진단): 모든 단계의 재료가 실제 아이템인가
+            for (int t = 1; t <= r.maxLevel(); t++) {
+                EnhanceCost cost = r.cost(def, t, 0, services.content().enhance());
+                if (cost.gold() <= 0) throw new IllegalStateException(def.id() + " 강화 골드 0 (+" + t + ")");
+                for (EnhanceCost.Line l : cost.lines()) {
+                    if (services.content().item(l.item()) == null) {
+                        throw new IllegalStateException(def.id() + " +" + t + " 강화 재료 정의 없음: " + l.item());
+                    }
+                }
             }
             n++;
         }

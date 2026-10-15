@@ -16,10 +16,11 @@ import kr.labyrinth.stats.Stat;
  */
 public final class ContentParser {
 
-    /** 파일 이름 목록 (확장자 포함). glyphs.yml 은 없어도 된다. */
+    /** 파일 이름 목록 (확장자 포함). glyphs.yml · enhance.yml 은 없어도 된다. */
     public static final List<String> FILES = List.of("classes.yml", "items.yml", "mobs.yml", "bosses.yml",
-            "floors.yml", "loot.yml", "recipes.yml", "titles.yml", "npcs.yml", "fx.yml", "glyphs.yml");
-    public static final List<String> OPTIONAL_FILES = List.of("glyphs.yml");
+            "floors.yml", "loot.yml", "recipes.yml", "titles.yml", "npcs.yml", "fx.yml", "glyphs.yml", "enhance.yml");
+    /** 없어도 되는 파일 — enhance.yml 이 없으면 모든 장비가 강화석·골드만 든다(예전 서버 그대로). */
+    public static final List<String> OPTIONAL_FILES = List.of("glyphs.yml", "enhance.yml");
     /** 예전 버전이 복사해 두었지만 이제 쓰지 않는 파일 (손대지 않았으면 시작할 때 지운다). arenas.yml = 없앤 파티 대전 투기장. */
     public static final List<String> RETIRED_FILES = List.of("arenas.yml");
 
@@ -44,6 +45,7 @@ public final class ContentParser {
         Params npcsRoot = root(files, "npcs.yml");
         Params fxRoot = root(files, "fx.yml");
         Params glyphsRoot = root(files, "glyphs.yml");
+        Params enhanceRoot = root(files, "enhance.yml");
 
         Map<String, ClassDef> classes = new LinkedHashMap<>();
         classesRoot.sub("classes").children().forEach((id, p) -> classes.put(id, parseClass(id, p)));
@@ -98,6 +100,8 @@ public final class ContentParser {
         Params sp = glyphsRoot.sub("spaces");
         for (String k : sp.keys()) spaces.put(k, sp.integer(k, 0));
 
+        EnhanceDef enhance = files.containsKey("enhance.yml") ? parseEnhance(enhanceRoot, items) : EnhanceDef.EMPTY;
+
         return new Content(
                 Collections.unmodifiableMap(classes), Collections.unmodifiableMap(items),
                 Collections.unmodifiableMap(sets), Collections.unmodifiableMap(mobs),
@@ -105,7 +109,7 @@ public final class ContentParser {
                 Collections.unmodifiableMap(loot), lootSettings, Collections.unmodifiableMap(recipes),
                 Collections.unmodifiableMap(achievements), Collections.unmodifiableMap(npcs),
                 Collections.unmodifiableMap(auras), Collections.unmodifiableMap(fxModels),
-                Collections.unmodifiableMap(glyphs), Collections.unmodifiableMap(spaces));
+                Collections.unmodifiableMap(glyphs), Collections.unmodifiableMap(spaces), enhance);
     }
 
     private Params root(Map<String, Map<String, Object>> files, String name) {
@@ -348,6 +352,91 @@ public final class ContentParser {
     }
 
     // ── recipes / titles / npcs / fx ─────────────────────────────
+
+    // ── enhance ───────────────────────────────────────────────────────────
+
+    /**
+     * enhance.yml → 장비별 강화 재료. 틀린 줄은 문제(problems) 대신 {@link EnhanceDef#warnings()} 에 모은다 —
+     * 강화 재료가 틀려도 콘텐츠 전체는 정상이고, 그 줄만 빠진다(강화 서비스가 시작할 때 경고).
+     * items.yml 에 아직 없는 장비 항목(다른 작업으로 들어올 새 장비)은 조용히 건너뛰고 개수만 한 줄로 알린다.
+     */
+    private EnhanceDef parseEnhance(Params root, Map<String, ItemDef> items) {
+        List<String> warn = new ArrayList<>();
+        List<EnhanceDef.Band> bands = new ArrayList<>();
+        Params bs = root.sub("bands");
+        for (String id : bs.keys()) {
+            List<Double> r = bs.doubles(id);
+            if (r.size() != 2 || r.get(0) < 1 || r.get(1) < r.get(0)) {
+                warn.add("bands." + id + " 는 [시작, 끝] (목표 단계, 1 이상) 이어야 함: " + bs.get(id));
+                continue;
+            }
+            bands.add(new EnhanceDef.Band(id, r.get(0).intValue(), r.get(1).intValue()));
+        }
+        if (bands.isEmpty()) bands.addAll(EnhanceDef.DEFAULT_BANDS);
+        bands.sort((a, b) -> Integer.compare(a.from(), b.from()));
+        java.util.Set<String> bandIds = new java.util.HashSet<>();
+        for (EnhanceDef.Band b : bands) bandIds.add(b.id());
+
+        Map<String, Map<String, List<EnhanceDef.Material>>> out = new LinkedHashMap<>();
+        List<String> unknownItems = new ArrayList<>();
+        root.sub("items").children().forEach((id, p) -> {
+            ItemDef def = items.get(id);
+            if (def == null) {
+                unknownItems.add(id);
+                return;
+            }
+            if (def.type() != ItemType.WEAPON && def.type() != ItemType.ARMOR) {
+                warn.add(id + ": 무기·방어구·방패만 강화할 수 있어 무시");
+                return;
+            }
+            Map<String, List<EnhanceDef.Material>> entry = new LinkedHashMap<>();
+            for (String band : p.keys()) {
+                if (!bandIds.contains(band)) {
+                    warn.add(id + "." + band + ": bands 에 없는 구간이라 무시");
+                    continue;
+                }
+                Params mats = p.sub(band);
+                List<EnhanceDef.Material> list = new ArrayList<>();
+                for (String mat : mats.keys()) {
+                    ItemDef md = items.get(mat);
+                    if (md == null) {
+                        warn.add(id + "." + band + ": 없는 재료 " + mat + " — 이 줄 무시");
+                        continue;
+                    }
+                    if (md.type() != ItemType.MATERIAL) {
+                        warn.add(id + "." + band + ": " + mat + " 은 재료(material)가 아니라 무시");
+                        continue;
+                    }
+                    List<Integer> amounts = enhanceAmounts(mats.get(mat));
+                    if (amounts.isEmpty()) {
+                        warn.add(id + "." + band + "." + mat + ": 개수는 숫자나 숫자 목록이어야 함 — 이 줄 무시");
+                        continue;
+                    }
+                    list.add(new EnhanceDef.Material(mat, amounts));
+                }
+                entry.put(band, List.copyOf(list));
+            }
+            out.put(id, Collections.unmodifiableMap(entry));
+        });
+        if (!unknownItems.isEmpty()) {
+            warn.add("items.yml 에 없는 장비 " + unknownItems.size() + "개 건너뜀 (예: "
+                    + String.join(", ", unknownItems.subList(0, Math.min(5, unknownItems.size()))) + ")");
+        }
+        return new EnhanceDef(true, List.copyOf(bands), Collections.unmodifiableMap(out), List.copyOf(warn));
+    }
+
+    /** 개수: 숫자 하나 또는 숫자 목록 (음수는 0). 아니면 빈 목록. */
+    private static List<Integer> enhanceAmounts(Object v) {
+        if (v instanceof Number n) return List.of(Math.max(0, n.intValue()));
+        List<Integer> out = new ArrayList<>();
+        if (v instanceof List<?> l) {
+            for (Object o : l) {
+                if (!(o instanceof Number n)) return List.of();
+                out.add(Math.max(0, n.intValue()));
+            }
+        }
+        return List.copyOf(out);
+    }
 
     private RecipeDef parseRecipe(String id, Params p) {
         Map<String, Integer> mats = new LinkedHashMap<>();
