@@ -160,8 +160,9 @@ class LootRollerTest {
         Content shared = new Content(c.classes(), c.items(), c.sets(), Map.copyOf(mobs), c.bosses(), c.floors(), c.lootTables(), c.lootSettings(),
                 c.recipes(), c.achievements(), c.npcs(), c.auras(), c.fxModels(), c.glyphs(), c.spaces());
         String sw = String.join("\n", ContentValidator.validate(shared).warnings());
-        assertTrue(sw.contains("items.mycelking_guard_blade: 획득처가 3곳 (몬스터·상자·보스·제작)"), sw);
-        assertTrue(sw.contains("items.mycelking_guard_blade: sources [boss, craft] 가 실제 획득처 [boss, craft, drop] 와 다름"), sw);
+        assertTrue(sw.contains("items.mycelking_spore_crown: 획득처가 3곳 (몬스터·상자·보스·제작)"), sw);
+        assertTrue(sw.contains("items.mycelking_spore_crown: sources [boss, craft] 가 실제 획득처 [boss, craft, drop] 와 다름"), sw);
+        assertTrue(sw.contains("items.mycelking_guard_blade: sources [boss] 가 실제 획득처 [boss, drop] 와 다름"), sw);
     }
 
     private static LootTable.Entry item(String id) {

@@ -340,7 +340,8 @@ class TrapsAndTreasureTest {
                     gear++;
                     assertEquals(f.number(), d.floor(), id + " → " + item);
                 }
-                assertTrue(gear > 0, id + " 에 장비가 없음");
+                // 6·8·9·10층은 공용 무기가 대장간 전용이라(영웅 이상 무기 획득처 1곳) 몹·상자 장비 묶음이 없다
+                if (content.lootTable(String.format("gear_f%02d_common", f.number())) != null) assertTrue(gear > 0, id + " 에 장비가 없음");
             }
         }
     }

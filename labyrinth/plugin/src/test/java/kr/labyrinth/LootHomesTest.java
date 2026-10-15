@@ -226,6 +226,13 @@ class LootHomesTest {
                 }
             }
         }
+        // 영웅 이상 보스 무기는 제작법이 없어(획득처 1곳) 10층 핵처럼 레시피에 안 쓰이는 핵도 있다 — 그 보스 장비 +9·+10 강화 재료로는 쓰인다
+        for (ItemDef d : content.items().values()) {
+            if (!d.isGear()) continue;
+            for (int t = 1; t <= 10; t++) {
+                for (var c : content.enhance().costs(d.id(), t)) if (cores.containsKey(c.item())) used.add(c.item());
+            }
+        }
         assertEquals(cores.keySet(), used, "쓰이지 않는 보스 핵");
     }
 

@@ -109,9 +109,10 @@ class TooltipFitTest {
                 starter++;
             }
         }
-        assertTrue(boss >= 40 && elite >= 40 && common >= 60, "보스 " + boss + " · 정예 " + elite + " · 공용 " + common);
+        assertTrue(boss >= 40 && elite >= 40 && common >= 40, "보스 " + boss + " · 정예 " + elite + " · 공용 " + common);
         assertEquals(4, starter, "수련생 4종");
-        assertEquals(ItemTooltip.SOURCE_PREFIX + "보스 테오라(9층) · 대장간", ItemTooltip.sourceLine(content, content.item("doomclock_executioner")));
+        assertEquals(ItemTooltip.SOURCE_PREFIX + "보스 테오라(9층) · 대장간", ItemTooltip.sourceLine(content, content.item("clockwork_bastion")));
+        assertEquals(ItemTooltip.SOURCE_PREFIX + "보스 테오라(9층)", ItemTooltip.sourceLine(content, content.item("doomclock_executioner")));
     }
 
     @Test
