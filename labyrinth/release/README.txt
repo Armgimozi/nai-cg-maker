@@ -320,6 +320,8 @@
   2. 예전 서버 폴더의 world 폴더 이름을 world_old 로 바꿉니다.
   3. 새 zip 의 world 폴더를 예전 서버 폴더에 복사합니다.
      plugins/Labyrinth.jar 도 새 zip 의 것으로 바꿉니다. (plugins/Labyrinth 폴더는 그대로 두세요)
+     ※ plugins 폴더에 Labyrinth 로 시작하는 jar 는 하나만 있어야 합니다. Labyrinth-0.3.3.jar 처럼 예전 이름의 jar 가
+       남아 있으면 서버가 새 jar 대신 예전 것을 켭니다 (서버 창에 'Ambiguous plugin name' 이 나옴) — 예전 jar 는 지우세요.
   4. world_old 안의 playerdata · advancements · stats 폴더를 새 world 폴더 안으로 복사합니다.
      (26.x 에서 이 폴더들이 world_old/players/ 아래에 있으면 players 폴더째로 새 world 안에 복사)
   5. 서버를 켭니다. 처음 켤 때 마을 입구·NPC 가 새 마을 자리로 옮겨지고, 예전 월드 좌표에 서 있던 사람은
