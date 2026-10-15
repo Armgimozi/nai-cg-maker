@@ -23,9 +23,10 @@ import org.bukkit.configuration.ConfigurationSection;
  *   <li>실패: 재료(골드·강화석·장비 재료)는 사라진다. 현재 단계 ≥ downgrade_from(기본 7)이면 한 단계 하락 —
  *       보호 주문서를 쓰면 하락 대신 주문서만 사라진다. 파괴는 없다.</li>
  *   <li>능력치: 기본 굴림값 × (1 + stat_bonus[단계−1]) — 누적 보너스 목록, 높은 단계일수록 한 단계 상승폭이 커진다
- *       (기본 +1 3% … +10 72%). 무기는 weapon_stats, 방어구·방패는 armor_stats 키만 (정수 스탯은 늘어난 몫을 올림).</li>
+ *       (기본 +1 4% … +10 100% = ×2.0). 무기는 weapon_stats, 방어구·방패는 armor_stats 키만 (정수 스탯은 늘어난 몫을 올림).</li>
  *   <li>골드 = gold_base × (요구 레벨 + gold_level_offset) × 희귀도 배율 × 단계 배율. 강화석 = 장비 층 구간별 1종, 개수는 단계별.</li>
- *   <li>장비 재료 = content/enhance.yml (장비마다 다름, 구간 low/mid/high). 항목이 없는 장비는 강화석·골드만.</li>
+ *   <li>장비 재료 = content/enhance.yml (장비마다 다름, 구간 low/mid/high) — 그 장비의 제작 재료, 제작법이 없으면 그 장비를 주는
+ *       몬스터·정예·보스의 드롭 (tools/gen_enhance.py). 강화석은 모든 장비 공용. 항목이 없는 장비는 강화석·골드만.</li>
  * </ul>
  */
 public final class EnhanceRules {
@@ -38,7 +39,7 @@ public final class EnhanceRules {
 
     /**
      * config.yml enhance 스냅샷. 리스트는 목표 단계 1..maxLevel 순 (모자라면 마지막 값으로 채움).
-     * statBonus = 단계별 <b>누적</b> 능력치 보너스 (+1 0.03 … +10 0.72 → 배율 1 + 값).
+     * statBonus = 단계별 <b>누적</b> 능력치 보너스 (+1 0.04 … +10 1.00 → 배율 1 + 값).
      */
     public record Config(boolean enabled, int maxLevel, List<Double> chances, int downgradeFrom, List<Double> statBonus,
                          Set<String> weaponStats, Set<String> armorStats, double goldBase, int goldLevelOffset,
@@ -55,9 +56,9 @@ public final class EnhanceRules {
                         new Stone("supreme_enhance_stone", 10)),
                 "enhance_protection_scroll", 8, 7, 10, true);
 
-        /** 기본 누적 보너스: 한 단계 상승폭 3·3·4·4·5·6·8·10·13·16 % → +10 = ×1.72. */
+        /** 기본 누적 보너스: 한 단계 상승폭 4·4·5·6·7·9·11·14·18·22 % → +5 ×1.26 · +8 ×1.6 · +10 = ×2.0. */
         public static List<Double> defaultStatBonus() {
-            return List.of(0.03, 0.06, 0.10, 0.14, 0.19, 0.25, 0.33, 0.43, 0.56, 0.72);
+            return List.of(0.04, 0.08, 0.13, 0.19, 0.26, 0.35, 0.46, 0.60, 0.78, 1.00);
         }
 
         private static Map<Rarity, Double> defaultRarity() {
@@ -257,14 +258,14 @@ public final class EnhanceRules {
 
     // ── 능력치 ────────────────────────────────────────────────────────────
 
-    /** 단계 배율 = 1 + 누적 보너스 (기본 +1 ×1.03 · +5 ×1.19 · +8 ×1.43 · +10 ×1.72). 0 이하 = 1, 최대 단계로 자름. */
+    /** 단계 배율 = 1 + 누적 보너스 (기본 +1 ×1.04 · +5 ×1.26 · +8 ×1.6 · +10 ×2.0). 0 이하 = 1, 최대 단계로 자름. */
     public double multiplier(int level) {
         int lv = Math.max(0, Math.min(c.maxLevel(), level));
         if (lv == 0) return 1.0;
         return 1.0 + at(c.statBonus(), lv, 0.0);
     }
 
-    /** level → level+1 한 단계에서 늘어나는 배율 몫 (기본 +9 → +10 = 0.16). 최대 단계면 0. */
+    /** level → level+1 한 단계에서 늘어나는 배율 몫 (기본 +9 → +10 = 0.22). 최대 단계면 0. */
     public double stepGain(int level) {
         if (level >= c.maxLevel()) return 0;
         return multiplier(level + 1) - multiplier(level);

@@ -123,31 +123,46 @@ class EnhanceRulesTest {
 
     @Test
     void statCurveEscalates() {
-        double[] want = {1.0, 1.03, 1.06, 1.10, 1.14, 1.19, 1.25, 1.33, 1.43, 1.56, 1.72};
+        double[] want = {1.0, 1.04, 1.08, 1.13, 1.19, 1.26, 1.35, 1.46, 1.60, 1.78, 2.00};
         for (int lv = 0; lv <= 10; lv++) assertEquals(want[lv], rules.multiplier(lv), 1e-9, "+" + lv);
-        assertEquals(1.72, rules.multiplier(15), 1e-9, "최대 단계로 자름");
+        assertEquals(2.0, rules.multiplier(10), 1e-9, "+10 = 기본 굴림값의 2배");
+        assertEquals(2.0, rules.multiplier(15), 1e-9, "최대 단계로 자름");
         assertEquals(1.0, rules.multiplier(-3), 1e-9);
-        // 한 단계 상승폭은 줄지 않고, 높은 단계가 훨씬 크다 (3·3·4·4·5·6·8·10·13·16 %)
+        // 한 단계 상승폭은 줄지 않고, 높은 단계가 훨씬 크다 (4·4·5·6·7·9·11·14·18·22 %)
+        double[] gains = {0.04, 0.04, 0.05, 0.06, 0.07, 0.09, 0.11, 0.14, 0.18, 0.22};
         double prev = 0;
         for (int lv = 0; lv < 10; lv++) {
             double g = rules.stepGain(lv);
+            assertEquals(gains[lv], g, 1e-9, "+" + (lv + 1) + " 상승폭");
             assertTrue(g > 0, "+" + (lv + 1) + " 도 오른다");
             assertTrue(g >= prev - 1e-9, "상승폭이 줄지 않는다: +" + (lv + 1) + " " + g + " < " + prev);
-            if (lv >= 4) assertTrue(g > prev + 1e-9, "+5 부터는 단계마다 상승폭이 커진다: +" + (lv + 1));
+            if (lv >= 2) assertTrue(g > prev + 1e-9, "+3 부터는 단계마다 상승폭이 커진다: +" + (lv + 1));
             prev = g;
         }
-        assertEquals(0.16, rules.stepGain(9), 1e-9, "+9 → +10 = 16%");
+        assertEquals(0.22, rules.stepGain(9), 1e-9, "+9 → +10 = 22%");
         assertTrue(rules.stepGain(9) > 5 * rules.stepGain(0), "+10 한 단계가 +1 한 단계의 5배 넘게");
         assertEquals(0, rules.stepGain(10), 1e-9, "최대 단계 다음은 없음");
     }
 
     @Test
     void statCurveDefaultsAndLegacyKey() {
-        // 예전 서버 config.yml: stat_per_level 만 있고 stat_bonus 가 없음 → 새 기본 곡선 (예전 키는 무시)
+        // 기본 곡선 = 번들 config.yml 의 stat_bonus
+        assertEquals(List.of(0.04, 0.08, 0.13, 0.19, 0.26, 0.35, 0.46, 0.60, 0.78, 1.00), EnhanceRules.Config.defaultStatBonus());
+        YamlConfiguration bundled = YamlConfiguration.loadConfiguration(new File("src/main/resources/config.yml"));
+        assertEquals(EnhanceRules.Config.defaultStatBonus(),
+                EnhanceRules.Config.from(bundled.getConfigurationSection("enhance")).statBonus(), "config.yml stat_bonus = 코드 기본값");
+        // 키가 없는 설정(예전 서버 config.yml 에 enhance: 는 있는데 stat_bonus 가 없음) → 새 기본 곡선
+        YamlConfiguration absent = new YamlConfiguration();
+        absent.set("max_level", 10);
+        assertEquals(EnhanceRules.Config.defaultStatBonus(), EnhanceRules.Config.from(absent).statBonus());
+        assertEquals(2.0, new EnhanceRules(EnhanceRules.Config.from(absent)).multiplier(10), 1e-9);
+        absent.set("stat_bonus", List.of());
+        assertEquals(EnhanceRules.Config.defaultStatBonus(), EnhanceRules.Config.from(absent).statBonus(), "빈 목록도 기본 곡선");
+        // 예전 키 stat_per_level 만 있고 stat_bonus 가 없음 → 새 기본 곡선 (예전 키는 무시)
         YamlConfiguration legacy = new YamlConfiguration();
         legacy.set("stat_per_level", 0.06);
         assertEquals(EnhanceRules.Config.defaultStatBonus(), EnhanceRules.Config.from(legacy).statBonus());
-        assertEquals(1.72, new EnhanceRules(EnhanceRules.Config.from(legacy)).multiplier(10), 1e-9);
+        assertEquals(2.0, new EnhanceRules(EnhanceRules.Config.from(legacy)).multiplier(10), 1e-9);
         // 직접 고친 곡선: 줄어드는 값·음수는 앞 값으로 (누적은 줄지 않는다), 모자라면 마지막 값
         YamlConfiguration custom = new YamlConfiguration();
         custom.set("stat_bonus", List.of(0.1, 0.05, -1.0, 0.5));
@@ -163,27 +178,28 @@ class EnhanceRulesTest {
         ItemDef sword = content.item("ember_greatsword");
         Map<String, Double> base = Map.of("damage", 40.0, "STR", 7.0, "crit_chance", 0.05);
         Map<String, Double> plus10 = rules.apply(sword, base, 10);
-        assertEquals(69.0, plus10.get("damage"), 1e-9, "피해 40 × 1.72 = 68.8 → 늘어난 몫 올림 = 69");
+        assertEquals(80.0, plus10.get("damage"), 1e-9, "피해 40 × 2.0 = 80");
         assertEquals(7.0, plus10.get("STR"), 1e-9, "부가 스탯은 그대로");
         assertEquals(0.05, plus10.get("crit_chance"), 1e-9);
-        assertEquals(42.0, rules.apply(sword, base, 1).get("damage"), 1e-9, "40 + 1.2 → 늘어난 몫 올림 = 42");
+        assertEquals(42.0, rules.apply(sword, base, 1).get("damage"), 1e-9, "40 + 1.6 → 늘어난 몫 올림 = 42");
+        assertEquals(51.0, rules.apply(sword, base, 5).get("damage"), 1e-9, "40 × 1.26 = 50.4 → 늘어난 몫 올림 = 51");
         Map<String, Double> low = Map.of("damage", 7.0);
         for (int lv = 1; lv <= 10; lv++) {
             assertTrue(rules.apply(sword, low, lv).get("damage") > 7.0, "낮은 무기도 +" + lv + " 효과가 보인다");
             if (lv > 1) assertTrue(rules.apply(sword, low, lv).get("damage") >= rules.apply(sword, low, lv - 1).get("damage"));
         }
-        assertEquals(13.0, rules.apply(sword, low, 10).get("damage"), 1e-9, "7 + ⌈5.04⌉");
+        assertEquals(14.0, rules.apply(sword, low, 10).get("damage"), 1e-9, "7 + 7");
         assertEquals(base, rules.apply(sword, base, 0));
-        assertEquals(Map.of("damage", 29.0), rules.bonus(sword, base, 10));
+        assertEquals(Map.of("damage", 40.0), rules.bonus(sword, base, 10));
 
         ItemDef armor = firstOf(ItemType.ARMOR, false);
         Map<String, Double> ab = Map.of("defense", 20.0, "hp", 50.0, "VIT", 3.0);
         Map<String, Double> a7 = rules.apply(armor, ab, 7);
-        assertEquals(27.0, a7.get("defense"), 1e-9, "20 + ⌈6.6⌉");
-        assertEquals(67.0, a7.get("hp"), 1e-9, "50 + ⌈16.5⌉");
+        assertEquals(30.0, a7.get("defense"), 1e-9, "20 + ⌈9.2⌉");
+        assertEquals(73.0, a7.get("hp"), 1e-9, "50 + 23");
         assertEquals(3.0, a7.get("VIT"), 1e-9);
         ItemDef shield = firstOf(ItemType.ARMOR, true);
-        assertEquals(35.0, rules.apply(shield, Map.of("defense", 20.0), 10).get("defense"), 1e-9, "방패도 방어 배율 (20 + ⌈14.4⌉)");
+        assertEquals(40.0, rules.apply(shield, Map.of("defense", 20.0), 10).get("defense"), 1e-9, "방패도 방어 배율 (20 × 2.0)");
     }
 
     @Test
@@ -262,13 +278,13 @@ class EnhanceRulesTest {
         Map<String, Double> base = ItemRolls.midpoint(ember);
         List<String> l0 = Enhancement.tooltip(content, ember, 0);
         assertEquals(2, l0.size());
-        assertTrue(l0.get(0).contains("+0") && l0.get(0).contains("×1.03"), l0.get(0));
+        assertTrue(l0.get(0).contains("+0") && l0.get(0).contains("×1.04"), l0.get(0));
         assertTrue(String.join("\n", l0).contains("100%"));
         List<String> l7 = Enhancement.tooltip(content, ember, 7);
         String t7 = String.join("\n", l7);
         assertTrue(t7.contains("+7") && t7.contains("50%") && t7.contains("+6으로 하락"), t7);
         assertTrue(String.join("\n", Enhancement.tooltip(content, ember, 8)).contains("+7로 하락"), "받침에 맞는 조사");
-        assertTrue(l7.get(0).contains("×1.33") && l7.get(0).contains("×1.43"), "지금 배율 → 다음 배율: " + l7.get(0));
+        assertTrue(l7.get(0).contains("×1.46") && l7.get(0).contains("×1.6"), "지금 배율 → 다음 배율: " + l7.get(0));
         assertTrue(t7.contains(content.item(rules.stoneFor(ember)).name()) || t7.contains("강화석"), t7);
         // 장비 재료: 첫 재료만 + "…" (나머지는 강화 창에서)
         EnhanceCost c8 = rules.cost(ember, 8, 0, content.enhance());
@@ -281,7 +297,7 @@ class EnhanceRulesTest {
             }
         }
         assertTrue(String.join("\n", Enhancement.tooltip(content, ember, 10)).contains("최대"));
-        assertTrue(String.join("\n", Enhancement.tooltip(content, ember, 10)).contains("×1.72"));
+        assertTrue(String.join("\n", Enhancement.tooltip(content, ember, 10)).contains("×2"), "+10 = ×2");
         assertTrue(Enhancement.tooltip(content, firstOf(ItemType.ACCESSORY, false), 3).isEmpty(), "장신구는 강화 줄 없음");
 
         List<String> lines = ItemTooltip.lines(content, ember, base, rules.bonus(ember, base, 7), l7);

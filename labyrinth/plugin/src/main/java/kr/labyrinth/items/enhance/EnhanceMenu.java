@@ -146,7 +146,8 @@ final class EnhanceMenu extends Menu {
             deco(sGold, Button.icon(Material.GOLD_NUGGET, "<gray>골드", List.of("<dark_gray>" + why)));
             deco(sStone, Button.icon(Material.AMETHYST_SHARD, "<gray>강화석", List.of("<dark_gray>" + why)));
             deco(sMats[0], Button.icon(Material.BUNDLE, "<gray>장비 재료", List.of("<dark_gray>" + why,
-                    "<dark_gray>장비마다 드는 재료가 다릅니다.")));
+                    "<dark_gray>장비마다 드는 재료가 다릅니다 — 그 장비의 제작 재료,",
+                    "<dark_gray>제작법이 없으면 그 장비를 주는 몬스터·보스의 재료.")));
             deco(S_CHANCE, Button.icon(Material.GLASS_BOTTLE, "<gray>성공 확률", List.of("<dark_gray>" + why)));
             deco(S_FAIL, Button.icon(Material.GRAY_DYE, "<gray>실패하면", List.of("<dark_gray>" + why)));
         } else {
@@ -223,7 +224,7 @@ final class EnhanceMenu extends Menu {
         });
         deco(S_PURSE, Button.icon(Material.GOLD_NUGGET, "<#ffd27a>보유 골드 " + Text.num(d.gold()),
                 List.of("<gray>레벨 " + d.level(), "<dark_gray>강화석은 미궁 몬스터·상자·보스에게서, 하급은 떠돌이 상인 핀에게서.",
-                        "<dark_gray>장비 재료는 그 장비가 나오는 층에서 모읍니다.")));
+                        "<dark_gray>장비 재료는 그 장비를 얻는 곳(대장간 재료·몬스터·보스)에서 모읍니다.")));
         set(S_CLOSE, UiTheme.close(), ctx -> ctx.player().closeInventory());
     }
 
@@ -369,8 +370,9 @@ final class EnhanceMenu extends Menu {
         }
         if (curve.length() > 7) out.add(curve.toString());
         out.add("");
-        out.add("<gray>재료: 강화석 + 장비마다 다른 재료 <dark_gray>(아래 비용 줄)");
-        String[] label = {"그 층 재료", "정예급 재료 더", "희귀 재료 더"};
+        out.add("<gray>재료: 강화석 + 그 장비의 제작 재료 <dark_gray>(아래 비용 줄)");
+        out.add("<dark_gray>제작법이 없는 장비는 그 장비를 주는 몬스터·보스의 재료");
+        String[] label = {"주 재료", "둘째 재료 더", "귀한 재료 더"};
         StringBuilder bands = new StringBuilder("<dark_gray>");
         List<EnhanceDef.Band> bl = services.content().enhance().bands();
         for (int i = 0; i < bl.size(); i++) {
@@ -379,7 +381,7 @@ final class EnhanceMenu extends Menu {
                     .append(i < label.length ? label[i] : "재료");
         }
         out.add(bands.toString());
-        out.add("<dark_gray>보스 고유 장비는 높은 단계에 그 보스의 핵이 듭니다.");
+        out.add("<dark_gray>보스 고유 장비는 가장 높은 단계에 그 보스의 핵이 듭니다.");
         out.add("<gray>+" + r.config().glintFrom() + " 부터 이름이 빛나고, +" + r.maxLevel() + " 은 특별한 빛을 냅니다.");
         out.add("<gray>+" + r.config().broadcastFrom() + " 이상 성공은 서버 전체에 알려집니다.");
         out.add("<dark_gray>강화석: 지하 1~3층 하급 · 4~7층 상급 · 8~10층 최상급 장비");

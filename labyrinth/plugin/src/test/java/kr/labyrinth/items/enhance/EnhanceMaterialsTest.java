@@ -3,7 +3,6 @@ package kr.labyrinth.items.enhance;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -12,24 +11,28 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import kr.labyrinth.content.BossDef;
 import kr.labyrinth.content.Content;
 import kr.labyrinth.content.ContentParser;
 import kr.labyrinth.content.EnhanceDef;
 import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.ItemType;
+import kr.labyrinth.content.LootTable;
+import kr.labyrinth.content.MobDef;
+import kr.labyrinth.content.RecipeDef;
 import kr.labyrinth.core.ContentLoader;
+import kr.labyrinth.dungeon.treasure.ChestTier;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
- * 장비별 강화 재료 (content/enhance.yml, GDD §11.13): 번들 파일 검사 · 구간별 비용 구성 · 전부 아니면 아무것도 소모 · 읽기 경고.
- * <p>
- * 루팅 재구성으로 들어올 새 장비(다른 작업 묶음)는 이 브랜치 items.yml 에 아직 없을 수 있다 — 그런 항목은 개수만 세고 건너뛴다.
- * 재료는 반드시 지금 items.yml 에 있어야 한다.
+ * 장비별 강화 재료 (content/enhance.yml, GDD §11.13): 번들 파일 검사 · 재료가 '그 장비를 얻는 곳'과 이어지는지
+ * (제작 재료 / 나오는 곳 드롭, 그 층에서 얻을 수 있음) · 같은 층 구성 겹침 없음 · 구간별 비용 구성 · 전부 아니면 아무것도 소모 · 읽기 경고.
  */
 class EnhanceMaterialsTest {
 
@@ -56,9 +59,7 @@ class EnhanceMaterialsTest {
         EnhanceDef t = content.enhance();
         assertTrue(t.loaded());
         assertEquals(EnhanceDef.DEFAULT_BANDS, t.bands(), "low +1~+3 · mid +4~+6 · high +7~+10");
-        for (String w : t.warnings()) {
-            assertTrue(w.startsWith("items.yml 에 없는 장비"), "재료·구간 경고가 없어야 함: " + w);
-        }
+        assertEquals(List.of(), t.warnings(), "번들 enhance.yml 은 경고 없이 읽혀야 한다 (없는 장비·재료·구간)");
     }
 
     @Test
@@ -89,9 +90,8 @@ class EnhanceMaterialsTest {
                 assertTrue(EnhanceRules.enhanceable(content.item(e.getKey())), e.getKey() + " 은 강화할 수 없는 물건");
             }
         }
-        System.out.println("ENHANCE enhance.yml 장비 " + items.size() + "개 중 items.yml 에 아직 없는 장비 " + skipped + "개 건너뜀"
-                + (skippedIds.isEmpty() ? "" : " (예: " + skippedIds.subList(0, Math.min(5, skippedIds.size())) + ")"));
-        assertTrue(skipped <= 45, "items.yml 에 없는 장비가 너무 많다 (오타?): " + skippedIds);
+        System.out.println("ENHANCE enhance.yml 장비 " + items.size() + "개");
+        assertEquals(0, skipped, "items.yml 에 없는 장비: " + skippedIds);
         for (ItemDef d : content.items().values()) {
             if (EnhanceRules.enhanceable(d)) assertTrue(content.enhance().has(d.id()),
                     d.id() + " 의 강화 재료가 없다 — python3 tools/gen_enhance.py 로 다시 만들 것");
@@ -100,25 +100,21 @@ class EnhanceMaterialsTest {
 
     @Test
     void bandsFollowTheRules() {
-        Set<String> cores = new HashSet<>();
-        for (ItemDef d : content.items().values()) {
-            if (d.type() == ItemType.MATERIAL && d.sources().equals(List.of("boss"))) cores.add(d.id());
-        }
+        Set<String> cores = cores();
         assertEquals(10, cores.size(), "보스 핵 10종: " + cores);
-        Map<String, String> seen = new HashMap<>();
-        // 같은 주 재료(= 같은 층·같은 단단/부드러움) · 같은 종류 묶음별 high 단계 재료 종류 수: 일반 장비 최대 / 보스 장비 최소
-        Map<String, int[]> normalKinds = new HashMap<>(), bossKinds = new HashMap<>();
+        // 층별 high 단계 재료 종류 수: 일반 장비 최대 / 보스 장비 최소
+        Map<Integer, int[]> normalKinds = new HashMap<>(), bossKinds = new HashMap<>();
         for (ItemDef d : content.items().values()) {
             if (!EnhanceRules.enhanceable(d)) continue;
             EnhanceDef t = content.enhance();
             List<EnhanceDef.Cost> low = t.costs(d.id(), 1), mid = t.costs(d.id(), 5), high = t.costs(d.id(), 10);
             assertEquals(1, low.size(), d.id() + " low = 주 재료 1종");
             assertEquals(2, mid.size(), d.id() + " mid = 주 재료 + 보조");
-            assertEquals(3, high.size(), d.id() + " high = 주 재료 + 보조 + 희귀/보스 핵");
+            assertEquals(3, high.size(), d.id() + " high = 주 재료 + 보조 + 귀한 재료/보스 핵");
             assertEquals(low.get(0).item(), mid.get(0).item(), d.id() + " mid 는 low 재료를 이어 쓴다");
             assertEquals(mid.get(0).item(), high.get(0).item(), d.id());
             assertEquals(mid.get(1).item(), high.get(1).item(), d.id() + " high 는 mid 보조를 이어 쓴다");
-            // 단계 안에서 개수는 줄지 않는다 — 보스 장비의 희귀 재료가 보스 핵으로 바뀌는 단계(+9)만 예외
+            // 단계 안에서 개수는 줄지 않는다 — 보스 장비의 귀한 재료가 보스 핵으로 바뀌는 단계(+9)만 예외
             for (int tg = 2; tg <= 10; tg++) {
                 if (t.band(tg) != t.band(tg - 1)) continue;
                 Map<String, Integer> a = asMap(t.costs(d.id(), tg - 1)), b = asMap(t.costs(d.id(), tg));
@@ -128,40 +124,185 @@ class EnhanceMaterialsTest {
                     assertTrue(b.getOrDefault(e.getKey(), 0) >= e.getValue(), d.id() + " +" + tg + " " + e.getKey());
                 }
             }
-            // 보스 고유 장비 = high 에 보스 핵. 보스가 주지 않는 장비는 보스 핵을 쓰지 않는다.
-            // (루팅 재구성 전 items.yml 은 보스 장비가 정예에서도 나와 sources 가 넓다 — 그래서 한쪽씩만 본다)
-            boolean bossOnly = d.sources().contains("boss") && !d.sources().contains("drop") && !d.sources().contains("chest")
-                    && !d.sources().contains("elite");
-            boolean usesCore = high.stream().anyMatch(c -> cores.contains(c.item()));
-            if (bossOnly) assertTrue(usesCore, d.id() + " 은 보스 고유 장비인데 high 에 보스 핵이 없다");
-            if (usesCore) assertTrue(d.sources().contains("boss"), d.id() + " 은 보스가 주지 않는데 보스 핵을 쓴다 " + d.sources());
-            for (int tg = 1; tg <= 6; tg++) {
-                for (EnhanceDef.Cost c : t.costs(d.id(), tg)) assertFalse(cores.contains(c.item()), d.id() + " +" + tg + " 에 보스 핵");
+            // 보스 고유 장비(·보스가 주는 칭호 보상) = +9·+10 에만 그 층 보스의 핵. 나머지 장비는 보스 핵을 쓰지 않는다.
+            boolean bossGear = d.sources().contains("boss") || d.sources().contains("reward");
+            String core = coreOf(d.floor());
+            for (int tg = 1; tg <= 10; tg++) {
+                Set<String> at = asMap(t.costs(d.id(), tg)).keySet();
+                boolean has = at.stream().anyMatch(cores::contains);
+                if (bossGear && tg >= 9) assertTrue(at.contains(core), d.id() + " +" + tg + " 에 " + d.floor() + "층 보스 핵 " + core);
+                else assertFalse(has, d.id() + " +" + tg + " 에 보스 핵 " + at);
             }
-            String kind = d.isWeapon() ? d.weaponType() : d.armorSlot();
-            int[] kinds = (usesCore ? bossKinds : normalKinds).computeIfAbsent(low.get(0).item() + "|" + kind,
-                    k -> new int[] {usesCore ? 99 : 0, usesCore ? 99 : 0, usesCore ? 99 : 0, usesCore ? 99 : 0});
+            int[] kinds = (bossGear ? bossKinds : normalKinds).computeIfAbsent(d.floor(),
+                    k -> new int[] {bossGear ? 99 : 0, bossGear ? 99 : 0, bossGear ? 99 : 0, bossGear ? 99 : 0});
             for (int tg = 7; tg <= 10; tg++) {
                 int n = t.costs(d.id(), tg).size();
-                kinds[tg - 7] = usesCore ? Math.min(kinds[tg - 7], n) : Math.max(kinds[tg - 7], n);
+                kinds[tg - 7] = bossGear ? Math.min(kinds[tg - 7], n) : Math.max(kinds[tg - 7], n);
             }
-            // 같은 층 재료 · 같은 종류 안에서 구성이 겹치지 않는다
-            String key = low.get(0).item() + "|" + kind + "|" + recipe(t, d.id());
-            String other = seen.put(key, d.id());
-            assertNull(other, d.id() + " 와 " + other + " 의 강화 재료 구성이 똑같다 (같은 종류)");
         }
-        // 보스 고유 장비가 같은 층·같은 종류 일반 장비보다 싼 high 단계가 없다 (+7·+8 은 희귀 재료, +9·+10 은 보스 핵 — 언제나 3종)
-        int compared = 0;
+        // 보스 고유 장비가 같은 층 일반 장비보다 싼 high 단계가 없다 (+7·+8 은 귀한 재료, +9·+10 은 보스 핵 — 언제나 3종)
+        assertEquals(10, bossKinds.size(), "층마다 보스 장비");
         for (var e : bossKinds.entrySet()) {
             int[] normal = normalKinds.get(e.getKey());
-            if (normal == null) continue;
-            compared++;
+            assertNotNull(normal, e.getKey() + "층 일반 장비");
             for (int k = 0; k < 4; k++) {
-                assertTrue(e.getValue()[k] >= normal[k], e.getKey() + " +" + (k + 7) + ": 보스 장비 재료 " + e.getValue()[k]
+                assertTrue(e.getValue()[k] >= normal[k], e.getKey() + "층 +" + (k + 7) + ": 보스 장비 재료 " + e.getValue()[k]
                         + "종 < 일반 장비 " + normal[k] + "종");
             }
         }
-        assertTrue(compared > 0, "비교할 보스 장비 묶음이 없다");
+    }
+
+    /**
+     * 사장님 규칙: 장비 재료는 그 장비를 얻는 곳과 이어진다.
+     * 제작법이 있으면 그 제작 재료(low·mid = 레시피에서 가장 많이 드는 두 재료), 없으면 그 장비를 주는 루팅 테이블의 드롭.
+     * 귀한 재료는 레시피 · 나오는 곳 드롭 · 그것을 대장간에서 정제한 정수 안에서만. 모두 그 장비 층에서 얻을 수 있다.
+     */
+    @Test
+    void materialsComeFromWhereTheItemComesFrom() {
+        Map<String, RecipeDef> recipeOf = new HashMap<>();
+        for (RecipeDef r : content.recipes().values()) recipeOf.putIfAbsent(r.result(), r);
+        int crafted = 0, dropped = 0, mostUsedFirst = 0;
+        for (ItemDef d : content.items().values()) {
+            if (!EnhanceRules.enhanceable(d)) continue;
+            EnhanceDef t = content.enhance();
+            Set<String> used = new LinkedHashSet<>();
+            for (int tg = 1; tg <= 10; tg++) used.addAll(asMap(t.costs(d.id(), tg)).keySet());
+            String p = t.costs(d.id(), 1).get(0).item(), s = t.costs(d.id(), 5).get(1).item();
+            Set<String> home = homeMaterials(d);
+            Set<String> allowed = new HashSet<>(home);
+            RecipeDef r = recipeOf.get(d.id());
+            if (r != null) {
+                crafted++;
+                allowed.addAll(r.materials().keySet());
+                // low · mid = 레시피의 두 주 재료 (같은 레시피 장비끼리 겹치지 않게 순서는 바뀔 수 있다)
+                assertTrue(r.materials().containsKey(p) && r.materials().containsKey(s), d.id() + " P·S 는 제작 재료: " + p + ", " + s);
+                int pc = r.materials().get(p), sc = r.materials().get(s);
+                for (var e : r.materials().entrySet()) {
+                    if (e.getKey().equals(p) || e.getKey().equals(s)) continue;
+                    assertTrue(Math.min(pc, sc) >= e.getValue(), d.id() + " P·S 는 레시피에서 가장 많이 드는 두 재료 (" + e + ")");
+                }
+                int top = r.materials().values().stream().mapToInt(Integer::intValue).max().orElse(0);
+                if (pc == top) mostUsedFirst++;
+            } else {
+                dropped++;
+                assertTrue(home.contains(p) && home.contains(s), d.id() + " P·S 는 그 장비가 나오는 곳의 드롭: " + p + ", " + s + " / " + home);
+            }
+            allowed.addAll(refinedFrom(allowed));
+            Set<String> floorMats = floorMaterials(d.floor());
+            Set<String> obtainable = new HashSet<>(floorMats);
+            obtainable.addAll(refinedFrom(floorMats));
+            for (String m : used) {
+                if (cores().contains(m)) continue; // 보스 핵은 bandsFollowTheRules 가 본다
+                assertTrue(allowed.contains(m), d.id() + " 의 " + m + " 는 제작 재료도 나오는 곳 드롭도 아니다 (" + allowed + ")");
+                assertTrue(obtainable.contains(m), d.id() + " 의 " + m + " 는 " + d.floor() + "층에서 얻을 수 없다");
+            }
+        }
+        System.out.println("ENHANCE 제작 재료 " + crafted + "종 (주 재료 = 가장 많이 드는 재료 " + mostUsedFirst + "종) · 드롭 재료 " + dropped + "종");
+        assertTrue(crafted > 150 && dropped > 30, crafted + " / " + dropped);
+        assertTrue(mostUsedFirst * 3 >= crafted * 2, "제작 장비 대부분은 레시피에서 가장 많이 드는 재료가 주 재료: " + mostUsedFirst + "/" + crafted);
+    }
+
+    @Test
+    void noTwoItemsOnAFloorShareTheSameMaterials() {
+        Map<String, String> seen = new HashMap<>();
+        List<String> same = new ArrayList<>();
+        for (ItemDef d : content.items().values()) {
+            if (!EnhanceRules.enhanceable(d)) continue;
+            String other = seen.putIfAbsent(d.floor() + "|" + recipe(content.enhance(), d.id()), d.id());
+            if (other != null) same.add(other + " = " + d.id());
+        }
+        System.out.println("ENHANCE 같은 층에서 강화 재료 구성(개수까지)이 똑같은 장비 " + same.size() + "쌍");
+        assertEquals(List.of(), same, "같은 층 장비끼리 강화 재료 구성이 똑같다");
+    }
+
+    // ── 루팅 펼치기 (LootHomesTest 와 같은 방식) ─────────────────────────────
+
+    private static Set<String> cores() {
+        Set<String> cores = new HashSet<>();
+        for (ItemDef d : content.items().values()) {
+            if (d.type() == ItemType.MATERIAL && d.sources().equals(List.of("boss"))) cores.add(d.id());
+        }
+        return cores;
+    }
+
+    private static String coreOf(int floor) {
+        BossDef b = content.bossOfFloor(floor);
+        assertNotNull(b, floor + "층 보스");
+        for (LootTable.Entry e : content.lootTable(b.drops()).guaranteed()) {
+            if (e.kind() == LootTable.Kind.ITEM && cores().contains(e.item())) return e.item();
+        }
+        throw new AssertionError(floor + "층 보스 확정 드롭에 핵이 없다");
+    }
+
+    private static Set<String> expand(String tableId, Set<String> seen) {
+        Set<String> out = new HashSet<>();
+        LootTable t = content.lootTable(tableId);
+        if (t == null || !seen.add(tableId)) return out;
+        List<LootTable.Entry> all = new ArrayList<>(t.entries());
+        all.addAll(t.guaranteed());
+        for (LootTable.Entry e : all) {
+            switch (e.kind()) {
+                case ITEM -> out.add(e.item());
+                case ONE_OF -> out.addAll(e.oneOf());
+                case TABLE -> out.addAll(expand(e.table(), new HashSet<>(seen)));
+                case RARITY_POOL -> { }
+            }
+        }
+        return out;
+    }
+
+    /** 그 층 1회 클리어가 굴리는 테이블 → 집(common | elite | boss). */
+    private static Map<String, String> floorRoots(int floor) {
+        Map<String, String> out = new LinkedHashMap<>();
+        for (MobDef m : content.mobs().values()) {
+            if (m.floor() == floor && m.drops() != null) out.put(m.drops(), m.isElite() ? "elite" : "common");
+        }
+        BossDef b = content.bossOfFloor(floor);
+        if (b != null) out.put(b.drops(), "boss");
+        out.put("treasure_floor_" + floor, "common");
+        out.put("gimmick_floor_" + floor, "common");
+        for (ChestTier tier : ChestTier.values()) out.put("maze_chest_" + tier.id() + "_f" + floor, "common");
+        return out;
+    }
+
+    private static Set<String> materialsOf(Iterable<String> tables) {
+        Set<String> out = new HashSet<>();
+        for (String t : tables) {
+            for (String id : expand(t, new HashSet<>())) {
+                ItemDef d = content.item(id);
+                if (d != null && d.type() == ItemType.MATERIAL) out.add(id);
+            }
+        }
+        return out;
+    }
+
+    private static Set<String> floorMaterials(int floor) {
+        return materialsOf(floorRoots(floor).keySet());
+    }
+
+    /** 장비가 나오는 곳의 드롭 재료. 시작 지급 = 1층 몬스터·상자, 칭호 보상 = 그 층 보스, 대장간에서만 = 없음. */
+    private static Set<String> homeMaterials(ItemDef d) {
+        Map<String, String> roots = floorRoots(d.floor());
+        List<String> homes = new ArrayList<>();
+        for (String t : roots.keySet()) if (expand(t, new HashSet<>()).contains(d.id())) homes.add(t);
+        if (homes.isEmpty() && d.sources().contains("reward")) homes.add(content.bossOfFloor(d.floor()).drops());
+        if (homes.isEmpty() && d.sources().contains("starter")) {
+            for (var e : floorRoots(1).entrySet()) if (e.getValue().equals("common")) homes.add(e.getKey());
+        }
+        assertFalse(homes.isEmpty() && !d.sources().equals(List.of("craft")), d.id() + " 이 나오는 곳이 없다 " + d.sources());
+        return materialsOf(homes);
+    }
+
+    /** 대장간에서 have 의 재료만으로 정제할 수 있는 재료 (정수 5:1 — 재료 1종짜리 material 레시피). */
+    private static Set<String> refinedFrom(Set<String> have) {
+        Set<String> out = new HashSet<>();
+        for (RecipeDef r : content.recipes().values()) {
+            ItemDef res = content.item(r.result());
+            if (res != null && res.type() == ItemType.MATERIAL && !r.materials().isEmpty() && have.containsAll(r.materials().keySet())) {
+                out.add(r.result());
+            }
+        }
+        return out;
     }
 
     private static String recipe(EnhanceDef t, String id) {
