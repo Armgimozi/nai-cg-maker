@@ -24,7 +24,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-/** 강화 규칙 (GDD §11.13): 확률·하락·보호·스탯 배율·비용·강화석 구간 + 번들 콘텐츠·config 기본값. */
+/** 강화 규칙 (GDD §11.13): 확률·하락·보호·상승폭이 커지는 스탯 배율·비용·강화석 구간 + 번들 콘텐츠·config 기본값. */
 class EnhanceRulesTest {
 
     static Content content;
@@ -122,36 +122,68 @@ class EnhanceRulesTest {
     }
 
     @Test
-    void statMultiplierIsSixPercentPerLevel() {
-        assertEquals(1.0, rules.multiplier(0), 1e-9);
-        assertEquals(1.06, rules.multiplier(1), 1e-9);
-        assertEquals(1.6, rules.multiplier(10), 1e-9);
-        assertEquals(1.6, rules.multiplier(15), 1e-9, "최대 단계로 자름");
+    void statCurveEscalates() {
+        double[] want = {1.0, 1.03, 1.06, 1.10, 1.14, 1.19, 1.25, 1.33, 1.43, 1.56, 1.72};
+        for (int lv = 0; lv <= 10; lv++) assertEquals(want[lv], rules.multiplier(lv), 1e-9, "+" + lv);
+        assertEquals(1.72, rules.multiplier(15), 1e-9, "최대 단계로 자름");
+        assertEquals(1.0, rules.multiplier(-3), 1e-9);
+        // 한 단계 상승폭은 줄지 않고, 높은 단계가 훨씬 크다 (3·3·4·4·5·6·8·10·13·16 %)
+        double prev = 0;
+        for (int lv = 0; lv < 10; lv++) {
+            double g = rules.stepGain(lv);
+            assertTrue(g > 0, "+" + (lv + 1) + " 도 오른다");
+            assertTrue(g >= prev - 1e-9, "상승폭이 줄지 않는다: +" + (lv + 1) + " " + g + " < " + prev);
+            if (lv >= 4) assertTrue(g > prev + 1e-9, "+5 부터는 단계마다 상승폭이 커진다: +" + (lv + 1));
+            prev = g;
+        }
+        assertEquals(0.16, rules.stepGain(9), 1e-9, "+9 → +10 = 16%");
+        assertTrue(rules.stepGain(9) > 5 * rules.stepGain(0), "+10 한 단계가 +1 한 단계의 5배 넘게");
+        assertEquals(0, rules.stepGain(10), 1e-9, "최대 단계 다음은 없음");
+    }
 
+    @Test
+    void statCurveDefaultsAndLegacyKey() {
+        // 예전 서버 config.yml: stat_per_level 만 있고 stat_bonus 가 없음 → 새 기본 곡선 (예전 키는 무시)
+        YamlConfiguration legacy = new YamlConfiguration();
+        legacy.set("stat_per_level", 0.06);
+        assertEquals(EnhanceRules.Config.defaultStatBonus(), EnhanceRules.Config.from(legacy).statBonus());
+        assertEquals(1.72, new EnhanceRules(EnhanceRules.Config.from(legacy)).multiplier(10), 1e-9);
+        // 직접 고친 곡선: 줄어드는 값·음수는 앞 값으로 (누적은 줄지 않는다), 모자라면 마지막 값
+        YamlConfiguration custom = new YamlConfiguration();
+        custom.set("stat_bonus", List.of(0.1, 0.05, -1.0, 0.5));
+        EnhanceRules c = new EnhanceRules(EnhanceRules.Config.from(custom));
+        assertEquals(1.1, c.multiplier(1), 1e-9);
+        assertEquals(1.1, c.multiplier(3), 1e-9);
+        assertEquals(1.5, c.multiplier(4), 1e-9);
+        assertEquals(1.5, c.multiplier(10), 1e-9, "모자란 목록은 마지막 값");
+    }
+
+    @Test
+    void statMultiplierAppliesToScaledKeysOnly() {
         ItemDef sword = content.item("ember_greatsword");
         Map<String, Double> base = Map.of("damage", 40.0, "STR", 7.0, "crit_chance", 0.05);
         Map<String, Double> plus10 = rules.apply(sword, base, 10);
-        assertEquals(64.0, plus10.get("damage"), 1e-9, "피해 40 × 1.6");
+        assertEquals(69.0, plus10.get("damage"), 1e-9, "피해 40 × 1.72 = 68.8 → 늘어난 몫 올림 = 69");
         assertEquals(7.0, plus10.get("STR"), 1e-9, "부가 스탯은 그대로");
         assertEquals(0.05, plus10.get("crit_chance"), 1e-9);
-        assertEquals(43.0, rules.apply(sword, base, 1).get("damage"), 1e-9, "40 + 2.4 → 늘어난 몫 올림 = 43");
+        assertEquals(42.0, rules.apply(sword, base, 1).get("damage"), 1e-9, "40 + 1.2 → 늘어난 몫 올림 = 42");
         Map<String, Double> low = Map.of("damage", 7.0);
         for (int lv = 1; lv <= 10; lv++) {
             assertTrue(rules.apply(sword, low, lv).get("damage") > 7.0, "낮은 무기도 +" + lv + " 효과가 보인다");
             if (lv > 1) assertTrue(rules.apply(sword, low, lv).get("damage") >= rules.apply(sword, low, lv - 1).get("damage"));
         }
-        assertEquals(12.0, rules.apply(sword, low, 10).get("damage"), 1e-9, "7 + ⌈4.2⌉");
+        assertEquals(13.0, rules.apply(sword, low, 10).get("damage"), 1e-9, "7 + ⌈5.04⌉");
         assertEquals(base, rules.apply(sword, base, 0));
-        assertEquals(Map.of("damage", 24.0), rules.bonus(sword, base, 10));
+        assertEquals(Map.of("damage", 29.0), rules.bonus(sword, base, 10));
 
         ItemDef armor = firstOf(ItemType.ARMOR, false);
         Map<String, Double> ab = Map.of("defense", 20.0, "hp", 50.0, "VIT", 3.0);
         Map<String, Double> a7 = rules.apply(armor, ab, 7);
-        assertEquals(29.0, a7.get("defense"), 1e-9, "20 + ⌈8.4⌉");
-        assertEquals(71.0, a7.get("hp"), 1e-9, "50 × 1.42");
+        assertEquals(27.0, a7.get("defense"), 1e-9, "20 + ⌈6.6⌉");
+        assertEquals(67.0, a7.get("hp"), 1e-9, "50 + ⌈16.5⌉");
         assertEquals(3.0, a7.get("VIT"), 1e-9);
         ItemDef shield = firstOf(ItemType.ARMOR, true);
-        assertEquals(32.0, rules.apply(shield, Map.of("defense", 20.0), 10).get("defense"), 1e-9, "방패도 방어 배율");
+        assertEquals(35.0, rules.apply(shield, Map.of("defense", 20.0), 10).get("defense"), 1e-9, "방패도 방어 배율 (20 + ⌈14.4⌉)");
     }
 
     @Test
@@ -225,17 +257,31 @@ class EnhanceRulesTest {
     }
 
     @Test
-    void tooltipShowsLevelNextChanceAndBonus() {
+    void tooltipShowsLevelNextChanceGainAndMaterial() {
         ItemDef ember = content.item("ember_greatsword");
         Map<String, Double> base = ItemRolls.midpoint(ember);
         List<String> l0 = Enhancement.tooltip(content, ember, 0);
-        assertTrue(l0.get(0).contains("+0"));
+        assertEquals(2, l0.size());
+        assertTrue(l0.get(0).contains("+0") && l0.get(0).contains("×1.03"), l0.get(0));
         assertTrue(String.join("\n", l0).contains("100%"));
         List<String> l7 = Enhancement.tooltip(content, ember, 7);
         String t7 = String.join("\n", l7);
-        assertTrue(t7.contains("+7") && t7.contains("50%") && t7.contains("+6 으로 내려감"), t7);
-        assertTrue(t7.contains(content.item(rules.stoneFor(ember)).name()));
+        assertTrue(t7.contains("+7") && t7.contains("50%") && t7.contains("+6으로 하락"), t7);
+        assertTrue(String.join("\n", Enhancement.tooltip(content, ember, 8)).contains("+7로 하락"), "받침에 맞는 조사");
+        assertTrue(l7.get(0).contains("×1.33") && l7.get(0).contains("×1.43"), "지금 배율 → 다음 배율: " + l7.get(0));
+        assertTrue(t7.contains(content.item(rules.stoneFor(ember)).name()) || t7.contains("강화석"), t7);
+        // 장비 재료: 첫 재료만 + "…" (나머지는 강화 창에서)
+        EnhanceCost c8 = rules.cost(ember, 8, 0, content.enhance());
+        if (!c8.materials().isEmpty()) {
+            String first = content.item(c8.materials().get(0).item()).name();
+            assertTrue(l7.get(1).contains(first), l7.get(1));
+            if (c8.materials().size() > 1) assertTrue(l7.get(1).contains("…"), l7.get(1));
+            for (int k = 1; k < c8.materials().size(); k++) {
+                assertFalse(l7.get(1).contains(content.item(c8.materials().get(k).item()).name() + " <gray>×"), "둘째 재료부터는 창에서만");
+            }
+        }
         assertTrue(String.join("\n", Enhancement.tooltip(content, ember, 10)).contains("최대"));
+        assertTrue(String.join("\n", Enhancement.tooltip(content, ember, 10)).contains("×1.72"));
         assertTrue(Enhancement.tooltip(content, firstOf(ItemType.ACCESSORY, false), 3).isEmpty(), "장신구는 강화 줄 없음");
 
         List<String> lines = ItemTooltip.lines(content, ember, base, rules.bonus(ember, base, 7), l7);
@@ -243,6 +289,29 @@ class EnhanceRulesTest {
         double plus = rules.bonus(ember, base, 7).get("damage");
         assertTrue(all.contains("(" + ItemTooltip.formatStat("damage", plus) + ")"), all);
         assertTrue(all.contains("⚒ 강화 +7"));
+    }
+
+    @Test
+    void tooltipLinesFitEveryItemAndLevel() {
+        // 툴팁 강화 줄은 2줄 이하, 줄마다 330px 이하 (TooltipFitTest 와 같은 폭 계산) — 재료 이름이 긴 장비·높은 골드에서도
+        int widest = 0;
+        String widestLine = "";
+        for (ItemDef d : content.items().values()) {
+            if (!EnhanceRules.enhanceable(d)) continue;
+            for (int lv = 0; lv <= rules.maxLevel(); lv++) {
+                List<String> l = Enhancement.tooltip(content, d, lv);
+                assertTrue(l.size() <= 2, d.id() + " +" + lv);
+                for (String x : l) {
+                    assertTrue(Enhancement.px(x) <= 330, d.id() + " +" + lv + " (" + Enhancement.px(x) + "px): " + x);
+                    if (Enhancement.px(x) > widest) {
+                        widest = Enhancement.px(x);
+                        widestLine = d.id() + " +" + lv + ": " + x;
+                    }
+                }
+            }
+        }
+        System.out.println("ENHANCE 툴팁 강화 줄 최대 " + widest + "px — " + widestLine);
+        System.out.println("ENHANCE 예시 " + String.join(" / ", Enhancement.tooltip(content, content.item("ember_greatsword"), 8)));
     }
 
     @Test
