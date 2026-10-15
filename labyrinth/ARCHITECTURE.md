@@ -362,6 +362,9 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   관리자 명령: `spawnboss`, `endboss`(근처 보스전 종료), `bosses`(목록).
 - 보스는 stun/root/빙결 면역(상태이상 서비스가 거름) — 기믹 기절은 `Boss.stun(초)`(+ `makeVulnerable`). `interrupt` 신호는 `interruptible`
   시전만 끊는다. 패턴 피해 대상은 `players()`(TargetFilter·아레나 경계·쓰러짐 제외), 대상 선택은 `targets()`(은신 제외).
+- 7층 보스 단계 추가: `Boss.setBarColor(색)`(전투 중 보스바 기본 색 바꾸기 — 극성 얼굴), `BossRig.partLight(파트, 밝기, 발광색)`(모델 일부만 강조).
+  공격자별 피해 배율·반사처럼 "누가 때렸나"가 필요한 규칙은 `services.damage().addInterceptor` 로 보스 히트박스 대상만 걸고 `onEnd` 에서 해제
+  (`impl/Floor07Boss`). 보스 개인 막대는 `hud().showBossBar(p, "boss_polarity", …)` 처럼 `boss_` 접두어 키를 쓴다.
 
 ### 통합·배포 메모 (integration-release 단계)
 - **메뉴 배경 규칙** (`ui.UiTheme.background(menu, rows)`): 메뉴별 배경 `gui_<menu>` 에는 버튼 소켓이 그려져 있으므로 **버튼 배치가
