@@ -100,7 +100,6 @@ glyphs:
   gui_emblem_titles: {char: "\uE047", file: gui/emblem_titles.png, ascent: 9, height: 11, advance: 12}
   gui_emblem_accessories: {char: "\uE048", file: gui/emblem_accessories.png, ascent: 9, height: 11, advance: 12}
   gui_emblem_merchant: {char: "\uE049", file: gui/emblem_merchant.png, ascent: 9, height: 11, advance: 12}
-  gui_emblem_pvp: {char: "\uE04A", file: gui/emblem_pvp.png, ascent: 9, height: 11, advance: 12}
   gui_emblem_confirm: {char: "\uE04B", file: gui/emblem_confirm.png, ascent: 9, height: 11, advance: 12}
   gui_emblem_generic: {char: "\uE04C", file: gui/emblem_generic.png, ascent: 9, height: 11, advance: 12}
   gui_emblem_codex: {char: "\uE04D", file: gui/emblem_codex.png, ascent: 9, height: 11, advance: 12}
@@ -515,8 +514,6 @@ menu_emblems:
   titles: titles
   accessories: accessories
   merchant: merchant
-  pvp: pvp
-  pvp_ranking: records
   records: records
   codex: codex
   confirm: confirm
