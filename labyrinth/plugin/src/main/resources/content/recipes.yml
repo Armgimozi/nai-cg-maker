@@ -1129,7 +1129,7 @@ recipes:
     station: blacksmith
     materials: {dyad_heart: 1, amethyst_shard: 20, prism_dust: 16, tuning_fork_core: 3, radiant_essence: 4}
     gold: 15000
-    level_req: 36
+    level_req: 35
   # ── 지하 8층 ──
   lorekeeper_helm:   # 서고지기의 머리띠
     result: lorekeeper_helm

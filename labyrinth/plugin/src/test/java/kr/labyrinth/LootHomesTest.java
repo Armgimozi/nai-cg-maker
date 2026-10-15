@@ -149,6 +149,20 @@ class LootHomesTest {
     }
 
     @Test
+    void gearLevelReqFitsItsFloorRange() {
+        // 그 층 장비(보스 장비 포함)는 그 층 레벨 구간 최대값 안에서 낄 수 있어야 한다 — 다음 층 레벨이 돼야 끼는 장비 금지
+        for (ItemDef d : content.items().values()) {
+            if (!d.isGear() || d.floor() <= 0) continue;
+            int max = content.floor(d.floor()).levelRange().max();
+            assertTrue(d.levelReq() <= max, d.id() + " level_req " + d.levelReq() + " > " + d.floor() + "층 구간 최대 " + max);
+        }
+        for (RecipeDef r : content.recipes().values()) {
+            ItemDef res = content.item(r.result());
+            if (res.isGear()) assertEquals(res.levelReq(), r.levelReq(), r.id() + " 레시피 level_req 가 장비와 다름");
+        }
+    }
+
+    @Test
     void starterKitNeverDropsOrCrafts() {
         Set<String> anywhere = new HashSet<>();
         for (String t : content.lootTables().keySet()) anywhere.addAll(expand(t, new HashSet<>()));

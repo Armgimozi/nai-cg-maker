@@ -3320,10 +3320,10 @@ items:
     type: armor
     armor_slot: offhand
     rarity: legendary
-    level_req: 36
+    level_req: 35
     floor: 7
     classes: [guardian]
-    stats: {defense: [12, 14], block_chance: [0.135, 0.165], VIT: [5, 7], hp: [87, 118], damage_reduction: [0.023, 0.032], hp_regen: [1.5, 2.0]}
+    stats: {defense: [12, 14], block_chance: [0.135, 0.165], VIT: [5, 7], hp: [85, 115], damage_reduction: [0.023, 0.032], hp_regen: [1.5, 2.0]}
     pool: false
     sources: [boss, craft]
     model: {shape: round_shield, length: 1.0}
