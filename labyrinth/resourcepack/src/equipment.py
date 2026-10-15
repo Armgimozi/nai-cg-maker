@@ -4,9 +4,16 @@ Original designs per set silhouette (`sets.<id>.look`: heavy | light | cloth), c
 set's chest piece (GDD §14.7).  The head region stays empty: helmets are 3D item models.
 
 바닐라 갑옷은 몸에 1px(레깅스 0.5px) 부풀린 고정 상자라 모양은 못 바꾼다 → 그림으로 부피를 낸다:
-판금 테두리의 밝은 모서리·어두운 아랫면, 겹친 판(라메), 판 아래 드리운 그림자, 리벳·끈·버클,
+판금 테두리의 밝은 모서리·아래로 어두워지는 둥근 면, 겹친 판(라메), 리벳·끈·버클,
 팔 윗면·윗팔까지 덮는 견갑, 고르짓(목깃), 레깅스의 벨트·태싯(허리 늘어뜨림판), 두꺼운 손목·장화 커프.
 경갑은 누빔 패딩 위 가죽 겹, 천옷은 어깨 망토·누빔·주름으로 넉넉하게 보이게 한다.
+
+명암 규칙 (옆모습이 줄무늬가 되지 않게):
+  · 판 아래 드리운 깊은 그림자는 정면에만 둔다. 옆·뒤·안쪽 면은 중간 어둠(≈0.3)으로 낮춘다.
+  · 겹 사이는 "앞 판의 어두운 아랫단 → 다음 판의 밝은 윗테" 한 번의 단차로 읽히게 하고, 따로 검은 줄을 넣지 않는다.
+  · 색은 세트 팔레트의 중간 구간(≈0.3~0.6)이 주색이다. 위쪽(≥0.75)은 1px 테·수놓은 단에만 쓴다.
+  · 어깨 윗면·견갑 윗줄은 3D 어깨 장식이 덮는 자리라 돔 밝기를 낮춰 둔다 (겹쳐 보이지 않게).
+  · 같은 평면에 겹치는 띠(어깨·가랑이·엉덩이)는 _seams 가 같은 색으로 맞춘다 (z-fighting 깜빡임 방지).
 """
 from __future__ import annotations
 
@@ -24,7 +31,7 @@ LEG = {'top': (4, 16, 4, 4), 'bottom': (8, 16, 4, 4), 'outer': (0, 20, 4, 12), '
 
 # 면별 명암 (원통처럼: 바깥면 밝게, 몸쪽 안면 어둡게) — 게임 조명 위에 얹는 그림 속 음영
 BODY_FF = {'front': 0.0, 'back': -0.03, 'left': -0.07, 'right': -0.07}
-LIMB_FF = {'outer': 0.06, 'front': 0.0, 'back': -0.05, 'inner': -0.12}
+LIMB_FF = {'outer': 0.04, 'front': 0.0, 'back': -0.05, 'inner': -0.1}
 # 둘레 좌표 시작 열 (면을 넘어 이어지는 주름·누빔 무늬용): 몸통 = 오른쪽→앞→왼쪽→뒤, 팔다리 = 바깥→앞→안→뒤
 BODY_X0, ARM_X0, LEG_X0 = 16, 40, 0
 
@@ -35,6 +42,11 @@ def shade(ramp, v):
     t = round(t * 2) / 2
     k = min(int(t), len(ramp) - 2)
     return mix(ramp[k], ramp[k + 1], t - k)
+
+
+def _under(name, deep, mid=0.3):
+    """판 아래 그늘: 정면만 깊게, 옆·뒤·안쪽 면은 중간 어둠 (옆모습이 사다리처럼 보이지 않게)."""
+    return deep if name == 'front' else mid
 
 
 class Painter:
@@ -77,19 +89,14 @@ def _ring(i, j, w, h):
     return i in (0, w - 1) or j in (0, h - 1)
 
 
-def _mail(lk, i, j, base=0.26):
-    """사슬 갑옷: 엇갈린 고리 무늬 (판 사이로 보이는 밑받침)."""
-    return lk.main, base + (0.12 if (i + j % 2) % 2 == 0 else -0.05)
-
-
 def _channel(u):
     """세로 누빔 골 (갬비슨): 땀 한 줄 + 부푼 두 줄."""
-    return (-0.14, 0.1, 0.03)[u % 3]
+    return (-0.1, 0.08, 0.02)[u % 3]
 
 
 def _fold(u):
     """천 주름: 밝은 등 → 중간 → 깊은 골 (4칸 주기 = 팔다리 한 면에 골 하나)."""
-    return (0.05, 0.05, 0.0, -0.13)[u % 4]
+    return (0.05, 0.05, 0.0, -0.12)[u % 4]
 
 
 def paint_set(look, look_kind: str, seed: int):
@@ -100,14 +107,15 @@ def paint_set(look, look_kind: str, seed: int):
     {'heavy': _heavy, 'light': _light, 'cloth': _cloth}[kind](hum, leg, look)
     _style_touches(hum, leg, look, kind)
     _trims(hum, leg, look, kind, look.level)
+    _seams(hum, leg)
     return hum.img, leg.img
 
 
 # ───────────────────────────── 중갑 (판금) ─────────────────────────────
 
 def _heavy(hum: Painter, leg: Painter, lk):
-    """판 하나하나를 크게: 밝은 윗테 → 아래로 어두워지는 둥근 면 → 판 아래 짙은 그림자.
-    판 사이로는 어두운 사슬이 비쳐 겹이 진다 (견갑 아래, 허벅지)."""
+    """판 하나하나를 크게: 밝은 윗테 → 아래로 어두워지는 둥근 면 → 다음 판의 밝은 윗테.
+    정면에서만 판 아래 그림자를 깊게 드리워 두께를 보이고, 판 사이로 사슬이 비친다 (견갑 아래, 허벅지)."""
     M, G, O = lk.main, lk.grip, lk.orn
 
     def n_(i, j, salt):
@@ -117,54 +125,54 @@ def _heavy(hum: Painter, leg: Painter, lk):
         if (i, j) in rivets:
             return O, 0.9
         if (i, j - 1) in rivets:
-            return M, base - 0.24                                            # 리벳 아래 그림자
+            return M, base - 0.2                                             # 리벳 아래 그림자
         return M, base
 
     def body(name):
         def fn(i, j, w, h):
             n = n_(i, j, len(name))
             if name == 'top':
-                return M, 0.66 + n
+                return M, 0.56 + n
             if name == 'bottom':
-                return (M, 0.14) if _ring(i, j, w, h) else None              # 열린 아랫단 (두께가 보이게)
+                return (M, 0.18) if _ring(i, j, w, h) else None              # 열린 아랫단 (두께가 보이게)
             ff = BODY_FF[name]
+            front = name == 'front'
             mid = (w - 1) / 2
             dx = abs(i - mid) / mid
             if j == 0:
-                return M, 0.9 + ff                                           # 고르짓 테
+                return M, (0.8 if front else 0.7) + ff                       # 고르짓 테
             if j == 1:
-                return M, 0.64 + ff + (0.06 if dx < 0.5 else 0)              # 고르짓 판
+                return M, 0.56 + ff + (0.06 if dx < 0.5 else 0)              # 고르짓 판
             if j == 2:
-                return M, 0.1                                                # 고르짓 아래 그림자
+                return M, _under(name, 0.12, 0.34)                           # 고르짓 아래 그늘
             if j <= 7:
-                v = (0.76, 0.7, 0.63, 0.56, 0.48)[j - 3] + ff + n            # 위가 밝고 아래로 둥글게 어두워짐
+                v = (0.56, 0.5, 0.46, 0.42, 0.36)[j - 3] + ff + n            # 위가 밝고 아래로 둥글게 어두워짐
                 if name in ('front', 'back'):
-                    v += 0.1 * (1 - dx * dx) - 0.08 * dx * dx                # 불룩한 면 (가장자리 어둡게)
-                if name == 'front':
+                    v += 0.08 * (1 - dx * dx) - 0.08 * dx * dx               # 불룩한 면 (가장자리 어둡게)
+                if front:
                     if j <= 6 and i == 3:
                         v += 0.12                                            # 가운데 능선 (빛 받는 쪽)
                     elif j <= 6 and i == 4:
                         v -= 0.04
-                    return rivet_or({(1, 3), (6, 3)}, i, j, v)
+                    return M, v
                 if name == 'back':
                     if i in (3, 4):
-                        return M, v - 0.2 + (0.06 if i == 3 else 0)          # 등뼈 골
-                    return rivet_or({(1, 3), (6, 3)}, i, j, v)
+                        return M, v - 0.16 + (0.06 if i == 3 else 0)         # 등뼈 골
+                    return rivet_or({(2, 3), (5, 3)}, i, j, v)
                 if i in (1, 2) and j >= 4:                                   # 옆구리 버클 끈
                     if j == 5:
                         return O, 0.84 if i == 1 else 0.6
                     return G, 0.5 if i == 1 else 0.34
                 return M, v - 0.04
             if j == 8:
-                return M, 0.08                                               # 흉갑 아래 깊은 그림자
+                return M, _under(name, 0.1, 0.32)                            # 흉갑 아래 그늘
             if j == 9:
-                return rivet_or({(0, 9), (w - 1, 9)} if name in ('front', 'back') else set(), i, j,
-                                0.66 + ff + n)                               # 허리 라메
+                return rivet_or({(2, 9), (5, 9)} if name == 'back' else set(), i, j, 0.62 + ff + n)   # 허리 라메
             if j == 10:
                 return M, 0.44 + ff + n
-            if name == 'front' and i in (3, 4):
+            if front and i in (3, 4):
                 return O, 0.88 if i == 3 else 0.62                           # 버클
-            return G, 0.34 + n                                               # 벨트
+            return G, 0.36 + n                                               # 벨트
 
         return fn
 
@@ -174,34 +182,34 @@ def _heavy(hum: Painter, leg: Painter, lk):
         def fn(i, j, w, h):
             n = n_(i, j, 40 + len(name))
             if name == 'top':
-                # 견갑 윗면 (i=0 = 바깥 모서리, j=0 = 뒤): 둥근 돔
+                # 견갑 윗면 (i=0 = 바깥 모서리, j=0 = 뒤): 3D 견갑이 덮는 자리라 돔을 낮게
                 if i == 0:
-                    return M, 0.86
-                return M, 0.92 - 0.1 * (abs(i - 1.6) + abs(j - 1.5)) + n
+                    return M, 0.66
+                return M, 0.66 - 0.08 * (abs(i - 1.6) + abs(j - 1.5)) + n
             if name == 'bottom':
-                return (M, 0.22) if _ring(i, j, w, h) else None              # 열린 손목 (두꺼운 관처럼)
+                return (M, 0.18) if _ring(i, j, w, h) else None              # 열린 손목 (두꺼운 관처럼)
             ff = LIMB_FF[name]
             if j == 0:
-                return M, 0.9 + ff * 0.5                                     # 견갑 테
+                return M, 0.7 + ff * 0.5                                     # 견갑 테
             if j <= 4:
-                v = (0.78, 0.68, 0.58, 0.44)[j - 1] + ff + n                 # 견갑 돔 → 어두운 아랫면
+                v = (0.64, 0.58, 0.52, 0.46)[j - 1] + ff + n                 # 견갑 한 장: 둥글게 아래로 어두워짐
                 if name == 'outer' and i in (1, 2) and j <= 2:
-                    v += 0.1
+                    v += 0.06                                                # 바깥 볼록면 하이라이트
                 return M, v
             if j == 5:
-                return M, 0.06                                               # 견갑 아래 그림자
+                return M, _under(name, 0.1, 0.36)                            # 견갑 아래 그늘
             if j == 6:
-                return _mail(lk, i, j, 0.22)                                 # 사슬 소매
+                return M, 0.4 + ff * 0.5                                     # 사슬 소매 (평평한 중간 어둠)
             if j == 7:
-                return M, 0.82 + ff                                          # 완갑 윗테
+                return M, 0.68 + ff                                          # 완갑 윗테
             if j in (8, 9):
-                v = 0.62 + ff + n - (0.08 if j == 9 else 0)
+                v = 0.6 + ff + n - (0.08 if j == 9 else 0)
                 if name == 'outer' and i == 1:
-                    v += 0.14                                                # 완갑 능선
+                    v += 0.1                                                 # 완갑 능선
                 return M, v
             if j == 10:
-                return M, 0.84 + ff                                          # 건틀릿 커프 벌어진 테
-            return M, 0.28 + ff                                              # 커프 아랫면
+                return M, 0.6 + ff                                           # 건틀릿 커프 벌어진 테
+            return M, _under(name, 0.3, 0.48) + ff                           # 커프 아랫면
 
         return fn
 
@@ -218,18 +226,18 @@ def _heavy(hum: Painter, leg: Painter, lk):
             n = n_(i, j, 70 + len(name))
             ff = LIMB_FF[name]
             if j == 7:
-                return M, 0.9 + ff * 0.5                                     # 장화 윗테 (두껍게)
+                return M, 0.76 + ff * 0.5                                    # 장화 윗테 (두껍게)
             if j == 8:
                 return M, 0.62 + ff + n
             if j == 9:
-                return M, 0.1                                                # 커프 아래 그림자
+                return M, _under(name, 0.2, 0.48) + ff                       # 커프 아래 그늘 (정면만 깊게)
             if j == 10:
                 if name == 'front':
-                    return M, 0.84 if i in (1, 2) else 0.64                  # 앞코 캡
-                return M, 0.6 + ff + n
+                    return M, 0.62 if i >= 1 else 0.5                        # 앞코 캡 (가랑이 쪽 두 열은 같은 색)
+                return M, 0.5 + ff + n
             if name == 'front':
-                return M, 0.52 if i in (1, 2) else 0.3
-            return G, 0.2                                                    # 밑창 테
+                return M, 0.46 if i >= 1 else 0.34
+            return M, 0.42 + ff                                              # 밑창 테
 
         return fn
 
@@ -245,7 +253,7 @@ def _heavy(hum: Painter, leg: Painter, lk):
                 if name == 'front' and i in (3, 4):
                     return O, 0.88 if i == 3 else 0.62
                 return G, 0.38
-            return M, 0.76 if name in ('front', 'back') else 0.5             # 태싯 고리
+            return M, 0.66                                                   # 태싯 고리 (다리 0행과 같은 색)
 
         return fn
 
@@ -260,26 +268,26 @@ def _heavy(hum: Painter, leg: Painter, lk):
             n = n_(i, j, 100 + len(name))
             ff = LIMB_FF[name]
             if j == 0:
-                return G, 0.3                                                # 벨트 밑
-            if name == 'inner' and j <= 6:
-                return _mail(lk, i, j, 0.22)
+                return M, 0.66                                               # 태싯 윗테 = 허리 고리
+            if name == 'inner':
+                return M, 0.44 + ff + n - 0.02 * j                           # 안쪽: 민판
             if j <= 3:
-                return M, (0.84, 0.66, 0.52)[j - 1] + ff + n                 # 태싯: 윗테 → 아랫면
+                return M, (0.58, 0.52, 0.46)[j - 1] + ff + n                 # 태싯: 둥글게 어두워지는 면
             if j == 4:
-                return M, 0.08                                               # 태싯 그림자
+                return M, _under(name, 0.12, 0.36)                           # 태싯 아래 그늘
             if j == 5:
-                return _mail(lk, i, j, 0.22)                                 # 허벅지 사슬
+                return M, 0.44 + ff                                          # 허벅지 사슬 (평평한 중간 어둠)
             if j == 6:
                 if name == 'front':
-                    return M, (0.56, 0.96, 0.84, 0.5)[i]                     # 무릎 덮개 돔
+                    return M, (0.54, 0.86, 0.76, 0.5)[i]                     # 무릎 덮개 돔
                 if name == 'outer':
-                    return M, 0.74 + n                                       # 무릎 날개
-                return _mail(lk, i, j, 0.22)
+                    return M, 0.6 + n                                        # 무릎 날개
+                return M, 0.46 + ff + n
             if j == 7:
-                return M, 0.16                                               # 무릎 아래
-            v = 0.56 + ff + n - 0.03 * (j - 8)
+                return M, _under(name, 0.24, 0.42)                           # 무릎 아래
+            v = 0.54 + ff + n - 0.03 * (j - 8)
             if name == 'front' and i == 1:
-                v += 0.14                                                    # 정강이 능선
+                v += 0.12                                                    # 정강이 능선
             return M, v
 
         return fn
@@ -290,13 +298,13 @@ def _heavy(hum: Painter, leg: Painter, lk):
 # ───────────────────────────── 경갑 (가죽 + 누빔) ─────────────────────────────
 
 def _light(hum: Painter, leg: Painter, lk):
-    """매끈한 가죽 판 + 그 밑으로 드러나는 연한 누빔 패딩 (옆구리·허리 치마), 두 겹 어깨 패드,
-    말린 깃·팔목·접어 내린 장화 목, 떠 있는 사선 끈."""
+    """매끈한 가죽 판 + 그 밑으로 드러나는 누빔 패딩 (옆구리·허리 치마), 두 겹 어깨 패드,
+    말린 깃·팔목·접어 내린 장화 목, 떠 있는 사선 끈.  가죽은 팔레트 중간색(≈0.4)이 주색 — 어두운 세트는 어둡게."""
     M, G, O = lk.main, lk.grip, lk.orn
     strap = O if lk.level >= 2 else G
     L = lk.pal.light
-    pad = [shade(M, 0.2), mix(shade(M, 0.45), L, 0.3), mix(shade(M, 0.65), L, 0.45), mix(shade(M, 0.85), L, 0.5),
-           lighten(L, 0.15)]                                                 # 누빔 천: 가죽 색을 팔레트 밝은 색 쪽으로
+    pad = [shade(M, 0.12), mix(shade(M, 0.3), L, 0.1), mix(shade(M, 0.48), L, 0.12), mix(shade(M, 0.66), L, 0.15),
+           mix(shade(M, 0.84), L, 0.18)]                                     # 누빔 천: 가죽 색에 밝은 색을 살짝만
 
     def n_(i, j, salt):
         return _noise(lk, i, j, salt, 0.06)
@@ -304,46 +312,46 @@ def _light(hum: Painter, leg: Painter, lk):
     def body(name):
         def fn(i, j, w, h):
             if name == 'top':
-                return M, 0.6
+                return M, 0.5
             if name == 'bottom':
                 return (G, 0.2) if _ring(i, j, w, h) else None
             n = n_(i, j, len(name))
             ff = BODY_FF[name]
+            front = name == 'front'
             u = BODY[name][0] - BODY_X0 + i
             if name in ('front', 'back') and 1 <= j <= 9:                    # 어깨→허리 사선 끈
-                d = (i - j * 0.66) - (1 if name == 'front' else 5)
+                d = (i - j * 0.66) - (1 if front else 5)
                 if abs(d) < 0.8:
-                    if name == 'front' and j == 5:
+                    if front and j == 5:
                         return O, 0.88                                       # 끈 버클
-                    return strap, 0.92 if d < 0 else 0.7
+                    return strap, 0.86 if d < 0 else 0.66
                 if 0.8 <= d < 1.6:
-                    return M, 0.14                                           # 끈 그림자 (끈이 떠 보이게)
+                    return M, _under(name, 0.14, 0.26)                       # 끈 그림자 (끈이 떠 보이게)
             if j == 0:
-                return M, 0.86 + ff                                          # 말린 깃
+                return M, (0.44 if front else 0.4) + ff                      # 말린 깃 (등급 1 이상은 금속 테가 덮음)
             if j == 1:
-                return M, 0.2                                                # 깃 아래
+                return M, _under(name, 0.18, 0.3)                            # 깃 아래
             if j <= 7:
                 if name in ('left', 'right'):                                # 옆구리: 누빔 패딩이 드러남
-                    return pad, 0.55 + _channel(u) + n
+                    return pad, 0.36 + _channel(u) + n
                 mid = (w - 1) / 2
                 dx = abs(i - mid) / mid
-                v = (0.74, 0.7, 0.65, 0.6, 0.55, 0.5)[j - 2] + ff + n + 0.08 * (1 - dx * dx) - 0.08 * dx * dx
-                if name == 'front' and i in (3, 4) and j <= 6:               # 앞섶 끈 엮음
-                    return (G, 0.92) if (i == 3) == (j % 2 == 0) else (M, 0.24)
-                if name == 'back' and 2 <= i <= 5 and 3 <= j <= 6:           # 등: 가죽 테 안쪽 누빔 패드
-                    return pad, 0.56 + _channel(u) - 0.04 * (j - 3)
-                if name == 'back' and 1 <= i <= 6 and (j == 2 or i in (1, 6)) and j <= 7:
-                    return M, v + 0.14                                       # 패드 둘레 가죽 테
+                grad = (0.46, 0.42, 0.4, 0.36, 0.32, 0.28) if front else (0.42, 0.4, 0.38, 0.34, 0.32, 0.28)
+                v = grad[j - 2] + ff + n + 0.06 * (1 - dx * dx) - 0.08 * dx * dx
+                if front and i in (3, 4) and j <= 6:                         # 앞섶 끈 엮음
+                    return (G, 0.9) if (i == 3) == (j % 2 == 0) else (M, 0.22)
+                if name == 'back' and i in (3, 4) and 3 <= j <= 5:           # 등: 가죽 사이로 드러난 2×3 누빔 패드
+                    return pad, 0.38 + (0.04 if i == 3 else -0.02) - 0.04 * (j - 3)
                 return M, v
             if j == 8:
-                return M, 0.12                                               # 가죽 판 아래 그림자
+                return M, _under(name, 0.12, 0.3)                            # 가죽 판 아래 그늘
             if j == 9:
-                return G, 0.84 + ff                                          # 벨트 윗테
+                return G, 0.8 + ff                                           # 벨트 윗테
             if j == 10:
-                if name == 'front' and i in (2, 3):
+                if front and i in (2, 3):
                     return O, 0.88 if i == 2 else 0.62
-                return G, 0.6 + n
-            return pad, 0.5 + _channel(u)                                    # 누빔 치마 윗단
+                return G, 0.56 + n
+            return pad, 0.32 + _channel(u)                                   # 누빔 치마 윗단
 
         return fn
 
@@ -353,32 +361,33 @@ def _light(hum: Painter, leg: Painter, lk):
         def fn(i, j, w, h):
             n = n_(i, j, 40 + len(name))
             if name == 'top':
+                # 어깨 패드 윗면: 3D 어깨 장식이 덮는 자리라 낮게
                 if i == 0:
-                    return M, 0.86
-                return M, 0.8 - 0.06 * (abs(i - 1.6) + abs(j - 1.5)) + n
+                    return M, 0.64
+                return M, 0.58 - 0.05 * (abs(i - 1.6) + abs(j - 1.5)) + n
             if name == 'bottom':
                 return (G, 0.2) if _ring(i, j, w, h) else None
             ff = LIMB_FF[name]
             outer = name == 'outer'
             if j == 0:
-                return M, 0.86 + ff * 0.5                                    # 어깨 패드 테
+                return M, 0.5 + ff * 0.5                                     # 어깨 패드 테
             if j == 1:
-                return M, 0.68 + ff + n
+                return M, 0.42 + ff + n
             if j == 2:
-                return (M, 0.5 + n) if outer else (M, 0.16)                  # 윗겹 아랫면 / 패드 밑
+                return (M, 0.4 + n) if outer else (M, _under(name, 0.16, 0.32))    # 윗겹 아랫면 / 패드 밑
             if j <= 4 and outer:
-                return (M, 0.72 + n) if j == 3 else (M, 0.42)                # 아래 겹 패드
+                return (M, 0.54 + n) if j == 3 else (M, 0.42)                # 아래 겹 패드
             if j < 7:
                 return None                                                  # 드러난 윗팔
             if j == 7:
-                return M, 0.86 + ff * 0.5                                    # 팔목 보호대 말린 테
+                return M, 0.52 + ff * 0.5                                    # 팔목 보호대 말린 테
             if j == 8:
-                return M, 0.36 + ff
+                return M, 0.42 + ff + n
             if j in (9, 10):
                 if name == 'front' and i in (1, 2):
-                    return (G, 0.92) if (i - 1) == (j - 9) else (G, 0.5)     # X 끈
-                return M, 0.62 + ff + n - 0.06 * (j - 9)
-            return strap, 0.76                                               # 손목 커프
+                    return (G, 0.9) if (i - 1) == (j - 9) else (G, 0.5)      # X 끈
+                return M, 0.4 + ff + n - 0.04 * (j - 9)
+            return (strap, 0.5) if name in ('outer', 'front') else (G, 0.5)  # 손목 커프 (끈 버클은 바깥·앞)
 
         return fn
 
@@ -395,20 +404,20 @@ def _light(hum: Painter, leg: Painter, lk):
             n = n_(i, j, 70 + len(name))
             ff = LIMB_FF[name]
             if j == 7:
-                return M, 0.88 + ff * 0.5                                    # 접어 내린 장화 목
+                return M, 0.7 + ff * 0.5                                     # 접어 내린 장화 목
             if j == 8:
-                return M, 0.64 + ff + n
+                return M, 0.56 + ff + n
             if j == 9:
-                return M, 0.14                                               # 접힌 단 그림자
+                return M, _under(name, 0.16, 0.42)                           # 접힌 단 그림자
             if j == 10:
-                if name == 'front' and i in (1, 2):
-                    return O, 0.88 if i == 1 else 0.62                       # 발등 버클
+                if name == 'front' and i == 1:
+                    return O, 0.86                                           # 발등 버클
                 if name in ('front', 'outer'):
-                    return G, 0.84
-                return M, 0.54 + ff + n
-            if name == 'front' and i in (1, 2):
-                return M, 0.62
-            return G, 0.14
+                    return G, 0.78                                           # 발등 끈
+                return M, 0.48 + ff + n
+            if name == 'front':
+                return (M, 0.56) if i >= 1 else (G, 0.3)                     # 앞코
+            return M, 0.4 + ff                                               # 밑창 테
 
         return fn
 
@@ -418,14 +427,13 @@ def _light(hum: Painter, leg: Painter, lk):
         def fn(i, j, w, h):
             if name in ('top', 'bottom') or j < 9:
                 return None
-            u = BODY[name][0] - BODY_X0 + i
             if j == 9:
                 return G, 0.84
             if j == 10:
                 if name == 'front' and i in (3, 4):
                     return O, 0.88 if i == 3 else 0.62
                 return G, 0.6
-            return pad, 0.5 + _channel(u)
+            return pad, 0.4                                                  # 누빔 치마 윗단 (다리 0행과 같은 색)
 
         return fn
 
@@ -441,20 +449,20 @@ def _light(hum: Painter, leg: Painter, lk):
             ff = LIMB_FF[name]
             u = LEG[name][0] - LEG_X0 + i
             if j == 0:
-                return G, 0.3
+                return pad, 0.4                                              # 허리 = 치마 윗단
             if name == 'outer' and j <= 4:                                   # 허벅지 가죽 덧판
-                return M, (0.8, 0.66, 0.54, 0.12)[j - 1] + (n if j < 4 else 0)
+                return M, (0.6, 0.54, 0.48, 0.4)[j - 1] + (n if j < 4 else 0)
             if name == 'front' and j == 2:
-                return (O, 0.88) if i == 1 else (strap, 0.86)                # 허벅지 끈
+                return (O, 0.88) if i == 1 else (strap, 0.84)                # 허벅지 끈
             if name == 'front' and j == 3:
                 return M, 0.2
             if name == 'front' and j == 5:
-                return M, (0.64, 0.88, 0.8, 0.6)[i]                          # 무릎 패드
+                return M, (0.56, 0.8, 0.7, 0.5)[i]                           # 무릎 패드
             if name == 'front' and j == 6:
-                return M, 0.5
+                return M, 0.44
             if j == 7 and name in ('front', 'outer'):
-                return M, 0.16
-            return pad, 0.48 + ff + _channel(u) + n                          # 누빔 바지
+                return M, _under(name, 0.18, 0.34)
+            return pad, 0.38 + ff + _channel(u) + n                          # 누빔 바지
 
         return fn
 
@@ -464,41 +472,42 @@ def _light(hum: Painter, leg: Painter, lk):
 # ───────────────────────────── 천옷 (로브) ─────────────────────────────
 
 def _cloth(hum: Painter, leg: Painter, lk):
-    """어깨를 덮는 망토(수놓은 단 + 부드러운 그늘), 주름 잡혀 부푼 소매, 접어 올린 넓은 소맷부리,
-    굵은 허리띠와 매듭, 주름 잡힌 치마·앞뒤로 늘어진 로브 자락."""
+    """어깨를 덮는 망토(로브보다 한 단계 밝게 + 수놓은 단), 주름 잡혀 부푼 소매, 접어 올린 넓은 소맷부리,
+    굵은 허리띠와 매듭, 주름 잡힌 치마·앞뒤로 늘어진 로브 자락.  로브 몸판(≈0.4)이 세트의 주색."""
     M, G, O = lk.main, lk.grip, lk.orn                                       # 천은 잡음 없이 주름만
 
     def body(name):
         def fn(i, j, w, h):
             if name == 'top':
-                return M, 0.66
+                return M, 0.5
             if name == 'bottom':
-                return (M, 0.14) if _ring(i, j, w, h) else None
+                return (M, 0.12) if _ring(i, j, w, h) else None
             ff = BODY_FF[name]
             u = BODY[name][0] - BODY_X0 + i
+            front = name == 'front'
             if j == 0:
-                return O, 0.64                                               # 목깃
-            if j <= 2:
-                return M, 0.74 + ff + _fold(u) * 0.8 - 0.05 * (j - 1)        # 어깨 망토
-            if j == 3:
-                return O, 0.74 if u % 2 == 0 else 0.62                       # 망토 수놓은 단
-            if j == 4:
-                return M, 0.22                                               # 망토 아래 그늘
-            if name == 'front' and i in (3, 4):
+                return O, 0.7 if front else 0.62                             # 목깃
+            if front and i in (3, 4):
                 return O, 0.7 + (0.14 if j % 2 == 0 else 0)                  # 수놓은 가운데 판
-            if name == 'front' and i in (5, 6) and 7 <= j <= 8:
-                return O, (0.86, 0.66)[j - 7] if i == 5 else (0.66, 0.5)[j - 7]   # 띠 매듭 고리
-            if name == 'front' and i == 6 and j in (9, 10):
-                return G, 0.9 - 0.12 * (j - 9)                               # 늘어진 띠 끝
+            if j <= 2:
+                return M, 0.56 + ff + _fold(u) * 0.6 - 0.04 * (j - 1)        # 어깨 망토 (로브보다 한 단계 밝게)
+            if j == 3:
+                return O, 0.72 if u % 2 == 0 else 0.6                        # 망토 수놓은 단 (1px)
+            if j == 4 and front:
+                return M, 0.2                                                # 망토 아래 그늘 (정면만)
+            if front and i == 5 and 7 <= j <= 8:
+                return O, (0.86, 0.62)[j - 7]                                # 띠 매듭
+            if front and i == 5 and j in (9, 10):
+                return G, 0.9 - 0.14 * (j - 9)                               # 늘어진 띠 끝
             if j <= 6:
-                return M, 0.58 + ff + _fold(u) - 0.04 * (j - 5)              # 가슴 주름
+                return M, 0.48 + ff + _fold(u) - 0.04 * (j - 4)              # 가슴 주름
             if j == 7:
                 return G, 0.86                                               # 허리띠 (두껍게)
             if j == 8:
-                return G, 0.6
-            if j <= 10:
-                return M, 0.56 + ff + _fold(u) - 0.05 * (j - 9)              # 치마 주름
-            return O, 0.56                                                   # 아랫단
+                return G, 0.7
+            if j == 9:
+                return M, 0.46 + ff + _fold(u)                               # 치마 주름
+            return O, 0.6 if j == 10 else 0.48                               # 수놓은 넓은 아랫단 (두 줄)
 
         return fn
 
@@ -507,26 +516,26 @@ def _cloth(hum: Painter, leg: Painter, lk):
     def arm(name):
         def fn(i, j, w, h):
             if name == 'top':
-                return M, 0.76 + _fold(i + j) * 0.6
+                return M, 0.54 + _fold(i + j) * 0.4                          # 3D 망토가 덮는 자리 — 망토와 같은 밝기
             if name == 'bottom':
-                return (M, 0.1) if _ring(i, j, w, h) else None               # 넓은 소매 안쪽
-            u = ARM[name][0] - ARM_X0 + i
+                return (M, 0.12) if _ring(i, j, w, h) else None              # 넓은 소매 안쪽
+            u = ARM[name][0] - ARM_X0 + i + 1                                # 몸쪽 열(앞 3열·뒤 0열)이 주름의 밝은 등이 되게
             ff = LIMB_FF[name]
             if j == 0:
-                return M, 0.82 + ff * 0.5                                    # 어깨 위 망토
+                return M, 0.56 + ff * 0.5                                    # 어깨 위 망토 테
             if j <= 2:
-                return M, 0.72 + ff + _fold(u) * 0.8 - 0.05 * (j - 1)
+                return M, 0.56 + ff + _fold(u) * 0.6 - 0.04 * (j - 1)
             if j == 3:
-                return O, 0.74 if u % 2 == 0 else 0.62                       # 망토 단
-            if j == 4:
-                return M, 0.22
+                return O, 0.72 if u % 2 == 0 else 0.6                        # 망토 단 (1px)
+            if j == 4 and name == 'front':
+                return M, 0.2                                                # 망토 아래 그늘 (정면만)
             if j <= 8:
-                return M, (0.66, 0.62, 0.56, 0.5)[j - 5] + ff + _fold(u)     # 소매 주름 (아래로 그늘)
+                return M, (0.5, 0.48, 0.46, 0.44, 0.4)[j - 4] + ff + _fold(u)     # 부푼 소매 주름 (아래로 그늘)
             if j == 9:
-                return M, 0.84 + ff * 0.5                                    # 접어 올린 소맷부리
+                return M, 0.56 + ff * 0.5                                    # 접어 올린 넓은 소맷부리
             if j == 10:
-                return O, 0.68
-            return M, 0.1                                                    # 소매 안감 그늘
+                return O, 0.62                                               # 소맷부리 수놓은 단 (두 줄)
+            return (M, 0.2) if name == 'front' else (O, 0.5)                 # 정면은 소매 안감 그늘
 
         return fn
 
@@ -544,12 +553,12 @@ def _cloth(hum: Painter, leg: Painter, lk):
             if j == 7:
                 return O, 0.64                                               # 신 목 띠
             if j in (8, 9):
-                return M, 0.62 + ff - 0.08 * (j - 8)
+                return M, 0.5 + ff - 0.06 * (j - 8)
             if j == 10:
-                return (G, 0.8) if (i + (name == 'back')) % 3 == 0 else (M, 0.5 + ff)   # 감은 천
-            if name == 'front' and i in (1, 2):
-                return M, 0.58
-            return G, 0.16
+                return (G, 0.8) if (i + (name == 'back')) % 3 == 0 else (M, 0.44 + ff)   # 감은 천
+            if name == 'front':
+                return (M, 0.5) if i >= 1 else (G, 0.28)
+            return M, 0.36 + ff
 
         return fn
 
@@ -560,9 +569,11 @@ def _cloth(hum: Painter, leg: Painter, lk):
             if name in ('top', 'bottom') or j < 7:
                 return None
             u = BODY[name][0] - BODY_X0 + i
-            if j in (7, h - 1):
-                return O, 0.62
-            return M, 0.54 + _fold(u)
+            if j == 7:
+                return O, 0.62                                               # 치마 허리 단
+            if j == h - 1:
+                return M, 0.46                                               # 치마 아랫단 (다리 0행과 같은 색)
+            return M, 0.46 + _fold(u)
 
         return fn
 
@@ -577,18 +588,18 @@ def _cloth(hum: Painter, leg: Painter, lk):
             ff = LIMB_FF[name]
             u = LEG[name][0] - LEG_X0 + i
             if j == 0:
-                return G, 0.3
+                return M, 0.46                                               # 치마 아랫단과 겹치는 줄
             if name in ('front', 'back') and j <= 6:                         # 앞·뒤로 늘어진 로브 자락
                 if j == 5:
                     return O, 0.68 if i % 2 == 0 else 0.58
                 if j == 6:
-                    return M, 0.26
-                return M, 0.66 + ff + _fold(u) - 0.04 * j
+                    return M, _under(name, 0.24, 0.34)
+                return M, 0.52 + ff + _fold(u) - 0.03 * j
             if name == 'outer' and i == 1:
-                return O, 0.64                                               # 옆선 띠
-            v = 0.5 + ff + _fold(u) * 0.7
+                return O, 0.62                                               # 옆선 띠
+            v = 0.42 + ff + _fold(u) * 0.7
             if j == 7:
-                v += 0.08                                                    # 무릎 아래 주름
+                v += 0.06                                                    # 무릎 아래 주름
             elif j == 8:
                 v -= 0.06
             return M, v
@@ -630,18 +641,18 @@ def _style_touches(hum: Painter, leg: Painter, lk, kind):
         rv = shade(lk.orn, 0.85)
         for name in ('front', 'back'):
             x0, y0, w, _ = BODY[name]
-            for i in range(1, w - 1, 2):
+            for i in range(2, w - 2, 2):
                 hum.put(x0 + i, y0 + 10, rv)                                 # 허리 라메 리벳 줄
         x0, y0, w, _ = ARM['outer']
         for i in (0, w - 1):
-            hum.put(x0 + i, y0 + 2, rv)                                      # 견갑 리벳
+            hum.put(x0 + i, y0 + 3, rv)                                      # 견갑 리벳
 
 
 GLOW_ALPHA = 252   # emissive marker (owner's pack convention; fullbright once a core shader is added)
 
 # 등급 장식이 앉을 자리 (모양별): 가슴 보석 윗줄, 레깅스 테 줄, 빛나는 이음매 줄
 GEM_ROW = {'heavy': 4, 'light': 3, 'cloth': 1}
-LEG_RIM_ROW = {'heavy': 1, 'light': 3, 'cloth': 5}
+LEG_RIM_ROW = {'heavy': 0, 'light': 3, 'cloth': 5}
 GLOW_FLANK = {'heavy': (3, 7), 'light': (2, 7), 'cloth': (5, 10)}
 GLOW_FOREARM = {'heavy': (8, 9), 'light': (9, 10), 'cloth': (5, 8)}
 GLOW_LEG = {'heavy': (1, 3), 'light': (4, 6), 'cloth': (1, 4)}
@@ -697,43 +708,44 @@ def _trims(hum: Painter, leg: Painter, lk, kind, lvl):
             solid(hum, cx + dx, gy + dy, trim)
         for (dx, dy, c) in ((0, 0, gem_hi), (1, 0, gem), (0, 1, gem), (1, 1, gem_lo)):
             solid(hum, cx + dx, gy + dy, c)
-        # 레깅스 테 + 장화 윗테
+        # 레깅스 테 (중갑 = 허리 고리, 경갑·천옷 = 앞·뒤 판 끝만 — 옆모습에 가로줄을 더하지 않게) + 장화 윗테
+        if kind == 'heavy':
+            for name in ('front', 'back', 'left', 'right'):
+                row(leg, BODY[name], 11, trim)
         for name in ('front', 'outer', 'back'):
-            row(leg, LEG[name], LEG_RIM_ROW[kind], trim, trim_lo if kind != 'heavy' else None)
+            if kind == 'heavy' or name != 'outer':
+                row(leg, LEG[name], LEG_RIM_ROW[kind], trim, trim_lo if kind != 'heavy' else None)
             row(hum, LEG[name], 7, trim_hi if name == 'front' else trim)
     if lvl >= 3:
         if kind == 'heavy':
-            for name in ('outer', 'front', 'back'):
-                row(hum, ARM[name], 2, trim_lo)                              # 견갑 라메 끝 금박
-            row(hum, BODY['front'], 7, trim, trim_lo)                        # 흉갑 말린 테 금박
-            row(hum, BODY['back'], 7, trim_lo)
+            row(hum, ARM['outer'], 4, trim_lo)                               # 견갑 아랫단 금박 (바깥면)
+            x0, y0, w, h = BODY['front']
+            for i in (3, 4):
+                solid(hum, x0 + i, y0 + 7, trim if i == 3 else trim_lo)      # 흉갑 능선 끝 금박
         elif kind == 'light':
             for j in range(2, 7, 2):
-                solid(hum, fx, fy + j, trim)                                 # 박음질을 금실로
-                solid(hum, fx + fw - 1, fy + j, trim)
-            for name in ('outer', 'front', 'back'):
-                row(hum, ARM[name], 7, trim_lo)
+                solid(hum, fx + 2, fy + j, trim)                             # 박음질을 금실로
+                solid(hum, fx + fw - 3, fy + j, trim)
+            row(hum, ARM['outer'], 7, trim_lo)                               # 팔목 보호대 금테 (바깥면)
         else:
             for name in ('front', 'back'):
                 x0, y0, w, h = BODY[name]
-                for i in range(1, w, 3):
+                for i in range(2, w - 1, 3):
                     solid(hum, x0 + i, y0 + 3, gem)                          # 망토 단 보석 점
             for name in ('outer', 'front', 'back'):
                 x0, y0, w, h = ARM[name]
                 solid(hum, x0 + 1, y0 + 3, gem)
     if lvl >= 4:
-        # 빛나는 이음매 — 부피를 만드는 판 아래 그림자 줄은 가운데 두 칸만 빛내고 나머지는 어둡게 둔다
+        # 빛나는 이음매 — 판 아래 그늘 줄은 가운데 두 칸만 빛내고 나머지는 어둡게 둔다
         for name in ('front', 'back'):
             x0, y0, w, h = BODY[name]
             for i in (3, 4):
                 glow_px(hum, x0 + i, y0 + seams['body'], glow)
         j0, j1 = GLOW_FLANK[kind]
         for j in range(j0, j1 + 1):
-            if kind != 'cloth':
-                glow_px(hum, fx + 1, fy + j, glow)                           # 가슴 옆선
-                glow_px(hum, fx + fw - 2, fy + j, glow)
-            elif j % 2 == 0:
-                glow_px(hum, fx + 3, fy + j, glow)                           # 수놓은 가운데 판 실
+            if kind != 'cloth' or j not in (7, 8):
+                glow_px(hum, fx + 2, fy + j, glow)                           # 가슴 옆선 (팔과 겹치는 바깥 두 열은 피함)
+                glow_px(hum, fx + fw - 3, fy + j, glow)
             glow_px(hum, bx + bw // 2 - 1 + (j % 2), by + j, glow)           # 등줄기 지그재그
         glow_px(hum, fx + fw // 2 - 1, fy + GEM_ROW[kind], glow_core)
         x0, y0, w, h = ARM['outer']
@@ -756,3 +768,39 @@ def _trims(hum: Painter, leg: Painter, lk, kind, lvl):
         x0, y0, w, h = ARM['outer']
         for (dx, dy) in ((1, 1), (2, 1), (1, 2), (2, 2)):
             glow_px(hum, x0 + dx, y0 + dy, glow_core)
+
+
+def _seams(hum: Painter, leg: Painter):
+    """바닐라 갑옷 상자끼리 같은 평면에서 겹치는 띠를 같은 색으로 맞춘다 (가만히 서 있을 때 z-fighting 깜빡임 방지).
+
+    · 어깨: 팔 상자(x 3~9)와 몸통 상자(−5~5)가 2px 겹치고 앞·뒤·윗면이 같은 평면 (서 있을 때 팔은 z축으로만 흔들림)
+      → 몸통 앞/뒤/윗면의 바깥 두 열(0·1, 6·7) = 팔의 몸쪽 열(앞·윗면 3열, 뒷면 0열).  팔이 비어 있는 행은 그대로.
+    · 가랑이: 장화 두 상자(1px 부풀림)가 2px 겹침 → 장화 앞 3열 = 2열, 뒤 0열 = 1열.
+    · 엉덩이: 레깅스 몸통 11행과 다리 0행이 같은 높이·같은 평면 → 다리 앞·뒤·바깥 0행 = 몸통 앞·뒤·옆 11행."""
+    hp, lp = hum.px, leg.px
+    for face, arm_col in (('front', 3), ('back', 0), ('top', 3)):
+        bx, by, bw, bh = BODY[face]
+        ax, ay, _, _ = ARM[face]
+        for j in range(bh):
+            a = hp[ax + arm_col, ay + j]
+            if not a[3]:
+                continue
+            for i in (0, 1, bw - 2, bw - 1):
+                if hp[bx + i, by + j][3]:
+                    hp[bx + i, by + j] = a
+    for face, src, dst in (('front', 2, 3), ('back', 1, 0)):
+        x0, y0, _, h = LEG[face]
+        for j in range(h):
+            c = hp[x0 + src, y0 + j]
+            if c[3] and hp[x0 + dst, y0 + j][3]:
+                hp[x0 + dst, y0 + j] = c
+    for bfaces, lface in ((('front',), 'front'), (('back',), 'back'), (('right', 'left'), 'outer')):
+        cells = [(BODY[b][0] + i, BODY[b][1] + BODY[b][3] - 1) for b in bfaces for i in range(BODY[b][2])]
+        cols = [lp[xy] for xy in cells if lp[xy][3]]
+        if not cols:
+            continue
+        c = max(set(cols), key=cols.count)                                   # 녹·결정 얼룩은 이 줄에서 걷어 낸다
+        x0, y0, w, _ = LEG[lface]
+        for xy in cells + [(x0 + i, y0) for i in range(w)]:
+            if lp[xy][3]:
+                lp[xy] = c
