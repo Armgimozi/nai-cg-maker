@@ -20,6 +20,7 @@ import org.bukkit.entity.Player;
 /**
  * 보스방: 원형 투기장. 진입 → 3초 뒤 문 봉인 → BossService.spawnBoss. 보스 구현이 없는 층(null)은 그 층 정예 몹을
  * 보스 배율(HP ×hp_mult, 보스바)로 세워 모든 층이 끝까지 공략 가능하게 한다. 둘 다 실패하면 바로 클리어.
+ * 봉인 뒤 안에 살아 있는 파티원이 10초 동안 없으면 전투를 거두고 문을 연다 (밖의 생존자가 다시 도전할 수 있게).
  */
 public final class BossRoom extends Room {
 
@@ -96,7 +97,9 @@ public final class BossRoom extends Room {
             if (!safeAlive(boss)) {
                 // onDeath 콜백이 오지 않은 경우 대비 (보상은 보스 구현이 이미 지급)
                 defeat();
+                return;
             }
+            if (t % 10 == 0 && abandoned(40)) resetFight(); // 약 10초
             return;
         }
         if (standIn != null) {
@@ -107,7 +110,9 @@ public final class BossRoom extends Room {
             if (!FloorState.alive(standIn)) {
                 standInRewards();
                 defeat();
+                return;
             }
+            if (t % 10 == 0 && abandoned(40)) resetFight(); // 약 10초
             return;
         }
         // 소환 실패 → 그대로 진행
@@ -221,11 +226,46 @@ public final class BossRoom extends Room {
     /** 보스전 도중 전멸 = 이 보스에서 실패 1회 (파티원 전원). */
     @Override
     public void onWipe() {
+        recordFailure();
+    }
+
+    /** 이 도전에서 실패 1회 기록 (파티원 전원, 도전마다 한 번). */
+    private void recordFailure() {
         if (!fightStarted || defeated || failureRecorded) return;
         String id = bossId();
         if (id == null) return;
         failureRecorded = true;
         Hints.recordFailure(fs.services(), fs.run().onlineMembers(), Hints.bossKey(id));
+    }
+
+    /**
+     * 고착 방지: 봉인된 보스방 안에 살아 있는 파티원이 없으면(안에서 모두 쓰러지고 밖에만 생존자) 보상 없이 보스를 거두고
+     * 문을 열어 다음 진입 때 처음부터 시작. 보스가 바꾼 투기장 블록은 {@link BossHandle#end()} 가 되돌린다.
+     */
+    private void resetFight() {
+        recordFailure(); // 안의 파티원이 모두 쓰러져 비었음 = 실패
+        BossHandle b = boss;
+        boss = null;
+        if (b != null) {
+            try {
+                b.end(); // 사망 콜백을 부르지 않으므로 defeat() 로 새지 않는다
+            } catch (Throwable e) {
+                Log.error("보스전 초기화 오류 (지하 " + fs.floor() + "층)", e);
+            }
+        }
+        removeMobs();
+        standIn = null;
+        for (Player p : fs.run().onlineMembers()) fs.services().hud().hideBossBar(p, BAR);
+        bar = null;
+        hintAt = -1;
+        hideHint();
+        unlock();
+        state = State.IDLE;
+        fightStarted = false;
+        sealAt = -1;
+        emptyTicks = 0;
+        failureRecorded = false;
+        for (Player p : fs.allPlayers()) Text.send(p, "<gray>수호자가 어둠 속으로 물러나고 봉인이 풀렸습니다. 다시 들어가면 처음부터 시작합니다.");
     }
 
     private void defeat() {

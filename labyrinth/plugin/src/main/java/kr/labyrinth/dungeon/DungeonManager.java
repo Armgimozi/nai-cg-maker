@@ -77,6 +77,8 @@ public final class DungeonManager implements DungeonService, Listener {
     private BukkitTask ticker;
     private long tick;
     private int runSeq;
+    /** 플러그인 세션마다 다른 토큰 — runSeq 는 재시작하면 0부터라, 재시작 뒤 같은 run id(금고 열쇠 새김)가 다시 나오지 않게. */
+    private final String session = sessionToken(System.currentTimeMillis());
 
     public DungeonManager(Services services) {
         this.services = services;
@@ -205,6 +207,12 @@ public final class DungeonManager implements DungeonService, Listener {
 
     int nextRunSeq() { return ++runSeq; }
 
+    /** run id = {@code r<번호>s<슬롯>-<세션>} (명령 인자로 쓸 수 있게 영숫자·'-' 만, 금고 열쇠 새김의 '#' 없음). */
+    static String runId(int seq, int slot, String session) { return "r" + seq + "s" + slot + "-" + session; }
+
+    /** 세션 토큰: 플러그인 활성 시각(ms)의 36진수. */
+    static String sessionToken(long millis) { return Long.toString(millis, 36); }
+
     Particle particle(String name) {
         if (name == null || name.isBlank()) return null;
         try {
@@ -304,7 +312,7 @@ public final class DungeonManager implements DungeonService, Listener {
         Difficulty diff = s.difficulty();
         List<UUID> ids = new ArrayList<>();
         for (Player m : members) ids.add(m.getUniqueId());
-        String id = "r" + (++runSeq) + "s" + slot;
+        String id = runId(++runSeq, slot, session);
         Run run = new Run(this, id, slot, diff, s.party(), ids, admin);
         runs.put(id, run);
         for (UUID u : ids) byPlayer.put(u, run);
@@ -378,6 +386,8 @@ public final class DungeonManager implements DungeonService, Listener {
 
     /** 인스턴스 없이 미궁 월드에 있는 플레이어 → 원래 자리로. */
     void recoverStranded(Player p) {
+        // 층 전용 금고 열쇠는 미궁 밖으로 못 가져간다 (접속이 끊긴 사이 공략이 끝난 경우)
+        kr.labyrinth.dungeon.treasure.VaultKeys.strip(p, "", 0);
         PlayerData d = services.data().get(p);
         Object gm = d.ext().remove("dungeon.gamemode");
         Object back = d.ext().remove("dungeon.return");
