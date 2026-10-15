@@ -235,6 +235,10 @@ final class SelfTest {
                 count("floors_built", 1);
                 Text.send(sender, "<gray>  지하 " + f + "층 생성 완료 (" + (System.currentTimeMillis() - t0) + "ms, 방 "
                         + fs.rooms().size() + "개)");
+                // 어깨·등 장식: 첫 세트 디스플레이 3개를 띄웠다 지우기 + 팩에 모든 세트 장식 모델이 있는지
+                if (f == 1) step("items", () -> count("armor_pieces_checked",
+                        kr.labyrinth.items.ArmorCosmetics.selfCheck(services, fs.spawnPoint(),
+                                kr.labyrinth.items.ArmorCosmetics.chestSets(services.content().items().values()))));
                 step("hints", this::checkHints);
                 step("dungeon", () -> checkScaling(f));
                 step("dungeon", () -> checkMaze(f));

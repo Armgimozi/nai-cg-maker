@@ -52,7 +52,7 @@ public interface DungeonService {
     default boolean revive(Player player, org.bukkit.Location at, double hpRatio) {
         if (!isDowned(player)) return false;
         player.setGameMode(org.bukkit.GameMode.SURVIVAL);
-        player.teleport(at);
+        kr.labyrinth.core.Teleports.to(player, at);
         kr.labyrinth.Services s = kr.labyrinth.Services.get();
         s.stats().setHp(player, s.stats().maxHp(player) * Math.max(0.05, Math.min(1.0, hpRatio)));
         return true;

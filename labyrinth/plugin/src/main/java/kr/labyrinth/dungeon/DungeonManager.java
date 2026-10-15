@@ -404,7 +404,7 @@ public final class DungeonManager implements DungeonService, Listener {
         Location to = back == null ? null : deserialize(String.valueOf(back));
         if (to == null || isLabyrinthWorld(to.getWorld())) to = fallbackReturn(p);
         p.setFallDistance(0);
-        p.teleport(to);
+        kr.labyrinth.core.Teleports.to(p, to);
     }
 
     static String serialize(Location l) {
