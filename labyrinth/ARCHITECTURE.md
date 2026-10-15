@@ -68,6 +68,12 @@ labyrinth/
       **Java 는 추가 배율 없이** YAML `size` 가 그대로 화면 크기). translation = 0 (회전 중심 = pivot = 모델 (8,8,8)).
     - 모델 **−Z = 몹의 앞**(얼굴·눈·발톱·무기 끝), 모델 −X = 몹의 왼쪽. 팔(`arm`/`tentacle_cluster` + `arm_left|arm_right`)·다리
       (`leg_pair` + `legs_walk`)는 pivot 에서 **아래로 매달린** 모양, `tail` 은 pivot 에서 뒤(몹 −Z)로 뻗거나(길이>높이) 아래로 매달린다.
+      관절형 form(새 몸 형태 단계): `segment`(몸 마디) = pivot 에서 뒤로, `wing`(날개 한 장) = pivot(어깨)에서 몸 바깥(pivot X 부호 쪽)으로,
+      `neck` = pivot(목 뿌리)에서 앞·위로 — ModelRig 가 이 pivot 을 축으로 날개를 퍼덕이고 목·꼬리 사슬을 휘므로 지오메트리가 거기서 시작해야 한다.
+    - **파트 붙음(ModelRig = `RigMath.Skeleton`)**: anim `neck`·`tail_chain` 파트는 YAML 순서대로 사슬(마디 k 피벗 = 마디 k−1 피벗 + 누적
+      회전·(원래 피벗 차)), 머리(이름 `head` + anim head)는 목 사슬 끝에, anim `head` 인 다른 파트는 머리와 같은 회전·`jaw` 는 머리 회전 + 벌림으로
+      머리 pivot 을 중심으로 돈다(목이 없어도). 몸 전체 앞숙임(급강하)·솟구침(burrow)은 모든 파트에 곱한다. BossRig 는 이 규칙을 쓰지 않는다
+      (보스 파트는 지금처럼 각자 pivot 에서 회전).
     - **손에 쥔 파트**(팔과 pivot·anim 이 같은 blade/claw/slab/lantern/book…)는 생성기가 그 팔의 손 위치(pivot − (0, 팔 길이, 0))에
       붙여 만들었다 → Java 는 그 파트에 **팔과 똑같은 Transformation 회전**을 주면 손에 붙어 함께 휘두른다. blade 는 손에서 앞(−Z)으로,
       slab(방패)은 바깥쪽(±X)을 향한다.
@@ -317,7 +323,7 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 ### 명령어
 - 플레이어: `/lab`(별칭 `/미궁`: 입장 메뉴·퇴장·정보), `/party`(`/파티`), `/stats`(`/스탯`), `/class`(`/직업`), `/title`(`/칭호`),
   `/pvp`(`/대전`: 도전 <파티장>, 수락, 거절, 대기열 참가/취소, 순위, 전적, 관전)
-- 관리자(`labyrinth.admin`): `/labadmin reload|give <item> [player]|spawnmob <id>|spawnboss <floor>|setentrance|removeentrance|
+- 관리자(`labyrinth.admin`): `/labadmin reload|give <item> [player]|spawnmob <id>|mobdrill <몹…|all|f<층>>|spawnboss <floor>|setentrance|removeentrance|
   setnpc <id>|tpfloor <n>|unlock <player> <floor>|reset <player>|instances|endinstance <id>|pvp season|pvp end <매치>|pvp arena <id>`
   (items 가 붙임: `blacksmith [player]`(대장간 GUI) · `loot <table> [player]`(개인 루팅 테스트) · `weaponskills`(구현 목록) ·
   `enhance <단계> [player]`(주손 장비 강화 단계 바로 설정). 플레이어: `/미궁 강화|enhance`(강화 창))
@@ -383,6 +389,10 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 - **자가 진단** `/labadmin selftest [층 수]` (`dungeon.SelfTest`, 콘솔 가능): 아이템 전부 생성·역조회 → 도감 획득처 계산 → 임시 슬롯에 층 생성 →
   몹·정예 정의 전부(+정예 변종) 소환·피해·처치 → 1~5층 보스 + 구현 없는 층 대체 보스 소환·페이즈 피해·처치 → 정리. 진단 중 로그의
   SEVERE/예외를 하위 시스템(`kr.labyrinth.<패키지>`)별로 센다. 새 보스·몹을 넣으면 이것부터 돌릴 것.
+- **몹 스킬 훈련** `/labadmin mobdrill <몹 id…|all|f<층>>` (`mobs.MobDrill`, 콘솔은 `execute positioned … run labadmin mobdrill …`):
+  그 자리에 몹 + 6칸 앞 허수아비(무적 갑옷 거치대)를 세우고 능동 스킬을 하나씩 강제로 시전(거리·시야 조건 무시, 경고·판정은 그대로) →
+  피해(분노 임계)·처치(사망 스킬) → 소환물·허수아비 정리. 자가 진단은 플레이어가 없으면 스킬을 한 번도 안 쓰므로, **새 몹·새 스킬은 이걸로 확인**.
+  로그 `[몹 훈련] 결과: 예외 0 · 몹 n/n · 시전 … · 허수아비 적중 …`. 스킬 대상은 `LivingEntity`(플레이어 또는 허수아비) — 광역 판정은 `LabMob.victimsNear`.
 - **도감** `/codex` = `/도감` = `/미궁 도감` (`ui.menus.CodexMenu`): 종류·희귀도별 아이템(실제 툴팁 + 획득처: 몹/보스 드롭·보물 상자·기믹 방·
   제작 재료·상점·칭호 보상 — loot 테이블 중첩·rarity_pool 까지 계산), 몬스터·보스(모델 머리 아이콘·능력치·드롭).
 - **config.yml** 추가 키: `mobs.elite_variant_chance`(기본 0.06), `mobs.model_yaw_offset`(도, 기본 0).
@@ -625,8 +635,10 @@ hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100,
   `liquid(WATER|LAVA|null)`, `room_height`, `mob_density: [min, max]`(전투방당), `gimmick_params`(기믹방 구현이 읽음, GDD §10),
   `ambient: {particle, density, sound(바닐라 사운드 키), sound_interval: [min, max], volume, pitch}`.
 - **mobs.yml**: `description`, `rank(normal|elite|add)`, `flying`, `sounds: {ambient, hurt, death, pitch}`, `drops: null`(소환물).
-  `skills[].type` = GDD §9.1 닫힌 목록(24종), `params.effect` = §9.2. `model.parts[]` 에 `form`·`size: [w,h,d]`(px) 추가,
-  `model.style` 에 `features` 추가 (form/anim/shape/features 목록 = GDD §14.3).
+  `skills[].type` = GDD §9.1 닫힌 목록(26종 — 새 몸 형태 단계에서 `burrow`(땅 위 전용)·`dive`(flying 전용) 추가, ContentValidator 가 검사),
+  `params.effect` = §9.2. `model.parts[]` 에 `form`·`size: [w,h,d]`(px) 추가, `model.style` 에 `features` 추가 (form/anim/shape/features 목록 = GDD §14.3).
+  새 몸 형태 단계 추가 키: projectile `blast_radius`·`blast_delay`·`blast_damage`·`blast_knockback`(착탄 폭발), cleave `rear`·`knockback`(꼬리 휩쓸기),
+  form `wing`·`neck`·`segment`, anim `wings_flap`·`neck`·`tail_chain`, shape `drake`·`wyvern`·`dragonkin`·`naga`·`centaur`·`harpy`·`minotaur`·`lich`·`worm`.
 - **bosses.yml**: `core`(핵심 기믹 키, 보스마다 다름), `description`, `speed`, `flying`, `bossbar`(BossBar 색),
   `lines: {intro, phase2, phase3, death}`, `rotation: {페이즈번호: [패턴키…]}`, `sounds`, `arena` 에 보스별 배치 키
   (pillars/nests/platforms/valves/anchors/pylons/rune_shelves/corridor_length …). 패턴 params 공통 규칙(`*_base`·`*_per_member`·
@@ -635,7 +647,7 @@ hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100,
   `shop: [{item, price, level_req?}]`(merchant), `skin_style` 에 `hair`, `accessories` (목록 = GDD §14.5, palette 6색 순서 고정).
 - **titles.yml**: `category(pioneer|clear|challenge|combat|growth|collection|craft|pvp)`, `hidden`, `reward: {gold, items: {id: 개수}}`.
   condition 파라미터: CLEAR `{floor, count?}`, NO_DEATH_CLEAR `{floor, party_min?}`, DIFFICULTY_CLEAR `{floor, difficulty}`,
-  SPEED_CLEAR `{floor, seconds}`, KILL `{count, mob?, rank?}`, BOSS_KILL `{count, boss?}`, LEVEL `{level}`, OBTAIN_RARITY `{rarity, count?}`,
+  SPEED_CLEAR `{floor, seconds}`, KILL `{count, mob?, mobs?(id 목록 — 처치 수 합), rank?}`, BOSS_KILL `{count, boss?}`, LEVEL `{level}`, OBTAIN_RARITY `{rarity, count?}`,
   CRAFT `{count, rarity?}`, PVP_WIN/PVP_STREAK `{count}`, PVP_RATING `{min}`. `bonus` 키 = 스탯 6종 + `xp_bonus`, `gold_bonus`.
 - **fx.yml**: `auras.<id>`: `tier(legendary|mythic)`, `particles[]: {type, count, radius, height, pattern, chance?, speed?, color?, color_to?, size?}`
   (color 류는 DUST/DUST_COLOR_TRANSITION 전용), `ring_scale`, `ring_height`, `ring_step`, `secondary_model`, `secondary_spin`,

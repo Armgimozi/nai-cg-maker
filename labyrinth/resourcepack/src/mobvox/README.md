@@ -17,6 +17,8 @@
 - 머리·몸·고리·수정 등 = pivot 이 부피 중심. 팔(`arm`/`tentacle_cluster` + arm_left/right) = pivot(어깨)에서 **아래로** y 0 → −h.
   다리 `leg_pair`(legs_walk) = 엉덩이 pivot 에서 아래로 매달림(발바닥 = y −h). `leg_six/eight/quad` = pivot 중심(땅 = 몸 아래).
   꼬리 = pivot 에서 뒤(**+Z**)로. 손에 쥔 부위(팔과 pivot·anim 같음) = `ctx.hand` 에서 앞(−Z)으로 뻗기(방패는 ±X).
+  새 몸 형태(드래곤·용인족·나가·켄타우로스 …): `wing` = 어깨 pivot 에서 `ctx.out` 쪽으로, `neck` = 목 뿌리 pivot 에서 앞·위로,
+  `segment` = 앞면 pivot 에서 뒤로. 목·꼬리 사슬·머리 무리·날개 퍼덕임 규칙과 새 몹 21종의 부위 표 = **`NEW_MOBS.md`**.
 - 모든 요소가 pivot 기준 ±23.5px 를 넘으면 생성기가 자동으로 줄이고 `display.fixed.scale = 1/s` 로 복원(최대 4배).
 
 ## 도구 (MobGrid, 전부 px 단위)

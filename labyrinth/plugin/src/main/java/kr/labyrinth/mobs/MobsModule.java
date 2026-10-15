@@ -27,8 +27,8 @@ import org.bukkit.util.RayTraceResult;
  * mobs+npc 담당 모듈 진입점. 이 파일과 이 패키지는 mobs+npc 담당 소유 — 다른 작업자는 수정하지 않는다.
  * <p>
  * enable(): {@link MobServiceImpl}(ModelRig·AI·스킬·보상)과 {@link NpcServiceImpl}(Mannequin NPC)을 등록하고
- * 관리 명령을 붙인다: {@code /labadmin spawnmob <id> [개수] [정예]}, {@code killmobs [반경]}, {@code setnpc <id>},
- * {@code removenpc <id>}, {@code npcs}.
+ * 관리 명령을 붙인다: {@code /labadmin spawnmob <id> [개수] [정예]}, {@code killmobs [반경]},
+ * {@code mobdrill <몹 id…|all|f<층>>}(스킬 훈련 — {@link MobDrill}), {@code setnpc <id>}, {@code removenpc <id>}, {@code npcs}.
  */
 public final class MobsModule implements Module {
 
@@ -54,6 +54,7 @@ public final class MobsModule implements Module {
 
     @Override
     public void disable() {
+        MobDrill.abort();
         if (npcs != null) npcs.stop();
         if (mobs != null) mobs.stop();
     }
@@ -108,6 +109,10 @@ public final class MobsModule implements Module {
                 .then(Commands.argument("radius", IntegerArgumentType.integer(1, 512))
                         .executes(ctx -> run(ctx, () -> killMobs(ctx, IntegerArgumentType.getInteger(ctx, "radius"))))));
 
+        cmd.addSubcommand("labadmin", Commands.literal("mobdrill")
+                .then(Commands.argument("mobs", StringArgumentType.greedyString()).suggests(mobIds())
+                        .executes(ctx -> run(ctx, () -> mobDrill(ctx)))));
+
         cmd.addSubcommand("labadmin", Commands.literal("setnpc")
                 .then(Commands.argument("npc", StringArgumentType.word()).suggests(npcIds())
                         .executes(ctx -> run(ctx, () -> CommandService.withPlayer(CommandService.sender(ctx), p -> setNpc(p,
@@ -161,6 +166,34 @@ public final class MobsModule implements Module {
         }
         Text.send(sender, "<white>" + def.name() + "</white> <gray>×" + n + (elite ? " <gold>(정예 변종)</gold>" : "")
                 + " 소환 <dark_gray>(난이도 " + services.settings().difficulty().name() + ", 파티 " + party + "명 기준)");
+    }
+
+    /** 몹 스킬 훈련: 토큰 = 몹 id · all(전부) · f<층>(그 층 몹 전부). */
+    private void mobDrill(CommandContext<CommandSourceStack> ctx) {
+        var sender = ctx.getSource().getSender();
+        java.util.LinkedHashSet<String> ids = new java.util.LinkedHashSet<>();
+        for (String tok : StringArgumentType.getString(ctx, "mobs").trim().split("[\\s,]+")) {
+            if (tok.isBlank()) continue;
+            String k = tok.toLowerCase(java.util.Locale.ROOT);
+            if (k.equals("all")) {
+                ids.addAll(services.content().mobs().keySet());
+            } else if (k.matches("f\\d+")) {
+                int floor = Integer.parseInt(k.substring(1));
+                for (MobDef d : services.content().mobs().values()) if (d.floor() == floor) ids.add(d.id());
+            } else if (services.content().mob(k) != null) {
+                ids.add(k);
+            } else {
+                Text.error(sender, "없는 몹: " + Text.escape(tok));
+                return;
+            }
+        }
+        Location at = ctx.getSource().getLocation();
+        if (CommandService.sender(ctx) instanceof Player p) at = targetSpot(p);
+        if (at == null || at.getWorld() == null) {
+            Text.error(sender, "훈련할 위치를 찾을 수 없습니다.");
+            return;
+        }
+        MobDrill.start(services, mobs, sender, at, new java.util.ArrayList<>(ids));
     }
 
     /** 바라보는 블록 위 (8블록 안), 없으면 발밑. */

@@ -55,12 +55,26 @@ public final class EliteVariants {
         return out;
     }
 
+    /** 스폰 때 비행형이 되는 베이스 (MobServiceImpl 과 같은 규칙: BAT·BLAZE·ALLAY + BAT 로 대체되는 VEX·PHANTOM). */
+    public static boolean isFlyingBase(String base) {
+        if (base == null) return false;
+        return switch (base.toUpperCase(java.util.Locale.ROOT)) {
+            case "BAT", "BLAZE", "ALLAY", "VEX", "PHANTOM" -> true;
+            default -> false;
+        };
+    }
+
     /** 몹이 아직 갖지 않은 타입 중 하나 (seed 로 결정적). 전부 겹치면 null. */
     public static MobDef.MobSkillDef pick(MobDef def, long seed) {
         Set<String> have = new HashSet<>();
         for (MobDef.MobSkillDef sd : def.skills()) have.add(sd.type());
         List<MobDef.MobSkillDef> c = new ArrayList<>();
-        for (MobDef.MobSkillDef sd : candidates(def.ai(), MobAi.basicFx(def))) if (!have.contains(sd.type())) c.add(sd);
+        boolean flies = def.flying() || isFlyingBase(def.base());
+        for (MobDef.MobSkillDef sd : candidates(def.ai(), MobAi.basicFx(def))) {
+            if (have.contains(sd.type())) continue;
+            if (flies && (sd.type().equals("leap") || sd.type().equals("charge"))) continue; // 중력 없는 비행형은 도약·돌진이 어색함
+            c.add(sd);
+        }
         if (c.isEmpty()) return null;
         return c.get((int) Math.floorMod(seed, (long) c.size()));
     }

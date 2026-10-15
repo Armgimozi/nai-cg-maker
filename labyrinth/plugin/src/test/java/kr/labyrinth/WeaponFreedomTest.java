@@ -65,7 +65,7 @@ class WeaponFreedomTest {
 
     @Test
     void classSkillPassesWithAnyLabyrinthWeapon() {
-        assertEquals(66, weapons().size());
+        assertEquals(114, weapons().size(), "무기 114종(종류마다 19종 — GDD §11)");
         int checked = 0;
         for (ClassDef cls : content.classes().values()) {
             for (ItemDef w : weapons()) {
@@ -78,7 +78,7 @@ class WeaponFreedomTest {
                 if (!other.isWeapon()) assertFalse(WeaponTypes.canCastClassSkill(cls, other), cls.id() + " + " + other.id());
             }
         }
-        assertEquals(6 * 66, checked);
+        assertEquals(6 * 114, checked);
         assertFalse(WeaponTypes.canCastClassSkill(null, content.item("ember_greatsword")), "직업이 없으면 직업 스킬 없음");
     }
 

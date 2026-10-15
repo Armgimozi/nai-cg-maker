@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import kr.labyrinth.content.AchievementDef;
@@ -122,6 +123,18 @@ class AchievementRulesTest {
         TitleCounters.onKill(s, "moss_crawler", null, false);
         assertTrue(met(mob));
         assertEquals(2L, s.get("titles.kill_rank.normal"), "rank 없음 = normal");
+    }
+
+    @Test
+    void killListSumsEveryListedMob() {
+        AchievementDef dragons = def("kd", "KILL", Map.of("count", 3, "mobs", List.of("moss_drakeling", "void_drake")));
+        TitleCounters.onKill(s, "moss_drakeling", "normal", false);
+        TitleCounters.onKill(s, "thorn_kobold", "normal", false);
+        TitleCounters.onKill(s, "void_drake", "normal", false);
+        assertFalse(met(dragons), "목록에 없는 몹은 안 셈");
+        TitleCounters.onKill(s, "void_drake", "normal", false);
+        assertTrue(met(dragons));
+        assertEquals(3L, AchievementRules.progress(dragons, s::get)[0]);
     }
 
     @Test

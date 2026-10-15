@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# titles.yml — 업적 66종 → 칭호
+# titles.yml — 업적 69종 → 칭호
 #
 # 스키마: ARCHITECTURE.md §6 titles.yml (+ 추가 필드는 §6 에 기록됨)
 #  condition.type (닫힌 목록) 과 파라미터:
@@ -9,7 +9,7 @@
 #    NO_DEATH_CLEAR   {floor, party_min?=1}           파티원 누구도 죽지 않고 클리어 (party_min 명 이상 파티)
 #    DIFFICULTY_CLEAR {floor, difficulty}             difficulty 이상(easy<normal<hard<nightmare)으로 클리어
 #    SPEED_CLEAR      {floor, seconds}                입장~보스 처치 시간이 seconds 이하
-#    KILL             {count, mob?, rank?}            누적 처치 (mob = mobs.yml id, rank = normal|elite|add)
+#    KILL             {count, mob?, mobs?, rank?}     누적 처치 (mob = mobs.yml id, mobs = id 목록의 합(몹 무리 칭호), rank = normal|elite|add)
 #    BOSS_KILL        {count, boss?}                  보스 누적 처치 (boss = bosses.yml id, 없으면 아무 보스)
 #    LEVEL            {level}                         레벨 도달
 #    OBTAIN_RARITY    {rarity, count?=1}              그 희귀도 장비를 count 개 획득 (드롭·제작·보상 모두)
@@ -381,6 +381,36 @@ achievements:
     bonus: {}
     broadcast: false
     reward: {gold: 400}
+
+  dragon_slayer_30:
+    name: "용 사냥꾼"
+    description: "드래곤(새끼용·드레이크·와이번·고룡) 30마리 처치"
+    category: combat
+    condition: {type: KILL, count: 30, mobs: [moss_drakeling, bog_drake, ember_drake, frost_wyvern, clockwork_wyvern, void_drake]}
+    title: "<gradient:#5f8a33:#ff8a2a:#2fe0d0>용 사냥꾼</gradient>"
+    bonus: {STR: 1}
+    broadcast: false
+    reward: {gold: 1500}
+
+  dragonkin_breaker_30:
+    name: "비늘 갑옷 파괴자"
+    description: "용인족(코볼트·용인 기사) 30마리 처치"
+    category: combat
+    condition: {type: KILL, count: 30, mobs: [thorn_kobold, kobold_sapper, forge_dragonkin, crystal_dragonkin, abyss_dragonkin]}
+    title: "<gradient:#6e2a1c:#c8a8ff>비늘 갑옷 파괴자</gradient>"
+    bonus: {VIT: 1}
+    broadcast: false
+    reward: {gold: 1500}
+
+  ancient_dragon_10:
+    name: "고룡 살해자"
+    description: "심연 고룡 10마리 처치"
+    category: combat
+    condition: {type: KILL, count: 10, mob: void_drake}
+    title: "<gradient:#123842:#2fe0d0:#123842>고룡 살해자</gradient>"
+    bonus: {STR: 1, DEX: 1}
+    broadcast: true
+    reward: {gold: 6000}
 
   boss_kill_10:
     name: "보스 사냥꾼"
