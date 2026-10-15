@@ -7,7 +7,9 @@ import re
 
 from PIL import Image
 
+from .materials import norm_style
 from .voxel.weapons import BOWS as VW_BOWS
+from .voxel.weapons import theme_of
 
 NS = 'labyrinth'
 
@@ -153,10 +155,16 @@ def validate(files: dict, content: dict, expect_frames: dict, fx_names=()) -> Re
                 if f'assets/{NS}/models/item/{iid}_pulling_{k}.json' not in files:
                     rep.err(f'{iid}: missing pulling_{k} model')
     sets = set()
+    themes = {}
     for iid, it in items.items():
         if it.get('armor_set'):
             sets.add(it['armor_set'])
+            # 세트 부위는 한 테마로 칠한다 (THEME_KEYS 에 키가 빠지면 style 따라 부위마다 갈린다)
+            style = norm_style((it.get('texture') or {}).get('style'))
+            themes.setdefault(it['armor_set'], {})[iid] = theme_of(iid, style)
     for s in sorted(sets):
+        if len(set(themes[s].values())) > 1:
+            rep.err(f'equipment {s}: pieces use different voxel themes {themes[s]} (voxel/weapons.py THEME_KEYS)')
         eq = _json(files, f'assets/{NS}/equipment/{s}.json', rep)
         if eq is not None:
             layers = eq.get('layers') or {}

@@ -14,11 +14,14 @@ from .core import Grid, bezier, catmull, helix
 
 # ───────────────────────────── design parameters ─────────────────────────────
 
+# 아이템 id 부분 문자열 → 테마 (앞 묶음부터 확인). 맞는 키가 없으면 texture.style 로 정해진다
+# (leather → vine, cloth → fungi …). 새 장비·세트가 그 층 테마로 안 잡히면 여기에 id 키를 더한다
+# (세트 부위끼리 테마가 갈리면 validate 가 오류로 잡는다).
 THEME_KEYS = (
-    ('vine', ('moss', 'corridor', 'root', 'grove', 'wayfarer', 'lantern', 'acolyte')),
+    ('vine', ('moss', 'corridor', 'root', 'grove', 'wayfarer', 'lantern', 'acolyte', 'novice')),
     ('fungi', ('spore', 'mycel', 'glowcap', 'hypha', 'bloom', 'capsplit')),
     ('abyss', ('abyss', 'void', 'nightshade', 'eclipse', 'viper')),
-    ('web', ('skitter', 'silk', 'fang')),
+    ('web', ('skitter', 'silk', 'fang', 'webrun')),
     ('water', ('brine', 'tide', 'eel', 'drowned', 'sluice', 'verdigris')),
     ('forge', ('ember', 'cinder', 'slag', 'anvil', 'bellows', 'forge', 'minewarden', 'miners', 'ore_')),
     ('frost', ('rime', 'frost', 'soulflame')),
