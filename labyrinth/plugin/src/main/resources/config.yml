@@ -111,6 +111,7 @@ pvp:
 # 레벨 — 필요 경험치(L) = round(xp_a × L^xp_exp + xp_b)
 level:
   max: 50
+  start_points: 5         # Lv.1 에서 받는 스탯 포인트 (레벨업 전에도 /스탯 분배 가능). 이미 플레이하던 사람도 한 번 받는다
   points_per_level: 5
   xp_a: 40
   xp_exp: 1.6

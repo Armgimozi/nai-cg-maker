@@ -13,7 +13,7 @@ import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
 /**
- * 레벨 1~50, 경험치 곡선(GDD §16.1), 레벨업마다 스탯 포인트 5(config). 레벨업 연출 + {@link LevelUpEvent}.
+ * 레벨 1~50, 경험치 곡선(GDD §16.1), Lv.1 시작 포인트 5 + 레벨업마다 스탯 포인트 5(config). 레벨업 연출 + {@link LevelUpEvent}.
  */
 public final class LevelService implements Module {
 
@@ -74,14 +74,33 @@ public final class LevelService implements Module {
         } else if (lv < old) {
             d.resetAllocation();
             d.level(lv);
-            d.statPoints((lv - 1) * services.settings().level().pointsPerLevel());
+            d.statPoints(totalPointsAt(lv));
             services.stats().recalc(p);
         }
     }
 
     /** 레벨 lv 에서 받아야 할 총 포인트 (분배 + 미분배). */
     public int totalPointsAt(int lv) {
-        return (Math.max(1, lv) - 1) * services.settings().level().pointsPerLevel();
+        return services.settings().level().totalPointsAt(lv);
+    }
+
+    /** PlayerData ext: 지금까지 받은 Lv.1 시작 포인트 수. */
+    static final String START_POINTS_FLAG = "level.start_points";
+
+    /**
+     * Lv.1 시작 포인트를 아직 다 받지 않았으면 남은 몫을 미분배 포인트로 준다 (접속할 때 — 새 플레이어와,
+     * 시작 포인트가 없던 판에서 넘어온 플레이어 모두 한 번). 받은 양은 ext 에 남겨 다시 주지 않는다.
+     */
+    public void ensureStartPoints(Player p) {
+        PlayerData d = services.data().get(p);
+        Object v = d.ext().get(START_POINTS_FLAG);
+        int granted = v instanceof Number n ? n.intValue() : 0;
+        int owed = services.settings().level().startPointsOwed(granted);
+        if (owed <= 0) return;
+        d.statPoints(d.statPoints() + owed);
+        d.ext().put(START_POINTS_FLAG, granted + owed);
+        d.markDirty();
+        Text.send(p, "<gray>스탯 포인트 <green>+" + owed + "</green> 를 받았습니다. <white>/스탯</white> <gray>으로 분배하세요.");
     }
 
     private void applyLevel(Player p, PlayerData d, int old, int lv) {

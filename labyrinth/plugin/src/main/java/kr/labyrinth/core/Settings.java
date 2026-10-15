@@ -45,8 +45,15 @@ public final class Settings {
     public record Combat(boolean damageNumbers, int damageNumberTicks, double baseCritChance, double baseCritDamage,
                          boolean scaleVanillaDamage) {}
 
-    public record Level(int max, int pointsPerLevel, double xpA, double xpExp, double xpB) {
-        public static final Level DEFAULT = new Level(50, 5, 40, 1.6, 60);
+    /** startPoints = Lv.1 에서 받는 스탯 포인트(레벨업 전에도 분배할 수 있게), pointsPerLevel = 레벨이 오를 때마다. */
+    public record Level(int max, int startPoints, int pointsPerLevel, double xpA, double xpExp, double xpB) {
+        public static final Level DEFAULT = new Level(50, 5, 5, 40, 1.6, 60);
+
+        /** 레벨 lv 에서 받아야 할 총 포인트 (분배 + 미분배). */
+        public int totalPointsAt(int lv) { return startPoints + (Math.max(1, lv) - 1) * pointsPerLevel; }
+
+        /** 시작 포인트를 이미 granted 만큼 받은 사람에게 더 줄 몫 (설정을 낮춰도 이미 준 것은 거두지 않음). */
+        public int startPointsOwed(int granted) { return Math.max(0, startPoints - Math.max(0, granted)); }
     }
 
     public Settings(ConfigurationSection c) {
@@ -91,7 +98,8 @@ public final class Settings {
         this.combat = new Combat(c.getBoolean("combat.damage_numbers", true),
                 Math.max(4, c.getInt("combat.damage_number_ticks", 16)), c.getDouble("combat.base_crit_chance", 0.05),
                 c.getDouble("combat.base_crit_damage", 1.5), c.getBoolean("combat.scale_vanilla_damage", true));
-        this.level = new Level(Math.max(1, c.getInt("level.max", 50)), c.getInt("level.points_per_level", 5),
+        this.level = new Level(Math.max(1, c.getInt("level.max", 50)), Math.max(0, c.getInt("level.start_points", 5)),
+                c.getInt("level.points_per_level", 5),
                 c.getDouble("level.xp_a", 40), c.getDouble("level.xp_exp", 1.6), c.getDouble("level.xp_b", 60));
         Map<String, Double> was = new LinkedHashMap<>();
         ConfigurationSection ws = c.getConfigurationSection("weapon_attack_speed");

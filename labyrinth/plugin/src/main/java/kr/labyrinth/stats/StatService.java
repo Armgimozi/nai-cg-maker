@@ -209,7 +209,10 @@ public final class StatService implements Module, Listener {
     // ── 자동 감지 ─────────────────────────────────────────────────────────
 
     @EventHandler(priority = EventPriority.MONITOR)
-    public void onJoin(PlayerJoinEvent e) { recalc(e.getPlayer()); }
+    public void onJoin(PlayerJoinEvent e) {
+        services.levels().ensureStartPoints(e.getPlayer());
+        recalc(e.getPlayer());
+    }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {

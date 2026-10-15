@@ -57,7 +57,8 @@ public final class StatsMenu extends LabMenu {
         DerivedStats s = services.stats().get(p);
         int pts = d.statPoints();
         deco(4, Button.icon(pts > 0 ? Material.NETHER_STAR : Material.FIREWORK_STAR, (pts > 0 ? "<#7fe07f>" : "<gray>") + "남은 포인트 <b>" + pts + "</b>",
-                List.of("<gray>레벨이 오를 때마다 " + services.settings().level().pointsPerLevel() + " 포인트",
+                List.of("<gray>Lv.1 에 " + services.settings().level().startPoints() + " 포인트, 레벨이 오를 때마다 "
+                        + services.settings().level().pointsPerLevel() + " 포인트",
                         "<gray>현재 레벨 <#ffd84f>" + d.level())));
         for (int i = 0; i < ORDER.length; i++) {
             Stat st = ORDER[i];

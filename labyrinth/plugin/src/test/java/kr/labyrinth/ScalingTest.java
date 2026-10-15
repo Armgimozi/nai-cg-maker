@@ -84,7 +84,32 @@ class ScalingTest {
         assertEquals(10, s.party().maxSize());
         assertEquals(50, s.level().max());
         assertEquals(5, s.level().pointsPerLevel());
+        assertEquals(5, s.level().startPoints());
         assertTrue(s.pack().port() > 0);
         assertEquals("labyrinth_world", s.worldName());
+    }
+
+    @Test
+    void levelOneStartsWithStatPoints() {
+        Settings.Level lv = new Settings(new YamlConfiguration()).level();
+        assertEquals(5, lv.startPoints());
+        // Lv.1 부터 분배할 포인트가 있고, 레벨업마다 5 씩 더해진다
+        assertEquals(5, lv.totalPointsAt(1));
+        assertEquals(10, lv.totalPointsAt(2));
+        assertEquals(250, lv.totalPointsAt(50));
+        assertEquals(5, lv.totalPointsAt(0));
+        // 한 번만: 이미 받은 만큼은 다시 주지 않고, 설정을 올리면 차이만, 내려도 거두지 않음
+        assertEquals(5, lv.startPointsOwed(0));
+        assertEquals(0, lv.startPointsOwed(5));
+        assertEquals(2, lv.startPointsOwed(3));
+        assertEquals(0, lv.startPointsOwed(8));
+
+        YamlConfiguration y = new YamlConfiguration();
+        y.set("level.start_points", 0);
+        Settings.Level none = new Settings(y).level();
+        assertEquals(0, none.startPointsOwed(0));
+        assertEquals(5, none.totalPointsAt(2));
+        y.set("level.start_points", -3);
+        assertEquals(0, new Settings(y).level().startPoints());
     }
 }
