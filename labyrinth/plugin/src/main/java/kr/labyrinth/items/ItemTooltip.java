@@ -22,7 +22,7 @@ import kr.labyrinth.stats.Stat;
 
 /**
  * 아이템 툴팁(lore) 생성 — MiniMessage 문자열 목록. Bukkit 무관(단위 테스트 가능).
- * 구성: 희귀도·분류·아우라 / 요구 능력치(무기·방어구, 없으면 줄 없음 — 소모품은 사용 레벨) / 스탯(첫 스탯은 범위·굴림 품질과 한 줄, 나머지 두 개씩) / 강화 / 무기 스킬 /
+ * 구성: 희귀도·분류·아우라 / 요구 능력치(무기·방어구, 없으면 줄 없음 — 소모품은 사용 레벨) / 스탯(첫 스탯은 범위와 한 줄, 나머지 두 개씩 — 굴림 품질은 표시하지 않음) / 강화 / 무기 스킬 /
  * 세트 효과·사용 효과 / 설명 / 획득처("보스 테오라(9층) · 대장간"). 화면에 다 들어가도록 {@link #MAX_LINES} 를 넘으면 덜 중요한 줄부터 뺀다.
  */
 public final class ItemTooltip {
@@ -182,7 +182,7 @@ public final class ItemTooltip {
             head.add("<gray>사용 레벨 <white>" + def.levelReq());
         }
 
-        // 스탯: 첫 스탯(무기 피해·방어구 방어 등)은 범위·굴림 품질과 한 줄, 나머지는 두 개씩 한 줄
+        // 스탯: 첫 스탯(무기 피해·방어구 방어 등)은 범위와 한 줄, 나머지는 두 개씩 한 줄 (굴림 품질 %는 보여 주지 않는다)
         List<String> stats = new ArrayList<>();
         List<String> cells = new ArrayList<>();
         boolean first = true;
@@ -204,13 +204,6 @@ public final class ItemTooltip {
                 first = false;
                 StringBuilder line = new StringBuilder(cell);
                 if (rolls != null && range.max() - range.min() > 1e-9) line.append(" <dark_gray>(").append(rangeText(key, range)).append(")");
-                if (rolls != null) {
-                    double q = ItemRolls.quality(def, rolls);
-                    if (q >= 0) {
-                        String qc = q >= 0.9 ? "#ffd27a" : q >= 0.6 ? "#9be89b" : q >= 0.3 ? "#cfcfcf" : "#9a9a9a";
-                        line.append(" <dark_gray>· 굴림 품질 <").append(qc).append(">").append(Math.round(q * 100)).append("%");
-                    }
-                }
                 stats.add(line.toString());
             } else {
                 cells.add(cell);

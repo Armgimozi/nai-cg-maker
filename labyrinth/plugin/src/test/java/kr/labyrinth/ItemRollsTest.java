@@ -110,7 +110,7 @@ class ItemRollsTest {
         assertFalse(all.contains("요구 레벨"), all);
         assertTrue(all.contains("피해"), all);
         assertTrue(all.contains("잿불 검기"), all);
-        assertTrue(all.contains("굴림 품질"), all);
+        assertFalse(all.contains("굴림 품질"), all); // 굴림 품질은 표시하지 않는다
         assertTrue(all.contains("아우라"), all);
         // 미리보기(굴림 없음)는 범위
         assertFalse(String.join("\n", ItemTooltip.lines(content, def, null)).contains("굴림 품질"));
