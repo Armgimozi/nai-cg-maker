@@ -69,6 +69,50 @@ class BossScalingTest {
     }
 
     @Test
+    void mechanicScalingFollowsFloorRamp() {
+        // 악몽 1층(ramp 0) = 보통과 같은 패턴: 쿨 ×1.0 · 추가 +0 · 속도·오브젝트 HP·제한 시간 ×1.0
+        MechanicScaling f1 = new MechanicScaling(1, "nightmare", 1, false, 0.0);
+        assertEquals(1.0, f1.cooldownMult(), 1e-9);
+        assertEquals(0, f1.extraCount());
+        assertEquals(1.0, f1.speedMult(), 1e-9);
+        assertEquals(1.0, f1.objectHpMult(), 1e-9);
+        assertEquals(1.0, f1.timerMult(), 1e-9);
+        // 3층(0.4): 쿨 ×0.92, 추가는 아직 0 / 4층(0.6): ×0.88, +1 / 6층(1.0): ×0.8, +1
+        MechanicScaling f3 = new MechanicScaling(1, "nightmare", 1, false, 0.4);
+        assertEquals(0.92, f3.cooldownMult(), 1e-9);
+        assertEquals(0, f3.extraCount());
+        assertEquals(1.08, f3.speedMult(), 1e-9);
+        assertEquals(1.24, f3.objectHpMult(), 1e-9);
+        assertEquals(0.92, f3.timerMult(), 1e-9);
+        MechanicScaling f4 = new MechanicScaling(1, "nightmare", 1, false, 0.6);
+        assertEquals(0.88, f4.cooldownMult(), 1e-9);
+        assertEquals(1, f4.extraCount());
+        MechanicScaling full = new MechanicScaling(1, "nightmare", 1, false, 1.0);
+        assertEquals(new MechanicScaling(1, "nightmare", 1, false), full, "4인자 = 램프 다 오름");
+        assertEquals(0.8, full.cooldownMult(), 1e-9);
+        assertEquals(1, full.extraCount());
+        // 어려움 2층(1/3): 쿨 ×0.967, 6인 이상 추가 +1 은 ramp 0.5 부터
+        assertEquals(1 - 0.1 / 3, new MechanicScaling(4, "hard", 1, false, 1 / 3.0).cooldownMult(), 1e-9);
+        assertEquals(0, new MechanicScaling(6, "hard", 1, false, 1 / 3.0).extraCount());
+        assertEquals(1, new MechanicScaling(6, "hard", 1, false, 2 / 3.0).extraCount());
+        // 페이즈·광폭화는 램프 뒤에 곱하고, withPhase/withEnraged 는 램프를 이어받는다
+        assertEquals(0.92 * 0.9 * MechanicScaling.ENRAGE_COOLDOWN, f3.withPhase(3).withEnraged(true).cooldownMult(), 1e-9);
+        assertEquals(0.4, f3.withPhase(2).withEnraged(true).ramp(), 1e-9);
+        assertEquals(0.9, f1.withPhase(3).cooldownMult(), 1e-9);
+        // 개수: 악몽 1층은 보통과 같은 수
+        Params brand = p("count_base", 1, "count_per_member", 0.5, "max", 5);
+        assertEquals(new MechanicScaling(5, "normal", 1, false).count(brand, "count", 1, 0),
+                new MechanicScaling(5, "nightmare", 1, false, 0.0).count(brand, "count", 1, 0));
+        assertEquals(20 * 12, f1.cooldownTicks(12));
+        // 범위 밖·NaN 은 자른다
+        assertEquals(1.0, new MechanicScaling(1, "nightmare", 1, false, 7).ramp(), 1e-9);
+        assertEquals(0.0, new MechanicScaling(1, "nightmare", 1, false, -1).ramp(), 1e-9);
+        assertEquals(1.0, new MechanicScaling(1, "nightmare", 1, false, Double.NaN).ramp(), 1e-9);
+        // 쉬움·보통은 램프가 없어도(ramp 1) 그대로
+        assertEquals(1.15, new MechanicScaling(1, "easy", 1, false, 1.0).cooldownMult(), 1e-9);
+    }
+
+    @Test
     void scaledCountUsesYamlKeysPlusDifficultyAndCap() {
         Params brand = p("count_base", 1, "count_per_member", 0.5, "max", 5);
         assertEquals(1, new MechanicScaling(1, "normal", 1, false).count(brand, "count", 1, 0));

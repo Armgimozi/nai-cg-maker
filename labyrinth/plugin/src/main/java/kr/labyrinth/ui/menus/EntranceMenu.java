@@ -18,7 +18,8 @@ import org.bukkit.inventory.ItemStack;
 
 /**
  * 미궁 입장 — 층 선택(해금 기준: 솔로 = 내 해금층, 파티 = 파티원 중 최소 해금층) + 파티 준비 상태(입구 근처·레벨)
- * + 서버 난이도 표시(선택 없음). 클릭 = {@code DungeonService.enter} (검사·안내는 dungeon 담당).
+ * + 서버 난이도 표시(선택 없음 — 층 램프 범위, 층 아이콘마다 그 층 실효 배율·솔로 보정). 클릭 = {@code DungeonService.enter}
+ * (검사·안내는 dungeon 담당).
  */
 public final class EntranceMenu extends LabMenu {
 
@@ -53,14 +54,26 @@ public final class EntranceMenu extends LabMenu {
         int allowed = allowedFloor(p, members);
 
         Difficulty d = s.difficulty();
+        int size = Math.max(1, members.size());
         List<String> info = new ArrayList<>();
         info.add("<gray>서버 난이도 " + (s.isDifficultySet() ? "<white><b>" + d.name() + "</b>" : "<#ff6b6b>미설정 — 관리자가 정하기 전엔 입장 불가"));
         if (s.isDifficultySet()) {
-            info.add("<dark_gray>몬스터 HP ×" + d.hp() + " · 피해 ×" + d.damage() + " · 드롭 ×" + d.drop());
+            // 층 램프: 얕은 층 값 → 원래 값 (층마다 실제 값은 아래 층 아이콘)
+            Difficulty first = d.atFloor(1);
+            info.add("<dark_gray>몬스터 HP ×" + range(first.hp(), d.hp()) + " · 피해 ×" + range(first.damage(), d.damage())
+                    + " · 드롭 ×" + MainMenu.decimal(d.drop()));
+            if (d.ramp() != null) info.add("<dark_gray>깊이 내려갈수록 강해져 지하 " + d.ramp().fullFloor() + "층부터 최대");
         }
         info.add("");
-        info.add(party ? "<gray>파티 <white>" + members.size() + "명</white> — 몬스터 HP ×" + String.format("%.2f", s.party().hp(members.size()))
-                + " · 피해 ×" + String.format("%.2f", s.party().damage(members.size())) : "<gray>솔로 입장");
+        double soloHp = s.party().hp(1), soloDmg = s.party().damage(1);
+        if (party) {
+            info.add("<gray>파티 <white>" + members.size() + "명</white> — 몬스터 HP ×" + String.format("%.2f", s.party().hp(members.size()))
+                    + " · 피해 ×" + String.format("%.2f", s.party().damage(members.size())));
+        } else if (soloHp != 1.0 || soloDmg != 1.0) {
+            info.add("<gray>솔로 입장 — 솔로 보정 HP ×" + MainMenu.decimal(soloHp) + " · 피해 ×" + MainMenu.decimal(soloDmg));
+        } else {
+            info.add("<gray>솔로 입장");
+        }
         info.add(party ? "<gray>입장 가능: 파티원 중 가장 낮은 해금층 <white>지하 " + allowed + "층" : "<gray>입장 가능: <white>지하 " + allowed + "층까지");
         if (party && !isLeader) info.add("<#ffd36b>파티장(" + Text.escape(leader.getName()) + ")만 입장을 시작할 수 있습니다.");
         deco(4, Button.icon(Material.ENDER_EYE, "<#7fd8ff><b>미궁 라비린스</b>", info));
@@ -76,6 +89,12 @@ public final class EntranceMenu extends LabMenu {
             if (f.subtitle() != null && !f.subtitle().isBlank()) lore.add("<gray>" + Text.escape(Text.strip(f.subtitle())));
             BossDef boss = services.content().bossOfFloor(n);
             if (boss != null && open) lore.add("<gray>수호자 <#ff9a4d>" + Text.escape(Text.strip(boss.name())));
+            if (open && s.isDifficultySet()) {
+                // 이 층 실효 배율 = 난이도(층 램프) × 인원 (솔로 보정 포함) — 입장 안내문과 같은 값
+                Difficulty fd = d.atFloor(n);
+                lore.add("<dark_gray>몬스터 HP ×" + String.format("%.2f", fd.hp() * s.party().hp(size))
+                        + " · 피해 ×" + String.format("%.2f", fd.damage() * s.party().damage(size)));
+            }
             lore.add("");
             if (open) lore.addAll(wrap(f.description(), 26, "<dark_gray>"));
             else lore.add("<dark_gray>지하 " + (n - 1) + "층을 돌파하면 열립니다.");
@@ -124,6 +143,12 @@ public final class EntranceMenu extends LabMenu {
         set(49, Button.icon(Material.CAKE, "<#c9a2ff>파티 관리", List.of("<gray>파티 메뉴로 이동")),
                 ctx -> { click(ctx.player()); services.menus().openParty(ctx.player()); });
         backButton(45, MainMenu::reopen);
+    }
+
+    /** 층 램프 범위 "1.8→2.4" (같으면 하나). */
+    private static String range(double from, double to) {
+        String a = MainMenu.decimal(from), b = MainMenu.decimal(to);
+        return a.equals(b) ? b : a + "→" + b;
     }
 
     private static Material floorBlock(FloorDef f) {

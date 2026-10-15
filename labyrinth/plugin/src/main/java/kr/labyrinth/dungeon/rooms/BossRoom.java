@@ -144,14 +144,14 @@ public final class BossRoom extends Room {
             }
             return;
         }
-        // 대체 보스: 층 정예를 보스 배율로
+        // 대체 보스: 층 정예를 보스 배율로 (d 는 이미 층 램프가 적용된 값 — 램프 진행도는 원래 ctx 것을 이어받는다)
         String eliteId = fs.def().elite();
         Difficulty d = fs.ctx().difficulty();
         Difficulty boosted = new Difficulty(d.id(), d.name(), d.hp() * fs.config().fallbackHpMult(),
                 d.damage() * fs.config().fallbackDamageMult(), d.drop(), d.xp(), d.telegraph());
         InstanceContext ctx = fs.ctx();
-        InstanceContext bossCtx = new InstanceContext(ctx.id(), ctx.floor(), ctx.members(), boosted, ctx.scaling(),
-                c.getWorld().getName(), ctx.startedAt());
+        InstanceContext bossCtx = new InstanceContext(ctx.id(), ctx.floor(), ctx.members(), boosted, ctx.rampProgress(),
+                ctx.scaling(), c.getWorld().getName(), ctx.startedAt());
         standIn = fs.spawnMob(eliteId, c, bossCtx);
         if (standIn == null) {
             Log.warn("지하 " + fs.floor() + "층 보스·정예 모두 소환 실패 — 층을 바로 클리어 처리합니다.");

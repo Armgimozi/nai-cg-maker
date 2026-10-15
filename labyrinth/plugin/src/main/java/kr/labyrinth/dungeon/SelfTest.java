@@ -37,6 +37,7 @@ import org.bukkit.scheduler.BukkitTask;
  *   <li>첫 층에 몹·정예 정의 전부(이후 층은 그 층 몹) 소환 + 정예 변종 1마리, 몇 초 AI 틱</li>
  *   <li>DamageService 로 피해 → 처치 (경험치·골드·루팅·MobKillEvent 경로, 플레이어 없음)</li>
  *   <li>1~5층 보스(+ 구현 없는 6층은 대체 보스 = 층 정예 × 보스 배율)를 차례로 보스방에 소환 → 페이즈가 넘어가게 피해 → 처치</li>
+ *   <li>층마다 난이도 층 램프·솔로 보정이 인스턴스 배율에 걸렸는지 확인 (+ 시작 꾸러미 아이템 id)</li>
  *   <li>층 정리(블록·엔티티)·슬롯 반납 후 요약 출력: 개수 + 하위 시스템별 예외 수 (서버 로그에 남은 SEVERE/스택 포함)</li>
  * </ol>
  * 기존 지형은 건드리지 않는다 — 공허 월드의 빈 슬롯만 쓴다.
@@ -113,6 +114,17 @@ final class SelfTest {
             }
             count("codex_gear_with_source", known);
             count("codex_gear_total", gear);
+        });
+        // 시작 꾸러미: 설정의 아이템 id 가 콘텐츠에 있는지 (없으면 지급할 때 그 줄만 건너뛴다)
+        step("content", () -> {
+            for (var k : services.settings().starterKit()) {
+                if (services.content().item(k.item()) != null) {
+                    count("starter_kit_items", 1);
+                } else {
+                    bump(errors, "content");
+                    errorSamples.add("content: 시작 꾸러미 아이템 없음 " + k.item());
+                }
+            }
         });
     }
 
@@ -222,6 +234,7 @@ final class SelfTest {
                 Text.send(sender, "<gray>  지하 " + f + "층 생성 완료 (" + (System.currentTimeMillis() - t0) + "ms, 방 "
                         + fs.rooms().size() + "개)");
                 step("hints", this::checkHints);
+                step("dungeon", () -> checkScaling(f));
                 step("dungeon", () -> checkMaze(f));
                 step("selftest", this::spawnMobs);
             });
@@ -257,6 +270,32 @@ final class SelfTest {
         var clues = kr.labyrinth.core.Hints.bossClues(boss);
         for (String l : clues) Text.mm(kr.labyrinth.core.Hints.format(l));
         if (!clues.isEmpty()) count("hint_bosses", 1);
+    }
+
+    /**
+     * 난이도 층 램프·솔로 보정: 이 층 인스턴스 배율이 설정(서버 난이도의 그 층 값 × 인원 배율)과 같은지,
+     * 실효 난이도에 램프가 남지 않았는지(이중 적용 방지), 보스 기믹 배율이 램프 진행도를 이어받는지. 걸린 층 수를 센다.
+     */
+    private void checkScaling(int f) {
+        InstanceContext ctx = fs.ctx();
+        Difficulty base = services.settings().difficulty();
+        var party = services.settings().party();
+        int n = ctx.partySize();
+        double hp = base.atFloor(f).hp() * party.hp(n), dmg = base.atFloor(f).damage() * party.damage(n);
+        if (Math.abs(ctx.hpMultiplier() - hp) > 1e-9 || Math.abs(ctx.damageMultiplier() - dmg) > 1e-9
+                || Math.abs(ctx.rampProgress() - base.rampProgress(f)) > 1e-9 || ctx.difficulty().ramp() != null) {
+            bump(errors, "dungeon");
+            errorSamples.add("dungeon: 지하 " + f + "층 배율 불일치 (HP ×" + ctx.hpMultiplier() + " / 기대 ×" + hp + ")");
+        }
+        if (base.ramp() != null) count(ctx.rampProgress() < 1 ? "ramp_floors" : "ramp_full_floors", 1);
+        if (ctx.solo() && (party.hp(1) != 1.0 || party.damage(1) != 1.0)) count("solo_scaled_floors", 1);
+        var ms = new kr.labyrinth.bosses.MechanicScaling(n, ctx.difficulty().id(), 1, false, ctx.rampProgress());
+        if (ms.withPhase(3).withEnraged(true).ramp() != ctx.rampProgress()) {
+            bump(errors, "bosses");
+            errorSamples.add("bosses: 기믹 배율이 램프 진행도를 잃음 (지하 " + f + "층)");
+        } else {
+            count("boss_ramp_checked", 1);
+        }
     }
 
     /** 미로 구조 확인: 주 경로 길이, 계단·금 간 벽 블록이 실제로 놓였나, 금 간 벽 열기 → 공기, 함정·상자·금고, 탐험 지도 그리기. */
@@ -489,17 +528,18 @@ final class SelfTest {
         step("bosses", () -> boss[0] = services.bosses().spawnBoss(b, c, fs.ctx()));
         if (boss[0] != null) {
             count("bosses_spawned", 1);
+            if (fs.ctx().rampProgress() < 1) count("bosses_ramped", 1);
         } else {
             // 구현 없는 층 = 대체 보스 (BossRoom 과 같은 규칙: 층 정예 × fallback 배율)
             step("mobs", () -> {
                 FloorDef def = services.content().floor(b);
                 if (def == null || def.elite() == null) return;
-                Difficulty d = fs.ctx().difficulty();
+                Difficulty d = fs.ctx().difficulty(); // 이미 층 램프 적용 — 램프 진행도는 원래 ctx 것을 이어받는다
                 Difficulty boosted = new Difficulty(d.id(), d.name(), d.hp() * manager.config().fallbackHpMult(),
                         d.damage() * manager.config().fallbackDamageMult(), d.drop(), d.xp(), d.telegraph());
                 InstanceContext ctx = fs.ctx();
-                InstanceContext bossCtx = new InstanceContext(ctx.id(), ctx.floor(), ctx.members(), boosted, ctx.scaling(),
-                        c.getWorld().getName(), ctx.startedAt());
+                InstanceContext bossCtx = new InstanceContext(ctx.id(), ctx.floor(), ctx.members(), boosted, ctx.rampProgress(),
+                        ctx.scaling(), c.getWorld().getName(), ctx.startedAt());
                 standIn[0] = fs.spawnMob(def.elite(), c, bossCtx);
             });
             if (standIn[0] != null) count("fallback_bosses", 1);
