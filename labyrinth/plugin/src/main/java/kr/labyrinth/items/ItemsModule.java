@@ -28,8 +28,8 @@ import org.bukkit.entity.Player;
 /**
  * items 담당 모듈 진입점: ItemService(굴림·툴팁·장비 컴포넌트) · LootService(개인 루팅) · CraftingService(대장장이 GUI) ·
  * WeaponSkillService(17종 무기 스킬) · AuraService(전설·신화 아우라) · 장비 StatContributor(+세트 효과) · 소모품 · 바닐라 가공 차단 ·
- * 강화(enhance/EnhanceService — 대장간 [강화], +10 빛).
- * 명령: /미궁 강화|enhance (강화 창). 관리: /labadmin blacksmith [플레이어] · /labadmin loot &lt;테이블&gt; [플레이어] ·
+ * 강화(enhance/EnhanceService — 대장간 [강화], +10 빛) · 어깨·등 3D 장식({@link ArmorCosmetics} — 상의 세트별 탑승 디스플레이).
+ * 명령: /미궁 강화|enhance (강화 창) · /미궁 장식|cosmetics [켜기|끄기] (내 어깨·등 장식). 관리: /labadmin blacksmith [플레이어] · /labadmin loot &lt;테이블&gt; [플레이어] ·
  * /labadmin weaponskills · /labadmin enhance &lt;단계&gt; [플레이어] (주손 장비 단계 바로 설정).
  */
 public final class ItemsModule implements Module {
@@ -41,6 +41,7 @@ public final class ItemsModule implements Module {
     private EquipmentListener equipment;
     private LabLootService loot;
     private EnhanceService enhance;
+    private ArmorCosmetics cosmetics;
 
     public ItemsModule(Services services) { this.services = services; }
 
@@ -71,6 +72,8 @@ public final class ItemsModule implements Module {
         auras = new AuraService(services);
         auras.start();
         enhance.start();
+        cosmetics = new ArmorCosmetics(services);
+        cosmetics.start();
 
         registerCommands();
         checkContent();
@@ -80,6 +83,7 @@ public final class ItemsModule implements Module {
     @Override
     public void disable() {
         if (auras != null) auras.stop();
+        if (cosmetics != null) cosmetics.stop();
         if (enhance != null) enhance.stop();
         if (weaponSkills != null) weaponSkills.stop();
         if (consumables != null) consumables.stop();
@@ -89,6 +93,7 @@ public final class ItemsModule implements Module {
     @Override
     public void reload() {
         if (auras != null) auras.reload();
+        if (cosmetics != null) cosmetics.reload();
         if (enhance != null) enhance.reload();
         checkContent();
         for (Player p : Bukkit.getOnlinePlayers()) services.stats().markDirty(p);
@@ -162,6 +167,15 @@ public final class ItemsModule implements Module {
             cmd.addSubcommand("lab", Commands.literal(n).executes(ctx -> run(ctx,
                     () -> CommandService.withPlayer(CommandService.sender(ctx), enhance::open))));
         }
+        for (String n : new String[] {"cosmetics", "장식"}) {
+            var node = Commands.literal(n).executes(ctx -> run(ctx,
+                    () -> CommandService.withPlayer(CommandService.sender(ctx), p -> toggleCosmetics(p, null))));
+            for (String arg : new String[] {"켜기", "끄기", "on", "off"}) {
+                node.then(Commands.literal(arg).executes(ctx -> run(ctx,
+                        () -> CommandService.withPlayer(CommandService.sender(ctx), p -> toggleCosmetics(p, arg)))));
+            }
+            cmd.addSubcommand("lab", node);
+        }
         cmd.addSubcommand("labadmin", Commands.literal("enhance")
                 .then(Commands.argument("level", IntegerArgumentType.integer(0, 20))
                         .executes(ctx -> run(ctx, () -> adminEnhance(ctx, null)))
@@ -172,6 +186,23 @@ public final class ItemsModule implements Module {
             Text.send(s, "<gray>무기 스킬 구현 " + weaponSkills.implementedIds().size() + "종: <white>"
                     + String.join(", ", new TreeSet<>(weaponSkills.implementedIds())));
         })));
+    }
+
+    /** /미궁 장식 [켜기|끄기] — 인자가 없으면 뒤집는다. 끄면 내 장식이 아예 생기지 않는다(남에게도 안 보임). */
+    private void toggleCosmetics(Player p, String arg) {
+        Boolean want = arg == null ? Boolean.valueOf(!cosmetics.isOn(p)) : ArmorPieceLayout.parseToggle(arg);
+        if (want == null) {
+            Text.error(p, "켜기 또는 끄기 로 적어 주세요.");
+            return;
+        }
+        cosmetics.setOn(p, want);
+        if (!cosmetics.config().enabled()) {
+            Text.send(p, "<gray>이 서버는 어깨·등 장식을 쓰지 않습니다 <dark_gray>(config cosmetics.armor_pieces.enabled)</dark_gray>. 설정만 저장했습니다.");
+            return;
+        }
+        Text.send(p, want ? "<gray>어깨·등 장식을 <white>켰습니다</white>. 미궁 상의를 입으면 다른 사람에게 입체 장식이 보입니다 (내 화면에는 안 보임)."
+                : "<gray>어깨·등 장식을 <white>껐습니다</white>. 다시 켜려면 <white>/미궁 장식 켜기</white>");
+        p.playSound(p.getLocation(), org.bukkit.Sound.UI_BUTTON_CLICK, 0.6f, want ? 1.4f : 0.9f);
     }
 
     private void adminEnhance(CommandContext<CommandSourceStack> ctx, String player) {

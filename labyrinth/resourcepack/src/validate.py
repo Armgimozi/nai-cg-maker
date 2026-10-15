@@ -7,6 +7,7 @@ import re
 
 from PIL import Image
 
+from . import armor_pieces as AP
 from .materials import norm_style
 from .voxel.weapons import BOWS as VW_BOWS
 from .voxel.weapons import theme_of
@@ -177,8 +178,47 @@ def validate(files: dict, content: dict, expect_frames: dict, fx_names=()) -> Re
                 rep.err(f'equipment {s} {layer}: size {img.size} != 64x32')
     for name in fx_names:
         check_item_definition(files, f'assets/{NS}/items/fx/{name}.json', rep, expect_frames)
+    validate_armor_pieces(files, content, rep, expect_frames)
     validate_mobs_npcs_fx(files, content, rep, expect_frames)
     return rep
+
+
+def validate_armor_pieces(files, content, rep, expect_frames):
+    """3D shoulder/back pieces (ArmorPieceLayout model contract): every set with a chest piece has
+    items/armor_piece/<set>/<part>.json for shoulder_l·shoulder_r·back → own model + texture, display.fixed identity
+    (the plugin's Transformation does all the placing), element count within AP.ELEMENT_LIMIT, and no stray sets."""
+    specs = AP.set_specs(content['items'], content.get('sets') or {})
+    for sid in specs:
+        for part in AP.PARTS:
+            base = f'armor_piece/{sid}/{part}'
+            ipath = f'assets/{NS}/items/{base}.json'
+            d = _json(files, ipath, rep)
+            if d is None:
+                continue
+            ref = (d.get('model') or {}).get('model')
+            if ref != f'{NS}:{base}':
+                rep.err(f'{ipath}: model {ref!r} != {NS}:{base}')
+                continue
+            check_item_definition(files, ipath, rep, expect_frames)
+            mpath = f'assets/{NS}/models/{base}.json'
+            if mpath not in files:
+                continue
+            m = json.loads(files[mpath].decode('utf-8'))
+            if (m.get('textures') or {}).get('0') != f'{NS}:{base}':
+                rep.err(f'{mpath}: texture #0 must be {NS}:{base}')
+            n = len(m.get('elements') or [])
+            if n > AP.ELEMENT_LIMIT:
+                rep.err(f'{mpath}: {n} elements > {AP.ELEMENT_LIMIT} (keep worn pieces light)')
+            fx = (m.get('display') or {}).get('fixed') or {}
+            if (fx.get('rotation') or [0, 0, 0]) != [0, 0, 0] or (fx.get('translation') or [0, 0, 0]) != [0, 0, 0] \
+                    or (fx.get('scale') or [1, 1, 1]) != [1, 1, 1]:
+                rep.err(f'{mpath}: display.fixed must be identity (ArmorPieceLayout places the piece)')
+    prefix = f'assets/{NS}/items/armor_piece/'
+    for path in files:
+        if path.startswith(prefix):
+            sid, _, part = path[len(prefix):].rpartition('/')
+            if sid not in specs or part[:-5] not in AP.PARTS:
+                rep.err(f'{path}: no chest piece of set {sid!r} / unknown part (stale armour piece)')
 
 
 def _fixed_ok(files, model_ref, rep):

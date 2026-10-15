@@ -26,7 +26,7 @@ from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-from src import equipment, fx_extra, fx_models, items, mobs, npc_skins, pack, render, ui, validate  # noqa: E402
+from src import armor_pieces, equipment, fx_extra, fx_models, items, mobs, npc_skins, pack, render, ui, validate  # noqa: E402
 from src import vanilla_gui  # noqa: E402
 from src.materials import Look  # noqa: E402
 from src.util import stable_seed  # noqa: E402
@@ -51,6 +51,7 @@ class Ctx:
         self.fx_previews = []
         self.fx_names: list[str] = []
         self.armor_previews = []   # (label, hum, leg)
+        self.piece_previews = []   # (set id, part, model, faces_uv, frame0, elements)
         self.mob_previews = []     # (id, boss, assembled model, faces_uv, frame0, elements, voxel part count)
         self.npc_previews = []     # (skin id, image)
         self.stats: dict[str, int] = {}
@@ -122,6 +123,25 @@ def build_equipment(ctx: Ctx):
         }}))
         ctx.armor_previews.append((s, hum, leg))
     ctx.stats['armor_sets'] = len(chest_of)
+
+
+def build_armor_pieces(ctx: Ctx):
+    """3D shoulder/back pieces for every set with a chest piece (src/armor_pieces.py) — the plugin
+    (items.ArmorCosmetics) seats them as ItemDisplays on the wearer: labyrinth:armor_piece/<set>/<part>."""
+    specs = armor_pieces.set_specs(ctx.content['items'], ctx.content.get('sets') or {})
+    nel = worst = 0
+    for sid, sp in specs.items():
+        files, pieces = armor_pieces.build_set(sid, sp['kind'], sp['look'], sp['theme'], sp['level'], items.jdump,
+                                               items.png_bytes)
+        for p, b in files.items():
+            ctx.add(p, b)
+        for part, out in pieces.items():
+            nel += out.elements
+            worst = max(worst, out.elements)
+            ctx.piece_previews.append((sid, part, out.model, out.faces_uv, out.frame, out.elements))
+    ctx.stats['armor_piece_sets'] = len(specs)
+    ctx.stats['armor_piece_elements'] = nel
+    ctx.stats['armor_piece_max_elements'] = worst
 
 
 FX_STYLES = {'slash', 'shockwave', 'orb', 'tether', 'projectile'}
@@ -276,8 +296,8 @@ def build_ui(ctx: Ctx):
     ctx.stats['vanilla_gui'] = len(vimgs)
 
 
-BUILDERS = [build_core, build_items, build_equipment, build_weapon_fx, build_fx_extra, build_mobs, build_npcs,
-            build_ui]
+BUILDERS = [build_core, build_items, build_equipment, build_armor_pieces, build_weapon_fx, build_fx_extra, build_mobs,
+            build_npcs, build_ui]
 
 
 # ───────────────────────────── previews ─────────────────────────────
@@ -318,6 +338,10 @@ def write_previews(ctx: Ctx):
             cells.append((sheet.resize((256, 256), Image.NEAREST), s))
         render.grid(cells, 4, 256, title='Equipment layers (top: humanoid, bottom: humanoid_leggings)').convert('RGB').save(
             os.path.join(ctx.out_dir, 'preview_armor.png'))
+    if ctx.piece_previews:
+        cells = [(_cell(m, uv, fr), f'{sid} {part} {nel}el') for (sid, part, m, uv, fr, nel) in ctx.piece_previews]
+        render.grid(cells, 12, 96, title='3D shoulder/back pieces (GUI view; worn look: preview_armor.py)').convert(
+            'RGB').save(os.path.join(ctx.out_dir, 'preview_armor_pieces.png'))
     write_mob_previews(ctx)
     if ctx.npc_previews:
         cells = []

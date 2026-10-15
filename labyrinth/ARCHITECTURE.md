@@ -58,6 +58,21 @@ labyrinth/
   - `assets/labyrinth/equipment/<set>.json`, 텍스처 `assets/labyrinth/textures/entity/equipment/humanoid/<set>.png`,
     `.../humanoid_leggings/<set>.png` (64x32 바닐라 레이아웃)
   - 플러그인은 `EQUIPPABLE` 컴포넌트의 `assetId = labyrinth:<set>`.
+- **어깨·등 3D 장식**: 상의(`armor_slot: chest`)가 있는 세트 `<set>` 마다 부위 `<part>` ∈ `shoulder_l | shoulder_r | back`
+  (Java `items.ArmorPieceLayout.Part` 가 원본) → 아이템 모델 `labyrinth:armor_piece/<set>/<part>`
+  - `assets/labyrinth/items/armor_piece/<set>/<part>.json`, 모델 `models/armor_piece/<set>/<part>.json`, 텍스처 `textures/armor_piece/<set>/<part>.png`
+    (생성: `resourcepack/src/armor_pieces.py`, 검사: `validate.validate_armor_pieces` · `tools/check_assets.py`).
+  - **모델 계약**: 피벗 (8,8,8) = 부위 기준점, 모델 1단위 = 스킨 1px, `display.fixed` = 항등. 모델 −Z = 착용자 앞, −X = 착용자 왼쪽.
+    기준점(발에서 스킨 px, 서기): 어깨 = 팔 회전축 (±6, 22, 0), 등 = 목 (0, 24, 0) — 몸통 갑옷 뒷면은 z −3.
+  - **Java 배치**: `ItemsModule` 의 `ArmorCosmetics` 가 ItemDisplay 3개를 **플레이어의 탑승물**로 붙인다(FIXED, yaw = `getBodyYaw()`,
+    teleport_duration = update_ticks). Transformation = `ArmorPieceLayout.place(part, stance, SCALE 속성)` — translation = 좌석(서기 1.8 / 웅크리기 1.5
+    블록) 기준 부위 기준점, 회전 = X축 숙임(웅크리기 팔 0.4 · 몸통 0.5 rad), scale = 0.9375. 표의 `// @layout-table` 줄은
+    `resourcepack/preview_armor.py` 가 그대로 읽어 미리보기를 그린다(형식 유지, `ArmorPieceLayoutTest` 가 확인).
+  - 착용자에게는 `hideEntity` (스폰 전에), 착용자 시점 관전자에게도 숨김. 비영속 + `Keys.FX = armor_piece:<uuid>` 임시 태그(`ArmorCosmetics.isPiece`).
+  - **플레이어를 다른 월드로 옮길 때는 `core.Teleports.to(p, loc)`**: Paper 26.3 `CraftPlayer#teleport0` 는 탑승물이 있는 플레이어의 월드 간
+    teleport 를 이벤트 없이 false 로 거부한다(같은 월드는 탑승물이 따라옴). `Teleports.to` 는 월드가 다를 때만 탑승물을 먼저 내리고, 장식은
+    월드 이동 뒤 다음 갱신 때 다시 생긴다. (다른 플러그인이 `Player#teleport` 로 월드를 옮기면 실패할 수 있다 — 그런 서버는
+    `cosmetics.armor_pieces.enabled: false`.)
 - **몹/보스 모델**: 몹 `id` 의 각 파트 `<part>` → 아이템 모델 `labyrinth:mob/<id>/<part>`
   - `assets/labyrinth/items/mob/<id>/<part>.json`, 모델 `assets/labyrinth/models/mob/<id>/<part>.json`
   - 텍스처 `assets/labyrinth/textures/mob/<id>.png` (한 몹 = 한 장 아틀라스, UV 로 파트 나눔)
@@ -872,6 +887,22 @@ first_clear_bonus: 0.4     # 층 첫 돌파 경험치 = 그 층 level_range 최�
   대체 보스(BossRoom·SelfTest)는 원래 ctx 의 rampProgress 를 넘기는 생성자를 쓴다. 표시: `Difficulty.hpDamageText()`/`telegraphText()`(초기 설정·난이도 변경),
   입장 메뉴·채팅 설정 메뉴는 고른 층의 실효 배율 + 솔로 보정 줄.
 - **mobs.yml** `attack_interval`, summon `solo_count`·`solo_max_alive` 는 §6.1. classes.yml 은 수치만 바뀜(그림자 base_hp 115·VIT 5, 비전술사 110·VIT 4, 마력탄 damage 2.0).
+
+### 6.8 0.3.4 어깨·등 3D 장식 (config.yml — 키가 없어도 코드 기본값)
+```yaml
+cosmetics:
+  armor_pieces:            # items.ArmorCosmetics.Config.from — 묶음·키가 없으면 DEFAULT (true, 2, 0.6)
+    enabled: true          #   끄기 = false (디스플레이를 하나도 만들지 않음)
+    update_ticks: 2        #   몸 yaw·자세를 다시 보는 간격 1~20 틱 (teleport_duration 도 같은 값)
+    view_range: 0.6        #   Display view_range (1.0 ≈ 64블록), 0 이하·NaN → 기본, 최대 4
+```
+- 플레이어별 `/미궁 장식|cosmetics [켜기|끄기|on|off]` (인자 없으면 뒤집기) → PlayerData ext `cosmetics.armor_pieces` (Boolean, 없으면 켜짐).
+  끄면 그 플레이어의 장식이 아예 생기지 않는다(다른 사람에게도 안 보임). 다른 사람 장식을 내 화면에서만 끄는 기능은 없다.
+- 자세 (`ArmorPieceLayout.stance`): 사망·관전 = 디스플레이 제거, 투명(효과 포함)·탈것·잠·활공·헤엄·급류·서기/웅크리기 밖의 자세 = 크기 0,
+  웅크리기 = 웅크리기 배치(보간 3틱). 벗기·나가기·사망·월드 이동·reload·플러그인 종료 때 제거, 탑승이 풀리면 다시 태움(40틱 안에 6번 넘게
+  풀리면 100틱 쉼 — 탑승물을 계속 내리는 다른 코드와 싸우지 않음).
+- SelfTest 1층: `ArmorCosmetics.selfCheck` — 첫 세트 장식 3개를 시작방에 띄웠다 지우고(모델 키·배율 확인), 배포 팩 zip(`plugins/Labyrinth/pack/labyrinth-pack.zip`
+  또는 jar 안 `pack/`)이 있으면 모든 세트 × 부위의 아이템 정의가 있는지 본다.
 
 ## 7. 성능·안정성 규칙
 

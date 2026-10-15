@@ -159,7 +159,7 @@ public final class Run {
                 GameMode want = GameModes.onEnter(p.getGameMode(), adminTest);
                 if (p.getGameMode() != want) p.setGameMode(want);
                 Location spawn = fs.spawnPoint();
-                p.teleport(spawn);
+                kr.labyrinth.core.Teleports.to(p, spawn);
                 p.setFallDistance(0);
                 lastSafe.put(u, spawn);
             }
@@ -247,7 +247,7 @@ public final class Run {
         FloorState fs = floorOf(p);
         if (fs == null) {
             // 층 밖(공허) → 마지막 안전 위치 (그 층이 이미 지워졌으면 현재 층 시작방)
-            p.teleport(safeSpot(p.getUniqueId()));
+            kr.labyrinth.core.Teleports.to(p, safeSpot(p.getUniqueId()));
             return;
         }
         Location l = p.getLocation();
@@ -258,7 +258,7 @@ public final class Run {
         boolean fell = l.getY() < fs.y0() - 2 && !inStairs;
         if (inLiquid || fell) {
             Location back = lastSafe.getOrDefault(p.getUniqueId(), fs.spawnPoint());
-            p.teleport(back);
+            kr.labyrinth.core.Teleports.to(p, back);
             p.setFireTicks(0);
             p.setFallDistance(0);
             double pct = manager.config().fallDamage();
@@ -285,7 +285,7 @@ public final class Run {
         }
         double leash = manager.config().spectatorLeash();
         if (nearest != null && best > leash * leash) {
-            p.teleport(nearest.getLocation().add(0, 2, 0));
+            kr.labyrinth.core.Teleports.to(p, nearest.getLocation().add(0, 2, 0));
             manager.services().hud().actionBar(p, Text.mm("<gray>관전 중에는 파티원 곁을 떠날 수 없습니다."), 40);
         }
     }
@@ -358,7 +358,7 @@ public final class Run {
         manager.services().stats().setHp(p, manager.services().stats().maxHp(p));
         p.setFireTicks(0);
         p.setGameMode(GameMode.SPECTATOR);
-        p.teleport(at.add(0, 1, 0));
+        kr.labyrinth.core.Teleports.to(p, at.add(0, 1, 0));
         p.showTitle(net.kyori.adventure.title.Title.title(Text.mm("<red><b>쓰러졌습니다</b></red>"),
                 Text.mm("<gray>휴식방에 파티원이 닿거나 보스를 쓰러뜨리면 부활합니다")));
         p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 0.4f, 1.6f);
@@ -381,7 +381,7 @@ public final class Run {
         p.setGameMode(GameModes.onRevive());
         Location to = at.clone();
         to.setYaw(p.getLocation().getYaw());
-        p.teleport(to);
+        kr.labyrinth.core.Teleports.to(p, to);
         p.setFallDistance(0);
         manager.services().stats().setHp(p, manager.services().stats().maxHp(p) * Math.max(0.1, hpFraction));
         p.showTitle(net.kyori.adventure.title.Title.title(Text.mm("<green><b>부활</b></green>"), Text.mm("<gray>다시 일어섰습니다")));
@@ -419,7 +419,7 @@ public final class Run {
         p.setFallDistance(0);
         Location back = returnTo.get(u);
         if (back == null || back.getWorld() == null) back = manager.fallbackReturn(p);
-        if (manager.isLabyrinthWorld(p.getWorld())) p.teleport(back);
+        if (manager.isLabyrinthWorld(p.getWorld())) kr.labyrinth.core.Teleports.to(p, back);
         PlayerData d = manager.services().data().get(p);
         d.ext().remove("dungeon.return");
         d.ext().remove("dungeon.gamemode");
@@ -650,7 +650,7 @@ public final class Run {
     private void descend(Player p, FloorState from) {
         if (from == previous) {
             Location spawn = current.spawnPoint();
-            p.teleport(spawn);
+            kr.labyrinth.core.Teleports.to(p, spawn);
             p.setFallDistance(0);
             lastSafe.put(p.getUniqueId(), spawn);
             p.playSound(spawn, Sound.BLOCK_PORTAL_TRAVEL, 0.25f, 1.6f);
@@ -669,7 +669,7 @@ public final class Run {
         next = null;
         firstArrival = System.currentTimeMillis();
         Location spawn = current.spawnPoint();
-        p.teleport(spawn);
+        kr.labyrinth.core.Teleports.to(p, spawn);
         p.setFallDistance(0);
         lastSafe.put(p.getUniqueId(), spawn);
         p.playSound(spawn, Sound.BLOCK_PORTAL_TRAVEL, 0.25f, 1.6f);
@@ -692,7 +692,7 @@ public final class Run {
         if (p.getGameMode() != want) p.setGameMode(want);
         if (current == null || !current.ready()) return;
         if (floorOf(p) == null) {
-            p.teleport(safeSpot(p.getUniqueId()));
+            kr.labyrinth.core.Teleports.to(p, safeSpot(p.getUniqueId()));
             p.setFallDistance(0);
         }
     }

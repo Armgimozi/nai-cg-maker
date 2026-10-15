@@ -4,6 +4,8 @@
 content/*.yml + Java 소스의 하드코딩 id 가 resourcepack/dist/labyrinth-pack.zip 안에 실제로 있는지 본다.
   items      : assets/labyrinth/items/<id>.json (+ 활 당김 단계 <id>_pulling_0..2)
   armor sets : assets/labyrinth/equipment/<set>.json (투구 제외 — 투구는 3D 아이템 모델)
+  armor piece: 상의가 있는 세트마다 assets/labyrinth/items/armor_piece/<set>/<부위>.json
+               (부위 = ArmorPieceLayout.java 의 Part enum id — 어깨·등 3D 장식, items.ArmorCosmetics)
   mob parts  : assets/labyrinth/items/mob/<id>/<part>.json (mobs.yml + bosses.yml)
   npc skins  : assets/labyrinth/textures/entity/npc/<skin>.png
   fx         : fx.yml models + aura ring/secondary 모델 + params.fx 참조 + Java 리터럴 → assets/labyrinth/items/fx/<name>.json
@@ -65,6 +67,17 @@ def main():
         aset = it.get("armor_set")
         if aset and it.get("armor_slot") not in ("head", "offhand", None):
             need(f"equipment/{aset}.json", f"방어구 세트 {aset} ({iid})")
+
+    # 어깨·등 3D 장식: 부위 id 는 Java Part enum 이 기준 (SHOULDER_L("shoulder_l") …)
+    layout = (JAVA / "kr/labyrinth/items/ArmorPieceLayout.java").read_text(encoding="utf-8")
+    piece_parts = re.findall(r'\b[A-Z_]+\("([a-z_]+)"\)', layout[layout.find("enum Part"):layout.find("enum Stance")])
+    if not piece_parts:
+        errors.append("ArmorPieceLayout.java: Part enum 을 읽지 못함")
+    piece_sets = sorted({it["armor_set"] for it in items.values() if it.get("armor_set") and it.get("armor_slot") == "chest"})
+    for aset in piece_sets:
+        for part in piece_parts:
+            need(f"items/armor_piece/{aset}/{part}.json", f"어깨·등 장식 {aset}/{part}")
+            need(f"models/armor_piece/{aset}/{part}.json", f"어깨·등 장식 모델 {aset}/{part}")
 
     for fname, key in (("mobs.yml", "mobs"), ("bosses.yml", "bosses")):
         for mid, m in (load(fname).get(key) or {}).items():

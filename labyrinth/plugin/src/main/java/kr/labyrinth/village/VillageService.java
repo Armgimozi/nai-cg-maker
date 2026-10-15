@@ -260,7 +260,7 @@ public final class VillageService implements Listener {
         Location to = spawn();
         if (to == null) return;
         p.setFallDistance(0);
-        p.teleport(to);
+        kr.labyrinth.core.Teleports.to(p, to);
         Text.send(p, "<#ffd36b>" + Text.escape(meta.name) + "</#ffd36b><gray> 이(가) 생겨 광장으로 옮겼습니다. <white>/미궁 마을</white> 로 언제든 돌아올 수 있습니다.");
     }
 
@@ -280,7 +280,7 @@ public final class VillageService implements Listener {
             return;
         }
         p.setFallDistance(0);
-        p.teleport(to);
+        kr.labyrinth.core.Teleports.to(p, to);
         p.playSound(to, Sound.ENTITY_ENDERMAN_TELEPORT, 0.6f, 1.3f);
         to.getWorld().spawnParticle(Particle.PORTAL, to.clone().add(0, 1, 0), 40, 0.4, 0.8, 0.4, 0.3);
         Text.send(p, "<#ffd36b>" + Text.escape(meta.name) + "</#ffd36b> <gray>광장으로 왔습니다.");

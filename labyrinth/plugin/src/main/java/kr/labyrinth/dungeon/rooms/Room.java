@@ -142,7 +142,7 @@ public abstract class Room {
                 Location in = inward(tx, tz);
                 in.setYaw(l.getYaw());
                 in.setPitch(l.getPitch());
-                p.teleport(in);
+                kr.labyrinth.core.Teleports.to(p, in);
             }
         }
         BlockData bars = Material.IRON_BARS.createBlockData();
