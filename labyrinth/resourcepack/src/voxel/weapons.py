@@ -925,8 +925,10 @@ def bow(g, p, kind, pull=-1):
     L = p.L
     H = int(17 * L)
     f = (pull + 1) / 3.0 if pull >= 0 else 0.0
-    curv = {'longbow': 3.0, 'recurve_bow': 4.0, 'composite_bow': 4.6}[kind] * (1 + 0.55 * f)
-    th = 1.3 if kind != 'composite_bow' else 1.6
+    curv = {'longbow': 3.0, 'recurve_bow': 4.0, 'composite_bow': 4.6, 'horn_bow': 3.6, 'blade_bow': 3.0}[kind] * (1 + 0.55 * f)
+    th = 1.3 if kind not in ('composite_bow', 'horn_bow') else 1.6
+    if kind == 'horn_bow':
+        H = int(15 * L)
     tips = []
     for s in (1, -1):
         pts = []
@@ -936,11 +938,32 @@ def bow(g, p, kind, pull=-1):
             x = curv * t * t * (1.0 + 0.2 * f) - 0.6
             if kind == 'recurve_bow' and t > 0.78:
                 x -= (t - 0.78) * 14 * (1 - 0.4 * f)
+            if kind == 'horn_bow':
+                # 각궁: limbs dip back toward the archer near the grip (reflex), ears snap sharply back at the tips
+                x -= 1.8 * math.sin(math.pi * min(1.0, t / 0.7)) * (1 - 0.5 * f)
+                if t > 0.8:
+                    x -= (t - 0.8) * 22 * (1 - 0.35 * f)
             pts.append((x, y, 0))
         g.tube(pts, th, 0.6, 'wood' if p.theme not in ('crystal', 'storm', 'water') or p.lv < 2 else 'metal',
                sq=(1, 1, 0.8), vfn=lambda t, d, q: 0.38 + 0.3 * (1 - d) + 0.06 * math.sin(t * 30), prio=2)
         if kind == 'composite_bow':
             g.tube([(q[0] - 1.2, q[1], q[2]) for q in pts[2:15]], 0.6, 0.5, 'orn' if p.lv >= 1 else 'bone', 0.65, prio=2)
+        if kind == 'horn_bow':
+            # horn belly strip + bone ears (siyah)
+            g.tube([(q[0] + 1.0, q[1], q[2]) for q in pts[2:16]], 0.6, 0.5, 'bone', 0.6, prio=2)
+            g.tube(pts[16:], 1.2, 0.8, 'bone', 0.7, prio=3)
+        if kind == 'blade_bow':
+            # blade fins along the back of each limb, edge facing away from the string
+            for k in range(5, 18):
+                t = k / 20
+                fw = 3.4 * math.sin(math.pi * (t - 0.25) / 0.65) * (1 - 0.3 * f)
+                if fw <= 0.4:
+                    continue
+                qx, qy, _ = pts[k]
+                for d in range(1, int(round(fw)) + 1):
+                    edge = d == int(round(fw))
+                    g.put(round(qx - 1 - d), round(qy), 0, 'edge' if edge else 'blade', 0.75 if edge else 0.45 + 0.05 * d, prio=2)
+            g.crystal(pts[-1], (-0.3, s, 0), 3.2, 0.9, 'edge', prio=3)
         tip = pts[-1]
         tips.append(tip)
         g.ball(tip, 1.1, 'orn' if p.lv >= 1 else 'metal', 0.6, prio=3)
@@ -949,6 +972,10 @@ def bow(g, p, kind, pull=-1):
     # riser / grip
     g.box((-2, -3, -1), (0, 3, 1), 'grip', vfn=lambda i, j, k: 0.6 if (j + i) % 3 == 0 else 0.4, prio=3)
     g.box((-3, -1, -1), (-3, 1, 1), 'orn' if p.lv >= 1 else 'metal', 0.6, prio=3)
+    if kind == 'blade_bow':
+        g.crystal((-3, 0, 0), (-1, 0, 0), 4.0, 1.4, 'edge', prio=3, tip=0.7)   # knuckle blade
+    if kind == 'horn_bow':
+        g.box((-2, -2, -1), (0, 2, 1), 'leather', 0.5, prio=4)                 # wrapped grip
     if p.lv >= 2:
         g.gem((-3, 0, 1), 1.0, 'gem', glow=p.glow)
     # string
@@ -1023,11 +1050,416 @@ def dress_bow(g, p: P, H, curv, tips):
         halo(g, (-2, 0, 0), 6.0, 'x')
 
 
+# second wave (5층 + 층마다 하나 더) -------------------------------------------
+# 새 실루엣 12종: 무기 종류마다 2개. 기존 15종과 겹치지 않는 윤곽(망치 머리·외날·낫·언월도·각궁·날활·
+# 소용돌이·갈래·종·성배·낫단검·주먹칼)이 먼저 읽히고, 테마 장식(dress_*)은 영웅부터 얹힌다.
+
+def _face_cracks(g, p, x, y0, y1, z):
+    """Glowing forge cracks on a flat face (forge theme)."""
+    rr = p.rng
+    for _ in range(2 + (p.lv >= 3)):
+        yy = rr.randint(y0, max(y0, y1 - 3))
+        pts = [(x, yy, z), (x, yy + 1, z + rr.choice((-1, 1))), (x, yy + 3, z)]
+        g.tube(pts, 0.5, 0.5, 'glow', 0.85, glow=True, prio=4)
+
+
+def warhammer(g, p):
+    """One-handed war hammer: bevelled block head (striking face +x, pick −x), top spike."""
+    L, th = p.L, p.theme
+    top = int(17 * L)
+    shaft(g, -6, top, 1.25, 'metal' if p.lv >= 2 else 'wood', bands=(top - 3,))
+    grip(g, -6, 4)
+    pommel(g, -8, p, 1.5)
+    hy = top + 3
+    if th == 'fungi':
+        # mushroom-cap head with gills underneath and pale spots
+        g.ball((0, hy + 1, 0), 5.4, 'fungus', sq=(1, 0.62, 1),
+               vfn=lambda i, j, k, d: None if j < hy - 0.5 else 0.32 + 0.45 * (1 - d) + 0.1 * (j > hy + 2))
+        g.torus((0, hy - 0.5, 0), 3.6, 0.7, 'y', 'bone', 0.45)
+        for (a, b) in ((2, 3), (-3, 2), (0, -3), (3, -2)):
+            g.put(a, hy + 3, b, 'bone', 0.85, prio=4)
+    elif th == 'ink':
+        # seal stamp: drum head, engraved glowing face on +x
+        for j in range(hy - 3, hy + 4):
+            for i in range(-3, 7):
+                for k in range(-3, 4):
+                    if (j - hy) ** 2 + k * k <= 10.5:
+                        g.put(i, j, k, 'metal' if i < 5 else 'blade', 0.36 + 0.1 * (j > hy) + 0.12 * (i >= 5), prio=2)
+        for (j, k) in ((hy - 1, -1), (hy, 0), (hy + 1, 1), (hy + 1, -1), (hy - 1, 1)):
+            g.put(7, j, k, 'ink' if p.lv < 3 else 'glow', 0.8, glow=p.lv >= 3, prio=4)
+        g.torus((2, hy, 0), 3.6, 0.6, 'x', 'orn', 0.7)
+    else:
+        def head(u, v):
+            if -3 <= u <= 5 and abs(v - hy) <= 3:
+                return True
+            return 5 <= u <= 7 and abs(v - hy) <= 4      # flared striking face
+        g.slab(head, (-4, hy - 5), (8, hy + 5), 'xy', 0, max_half=3, slope=1.0, mat='metal',
+               vfn=lambda u, v, w, d: ('blade', 0.62) if u >= 6 else 0.34 + 0.09 * min(d, 3) + 0.05 * (v > hy))
+        g.crystal((-3, hy, 0), (-1, -0.3, 0), 7.5 if p.lv >= 2 else 6.0, 1.5, 'blade', prio=3, tip=0.6)
+        if p.lv >= 1:
+            g.box((1, hy - 4, -3), (2, hy + 4, 3), 'orn', 0.7, prio=3)
+        if th == 'forge':
+            _face_cracks(g, p, 7, hy - 3, hy + 3, 0)
+        if th == 'water':
+            shell(g, (2, hy + 3, 2.5), p, 1.8)
+    g.crystal((0, hy + 3, 0), (0, 1, 0), 4.5, 1.1, 'metal', prio=2)
+    if p.lv >= 2:
+        for s in (-1, 1):
+            g.gem((1, hy, s * 3.5), 1.0, 'gem', glow=p.glow)
+    if th == 'abyss' and p.lv >= 3:
+        g.ball((2, hy, 3.4), 1.3, 'eye', 0.8, glow=True, prio=5)
+    dress_shaft(g, p, -4, hy - 5, hy, hy + 6)
+
+
+def falchion(g, p):
+    """Single-edged falchion: straight back (−x), bellied edge (+x) widening toward a clipped tip."""
+    L = p.L
+    gl = 9
+    grip(g, -gl // 2, gl // 2)
+    pommel(g, -gl // 2 - 2, p, 1.6)
+    gy = gl // 2 + 1
+    crossguard(g, gy, 5 + (p.lv >= 3), p)
+    y0 = gy + 2
+    length = int(27 * L)
+
+    def prof(t):
+        back = -2.0
+        edge = 1.8 + 4.6 * t ** 1.3
+        if t > 0.8:
+            k = (t - 0.8) / 0.2
+            edge -= k ** 1.5 * (edge - back + 0.5) * 0.85
+            back += k * 1.6      # clip
+        return back, edge
+
+    def m(u, v):
+        t = (v - y0) / length
+        if t < 0 or t > 1:
+            return False
+        b, e = prof(t)
+        return b <= u <= e
+    g.slab(m, (-4, y0), (9, y0 + length), 'xy', 0, max_half=1, slope=0.5, mat='blade',
+           vfn=lambda u, v, w, d: ('edge', 0.74) if d == 0 and u > -1 else 0.4 + 0.08 * min(d, 3) + 0.04 * w)
+    # thick spine + fuller line
+    for v in range(y0, y0 + int(length * 0.78)):
+        g.put(-2, v, 0, 'metal', 0.62, prio=2)
+        if p.lv >= 1 and (v - y0) % 2 == 0 and v < y0 + int(length * 0.6):
+            g.put(0, v, 1, 'fuller', 0.3, prio=2)
+            g.put(0, v, -1, 'fuller', 0.3, prio=2)
+    if p.lv >= 2:     # back notches near the guard
+        for v in range(y0 + 2, y0 + 8, 3):
+            g.put(-3, v, 0, 'edge', 0.8, prio=3)
+    if p.theme == 'crystal' and p.lv >= 2:
+        for k, t in enumerate((0.35, 0.6)):
+            b, e = prof(t)
+            g.crystal((e, y0 + int(length * t), 0), (1, 0.8, 0), 3.0, 0.8, 'crystal', glow=p.glow, prio=3)
+    dress_blade(g, p, {'y0': y0, 'y1': y0 + length, 'hw': 3.0, 'gy': gy, 'gh': 5,
+                       'wfn': lambda y: max(1.0, prof(min(1.0, max(0.0, (y - y0) / length)))[1])})
+
+
+def war_scythe(g, p):
+    """Two-handed war scythe: long snath with a side handle, crescent blade sweeping out to +x and down."""
+    L = p.L
+    top = int(27 * L)
+    shaft(g, -14, top, 1.25, 'wood' if p.lv < 2 else 'metal', bands=(-6, 6, top - 3))
+    pommel(g, -16, p, 1.6)
+    grip(g, -5, 5)
+    g.tube([(0, 10, 0), (3, 11, 0), (4.5, 10.5, 0)], 0.9, 0.9, 'grip', 0.5, prio=2)   # nib
+    hy = top - 1
+    R = 23 if p.lv < 3 else 25
+
+    def m(u, v):
+        if u < 0 or u > R:
+            return False
+        t = u / R
+        yu = hy + 5.5 * math.sin(math.pi * min(1.0, t * 1.1) * 0.75) - 12.0 * t ** 2.2
+        w = 7.0 * (1 - t) ** 0.7 + 0.6
+        return yu - w <= v <= yu
+    g.slab(m, (0, hy - 18), (R, hy + 7), 'xy', 0, max_half=1, slope=0.45, mat='blade',
+           vfn=lambda u, v, w, d: ('edge', 0.74) if d == 0 and v < hy + 5.5 * math.sin(math.pi * min(1.0, u / R * 1.1) * 0.75)
+           - 12.0 * (u / R) ** 2.2 - 1.2 else 0.38 + 0.08 * min(d, 3) + 0.04 * w)
+    g.box((-2, hy - 3, -2), (2, hy + 2, 2), 'metal', 0.55, prio=2)            # collar
+    g.crystal((0, hy + 2, 0), (-0.5, 1, 0), 4.5, 1.0, 'metal', prio=2)       # back spike
+    if p.lv >= 1:
+        g.torus((0, hy - 3, 0), 2.4, 0.6, 'y', 'orn', 0.7)
+    if p.lv >= 2:
+        g.gem((0, hy, 2.2), 1.1, 'gem', glow=p.glow)
+        for k in range(3):   # spine studs along the back
+            u = 4 + k * 4
+            t = u / R
+            g.put(u, round(hy + 5.5 * math.sin(math.pi * min(1.0, t * 1.1) * 0.75) - 12.0 * t ** 2.2), 1, 'orn', 0.75, prio=3)
+    if p.theme == 'abyss' and p.lv >= 3:
+        tendrils(g, (R * 0.7, hy - 4, 0), p, n=3, length=5, spread=3, up=-0.9)
+    dress_shaft(g, p, -4, hy - 4, hy, top + 4)
+
+
+def glaive(g, p):
+    """Two-handed glaive: long haft topped by a single-edged knife blade with a back spur."""
+    L = p.L
+    top = int(24 * L)
+    shaft(g, -16, top, 1.25, 'wood' if p.lv < 2 else 'metal', bands=(-6, 6, top - 2))
+    pommel(g, -18, p, 1.6)
+    grip(g, -5, 5)
+    y0 = top + 1
+    length = int(21 * L)
+
+    def prof(t):
+        back = -1.6 - 0.6 * math.sin(t * math.pi)
+        edge = 1.8 + 4.0 * math.sin(min(1.0, t * 1.25) * math.pi * 0.7)
+        if t > 0.72:
+            k = (t - 0.72) / 0.28
+            edge -= k ** 1.4 * (edge + 1.4)
+            back -= k * 1.8
+        return back, edge
+
+    def m(u, v):
+        t = (v - y0) / length
+        if t < 0 or t > 1:
+            return False
+        b, e = prof(t)
+        return b <= u <= e
+    g.slab(m, (-5, y0), (6, y0 + length), 'xy', 0, max_half=1, slope=0.5, mat='blade',
+           vfn=lambda u, v, w, d: ('edge', 0.74) if d == 0 and u > 0 else 0.4 + 0.08 * min(d, 3) + 0.04 * w)
+    g.crystal((-2, y0 + 3, 0), (-1, 0.7, 0), 5.0 if p.lv >= 2 else 4.0, 1.0, 'blade', prio=3, tip=0.6)   # spur
+    g.box((-2, y0 - 3, -2), (2, y0, 2), 'metal', 0.55, prio=2)
+    if p.lv >= 1:
+        for k in range(3):    # tassel under the collar
+            g.ball((1.5 + k * 0.4, y0 - 5 - k * 1.6, 0), 0.9, 'cloth' if p.theme not in ('forge',) else 'flame', 0.55,
+                   glow=p.theme == 'forge', prio=1)
+    if p.lv >= 2:
+        g.gem((0, y0 + 2, 1.5), 1.0, 'gem', glow=p.glow)
+        g.gem((0, y0 + 2, -1.5), 1.0, 'gem', glow=p.glow)
+    if p.theme == 'forge' and p.lv >= 3:
+        _face_cracks(g, p, 1, y0 + 2, y0 + length - 6, 1.2)
+    dress_shaft(g, p, -4, y0 - 4, y0 + 3, y0 + length)
+
+
+def sickle(g, p):
+    """Sickle dagger: short grip, crescent blade curving up and out over the hand (edge inside)."""
+    gl = 7
+    grip(g, -gl // 2, gl // 2)
+    pommel(g, -gl // 2 - 2, p, 1.4)
+    gy = gl // 2 + 1
+    g.box((-2, gy, -1), (2, gy + 1, 1), 'metal', 0.55, prio=2)
+    C = (5.5, gy + 4.0)
+    R = 7.5 if p.lv < 3 else 8.5
+    a0, a1 = math.pi, math.radians(-25)
+
+    def m(u, v):
+        dx, dy = u - C[0], v - C[1]
+        r = math.hypot(dx, dy)
+        a = math.atan2(dy, dx)
+        if a < -math.pi / 2:
+            a += 2 * math.pi
+        if not (a1 <= a <= a0):
+            return False
+        s = (a0 - a) / (a0 - a1)          # 0 at the grip → 1 at the tip
+        w = 3.4 * (1 - s) ** 0.8 + 0.4
+        return R - w <= r <= R + 0.6
+    g.slab(m, (-4, gy - 2), (15, gy + 14), 'xy', 0, max_half=1, slope=0.5, mat='blade',
+           vfn=lambda u, v, w, d: ('edge', 0.76) if d == 0 and math.hypot(u - C[0], v - C[1]) < R - 0.6 else
+           0.42 + 0.08 * min(d, 3) + 0.04 * w)
+    if p.lv >= 1:
+        g.torus((0, -gl // 2 - 3.5, 0), 1.6, 0.5, 'z', 'orn', 0.7)    # finger ring on the pommel
+    if p.lv >= 2:
+        g.gem((0.5, gy + 1, 1), 1.0, 'gem', glow=p.glow)
+        g.crystal((C[0] - R - 0.5, gy + 3, 0), (-1, -0.4, 0), 3.0, 0.8, 'edge', prio=3)   # back thorn
+    if p.theme == 'water':
+        g.tube([(C[0] - R + 1, gy + 2, 0), (C[0] - R - 1.5, gy - 1, 0), (C[0] - R - 0.5, gy - 3, 0)], 0.8, 0.4, 'fin', 0.6, prio=2)
+    dress_blade(g, p, {'y0': gy + 2, 'y1': gy + 12, 'hw': 2.5, 'gy': gy, 'gh': 3, 'wfn': lambda y: 3.0})
+
+
+def katar(g, p):
+    """Katar (punch dagger): H-frame grip with two cross bars, broad triangular blade on top."""
+    for s in (-1, 1):   # side bars (protect the wrist)
+        g.box((s * 3, -6, -1), (s * 3, 4, 1), 'metal', vfn=lambda i, j, k: 0.42 + 0.1 * (j > 0) + 0.05 * k)
+        g.crystal((s * 3, -6, 0), (0, -1, 0), 2.0 if p.lv < 2 else 3.0, 0.9, 'metal', prio=2)
+    for y in (-2, 1):   # the hand grips these
+        for i in range(-2, 3):
+            for k in range(-1, 2):
+                if abs(k) + (abs(i) == 2) < 2:
+                    g.put(i, y, k, 'grip', 0.45 + 0.1 * ((i + y) % 2), prio=2)
+    gy = 4
+    g.box((-4, gy, -1), (4, gy + 1, 1), 'metal' if p.lv < 1 else 'orn', 0.6, prio=2)
+    y0 = gy + 2
+    length = 17
+
+    def m(u, v):
+        t = (v - y0) / length
+        if t < 0 or t > 1:
+            return False
+        hw = 3.2 * (1 - t) ** 0.9 + 0.3 if t > 0.12 else 3.2
+        return abs(u) <= hw
+    g.slab(m, (-4, y0), (4, y0 + length), 'xy', 0, max_half=2, slope=0.6, mat='blade',
+           vfn=lambda u, v, w, d: ('edge', 0.74) if d == 0 else 0.4 + 0.07 * min(d, 4) + 0.05 * (u > 0))
+    if p.lv >= 1:     # thickened armour-piercing tip
+        g.crystal((0, y0 + length - 4, 0), (0, 1, 0), 4.5, 1.0, 'edge', prio=3, tip=0.7)
+    if p.lv >= 2:
+        g.gem((0, y0 + 2, 1.6), 1.1, 'gem', glow=p.glow)
+        g.gem((0, y0 + 2, -1.6), 1.0, 'gem', glow=p.glow)
+    dress_blade(g, p, {'y0': y0, 'y1': y0 + length, 'hw': 3.0, 'gy': gy, 'gh': 4,
+                       'wfn': lambda y: 3.2 * (1 - min(1.0, max(0.0, (y - y0) / length))) + 0.3})
+
+
+def staff_spiral(g, p):
+    """Staff whose head curls into a crook spiral around a floating focus."""
+    top = int(26 * p.L)
+    _staff_base(g, p, top)
+    R0 = 6.5
+    C = (R0, top + 4)
+    turns = 1.35
+    pts = []
+    for k in range(41):
+        t = k / 40
+        a = math.pi - t * turns * 2 * math.pi
+        r = R0 * (1 - 0.72 * t)
+        pts.append((C[0] + math.cos(a) * r, C[1] + math.sin(a) * r, 0))
+    pts = [(0, top - 1, 0), (0, top + 2, 0)] + pts
+    g.tube(pts, 1.5, 0.7, 'wood' if p.lv < 2 else 'orn', vfn=lambda t, d, q: 0.42 + 0.3 * (1 - d) + 0.08 * t, prio=2)
+    focus = (C[0], C[1], 0)
+    th = p.theme
+    if th == 'forge':
+        flames(g, C[1] - 1, C[1] + 2, lambda y: 0.8, p, n=2)
+        g.ball(focus, 1.6, 'flame', glow=True, vfn=lambda i, j, k, d: 0.6 + 0.35 * (1 - d), prio=4)
+    elif th == 'ink':
+        g.ball(focus, 1.7, 'ink', vfn=lambda i, j, k, d: 0.3 + 0.4 * (1 - d), prio=4)
+        drips(g, [(C[0] - 1, C[1] - 2, 0), (C[0] + 1, C[1] - 3, 0)], p)
+    else:
+        g.ball(focus, 1.6, 'glow' if p.lv >= 1 else 'gem', glow=True, vfn=lambda i, j, k, d: 0.5 + 0.45 * (1 - d), prio=4)
+    if th == 'vine':
+        vines(g, top - 6, top + 2, 1.8, p, n=1, leaves=True, buds=p.lv >= 1)
+        for q in pts[8:30:7]:
+            g.ball((q[0], q[1], 1.2), 0.9, 'leaf', 0.6, sq=(1.3, 0.8, 0.5), prio=3)
+    if th == 'fungi':
+        for q in (pts[12], pts[24]):
+            fungi(g, (q[0], q[1] + 1, 0), p, 1.5)
+    if th == 'water':
+        for q in pts[5:35:10]:
+            g.ball((q[0], q[1] - 1.5, 0), 0.8, 'glow', 0.7, glow=True, prio=3)
+    if p.lv >= 2:
+        g.torus((0, top - 2, 0), 2.0, 0.55, 'y', 'orn', 0.7)
+    dress_shaft(g, p, -6, top - 4, C[1], C[1] + R0)
+
+
+def staff_fork(g, p):
+    """Forked staff (tuning fork / trident): two prongs rising from a yoke, a charge held between them."""
+    top = int(26 * p.L)
+    _staff_base(g, p, top, 'wood' if p.lv < 2 else 'metal')
+    th = p.theme
+    yk = top + 1
+    W = 4.5
+    g.tube([(-W, yk + 2, 0), (-W * 0.6, yk, 0), (0, yk - 1, 0), (W * 0.6, yk, 0), (W, yk + 2, 0)], 1.2, 1.2,
+           'metal' if th != 'crystal' else 'orn', 0.55, prio=2)
+    H = 13 if p.lv < 3 else 15
+    for s in (-1, 1):
+        pts = catmull([(s * W, yk + 2, 0), (s * (W + 0.8), yk + H * 0.45, 0), (s * (W - 0.2), yk + H * 0.8, 0),
+                       (s * (W - 1.2), yk + H, 0)], 6)
+        g.tube(pts, 1.1, 0.7, 'metal' if th != 'crystal' else 'crystal', vfn=lambda t, d, q: 0.45 + 0.3 * (1 - d) + 0.1 * t,
+               prio=2)
+        if th == 'water' or p.lv >= 2:
+            g.crystal((s * (W - 1.2), yk + H, 0), (-s * 0.25, 1, 0), 3.0, 0.9, 'edge' if th == 'water' else 'gem',
+                      glow=p.glow and th != 'water', prio=3)
+    if th == 'water':     # trident: middle tine
+        g.tube([(0, yk - 1, 0), (0, yk + H - 1, 0)], 1.0, 0.8, 'metal', 0.55, prio=2)
+        g.crystal((0, yk + H - 1, 0), (0, 1, 0), 4.0, 1.1, 'edge', prio=3)
+    cy = yk + H * 0.55
+    if th == 'abyss':
+        g.ball((0, cy, 0), 2.0, 'eye', glow=True, vfn=lambda i, j, k, d: 0.45 + 0.5 * (1 - d), prio=4)
+    elif th != 'water':
+        g.ball((0, cy, 0), 1.7, 'glow', glow=True, vfn=lambda i, j, k, d: 0.5 + 0.45 * (1 - d), prio=4)
+        if p.lv >= 1:
+            for s in (-1, 1):
+                zigzag(g, (s * (W - 1), cy + s * 1.5, 0), (0, cy, 0), p, n=3, amp=0.7)
+    if th == 'crystal' and p.lv >= 2:
+        for s in (-1, 1):
+            g.ball((s * 6.5, cy + 2, 0), 0.8, 'glow', 0.8, glow=True, prio=3)    # resonance motes
+    dress_shaft(g, p, -6, top - 4, cy, yk + H)
+
+
+def bell_scepter(g, p):
+    """Scepter carrying a bell hung inside an arched yoke, clapper below."""
+    top = int(14 * p.L)
+    shaft(g, -8, top, 1.25, 'orn' if p.lv >= 2 else 'wood', bands=(-2, top - 1))
+    grip(g, -7, 2)
+    pommel(g, -10, p, 1.4)
+    yb = top + 2
+    W = 5.0
+    g.tube([(-W, yb, 0), (W, yb, 0)], 0.9, 0.9, 'metal', 0.55, prio=2)
+    g.torus((0, yb + 1, 0), W, 0.9, 'z', 'orn' if p.lv >= 1 else 'metal', 0.6, arc=(0.0, 0.5))
+    apex = yb + 1 + int(W)
+    bt, bb = apex - 1, yb + 1          # bell spans bt (crown) .. bb (mouth)
+    h = bt - bb
+    for j in range(bb, bt + 1):
+        t = (bt - j) / max(1, h)
+        r = 1.2 + 2.6 * t ** 1.7
+        for i in range(-5, 6):
+            for k in range(-5, 6):
+                d = math.hypot(i, k)
+                if d <= r and (d >= r - 1.3 or j >= bt - 1):
+                    g.put(i, j, k, 'orn' if th_bell(p) else 'metal', 0.4 + 0.3 * (1 - t) + 0.1 * (i > 0), prio=3)
+    g.torus((0, bb, 0), 3.6, 0.6, 'y', 'orn', 0.75, prio=3)       # lip
+    g.ball((0, bb - 1.2, 0), 1.1, 'glow' if p.lv >= 1 else 'metal', 0.7, glow=p.lv >= 1, prio=4)   # clapper
+    g.ball((0, apex + 0.5, 0), 1.0, 'gem', 0.7, glow=p.glow, prio=4)
+    if p.theme == 'crystal':
+        for s in (-1, 1):
+            g.crystal((s * W, yb + 1, 0), (s * 0.5, 1, 0), 4.0, 0.9, 'crystal', glow=p.glow, prio=3)
+    if p.theme == 'water':
+        for s in (-1, 1):
+            g.tube([(s * W, yb, 0), (s * (W + 1.5), yb - 2, 0)], 0.6, 0.6, 'vine', 0.5, prio=2)   # weed strands
+    dress_shaft(g, p, -6, top - 2, yb + 3, apex + 2)
+
+
+def th_bell(p):
+    return p.lv >= 2 or p.theme in ('holy', 'crystal')
+
+
+def chalice_scepter(g, p):
+    """Scepter topped by a chalice: knop, stem and a flared cup holding a glowing (themed) liquid."""
+    top = int(13 * p.L)
+    shaft(g, -8, top, 1.25, 'orn' if p.lv >= 2 else 'wood', bands=(-2,))
+    grip(g, -7, 2)
+    pommel(g, -10, p, 1.4)
+    g.ball((0, top + 1, 0), 2.0, 'orn' if p.lv >= 1 else 'metal', 0.55, prio=2)    # knop
+    c0, c1 = top + 3, top + 10
+    for j in range(c0, c1 + 1):
+        t = (j - c0) / (c1 - c0)
+        r = 1.0 + 3.6 * t ** 0.7
+        for i in range(-6, 7):
+            for k in range(-6, 7):
+                d = math.hypot(i, k)
+                if d <= r and (d >= r - 1.2 or j <= c0 + 1):
+                    g.put(i, j, k, 'orn' if p.lv >= 1 else 'metal', 0.38 + 0.3 * t + 0.08 * (i > 0), prio=3)
+    th = p.theme
+    liquid = {'forge': 'flame', 'ink': 'ink', 'abyss': 'eye'}.get(th, 'glow')
+    for i in range(-4, 5):
+        for k in range(-4, 5):
+            if math.hypot(i, k) <= 3.2:
+                g.put(i, c1 - 1, k, liquid, 0.7, glow=liquid in ('flame', 'glow', 'eye'), prio=4)
+    g.torus((0, c1, 0), 4.4, 0.6, 'y', 'orn', 0.75, prio=3)       # rim
+    if th == 'forge':
+        flames(g, c1, c1 + 3, lambda y: 1.2, p, n=2)
+    elif th == 'fungi':
+        for k in range(5):
+            a = 2 * math.pi * k / 5
+            g.ball((math.cos(a) * 4.6, c1 + 1, math.sin(a) * 4.6), 1.5, 'fungus', sq=(1, 0.5, 1), prio=3)
+    elif th == 'vine':
+        for k in range(4):
+            a = 2 * math.pi * k / 4 + 0.4
+            g.ball((math.cos(a) * 4.6, c1 + 0.5, math.sin(a) * 4.6), 1.1, 'leaf', 0.6, sq=(1.3, 0.6, 1.3), prio=3)
+    elif th == 'ink':
+        drips(g, [(4.2, c1 - 1, 0), (-4.2, c1 - 2, 1)], p)
+    if p.lv >= 2:
+        g.ball((0, c1 + 2.5, 0), 1.1, 'glow', 0.8, glow=True, prio=4)
+    dress_shaft(g, p, -6, top - 2, c1, c1 + 4)
+
+
 TEMPLATES = {
     'longsword': longsword, 'broadsword': broadsword, 'greatsword': greatsword, 'cleaver': cleaver,
     'great_axe': great_axe, 'mace': mace, 'dagger': dagger, 'kris': kris, 'fang_blade': fang_blade,
     'staff_orb': staff_orb, 'staff_crystal': staff_crystal, 'staff_ring': staff_ring, 'scepter': scepter,
     'sun_scepter': sun_scepter, 'censer_staff': censer_staff,
+    'warhammer': warhammer, 'falchion': falchion, 'war_scythe': war_scythe, 'glaive': glaive,
+    'staff_spiral': staff_spiral, 'staff_fork': staff_fork, 'bell_scepter': bell_scepter,
+    'chalice_scepter': chalice_scepter, 'sickle': sickle, 'katar': katar,
 }
-BOWS = ('longbow', 'recurve_bow', 'composite_bow')
-TWO_HANDED = {'greatsword', 'cleaver', 'great_axe'}
+BOWS = ('longbow', 'recurve_bow', 'composite_bow', 'horn_bow', 'blade_bow')
+TWO_HANDED = {'greatsword', 'cleaver', 'great_axe', 'war_scythe', 'glaive'}

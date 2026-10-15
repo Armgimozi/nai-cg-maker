@@ -662,7 +662,10 @@ hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100,
     `params.buff`·`ally_buff` 키 = GDD §11.7 버프 키.
   - `use`(consumable): `{action, amount?, duration?, buff?, cast_time?, cast_time_safe?, cancel_on_damage?, confirm?, auto?, invulnerable?,
     cooldown, cooldown_group}`, action = `heal | mana | restore | cleanse | buff | return | stat_reset | revive` (GDD §11.9).
-  - `texture.style`/`effect` 에 아이콘 무늬 8개·effect 8개 추가(GDD §14.2), `model.shape` 는 기존 §14.1 목록 그대로.
+  - `texture.style`/`effect` 에 아이콘 무늬 8개·effect 8개 추가(GDD §14.2).
+  - 무기 `model.shape` 에 새 실루엣 12종 추가(GDD §14.1·§11.2, 무기 종류마다 2개): warhammer · falchion · war_scythe · glaive ·
+    horn_bow · blade_bow(활 — `_pulling_0..2` 자동) · staff_spiral · staff_fork · bell_scepter · chalice_scepter · sickle · katar.
+    생성기 = `resourcepack/src/voxel/weapons.py`(복셀 전용, 옛 상자 템플릿 없음). 플러그인은 shape 를 읽지 않는다(활 여부는 weapon_type).
   - `sets.<id>.look`: heavy | light | cloth — 장비 에셋 레이어 실루엣(GDD §14.7). `bonuses` 키 = 착용 개수(이상).
 - **loot.yml**
   - 최상위 `settings: {own_class_bias, luck_per_point, party_bonus_per_member, max_chance, rarity_weight: {난이도: {희귀도: 배율}}, announce_rarity}`.
