@@ -72,7 +72,7 @@ public final class StartRoom extends Room {
         unlock();
         state = State.CLEARED;
         fs.markStarted();
-        fs.title("<gold><b>출발!</b></gold>", "<gray>보스방은 미궁의 가장 남쪽에 있습니다", 0, 30, 10);
+        fs.title("<gold><b>출발!</b></gold>", "<gray>이 층의 주인은 미궁 깊은 곳에서 기다립니다", 0, 30, 10);
         fs.broadcast("<gray>미궁은 갈림길과 막다른 길투성이입니다. 지나온 길은 <white>/미궁 지도</white> 로 볼 수 있습니다. "
                 + "<dark_gray>(막다른 길 끝의 금 간 벽은 때리면 무너진다는 소문이…)");
         for (Player p : fs.allPlayers()) p.playSound(p.getLocation(), Sound.EVENT_RAID_HORN, 0.6f, 1.2f);
