@@ -304,23 +304,33 @@ bosses:
     gold: [380, 560]
     drops: floor06_boss
     bossbar: BLUE
-    arena: {radius: 15, theme: frost, shape: circle, height: 12, sigil_ring_radius: 10}
+    arena: {radius: 15, theme: frost, shape: circle, height: 12, sigil_ring_radius: 10, floor_thaw: true}
     lines:
       intro: "<aqua>시린</aqua><gray>: 감히 내 잠을 깨우다니. 영원히 얼어붙어 내 정원의 조각상이 되거라.</gray>"
       phase2: "<aqua>시린</aqua><gray>: 절대영도 앞에선 모든 것이 멈춘다!</gray>"
       phase3: "<aqua>시린</aqua><gray>: 다시 한번... 겨울을!</gray>"
       death: "<aqua>시린</aqua><gray>: 봄이... 오는가...</gray>"
+    # 점진 힌트 (core/Hints): 흐릿 → 조금 분명 → 거의 정답. 게임 안 공지·이름표는 조작법을 말하지 않는다
+    hints:
+      - "여제의 숨은 멈춘 것부터 얼린다. 얼음 껍질 둘레의 세 빛깔 인장은 저마다 다른 손길만 받아들인다."
+      - "붉은 인장은 칼날을, 초록 인장은 날아드는 것을, 보라 인장은 마력을 기다린다 — 주문이 끝나기 전에 셋을 모두 깨라. 얼어붙은 동료는 두드려 깨우고, 하늘색 얼음판에선 발을 미리 정해 두어라."
+      - "빙결 껍질: 절대영도 시전(12초) 안에 ⚔ 붉은 인장 = 근접, 🏹 초록 = 화살·투사체, ✦ 보라 = 마법으로 깨면 시린이 기절하고 받는 피해가 늘어난다(맞는 직업이 없거나 솔로면 아무 공격이나). 가만히 있으면 동상이 쌓여 빙결 — 동료가 4번 때리거나 사제 정화로 푼다. 빙창은 갈래 사이로, 눈보라는 붉은 우박 원 밖으로, 영구 동토 얼음판 위에선 미끄러진다."
     rotation:
       1: [scepter_sweep, glacial_spikes, frostbite]
       2: [scepter_sweep, glacial_spikes, frostbite, blizzard]
       3: [scepter_sweep, glacial_spikes, frostbite, blizzard, permafrost]
     patterns:
       scepter_sweep: {damage: 1.3, angle: 80, length: 5, windup: 0.8, cooldown: 6}
-      glacial_spikes: {damage: 1.4, width: 2, length: 16, windup: 1.2, count: 1, p3_count: 3, p3_spread: 35, cooldown: 8}
+      # 빙창: 보스→대상(무작위, 솔로는 본인) 선. 3페이즈 3갈래(35°). 갈래가 겹쳐도 한 번만 맞음. fx = 날아가는 얼음 창, fx_spike = 솟는 가시
+      glacial_spikes: {damage: 1.4, width: 2, length: 16, windup: 1.2, count: 1, p3_count: 3, p3_spread: 35, target: random, cooldown: 8, fx: proj_frost_shard, fx_spike: ice_spike}
+      # 동상: 2초마다 1.5칸 미만 이동 = 서리 1중첩(6초 유지), 5중첩 = 4초 빙결(상태이상 서비스 — 동료 4회 타격으로 해방, 정화로 중첩 제거)
       frostbite: {interval: 2.0, move_threshold: 1.5, max_stacks: 5, freeze: 4.0, break_hits: 4, stack_decay: 6.0, fx: ice_block}
-      glacier_shell: {trigger_phases: [2, 3], cast_time: 12, solo_cast_time: 16, wipe_damage: 9.0, sigil_hp: 900, sigil_hp_per_member: 0.6, sigils: [melee, ranged, magic], missing_role_hp_mult: 1.5, shatter_stun: 6.0, shatter_vulnerable: 0.3, glare_damage: 0.6, glare_interval: 2.0, fx_shell: ice_shell, fx_sigil_melee: frost_sigil_melee, fx_sigil_ranged: frost_sigil_ranged, fx_sigil_magic: frost_sigil_magic}
-      blizzard: {hail_base: 6, hail_per_member: 1, hail_radius: 2, hail_damage: 1.0, windup: 1.2, duration: 10, visibility_particles: 40, cooldown: 25}
-      permafrost: {tile_size: 3, coverage: 0.3, slide_strength: 0.12, duration: 15, fx: telegraph_tile, cooldown: 30}
+      # 빙결 껍질(핵심): trigger_phases 진입 시. role_damage = classes.yml role → 그 직업이 깰 수 있는 인장 유형
+      glacier_shell: {trigger_phases: [2, 3], cast_time: 12, solo_cast_time: 16, wipe_damage: 9.0, sigil_hp: 900, sigil_hp_per_member: 0.6, sigils: [melee, ranged, magic], missing_role_hp_mult: 1.5, shatter_stun: 6.0, shatter_vulnerable: 0.3, glare_damage: 0.6, glare_interval: 2.0, role_damage: {tank: melee, melee: melee, assassin: melee, ranged: ranged, magic: magic, healer: magic}, fx_shell: ice_shell, fx_sigil_melee: frost_sigil_melee, fx_sigil_ranged: frost_sigil_ranged, fx_sigil_magic: frost_sigil_magic, fx_glare: rime_beam, fx_tether: rime_beam}
+      # 눈보라: duration 동안 waves 번 우박(사람 발밑 절반 + 무작위). 우박 수 = hail_base + floor((n-1) × hail_per_member)
+      blizzard: {hail_base: 6, hail_per_member: 1, hail_max: 20, hail_radius: 2, hail_damage: 1.0, windup: 1.2, duration: 10, waves: 4, visibility_particles: 40, cooldown: 25, fx: proj_frost_shard}
+      # 영구 동토: 3×3 타일 coverage 비율이 얼음판(인스턴스 = 실제 block, 그 밖 = 관성 흉내: slide_strength 입력 반영률·slide_retention 속도 유지율)
+      permafrost: {tile_size: 3, coverage: 0.3, slide_strength: 0.12, slide_retention: 0.9, slide_max_speed: 0.5, block: BLUE_ICE, windup: 1.0, duration: 15, fx: telegraph_tile_ice, cooldown: 30}
     sounds: {ambient: "minecraft:entity.stray.ambient", hurt: "minecraft:block.glass.hit", death: "minecraft:block.glass.break", pitch: 0.7}
     model:
       texture_size: [128, 128]
@@ -354,24 +364,34 @@ bosses:
     gold: [460, 680]
     drops: floor07_boss
     bossbar: PURPLE
-    arena: {radius: 16, theme: crystal, shape: circle, height: 14, pylons: 2}
+    arena: {radius: 16, theme: crystal, shape: circle, height: 14, pylons: 4}
     lines:
       intro: "<white>다이아드</white><gray>: </gray><yellow>빛이여</yellow><gray>... </gray><dark_purple>그림자여</dark_purple><gray>... 이 불협화음을 조율하라.</gray>"
       phase2: "<white>다이아드</white><gray>: 갈라진 빛은 서로를 찾는다.</gray>"
       phase3: "<white>다이아드</white><gray>: 공명이... 붕괴한다...!</gray>"
       death: "<white>다이아드</white><gray>: 마침내... 하나의 음으로...</gray>"
+    # 점진 힌트 (보스 문구 규칙): 실패가 쌓일수록 1 → 2 → 3 단계 단서. 게임 안 공지·이름표는 조작법을 말하지 않는다
+    hints:
+      - "다이아드는 두 얼굴로 노래한다. 같은 빛깔은 감싸 주고, 다른 빛깔은 찢어발긴다."
+      - "파동이 차오르는 색을 보라. 그 색 기둥에 닿은 자는 파동을 흘려보낸다 — 광선도 같은 빛깔의 몸 앞에서 멈추고, 얼굴과 다른 빛깔의 칼날이 더 깊이 박힌다."
+      - "극성 파동은 같은 색만 무사하니 경고가 끝나기 전에 그 색 기둥에 닿아라(기둥은 5초에 한 번). 광선은 같은 색 동료가 대상과 보스 사이를 막으면 약해지고, 굴절 껍질이 있는 동안 얼굴과 같은 색은 손을 떼라."
     rotation:
       1: [shard_orbit, crystal_rain, polarity_wave]
       2: [shard_orbit, crystal_rain, polarity_wave, split_beam]
       3: [shard_orbit, crystal_rain, polarity_wave, split_beam, prism_refraction]
     patterns:
-      polarity_assign: {mode: alternate, swap_cooldown: 5, pylons: 2, pylon_radius: 1.5, pylon_ring_radius: 12, fx_light: pylon_light, fx_dark: pylon_dark, fx_mark_light: marker_light, fx_mark_dark: marker_dark}
-      face_shift: {interval: 20, p3_interval: 10, opposite_bonus: 0.25, same_penalty: 0.5}
-      polarity_wave: {damage: 3.0, windup: 3.0, p3_double: true, p3_gap: 2.5, cooldown: 15}
-      split_beam: {damage: 3.0, soak_damage: 0.6, width: 1.5, length: 22, windup: 2.5, fx: telegraph_line, cooldown: 18}
-      prism_refraction: {duration: 6, reflect_ratio: 0.5, fx: refraction_shell, cooldown: 25}
-      crystal_rain: {count_base: 4, count_per_member: 1, radius: 2.5, damage: 1.2, windup: 1.3, cooldown: 10}
-      shard_orbit: {damage: 0.8, radius: 4, duration: 3, tick: 0.5, windup: 1.0, cooldown: 12}
+      # 극성 배정·기둥 (상시): 기둥 = 동·서 양쪽에 빛·어둠 한 쌍씩(pylons 총 수, 쌍 안 간격 pair_spread 도), 닿으면 그 색(개인 재사용 swap_cooldown 초)
+      polarity_assign: {mode: alternate, swap_cooldown: 5, pylons: 4, pair_spread: 28, pylon_radius: 1.5, pylon_ring_radius: 12, pylon_scale: 1.6, fx_light: pylon_light, fx_dark: pylon_dark, fx_mark_light: marker_light, fx_mark_dark: marker_dark}
+      # 보스 얼굴 (상시): interval 초마다(3페이즈 p3_interval) 빛↔어둠, 전환 warn 초 전 예고. 반대 극성 +opposite_bonus, 같은 극성 −same_penalty
+      face_shift: {start: dark, interval: 20, p3_interval: 10, warn: 2, opposite_bonus: 0.25, same_penalty: 0.5}
+      # 핵심: 아레나 전체 색 경고 → 같은 극성 무피해, 다른 극성 damage 배. 3페이즈 p3_gap 초 간격 반대 색 2연속 (첫 파동이 기둥 재사용 초기화)
+      polarity_wave: {damage: 3.0, windup: 3.0, p3_double: true, p3_gap: 2.5, p3_reset_swap: true, fx_light: telegraph_light, fx_dark: telegraph_dark, cooldown: 15, weight: 1.3}
+      # 빛 광선 → 어둠 대상, 어둠 광선 → 빛 대상 (솔로 1줄). 같은 극성이 끼어들면 soak_damage 배만 받고 흡수, 아무도 없으면 대상 damage 배
+      split_beam: {damage: 3.0, soak_damage: 0.6, width: 1.5, length: 22, windup: 2.5, fx_light: telegraph_beam_light, fx_dark: telegraph_beam_dark, fx_beam_light: beam_light, fx_beam_dark: beam_dark, cooldown: 18}
+      # 3페이즈: duration 초 수정 껍질 — 얼굴과 같은 극성 공격은 피해의 reflect_ratio 반사 (1회 반사 상한 = 공격자 최대 HP × reflect_cap_pct)
+      prism_refraction: {duration: 6, reflect_ratio: 0.5, reflect_cap_pct: 0.4, windup: 1.0, fx: refraction_shell, cooldown: 25}
+      crystal_rain: {count_base: 4, count_per_member: 1, radius: 2.5, damage: 1.2, windup: 1.3, fx: proj_crystal, cooldown: 10}
+      shard_orbit: {damage: 0.8, radius: 4, duration: 3, tick: 0.5, windup: 1.0, shards: 6, fx: proj_crystal, cooldown: 12}
     sounds: {ambient: "minecraft:block.amethyst_block.resonate", hurt: "minecraft:block.amethyst_block.hit", death: "minecraft:block.amethyst_block.break", pitch: 0.6}
     model:
       texture_size: [128, 128]
@@ -401,21 +421,32 @@ bosses:
     gold: [560, 820]
     drops: floor08_boss
     bossbar: YELLOW
-    arena: {radius: 15, theme: archive, shape: circle, height: 14, rune_shelves: 8, rune_ring_radius: 13}
+    arena: {radius: 15, theme: archive, shape: circle, height: 14, rune_shelves: 8, rune_ring_radius: 13, shelf_block: BOOKSHELF, shelf_top_block: CHISELED_BOOKSHELF}
     lines:
       intro: "<yellow>오르벨</yellow><gray>: 정숙. 이곳은 서고다. 떠드는 자의 이름은 지워질 것이다.</gray>"
       phase2: "<yellow>오르벨</yellow><gray>: 색인을 외워라. 틀리면 먹물에 잠긴다.</gray>"
       phase3: "<yellow>오르벨</yellow><gray>: 너희의 기록을... 지금 지운다!</gray>"
       death: "<yellow>오르벨</yellow><gray>: 이 마지막 장은... 너희가 써라...</gray>"
+      index_wrong: "<yellow>오르벨</yellow><gray>: 틀렸다. 처음부터 다시 읽어라.</gray>"
+      index_success: "<yellow>오르벨</yellow><gray>: 색인이... 맞았다고...? 내 서가가...!</gray>"
+      index_fail: "<yellow>오르벨</yellow><gray>: 시간 초과. 너희의 페이지는 먹물로 덮인다.</gray>"
+      doubles: "<yellow>오르벨</yellow><gray>: 어느 것이 원본이고 어느 것이 사본이지?</gray>"
+      doubles_gone: "<yellow>오르벨</yellow><gray>: 원본을 알아보다니... 제법이군.</gray>"
+    # 점진 힌트 (core/Hints): 흐릿 → 조금 분명 → 거의 정답
+    hints:
+      - "서가는 같은 이야기를 두 번 들려주지 않는다. 책장이 깨어날 때 그 차례에 귀와 눈을 기울여라. 원본만이 땅에 그림자를 드리운다."
+      - "책장은 빛난 차례를 기억하는 자에게만 답한다 — 그 차례 그대로 두드려라. 사본은 잉크를 흘리고, 표식을 오래 품지 못한다."
+      - "금서 색인: 룬 책장이 빛난 순서대로 책장을 공격(누구든, 틀리면 처음부터·시간 감소). 성공하면 오르벨이 떨어져 기절한다. 먹물 분신: 발밑에 그림자가 있는 쪽이 진짜 — 분신을 치면 먹물이 터져 눈이 멀고, 진짜를 계속 때리면 분신이 사라진다."
     rotation:
       1: [ink_lash, quill_barrage]
       2: [ink_lash, quill_barrage, ink_doubles]
       3: [ink_lash, quill_barrage, ink_doubles, erasure]
     patterns:
+      # 금서 색인(forbidden_index)은 rotation 에 없다 — trigger_phases 페이즈에 들어갈 때 발동 (GDD §8.3)
       ink_lash: {damage: 1.4, angle: 90, length: 6, windup: 1.0, cooldown: 6}
-      quill_barrage: {damage: 0.7, count: 5, spread: 40, speed: 1.3, windup: 0.8, targets_base: 1, targets_per_member: 0.34, fx: proj_quill, cooldown: 9}
-      forbidden_index: {trigger_phases: [2, 3], runes: 8, sequence_base: 4, sequence_per_members: 3, sequence_max: 7, show_interval: 1.0, time_limit: 20, solo_time_limit: 25, wrong_damage: 1.5, wrong_time_penalty: 5, fail_damage: 4.0, fail_heal: 0.05, success_stun: 10, success_vulnerable: 0.5, ink_drop_interval: 2.5, ink_drop_radius: 2, ink_drop_damage: 0.8, fx_rune_prefix: rune_}
-      ink_doubles: {count_base: 2, count_per_member: 0.34, max: 5, duration: 20, reveal_damage_ratio: 0.05, burst_damage: 0.5, burst_blind: 2.0, double_damage_mult: 0.5, tell_particle: SQUID_INK, cooldown: 32}
+      quill_barrage: {damage: 0.7, count: 5, spread: 40, speed: 1.3, range: 18, width: 0.9, windup: 0.8, targets_base: 1, targets_per_member: 0.34, fx: proj_quill, cooldown: 9}
+      forbidden_index: {trigger_phases: [2, 3], runes: 8, sequence_base: 4, sequence_per_members: 3, sequence_max: 7, reveal_lead: 2.5, show_interval: 1.0, lit_ratio: 0.75, time_limit: 20, solo_time_limit: 25, wrong_damage: 1.5, wrong_time_penalty: 5, fail_damage: 4.0, fail_heal: 0.05, success_stun: 10, success_vulnerable: 0.5, hover_height: 4, ink_drop_interval: 2.5, ink_drop_radius: 2, ink_drop_damage: 0.8, ink_drop_windup: 1.2, fx_rune_prefix: rune_, fx_glyph: index_glyph, fx_drop: proj_ink}
+      ink_doubles: {count_base: 2, count_per_member: 0.34, max: 5, duration: 20, windup: 1.0, split_radius: 7, reveal_damage_ratio: 0.05, burst_damage: 0.5, burst_blind: 2.0, double_damage_mult: 0.5, double_speed: 0.11, double_attack_min: 3.5, double_attack_max: 6.0, double_quills: 3, double_spread: 30, tell_particle: SQUID_INK, fx_shadow: ink_shadow, cooldown: 32}
       erasure: {damage: 2.5, angle: 90, radius: 16, windup: 2.0, fx: telegraph_cone, cooldown: 14}
     sounds: {ambient: "minecraft:item.book.page_turn", hurt: "minecraft:entity.squid.hurt", death: "minecraft:entity.squid.death", pitch: 0.5}
     model:
@@ -455,17 +486,32 @@ bosses:
       phase2: "<gold>테오라</gold><gray>: 초침을 서두르겠다. 따라올 수 있겠나?</gray>"
       phase3: "<gold>테오라</gold><gray>: 시간이여, 거꾸로 흘러라!</gray>"
       death: "<gold>테오라</gold><gray>: 시계가... 멈춘다... 처음으로... 평온하군...</gray>"
+      doom: "<gold>테오라</gold><gray>: 시간이 다 되었다. 처음으로 돌아가라.</gray>"
+    # 점진 힌트 (core/Hints): 흐릿 → 조금 분명 → 거의 정답
+    hints:
+      - "간수의 봉인은 바늘이 스치는 짧은 순간에만 눈을 뜬다. 잠든 봉인을 깨우려 드는 자는 시간에게 되돌려진다."
+      - "금빛으로 깨어난 봉인 위에서 잠시 숨을 고르면 종말의 시계가 한 걸음 물러서고 간수가 휘청인다. 바늘의 끝을 보고 다음 봉인으로 먼저 가 있어라 — 언젠가 바늘은 거꾸로 돈다."
+      - "바늘이 봉인석에 닿기 직전 그 위로 가서, 금색으로 빛나는 동안 1.5초 서 있어라(종말 시계 +20초·보스 HP 3%·기절 2초). 어두운 봉인석을 밟으면 5초 전 자리로 끌려가고 시계 −10초. 되감기 메아리는 6초 전 자리에서 터지니 왔던 길로 돌아가지 말고, 진자·톱니는 붉은 선 밖으로."
     rotation:
       1: [hand_strike, pendulum_sweep, rewind_echo]
       2: [hand_strike, pendulum_sweep, rewind_echo, gear_storm]
       3: [hand_strike, pendulum_sweep, rewind_echo, gear_storm]
     patterns:
       hand_strike: {damage: 1.4, angle: 90, length: 5, windup: 0.9, cooldown: 6}
-      doom_clock: {start_seconds: 240, seal_bonus: 20, wrong_penalty: 10, zero_damage_pct: 9.99, damage_ramp_per_minute: 0.10}
-      timed_seals: {seals_base: 4, seals_at_six_or_more: 6, hand_period: 24, p2_hand_period: 16, p3_reverse: true, window: 1.5, stand_time: 1.5, seal_damage_pct: 0.03, seal_stun: 2.0, rewind_seconds: 5, rewind_damage: 1.0, fx_seal: seal_glyph, fx_hand: clock_hand}
-      pendulum_sweep: {damage: 1.8, width: 3, windup: 1.5, swings: 2, swing_time: 1.2, fx: pendulum, cooldown: 14}
+      # 종말 시계(엔레이지): 보스바 아래 카운트다운(난이도 제한 시간 배율). 0 = 전원 최대 HP × zero_damage_pct, 살아남으면 reset_seconds 로 다시.
+      # 1분마다 보스 피해 +damage_ramp_per_minute. 이 보스는 기본 광폭화 타이머 대신 이것을 쓴다(enrage 키를 적으면 둘 다).
+      doom_clock: {start_seconds: 240, solo_start_seconds: 270, seal_bonus: 20, wrong_penalty: 10, zero_damage_pct: 9.99, reset_seconds: 60, damage_ramp_per_minute: 0.10}
+      # 시간 봉인(핵심): 바늘 = 중앙→가장자리, hand_period 초에 한 바퀴(시계 방향, 3페이즈 반대 — reverse_pause 초 멈칫 + fx_hand_reverse 색).
+      # 봉인석(seal_ring_radius 링, 반경 seal_radius) 은 바늘이 지날 때 ±window 초 열림(fx_seal_open 금색). 열린 봉인석에 stand_time 초 =
+      # 시계 +seal_bonus · 보스 최대 HP × seal_damage_pct · seal_stun 초 기절. 닫힌 봉인석에 closed_grace 초 넘게 = 시간 역류
+      # (rewind_seconds 초 전 자리 + rewind_damage 배 + 시계 −wrong_penalty, 사람마다 reversal_cooldown 초). 솔로: 창·서기 시간 완화.
+      timed_seals: {seals_base: 4, seals_at_six_or_more: 6, hand_period: 24, p2_hand_period: 16, p3_reverse: true, reverse_pause: 1.5, window: 1.5, solo_window: 2.0, stand_time: 1.5, solo_stand_time: 1.2, seal_radius: 1.6, closed_grace: 0.5, reversal_cooldown: 3.0, seal_damage_pct: 0.03, seal_stun: 2.0, rewind_seconds: 5, rewind_damage: 1.0, hand_width: 1.2, fx_seal: seal_glyph, fx_seal_open: seal_glyph_open, fx_hand: clock_hand, fx_hand_reverse: clock_hand_reverse}
+      # 진자 베기: 대상을 지나는 무작위 방향 차선(길이 length, 폭 width). 천장(arm)에 매단 진자가 swings 번 왕복 — 한 번 지날 때(swing_time 초)마다 판정
+      pendulum_sweep: {damage: 1.8, width: 3, length: 18, arm: 12, windup: 1.5, swings: 2, swing_time: 1.2, blade_scale: 1.6, depth_scale: 2.5, fx: pendulum, cooldown: 14}
+      # 되감기 메아리: 전원, 시전 순간 자리(0.5초 간격 기록의 최신값)에 원 → delay 초 뒤 폭발 (= 터질 때 기준 6초 전 자리)
       rewind_echo: {delay: 6, radius: 2.5, damage: 1.2, record_interval: 0.5, fx: telegraph_circle, cooldown: 18}
-      gear_storm: {lines_base: 3, lines_per_member: 0.34, width: 2, speed: 0.6, damage: 1.3, windup: 1.4, fx: proj_gear_large, cooldown: 16}
+      # 톱니 폭풍: lines 줄(아레나를 가로지르는 현, 대상 우선) 위를 거대 톱니가 speed 블록/틱으로 굴러감, 줄마다 0.2초 간격
+      gear_storm: {lines_base: 3, lines_per_member: 0.34, lines_max: 8, width: 2, speed: 0.6, damage: 1.3, windup: 1.4, fx: proj_gear_large, cooldown: 16}
     sounds: {ambient: "minecraft:block.copper_bulb.turn_on", hurt: "minecraft:block.copper.hit", death: "minecraft:block.bell.resonate", pitch: 0.5}
     model:
       texture_size: [128, 128]
@@ -498,19 +544,25 @@ bosses:
     gold: [900, 1400]
     drops: floor10_boss
     bossbar: RED
+    # ① 심장실 r18(3×3 타일) ② 추격 회랑 +z 길이 80 폭 7 ③ 심연의 가장자리 단 r12 (+ 바깥 3칸 낭떠러지 — FloorGenerator.RIM_MOAT)
     arena: {radius: 18, theme: abyss, shape: tiled_circle, tile_size: 3, height: 16, corridor_length: 80, corridor_width: 7, rim_radius: 12}
     lines:
       intro: "<dark_aqua>넬카르</dark_aqua><gray>: ...쿵. ...쿵. 너희가 밟고 온 모든 층이, 나의 혈관이다.</gray>"
       phase2: "<dark_aqua>넬카르</dark_aqua><gray>: 도망쳐라. 심연은 언제나 한 걸음 뒤에 있다.</gray>"
       phase3: "<dark_aqua>넬카르</dark_aqua><gray>: 기억하라... 너희가 쓰러뜨린 모든 것을...!</gray>"
       death: "<dark_aqua>넬카르</dark_aqua><gray>: ...쿵. ......쿵. ............</gray>"
+    # 점진 힌트 (core/Hints): 흐릿 → 조금 분명 → 거의 정답
+    hints:
+      - "바닥이 숨을 들이쉴 때 보랏빛이 번지는 곳은 곧 사라진다. 심장이 가라앉으면 뒤돌아보는 자부터 삼켜진다. 끝자락에선 지금까지 쓰러뜨린 것들이 다시 말을 건다."
+      - "금 가며 깜빡이는 타일에서 벗어나라 — 무너지는 모양은 매번 바뀐다. 심장이 가라앉으면 남쪽 회랑으로 쉬지 말고 달리고, 끊긴 바닥은 뛰어넘어라. 끝자락의 응시는 같은 방향으로 함께 걸으면 비켜 간다."
+      - "심연 붕괴: 보라 타일 2.5초 뒤 실제로 무너짐(떨어지면 최대 HP 25% + 3초간 받는 피해 +20%), 9초마다 흩뿌리기·체스판·동심원·십자·나선. 2페이즈: 회랑 끝 가장자리까지 전력 질주(해일 초당 HP 50%), 낙석 원 피하고 틈 3곳 점프. 회전 응시는 광선이 도는 방향으로 같이 걷기, 균열 원 밖으로. 3페이즈 메아리는 각 층 대응 그대로(돌진 옆으로·포자 흩어지기·꽃 모이기·해일 옆으로·빙창 갈래 사이·되감기 왔던 길 피하기·지우기 보스 뒤로) — 단조 진동은 솟아난 사슬 말뚝 2칸 안에서 웅크려야 낭떠러지로 안 날아간다. 박동은 갈수록 아프니 빨리 끝내기."
     rotation:
       1: [tendril_lash, void_orbs, abyssal_collapse]
       2: [tendril_lash, void_orbs, rotating_gaze, abyss_rift]
       3: [tendril_lash, rotating_gaze, abyss_rift, floor_echoes, heartbeat_pulse]
     patterns:
       tendril_lash: {damage: 1.4, angle: 100, length: 7, windup: 1.0, cooldown: 6}
-      void_orbs: {count_base: 2, count_per_member: 0.5, speed: 0.35, homing: 0.06, radius: 2, damage: 1.2, lifetime: 8, fx: proj_void_orb, cooldown: 12}
+      void_orbs: {count_base: 2, count_per_member: 0.5, speed: 0.2, homing: 0.06, windup: 0.8, radius: 2, damage: 1.2, lifetime: 8, fx: proj_void_orb, cooldown: 12}
       abyssal_collapse: {tile_size: 3, warn_time: 2.5, regen_time: 15, interval: 9, tiles_per_wave: 0.30, tiles_per_wave_per_member: 0.02, layouts: [scatter, checker, rings, cross, spiral], fall_damage_pct: 0.25, fall_mark_vulnerable: 0.2, fall_mark_duration: 3, fx: telegraph_tile}
       devouring_pursuit: {start_delay: 3, wall_speed: 4.6, wall_accel: 0.05, wall_damage_pct: 0.5, wall_push: 1.2, debris_base: 6, debris_per_member: 1, debris_radius: 2, debris_damage: 1.0, gaps: 3, gap_length: 2, fx_wall: abyss_wall}
       rotating_gaze: {beams: 2, p3_beams: 3, length: 16, width: 1.5, rotation_speed: 30, duration: 8, tick: 0.25, damage_per_tick: 0.5, windup: 2.0, fx: telegraph_line, cooldown: 20}

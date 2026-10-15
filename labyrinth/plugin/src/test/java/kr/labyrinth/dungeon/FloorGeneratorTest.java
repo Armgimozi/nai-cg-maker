@@ -38,7 +38,8 @@ class FloorGeneratorTest {
         int height = boss == null ? 10 : boss.arena().integer("height", 10);
         int corridor = boss == null ? 0 : boss.arena().integer("corridor_length", 0);
         int cw = boss == null ? 7 : boss.arena().integer("corridor_width", 7);
-        return new FloorGenerator.Params(f.cells(), f.rooms(), f.roomHeight(), 4, liquid, radius, height, corridor, cw);
+        int rim = boss == null ? 0 : boss.arena().integer("rim_radius", 0);
+        return new FloorGenerator.Params(f.cells(), f.rooms(), f.roomHeight(), 4, liquid, radius, height, corridor, cw, rim);
     }
 
     @Test

@@ -189,6 +189,21 @@ public final class BossRig {
         }
     }
 
+    /**
+     * 파트 하나만 밝기·발광 바꾸기 (7층 다이아드의 빛/어둠 반쪽처럼 모델 일부만 강조). name = YAML 파트 이름.
+     * brightness 0~15 (블록·하늘 빛 같은 값), glow null = 발광 끔. 전체 {@link #setGlow} 가 나중에 불리면 그 값이 덮는다.
+     */
+    public void partLight(String name, int brightness, Color glow) {
+        int b = Math.max(0, Math.min(15, brightness));
+        for (PartView pv : parts) {
+            ItemDisplay d = pv.display();
+            if (!d.isValid() || !pv.def().name().equals(name)) continue;
+            d.setBrightness(new Display.Brightness(b, b));
+            d.setGlowing(glow != null);
+            d.setGlowColorOverride(glow);
+        }
+    }
+
     public List<UUID> entityIds() {
         List<UUID> out = new ArrayList<>();
         if (anchor != null) out.add(anchor.getUniqueId());

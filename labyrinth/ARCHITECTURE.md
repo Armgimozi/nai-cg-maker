@@ -341,7 +341,8 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   층 n 의 바닥 y = `top_floor_y − (n−1) × floor_spacing` (기본 280, 30 → B1 y280 … B10 y10). 같은 슬롯에서 아래층일수록 실제로 낮다.
 - **인스턴스 id**: `InstanceContext.id()` = `r<번호>s<슬롯>-b<층>` (층마다 새 컨텍스트, 같은 Run 의 배율·난이도 유지). 몹·보스 정리는 이 id 로.
 - **보스방**: 원형 투기장(bosses.yml `arena.radius/height`, `shape: circle|clock_face|tiled_circle` 바닥 무늬, `corridor_length/width` 면
-  중심에서 **+z 방향**으로 추격 복도). 입구는 북쪽(−z). `spawnBoss(floor, 중심, ctx)` 의 중심 = 바닥 위 1칸. 보스 구현이 투기장에 놓은 블록은
+  중심에서 **+z 방향**으로 추격 복도, `rim_radius` 면 복도 끝에 원형 단 + 바깥 `FloorGenerator.RIM_MOAT`(3)칸 고리 —
+  단 중심 z 오프셋 = `FloorGenerator.rimCenterOffset(radius, corridor_length, rim_radius)`, 고리는 바닥으로 깔고 보스가 비운다). 입구는 북쪽(−z). `spawnBoss(floor, 중심, ctx)` 의 중심 = 바닥 위 1칸. 보스 구현이 투기장에 놓은 블록은
   층 정리 때 원기둥(바닥 아래 2칸~천장) 전체를 비우므로 따로 안 지워도 된다. null 이면 층 정예 몹을 HP×`boss_fallback.hp_mult` 로 대신 세운다.
   보스 처치 후 투기장 중심 남쪽에 아래층 계단이 생긴다(중심 +2~+11 z 칸을 비워 둘 것).
 - **이벤트**: 보스 처치 시 `FloorClearEvent`(참가자 전원, 입장 인원, 그 층 사망 수, 그 층 소요 초, 서버 난이도). 해금층 = 깬 층+1.
@@ -362,6 +363,8 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 - **구조**: `bosses/LabBossService`(BossService 구현 — 층→`BossFactory` 등록부, 1틱 루프 하나로 모든 보스 진행, 엔티티→핸들 조회,
   웅크리기·바닐라 피해 이벤트를 아레나의 보스에 전달) · `Boss`(추상 기반) · `impl/FloorNNBoss extends Boss`(생성자 `(Boss.Init)`).
   새 층 보스는 `LabBossService#registerDefaults()` 에 `register(NN, FloorNNBoss::new)` 한 줄.
+- **아레나가 옮겨 가는 보스**(10층): `Boss#relocate(위치)` = 전투 중심(`center` — 경계·`randomPoint`·관전자·`bossAt` 기준) 이동 + 순간이동,
+  `blockAllowed(Block)` 를 넓히면 원 밖(추격 복도·가장자리)에도 `setBlock`, `validPlayer` 를 재정의하면 판정 구역을 넓힌다.
 - **Boss 기반이 해 주는 것**: 자체 HP 풀(DamageService 경로·위협 표·도발), 페이즈(`phases`, 전환 시 진행 중 경고 정리 + 1.5초 무적 + 대사 +
   보스바 깜빡임), `PatternScheduler`(GDD §8.3: cooldown/interval/system, 가중치 `weight`, 직전과 다른 패턴 우선, 최소 1.2초 간격),
   광폭화 타이머, 보스바(이름·칭호·페이즈·광폭/기절) + 시전 바(`boss_cast` 키, 끊을 수 있는 시전은 파란색), 아레나 경계(이탈 시 복귀),
@@ -385,6 +388,9 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 - **점진 힌트** (`core/Hints`): 실패 횟수 = PlayerData ext `hints.boss.<id>` / `hints.gimmick.<키>`, 단계 = 함께 있는 파티원 최댓값 →
   config `hints.mode/thresholds`. 표시: BossRoom(등장 2.5초 뒤 20초), GimmickRoom(`hints()` — 입장 채팅 + `dungeon_gimmick_hint` 막대),
   휴식방 이야기 NPC(`NpcServiceImpl` — 그 층 보스 단서를 대사 첫 줄로).
+- 7층 보스 단계 추가: `Boss.setBarColor(색)`(전투 중 보스바 기본 색 바꾸기 — 극성 얼굴), `BossRig.partLight(파트, 밝기, 발광색)`(모델 일부만 강조).
+  공격자별 피해 배율·반사처럼 "누가 때렸나"가 필요한 규칙은 `services.damage().addInterceptor` 로 보스 히트박스 대상만 걸고 `onEnd` 에서 해제
+  (`impl/Floor07Boss`). 보스 개인 막대는 `hud().showBossBar(p, "boss_polarity", …)` 처럼 `boss_` 접두어 키를 쓴다.
 
 ### 통합·배포 메모 (integration-release 단계)
 - **메뉴 배경 규칙** (`ui.UiTheme.background(menu, rows)`): 메뉴별 배경 `gui_<menu>` 에는 버튼 소켓이 그려져 있으므로 **버튼 배치가
@@ -400,6 +406,7 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 - **자가 진단** `/labadmin selftest [층 수]` (`dungeon.SelfTest`, 콘솔 가능): 아이템 전부 생성·역조회 → 도감 획득처 계산 → 임시 슬롯에 층 생성 →
   몹·정예 정의 전부(+정예 변종) 소환·피해·처치 → 1~5층 보스 + 구현 없는 층 대체 보스 소환·페이즈 피해·처치 → 정리. 진단 중 로그의
   SEVERE/예외를 하위 시스템(`kr.labyrinth.<패키지>`)별로 센다. 새 보스·몹을 넣으면 이것부터 돌릴 것.
+  보스가 기믹으로 무적이면(빙결 껍질 등) 처치 단계가 아레나의 기믹 오브젝트(BossHandle 인 인장·알…)를 먼저 깨고 1초마다 다시 시도한다(최대 40회).
 - **도감** `/codex` = `/도감` = `/미궁 도감` (`ui.menus.CodexMenu`): 종류·희귀도별 아이템(실제 툴팁 + 획득처: 몹/보스 드롭·보물 상자·기믹 방·
   제작 재료·상점·칭호 보상 — loot 테이블 중첩·rarity_pool 까지 계산), 몬스터·보스(모델 머리 아이콘·능력치·드롭).
 - **config.yml** 추가 키: `mobs.elite_variant_chance`(기본 0.06), `mobs.model_yaw_offset`(도, 기본 0).
@@ -690,6 +697,10 @@ hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100,
 - 보스 최상위 `hints`: 점진 힌트 단서 목록 `[흐릿, 조금 분명, 거의 정답]` (GDD §19.3, `Hints.bossClues(def)` = `def.raw().strings("hints")`).
   없으면 단서 없음, 리스트가 아니면 검증 오류, 3줄이 아니면 경고. MiniMessage(`<key:key.sneak>` 등) 가능.
 
+- `arena` 6층: `sigil_ring_radius`(인장 링, 기본 10), `floor_thaw`(기본 true — 전투 동안 아레나 바닥의 원래 얼음을 눈·방해석으로 덮어
+  영구 동토 얼음판만 미끄럽게, 끝나면 복원). 6층 `glacier_shell.role_damage` = classes.yml `role` → 깰 수 있는 인장 유형(melee|ranged|magic).
+- 9층 `timed_seals`·`doom_clock`: 바늘·봉인석은 바닥 판(`clock_hand`/`clock_hand_reverse`, `seal_glyph`/`seal_glyph_open` 모델 교체)이고 블록을 바꾸지 않는다.
+  종말 시계는 세 번째 보스바(HUD 키 `boss_doom`), 이 보스는 기본 광폭화 대신 종말 시계를 쓴다(`enrage` 를 적으면 둘 다). 되감기·시간 역류는 `impl.PositionHistory`(0.5초 링버퍼).
 ### 6.5 config.yml `hints` (점진 힌트)
 ```yaml
 hints:

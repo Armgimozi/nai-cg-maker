@@ -70,7 +70,8 @@ public abstract class Boss implements BossHandle {
     protected final BossDef def;
     protected final InstanceContext ctx;
     protected final boolean adhoc;
-    protected final Location center;
+    /** 전투 중심 (아레나 경계·무작위 지점·관전자 판정 기준). 아레나가 옮겨 가는 보스만 {@link #relocate} 로 바꾼다. */
+    protected Location center;
     protected final double arenaRadius;
     protected final double arenaHeight;
     protected final double floorY;
@@ -300,12 +301,12 @@ public abstract class Boss implements BossHandle {
         } catch (Throwable t) {
             Log.error("보스 아레나 배치 오류 (" + def.id() + ")", t);
         }
+        refreshViewers(); // 등장 대사가 참가자에게 가도록 보스바 시청자를 먼저 채운다
         say(def.line("intro"));
         rig.play(BossAnim.ROAR, 40, now);
         BossFx.sound(center, def.sounds().str("ambient"), 2f, (float) def.sounds().dbl("pitch", 1.0));
         BossFx.sound(center, Sound.ENTITY_WARDEN_ROAR, 0.6f, 0.8f);
         busyUntil = now + 40;
-        refreshViewers();
         refreshPlate();
     }
 
@@ -895,10 +896,34 @@ public abstract class Boss implements BossHandle {
     /** 아레나 블록 설치 (원래 블록을 기억했다가 사망·종료 때 복원). canPlaceBlocks 가 false 면 무시하고 false. */
     protected boolean setBlock(Block b, BlockData data) {
         if (!canPlaceBlocks() || b.getWorld() != center.getWorld()) return false;
-        if (horizontal(b.getLocation().add(0.5, 0, 0.5), center) > arenaRadius + 3) return false;
+        if (!blockAllowed(b)) return false;
         placedBlocks.putIfAbsent(b, b.getBlockData().clone());
         b.setBlockData(data, false);
         return true;
+    }
+
+    /** 이 블록을 보스가 바꿔도 되는가 (기본: 아레나 원 + 3칸). 추격 복도처럼 원 밖까지 쓰는 보스가 넓힌다. */
+    protected boolean blockAllowed(Block b) {
+        return horizontal(b.getLocation().add(0.5, 0, 0.5), center) <= arenaRadius + 3;
+    }
+
+    /**
+     * 전투 중심을 옮기고 보스를 그 자리로 순간이동 (10층 심장실 → 심연의 가장자리처럼 아레나가 바뀌는 보스).
+     * 바닥 높이({@link #floorY})는 그대로다 — 같은 층 같은 높이의 다른 단으로만 옮긴다.
+     */
+    protected void relocate(Location to) {
+        if (to == null || to.getWorld() != center.getWorld()) return;
+        center = to.clone();
+        center.setY(floorY);
+        center.setYaw(0);
+        center.setPitch(0);
+        stopPath();
+        Location at = center.clone();
+        at.setYaw(bodyYaw);
+        entity.teleport(at);
+        lastLoc = at.clone();
+        rig.follow(at);
+        refreshViewers();
     }
 
     /** 설치한 블록 하나를 원래대로 (또는 data 로) 되돌린다. */
@@ -989,6 +1014,13 @@ public abstract class Boss implements BossHandle {
         String ch = "<!shadow><white><font:labyrinth:ui>" + g.ch() + "</font></white></!shadow>";
         String gap = "<font:labyrinth:ui>" + new String(Character.toChars(0xF800 + 2)) + "</font>";
         return left ? ch + gap : gap + ch;
+    }
+
+    /** 보스바 기본 색 바꾸기 (7층 극성 얼굴처럼 전투 중 색이 바뀌는 기믹). 광폭화·깜빡임은 그대로 위에 덮인다. */
+    protected void setBarColor(BossBar.Color color) {
+        if (color == null || color == barColor) return;
+        barColor = color;
+        updateBars();
     }
 
     private void updateBars() {

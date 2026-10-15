@@ -175,7 +175,7 @@ public final class Run {
         boolean liquid = def.liquid() != null && !def.liquid().isBlank() && !"null".equalsIgnoreCase(def.liquid());
         FloorGenerator.Params gp = new FloorGenerator.Params(def.cells(), def.rooms(), def.roomHeight(), 4, liquid,
                 arena.integer("radius", 14), arena.integer("height", 10), arena.integer("corridor_length", 0),
-                arena.integer("corridor_width", 7));
+                arena.integer("corridor_width", 7), arena.integer("rim_radius", 0));
         long seed = seedBase * 1_000_003L + floor * 7919L;
         FloorLayout layout = FloorGenerator.generate(gp, seed);
         int ox = InstanceAllocator.originX(slot), oz = InstanceAllocator.originZ(slot);
