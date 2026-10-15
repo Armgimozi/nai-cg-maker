@@ -492,12 +492,23 @@ public final class Run {
         List<Player> players = onlineMembers();
         reviveAll(center, 0.5);
         int max = manager.services().content().maxFloor();
+        // 층 첫 돌파 보너스 (dungeon.yml first_clear_bonus): 그 층 레벨 구간 필요 경험치 합 × 배율, 사람마다 한 번
+        long firstXp = manager.config().firstClearXp(manager.services().levels().curve(), fs.def().levelRange());
         for (Player p : players) {
             PlayerData d = manager.services().data().get(p);
             d.unlockUpTo(Math.min(max, fs.floor() + 1));
             d.increment("dungeon.floor_clears", 1);
-            d.increment("dungeon.clear_floor_" + fs.floor(), 1);
+            boolean first = d.increment("dungeon.clear_floor_" + fs.floor(), 1) == 1;
             if (members.size() == 1) d.increment("dungeon.solo_clears", 1);
+            if (first && firstXp > 0) {
+                try {
+                    manager.services().levels().addXp(p, firstXp);
+                    manager.services().hud().refresh(p);
+                    Text.send(p, "<#c9a2ff>첫 돌파 보너스</#c9a2ff> <green>+" + Text.num(firstXp) + " XP</green>");
+                } catch (Throwable t) {
+                    Log.error("첫 돌파 보너스 지급 실패", t);
+                }
+            }
         }
         try {
             Bukkit.getPluginManager().callEvent(new FloorClearEvent(fs.ctx().id(), fs.floor(), players, members.size(),

@@ -48,10 +48,11 @@ public final class LabLootService implements LootService, Listener {
 
     public LabLootService(Services services) { this.services = services; }
 
-    private LootRoller.Request request(Player looter, InstanceContext ctx) {
+    /** @param extraMult 추가 확률 배율 (솔로·2인 전투방 몹 보상 배율, 기본 1) */
+    private LootRoller.Request request(Player looter, InstanceContext ctx, double extraMult) {
         Difficulty diff = ctx != null ? ctx.difficulty() : services.settings().difficulty();
-        double mult = ctx != null ? ctx.dropMultiplier()
-                : diff.drop() * services.settings().party().reward(services.party().size(looter));
+        double mult = (ctx != null ? ctx.dropMultiplier()
+                : diff.drop() * services.settings().party().reward(services.party().size(looter))) * extraMult;
         int luck = looter == null ? 0 : services.stats().get(looter).stat(Stat.LUK);
         String cls = looter == null ? null : services.data().get(looter).classId();
         return new LootRoller.Request(diff.id(), mult, luck, cls);
@@ -59,9 +60,13 @@ public final class LabLootService implements LootService, Listener {
 
     /** 굴림만 (아이템 id → 개수, 같은 id 는 합침). */
     public Map<String, Integer> rollIds(String tableId, Player looter, InstanceContext ctx) {
+        return rollIds(tableId, looter, ctx, 1.0);
+    }
+
+    private Map<String, Integer> rollIds(String tableId, Player looter, InstanceContext ctx, double extraMult) {
         LootRoller roller = new LootRoller(services.content(), ThreadLocalRandom.current());
         Map<String, Integer> merged = new LinkedHashMap<>();
-        for (LootRoller.Drop d : roller.roll(tableId, request(looter, ctx))) merged.merge(d.itemId(), d.amount(), Integer::sum);
+        for (LootRoller.Drop d : roller.roll(tableId, request(looter, ctx, extraMult))) merged.merge(d.itemId(), d.amount(), Integer::sum);
         return merged;
     }
 
@@ -90,20 +95,27 @@ public final class LabLootService implements LootService, Listener {
 
     @Override
     public void drop(String tableId, Collection<Player> looters, Location location, InstanceContext ctx, String source) {
+        drop(tableId, looters, location, ctx, source, 1.0);
+    }
+
+    @Override
+    public void drop(String tableId, Collection<Player> looters, Location location, InstanceContext ctx, String source,
+                     double extraMult) {
         LootTable table = services.content().lootTable(tableId);
         if (table == null || looters == null) return;
+        double extra = Double.isFinite(extraMult) ? Math.max(0, extraMult) : 1.0;
         for (Player p : looters) {
             if (p == null || !p.isOnline()) continue;
             try {
-                dropFor(p, table, location, ctx, source == null ? "drop" : source);
+                dropFor(p, table, location, ctx, source == null ? "drop" : source, extra);
             } catch (Throwable t) {
                 kr.labyrinth.core.Log.error("루팅 실패: " + tableId + " → " + p.getName(), t);
             }
         }
     }
 
-    private void dropFor(Player p, LootTable table, Location location, InstanceContext ctx, String source) {
-        Map<String, Integer> ids = rollIds(table.id(), p, ctx);
+    private void dropFor(Player p, LootTable table, Location location, InstanceContext ctx, String source, double extraMult) {
+        Map<String, Integer> ids = rollIds(table.id(), p, ctx, extraMult);
         boolean direct = location == null || location.getWorld() == null || !location.getWorld().equals(p.getWorld())
                 || location.distanceSquared(p.getLocation()) > 64 * 64 || p.isDead();
         int count = 0;
@@ -124,7 +136,7 @@ public final class LabLootService implements LootService, Listener {
         }
         // 상자 골드
         if (table.gold() != null && table.gold().max() > 0) {
-            double mult = (ctx != null ? ctx.goldMultiplier() : 1.0) * (1.0 + services.stats().get(p).goldBonus());
+            double mult = (ctx != null ? ctx.goldMultiplier() : 1.0) * extraMult * (1.0 + services.stats().get(p).goldBonus());
             long gold = Math.max(0, Math.round(table.gold().roll(ThreadLocalRandom.current()) * mult));
             if (gold > 0) {
                 services.data().get(p).addGold(gold);

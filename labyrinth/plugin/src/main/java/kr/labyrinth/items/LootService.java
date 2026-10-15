@@ -22,4 +22,13 @@ public interface LootService {
      * @param source drop | elite | boss | chest
      */
     void drop(String tableId, Collection<Player> looters, Location location, InstanceContext ctx, String source);
+
+    /**
+     * {@link #drop(String, Collection, Location, InstanceContext, String)} + 확률 배율 extraMult (테이블 골드 포함).
+     * 솔로·2인 전투방 몹의 보상 배율(몹 수를 줄인 만큼)을 넘긴다. 1 이면 위와 같다 (기본 구현은 extraMult 를 무시).
+     */
+    default void drop(String tableId, Collection<Player> looters, Location location, InstanceContext ctx, String source,
+                      double extraMult) {
+        drop(tableId, looters, location, ctx, source);
+    }
 }

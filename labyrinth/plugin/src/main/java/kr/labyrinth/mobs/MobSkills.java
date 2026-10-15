@@ -117,7 +117,7 @@ final class MobSkills {
             case "beam" -> dist <= p.dbl("length", 14) && see;
             case "breath" -> dist <= p.dbl("length", 6) && see;
             case "shield" -> hpRatio < 0.9 || (!p.bool("self_only", true) && anyHurt(m, p.dbl("radius", 8), 0.85));
-            case "summon" -> aliveSummons(m) < p.integer("max_alive", 4) && m.def.raw() != null;
+            case "summon" -> aliveSummons(m) < summonMaxAlive(p, m) && m.def.raw() != null;
             case "blink" -> p.bool("behind", false) ? dist <= p.dbl("range", 8) + 4 && dist >= 2.5
                     : (dist < 4 || dist > 7) && dist <= p.dbl("range", 8) * 2;
             case "heal_allies" -> anyHurt(m, p.dbl("radius", 10), 0.75);
@@ -219,6 +219,20 @@ final class MobSkills {
     private static boolean anyHurt(LabMob m, double radius, double below) {
         for (LabMob a : m.alliesNear(radius)) if (a.hp / a.stats.maxHp() < below) return true;
         return false;
+    }
+
+    /** 한 번에 부르는 수 — 인원 규칙(GDD §8.4): 솔로면 solo_count, count_per_member 등. */
+    private static int summonCount(Params p, LabMob m) {
+        return p.scaledInt("count", partySize(m), 2);
+    }
+
+    /** 동시에 살아 있을 수 있는 소환물 수 — 솔로면 solo_max_alive. */
+    private static int summonMaxAlive(Params p, LabMob m) {
+        return p.scaledInt("max_alive", partySize(m), 4);
+    }
+
+    private static int partySize(LabMob m) {
+        return m.ctx == null ? 1 : m.ctx.partySize();
     }
 
     private static int aliveSummons(LabMob m) {
@@ -645,8 +659,8 @@ final class MobSkills {
     private static boolean summon(LabMob m, Params p, long now) {
         String mobId = p.str("mob");
         if (mobId == null || m.services.content().mob(mobId) == null) return false;
-        int room = p.integer("max_alive", 4) - aliveSummons(m);
-        int count = Math.min(Math.max(1, p.integer("count", 2)), room);
+        int room = summonMaxAlive(p, m) - aliveSummons(m);
+        int count = Math.min(Math.max(1, summonCount(p, m)), room);
         if (count <= 0) return false;
         double radius = p.dbl("radius", 3);
         standStill(m, now + 20);

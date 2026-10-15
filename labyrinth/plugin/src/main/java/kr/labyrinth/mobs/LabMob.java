@@ -48,6 +48,8 @@ public final class LabMob implements CustomMob {
     final long seed;
     /** 비행형 (YAML flying 또는 비행 베이스: 중력 끔 + 선회 이동). */
     final boolean flying;
+    /** 처치 보상 배율 (솔로·2인 몹 수 감소 보정 — 전투방 웨이브가 기록, 기본 1). */
+    double rewardMult = 1.0;
 
     // 상태
     double hp;
@@ -157,6 +159,12 @@ public final class LabMob implements CustomMob {
     public MobDef def() { return def; }
 
     public boolean isEliteVariant() { return eliteVariant; }
+
+    @Override
+    public double rewardMultiplier() { return rewardMult; }
+
+    @Override
+    public void rewardMultiplier(double mult) { rewardMult = Double.isFinite(mult) ? Math.max(0, mult) : 1.0; }
 
     @Override
     public Location location() { return dead || !entity.isValid() ? lastLoc.clone() : entity.getLocation(); }
