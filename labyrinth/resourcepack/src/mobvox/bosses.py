@@ -835,11 +835,982 @@ def floor04_floodwarden(look, name, part, ctx):
     return g
 
 
-#@@NEXT@@
+# ───────────────────────────── floor05_anvil_king (모루왕 카르둠) ─────────────────────────────
+# The iron giant of the furnace heart: a barrel chest of riveted black-iron plates split by glowing
+# molten seams, an arched furnace door in the breast whose grille shows the fire inside, two smokestack
+# chimneys rising behind the shoulders, a bronze gorget and belt with an anvil buckle.  A flat great-helm
+# with a burning T-visor, curled horns and a braided slag beard tipped with embers, under a bronze crown of
+# lava-tipped iron spikes.  Spiked pauldrons, cog elbows, huge gauntlets; an anvil-headed war hammer.
+
+ANVIL_IRON = [(10, 9, 10), (24, 22, 24), (42, 38, 40), (66, 62, 64), (98, 94, 96), (136, 134, 138), (180, 180, 186)]
+ANVIL_BRONZE = [(40, 26, 10), (84, 56, 20), (136, 94, 36), (190, 140, 60), (230, 190, 100), (250, 230, 170)]
+ANVIL_LAVA = [(90, 20, 6), (170, 44, 10), (232, 96, 18), (255, 160, 40), (255, 214, 110), (255, 248, 210)]
+ANVIL_WOOD = [(20, 12, 8), (40, 24, 14), (64, 40, 22), (92, 60, 34), (124, 84, 50)]
+
+
+def _molten(g, mats=('iron',), width=0.022, scale=5.0, seed=0):
+    g.cracks(list(mats), mat='lava', width=width * 0.5, scale=scale * 1.2, val=0.36, seed=seed)
+
+
+def _plate_seams(g, mats=('iron',), px=5.2, py=4.6, seed=0):
+    sd = g.seed + seed
+
+    def f(x, y, z, n, m, v):
+        if (abs(x) % px) < 0.55 or (y % py) < 0.5:
+            return v - 0.18
+        return v + 0.1 * (fbm3(x / 4, y / 4, z / 4, sd) - 0.5)
+    g.paint(f, list(mats))
+
+
+def _anvil_torso(g: MobGrid, ctx):
+    g.rbox((-10.6, -1.0, -6.4), (10.6, 8.6, 6.4), 'iron', 0.45, bevel=2.6)
+    g.rbox((-8.4, -9.0, -5.6), (8.4, 0.0, 5.6), 'iron', 0.4, bevel=2.0)
+    _plate_seams(g)
+    # bronze frame round the furnace recess (the furnace part sits in it)
+    g.rbox((-6.4, -5.4, -6.9), (6.4, 5.4, -5.2), 'brass', 0.5, bevel=0.5)
+    g.carve(lambda x, y, z: abs(x) < 5.2 and abs(y) < 4.2 and z < -5.0)
+    g.rbox((-5.2, -4.2, -5.4), (5.2, 4.2, -4.8), 'void', 0.1)
+    g.rivets([(x, y, -7.0) for x in (-5.8, 5.8) for y in (-4.4, -1.5, 1.5, 4.4)] +
+             [(x, 4.9, -7.0) for x in (-3.0, 0.0, 3.0)], 'brass', 0.8)
+    for y in (7.6, -2.6):
+        for x in (-8.4, -6.0, 6.0, 8.4):
+            p = g.hit((x, y, -12), (0, 0, 1))
+            if p:
+                g.dot(vadd(p, (0, 0, -0.6)), 'iron', 0.75, prio=4)
+    _molten(g, width=0.02)
+    _ering(g, (0, 8.8, -0.4), 5.4, 4.4, 1.0, 'brass', 0.55, n=40)                    # gorget
+    g.rbox((-8.8, -6.6, -6.0), (8.8, -4.6, 6.0), 'brass', 0.5, bevel=0.6)           # belt
+    g.rbox((-2.6, -7.4, -6.9), (2.6, -6.4, -5.6), 'iron', 0.6, bevel=0.2)           # anvil buckle
+    g.rbox((-1.4, -6.4, -6.7), (1.4, -4.4, -5.6), 'iron', 0.55, bevel=0.2)
+    g.rbox((-2.8, -4.4, -6.9), (2.8, -3.6, -5.6), 'iron', 0.65, bevel=0.2)
+    g.dot((0, -5.4, -6.8), 'lava', 0.8, prio=5)
+    # smokestack chimneys behind the shoulders, glowing mouths
+    for s in (-1, 1):
+        g.cylinder((s * 5.4, 4.0, 5.4), (s * 6.4, 15.0, 7.4), 1.7, 1.4, 'iron', 0.35)
+        g.ring((s * 6.35, 14.2, 7.35), 1.7, 0.5, axis='y', mat='brass', val=0.55)
+        g.ring((s * 5.9, 9.4, 6.4), 1.8, 0.4, axis='y', mat='brass', val=0.45)
+        g.cylinder((s * 6.4, 14.6, 7.4), (s * 6.4, 15.3, 7.4), 1.0, mat='lava', val=0.75)
+    # spine of rivets and a cooling grille on the back
+    for y in (6.4, 4.4, 2.4, 0.4, -1.6):
+        _box(g, (-3.4, y - 0.35, 6.3), (3.4, y + 0.35, 6.6), 'iron', 0.25)
+    g.chain([(-9.6, 8.0, -5.2), (-5.0, 5.8, -7.0), (0.0, 6.4, -7.2), (6.0, 4.0, -6.8), (8.6, -1.0, -5.8)], 1.3,
+            'iron', 0.55)
+
+
+def _anvil_furnace(g: MobGrid, ctx):
+    def window(x, y):
+        return abs(x) < 3.9 and y > -3.0 and (y < 1.0 or x * x + (y - 1.0) ** 2 < 3.9 ** 2)
+    g.rbox((-4.9, -3.9, -0.4), (4.9, 3.9, 1.4), 'lava', 0.6,
+           vfn=lambda x, y, z: 0.45 + 0.45 * max(0.0, 1 - math.hypot(x / 4.5, (y + 0.6) / 3.8)))
+    g.rbox((-5.1, -4.1, -1.4), (5.1, 4.1, -0.4), 'brass', 0.5, bevel=0.4)
+    g.carve(lambda x, y, z: window(x, y) and z < -0.35)
+    for x in (-2.4, -0.8, 0.8, 2.4):
+        _box(g, (x - 0.3, -3.0, -1.1), (x + 0.3, 4.4, -0.7), 'iron', 0.5)
+    _box(g, (-3.9, -0.6, -1.1), (3.9, 0.0, -0.7), 'iron', 0.5)
+    g.rivets([(x, -3.6, -1.5) for x in (-4.4, -2.2, 0.0, 2.2, 4.4)] + [(x, 3.6, -1.5) for x in (-4.4, 4.4)], 'brass',
+             0.8)
+    for k, x in enumerate((-2.8, -1.2, 0.6, 2.6)):
+        g.dot((x, -3.4, -1.0 - 0.3 * (k % 2)), 'lava', 0.85, prio=5)
+    g.runes((0, 3.6, -2.0), (0, 0, -1), w=5.0, h=1.0, mat='rune', val=0.5, density=0.9, seed=11)
+
+
+def _anvil_head(g: MobGrid, ctx):
+    g.rbox((-4.2, -3.6, -4.2), (4.2, 4.0, 4.0), 'iron', 0.48, bevel=1.2, top=0.12)
+    g.rbox((-4.5, 1.2, -4.5), (4.5, 2.2, 4.3), 'brass', 0.52, bevel=0.3)
+    g.carve(lambda x, y, z: z < -3.3 and ((abs(x) < 3.2 and -0.1 < y < 0.9) or (abs(x) < 0.65 and -2.9 < y < 0.9)))
+    g.rbox((-3.2, -2.9, -3.7), (3.2, 0.9, -3.3), 'lava', 0.8)
+    g.rivets([(x, 1.7, -4.6) for x in (-3.6, -1.8, 1.8, 3.6)], 'brass', 0.82)
+    for s in (-1, 1):
+        g.rbox((s * 2.0, -3.9, -4.4), (s * 4.3, -0.4, -3.4), 'iron', 0.55, bevel=0.4)       # cheek guards
+        g.horn((s * 4.2, 1.4, 0.4), (s * 1, 0.35, 0.1), 4.4, 1.05, curl=(0, 2.6, 0.4), mat='horn', val=0.35,
+               rings=0.8, tip_mat='lava')
+    for k, x in enumerate((-2.2, 0.0, 2.2)):
+        pts = [(x, -3.6, -3.4), (x * 1.05, -5.2, -4.2), (x * 1.1, -6.8, -4.5)]
+        g.sweep(pts, 1.15, 0.75, 'iron', 0.42,
+                vfn=lambda t, d, p: 0.36 + 0.12 * (1 - d) - (0.14 if int(t * 5) % 2 else 0.0))
+        g.blob((x * 1.1, -7.5, -4.5), 0.8, 'lava', 0.65, prio=4)
+    _molten(g, width=0.024, scale=3.6, seed=2)
+
+
+def _anvil_crown(g: MobGrid, ctx):
+    _ering(g, (0, -1.4, 0), 4.8, 4.6, 0.8, 'brass', 0.55)
+    _ering(g, (0, -0.4, 0), 4.8, 4.6, 0.4, 'brass', 0.75)
+    for k in range(8):
+        a = -math.pi / 2 + TAU * k / 8
+        front = k == 0
+        L = 4.8 if front else (3.6 if k in (1, 7) else 2.8)
+        base = (math.cos(a) * 4.7, -0.8, math.sin(a) * 4.5)
+        g.cone(base, (math.cos(a) * 0.22, 1, math.sin(a) * 0.22), L, 0.85 if front else 0.7, 'iron', 0.45,
+               vfn=lambda t, d, p: ('lava', 0.5 + 0.4 * t) if t > 0.62 else 0.4 + 0.15 * (1 - d))
+        b2 = (math.cos(a + TAU / 16) * 4.85, -0.9, math.sin(a + TAU / 16) * 4.65)
+        g.dot(b2, 'lava', 0.7, prio=5)
+    for a in (0.7, 2.6, 4.2):
+        _drip(g, (math.cos(a) * 4.9, -1.8, math.sin(a) * 4.7), 0.9, r=0.3, mat='lava', val=0.5)
+
+
+def _anvil_arm(g: MobGrid, ctx):
+    o = ctx.out
+    right = ctx.name == 'arm_right'
+    g.blob((o * 0.8, -1.0, 0), (5.2, 4.2, 5.0), 'iron', 0.5, top=0.2)
+    g.blob((o * 1.2, -3.6, 0), (5.4, 2.0, 5.2), 'iron', 0.42, prio=0)
+    _ering(g, (o * 1.0, -2.6, 0), 5.0, 4.8, 0.5, 'brass', 0.55, n=40)
+    for k, (dx, dz) in enumerate(((0.3, -0.4), (0.8, 0.0), (0.3, 0.5))):
+        g.cone((o * (1.4 + 2.4 * dx), 2.2, dz * 3.4), (o * dx, 1, dz * 0.4), 3.2 - 0.6 * (k % 2), 0.8, 'iron', 0.45,
+               vfn=lambda t, d, p: ('lava', 0.6) if t > 0.7 else 0.42 + 0.15 * (1 - d))
+    g.capsule((0, -3.0, 0), (0, -11.0, 0), 2.8, 2.7, 'iron', 0.44)
+    g.gear((0, -11.8, 0), 3.2, teeth=8, axis='x', thick=1.2, mat='brass', val=0.5, hole=0.25, spokes=0)
+    g.capsule((0, -12.0, 0), (0, -17.0, -0.6), 3.0, 3.5, 'iron', 0.46)
+    g.plate((-3.9, -16.6, -4.0), (3.9, -14.4, 3.4), 'brass', 0.5, rivet_mat='iron', rivet_step=1.6, bevel=0.4)
+    g.rbox((-4.0, -23.0, -4.2), (4.0, -17.0, 3.6), 'iron', 0.48, bevel=1.4)
+    for k in range(4):
+        x = -3.0 + 2.0 * k
+        g.rbox((x - 0.85, -22.4, -4.9), (x + 0.85, -19.2, -3.8), 'iron', 0.62, bevel=0.3)
+    g.blob((-o * 3.8, -19.6, -2.6), (1.2, 1.8, 1.2), 'iron', 0.55)
+    if not right:
+        pts = [(math.cos(t * 0.9) * 3.7, -13.0 - t * 0.55, math.sin(t * 0.9) * 3.7) for t in range(0, 14)]
+        g.chain(pts, 1.2, 'iron', 0.6)
+        g.chain([pts[-1], (o * 2.0, -21.0, 3.6), (o * 1.4, -24.4, 3.0)], 1.2, 'iron', 0.55)
+    _plate_seams(g, px=4.2, py=3.6, seed=3)
+    _molten(g, width=0.022, scale=4.2, seed=3)
+
+
+def _anvil_hammer(g: MobGrid, ctx):
+    hx, hy, hz = ctx.hand
+    g.cylinder((hx, hy, hz + 4.0), (hx, hy, hz - 13.0), 1.2, mat='wood', val=0.45)
+    g.cylinder((hx, hy, hz + 3.0), (hx, hy, hz - 3.0), 1.45, mat='leather', val=0.4,
+               vfn=lambda t, r, p: 0.32 + (0.14 if int(t * 9) % 2 else 0.0))
+    g.blob((hx, hy, hz + 5.0), (1.9, 1.9, 1.5), 'iron', 0.5)
+    for z in (hz - 5.0, hz - 9.5):
+        g.ring((hx, hy, z), 1.5, 0.5, axis='z', mat='brass', val=0.6)
+    c = hz - 16.4
+    g.rbox((hx - 4.2, hy + 3.0, c - 4.4), (hx + 4.2, hy + 7.0, c + 4.4), 'iron', 0.5, bevel=0.9)     # striking face
+    g.rbox((hx - 3.0, hy - 3.2, c - 3.2), (hx + 3.0, hy + 3.2, c + 3.2), 'iron', 0.4, bevel=0.6)     # waist
+    g.rbox((hx - 4.2, hy - 7.0, c - 4.4), (hx + 4.2, hy - 3.0, c + 4.4), 'iron', 0.46, bevel=0.9)
+    g.cone((hx, hy + 5.0, c - 4.2), (0, 0.15, -1), 3.0, 1.9, 'iron', 0.45, tip_val=0.7)               # anvil horn
+    g.rbox((hx - 3.2, hy - 1.2, c - 3.4), (hx + 3.2, hy + 1.2, c + 3.4), 'brass', 0.55, bevel=0.3)
+    g.paint(lambda x, y, z, n, m, v: ('lava', 0.45 + 0.3 * (1 - abs(z - c) / 4.4)) if abs(y - hy) > 6.6 else None,
+            ['iron'])
+    for s in (-1, 1):
+        g.runes((hx + s * 4.4, hy + 5.0, c), (s, 0, 0), w=6.0, h=2.0, mat='rune', val=0.5, density=0.8, seed=12 + s)
+        g.runes((hx + s * 4.4, hy - 5.0, c), (s, 0, 0), w=6.0, h=2.0, mat='rune', val=0.5, density=0.8, seed=14 + s)
+    _molten(g, width=0.02, scale=3.4, seed=4)
+
+
+def _anvil_legs(g: MobGrid, ctx):
+    gy = -14.0
+    g.rbox((-8.0, -3.0, -4.2), (8.0, 1.0, 4.2), 'iron', 0.45, bevel=1.2)
+    for s in (-1, 1):
+        g.plate((s * 0.6, -6.4, -4.9), (s * 7.4, -1.6, -3.9), 'iron', 0.52, rivet_mat='brass', rivet_step=1.8,
+                bevel=0.4)
+        x = s * 4.4
+        g.capsule((x, -2.0, 0.0), (x, -7.4, 0.0), 3.0, 2.9, 'iron', 0.42)
+        g.rbox((x - 3.3, -9.4, -3.6), (x + 3.3, -6.6, 3.2), 'iron', 0.55, bevel=0.9)
+        g.cone((x, -8.0, -3.4), (0, 0.1, -1), 2.0, 1.0, 'iron', 0.5,
+               vfn=lambda t, d, p: ('lava', 0.6) if t > 0.7 else 0.48)
+        g.capsule((x, -9.0, 0.0), (x, -11.6, 0.0), 2.9, 3.2, 'iron', 0.44)
+        g.ring((x, -10.6, 0.0), 3.2, 0.55, axis='y', mat='brass', val=0.5)
+        g.rbox((x - 3.5, gy, -5.4), (x + 3.5, gy + 3.0, 3.4), 'iron', 0.46, bevel=1.0)
+        for k in range(3):
+            tx = x - 2.3 + 2.3 * k
+            g.rbox((tx - 1.0, gy, -6.6), (tx + 1.0, gy + 1.8, -5.0), 'iron', 0.58, bevel=0.4)
+    _plate_seams(g, px=4.4, py=3.8, seed=5)
+    _molten(g, width=0.022, scale=4.0, seed=5)
+
+
+def floor05_anvil_king(look, name, part, ctx):
+    _ramps(ctx, [('iron', ANVIL_IRON), ('brass', ANVIL_BRONZE), (('lava', 'core', 'rune', 'glow', 'eye'), ANVIL_LAVA),
+                 ('wood', ANVIL_WOOD)])
+    fn = {'torso': _anvil_torso, 'furnace': _anvil_furnace, 'head': _anvil_head, 'crown': _anvil_crown,
+          'arm_left': _anvil_arm, 'arm_right': _anvil_arm, 'hammer': _anvil_hammer, 'legs': _anvil_legs}.get(name)
+    if fn is None:
+        return None
+    g = ctx.grid({'torso': 0.8, 'furnace': 0.5, 'head': 0.5, 'crown': 0.5, 'hammer': 0.6, 'legs': 0.75}.get(name, 0.75))
+    fn(g, ctx)
+    return g
+
+
+# ───────────────────────────── floor06_frost_empress (얼음관의 여제 시린) ─────────────────────────────
+# The empress woken from her ice coffin: a floating gown of deep-blue silk paling into a crystalline hem
+# hung with icicles, a lilac rune band and a long train; a sculpted ice bodice with a glowing lilac heart
+# crystal, crystal pauldrons and a tall fan collar of ice spires behind the head.  Pale face, silver-white
+# hair and a translucent ice veil under a towering crystal crown.  An ice scepter crowned with a snowflake
+# star, and a ring of floating ice shards orbiting her.
+
+FROST_ICE = [(20, 34, 60), (46, 80, 124), (84, 130, 184), (132, 182, 228), (186, 224, 250), (230, 246, 255),
+             (255, 255, 255)]
+FROST_GOWN = [(12, 20, 38), (22, 38, 68), (36, 60, 102), (56, 90, 142), (88, 128, 186), (140, 178, 224),
+              (200, 226, 250)]
+FROST_SKIN = [(70, 92, 124), (118, 146, 182), (166, 192, 224), (208, 226, 244), (238, 246, 255)]
+FROST_SILVER = [(60, 66, 84), (110, 118, 140), (166, 174, 196), (214, 220, 236), (244, 248, 255)]
+FROST_LILAC = [(64, 44, 120), (122, 94, 206), (176, 156, 250), (214, 202, 255), (240, 234, 255), (255, 255, 255)]
+
+
+def _frost_gown(g: MobGrid, ctx):
+    def gv(x, y, z, t, fold):
+        if t > 0.8:
+            return ('ice', 0.5 + 0.3 * (t - 0.8) / 0.2 + 0.1 * fold)
+        if 0.66 < t < 0.72 and math.cos(10 * math.atan2(z, x)) > -0.2:
+            return ('rune', 0.4)
+        if abs(x) < 1.2 + 2.6 * t and z < 0:
+            return ('ice', 0.4 + 0.2 * t)
+        return 0.36 + 0.14 * fold + 0.22 * t
+    _robe(g, 4.4, -11.0, 3.2, 7.4, 'cloth', folds=8, amp=0.16, zs=0.86, hem=1.6, power=1.6, vfn=gv)
+    g.cloth([(-4.0, 1.6, 3.4), (0.0, 1.8, 4.4), (4.0, 1.6, 3.4)], 13.0, 'cloth', 0.4, tatter=0.25, normal=(0, 0, 1),
+            thick=1, sway=(0.0, 0.32), seed=4)
+    for k in range(16):
+        a = TAU * (k + 0.5) / 16
+        r = 7.6 + 0.4 * math.cos(8 * a)
+        L = 1.4 + 1.8 * h2(k, 2, g.seed)
+        g.cone((math.cos(a) * r, -11.6, math.sin(a) * r * 0.86), (0, -1, 0), L, 0.55, 'ice', 0.6, tip_val=0.95)
+    g.paint(lambda x, y, z, n, m, v: ('frost', 0.9) if y < -3 and h3(int(x * 3), int(y * 3), int(z * 3), 77) > 0.9
+            else None, ['cloth'])
+    for s in (-1, 1):
+        g.crystals((s * 3.6, 2.6, -0.6), (s * 0.7, 1, -0.2), n=3, size=2.6, r=0.6, mat='ice', spread=0.6, seed=8 + s)
+
+
+def _frost_torso(g: MobGrid, ctx):
+    g.blob((0, 0.8, 0), (4.0, 4.6, 2.8), 'cloth', 0.45)
+    g.blob((0, -3.4, 0), (3.0, 2.4, 2.4), 'cloth', 0.42)
+    g.blob((0, 1.6, -1.1), (3.6, 3.2, 1.9), 'ice', 0.55, prio=2)
+    g.blob((0, 1.2, -2.9), (1.0, 1.6, 0.7), 'core', 0.6, prio=5)
+    g.ring((0, 1.2, -2.8), 1.7, 0.35, axis='z', mat='metal', val=0.7)
+    for s in (-1, 1):
+        g.sweep([(s * 1.9, 1.2, -2.7), (s * 2.4, -1.2, -2.4), (s * 1.0, -3.6, -2.2)], 0.3, 0.3, 'metal', 0.75)
+    _ering(g, (0, -2.4, 0), 3.0, 2.5, 0.4, 'metal', 0.7, n=36)
+    for s in (-1, 1):
+        for k, (dx, dy, L) in enumerate(((0.9, 1.0, 3.6), (1.0, 0.4, 2.8), (0.5, 1.0, 2.4))):
+            _shard(g, (s * 3.4, 3.2, -0.4 + 0.6 * k), (s * dx, dy, 0.1 * k), L, 0.75, 'ice', prio=3)
+    for k in range(9):
+        a = math.pi * k / 8
+        L = 4.0 + 3.4 * (1 - abs(k - 4) / 4)
+        base = (math.cos(a) * 3.4, 4.2, 0.8 + math.sin(a) * 2.0)
+        _shard(g, base, (math.cos(a) * 0.45, 1, 0.25 + math.sin(a) * 0.35), L, 0.6, 'ice', prio=3)
+
+
+def _frost_head(g: MobGrid, ctx):
+    g.blob((0, -0.4, -0.3), (2.9, 3.4, 2.9), 'skin', 0.58)
+    g.blob((0, 0.6, 0.8), (3.4, 3.6, 3.1), 'frost', 0.6, top=0.2,
+           cut=lambda x, y, z: z < -1.6 and y < 1.6)
+    g.cloth([(-3.2, 1.0, 1.6), (0.0, 1.2, 3.6), (3.2, 1.0, 1.6)], 8.6, 'frost', 0.62, tatter=0.35, normal=(0, 0, 1),
+            thick=2, seed=5)
+    g.eyes((1.1, -0.1, -3.0), 0.5, 2.2, val=0.78)
+    for s in (-1, 1):
+        g.dot((s * 1.1, -1.1, -3.0), 'rune', 0.5, prio=5)
+    g.dot((0, -2.2, -3.1), 'skin', 0.35, prio=5)
+    g.cloth([(-3.6, 2.8, -0.6), (-3.3, 3.0, 2.2), (0.0, 3.2, 3.6), (3.3, 3.0, 2.2), (3.6, 2.8, -0.6)], 8.0, 'ice', 0.78,
+            tatter=0.3, normal=(0, 0, 1), thick=1, seed=6)
+
+
+def _frost_crown(g: MobGrid, ctx):
+    _ering(g, (0, -2.2, 0.2), 3.3, 3.1, 0.5, 'metal', 0.65)
+    _shard(g, (0, -2.0, -2.8), (0, 1, -0.12), 7.4, 1.05, 'ice', prio=4)
+    for k in range(1, 6):
+        for s in (-1, 1):
+            t = s * k * 0.56
+            L = 7.2 - 1.1 * k
+            base = (math.sin(t) * 3.3, -2.0, 0.2 - math.cos(t) * 3.1)
+            _shard(g, base, (math.sin(t) * 0.35, 1, -math.cos(t) * 0.15), L, 0.7, 'ice', prio=3)
+            g.dot((math.sin(t) * 3.5, -2.2, 0.2 - math.cos(t) * 3.3), 'core', 0.6, prio=5)
+    g.blob((0, -1.6, -3.4), (0.8, 1.0, 0.5), 'core', 0.65, prio=5)
+
+
+def _frost_arm(g: MobGrid, ctx):
+    o = ctx.out
+    g.blob((o * 0.3, -1.0, 0), (1.8, 1.8, 1.8), 'cloth', 0.5)
+    g.capsule((0, -1.5, 0), (0, -7.0, 0), 1.1, 1.0, 'cloth', 0.45)
+    g.cylinder((0, -6.2, 0), (0, -8.6, 0), 1.2, 2.1, 'ice', 0.6, hollow=0.9)
+    g.capsule((0, -7.0, 0), (0, -10.8, -0.4), 0.85, 0.8, 'skin', 0.55)
+    g.ring((0, -10.0, -0.3), 1.0, 0.3, axis='y', mat='metal', val=0.75)
+    g.blob((0, -11.7, -0.4), (0.9, 1.0, 0.8), 'skin', 0.58)
+    for x in (-0.5, 0.0, 0.5):
+        g.capsule((x, -12.2, -0.7), (x, -13.2, -0.9), 0.3, 0.25, 'skin', 0.6)
+    _shard(g, (o * 1.2, 0.2, 0), (o * 0.6, 1, 0), 2.6, 0.55, 'ice', prio=3)
+
+
+def _frost_scepter(g: MobGrid, ctx):
+    hx, hy, hz = ctx.hand
+    g.cylinder((hx, hy, hz + 3.0), (hx, hy, hz - 18.0), 0.55, mat='metal', val=0.6)
+    pts = [(hx + math.cos(t * 0.8) * 0.8, hy + math.sin(t * 0.8) * 0.8, hz - 3.0 - t * 0.55) for t in range(26)]
+    g.sweep(pts, 0.35, 0.35, 'ice', 0.65, smooth=False)
+    _shard(g, (hx, hy, hz + 3.0), (0, 0, 1), 2.2, 0.6, 'ice', prio=3)
+    for z in (hz - 1.6, hz + 1.6, hz - 17.4):
+        g.ring((hx, hy, z), 0.8, 0.3, axis='z', mat='metal', val=0.75)
+    c = (hx, hy, hz - 20.4)
+    g.ring(c, 2.3, 0.35, axis='z', mat='metal', val=0.7)
+    for k in range(6):
+        a = TAU * k / 6 + math.pi / 2
+        _shard(g, vadd(c, (math.cos(a) * 1.2, math.sin(a) * 1.2, 0)), (math.cos(a), math.sin(a), 0),
+               3.6 if k % 2 == 0 else 2.6, 0.5, 'ice', prio=3)
+    _shard(g, (hx, hy, hz - 18.0), (0, 0, -1), 5.4, 1.15, 'core', glow=True, prio=5)
+    _shard(g, (hx, hy, hz - 18.6), (0, 0, 1), 1.6, 1.0, 'core', glow=True, prio=5)
+
+
+def _frost_shards(g: MobGrid, ctx):
+    for k in range(8):
+        a = TAU * k / 8
+        R = 13.0
+        c = (math.cos(a) * R, 0.8 * math.sin(2 * a), math.sin(a) * R)
+        big = k % 2 == 0
+        L = 5.4 if big else 3.8
+        out = (math.cos(a) * 0.25, 1, math.sin(a) * 0.25)
+        _shard(g, c, out, L, 1.35 if big else 0.95, 'ice', prio=3)
+        _shard(g, c, vmul(out, -1), L * 0.6, 1.35 if big else 0.95, 'ice', prio=3)
+        if big:
+            g.blob(vadd(c, (math.cos(a) * 1.8, 0.4, math.sin(a) * 1.8)), 0.55, 'core', 0.6, prio=5)
+
+
+def floor06_frost_empress(look, name, part, ctx):
+    _ramps(ctx, [(('ice', 'crystal'), FROST_ICE), ('cloth', FROST_GOWN), ('skin', FROST_SKIN),
+                 ('metal', FROST_SILVER), (GLOWS, FROST_LILAC)])
+    fn = {'gown': _frost_gown, 'torso': _frost_torso, 'head': _frost_head, 'crown': _frost_crown,
+          'arm_left': _frost_arm, 'arm_right': _frost_arm, 'scepter': _frost_scepter, 'shards': _frost_shards}.get(name)
+    if fn is None:
+        return None
+    g = ctx.grid({'gown': 0.7, 'torso': 0.45, 'head': 0.45, 'crown': 0.45, 'scepter': 0.45,
+                  'shards': 0.6}.get(name, 0.45))
+    fn(g, ctx)
+    return g
+
+
+# ───────────────────────────── floor07_dyad (양극의 수정체 다이아드) ─────────────────────────────
+# Light and dark resonating in one body: a towering hexagonal bipyramid split down the middle into a
+# gold-cream radiant half (the boss's left) and a violet-black half, the seam a blinding white line, a
+# rune-cut gold equator belt.  Flanking it, a wing of radiant crystal spires (left) and a wing of
+# jagged broken obsidian shards veined with violet light (right).  A segmented runic inner ring and a thin
+# outer ring strung with prism nodes, both alternating light / dark.
+
+DYAD_LIGHT = [(110, 92, 46), (170, 148, 84), (222, 202, 130), (250, 236, 170), (255, 248, 214), (255, 255, 255)]
+DYAD_DARK = [(6, 4, 12), (16, 10, 30), (32, 22, 60), (56, 40, 104), (90, 68, 160), (140, 112, 214)]
+DYAD_CORE = [(150, 120, 60), (220, 190, 110), (255, 236, 170), (255, 248, 220), (255, 255, 245), (255, 255, 255)]
+DYAD_RUNE = [(60, 30, 120), (110, 70, 200), (160, 120, 250), (200, 170, 255), (232, 216, 255), (255, 255, 255)]
+DYAD_GOLD = [(60, 44, 16), (120, 92, 40), (184, 150, 80), (230, 204, 130), (250, 236, 190), (255, 250, 230)]
+FACETS = (0.64, 0.5, 0.34, 0.4, 0.54, 0.74)
+
+
+def _bipyr(g, c, r, y0, y1, up, dn, mat='crystal', glow=False, prio=3, rot=0.0, vfn=None):
+    """Vertical hexagonal bipyramid at c: column y0..y1 (relative to c), points `up` / `dn` px beyond.
+    vfn(x, y, z, facet 0..5, edge 0..1, tip −1/0/1) → value | (mat, v[, glow])."""
+    vs = g.vs
+    ca, sa = math.cos(rot), math.sin(rot)
+    third = math.pi / 3
+    for i in g._range(c[0] - r, c[0] + r):
+        x = i * vs - c[0]
+        for k in g._range(c[2] - r, c[2] + r):
+            z = k * vs - c[2]
+            u, w = x * ca + z * sa, -x * sa + z * ca
+            hexd = max(abs(u), abs(u) * 0.5 + abs(w) * 0.866)
+            if hexd > r + 1e-6:
+                continue
+            th = math.atan2(w, u)
+            f = int(math.floor((th + third / 2) / third)) % 6
+            q = (th + third / 2) % third
+            edge = 1.0 - min(q, third - q) / (third / 2)
+            for j in g._range(c[1] + y0 - dn, c[1] + y1 + up):
+                y = j * vs - c[1]
+                if y > y1:
+                    rad, tp = r * (1 - (y - y1) / up), 1
+                elif y < y0:
+                    rad, tp = r * (1 - (y0 - y) / dn), -1
+                else:
+                    rad, tp = r, 0
+                if rad <= 0 or hexd > max(vs * 0.45, rad):
+                    continue
+                if vfn:
+                    res = vfn(x, y, z, f, edge if hexd > rad - vs * 1.1 else 0.0, tp)
+                else:
+                    res = FACETS[f] + (0.14 if tp > 0 else -0.06 if tp < 0 else 0.0)
+                g._emit((i, j, k), res, mat, glow, prio)
+
+
+def _dyad_core(g: MobGrid, ctx):
+    def cv(x, y, z, f, edge, tp):
+        if abs(x) < 0.45:
+            return ('core', 0.7)
+        side = 'light' if x < 0 else 'dark'
+        v = FACETS[f] + (0.12 if tp > 0 else -0.08 if tp < 0 else 0.0) + 0.22 * edge
+        if side == 'dark':
+            if edge > 0.9:
+                return ('rune', 0.35)
+            return (side, v * 0.7 - 0.06)
+        return (side, v)
+
+    _bipyr(g, (0, 0, 0), 7.6, -5.8, 5.8, 8.8, 8.8, 'light', vfn=cv)
+    g.cylinder((0, -0.9, 0), (0, 0.9, 0), 8.3, mat='metal', val=0.6,
+               vfn=lambda t, rad, p: ('metal', 0.55 + 0.15 * (p[0] < 0)) if rad > 0.85 else None)
+    for k in range(6):
+        a = TAU * k / 6 + math.pi / 6
+        g.runes((math.cos(a) * 8.4, 0.0, math.sin(a) * 8.4), (math.cos(a), 0, math.sin(a)), w=3.0, h=1.2,
+                mat='core' if math.cos(a) < 0 else 'rune', val=0.5, density=0.9, seed=20 + k)
+    for k in range(5):
+        a = TAU * k / 5 + 0.3
+        p = (math.cos(a) * 3.4, -10.6 - 0.8 * (k % 2), math.sin(a) * 3.4)
+        _bipyr(g, p, 0.9, -0.4, 0.4, 1.2, 1.2, 'light' if math.cos(a) < 0 else 'dark')
+    g.blob((0, 0, -7.0), (1.2, 1.6, 0.9), 'core', 0.85, prio=6)
+
+
+def _dyad_wing(g: MobGrid, ctx, light):
+    o = -1 if light else 1                          # light wing on the model −X side
+    mat = 'light' if light else 'dark'
+    spires = ((-0.35, 1.0, 0.1, 13.0, 1.7), (-1.0, 0.55, 0.0, 10.4, 1.5), (-1.0, 0.0, 0.25, 8.4, 1.3),
+              (-0.85, -0.6, -0.1, 9.0, 1.35), (-0.3, -1.0, 0.1, 10.0, 1.5), (-0.6, 0.8, -0.5, 7.0, 1.0),
+              (-0.7, -0.3, 0.6, 6.0, 0.9))
+    for k, (dx, dy, dz, L, r) in enumerate(spires):
+        base = (-o * 1.2, dy * 2.0, dz * 1.6)
+        if not light:
+            L *= 0.8 + 0.25 * h2(k, 3, g.seed)
+        _shard(g, base, (o * -dx, dy, dz), L, r, mat, prio=3, val=0.06 if light else -0.04,
+               tip=0.45 if light else 0.25)
+    if light:
+        for k in range(5):
+            a = -0.9 + 0.45 * k
+            g.dot((o * (6.0 + 3.0 * math.cos(a)), 6.0 * math.sin(a) + 1.0, -1.6), 'core', 0.8, prio=5)
+    else:
+        g.cracks([mat], mat='rune', width=0.05, scale=2.6, val=0.4)
+        for k in range(4):
+            p = (o * (5.0 + 1.6 * k), -6.0 + 3.6 * k, 1.4 - 0.8 * k)
+            _shard(g, p, (o * 0.4, 1, 0.2), 2.2, 0.6, mat, prio=3)
+
+
+def _dyad_light(g, ctx):
+    _dyad_wing(g, ctx, True)
+
+
+def _dyad_dark(g, ctx):
+    _dyad_wing(g, ctx, False)
+
+
+def _dyad_ring_inner(g: MobGrid, ctx):
+    R = 15.4
+    for k in range(12):
+        a0, a1 = k / 12 + 0.006, (k + 1) / 12 - 0.006
+        light = k % 2 == 0
+        _ering(g, (0, 0, 0), R, R, 0.95, 'light' if light else 'dark', 0.55, n=10, arc=(a0, a1))
+        am = TAU * (a0 + a1) / 2
+        g.runes((math.cos(am) * R, 1.6, math.sin(am) * R), (0, 1, 0), w=3.0, h=1.0, mat='core' if light else 'rune',
+                val=0.5, density=0.9, seed=30 + k)
+        g.blob((math.cos(TAU * a0) * R, 0, math.sin(TAU * a0) * R), 1.25, 'metal', 0.6, prio=4)
+
+
+def _dyad_ring_outer(g: MobGrid, ctx):
+    R = 20.6
+    _ering(g, (0, 0, 0), R, R, 0.45, 'metal', 0.55, n=96)
+    for k in range(6):
+        a = TAU * k / 6
+        c = (math.cos(a) * R, 0.0, math.sin(a) * R)
+        _bipyr(g, c, 1.3, -0.5, 0.5, 1.8, 1.8, 'light' if k % 2 == 0 else 'dark', prio=4)
+
+
+def floor07_dyad(look, name, part, ctx):
+    _ramps(ctx, [('light', DYAD_LIGHT), ('dark', DYAD_DARK), (('core', 'glow', 'eye'), DYAD_CORE), ('rune', DYAD_RUNE),
+                 ('metal', DYAD_GOLD)])
+    fn = {'core': _dyad_core, 'light_half': _dyad_light, 'dark_half': _dyad_dark, 'ring_inner': _dyad_ring_inner,
+          'ring_outer': _dyad_ring_outer}.get(name)
+    if fn is None:
+        return None
+    g = ctx.grid({'core': 0.7, 'light_half': 0.55, 'dark_half': 0.55, 'ring_inner': 0.6, 'ring_outer': 0.6}[name])
+    fn(g, ctx)
+    return g
+
+
+# ───────────────────────────── floor08_ink_librarian (잉크 사서 오르벨) ─────────────────────────────
+# Keeper of the archive of oblivion, made of ink: a floating navy scholar's robe with gold-embroidered
+# edges and glowing blue rune script that dissolves into dripping ink at the hem, pages stuck to it and a
+# chained grimoire at the belt; a gold rune stole, a standing collar of stacked page edges; a tall
+# pointed hood whose black opening holds two blue eyes behind floating gold spectacles.  Bell sleeves,
+# ink-black dripping hands, a great feather quill with a gold nib, and open tomes orbiting him.
+
+INK_ROBE = [(4, 4, 10), (10, 12, 24), (18, 24, 46), (30, 40, 74), (46, 62, 108), (70, 92, 146), (110, 136, 190)]
+INK_INK = [(2, 2, 6), (6, 8, 16), (14, 18, 36), (26, 34, 64), (44, 58, 100), (70, 90, 140)]
+INK_GOLD = [(48, 32, 12), (96, 68, 26), (150, 110, 48), (200, 160, 96), (236, 210, 150), (252, 240, 210)]
+INK_PAPER = [(110, 96, 70), (170, 152, 116), (214, 200, 164), (239, 228, 200), (252, 246, 230)]
+INK_GLOW = [(20, 30, 80), (50, 80, 160), (90, 130, 210), (150, 186, 240), (210, 230, 255), (255, 255, 255)]
+INK_LEATHER = [(14, 10, 20), (30, 22, 44), (50, 36, 70), (74, 54, 100), (104, 78, 136)]
+
+
+def _obox(g, c, U, V, W, h, mat, val=0.5, vfn=None, prio=2):
+    """Oriented box: centre c, orthonormal axes U V W, half sizes h; vfn(lu, lv, lw) → value | (mat, v)."""
+    R = math.sqrt(h[0] ** 2 + h[1] ** 2 + h[2] ** 2) + g.vs
+    for i in g._range(c[0] - R, c[0] + R):
+        for j in g._range(c[1] - R, c[1] + R):
+            for k in g._range(c[2] - R, c[2] + R):
+                d = (i * g.vs - c[0], j * g.vs - c[1], k * g.vs - c[2])
+                lu, lv, lw = (d[0] * U[0] + d[1] * U[1] + d[2] * U[2], d[0] * V[0] + d[1] * V[1] + d[2] * V[2],
+                              d[0] * W[0] + d[1] * W[1] + d[2] * W[2])
+                if abs(lu) <= h[0] and abs(lv) <= h[1] and abs(lw) <= max(h[2], g.vs * 0.5):
+                    g._emit((i, j, k), vfn(lu, lv, lw) if vfn else val, mat, False, prio)
+
+
+def _open_book(g, c, out, w=4.2, h=5.6, open_=0.5, seed=0, tilt=0.25):
+    up = vnorm((0, 1, -0.0))
+    o = vnorm((out[0], 0, out[2]))
+    up = vnorm(vadd(up, vmul(o, -tilt)))                  # lean the spine back so the pages face up-out
+    tan = vnorm(vcross(up, o))
+    for s in (-1, 1):
+        d = vnorm(vadd(vmul(tan, s * math.cos(open_)), vmul(o, -math.sin(open_))))
+        nrm = vcross(d, up)
+        if vdot3(nrm, o) < 0:
+            nrm = vmul(nrm, -1)
+        hc = vadd(c, vmul(d, w / 2 + 0.2))
+
+        def pv(lu, lv, lw, s=s):
+            if s > 0 and abs(lu) < 1.0 and abs(lv) < 1.2:
+                return ('rune', 0.45)
+            if (lv * 1.25 + 9.0) % 1.0 < 0.3 and abs(lu) < w / 2 - 0.5 and abs(lv) < h / 2 - 0.6:
+                return ('ink', 0.3)
+            return ('paper', 0.66 + 0.1 * (lw > 0))
+        _obox(g, hc, d, up, nrm, (w / 2, h / 2, 0.45), 'paper', vfn=pv)
+        _obox(g, vadd(hc, vmul(nrm, -0.7)), d, up, nrm, (w / 2 + 0.3, h / 2 + 0.35, 0.25), 'leather', 0.45, prio=1)
+        for cu in (-1, 1):
+            for cv in (-1, 1):
+                g.dot(vadd(vadd(vadd(hc, vmul(nrm, -0.75)), vmul(d, cu * w / 2)), vmul(up, cv * h / 2)), 'brass', 0.7,
+                      prio=3)
+    g.capsule(vadd(c, vmul(up, -h / 2)), vadd(c, vmul(up, h / 2)), 0.55, 0.55, 'leather', 0.4, prio=2)
+
+
+def vdot3(a, b):
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+
+
+def _ink_robe(g: MobGrid, ctx):
+    def rv(x, y, z, t, fold):
+        if t > 0.8:
+            return ('ink', 0.2 + 0.25 * fold + 0.2 * (t < 0.9))
+        if 0.68 < t < 0.74:
+            return ('brass', 0.6)
+        if z < 0 and abs(abs(x) - (0.9 + 2.0 * t)) < 0.5:
+            return ('brass', 0.55)
+        return 0.4 + 0.13 * fold - 0.08 * t
+    _robe(g, 4.6, -11.0, 3.6, 7.0, 'cloth', folds=7, amp=0.14, zs=0.82, hem=3.0, power=1.3, vfn=rv)
+    g.carve(lambda x, y, z: z < -1.0 and abs(x) < 0.55 + 0.1 * (4.6 - y) and y < 2.0)
+    for k in range(9):
+        a = TAU * (k + 0.3) / 9
+        _drip(g, (math.cos(a) * 6.6, -12.2 - 0.9 * (k % 3), math.sin(a) * 5.4), 1.4 + 0.8 * (k % 2), r=0.4,
+              mat='ink', val=0.35)
+    g.runes((0, -6.4, -7.0), (0, 0, -1), w=7.0, h=2.4, mat='rune', val=0.45, density=0.7, seed=40)
+    g.runes((0, -6.0, 7.0), (0, 0, 1), w=7.0, h=2.4, mat='rune', val=0.45, density=0.7, seed=41)
+    for k, (x, y, z) in enumerate(((-5.6, -3.0, -1.4), (4.8, -5.4, 1.6), (-3.2, -8.0, 4.6), (5.4, -1.0, -2.6))):
+        p = g.hit((x * 2.0, y, z * 2.0), (-x, 0, -z))
+        if p:
+            nrm = vnorm((x, 0, z))
+            tan = vnorm(vcross((0, 1, 0), nrm))
+            _obox(g, vadd(p, vmul(nrm, 0.3)), tan, vnorm((0.25 * (k % 2 - 0.5), 1, 0)), nrm, (1.2, 1.6, 0.2),
+                  'paper', vfn=lambda lu, lv, lw: ('ink', 0.3) if (lv * 1.4 + 5) % 1 < 0.3 else ('paper', 0.62),
+                  prio=4)
+    # chained grimoire at the belt
+    g.chain([(-2.4, 4.0, -3.4), (-3.0, 1.6, -4.4), (-3.4, -0.6, -5.0)], 0.9, 'iron', 0.55)
+    g.rbox((-5.0, -4.2, -6.0), (-1.8, -0.6, -4.6), 'leather', 0.42, bevel=0.3)
+    g.rbox((-4.8, -4.0, -4.7), (-2.0, -0.8, -4.4), 'paper', 0.7)
+    g.ring((-3.4, -2.4, -5.3), 1.0, 0.25, axis='x', mat='brass', val=0.7)
+    g.dot((-3.4, -2.4, -6.1), 'rune', 0.6, prio=5)
+
+
+def _ink_torso(g: MobGrid, ctx):
+    g.blob((0, 0.6, 0), (4.6, 4.6, 3.0), 'cloth', 0.45)
+    g.blob((0, -3.4, 0), (3.6, 2.4, 2.6), 'cloth', 0.42)
+    for s in (-1, 1):
+        g.blob((s * 4.2, 3.4, 0), (2.4, 2.0, 2.6), 'cloth', 0.5)
+        g.sweep([(s * 2.6, 4.6, -1.4), (s * 1.9, 1.0, -3.0), (s * 1.7, -4.8, -2.7)], 0.8, 0.8, 'brass', 0.52,
+                sq=(1, 1, 0.6))
+    g.runes((0, 0.0, -4.0), (0, 0, -1), w=6.0, h=6.0, mat='rune', val=0.45, density=0.35, seed=42)
+    for k in range(5):
+        y = 4.2 + 0.7 * k
+        _ering(g, (0, y, 0.4), 4.3 + 0.12 * k, 3.4 + 0.18 * k, 0.4, 'paper', 0.55 + 0.08 * (k % 2), arc=(0.0, 0.5),
+               n=32)
+    g.rbox((-1.2, 3.0, -3.6), (1.2, 4.6, -2.8), 'brass', 0.6, bevel=0.2)
+    g.dot((0, 3.8, -3.8), 'rune', 0.6, prio=5)
+    for x in (-4.6, 3.8):
+        _drip(g, (x, 1.6, -2.0), 1.6, r=0.3, mat='ink', val=0.35)
+
+
+def _ink_head(g: MobGrid, ctx):
+    g.blob((0, 0, 0.4), (4.3, 4.6, 4.3), 'cloth', 0.45, top=0.15)
+    g.cone((0, 3.0, 1.6), (0, 1, 0.55), 4.0, 2.4, 'cloth', 0.45, tip_val=0.55)
+    g.carve_blob((0, -0.4, -4.4), (2.8, 3.4, 2.8))
+    g.blob((0, -0.4, -1.6), (2.7, 3.3, 1.2), 'void', 0.08, prio=2)
+    g.eyes((1.0, 0.6, -2.5), 0.55, 2.2, val=0.8)
+    for s in (-1, 1):
+        g.capsule((s * 1.1, 0.0, -2.6), (s * 1.0, -2.0, -2.6), 0.22, 0.22, 'rune', 0.25, prio=4)
+    g.ring((0, -0.4, -3.6), 3.0, 0.4, axis='z', mat='brass', val=0.6)
+    for x in (-2.2, -0.8, 1.6):
+        _drip(g, (x, -3.6, -3.4), 1.2, r=0.3, mat='ink', val=0.35)
+    for s in (-1, 1):
+        g.runes((s * 4.6, 0.6, 0.4), (s, 0, 0), w=3.0, h=3.0, mat='rune', val=0.45, density=0.8, seed=43 + s)
+
+
+def _ink_spectacles(g: MobGrid, ctx):
+    for s in (-1, 1):
+        g.ring((s * 1.8, 0, 0), 1.45, 0.28, axis='z', mat='brass', val=0.7)
+        g.cylinder((s * 1.8, 0, -0.1), (s * 1.8, 0, 0.1), 1.2, mat='rune', val=0.2)
+        g.capsule((s * 3.2, 0.1, 0), (s * 3.5, 0.2, 2.6), 0.22, 0.22, 'brass', 0.6)
+    g.sweep([(-0.5, 0.2, 0), (0, 0.6, 0), (0.5, 0.2, 0)], 0.22, 0.22, 'brass', 0.7)
+
+
+def _ink_arm(g: MobGrid, ctx):
+    g.capsule((0, -0.6, 0), (0, -6.0, 0), 1.8, 1.7, 'cloth', 0.45)
+    g.cylinder((0, -5.4, 0), (0, -10.4, -0.4), 1.8, 3.0, 'cloth', 0.42, hollow=1.4)
+    g.ring((0, -10.2, -0.4), 2.9, 0.4, axis='y', mat='brass', val=0.6)
+    g.blob((0, -10.8, -0.4), (1.0, 1.1, 0.9), 'ink', 0.4)
+    for k, x in enumerate((-0.6, 0.0, 0.6)):
+        g.capsule((x, -11.4, -0.6), (x * 1.3, -13.6, -1.0), 0.32, 0.26, 'ink', 0.45)
+        if k != 1:
+            _drip(g, (x * 1.3, -13.8, -1.0), 0.8, r=0.25, mat='ink', val=0.4)
+    g.runes((0, -8.0, -2.6), (0, 0, -1), w=2.0, h=2.0, mat='rune', val=0.45, density=0.8, seed=45)
+
+
+def _ink_quill(g: MobGrid, ctx):
+    hx, hy, hz = ctx.hand
+    g.cylinder((hx, hy, hz + 6.0), (hx, hy, hz - 10.4), 0.4, mat='bone', val=0.72)
+    g.cone((hx, hy, hz - 10.4), (0, -0.2, -1), 3.0, 0.75, 'brass', 0.55, tip_val=0.85)
+    g.dot((hx, hy - 0.6, hz - 13.3), 'rune', 0.7, prio=5)
+    _drip(g, (hx, hy - 0.8, hz - 13.0), 0.9, r=0.25, mat='rune', val=0.35)
+    lo_u, hi_u = hz - 6.5, hz + 7.5
+
+    def width(u):
+        t = (u - lo_u) / (hi_u - lo_u)
+        return max(0.0, math.sin(math.pi * min(1.0, t * 1.15)))
+
+    def mask(u, v):
+        if u < lo_u or u > hi_u:
+            return False
+        w = width(u)
+        top, bot = 3.2 * w, -1.2 * w
+        if not (bot <= v - hy <= top):
+            return False
+        if v - hy > 1.2 and ((u - (v - hy) * 0.6) % 2.2) < 0.3:
+            return False
+        return True
+
+    def fv(u, v, w, edge):
+        if edge < 0.5 and v - hy > 2.0:
+            return ('rune', 0.3)
+        return ('ink', 0.4 + 0.15 * (((u + (v - hy) * 0.6) * 1.4) % 1 < 0.35) + 0.1 * (v > hy))
+    g.slab2d(mask, (lo_u, hy - 1.6), (hi_u, hy + 3.6), plane='zy', depth=hx, half=0.25, mat='ink', vfn=fv)
+
+
+def _ink_tomes(g: MobGrid, ctx):
+    R = 11.4
+    for k in range(3):
+        a = TAU * k / 3 + math.pi / 2
+        c = (math.cos(a) * R, 1.6 * math.sin(2 * a + 0.4), math.sin(a) * R)
+        _open_book(g, c, (math.cos(a), 0, math.sin(a)), w=4.0, h=5.2, open_=0.45 + 0.1 * k, seed=k)
+        b = TAU * k / 3 + math.pi / 2 + TAU / 6
+        p = (math.cos(b) * (R - 0.6), 2.4 * math.sin(b * 3), math.sin(b) * (R - 0.6))
+        nrm = vnorm((math.cos(b), 0, math.sin(b)))
+        _obox(g, p, vnorm(vcross((0, 1, 0), nrm)), vnorm((0.3, 1, 0.2)), nrm, (0.9, 1.2, 0.15), 'paper',
+              vfn=lambda lu, lv, lw: ('rune', 0.4) if abs(lu) < 0.4 and abs(lv) < 0.5 else ('paper', 0.7), prio=3)
+
+
+def floor08_ink_librarian(look, name, part, ctx):
+    _ramps(ctx, [('cloth', INK_ROBE), ('ink', INK_INK), ('brass', INK_GOLD), ('paper', INK_PAPER),
+                 (GLOWS, INK_GLOW), ('leather', INK_LEATHER)])
+    fn = {'robe': _ink_robe, 'torso': _ink_torso, 'head': _ink_head, 'spectacles': _ink_spectacles,
+          'arm_left': _ink_arm, 'arm_right': _ink_arm, 'quill': _ink_quill, 'tomes': _ink_tomes}.get(name)
+    if fn is None:
+        return None
+    g = ctx.grid({'robe': 0.7, 'torso': 0.5, 'head': 0.5, 'spectacles': 0.3, 'quill': 0.4,
+                  'tomes': 0.45}.get(name, 0.5))
+    fn(g, ctx)
+    return g
+
+
+# ───────────────────────────── floor09_clock_warden (시계탑의 간수 테오라) ─────────────────────────────
+# Warden of the great clock: a grandfather-clock body of dark mahogany framed in riveted brass, a toothed
+# clock dial on the chest ringed with teal light, exposed gear trains on the flanks, glowing coolant pipes
+# and a wind-up key in the back; a lantern head (brass cage, domed roof with a bell finial) holding a
+# single teal slit-pupilled eye.  Gear-jointed arms with pistons and clamp hands, a minute-hand blade with
+# filigree, a pendulum swinging behind.
+
+CLOCK_BRASS = [(30, 20, 8), (66, 44, 18), (110, 76, 32), (160, 114, 52), (210, 160, 84), (240, 204, 128),
+               (255, 240, 200)]
+CLOCK_WOOD = [(16, 10, 6), (34, 20, 12), (56, 34, 18), (84, 52, 28), (116, 76, 42), (150, 104, 62)]
+CLOCK_DIAL = [(150, 130, 96), (200, 182, 140), (232, 218, 180), (250, 242, 214), (255, 252, 240)]
+CLOCK_TEAL = [(10, 60, 50), (30, 130, 110), (80, 210, 180), (150, 240, 214), (220, 255, 244), (255, 255, 255)]
+CLOCK_IRON = [(14, 12, 12), (32, 28, 26), (56, 50, 46), (86, 78, 70), (120, 112, 102), (160, 152, 142)]
+
+
+def _clock_torso(g: MobGrid, ctx):
+    g.rbox((-9.6, -1.0, -5.8), (9.6, 8.6, 6.0), 'wood', 0.45, bevel=1.8)
+    g.rbox((-7.0, -9.0, -5.0), (7.0, 0.0, 5.2), 'wood', 0.4, bevel=1.4)
+    g.bands(['wood'], axis=1, period=1.7, width=0.4, amount=-0.08)
+    g.plate((-9.9, 6.8, -6.2), (9.9, 8.9, 6.3), 'brass', 0.52, rivet_mat='brass', rivet_step=2.2, bevel=0.5)
+    for s in (-1, 1):
+        g.plate((s * 7.6, -1.0, -6.4), (s * 9.6, 6.8, -5.4), 'brass', 0.5, rivet_mat='brass', rivet_step=2.0,
+                bevel=0.3)
+        g.gear((s * 9.9, 3.2, 0.6), 3.4, teeth=10, axis='x', thick=1.0, mat='brass', val=0.55, hole=0.25, spokes=4)
+        g.gear((s * 9.8, -1.6, 3.0), 2.0, teeth=7, axis='x', thick=0.8, mat='iron', val=0.5, hole=0.3, spokes=0)
+        g.sweep([(s * 6.0, -8.0, -4.6), (s * 8.4, -2.0, -5.6), (s * 9.2, 5.0, -5.0), (s * 7.0, 9.4, 0.0)], 0.55, 0.55,
+                'glow', 0.4)
+    g.ring((0, 0.8, -5.9), 8.3, 0.9, axis='z', mat='brass', val=0.6)
+    g.rbox((-7.3, -6.6, -5.4), (7.3, -4.6, 5.6), 'brass', 0.5, bevel=0.5)
+    g.runes((0, -5.6, -5.8), (0, 0, -1), w=11.0, h=1.4, mat='rune', val=0.45, density=0.8, seed=50)
+    # wind-up key in the back
+    g.cylinder((0, 7.4, 5.6), (0, 7.4, 9.6), 0.8, mat='brass', val=0.55)
+    for s in (-1, 1):
+        g.ring((s * 1.9, 7.4, 10.2), 1.7, 0.5, axis='z', mat='brass', val=0.62)
+    g.blob((0, 7.4, 10.2), (1.0, 1.2, 0.8), 'brass', 0.6)
+    g.blob((0, 4.8, 6.4), (1.4, 1.0, 1.0), 'brass', 0.5)                     # pendulum bracket
+    for y in (5.0, 2.0, -1.0):
+        for x in (-5.0, 5.0):
+            g.dot((x, y, 6.2), 'brass', 0.75, prio=4)
+
+
+def _clock_face(g: MobGrid, ctx):
+    g.gear((0, 0, 0.3), 8.0, teeth=24, axis='z', thick=1.0, mat='brass', val=0.55, hole=0.0, spokes=0)
+    g.cylinder((0, 0, -0.8), (0, 0, -0.3), 6.7, mat='paper', val=0.6,
+               vfn=lambda t, rad, p: 0.5 + 0.2 * (1 - rad))
+    g.ring((0, 0, -0.9), 6.9, 0.3, axis='z', mat='glow', val=0.45)
+    g.ring((0, 0, -0.9), 4.0, 0.22, axis='z', mat='brass', val=0.6)
+    for k in range(12):
+        a = TAU * k / 12
+        sx, sy = math.sin(a), math.cos(a)
+        if k % 3 == 0:
+            _obox(g, (sx * 5.5, sy * 5.5, -1.0), (sy, -sx, 0), (sx, sy, 0), (0, 0, 1), (0.35, 0.9, 0.2), 'rune', 0.5,
+                  prio=4)
+        else:
+            g.dot((sx * 5.6, sy * 5.6, -1.0), 'iron', 0.35, prio=4)
+    g.sweep([(0, 0, -1.3), (0.2, 3.6, -1.3)], 0.45, 0.3, 'iron', 0.35)
+    g.cone((0.2, 3.4, -1.3), (0.05, 1, 0), 1.2, 0.7, 'brass', 0.6)
+    g.sweep([(0, 0, -1.6), (4.6, 2.2, -1.6)], 0.4, 0.25, 'iron', 0.35)
+    g.cylinder((0, 0, -2.0), (0, 0, -0.8), 0.9, mat='brass', val=0.65)
+    g.dot((0, 0, -2.2), 'glow', 0.7, prio=5)
+
+
+def _clock_head(g: MobGrid, ctx):
+    g.cylinder((0, -5.0, 0), (0, -3.6, 0), 3.9, mat='brass', val=0.5)
+    g.rivets([(math.cos(TAU * k / 8) * 3.95, -4.3, math.sin(TAU * k / 8) * 3.95) for k in range(8)], 'brass', 0.8)
+    for k in range(6):
+        a = TAU * (k + 0.5) / 6
+        g.capsule((math.cos(a) * 3.3, -3.6, math.sin(a) * 3.3), (math.cos(a) * 3.3, 1.9, math.sin(a) * 3.3), 0.4,
+                  0.4, 'brass', 0.55)
+    g.eye((0, -0.8, -0.3), 2.1, val=0.66, slit=True, facing=(0, 0, -1))
+    g.ring((0, -0.8, -0.3), 2.5, 0.3, axis='z', mat='brass', val=0.6)
+    g.blob((0, 2.0, 0), (3.9, 2.2, 3.9), 'brass', 0.5, cut=lambda x, y, z: y < 2.0, top=0.25)
+    g.cylinder((0, 1.6, 0), (0, 2.4, 0), 4.1, mat='brass', val=0.45)
+    g.blob((0, 4.9, 0), (1.0, 1.1, 1.0), 'brass', 0.66)
+    g.cone((0, 5.6, 0), (0, 1, 0), 1.8, 0.45, 'brass', 0.6, tip_val=0.9)
+    for s in (-1, 1):
+        g.gear((s * 4.0, -1.2, 0), 1.6, teeth=6, axis='x', thick=0.6, mat='iron', val=0.5, hole=0.3, spokes=0)
+
+
+def _clock_arm(g: MobGrid, ctx):
+    o = ctx.out
+    right = ctx.name == 'arm_right'
+    g.blob((o * 0.6, -1.2, 0), (4.2, 3.8, 4.0), 'brass', 0.5, top=0.2)
+    g.gear((o * 4.4, -1.2, 0), 2.8, teeth=8, axis='x', thick=0.8, mat='iron', val=0.5, hole=0.25, spokes=4)
+    g.capsule((0, -3.0, 0), (0, -10.0, 0), 2.4, 2.3, 'wood', 0.45)
+    for y in (-4.2, -8.8):
+        g.ring((0, y, 0), 2.45, 0.4, axis='y', mat='brass', val=0.6)
+    g.capsule((o * 2.7, -4.0, 0.4), (o * 2.7, -13.0, 0.4), 0.55, 0.55, 'iron', 0.6)
+    g.cylinder((o * 2.7, -5.0, 0.4), (o * 2.7, -8.6, 0.4), 0.85, mat='brass', val=0.5)
+    g.gear((0, -11.4, 0), 2.6, teeth=8, axis='x', thick=1.0, mat='brass', val=0.55, hole=0.25, spokes=0)
+    g.capsule((0, -12.0, 0), (0, -18.0, -0.4), 2.6, 2.9, 'brass', 0.5)
+    _box(g, (-1.0, -16.4, -3.2), (1.0, -13.6, -2.4), 'glow', 0.45)
+    g.rbox((-2.4, -21.0, -2.4), (2.4, -18.4, 2.2), 'iron', 0.5, bevel=0.6)
+    for k, a in enumerate((-0.9, 0.0, 0.9)):
+        x = math.sin(a) * 1.6
+        g.limb([(x, -20.6, -1.6), (x * 1.2, -22.2, -2.6), (x * 1.1, -23.6, -2.0)], [0.6, 0.5, 0.35], 'iron', 0.5,
+               joint_mat='brass', joint_val=0.6)
+    if not right:
+        g.cylinder((0, -15.0, -3.0), (0, -15.0, -3.6), 1.4, mat='paper', val=0.6)
+        g.ring((0, -15.0, -3.5), 1.5, 0.3, axis='z', mat='brass', val=0.65)
+        g.dot((0, -15.0, -3.9), 'glow', 0.7, prio=5)
+
+
+def _clock_blade(g: MobGrid, ctx):
+    hx, hy, hz = ctx.hand
+    tip, base = hz - 24.0, hz - 15.6
+
+    def mask(u, v):
+        dv = v - hy
+        if hz - 15.6 <= u <= hz + 3.6 and abs(dv) < 0.6:
+            return True
+        r = math.hypot(u - (hz - 9.6), dv)
+        if 1.1 < r < 2.0:
+            return True
+        r2 = math.hypot(u - (hz + 5.2), dv)
+        if 0.9 < r2 < 1.9:
+            return True
+        if tip <= u <= base:
+            t = (base - u) / (base - tip)
+            w = 1.0 + 7.0 * t if t < 0.25 else 2.75 * (1 - t) / 0.75
+            return abs(dv) <= w
+        return False
+
+    def fv(u, v, w, edge):
+        if tip <= u <= base and edge < 0.6:
+            return ('metal', 0.82)
+        if tip + 2.0 <= u <= base - 1.0 and abs(v - hy) < 0.35:
+            return ('glow', 0.45)
+        return ('brass', 0.5 + 0.1 * (edge > 1.0))
+    g.slab2d(mask, (tip - 0.5, hy - 3.2), (hz + 7.4, hy + 3.2), plane='zy', depth=hx, half=0.5, mat='brass', vfn=fv)
+
+
+def _clock_pendulum(g: MobGrid, ctx):
+    g.blob((0, 0.4, 0), (1.0, 1.0, 1.0), 'brass', 0.6)
+    g.cylinder((0, 0.6, 0), (0, -15.4, 0), 0.45, mat='brass', val=0.6)
+    for y in (-5.0, -10.0):
+        g.ring((0, y, 0), 0.8, 0.3, axis='y', mat='brass', val=0.7)
+    g.cylinder((0, -18.4, -0.7), (0, -18.4, 0.7), 3.6, mat='brass', val=0.55)
+    g.ring((0, -18.4, 0), 3.6, 0.45, axis='z', mat='brass', val=0.7)
+    for zz in (-0.9, 0.9):
+        g.cylinder((0, -18.4, zz - 0.15), (0, -18.4, zz + 0.15), 1.9, mat='glow', val=0.45)
+        for k in range(8):
+            a = TAU * k / 8
+            g.dot((math.cos(a) * 2.7, -18.4 + math.sin(a) * 2.7, zz), 'iron', 0.35, prio=4)
+
+
+def _clock_legs(g: MobGrid, ctx):
+    gy = -14.0
+    g.rbox((-6.6, -3.0, -3.4), (6.6, 0.8, 3.6), 'wood', 0.45, bevel=1.0)
+    g.rbox((-6.8, -1.2, -3.6), (6.8, 0.2, 3.8), 'brass', 0.55, bevel=0.3)
+    for s in (-1, 1):
+        x = s * 3.8
+        g.capsule((x, -2.0, 0), (x, -6.6, 0), 2.3, 2.2, 'brass', 0.5)
+        g.gear((x, -7.4, 0), 2.5, teeth=8, axis='x', thick=1.0, mat='iron', val=0.5, hole=0.0, spokes=0)
+        g.dot((x + s * 0.7, -7.4, 0), 'glow', 0.7, prio=5)
+        g.capsule((x, -8.0, 0), (x, -11.4, 0), 2.2, 2.5, 'wood', 0.45)
+        g.capsule((x - s * 2.2, -3.0, 1.0), (x - s * 2.0, -11.0, 1.4), 0.4, 0.4, 'iron', 0.6)
+        g.rbox((x - 2.8, gy, -4.6), (x + 2.8, gy + 2.2, 2.8), 'brass', 0.5, bevel=0.6)
+        for k in range(3):
+            tx = x - 1.8 + 1.8 * k
+            g.cone((tx, gy + 0.6, -4.4), (0, -0.2, -1), 1.6, 0.6, 'iron', 0.5, tip_val=0.75)
+
+
+def floor09_clock_warden(look, name, part, ctx):
+    _ramps(ctx, [('brass', CLOCK_BRASS), ('wood', CLOCK_WOOD), ('paper', CLOCK_DIAL), (GLOWS, CLOCK_TEAL),
+                 ('iron', CLOCK_IRON)])
+    fn = {'torso': _clock_torso, 'clockface': _clock_face, 'head': _clock_head, 'arm_left': _clock_arm,
+          'arm_right': _clock_arm, 'hand_blade': _clock_blade, 'pendulum': _clock_pendulum,
+          'legs': _clock_legs}.get(name)
+    if fn is None:
+        return None
+    g = ctx.grid({'torso': 0.8, 'clockface': 0.5, 'head': 0.5, 'hand_blade': 0.5, 'pendulum': 0.45,
+                  'legs': 0.7}.get(name, 0.7))
+    fn(g, ctx)
+    return g
+
+
+# ───────────────────────────── floor10_abyss_heart (심연의 심장 넬카르) ─────────────────────────────
+# The black heart rooted through every floor: an obsidian-dark anatomical heart with swollen atria, a
+# crimson sulcus and great vessels whose open mouths glow cyan, sculk-like cyan veins spreading over it,
+# a lidded socket on its face holding a veined eye with a cyan iris and slit pupil.  Root-tentacles
+# sprawl across the floor ending in glowing sculk patches; two vast rune-ringed horns crown it, and a ring
+# of obsidian shards bound by a cyan thread orbits it.
+
+ABYSS_SKIN = [(2, 3, 6), (6, 10, 14), (12, 22, 28), (20, 38, 46), (32, 58, 68), (52, 86, 96), (84, 124, 132)]
+ABYSS_FLESH = [(30, 4, 10), (70, 10, 24), (120, 20, 44), (176, 26, 58), (220, 70, 96)]
+ABYSS_CYAN = [(8, 60, 60), (20, 140, 136), (47, 224, 208), (140, 250, 236), (200, 255, 248), (255, 255, 255)]
+ABYSS_CRIMSON = [(60, 6, 16), (120, 14, 36), (176, 26, 58), (230, 70, 100), (255, 150, 170), (255, 220, 228)]
+ABYSS_SCLERA = [(40, 52, 56), (80, 96, 100), (130, 146, 150), (180, 194, 196), (220, 230, 230)]
+ABYSS_HORN = [(4, 4, 8), (12, 14, 20), (24, 28, 38), (40, 48, 62), (64, 76, 92), (96, 110, 128)]
+
+
+def _abyss_heart(g: MobGrid, ctx):
+    g.blob((0, -2.0, 0.4), (12.4, 12.4, 11.0), 'skin', 0.5, lump=0.08, lump_scale=6)
+    g.blob((-1.0, -10.6, 0.8), (7.0, 5.4, 6.4), 'skin', 0.46, lump=0.06)
+    g.blob((-5.4, 7.0, 1.0), (6.2, 5.8, 6.0), 'skin', 0.55, lump=0.08, seed=2)
+    g.blob((5.6, 6.4, 0.6), (5.8, 5.4, 5.6), 'skin', 0.55, lump=0.08, seed=3)
+
+    def sulcus(x, y, z, n, m, v):
+        q = x * 0.8 + y * 0.35 - 3.0 + 1.2 * math.sin(y * 0.3)
+        if abs(q) < 1.5:
+            return ('flesh', 0.5 - 0.2 * abs(q))
+        if abs(y - 3.2 + 0.15 * x) < 1.1:                       # coronary groove between atria and ventricle
+            return ('flesh', 0.35)
+        return None
+    g.paint(sulcus, ['skin'])
+    g.mottle(['skin'], 0.12, 3.0)
+    g.carve_blob((0, 0, -11.6), (6.6, 6.6, 4.4))
+    g.blob((0, 0, -7.4), (6.2, 6.2, 1.4), 'void', 0.1, prio=2)
+    g.ring((0, 0, -10.8), 6.6, 1.5, axis='z', mat='flesh', val=0.4)
+    vessels = (([(-2.2, 8.8, 1.0), (-3.2, 14.0, 2.4), (-6.2, 16.0, 5.2)], 3.0),
+               ([(3.4, 9.0, -0.4), (4.4, 14.6, -1.0), (5.4, 16.2, -2.6)], 2.4),
+               ([(0.6, 7.6, 4.8), (1.0, 12.4, 8.2), (2.0, 13.6, 11.0)], 2.1))
+    for pts, r in vessels:
+        g.sweep(pts, r, r * 0.9, 'skin', 0.46)
+        end, prev = pts[-1], pts[-2]
+        d = vnorm(vsub(end, prev))
+        g.cylinder(vsub(end, vmul(d, 0.3)), vadd(end, vmul(d, 0.6)), r * 0.62, mat='core', val=0.55)
+    g.cracks(['skin'], mat='core', width=0.012, scale=7.5, val=0.42)
+    _studs(g, ['skin'], 7, 'lava', 0.45, r=(0.8, 1.3), seed=9)
+
+
+def _abyss_eye(g: MobGrid, ctx):
+    g.blob((0, 0, 0), (5.6, 5.6, 4.0), 'bone', 0.5, vfn=lambda x, y, z, d: 0.3 + 0.3 * (1 - d))
+    g.cracks(['bone'], mat='flesh', width=0.06, scale=2.0, val=0.5)
+    g.eye((0, 0, -1.6), 3.0, val=0.6, slit=True, facing=(0, 0, -1))
+    g.ring((0, 0, -3.3), 3.2, 0.4, axis='z', mat='lava', val=0.45)
+    g.dot((-1.4, 1.4, -4.4), 'eye', 1.0, prio=7)
+
+
+def _abyss_veins(g: MobGrid, ctx):
+    gy = -16.0
+    g.blob((0, 2.6, 0.4), (8.0, 5.0, 7.0), 'skin', 0.38, lump=0.1)
+    for k in range(8):
+        a = TAU * (k + 0.5) / 8 + 0.2 * (h2(k, 1, g.seed) - 0.5)
+        dx, dz = math.cos(a), math.sin(a)
+        R = 17.0 + 1.4 * h2(k, 2, g.seed)
+        pts = [(dx * 3.0, 1.0, dz * 3.0), (dx * 8.0, -6.0, dz * 8.0), (dx * 12.6, gy + 1.8, dz * 12.6),
+               (dx * R, gy + 0.6, dz * R)]
+        g.sweep(pts, 2.7, 0.7, 'skin', 0.4)
+        c = (dx * (R - 1.0), gy + 0.3, dz * (R - 1.0))
+        g.cylinder(c, vadd(c, (0, 0.6, 0)), 2.6, mat='skin', val=0.3,
+                   vfn=lambda t, rad, p: ('core', 0.45) if h3(int(p[0] * 2), 0, int(p[2] * 2), 13) > 0.8 else 0.3)
+        if k % 2 == 0:
+            for q in range(2):
+                b = vadd(c, (dz * (q - 0.5) * 2.0, 0.6, -dx * (q - 0.5) * 2.0))
+                g.cone(b, (0, 1, 0), 2.2, 0.35, 'skin', 0.45,
+                       vfn=lambda t, d, p: ('core', 0.6) if t > 0.75 else 0.45)
+    g.cracks(['skin'], mat='core', width=0.013, scale=5.0, val=0.42)
+
+
+
+def _abyss_crown(g: MobGrid, ctx):
+    g.blob((0, -5.0, 0.6), (5.0, 2.4, 3.4), 'horn', 0.35)
+    for s in (-1, 1):
+        g.horn((s * 3.4, -4.4, 0.4), (s * 1, 0.2, 0), 11.6, 2.6, curl=(s * 1.2, 8.4, 0.8), mat='horn', val=0.22,
+               rings=1.3, tip_mat='core')
+    g.paint(lambda x, y, z, n, m, v: ('core', 0.4) if abs(x) > 6 and (abs(x) + 0.4 * y) % 3.6 < 0.5 else None,
+            ['horn'])
+    for x, L in ((-2.6, 3.6), (-1.3, 5.4), (0.0, 7.6), (1.3, 5.4), (2.6, 3.6)):
+        g.cone((x, -3.6, 0.2 - abs(x) * 0.2), (x * 0.1, 1, 0), L, 0.8, 'horn', 0.3,
+               vfn=lambda t, d, p: ('lava', 0.5 + 0.3 * t) if t > 0.72 else 0.3 + 0.15 * (1 - d))
+    g.blob((0, -2.6, -1.8), (0.9, 1.1, 0.6), 'lava', 0.6, prio=5)
+
+
+def _abyss_ring(g: MobGrid, ctx):
+    R = 20.4
+    _ering(g, (0, 0, 0), R, R, 0.3, 'core', 0.35, n=120)
+    for k in range(16):
+        a = TAU * k / 16
+        c = (math.cos(a) * R, 0.6 * math.sin(3 * a), math.sin(a) * R)
+        g.blob(c, (1.6, 1.2, 1.6), 'horn', 0.4, lump=0.3, lump_scale=1.2, seed=k)
+        if k % 2 == 0:
+            g.dot(vadd(c, (0, 1.3, 0)), 'core', 0.7, prio=5)
+        else:
+            g.dot(vadd(c, (math.cos(a) * 1.5, 0, math.sin(a) * 1.5)), 'lava', 0.6, prio=5)
+
+
+def floor10_abyss_heart(look, name, part, ctx):
+    _ramps(ctx, [('skin', ABYSS_SKIN), ('flesh', ABYSS_FLESH), (GLOWS, ABYSS_CYAN), ('lava', ABYSS_CRIMSON),
+                 ('bone', ABYSS_SCLERA), ('horn', ABYSS_HORN)])
+    fn = {'heart': _abyss_heart, 'core': _abyss_eye, 'veins': _abyss_veins, 'crown': _abyss_crown,
+          'ring': _abyss_ring}.get(name)
+    if fn is None:
+        return None
+    g = ctx.grid({'heart': 1.0, 'core': 0.5, 'veins': 1.0, 'crown': 0.7, 'ring': 0.75}[name])
+    fn(g, ctx)
+    return g
 
 DESIGNS = {
     'floor01_moss_warden': floor01_moss_warden,
     'floor02_silk_queen': floor02_silk_queen,
     'floor03_mycelium_king': floor03_mycelium_king,
     'floor04_floodwarden': floor04_floodwarden,
+    'floor05_anvil_king': floor05_anvil_king,
+    'floor06_frost_empress': floor06_frost_empress,
+    'floor07_dyad': floor07_dyad,
+    'floor08_ink_librarian': floor08_ink_librarian,
+    'floor09_clock_warden': floor09_clock_warden,
+    'floor10_abyss_heart': floor10_abyss_heart,
 }
