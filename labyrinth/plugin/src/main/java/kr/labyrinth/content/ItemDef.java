@@ -40,7 +40,7 @@ public record ItemDef(
 
     /**
      * 그 직업에 어울리는 장비인가 ({@code classes} = 추천 직업, 비우면 모두). 착용 제한이 아니라
-     * 드롭 직업 편향·대장간 '추천 장비만' 필터·툴팁 "추천 직업" 표시에만 쓴다.
+     * 드롭 직업 편향·대장간 '추천 장비만' 필터에만 쓴다 (툴팁에는 표시하지 않음).
      */
     public boolean suitedFor(String classId) {
         return classes.isEmpty() || (classId != null && classes.contains(classId));

@@ -155,21 +155,14 @@ class WeaponFreedomTest {
 
     @Test
     void tooltipShowsRecommendationNotRestriction() {
-        String weapon = String.join("\n", ItemTooltip.lines(content, content.item("ember_greatsword"), null));
-        assertTrue(weapon.contains("추천 직업 <white>광전사"), weapon);
-        assertTrue(weapon.contains("스킬 대기 −"), weapon); // 추천 직업은 재사용 대기 보너스일 뿐 (착용 제한 아님)
-        assertFalse(weapon.contains("전용"), weapon);
+        // 장비 설명에는 직업을 아예 적지 않는다 (추천 직업 표기 없음 · 전용 표기 없음)
         for (ItemDef def : content.items().values()) {
-            if (!def.isGear()) continue;
             String all = String.join("\n", ItemTooltip.lines(content, def, null));
-            assertFalse(all.contains(" 직업 <white>") && !all.contains("추천 직업"), def.id() + ": " + all);
+            assertFalse(all.contains("추천 직업"), def.id() + ": " + all);
+            assertFalse(all.contains("직업 전용"), def.id() + ": " + all);
         }
-        // 장신구는 추천 직업이 없다
-        ItemDef acc = content.items().values().stream().filter(d -> d.type() == kr.labyrinth.content.ItemType.ACCESSORY).findFirst().orElseThrow();
-        assertFalse(String.join("\n", ItemTooltip.lines(content, acc, null)).contains("추천 직업"));
         // 추천(드롭 편향·대장간 필터)은 그대로 남는다
         assertTrue(content.item("ember_greatsword").suitedFor("berserker"));
         assertFalse(content.item("ember_greatsword").suitedFor("priest"));
-        assertTrue(acc.suitedFor("priest"));
     }
 }

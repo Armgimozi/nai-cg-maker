@@ -8,7 +8,7 @@
 #  armor_set   : 장비 에셋 id(labyrinth:<set>). 투구는 플러그인이 assetId 를 넣지 않고 3D 모델을 머리에 씌운다
 #  rarity      : common < uncommon < rare < epic < legendary < mythic (GDD §11.1)
 #  level_req   : 착용 레벨.   floor : 이 장비가 속한 층 단계(1~10) — loot.yml rarity_pool 의 후보 기준
-#  classes     : 추천 직업 (비우면 모두) — 착용 제한이 아니다. 드롭 직업 편향·대장간 "추천 장비만"·툴팁 "추천 직업" 에만 쓴다
+#  classes     : 어울리는 직업 (비우면 모두) — 착용 제한이 아니다. 드롭 직업 편향·대장간 "추천 장비만" 필터에만 쓴다 (툴팁에는 표시 안 함)
 #  stats       : 키 = GDD §11.7 닫힌 목록. 값 [최소, 최대] 를 드롭·제작 순간 굴려 PDC 에 저장
 #                damage = 무기 피해(공격력의 기반) · 백분율 키는 0~1 (0.05 = 5%)
 #  set_bonus   : sets: 의 세트 id.   aura : fx.yml auras id (전설·신화 무기)

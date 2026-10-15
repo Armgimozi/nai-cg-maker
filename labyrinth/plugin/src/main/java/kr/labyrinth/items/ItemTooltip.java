@@ -4,19 +4,17 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import kr.labyrinth.content.ClassDef;
 import kr.labyrinth.content.Content;
 import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.ItemSetDef;
 import kr.labyrinth.content.Params;
 import kr.labyrinth.content.Range;
 import kr.labyrinth.content.Rarity;
-import kr.labyrinth.content.WeaponTypes;
 import kr.labyrinth.core.Text;
 
 /**
  * 아이템 툴팁(lore) 생성 — MiniMessage 문자열 목록. Bukkit 무관(단위 테스트 가능).
- * 구성: 희귀도·분류·아우라 / 요구 레벨·추천 직업 / 스탯(첫 스탯은 범위·굴림 품질과 한 줄, 나머지 두 개씩) / 강화 / 무기 스킬 /
+ * 구성: 희귀도·분류·아우라 / 요구 레벨 / 스탯(첫 스탯은 범위·굴림 품질과 한 줄, 나머지 두 개씩) / 강화 / 무기 스킬 /
  * 세트 효과·사용 효과 / 설명 / 획득처. 화면에 다 들어가도록 {@link #MAX_LINES} 를 넘으면 덜 중요한 줄부터 뺀다.
  */
 public final class ItemTooltip {
@@ -107,23 +105,6 @@ public final class ItemTooltip {
     }
 
     /**
-     * 추천 직업 이름 (착용 제한 아님). 무기 = classes.yml weapon_types 에 그 종류가 있는 직업(재사용 대기 보너스 기준),
-     * 그 밖의 장비 = items.yml {@code classes}.
-     */
-    static List<String> suitedClassNames(Content content, ItemDef def) {
-        List<String> names = new ArrayList<>();
-        if (def.isWeapon()) {
-            for (ClassDef cd : content.classes().values()) if (cd.recommendsWeapon(def.weaponType())) names.add(cd.name());
-            return names;
-        }
-        for (String id : def.classes()) {
-            ClassDef cd = content.classDef(id);
-            names.add(cd == null ? id : cd.name());
-        }
-        return names;
-    }
-
-    /**
      * 이름 줄을 뺀 툴팁 최대 줄 수. GUI 크기를 크게 쓴 1080p 화면에 툴팁이 약 23줄 들어가므로 이름 포함 21줄로 맞춘다.
      * 넘치면 덜 중요한 것부터 뺀다: 설명(이야기) → 획득처 한 줄 → 빈 줄 → 무기 스킬 설명을 첫 줄만.
      */
@@ -156,7 +137,7 @@ public final class ItemTooltip {
         Rarity r = def.rarity();
         String c = "<" + r.color() + ">";
 
-        // 머리: 희귀도·분류·층·아우라 / 요구 레벨·추천 직업
+        // 머리: 희귀도·분류·층·아우라 / 요구 레벨
         List<String> head = new ArrayList<>();
         StringBuilder top = new StringBuilder(c + r.displayName() + " " + category(def) + "</" + r.color() + ">");
         if (def.floor() > 0 && def.isGear()) top.append(" <dark_gray>· 지하 ").append(def.floor()).append("층</dark_gray>");
@@ -166,14 +147,8 @@ public final class ItemTooltip {
         }
         head.add(top.toString());
         if (def.isGear()) {
-            StringBuilder req = new StringBuilder("<gray>요구 레벨 <white>" + def.levelReq() + "</white>");
-            List<String> names = suitedClassNames(content, def);
-            if (!names.isEmpty()) {
-                req.append(" <dark_gray>·</dark_gray> 추천 직업 <white>").append(String.join(", ", names)).append("</white>");
-                // 착용 제한 없음 — 추천 직업이 들면 직업 스킬 재사용 대기만 줄어든다
-                if (def.isWeapon()) req.append(" <dark_gray>(스킬 대기 −").append(Text.pct(WeaponTypes.RECOMMENDED_COOLDOWN_CUT)).append(")");
-            }
-            head.add(req.toString());
+            // 직업 표시는 하지 않는다 (어느 직업이든 모든 장비 — 직업별 추천 무기는 직업 메뉴에서만)
+            head.add("<gray>요구 레벨 <white>" + def.levelReq() + "</white>");
         } else if (def.levelReq() > 1) {
             head.add("<gray>사용 레벨 <white>" + def.levelReq());
         }
