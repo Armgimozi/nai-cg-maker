@@ -12,6 +12,7 @@ import java.util.SplittableRandom;
 import kr.labyrinth.content.Content;
 import kr.labyrinth.content.FloorDef;
 import kr.labyrinth.core.ContentLoader;
+import kr.labyrinth.dungeon.gen.FloorBuilder;
 import kr.labyrinth.dungeon.gen.FloorGenerator;
 import kr.labyrinth.dungeon.gen.FloorLayout;
 import kr.labyrinth.dungeon.gen.HallStyle;
@@ -217,6 +218,62 @@ class FloorGeneratorTest {
                 }
             }
         }
+    }
+
+    @Test
+    void decorNeverBlocksNarrowPassages() {
+        int tight = 0;
+        for (FloorDef f : content.floors().values()) {
+            for (long seed = 0; seed < 25; seed++) {
+                FloorLayout l = FloorGenerator.generate(params(f), seed * 613 + f.number());
+                String ctx = "floor " + f.number() + " seed " + seed;
+                for (int z = 0; z < l.depth(); z++) {
+                    for (int x = 0; x < l.width(); x++) {
+                        if (l.kind(x, z) != FloorLayout.FLOOR) continue; // 장식은 FLOOR 칸에만
+                        int xx = x, zz = z, h = l.height(x, z);
+                        // 천장 장식·매달린 등불(y0+e+h) 은 걷는 공간(바닥 위 두 칸, 머리 2.8) 보다 위
+                        assertTrue(h >= 3, () -> ctx + " 내부 높이 " + h + " < 3 at " + xx + "," + zz);
+                        boolean oneWide = (!l.walkable(x, z - 1) && !l.walkable(x, z + 1))
+                                || (!l.walkable(x - 1, z) && !l.walkable(x + 1, z));
+                        if (oneWide || h <= 3 || !bypass(l, x, z)) {
+                            tight++;
+                            // 바닥·벽·모서리 장식 금지 (천장만) — 하나만 놓여도 비켜 갈 수 없는 칸
+                            assertFalse(FloorBuilder.roomToPass(l, x, z), () -> ctx + " 좁은 칸에 장식 허용 " + xx + "," + zz);
+                        }
+                    }
+                }
+                for (int pk : l.hallLights()) {
+                    int x = FloorLayout.unpackX(pk), z = FloorLayout.unpackZ(pk);
+                    if (l.walkable(x, z)) assertTrue(l.height(x, z) >= 3, ctx + " 등불이 걷는 공간에 매달림 " + x + "," + z);
+                }
+            }
+        }
+        assertTrue(tight > 0, "좁은 통로 칸이 하나도 없음 — 검사가 비어 있음");
+    }
+
+    /** (x, z) 를 막아도 맞닿은 바닥끼리 둘레 5×5 안에서 이어지는가 (비켜 갈 길). */
+    static boolean bypass(FloorLayout l, int x, int z) {
+        int[][] d4 = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
+        java.util.List<int[]> sides = new java.util.ArrayList<>();
+        for (int[] d : d4) if (l.walkable(x + d[0], z + d[1])) sides.add(new int[] {x + d[0], z + d[1]});
+        if (sides.size() <= 1) return true;
+        boolean all = true;
+        for (int dz = -1; dz <= 1; dz++) for (int dx = -1; dx <= 1; dx++) if (!l.walkable(x + dx, z + dz) && (dx != 0 || dz != 0)) all = false;
+        if (all) return true; // 둘레가 모두 바닥 (방·넓은 복도 안쪽)
+        java.util.Set<Integer> seen = new java.util.HashSet<>();
+        java.util.ArrayDeque<int[]> q = new java.util.ArrayDeque<>();
+        q.add(sides.get(0));
+        seen.add(FloorLayout.pack(sides.get(0)[0], sides.get(0)[1]));
+        while (!q.isEmpty()) {
+            int[] c = q.poll();
+            for (int[] d : d4) {
+                int nx = c[0] + d[0], nz = c[1] + d[1];
+                if ((nx == x && nz == z) || Math.abs(nx - x) > 2 || Math.abs(nz - z) > 2 || !l.walkable(nx, nz)) continue;
+                if (seen.add(FloorLayout.pack(nx, nz))) q.add(new int[] {nx, nz});
+            }
+        }
+        for (int[] s : sides) if (!seen.contains(FloorLayout.pack(s[0], s[1]))) return false;
+        return true;
     }
 
     @Test

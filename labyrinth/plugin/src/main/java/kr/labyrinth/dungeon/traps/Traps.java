@@ -58,6 +58,8 @@ public final class Traps {
     private final Map<Integer, Integer> byTile = new HashMap<>();
     private final St[] st;
     private final Map<UUID, int[]> disarming = new HashMap<>();
+    /** 플레이어별 직전 판정(2틱 전) 자리 — 물살이 들어온 쪽을 알아내는 데 쓴다. */
+    private final Map<UUID, Location> lastSeen = new HashMap<>();
     private final SplittableRandom rng;
     private BlockData mark;
     private BlockData floorData;
@@ -79,6 +81,8 @@ public final class Traps {
         BlockDisplay saw;
         float sawYaw;
         final Map<UUID, Long> lastHit = new HashMap<>();
+        /** 물살: 경고 중 함정 칸에 처음 보인 플레이어의 들어오기 직전 자리 (함정 가운데 기준, along 축 성분). */
+        final Map<UUID, Double> entry = new HashMap<>();
     }
 
     public Traps(FloorState fs, List<TrapSpot> spots) {
@@ -216,6 +220,7 @@ public final class Traps {
         // 1. 밟기 판정 + 해제
         for (Player p : alive) {
             Location l = p.getLocation();
+            Location prev = lastSeen.put(p.getUniqueId(), l);
             int tx = fs.tileX(l), tz = fs.tileZ(l);
             Integer idx = byTile.get(FloorLayout.pack(tx, tz));
             if (idx != null) {
@@ -224,6 +229,12 @@ public final class Traps {
                 double feet = l.getY() - fs.y0() - spot.elevation() - 1.0;
                 if (!s.off && !spot.type().periodic() && s.fireAt < 0 && t >= s.cooldownUntil && !s.pitOpen && Math.abs(feet) < 0.35) {
                     trigger(spot, t, p);
+                }
+                // 물살: 경고 중 처음 보인 때 직전 자리로 들어온 쪽을 기억 (발동 땐 이미 반대편 가장자리일 수 있다)
+                if (spot.type() == TrapType.CURRENT && s.fireAt >= 0 && !s.entry.containsKey(p.getUniqueId())) {
+                    Location from = prev != null && prev.getWorld() == l.getWorld() && prev.distanceSquared(l) < 4 ? prev : l;
+                    Location c = center(spot, 1.0);
+                    s.entry.put(p.getUniqueId(), (from.getX() - c.getX()) * spot.alongX() + (from.getZ() - c.getZ()) * spot.alongZ());
                 }
             }
             if (p.isSneaking()) disarmTick(p, tx, tz, t);
@@ -258,6 +269,7 @@ public final class Traps {
     private void trigger(TrapSpot spot, long t, Player by) {
         St s = st[spot.index()];
         triggered++;
+        s.entry.clear();
         int delay = TrapMath.telegraphTicks(spot.type().telegraph(), fs.ctx().difficulty().telegraph());
         s.fireAt = t + delay;
         Location c = center(spot, 1.1);
@@ -382,17 +394,12 @@ public final class Traps {
                 fs.world().spawnParticle(Particle.SPLASH, c, 50, 0.8, 0.4, 0.8, 0.3);
                 fs.sound(c, Sound.ITEM_BUCKET_EMPTY, 1.0f, 0.6f);
                 for (Player p : victims(spot, alive, 0)) {
-                    Vector v = p.getVelocity().setY(0);
-                    double dx, dz;
-                    if (v.lengthSquared() > 0.003) {
-                        v.normalize();
-                        dx = -v.getX();
-                        dz = -v.getZ();
-                    } else {
-                        dx = spot.alongX();
-                        dz = spot.alongZ();
-                    }
-                    p.setVelocity(new Vector(dx * 1.3, 0.35, dz * 1.3));
+                    // 왔던 쪽으로 (서버 쪽 속도엔 걷기 이동이 안 담겨 못 쓴다) — 기록이 없으면 바라보는 반대쪽
+                    Double from = s.entry.get(p.getUniqueId());
+                    Vector look = p.getLocation().getDirection();
+                    int side = TrapMath.pushSide(from == null ? Double.NaN : from,
+                            look.getX() * spot.alongX() + look.getZ() * spot.alongZ());
+                    p.setVelocity(new Vector(spot.alongX() * side * 1.3, 0.35, spot.alongZ() * side * 1.3));
                     hit(p, spot, 1.0);
                     fs.services().effects().apply(p, "slow", 1.5, 0.3, null);
                 }
