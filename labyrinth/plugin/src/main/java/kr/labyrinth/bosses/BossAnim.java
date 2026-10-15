@@ -1,5 +1,7 @@
 package kr.labyrinth.bosses;
 
+import kr.labyrinth.content.ModelDef;
+import kr.labyrinth.mobs.RigMath;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
@@ -176,6 +178,37 @@ public enum BossAnim {
             default -> { }
         }
         return o;
+    }
+
+    /**
+     * 리그({@link RigMath.Skeleton#solve})에 끼울 오버레이: 파트 로컬 회전·이동·baseWeight 는 사슬·머리 무리 붙이기 전에,
+     * 몸 전체 회전·이동·크기는 마지막에 (발 위치 기준 — 크기는 파트 위치까지 함께 줄어 한 덩어리로). NONE = null.
+     */
+    public static RigMath.Overlay rig(BossAnim anim, double p, double w, long tick) {
+        if (anim == null || anim == NONE) return null;
+        Pose scratch = new Pose();
+        Pose whole = overlay(anim, "static", "", p, w, tick, new Pose());
+        return new RigMath.Overlay() {
+            @Override
+            public float local(ModelDef.Part part, Quaternionf rot, Vector3f off) {
+                Pose o = overlay(anim, part.anim(), part.name(), p, w, tick, scratch);
+                rot.set(o.rotation);
+                off.set(o.offset);
+                return o.baseWeight;
+            }
+
+            @Override
+            public float global(Quaternionf rot, Vector3f off) {
+                rot.set(whole.globalRotation);
+                off.set(whole.globalOffset);
+                return whole.scale;
+            }
+
+            @Override
+            public float baseWeight() {
+                return whole.baseWeight;
+            }
+        };
     }
 
     /** 이 애니메이션의 기본 windup 비율. */

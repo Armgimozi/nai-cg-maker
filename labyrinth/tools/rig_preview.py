@@ -11,7 +11,7 @@ Pipeline
        idle + attack · hurt + death (· boss slam overlay)
      ground line = y 0 (3/4 view: a 0.5-block floor grid) with markers scrolling backwards at the walk speed
      (a planted foot should move with them),
-     dots = part pivots (red legs, cyan arms, yellow head/neck/tail, white other).
+     dots = part joints = rotation centres (red legs, cyan arms, yellow head/neck/tail, white other).
      Foot-trace chart: every foot (lowest vertices of a leg part, split per leg when one part holds several legs) is
      tracked over the walk cycle — forward offset z and height y (0 = floor, below 0 = sinking through it) — plus
      numbers: stride, lift, sinking, slip (planted-foot speed mismatch) and the left/right phase correlation.
@@ -303,7 +303,8 @@ def foot_clusters(parts, geos, rest):
         n = LEG_FORMS.get(form, 1) if forms[form] == 1 else 1
         side_of = np.where(w[:, 0] >= 0, 1, -1)
         if n == 1:
-            sd = 1 if parts[i]['pivot'][0] > 1e-4 else -1 if parts[i]['pivot'][0] < -1e-4 else 0
+            jx = (parts[i].get('joint') or parts[i]['pivot'])[0]
+            sd = 1 if jx > 1e-4 else -1 if jx < -1e-4 else 0
             out.append(((('L' if sd > 0 else 'R' if sd < 0 else 'C'), i, loc[low], sd, float(w[low, 2].mean()))))
             continue
         per = max(1, n // 2)
@@ -388,8 +389,9 @@ def render_cell(task):
     img = raster(faces, _TEX[mid], basis, c, ppb, cell, cell)
     right, up, back = basis
     pts = []
-    for t, role in zip(frame, roles):
-        rel = np.array(t[0:3]) - c
+    for t, (role, jrel) in zip(frame, roles):
+        # dot = the part's joint (rotation centre) where it is now: joint − pivot placed with the part transform
+        rel = place(np.array([jrel]), t)[0] - c
         pts.append(((rel @ right) * ppb + cell / 2, cell / 2 - (rel @ up) * ppb, role))
     gy = cell / 2 - ((np.zeros(3) - c) @ up) * ppb
     def scr(p):
@@ -501,7 +503,7 @@ def draw_chart(d, x0, y0, W, H, traces, metrics, pairs, speed, dt, fonts, title)
         s = '짝 없음'
     d.text((x0 + 8, ty + 15), f'발 앞뒤 위상 상관 r (+1 = 같이 움직임, -1 = 번갈아): {s}'[:260], fill=(215, 215, 220),
            font=f_tiny)
-    d.text((x0 + W - 330, y0 + 3), f'걷기 속도 {speed:.3f} 블록/틱 · 프레임 간격 {dt:g}틱', fill=(180, 180, 190), font=f_tiny)
+    d.text((x0 + W - 330, y0 + 3), f'걷기 속도 {speed:.3f} 블록/틱 · 프레임 간격 {dt:.2f}틱', fill=(180, 180, 190), font=f_tiny)
 
 
 def pick(n, k, cyclic=True):
@@ -516,7 +518,7 @@ def pick(n, k, cyclic=True):
 def build_sheet(mid, info, models, atlas, out_png, prefix, cell=240, jobs=4, title_note='', gif=False, cols=8):
     parts = info['parts']
     geos = [PartGeo(models[p['name']], atlas) if p['name'] in models else None for p in parts]
-    roles = [part_role(p) for p in parts]
+    roles = [(part_role(p), [(p.get('joint') or p['pivot'])[a] - p['pivot'][a] for a in range(3)]) for p in parts]
     clips = info['clips']
     meta = info.get('clip_meta') or {}
     rest = clips['idle'][0]['t']
@@ -575,9 +577,9 @@ def build_sheet(mid, info, models, atlas, out_png, prefix, cell=240, jobs=4, tit
     d = ImageDraw.Draw(sheet)
     f_big, f_small, f_tiny = _font(18), _font(12), _font(11)
     d.text((6, 4), f'{prefix.upper()}  {mid}', fill=(245, 245, 245), font=f_big)
-    legs = sum(1 for r in roles if r == 'leg')
+    legs = sum(1 for r, _ in roles if r == 'leg')
     d.text((6, 27), f'scale {info["scale"]} · {"보스" if info["boss"] else "몹"} · {"비행" if info["flying"] else "지상"} · '
-                    f'파트 {len(parts)} (다리 파트 {legs}) · 점: 빨강 다리 · 하늘 팔 · 노랑 머리/목/꼬리 · 흰색 기타 (피벗 위치) · '
+                    f'파트 {len(parts)} (다리 파트 {legs}) · 점: 빨강 다리 · 하늘 팔 · 노랑 머리/목/꼬리 · 흰색 기타 (관절 = 회전 중심) · '
                     f'초록 선 = 땅 {title_note}', fill=(200, 200, 210), font=f_small)
     k = 0
     y = head_h

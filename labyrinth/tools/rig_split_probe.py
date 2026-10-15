@@ -5,6 +5,9 @@ propose a hip / shoulder joint and a foot point per leg, assign every voxel to o
 separated legs), count the elements of the pieces meshed separately but shaded from the parent grid (= identical standing
 look) against the model budget, and draw split-check images (voxels coloured per leg, joints marked).
 
+Sets already cut in the YAML (`set:` members, GDD §14.6) are drawn from the pack's own split instead (mob_build.SetMesh
+labels with the YAML joints), with the element count of every member.
+
 Analysis only — reads content + designs, writes JSON and PNGs:
   JOBS=2 /opt/packvenv/bin/python labyrinth/tools/rig_split_probe.py OUT.json OUT_DIR [mob,mob,…]
 Coordinates in the JSON: mob-local blocks at scale 1 (+X = mob left, +Y up, +Z front), like YAML pivots.
@@ -267,23 +270,50 @@ def one(task):
     from src.voxel.palette import MOB_GLOW_MATS, coarse
     cap = {}
     orig = MB.fit_budget
+    orig_set = MB.SetMesh.__init__
+    cut = {}
 
     def spy(pms, budget, fixed=0, per_part=MB.PER_PART):
         r = orig(pms, budget, fixed, per_part)
         cap.update(pms=list(pms), budget=budget, fixed=fixed)
         return r
+
+    def spy_set(self, *a, **kw):
+        orig_set(self, *a, **kw)
+        cut[self.name] = self
     MB.fit_budget = spy
+    MB.SetMesh.__init__ = spy_set
     try:
         d = (B if boss else M)[mid]
         res = mobs.build_mob(mid, d, boss, items.jdump, items.png_bytes, items.strip)
     finally:
         MB.fit_budget = orig
+        MB.SetMesh.__init__ = orig_set
     parts = (d.get('model') or {}).get('parts') or []
-    pms = {pm.name: pm for pm in cap.get('pms', [])}
     sets = []
+    # already cut in the YAML (set: …): draw the pack's own split (SetMesh labels) with the YAML joints
+    members = {}
+    for p in parts:
+        if p.get('set'):
+            members.setdefault(p['set'], []).append(p)
+    for sname, ms in members.items():
+        sm = cut.get(sname)
+        if sm is None:
+            sets.append({'part': sname, 'method': 'old-box', 'members': [q['name'] for q in ms]})
+            continue
+        lab = sm.labels()
+        piv = [float(v) for v in ms[0].get('pivot') or [0, 0, 0]]
+        legs = [{'joint': q.get('joint'), 'foot': q.get('foot'), 'vox': sum(1 for k in lab if lab[k] == i)}
+                for i, q in enumerate(ms)]
+        os.makedirs(out_dir, exist_ok=True)
+        draw(mid, sname, sm.grid, piv, lab, legs, os.path.join(out_dir, f'split_{mid}_{sname}.png'))
+        sets.append({'part': sname, 'form': ms[0].get('form'), 'method': 'pack-set', 'legs': legs,
+                     'el_pieces': [res.part_elements.get(q['name']) for q in ms], 'total': res.elements,
+                     'level': sm.level, 'seal': sm.seal})
+    pms = {pm.name: pm for pm in cap.get('pms', [])}
     for p in parts:
         form, anim = p.get('form'), p.get('anim')
-        if not ((form in LEG_N and anim == 'legs_walk') or form == 'wing_pair'):
+        if p.get('set') or not ((form in LEG_N and anim == 'legs_walk') or form == 'wing_pair'):
             continue
         name = p['name']
         piv = [float(v) for v in p.get('pivot') or [0, 0, 0]]
@@ -327,7 +357,7 @@ if __name__ == '__main__':
     only = set(sys.argv[3].split(',')) if len(sys.argv) > 3 and sys.argv[3] else None
 
     def has(dd):
-        return any((p.get('form') in LEG_N and p.get('anim') == 'legs_walk') or p.get('form') == 'wing_pair'
+        return any((p.get('form') in LEG_N and p.get('anim') == 'legs_walk') or p.get('form') == 'wing_pair' or p.get('set')
                    for p in ((dd.get('model') or {}).get('parts') or []))
     tasks = [(k, False, out_dir) for k, v in M.items() if has(v) and (not only or k in only)] + \
             [(k, True, out_dir) for k, v in B.items() if has(v) and (not only or k in only)]

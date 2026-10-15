@@ -31,17 +31,23 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
  * </pre>
  * 몹마다 클립(walk · walk_slow · idle · attack · hurt_death, 보스는 + slam)의 프레임별 파트 Display Transformation(yaw 0, 몹 로컬:
  * +Z 앞 · +Y 위 · +X 몹의 왼쪽) = 이동(블록, 몹 scale 포함) · 왼쪽 회전 쿼터니언 · 균일 크기를 JSON 으로 쓴다.
+ * 걷기 클립 = 걸음 위상 한 주기를 12프레임으로(그 속도의 박자 {@link RigMath.Skeleton#cadence} — 프레임 간격 dt = 주기 ÷ 12틱).
  * 그림은 {@code tools/rig_preview.py} 가 생성된 파트 모델로 그린다.
  * <p>
- * 일반 몹 = {@link ModelRig#animate} 와 같은 길({@link RigMath.Skeleton#solve} → {@link RigMath#compose}),
- * 보스 = {@code BossRig.animate} 와 같은 계산(기본 anim + {@link BossAnim} 오버레이).
+ * 일반 몹 = {@link ModelRig#animate} 와 같은 길({@link RigMath.Skeleton#solve} + {@link RigMath.Gait} → {@link RigMath#compose}),
+ * 보스 = {@code BossRig.animate} 와 같은 길(같은 Skeleton 에 {@link BossAnim#rig} 오버레이).
  */
 class RigPreviewDump {
 
     /** 최대 걷기 속도 (블록/틱) — walkFactor 1. */
     static final double FULL_SPEED = 0.18;
 
-    record Frame(String label, RigMath.AnimState state, BossAnim anim, double p, double windup) {}
+    /** phase = 걸음 위상(주기) — NaN 이면 틱으로. */
+    record Frame(String label, RigMath.AnimState state, BossAnim anim, double p, double windup, double phase) {
+        Frame(String label, RigMath.AnimState state, BossAnim anim, double p, double windup) {
+            this(label, state, anim, p, windup, Double.NaN);
+        }
+    }
 
     /** speed = 이 클립의 이동 속도(블록/틱, 발 미끄럼 계산용), dt = 프레임 사이 틱(GIF 재생 속도). */
     record Clip(String name, List<Frame> frames, double speed, double dt) {}
@@ -85,20 +91,27 @@ class RigPreviewDump {
                 RigMath.MOTION_NONE, 0f, -1);
     }
 
-    /** 클립 목록 (게임과 같은 입력). 걷기 = 다리 주기 14틱 한 바퀴를 1틱 간격으로 (최대 속도 · 절반 속도). */
-    static List<Clip> clips(boolean boss, boolean flying) {
+    /** 걸음 한 주기 = 12프레임 (그 속도의 박자로 틱 간격을 정함). */
+    static final int WALK_FRAMES = 12;
+
+    /** 걷기 클립: 속도 v 에서 걸음 위상 한 주기 (다리가 없는 몹은 예전 14틱). */
+    static Clip walkClip(String name, RigMath.Skeleton sk, double v, int arm, boolean flying) {
+        RigMath.Skeleton.Cadence c = sk.cadence(v, 2);
+        double period = sk.walkingLegs() > 0 ? c.ticksPerCycle() : 14;
+        List<Frame> fr = new ArrayList<>();
+        for (int k = 0; k < WALK_FRAMES; k++) {
+            long tick = 1000 + Math.round(k * period / WALK_FRAMES);
+            fr.add(new Frame("w" + k, st(tick, v, -1, arm, -1, -1, true, flying), BossAnim.NONE, 0, 0, k / (double) WALK_FRAMES));
+        }
+        return new Clip(name, fr, v, period / WALK_FRAMES);
+    }
+
+    /** 클립 목록 (게임과 같은 입력). 걷기 = 걸음 한 주기 12프레임 (최대 속도 · 절반 속도). */
+    static List<Clip> clips(RigMath.Skeleton sk, boolean boss, boolean flying) {
         List<Clip> out = new ArrayList<>();
         int arm = boss ? 2 : 0;
-        List<Frame> walk = new ArrayList<>();
-        for (int t = 0; t < 14; t++) {
-            walk.add(new Frame("t" + t, st(1000 + t, FULL_SPEED, -1, arm, -1, -1, true, flying), BossAnim.NONE, 0, 0));
-        }
-        out.add(new Clip("walk", walk, FULL_SPEED, 1));
-        List<Frame> slow = new ArrayList<>();
-        for (int t = 0; t < 14; t++) {
-            slow.add(new Frame("t" + t, st(1000 + t, FULL_SPEED * 0.5, -1, arm, -1, -1, true, flying), BossAnim.NONE, 0, 0));
-        }
-        out.add(new Clip("walk_slow", slow, FULL_SPEED * 0.5, 1));
+        out.add(walkClip("walk", sk, FULL_SPEED, arm, flying));
+        out.add(walkClip("walk_slow", sk, FULL_SPEED * 0.5, arm, flying));
         List<Frame> idle = new ArrayList<>();
         for (int k = 0; k < 6; k++) {
             idle.add(new Frame("t" + (k * 12), st(1000 + k * 12L, 0, -1, arm, -1, -1, false, flying), BossAnim.NONE, 0, 0));
@@ -141,9 +154,13 @@ class RigPreviewDump {
             sb.append("{\"name\":\"").append(p.name()).append("\",\"form\":\"").append(p.form()).append("\",\"anim\":\"")
                     .append(p.anim()).append("\",\"pivot\":[").append(f(p.pivotX())).append(',').append(f(p.pivotY()))
                     .append(',').append(f(p.pivotZ())).append("],\"size\":[").append(f(p.sizeX())).append(',')
-                    .append(f(p.sizeY())).append(',').append(f(p.sizeZ())).append("]}");
+                    .append(f(p.sizeY())).append(',').append(f(p.sizeZ())).append("],\"joint\":[").append(f(p.jointX()))
+                    .append(',').append(f(p.jointY())).append(',').append(f(p.jointZ())).append("]");
+            if (p.set() != null) sb.append(",\"set\":\"").append(p.set()).append('"');
+            sb.append('}');
         }
-        List<Clip> clips = clips(boss, flying);
+        RigMath.Skeleton sk = new RigMath.Skeleton(parts, scale);
+        List<Clip> clips = clips(sk, boss, flying);
         sb.append("],\"clip_meta\":{");
         for (int i = 0; i < clips.size(); i++) {
             if (i > 0) sb.append(',');
@@ -151,7 +168,6 @@ class RigPreviewDump {
                     .append(",\"dt\":").append(f(clips.get(i).dt())).append('}');
         }
         sb.append("},\"clips\":{");
-        RigMath.Skeleton sk = new RigMath.Skeleton(parts);
         boolean fc = true;
         for (Clip clip : clips) {
             if (!fc) sb.append(',');
@@ -161,7 +177,7 @@ class RigPreviewDump {
             for (Frame fr : clip.frames()) {
                 if (!ff) sb.append(',');
                 ff = false;
-                float[][] t = boss ? bossFrame(parts, (float) scale, fr) : mobFrame(sk, (float) scale, fr.state());
+                float[][] t = frame(sk, (float) scale, fr, boss);
                 sb.append("{\"label\":\"").append(fr.label()).append("\",\"t\":[");
                 for (int i = 0; i < t.length; i++) {
                     if (i > 0) sb.append(',');
@@ -180,9 +196,12 @@ class RigPreviewDump {
         return false;
     }
 
-    /** ModelRig.animate 와 같은 계산 (yaw 0, yawOffset 0). */
-    static float[][] mobFrame(RigMath.Skeleton sk, float scale, RigMath.AnimState s) {
-        RigMath.Solved[] solved = sk.solve(s);
+    /** ModelRig.animate / BossRig.animate 와 같은 계산 (yaw 0, yawOffset 0) — 보스는 같은 Skeleton 에 시전 오버레이. */
+    static float[][] frame(RigMath.Skeleton sk, float scale, Frame fr, boolean boss) {
+        RigMath.Gait g = null;
+        if (!Double.isNaN(fr.phase())) g = new RigMath.Gait().set(fr.phase(), fr.state().airborne() ? 1 : 0, 2);
+        RigMath.Overlay ov = boss ? BossAnim.rig(fr.anim(), fr.p(), fr.windup(), fr.state().tick()) : null;
+        RigMath.Solved[] solved = sk.solve(fr.state(), g, ov);
         float[][] out = new float[solved.length][];
         Vector3f tr = new Vector3f();
         Quaternionf left = new Quaternionf();
@@ -191,28 +210,6 @@ class RigPreviewDump {
             RigMath.Pose pose = new RigMath.Pose(sp.offset(), sp.rotation(), sp.scale());
             float k = RigMath.compose(0, scale, sp.pivot().x, sp.pivot().y, sp.pivot().z, pose, 0, tr, left);
             out[i] = new float[] {tr.x, tr.y, tr.z, left.x, left.y, left.z, left.w, k};
-        }
-        return out;
-    }
-
-    /** BossRig.animate 와 같은 계산 (yaw 0, yawOffset 0) — 리그 수학을 고치면 여기도 같이. */
-    static float[][] bossFrame(List<ModelDef.Part> parts, float scale, Frame fr) {
-        RigMath.AnimState state = fr.state();
-        float[][] out = new float[parts.size()][];
-        BossAnim.Pose scratch = new BossAnim.Pose();
-        for (int i = 0; i < parts.size(); i++) {
-            ModelDef.Part part = parts.get(i);
-            RigMath.Pose base = RigMath.pose(part.anim(), part.form(), state);
-            BossAnim.Pose ov = BossAnim.overlay(fr.anim(), part.anim(), part.name(), fr.p(), fr.windup(), state.tick(), scratch);
-            float bw = ov.baseWeight;
-            Quaternionf baseRot = new Quaternionf().slerp(base.rotation(), bw);
-            Vector3f local = new Vector3f((float) part.pivotX(), (float) part.pivotY(), (float) part.pivotZ())
-                    .add(new Vector3f(base.offset()).mul(bw)).add(ov.offset);
-            ov.globalRotation.transform(local);
-            local.add(ov.globalOffset).mul(scale);
-            Quaternionf left = new Quaternionf().mul(ov.globalRotation).mul(ov.rotation).mul(baseRot);
-            float s = scale * base.scale() * ov.scale;
-            out[i] = new float[] {local.x, local.y, local.z, left.x, left.y, left.z, left.w, s};
         }
         return out;
     }

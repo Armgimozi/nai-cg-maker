@@ -218,9 +218,13 @@ public final class ContentParser {
         for (Params part : m.maps("parts")) {
             List<Double> size = part.doubles("size");
             List<Double> pivot = part.doubles("pivot");
+            double px = at(pivot, 0, 0), py = at(pivot, 1, 0), pz = at(pivot, 2, 0);
+            List<Double> joint = part.doubles("joint");
+            List<Double> foot = part.doubles("foot");
             parts.add(new ModelDef.Part(part.str("name", "part"), part.str("form", "box"),
-                    at(size, 0, 8), at(size, 1, 8), at(size, 2, 8),
-                    at(pivot, 0, 0), at(pivot, 1, 0), at(pivot, 2, 0), part.str("anim", "none")));
+                    at(size, 0, 8), at(size, 1, 8), at(size, 2, 8), px, py, pz, part.str("anim", "none"),
+                    part.str("set"), at(joint, 0, px), at(joint, 1, py), at(joint, 2, pz),
+                    foot.size() >= 3 ? new ModelDef.Foot(foot.get(0), foot.get(1), foot.get(2), at(foot, 3, 0)) : null));
         }
         // texture_size 는 [w, h] → IntRange(min,max) 로 읽으면 정렬되므로 직접 읽는다
         List<Double> tsz = m.doubles("texture_size");

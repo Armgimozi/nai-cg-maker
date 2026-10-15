@@ -222,6 +222,7 @@ def validate_mobs_npcs_fx(files, content, rep, expect_frames):
                     m = json.loads(files[mp].decode('utf-8'))
                     if (m.get('textures') or {}).get('0') != f'{NS}:mob/{mid}':
                         rep.err(f'{mp}: must use the shared atlas {NS}:mob/{mid}')
+    validate_rig(files, content, rep)
     # NPC skins: 64×64, opaque base layer
     base_rects = [(0, 0, 32, 16), (0, 16, 56, 32), (16, 48, 48, 64)]
     for nid, d in ((content.get('npcs') or {}).get('npcs') or {}).items():
@@ -317,3 +318,97 @@ def validate_ui(files, glyphs_doc, rep):
             for s in vals:
                 if isinstance(s, int) and not (0 <= s < rows * 9):
                     rep.err(f'menu {mid}: slot {name}={s} outside a {rows}-row chest')
+
+
+RIG_LEG_FORMS = {'leg_pair': 2, 'leg_quad': 4, 'leg_six': 6, 'leg_eight': 8}
+
+
+def _part_bounds(files, mid, name):
+    """Entity-local bounds (blocks, relative to the part pivot: +X = mob left, +Z = front) of a part model → (lo, hi)."""
+    path = f'assets/{NS}/models/mob/{mid}/{name}.json'
+    if path not in files:
+        return None
+    m = json.loads(files[path].decode('utf-8'))
+    k = float(((m.get('display') or {}).get('fixed') or {}).get('scale', [1, 1, 1])[0])
+    pts = [p for e in m.get('elements') or [] for p in (e['from'], e['to'])]
+    if not pts:
+        return None
+    q = [((8 - p[0]) * k / 16, (p[1] - 8) * k / 16, (8 - p[2]) * k / 16) for p in pts]
+    return tuple(min(v[a] for v in q) for a in range(3)), tuple(max(v[a] for v in q) for a in range(3))
+
+
+def validate_rig(files, content, rep):
+    """Rig contract (GDD §14.6): part sets cut from one design, joints, feet, element budgets."""
+    from .voxel.mob_build import PER_PART, budget_for
+    for coll in ('mobs', 'bosses'):
+        data = (content.get(coll) or {}).get(coll) or {}
+        for mid, d in data.items():
+            parts = ((d or {}).get('model') or {}).get('parts') or []
+            total = 0
+            for p in parts:
+                path = f'assets/{NS}/models/mob/{mid}/{p.get("name")}.json'
+                if path in files:
+                    ne = len(json.loads(files[path].decode('utf-8')).get('elements') or [])
+                    total += ne
+                    if ne > PER_PART:
+                        rep.err(f'{coll} {mid}/{p.get("name")}: {ne} elements > {PER_PART} per part')
+            budget = budget_for((d or {}).get('rank'), coll == 'bosses')
+            if total > budget:
+                rep.err(f'{coll} {mid}: {total} elements > budget {budget}')
+            sets = {}
+            for p in parts:
+                if p.get('set'):
+                    sets.setdefault(p['set'], []).append(p)
+                j = p.get('joint')
+                if j is not None and (not isinstance(j, list) or len(j) != 3):
+                    rep.err(f'{coll} {mid}/{p.get("name")}: joint must be [x, y, z]')
+                f = p.get('foot')
+                if f is not None and (not isinstance(f, list) or len(f) not in (3, 4)):
+                    rep.err(f'{coll} {mid}/{p.get("name")}: foot must be [dx, dy, dz(, half)]')
+            names = {p.get('name') for p in parts}
+            for sname, ms in sets.items():
+                tag = f'{coll} {mid} set {sname}'
+                if sname in names:
+                    rep.err(f'{tag}: a part has the set name itself')
+                first = ms[0]
+                for q in ms[1:]:
+                    for key in ('form', 'anim', 'size', 'pivot'):
+                        if q.get(key) != first.get(key):
+                            rep.err(f'{tag}: {q.get("name")} {key} {q.get(key)} != {first.get(key)} (members share the design part)')
+                form, anim = first.get('form'), first.get('anim')
+                if form in RIG_LEG_FORMS and anim == 'legs_walk' and len(ms) != RIG_LEG_FORMS[form]:
+                    rep.err(f'{tag}: {form} needs {RIG_LEG_FORMS[form]} legs, has {len(ms)}')
+                if form == 'wing_pair' and (len(ms) != 2 or anim != 'wings_flap'):
+                    rep.err(f'{tag}: a wing pair is 2 parts with anim wings_flap')
+                piv = [float(v) for v in first.get('pivot') or [0, 0, 0]]
+                sides = [0, 0]
+                box = None
+                for q in ms:
+                    b = _part_bounds(files, mid, q.get('name'))
+                    if b is None:
+                        rep.err(f'{tag}: {q.get("name")} has no elements')
+                        continue
+                    box = b if box is None else (tuple(min(box[0][a], b[0][a]) for a in range(3)),
+                                                 tuple(max(box[1][a], b[1][a]) for a in range(3)))
+                for q in ms:
+                    j = [float(v) for v in q.get('joint') or piv]
+                    if q.get('joint') is None:
+                        rep.err(f'{tag}: {q.get("name")} has no joint')
+                    if j[0] > 1e-6:
+                        sides[0] += 1
+                    elif j[0] < -1e-6:
+                        sides[1] += 1
+                    if box is not None:
+                        rel = [j[a] - piv[a] for a in range(3)]
+                        if any(rel[a] < box[0][a] - 1 / 16 or rel[a] > box[1][a] + 1 / 16 for a in range(3)):
+                            rep.err(f'{tag}: {q.get("name")} joint {j} outside the set geometry')
+                    if anim == 'legs_walk' and form in RIG_LEG_FORMS and not q.get('foot'):
+                        rep.err(f'{tag}: {q.get("name")} (leg) has no foot')
+                if sides[0] != sides[1]:
+                    rep.err(f'{tag}: {sides[0]} left / {sides[1]} right members (joint X sign)')
+            # a leg set left as one part walks as one block (the "legs stuck together" bug)
+            for p in parts:
+                if p.get('anim') == 'legs_walk' and p.get('form') in RIG_LEG_FORMS and not p.get('set'):
+                    rep.err(f'{coll} {mid}/{p.get("name")}: {p.get("form")} with legs_walk must be cut into one part per leg (set)')
+                if p.get('form') == 'wing_pair' and not p.get('set'):
+                    rep.err(f'{coll} {mid}/{p.get("name")}: a wing pair must be cut into wing_l / wing_r (set)')
