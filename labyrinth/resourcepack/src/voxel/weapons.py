@@ -1455,7 +1455,7 @@ def chalice_scepter(g, p):
     dress_shaft(g, p, -6, top - 2, c1, c1 + 4)
 
 
-TEMPLATES = {
+_TEMPLATES = {
     'longsword': longsword, 'broadsword': broadsword, 'greatsword': greatsword, 'cleaver': cleaver,
     'great_axe': great_axe, 'mace': mace, 'dagger': dagger, 'kris': kris, 'fang_blade': fang_blade,
     'staff_orb': staff_orb, 'staff_crystal': staff_crystal, 'staff_ring': staff_ring, 'scepter': scepter,
@@ -1466,3 +1466,26 @@ TEMPLATES = {
 }
 BOWS = ('longbow', 'recurve_bow', 'composite_bow', 'horn_bow', 'blade_bow')
 TWO_HANDED = {'greatsword', 'cleaver', 'great_axe', 'war_scythe', 'glaive'}
+
+# 손에 드는 각도 (displays.weapon). 모든 무기는 날·머리(+x)가 1인칭 화면 안쪽·3인칭 몸 앞쪽을 향하고,
+# 1인칭 y 회전 기본값은 90° (바닐라 도끼와 같은 각도: 날을 뒤에서 봄). 초승달 날(낫·낫단검)은 90° 면 날을
+# 끝에서 봐서 휘두를 때 거의 안 보이므로 125° 로 더 돌려 초승달 면이 비스듬히 보이게 한다 → 내려벨 때 날이
+# 아래로 휘감아 들어가는 모습. 손잡이 위치는 displays.held 가 각도와 상관없이 그대로 맞춘다.
+HOLD = {'war_scythe': {'fp_yaw': 125}, 'sickle': {'fp_yaw': 125}}
+_BUILT: dict[str, str] = {}      # item id → shape of the template that last built it
+
+
+def hold_of(name):
+    """Hold parameters for the item `name` built by one of TEMPLATES ({} = defaults)."""
+    return HOLD.get(_BUILT.get(name, ''), {})
+
+
+def _recorded(shape, fn):
+    def build(g, p):
+        _BUILT[p.iid] = shape        # read back by displays.voxel_weapon(m) via m.name == p.iid
+        return fn(g, p)
+    build.__name__, build.__doc__ = fn.__name__, fn.__doc__
+    return build
+
+
+TEMPLATES = {shape: _recorded(shape, fn) for shape, fn in _TEMPLATES.items()}
