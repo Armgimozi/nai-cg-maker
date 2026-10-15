@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 import kr.labyrinth.content.Content;
 import kr.labyrinth.content.FloorDef;
 import kr.labyrinth.content.LootTable;
@@ -288,11 +289,14 @@ class TrapsAndTreasureTest {
             }
             // 상자 표 자체는 강화석 표를 굴리지 않는다 (rolls 2 에 들어가 두 번 굴리던 문제)
             for (ChestTier t : ChestTier.values()) {
-                LootTable mt = content.lootTable(t.table(fl, 0));
-                List<LootTable.Entry> all = new ArrayList<>(mt.entries());
-                all.addAll(mt.guaranteed());
-                for (LootTable.Entry e : all) {
-                    assertFalse(e.kind() == LootTable.Kind.TABLE && e.table().startsWith("enhance_"), mt.id() + " → " + e.table());
+                // 층별 표(실제로 굴리는 것)와 구간 표 둘 다
+                for (String tid : Set.of(t.table(fl, 0), t.table(fl, 0, content.lootTables()::containsKey))) {
+                    LootTable mt = content.lootTable(tid);
+                    List<LootTable.Entry> all = new ArrayList<>(mt.entries());
+                    all.addAll(mt.guaranteed());
+                    for (LootTable.Entry e : all) {
+                        assertFalse(e.kind() == LootTable.Kind.TABLE && e.table().startsWith("enhance_"), mt.id() + " → " + e.table());
+                    }
                 }
             }
         }
@@ -303,8 +307,59 @@ class TrapsAndTreasureTest {
         all.addAll(t.guaranteed());
         for (LootTable.Entry e : all) {
             if (e.kind() == LootTable.Kind.ITEM) out.add(e.item());
+            else if (e.kind() == LootTable.Kind.ONE_OF) out.addAll(e.oneOf());
             else if (e.kind() == LootTable.Kind.TABLE) lootItems(content.lootTable(e.table()), out);
         }
+    }
+
+    @Test
+    void mazeChestUsesPerFloorTableUnlessBracketForced() {
+        Predicate<String> has = content.lootTables()::containsKey;
+        for (ChestTier t : ChestTier.values()) {
+            for (int fl = 1; fl <= 10; fl++) {
+                // 층별 표가 있으면 그것 — 구간 표는 3개 층이 같이 써서 장비가 없다
+                assertEquals("maze_chest_" + t.id() + "_f" + fl, t.table(fl, 0, has));
+                // floors.yml chests.bracket 강제면 구간 표
+                assertEquals("maze_chest_" + t.id() + "_2", t.table(fl, 2, has));
+            }
+            // 층별 표가 없는 예전 loot.yml 은 지금처럼 구간 표
+            assertEquals("maze_chest_" + t.id() + "_1", t.table(3, 0, id -> false));
+            assertEquals("maze_chest_" + t.id() + "_4", t.table(10, 0, id -> !id.contains("_f")));
+        }
+        // 층별 표는 그 층 장비만 준다 (금 상자 = 그 층 공용 무기)
+        for (FloorDef f : content.floors().values()) {
+            int bracket = ChestSettings.of(f.raw().sub("chests")).bracket();
+            for (ChestTier t : ChestTier.values()) {
+                String id = t.table(f.number(), bracket, has);
+                Set<String> got = new HashSet<>();
+                lootItems(content.lootTable(id), got);
+                int gear = 0;
+                for (String item : got) {
+                    var d = content.item(item);
+                    if (!d.isGear()) continue;
+                    gear++;
+                    assertEquals(f.number(), d.floor(), id + " → " + item);
+                }
+                assertTrue(gear > 0, id + " 에 장비가 없음");
+            }
+        }
+    }
+
+    @Test
+    void validatorRequiresTheChestTableTreasuresRolls() {
+        // 층별 표를 지워도 구간 표가 있으면 오류 아님, 둘 다 없으면 오류
+        Map<String, LootTable> tables = new java.util.HashMap<>(content.lootTables());
+        tables.remove("maze_chest_gold_f3");
+        assertTrue(kr.labyrinth.core.ContentValidator.validate(withTables(tables)).errors().stream().noneMatch(e -> e.contains("미로 상자")));
+        tables.remove("maze_chest_gold_1");
+        List<String> errors = kr.labyrinth.core.ContentValidator.validate(withTables(tables)).errors();
+        assertTrue(errors.stream().anyMatch(e -> e.startsWith("floors.3 미로 상자") && e.contains("maze_chest_gold_1")), errors.toString());
+    }
+
+    static Content withTables(Map<String, LootTable> tables) {
+        Content c = content;
+        return new Content(c.classes(), c.items(), c.sets(), c.mobs(), c.bosses(), c.floors(), Map.copyOf(tables), c.lootSettings(),
+                c.recipes(), c.achievements(), c.npcs(), c.auras(), c.fxModels(), c.glyphs(), c.spaces());
     }
 
     @Test

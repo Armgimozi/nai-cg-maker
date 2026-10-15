@@ -1,12 +1,19 @@
 package kr.labyrinth.items;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import kr.labyrinth.content.BossDef;
 import kr.labyrinth.content.Content;
 import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.ItemSetDef;
+import kr.labyrinth.content.LootTable;
+import kr.labyrinth.content.MobDef;
 import kr.labyrinth.content.Params;
 import kr.labyrinth.content.Range;
 import kr.labyrinth.content.Rarity;
@@ -15,7 +22,7 @@ import kr.labyrinth.core.Text;
 /**
  * 아이템 툴팁(lore) 생성 — MiniMessage 문자열 목록. Bukkit 무관(단위 테스트 가능).
  * 구성: 희귀도·분류·아우라 / 요구 레벨 / 스탯(첫 스탯은 범위·굴림 품질과 한 줄, 나머지 두 개씩) / 강화 / 무기 스킬 /
- * 세트 효과·사용 효과 / 설명 / 획득처. 화면에 다 들어가도록 {@link #MAX_LINES} 를 넘으면 덜 중요한 줄부터 뺀다.
+ * 세트 효과·사용 효과 / 설명 / 획득처("보스 테오라(9층) · 대장간"). 화면에 다 들어가도록 {@link #MAX_LINES} 를 넘으면 덜 중요한 줄부터 뺀다.
  */
 public final class ItemTooltip {
 
@@ -24,8 +31,9 @@ public final class ItemTooltip {
             "bow", "활", "staff", "지팡이", "scepter", "홀", "dagger", "단검");
     private static final Map<String, String> SLOTS = Map.of("head", "투구", "chest", "흉갑", "legs", "각반",
             "feet", "장화", "offhand", "방패");
-    private static final Map<String, String> SOURCES = Map.of("drop", "몬스터", "elite", "엘리트", "boss", "보스",
-            "chest", "보물 상자", "craft", "제작", "reward", "업적 보상", "shop", "상인");
+    /** items.yml sources 값 → 획득처 이름 (drop+chest 는 "몬스터·상자" 한 집, 보스·정예는 이름을 붙인다 — {@link #sourceLine}). */
+    private static final Map<String, String> SOURCES = Map.of("drop", "몬스터", "elite", "정예", "boss", "보스",
+            "chest", "보물 상자", "craft", "대장간", "reward", "칭호 보상", "shop", "상인", "starter", "시작 지급");
     private static final Map<String, String> BUFFS = Map.of("damage", "주는 피해", "damage_reduction", "받는 피해 감소",
             "attack_speed", "공격 속도", "move_speed", "이동 속도", "crit_chance", "치명타 확률", "crit_damage", "치명타 피해",
             "lifesteal", "흡혈", "evasion", "회피", "cooldown_reduction", "재사용 대기 감소", "skill_damage", "스킬 피해");
@@ -106,10 +114,11 @@ public final class ItemTooltip {
 
     /**
      * 이름 줄을 뺀 툴팁 최대 줄 수. GUI 크기를 크게 쓴 1080p 화면에 툴팁이 약 23줄 들어가므로 이름 포함 21줄로 맞춘다.
-     * 넘치면 덜 중요한 것부터 뺀다: 설명(이야기) → 획득처 한 줄 → 빈 줄 → 무기 스킬 설명을 첫 줄만.
+     * 넘치면 덜 중요한 것부터 뺀다: 설명(이야기) → 획득처 한 줄 → 빈 줄 → 무기 스킬 설명을 첫 줄만
+     * (보스 고유 장비는 어느 보스 것인지가 보여야 하므로 빈 줄을 먼저 빼고 획득처를 남긴다).
      */
     public static final int MAX_LINES = 20;
-    /** 획득처 한 줄 요약의 앞부분 (도감은 자세한 목록을 따로 붙이므로 이 줄을 뺀다). */
+    /** 획득처 한 줄 요약의 앞부분 (도감은 자세한 목록을 따로 붙이므로 이 줄 없이 그린다 — withSource = false). */
     public static final String SOURCE_PREFIX = "<dark_gray>획득처: ";
     /** 설명·스킬 설명 줄바꿈 글자 수 (툴팁 폭이 화면 절반을 넘지 않게). */
     static final int WRAP = 34;
@@ -134,6 +143,13 @@ public final class ItemTooltip {
      */
     public static List<String> lines(Content content, ItemDef def, Map<String, Double> rolls,
                                      Map<String, Double> enhanceBonus, List<String> enhanceLines, int reserve) {
+        return lines(content, def, rolls, enhanceBonus, enhanceLines, reserve, true);
+    }
+
+    /** @param withSource 획득처 한 줄을 넣을지 (도감은 자세한 획득처 목록을 따로 붙이므로 false) */
+    public static List<String> lines(Content content, ItemDef def, Map<String, Double> rolls,
+                                     Map<String, Double> enhanceBonus, List<String> enhanceLines, int reserve,
+                                     boolean withSource) {
         Rarity r = def.rarity();
         String c = "<" + r.color() + ">";
 
@@ -229,22 +245,126 @@ public final class ItemTooltip {
         if (def.lore() != null && !def.lore().isBlank()) {
             for (String l : wrap(def.lore(), WRAP)) flavor.add("<#8a8a9a><i>" + Text.escape(l));
         }
-        String source = null;
-        if (!def.sources().isEmpty()) {
-            List<String> names = new ArrayList<>();
-            for (String s : def.sources()) names.add(SOURCES.getOrDefault(s, s));
-            source = SOURCE_PREFIX + String.join(" · ", names);
-        }
+        String source = withSource ? sourceLine(content, def) : null;
 
         int budget = Math.max(6, MAX_LINES - Math.max(0, reserve));
         List<String> out = null;
-        // 0: 전부 · 1: 설명 뺌 · 2: 획득처도 뺌 · 3: 빈 줄 뺌 · 4: 스킬 설명 첫 줄만
+        // 0: 전부 · 1: 설명 뺌 · 2: 획득처도 뺌 · 3: 빈 줄 뺌 · 4: 스킬 설명 첫 줄만 (보스 고유 장비는 2·3 순서가 반대)
+        boolean bossGear = def.isGear() && def.sources().contains("boss");
         for (int tier = 0; tier <= 4; tier++) {
+            boolean keepSource = bossGear ? tier <= 2 : tier <= 1;
+            boolean blanks = bossGear ? tier <= 1 : tier <= 2;
             out = assemble(head, stats, enhanceLines, skillHeads, skillDescs, extra,
-                    tier == 0 ? flavor : List.of(), tier <= 1 ? source : null, tier <= 2, tier >= 4);
+                    tier == 0 ? flavor : List.of(), keepSource ? source : null, blanks, tier >= 4);
             if (out.size() <= budget) break;
         }
         return out;
+    }
+
+    // ── 획득처 한 줄 ──────────────────────────────────────────────────────
+
+    /** 획득처 줄의 최대 폭 (TooltipFitTest 와 같은 근사 — 한글 9 · 영문·숫자 6 · 공백 4 · 기호 8 px). */
+    static final int SOURCE_MAX_PX = 330;
+
+    /**
+     * "획득처: 보스 테오라(9층) · 대장간", "획득처: 지하 3층 몬스터·상자", "획득처: 시작 지급" (sources 가 비면 null).
+     * 보스·정예는 그 아이템을 주는 보스·정예가 하나뿐일 때만 이름을 붙이고, 줄이 넘치면 이름을 뺀다.
+     */
+    public static String sourceLine(Content content, ItemDef def) {
+        if (def.sources().isEmpty()) return null;
+        String full = sourceLine(content, def, true);
+        return width(full) <= SOURCE_MAX_PX ? full : sourceLine(content, def, false);
+    }
+
+    private static String sourceLine(Content content, ItemDef def, boolean named) {
+        Set<String> parts = new LinkedHashSet<>();
+        boolean drop = def.sources().contains("drop"), chest = def.sources().contains("chest");
+        SourceNames names = named ? names(content) : null;
+        for (String s : def.sources()) {
+            switch (s) {
+                case "drop", "chest" -> {
+                    if (drop && chest) parts.add(def.isGear() && def.floor() > 0 ? "지하 " + def.floor() + "층 몬스터·상자" : "몬스터·상자");
+                    else parts.add(SOURCES.get(s));
+                }
+                case "boss" -> parts.add(names == null ? SOURCES.get(s) : names.boss().getOrDefault(def.id(), SOURCES.get(s)));
+                case "elite" -> parts.add(names == null ? SOURCES.get(s) : names.elite().getOrDefault(def.id(), SOURCES.get(s)));
+                default -> parts.add(SOURCES.getOrDefault(s, s));
+            }
+        }
+        return SOURCE_PREFIX + String.join(" · ", parts);
+    }
+
+    /** 아이템 id → "보스 테오라(9층)" / "정예 대시계 집행관(9층)" — 그 아이템을 주는 보스·정예가 하나뿐일 때만. */
+    private record SourceNames(Content content, Map<String, String> boss, Map<String, String> elite) {}
+
+    private static volatile SourceNames sourceNames;
+
+    /** 콘텐츠를 다시 읽을 때(= 새 Content 스냅샷)만 루팅 테이블을 펼쳐 다시 계산한다. */
+    private static SourceNames names(Content c) {
+        SourceNames n = sourceNames;
+        if (n != null && n.content() == c) return n;
+        Map<String, Set<String>> boss = new HashMap<>();
+        Map<String, Set<String>> elite = new HashMap<>();
+        for (BossDef b : c.bosses().values()) {
+            String label = "보스 " + bossShortName(b) + "(" + b.floor() + "층)";
+            for (String id : items(c, b.drops())) boss.computeIfAbsent(id, k -> new LinkedHashSet<>()).add(label);
+        }
+        for (MobDef m : c.mobs().values()) {
+            if (!m.isElite() || m.drops() == null) continue;
+            String label = "정예 " + Text.strip(m.name()).trim() + "(" + m.floor() + "층)";
+            for (String id : items(c, m.drops())) elite.computeIfAbsent(id, k -> new LinkedHashSet<>()).add(label);
+        }
+        n = new SourceNames(c, single(boss), single(elite));
+        sourceNames = n;
+        return n;
+    }
+
+    private static Map<String, String> single(Map<String, Set<String>> labels) {
+        Map<String, String> out = new HashMap<>();
+        labels.forEach((id, l) -> { if (l.size() == 1) out.put(id, l.iterator().next()); });
+        return out;
+    }
+
+    /** 보스 짧은 이름 ("시계탑의 간수 테오라" → "테오라") — 몇 층인지와 함께면 충분하다. */
+    public static String bossShortName(BossDef b) {
+        String full = Text.strip(b.name()).trim();
+        return full.contains(" ") ? full.substring(full.lastIndexOf(' ') + 1) : full;
+    }
+
+    /** 테이블이 줄 수 있는 아이템 id (하위 테이블·one_of·guaranteed 포함, rarity_pool 은 후보 풀). */
+    private static Set<String> items(Content c, String tableId) {
+        Set<String> out = new HashSet<>();
+        collect(c, c.lootTable(tableId), out, new HashSet<>());
+        return out;
+    }
+
+    private static void collect(Content c, LootTable t, Set<String> out, Set<String> visiting) {
+        if (t == null || !visiting.add(t.id())) return;
+        List<LootTable.Entry> all = new ArrayList<>(t.entries());
+        all.addAll(t.guaranteed());
+        for (LootTable.Entry e : all) {
+            switch (e.kind()) {
+                case ITEM -> { if (e.item() != null) out.add(e.item()); }
+                case ONE_OF -> { if (e.oneOf() != null) out.addAll(e.oneOf()); }
+                case TABLE -> collect(c, c.lootTable(e.table()), out, visiting);
+                case RARITY_POOL -> {
+                    if (e.rarityPool() != null) for (ItemDef d : c.poolCandidates(e.floor(), e.rarityPool())) out.add(d.id());
+                }
+            }
+        }
+        visiting.remove(t.id());
+    }
+
+    /** 대략적인 픽셀 폭 (MiniMessage 태그 제외). */
+    static int width(String mm) {
+        int w = 0;
+        for (char ch : mm.replaceAll("<[^>]+>", "").toCharArray()) {
+            if (ch == ' ') w += 4;
+            else if (ch >= 0xAC00 && ch <= 0xD7A3) w += 9;
+            else if (ch < 128) w += 6;
+            else w += 8;
+        }
+        return w;
     }
 
     private static List<String> assemble(List<String> head, List<String> stats, List<String> enhance, List<String> skillHeads,

@@ -5,18 +5,24 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import kr.labyrinth.content.Content;
+import kr.labyrinth.content.IntRange;
 import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.LootTable;
+import kr.labyrinth.content.MobDef;
 import kr.labyrinth.content.Rarity;
 import kr.labyrinth.core.ContentLoader;
+import kr.labyrinth.core.ContentValidator;
 import kr.labyrinth.items.loot.LootRoller;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-/** 루팅 확률 공식·독립 판정·확정 지급·min_difficulty·직업 편향 (GDD §11.10). */
+/** 루팅 확률 공식·독립 판정·확정 지급·min_difficulty·직업 편향 (GDD §11.10) · 장비 획득처 검사기 경고. */
 class LootRollerTest {
 
     static Content content;
@@ -104,12 +110,12 @@ class LootRollerTest {
 
     @Test
     void classBiasPrefersOwnClass() {
-        // one_of 묶음 + rarity_pool: 6종 무기 중 광전사 추천 무기(대검) 비율이 1/6 보다 훨씬 높아야 함
+        // 1층 공용 무기 묶음(gear_f01_common 의 one_of, 6종 × 2단계): 광전사에 어울리는 무기(대검) 비율이 1/6 보다 훨씬 높아야 함
         LootRoller roller = new LootRoller(content, new Random(9));
         int weapons = 0;
         int own = 0;
         for (int i = 0; i < 3000; i++) {
-            for (LootRoller.Drop d : roller.roll("floor01_boss", new LootRoller.Request("normal", 100.0, 0, "berserker"))) {
+            for (LootRoller.Drop d : roller.roll("gear_f01_common", new LootRoller.Request("normal", 100.0, 0, "berserker"))) {
                 ItemDef def = content.item(d.itemId());
                 if (def.isWeapon()) {
                     weapons++;
@@ -118,8 +124,54 @@ class LootRollerTest {
             }
         }
         double ratio = own / (double) weapons;
-        // 기대값 ≈ 0.65 + 0.35 × (1/6) ≈ 0.71 (풀 후보 구성에 따라 약간 다름)
+        // 기대값 ≈ 0.65 + 0.35 × (2/12) ≈ 0.71
         assertTrue(ratio > 0.55 && ratio < 0.9, "직업 편향 비율 " + ratio);
+    }
+
+    @Test
+    void validatorWarnsWhenGearHomesGetMixed() {
+        // 지금 콘텐츠: 장비 획득처 경고 0
+        List<String> now = ContentValidator.validate(content).warnings().stream()
+                .filter(x -> x.contains("rarity_pool") || x.contains("장비") || x.contains("획득처") || x.contains("sources")).toList();
+        assertEquals(List.of(), now);
+
+        Map<String, LootTable> tables = new HashMap<>(content.lootTables());
+        // (a) rarity_pool · (b) 1층 몹이 2층 무기 · (c) 1층 정예 방패가 보스에서도(3곳) · (d) 수련생 장비가 몹에서
+        tables.put("moss_crawler", with(tables.get("moss_crawler"),
+                new LootTable.Entry(LootTable.Kind.RARITY_POOL, null, Rarity.COMMON, 1, List.of(), null, 0.01, IntRange.ONE, null),
+                item("minewarden_mace"), item("novice_cap")));
+        tables.put("floor01_boss", with(tables.get("floor01_boss"), item("oak_round_shield")));
+        Content c = content;
+        Content mixed = new Content(c.classes(), c.items(), c.sets(), c.mobs(), c.bosses(), c.floors(), Map.copyOf(tables), c.lootSettings(),
+                c.recipes(), c.achievements(), c.npcs(), c.auras(), c.fxModels(), c.glyphs(), c.spaces());
+        List<String> w = ContentValidator.validate(mixed).warnings();
+        String all = String.join("\n", w);
+        assertTrue(all.contains("loot.moss_crawler: rarity_pool 항목 1개"), all);
+        assertTrue(all.contains("loot.moss_crawler: 지하 1층 표인데 다른 층 장비") && all.contains("minewarden_mace(2층)"), all);
+        assertTrue(all.contains("items.oak_round_shield: 획득처가 3곳 (정예·보스·제작)"), all);
+        assertTrue(all.contains("items.oak_round_shield: sources [elite, craft] 가 실제 획득처 [boss, craft, elite] 와 다름"), all);
+        assertTrue(all.contains("items.novice_cap: 시작 지급 장비인데 몬스터·상자에서도 나옴"), all);
+
+        // (e) 일반 몹 drops 를 보스 표로 — 한 표를 몹·보스가 같이 쓰면 두 집이 모두 잡힌다 (나중에 묶은 보스만 남지 않게)
+        Map<String, MobDef> mobs = new HashMap<>(c.mobs());
+        MobDef m = mobs.get("capcap");
+        mobs.put("capcap", new MobDef(m.id(), m.name(), m.description(), m.floor(), m.rank(), m.base(), m.scale(), m.hp(), m.damage(),
+                m.defense(), m.speed(), m.xp(), m.gold(), m.ai(), m.skills(), "floor03_boss", m.flying(), m.sounds(), m.model(), m.raw()));
+        Content shared = new Content(c.classes(), c.items(), c.sets(), Map.copyOf(mobs), c.bosses(), c.floors(), c.lootTables(), c.lootSettings(),
+                c.recipes(), c.achievements(), c.npcs(), c.auras(), c.fxModels(), c.glyphs(), c.spaces());
+        String sw = String.join("\n", ContentValidator.validate(shared).warnings());
+        assertTrue(sw.contains("items.mycelking_guard_blade: 획득처가 3곳 (몬스터·상자·보스·제작)"), sw);
+        assertTrue(sw.contains("items.mycelking_guard_blade: sources [boss, craft] 가 실제 획득처 [boss, craft, drop] 와 다름"), sw);
+    }
+
+    private static LootTable.Entry item(String id) {
+        return new LootTable.Entry(LootTable.Kind.ITEM, id, null, 0, List.of(), null, 0.01, IntRange.ONE, null);
+    }
+
+    private static LootTable with(LootTable t, LootTable.Entry... extra) {
+        List<LootTable.Entry> entries = new ArrayList<>(t.entries());
+        entries.addAll(List.of(extra));
+        return new LootTable(t.id(), t.rolls(), entries, t.guaranteed(), t.gold());
     }
 
     @Test

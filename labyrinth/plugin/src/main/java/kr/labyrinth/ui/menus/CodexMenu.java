@@ -24,6 +24,8 @@ import kr.labyrinth.content.Rarity;
 import kr.labyrinth.content.RecipeDef;
 import kr.labyrinth.core.Keys;
 import kr.labyrinth.core.Text;
+import kr.labyrinth.dungeon.treasure.ChestSettings;
+import kr.labyrinth.dungeon.treasure.ChestTier;
 import kr.labyrinth.items.ItemTooltip;
 import kr.labyrinth.ui.Button;
 import kr.labyrinth.ui.UiTheme;
@@ -35,7 +37,7 @@ import org.bukkit.inventory.ItemStack;
 
 /**
  * 도감 {@code /codex} (= {@code /도감}, {@code /미궁 도감}): 아이템을 종류·희귀도별로, 몬스터·보스를 층별로.
- * 아이템 툴팁 아래에 "획득처"(드롭 몹·보스·보물 상자·기믹 방·제작·상점·칭호 보상)를 콘텐츠에서 계산해 붙인다.
+ * 아이템 툴팁 아래에 "획득처"(보스·정예·몬스터·상자·보물 상자·기믹 방·제작·상점·칭호 보상·시작 지급)를 콘텐츠에서 계산해 붙인다.
  */
 public final class CodexMenu extends LabMenu {
 
@@ -144,8 +146,9 @@ public final class CodexMenu extends LabMenu {
         // 도감은 굴림값·강화 대신 범위로 보여 주고, 획득처 목록이 들어갈 자리를 비운다 (화면 안에 — ItemTooltip.MAX_LINES)
         List<String> src = sources.getOrDefault(d.id(), List.of());
         if (src.isEmpty()) src = List.of("<dark_gray>알려진 획득처 없음 (관리자 지급)");
-        List<String> lines = new ArrayList<>(ItemTooltip.lines(services.content(), d, null, Map.of(), List.of(), 1 + Math.min(src.size(), SOURCE_LINES)));
-        lines.removeIf(l -> l.startsWith(ItemTooltip.SOURCE_PREFIX)); // 아래 목록과 겹치는 한 줄 요약
+        // 툴팁의 획득처 한 줄 요약은 아래 목록과 겹치므로 넣지 않는다
+        List<String> lines = new ArrayList<>(ItemTooltip.lines(services.content(), d, null, Map.of(), List.of(),
+                1 + Math.min(src.size(), SOURCE_LINES), false));
         lines.add("<#ffd36b>◆ 획득처");
         int room = Math.max(1, ItemTooltip.MAX_LINES - lines.size());
         if (src.size() <= room) {
@@ -178,7 +181,8 @@ public final class CodexMenu extends LabMenu {
         LootTable t = services.content().lootTable(table);
         if (t == null) return out;
         Set<String> names = new LinkedHashSet<>();
-        collectItems(services.content(), t, names, new HashSet<>());
+        Set<String> commons = new LinkedHashSet<>();
+        collectItems(services.content(), t, names, commons, new HashSet<>());
         int n = 0;
         for (String id : names) {
             ItemDef d = services.content().item(id);
@@ -190,6 +194,8 @@ public final class CodexMenu extends LabMenu {
             String c = d.rarity() == null ? "white" : d.rarity().color();
             out.add("<gray>  · <" + c + ">" + Text.escape(Text.strip(d.name())));
         }
+        // 층 공용 무기 묶음은 무기를 하나하나 늘어놓지 않고 한 줄로
+        for (String id : commons) out.add("<gray>  · 지하 " + commonFloor(id) + "층 무기 (몬스터·상자 공용)");
         return out;
     }
 
@@ -202,7 +208,7 @@ public final class CodexMenu extends LabMenu {
             String rank = m.isElite() ? "<#ffb52e>정예" : m.isAdd() ? "<gray>소환물" : "<white>일반";
             lore.add("<gray>지하 <white>" + m.floor() + "</white>층 · " + rank);
             lore.add("<gray>HP <white>" + Text.num(m.hp()) + "</white> · 공격 <white>" + Text.num(m.damage()) + "</white> · 방어 <white>"
-                    + Text.num(m.defense()) + "</white> <dark_gray>(보통·솔로 기준)");
+                    + Text.num(m.defense()) + "</white> <dark_gray>(보통·보정 전)");
             lore.add("<gray>경험치 <white>" + Text.num(m.xp()));
             lore.addAll(wrap(m.description(), 26, "<dark_gray>"));
             List<String> drops = dropLines(m.drops());
@@ -225,7 +231,7 @@ public final class CodexMenu extends LabMenu {
             FloorDef f = services.content().floor(b.floor());
             lore.add("<gray>지하 <white>" + b.floor() + "</white>층" + (f == null ? "" : " · " + Text.escape(Text.strip(f.name()))));
             lore.add("<gray>HP <white>" + Text.num(b.hp()) + "</white> · 공격 <white>" + Text.num(b.damage()) + "</white> · 페이즈 <white>"
-                    + Math.max(1, b.phases().size()) + "</white> <dark_gray>(보통·솔로 기준)");
+                    + Math.max(1, b.phases().size()) + "</white> <dark_gray>(보통·보정 전)");
             lore.addAll(wrap(b.description(), 26, "<dark_gray>"));
             List<String> drops = dropLines(b.drops());
             if (!drops.isEmpty()) {
@@ -239,8 +245,22 @@ public final class CodexMenu extends LabMenu {
 
     // ── 획득처 계산 ───────────────────────────────────────────────────────
 
-    /** 테이블이 줄 수 있는 아이템 id (중첩 테이블·one_of 포함, rarity_pool 은 그 층·희귀도 풀). */
-    private static void collectItems(Content c, LootTable t, Set<String> out, Set<String> visiting) {
+    /** 층 공용 무기 묶음 {@code gear_fNN_common} 의 층 (아니면 -1). 몬스터·보물방·기믹방·미로 상자가 함께 굴리는 한 집이다. */
+    static int commonFloor(String tableId) {
+        if (tableId == null || !tableId.startsWith("gear_f") || !tableId.endsWith("_common")) return -1;
+        try {
+            return Integer.parseInt(tableId.substring(6, tableId.length() - 7));
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
+    /**
+     * 테이블이 줄 수 있는 아이템 id (중첩 테이블·one_of 포함, rarity_pool 은 그 층·희귀도 풀).
+     * 층 공용 무기 묶음(gear_fNN_common)은 따라 들어가지 않고 {@code commons} 에 테이블 id 만 모은다 —
+     * 그 무기들의 획득처는 몹 6종·보물방·기믹방 이름을 줄줄이 붙이지 않고 "몬스터·상자 지하 N층" 한 줄이다.
+     */
+    private static void collectItems(Content c, LootTable t, Set<String> out, Set<String> commons, Set<String> visiting) {
         if (t == null || !visiting.add(t.id())) return;
         List<LootTable.Entry> all = new ArrayList<>(t.entries());
         all.addAll(t.guaranteed());
@@ -248,7 +268,10 @@ public final class CodexMenu extends LabMenu {
             switch (e.kind()) {
                 case ITEM -> { if (e.item() != null) out.add(e.item()); }
                 case ONE_OF -> { if (e.oneOf() != null) out.addAll(e.oneOf()); }
-                case TABLE -> collectItems(c, c.lootTable(e.table()), out, visiting);
+                case TABLE -> {
+                    if (commonFloor(e.table()) > 0) commons.add(e.table());
+                    else collectItems(c, c.lootTable(e.table()), out, commons, visiting);
+                }
                 case RARITY_POOL -> {
                     if (e.rarityPool() != null) for (ItemDef d : c.poolCandidates(e.floor(), e.rarityPool())) out.add(d.id());
                 }
@@ -257,11 +280,17 @@ public final class CodexMenu extends LabMenu {
         visiting.remove(t.id());
     }
 
-    /** 획득처 종류 (표시 순서). */
-    private static final List<String> SOURCE_GROUPS = List.of("보스", "정예", "보물 상자", "기믹 방", "제작", "상점", "칭호 보상", "몬스터");
+    /**
+     * 획득처 종류 (표시 순서). 장비는 보스 · 정예 · 몬스터·상자 · 제작 · 칭호 보상 · 시작 지급 중 1~2곳이고,
+     * 보물 상자 · 기믹 방 · 몬스터 는 재료·소모품용으로 남긴다.
+     */
+    private static final List<String> SOURCE_GROUPS = List.of("보스", "정예", "몬스터·상자", "보물 상자", "기믹 방", "제작", "상점",
+            "칭호 보상", "시작 지급", "몬스터");
+    /** 층만 모아 "지하 9·10층" 으로 적는 묶음. */
+    private static final Set<String> FLOOR_GROUPS = Set.of("몬스터·상자", "보물 상자", "기믹 방");
     // 제작 = 대장장이 (재료 ×개수 · … · 골드)
     private static final Map<String, String> SOURCE_COLORS = Map.of("보스", "#ff6b6b", "정예", "#ffb52e", "제작", "#7fd8ff",
-            "상점", "#7fe07f", "칭호 보상", "#c9a2ff");
+            "상점", "#7fe07f", "칭호 보상", "#c9a2ff", "시작 지급", "#9be89b");
     /** 도감 툴팁에서 획득처에 비워 두는 최대 줄 수 (넘치면 장비 설명 쪽이 빈 줄·스킬 설명을 줄인다). */
     public static final int SOURCE_LINES = 6;
     /** 획득처 줄바꿈 글자 수 (툴팁 폭). */
@@ -284,20 +313,33 @@ public final class CodexMenu extends LabMenu {
         for (BossDef b : c.bosses().values()) {
             if (b.drops() == null) continue;
             // 보스는 짧은 이름 ("시계탑의 간수 테오라" → "테오라") — 몇 층인지와 함께면 충분하고 한 줄에 여럿 들어간다
-            String full = Text.strip(b.name()).trim();
-            String shortName = full.contains(" ") ? full.substring(full.lastIndexOf(' ') + 1) : full;
-            tableLabels.computeIfAbsent(b.drops(), k -> new ArrayList<>()).add(new Src("보스", shortName + "(" + b.floor() + "층)"));
+            tableLabels.computeIfAbsent(b.drops(), k -> new ArrayList<>())
+                    .add(new Src("보스", ItemTooltip.bossShortName(b) + "(" + b.floor() + "층)"));
         }
         for (String tid : c.lootTables().keySet()) {
-            if (tid.startsWith("treasure_floor_")) {
+            int common = commonFloor(tid);
+            if (common > 0) {
+                tableLabels.computeIfAbsent(tid, k -> new ArrayList<>()).add(new Src("몬스터·상자", String.valueOf(common)));
+            } else if (tid.startsWith("treasure_floor_")) {
                 tableLabels.computeIfAbsent(tid, k -> new ArrayList<>()).add(new Src("보물 상자", tid.substring(15)));
             } else if (tid.startsWith("gimmick_floor_")) {
                 tableLabels.computeIfAbsent(tid, k -> new ArrayList<>()).add(new Src("기믹 방", tid.substring(14)));
             }
         }
+        // 미로 상자 — Treasures·검사기와 같은 규칙으로 실제로 굴리는 표 (층별 maze_chest_<tier>_f<층>, floors.yml
+        // chests.bracket 강제거나 층별 표가 없으면 구간 표) 를 보물 상자 묶음에 층으로
+        for (FloorDef f : c.floors().values()) {
+            int bracket = ChestSettings.of(f.raw().sub("chests")).bracket();
+            for (ChestTier tier : ChestTier.values()) {
+                String tid = tier.table(f.number(), bracket, c.lootTables()::containsKey);
+                if (c.lootTables().containsKey(tid)) {
+                    tableLabels.computeIfAbsent(tid, k -> new ArrayList<>()).add(new Src("보물 상자", String.valueOf(f.number())));
+                }
+            }
+        }
         for (var e : tableLabels.entrySet()) {
             Set<String> items = new LinkedHashSet<>();
-            collectItems(c, c.lootTable(e.getKey()), items, new HashSet<>());
+            collectItems(c, c.lootTable(e.getKey()), items, new HashSet<>(), new HashSet<>());
             for (String id : items) for (Src s : e.getValue()) add(src, id, s);
         }
         for (RecipeDef r : c.recipes().values()) {
@@ -319,6 +361,10 @@ public final class CodexMenu extends LabMenu {
             if (a.rewardItems() == null) continue;
             for (String id : a.rewardItems().keySet()) add(src, id, new Src("칭호 보상", Text.strip(a.name())));
         }
+        // 시작 꾸러미 (items.yml sources: [starter]) — 루팅·제작에는 없다
+        for (ItemDef d : c.items().values()) {
+            if (d.sources().contains("starter")) add(src, d.id(), new Src("시작 지급", "처음 직업을 고를 때"));
+        }
         Map<String, List<String>> out = new LinkedHashMap<>();
         // 원문 이름에 든 MiniMessage 기호는 strip 으로 걷었으므로 그대로 써도 안전
         src.forEach((id, groups) -> out.put(id, List.copyOf(formatSources(groups))));
@@ -329,14 +375,14 @@ public final class CodexMenu extends LabMenu {
         src.computeIfAbsent(id, k -> new LinkedHashMap<>()).computeIfAbsent(s.group(), k -> new LinkedHashSet<>()).add(s.label());
     }
 
-    /** 종류별 한 줄 (넘치면 들여 써서 이어 감). 보물 상자·기믹 방은 층만 모아 "지하 9·10층". */
+    /** 종류별 한 줄 (넘치면 들여 써서 이어 감). 몬스터·상자·보물 상자·기믹 방은 층만 모아 "지하 9·10층". */
     static List<String> formatSources(Map<String, Set<String>> groups) {
         List<String> lines = new ArrayList<>();
         for (String g : SOURCE_GROUPS) {
             Set<String> labels = groups.get(g);
             if (labels == null || labels.isEmpty()) continue;
             List<String> parts = new ArrayList<>();
-            if (g.equals("보물 상자") || g.equals("기믹 방")) {
+            if (FLOOR_GROUPS.contains(g)) {
                 List<Integer> floors = new ArrayList<>();
                 for (String l : labels) {
                     try { floors.add(Integer.parseInt(l)); } catch (NumberFormatException ignored) { }
