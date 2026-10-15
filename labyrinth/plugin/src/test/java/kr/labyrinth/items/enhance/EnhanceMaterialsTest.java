@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -23,6 +24,7 @@ import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.ItemType;
 import kr.labyrinth.content.LootTable;
 import kr.labyrinth.content.MobDef;
+import kr.labyrinth.content.Rarity;
 import kr.labyrinth.content.RecipeDef;
 import kr.labyrinth.core.ContentLoader;
 import kr.labyrinth.dungeon.treasure.ChestTier;
@@ -102,8 +104,9 @@ class EnhanceMaterialsTest {
     void bandsFollowTheRules() {
         Set<String> cores = cores();
         assertEquals(10, cores.size(), "보스 핵 10종: " + cores);
-        // 층별 high 단계 재료 종류 수: 일반 장비 최대 / 보스 장비 최소
-        Map<Integer, int[]> normalKinds = new HashMap<>(), bossKinds = new HashMap<>();
+        // 층·분류별, 단계별 재료 최고 등급: 일반 장비 최대 / 보스 장비 최소
+        Map<String, int[]> normalGrade = new HashMap<>(), bossGrade = new HashMap<>();
+        int bossCount = 0;
         for (ItemDef d : content.items().values()) {
             if (!EnhanceRules.enhanceable(d)) continue;
             EnhanceDef t = content.enhance();
@@ -133,23 +136,63 @@ class EnhanceMaterialsTest {
                 if (bossGear && tg >= 9) assertTrue(at.contains(core), d.id() + " +" + tg + " 에 " + d.floor() + "층 보스 핵 " + core);
                 else assertFalse(has, d.id() + " +" + tg + " 에 보스 핵 " + at);
             }
-            int[] kinds = (bossGear ? bossKinds : normalKinds).computeIfAbsent(d.floor(),
-                    k -> new int[] {bossGear ? 99 : 0, bossGear ? 99 : 0, bossGear ? 99 : 0, bossGear ? 99 : 0});
-            for (int tg = 7; tg <= 10; tg++) {
-                int n = t.costs(d.id(), tg).size();
-                kinds[tg - 7] = bossGear ? Math.min(kinds[tg - 7], n) : Math.max(kinds[tg - 7], n);
+            // mid 까지는 일반 재료만 (정수·정예 재료는 high 의 귀한 재료 자리에만) — 낮은 장비의 mid 가 보스 장비보다 귀해지지 않게
+            for (int tg = 1; tg <= 6; tg++) {
+                for (EnhanceDef.Cost c : t.costs(d.id(), tg)) {
+                    assertEquals(0, grade(c.item(), d.floor()), d.id() + " +" + tg + " 의 " + c.item() + " 는 일반 재료가 아니다");
+                }
+            }
+            // 보스 장비 +7·+8 의 귀한 재료 = 그 층 정예 재료 (rarity rare, 핵·정수 아님) — 정수로 내려가지 않는다
+            if (bossGear) {
+                bossCount++;
+                for (int tg = 7; tg <= 8; tg++) {
+                    String rare = t.costs(d.id(), tg).get(2).item();
+                    assertEquals(2, grade(rare, d.floor()), d.id() + " +" + tg + " 의 귀한 재료 " + rare + " 는 " + d.floor() + "층 정예 재료가 아니다");
+                    assertEquals(Rarity.RARE, content.item(rare).rarity(), d.id() + " +" + tg + " " + rare);
+                }
+            }
+            int[] grades = (bossGear ? bossGrade : normalGrade).computeIfAbsent(d.floor() + " " + group(d), k -> {
+                int[] g = new int[11];
+                Arrays.fill(g, bossGear ? 99 : -1);
+                return g;
+            });
+            for (int tg = 1; tg <= 10; tg++) {
+                int g = 0;
+                for (EnhanceDef.Cost c : t.costs(d.id(), tg)) g = Math.max(g, grade(c.item(), d.floor()));
+                grades[tg] = bossGear ? Math.min(grades[tg], g) : Math.max(grades[tg], g);
             }
         }
-        // 보스 고유 장비가 같은 층 일반 장비보다 싼 high 단계가 없다 (+7·+8 은 귀한 재료, +9·+10 은 보스 핵 — 언제나 3종)
-        assertEquals(10, bossKinds.size(), "층마다 보스 장비");
-        for (var e : bossKinds.entrySet()) {
-            int[] normal = normalKinds.get(e.getKey());
-            assertNotNull(normal, e.getKey() + "층 일반 장비");
-            for (int k = 0; k < 4; k++) {
-                assertTrue(e.getValue()[k] >= normal[k], e.getKey() + "층 +" + (k + 7) + ": 보스 장비 재료 " + e.getValue()[k]
-                        + "종 < 일반 장비 " + normal[k] + "종");
+        assertTrue(bossCount >= 50, "보스 장비 " + bossCount + "종");
+        // 단계마다 보스 장비 재료 등급(일반 < 정수 < 정예 < 핵)이 같은 층·같은 분류(무기 / 방패 / 흉갑·하의 / 투구·신발) 일반 장비의
+        // 최고 등급보다 낮지 않다. 1회 공급량 환산 비교는 tools/gen_enhance.py --report 의 '검사' (생성기가 보스 장비 ≥ 가장 비싼 일반 장비로 맞춘다).
+        int compared = 0;
+        for (var e : bossGrade.entrySet()) {
+            int[] normal = normalGrade.get(e.getKey());
+            if (normal == null) continue; // 그 층에 일반 방패가 없는 보스 방패
+            compared++;
+            for (int tg = 1; tg <= 10; tg++) {
+                assertTrue(e.getValue()[tg] >= normal[tg], e.getKey() + " +" + tg + ": 보스 장비 재료 등급 " + e.getValue()[tg]
+                        + " < 일반 장비 " + normal[tg]);
             }
         }
+        assertTrue(compared >= 20, "비교한 층·분류 묶음 " + compared);
+    }
+
+    private static final Set<String> ESSENCES = Set.of("dim_essence", "labyrinth_essence", "radiant_essence", "primordial_essence");
+
+    /** 재료 등급: 일반 0 < 정수 1 < 정예 재료 2 (그 층 rare 재료, 핵·정수 아님) < 보스 핵 3. */
+    private static int grade(String id, int floor) {
+        if (cores().contains(id)) return 3;
+        if (ESSENCES.contains(id)) return 1;
+        ItemDef m = content.item(id);
+        return m != null && m.floor() == floor && m.rarity() == Rarity.RARE ? 2 : 0;
+    }
+
+    /** 비교 분류: 무기 / 방패 / 흉갑·하의 / 투구·신발. */
+    private static String group(ItemDef d) {
+        if (d.type() == ItemType.WEAPON) return "무기";
+        if (d.isShield()) return "방패";
+        return "chest".equals(d.armorSlot()) || "legs".equals(d.armorSlot()) ? "흉갑·하의" : "투구·신발";
     }
 
     /**

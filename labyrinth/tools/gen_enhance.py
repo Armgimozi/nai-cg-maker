@@ -6,18 +6,21 @@
   · 제작법이 있는 장비(recipes.yml 결과 = 장비) → 그 제작 재료
       low  (+1 ~ +3) : 주 재료 P   = 레시피에서 가장 많이 드는 재료
       mid  (+4 ~ +6) : P + 보조 S  = 레시피의 두 번째 재료
-      high (+7 ~ +10): P + S + 귀한 재료 R = 레시피에서 가장 귀한 재료 (보스 핵 > 정예 재료 > 정수)
-                       보스 핵이 든 레시피는 핵을 +9·+10 시도에만, +7·+8 에는 핵 다음으로 귀한 재료 —
-                       시도 1번당 재료는 언제나 3종이라 보스 장비가 일반 장비보다 싼 단계가 없다.
+      high (+7 ~ +10): P + S + 귀한 재료 R = 레시피에서 가장 귀한 재료 (정예 재료 > 정수)
       레시피에 귀한 재료가 없으면(일반 재료 2종짜리) 그 장비가 나오는 곳(몬스터·정예·보스·상자)의 귀한 드롭.
-  · 제작법이 없는 장비 → 그 장비를 주는 루팅 테이블(그 층 몬스터·상자 / 정예 / 보스)이 떨어뜨리는 재료
+  · 제작법이 없는 장비 → 그 장비를 주는 루팅 테이블(그 층 몬스터·상자 / 보스)이 떨어뜨리는 재료
       low = 장비 종류에 맞는 그 층 일반 재료 (근접 날붙이·흉갑·신발 = 단단한 재료, 활·마법 무기·투구·하의 = 부드러운 재료)
-      mid = + 나오는 곳이 같이 주는 정수 (정예 장비는 정예 재료) · high = + 나오는 곳의 귀한 드롭 (보스 고유는 +9·+10 에 핵)
-      보스 고유 = 그 보스 드롭 · 정예 장비 = 그 정예 드롭 · 층 공용 무기 = 그 층 몬스터·상자 드롭
+      mid = + 나오는 곳이 같이 주는 다른 일반 재료 · high = + 나오는 곳의 귀한 드롭 (정예 재료 > 정수)
+      보스 고유 = 그 보스 드롭 · 층 공용 무기 = 그 층 몬스터·상자 드롭
       시작 지급 = 1층 몬스터·상자 드롭 · 칭호 보상 = 그 층 보스 드롭(핵 포함) · 대장간 전용 = 레시피 재료와 그 정제 정수만
-같은 층에서 재료 구성(개수까지)이 똑같은 장비가 생기면 차례로: R 을 그 장비의 다른 귀한 재료(레시피 → 나오는 곳 드롭 →
-정제한 윗 등급 정수)로 → (드롭 재료 장비) S 를 정예 재료·다른 일반 재료로 → P·S 순서 바꿈 → P 개수 +1.
-(같은 레시피를 쓰는 같은 층 무기 6종도 서로 다르게. 겹침 수는 --report / 생성 결과에 찍힌다)
+  → mid 까지는 어느 장비든 일반 재료 2종. 정수·정예 재료는 high 의 R 에만 둔다.
+  · 보스 장비(보스 고유 · 보스가 주는 칭호 보상): +7·+8 의 R 은 정예 재료만 (레시피의 정예 재료, 없으면 그 보스 드롭의 정예 재료),
+    +9·+10 은 R 대신 그 보스의 핵. 그리고 단계마다 같은 층·같은 분류(무기 / 방패 / 흉갑·하의 / 투구·신발) 일반 장비 중 가장 비싼
+    것보다 싸지 않게(1회 공급량 환산) P·S 개수를 가장 적게 더한다 — 일반 장비를 먼저 다 정한 뒤 보스 장비를 정한다.
+같은 층에서 재료 구성(개수까지)이 똑같은 장비가 생기면, 원칙에서 덜 벗어나는 것부터:
+  1단계 원칙 재료 그대로 — R 을 같은 원칙 안의 다른 귀한 재료로(환산해 싼 쪽부터) → P·S 순서 바꿈 → S +1 → S +2 → P +1 …
+  2단계 (1단계로 안 될 때만) 레시피 밖 = 나오는 곳의 다른 귀한 드롭·윗 등급 정수 → 3단계 그 정수를 정제한 윗 등급 정수
+  (일반 장비는 낮은 레벨·등급부터 원칙 그대로 받는다. 겹침 수 · 보스 장비 검사는 --report / 생성 결과에 찍힌다)
 개수는 그 층 1회 클리어 공급량(loot.yml 를 펼쳐 계산)에 맞춘다 — 자세한 근거는 생성된 파일 머리 주석.
 
 결과는 장비마다 명시적인 항목으로 쓰므로 사장님이 아무 장비나 직접 고쳐도 된다 (다시 생성하면 덮어씀).
@@ -26,7 +29,7 @@
   python3 tools/gen_enhance.py                       # 저장소 content/ 로 계산해 enhance.yml 쓰기
   python3 tools/gen_enhance.py --content DIR         # 다른 content 폴더로 계산
   python3 tools/gen_enhance.py --spec loot_spec.json # 루팅 명세(new_items·assignments·tables·recipes)를 덮어 계산
-  python3 tools/gen_enhance.py --report              # 층별 공급량 · 예상 클리어 수 표 · 겹침 수만 출력
+  python3 tools/gen_enhance.py --report              # 층별 공급량 · 예상 클리어 수 표 · 보스 장비 검사 · 겹침 수만 출력
   python3 tools/gen_enhance.py --check               # 쓰지 않고, 지금 파일과 같으면 종료 코드 0
 """
 import argparse
@@ -84,9 +87,20 @@ S_RARE = {'elite': {'mid': [1, 1, 2], 'high': [1, 1, 1, 2]}, 'ess': {'mid': [2, 
           'next': {'mid': [1, 1, 1], 'high': [1, 1, 1, 1]}, 'core': {'mid': [1, 1, 1], 'high': [1, 1, 1, 1]}}
 # 귀한 재료 R (+7 ~ +10). 일반 장비 / 보스 장비(+7 · +8 만 — +9 · +10 은 핵이 대신)
 R_COUNT = {'elite': [1, 1, 2, 2], 'ess': [2, 3, 3, 4], 'next': [1, 1, 1, 2], 'common': [3, 4, 5, 6]}
-R_BOSS = {'elite': [1, 1, 0, 0], 'ess': [2, 3, 0, 0], 'next': [1, 1, 0, 0], 'common': [3, 4, 0, 0]}
+R_BOSS = {'elite': [1, 2, 0, 0]}                                      # 보스 장비 +7·+8 = 정예 재료만 (정수로 내려가지 않음)
+#   +8 이 2개인 것은 일반 장비 +8 의 정수 3개(환산하면 정예 재료 1개보다 조금 비쌈)보다 싸지 않게
 K_COUNT = [0, 0, 1, 2]                                                # 보스 핵: +9 · +10 시도만 (근거는 머리 주석)
 REF_SUPPLY = 40.0                                                     # 1~3층 일반 재료 1회 공급량 ≈ 기준 배율 1.0
+# 겹침을 피할 때 더하는 개수 (P +dp, S +ds). 일반 장비는 S 먼저 — S 는 mid·high 7단계에만 들어 P +1 보다 싸고, low(+1~+3)는 그대로.
+# 단계(원칙 R → 나오는 곳 드롭 → 정제 정수)마다 STAGE_BUMPS 를 다 써 본 뒤에야 다음 단계, 그래도 겹치면 MORE_BUMPS.
+STAGE_BUMPS = [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2)]
+MORE_BUMPS = [(2, 0), (2, 1), (2, 2), (0, 3), (1, 3), (2, 3), (3, 0), (3, 1), (3, 2), (3, 3)]
+# 보스 장비: 같은 층·같은 분류 일반 장비 중 가장 비싼 것보다 싸지 않은(1회 공급량 환산, 모든 단계) 가장 작은 개수 더하기
+BOSS_BUMPS = sorted([(dp, ds) for dp in range(5) for ds in range(5)], key=lambda b: (b[0] + b[1], b[0]))
+# 등급 (보스 장비 ≥ 같은 층·같은 분류 일반 장비 검사): 일반 < 정수 < 정예 < 핵
+GRADE = {'common': 0, 'ess': 1, 'next': 1, 'elite': 2, 'core': 3}
+GRADE_NAME = ['일반', '정수', '정예', '핵']
+GROUP = {'weapon': '무기', 'shield': '방패', 'armor_body': '흉갑·하의', 'armor': '투구·신발'}
 
 
 def p_scale(supply):
@@ -341,20 +355,29 @@ def home_text(v, label):
 
 # ───────────────────────── 생성 ─────────────────────────
 def band_counts(cat, role, cls, scale, bump, boss):
-    """역할(P/S/R/K) · 재료 분류 → {low, mid, high} 개수 목록."""
+    """역할(P/S/R/K) · 재료 분류 → {low, mid, high} 개수 목록. bump = 겹침을 피하려고 더하는 개수."""
     if role == 'P':
         return {b: [max(1, half_up(x * scale)) + bump for x in P_BASE[cat][b]] for b in BANDS}
     if role == 'S':
         if cls == 'common':
-            return {b: [max(1, half_up(x * scale)) for x in S_BASE[cat][b]] for b in ('mid', 'high')}
-        return dict(S_RARE.get(cls, S_RARE['ess']))
+            return {b: [max(1, half_up(x * scale)) + bump for x in S_BASE[cat][b]] for b in ('mid', 'high')}
+        return {b: [x + bump for x in c] for b, c in S_RARE.get(cls, S_RARE['ess']).items()}
     if role == 'R':
+        if boss and cls not in R_BOSS:
+            raise SystemExit(f'보스 장비의 +7·+8 귀한 재료는 정예 재료만 — {cls}')
         return {'high': list((R_BOSS if boss else R_COUNT).get(cls, R_COUNT['ess']))}
     return {'high': list(K_COUNT)}
 
 
 def candidates(i, v, fl, tables, recipe, refine):
-    """장비 하나의 (P, S) 후보 · R 후보 · 핵 · 설명."""
+    """장비 하나의 (P, S) 후보 · R 후보(단계 A·B·C) · 핵 · 설명.
+
+    P·S 는 언제나 그 층 일반 재료 2종 (제작 장비 = 레시피에서 가장 많이 드는 두 재료, 드롭 장비 = 나오는 곳이 같이 주는 두 일반 재료).
+    R 단계  A = 원칙: 레시피의 귀한 재료 (레시피가 일반 재료뿐이거나 제작법이 없으면 나오는 곳의 귀한 드롭)
+            B = 레시피 밖: 나오는 곳의 다른 귀한 드롭 (A 가 레시피 재료일 때만)
+            C = 레시피 밖: A·B 의 정수를 대장간에서 한 등급 정제한 윗 등급 정수
+    보스 장비(보스 고유·칭호 보상)의 R 은 정예 재료만 — 레시피의 정예 재료, 없으면 그 보스 드롭의 정예 재료 (B·C 없음).
+    """
     homes, label = homes_of(i, v, fl, tables)
     home_sup = supply_of(tables, homes)
     home_mats = [m for m, n in home_sup.items() if n > 0 and m not in NOT_FLOOR_MATERIAL
@@ -362,6 +385,8 @@ def candidates(i, v, fl, tables, recipe, refine):
     src = set(v.get('sources') or [])
     boss = 'boss' in src or label == 'reward'
     kind = kind_of(v)
+    rare = lambda ms: sorted({m for m in ms if fl.cls(m) in ('elite', 'ess', 'next')}, key=fl.rank)
+    home_rare = rare(home_mats)
     if recipe:
         mats = list(recipe.items())
         order = sorted(range(len(mats)), key=lambda k: (-mats[k][1], k))  # 많이 드는 순 (같으면 레시피 순서)
@@ -373,7 +398,7 @@ def candidates(i, v, fl, tables, recipe, refine):
         core = next((m for m in rest if fl.cls(m) == 'core'), None)
         if boss and not core:
             core = fl.core
-        r_list = sorted([m for m in rest if m != core], key=fl.rank)
+        recipe_rare = rare(m for m in rest if m != core)
         how = 'recipe'
     else:
         commons = [m for m in fl.commons if m in home_mats] or list(fl.commons)
@@ -381,40 +406,45 @@ def candidates(i, v, fl, tables, recipe, refine):
         soft = next((m for m in commons if m != hard), hard)
         bulk = [hard, soft] if KIND_HARD.get(kind, True) else [soft, hard]
         core = fl.core if boss else None
-        r_list = []
+        recipe_rare = []
         how = 'drop'
-    # 제작법이 없는 장비의 S = 그 장비가 나오는 곳이 같이 떨어뜨리는 정수 (정예 장비는 정예 재료) — 같은 층 제작 장비(S = 두 번째
-    # 제작 재료)와 갈린다. 겹치면 정예 재료 / 정수 → 다른 일반 재료 순.
-    ess_home = fl.ess if fl.ess in home_mats else max((m for m in home_mats if m in ESS_ORDER), key=lambda m: home_sup[m], default=None)
-    elite_home = next((m for m in sorted(home_mats, key=fl.rank) if fl.cls(m) == 'elite'), None)
-    if how == 'recipe':
-        ps = [(bulk[0], bulk[1], ''), (bulk[1], bulk[0], 'swap')]
+    # P·S 는 둘 다 일반 재료 — 정수·정예 재료는 high 의 R 에만 (드롭 장비의 mid 가 제작 장비·보스 장비보다 귀해지지 않게)
+    ps = [(bulk[0], bulk[1], ''), (bulk[1], bulk[0], 'swap')]
+    if boss:
+        elite_recipe = [m for m in recipe_rare if fl.cls(m) == 'elite']
+        elite_home = [m for m in home_rare if fl.cls(m) == 'elite']
+        tier_a = elite_recipe or elite_home
+        tier_b = [m for m in elite_home if m not in tier_a]
+        tier_c = []
+        if not tier_a:
+            raise SystemExit(f'{i}: 보스 장비인데 레시피에도 나오는 곳(보스 드롭)에도 정예 재료가 없다 — {home_rare}')
     else:
-        alt = [m for m in ((elite_home, ess_home) if label == 'elite' else (ess_home, elite_home)) if m] + [bulk[1]]
-        ps = [(bulk[0], m, '' if k == 0 else 'S') for k, m in enumerate(alt)] + [(bulk[1], m, 'swap') for m in alt if m != bulk[1]] \
-            + [(bulk[1], bulk[0], 'swap')]
-    # 레시피에 없으면 그 장비가 나오는 곳의 귀한 드롭 → 레시피·드롭 정수를 정제한 윗 등급 정수
-    extra_home = sorted([m for m in home_mats if m not in bulk and m != core and m not in r_list and fl.cls(m) != 'common'
-                         and fl.cls(m) != 'core'], key=fl.rank)
-    r_all = r_list + extra_home
-    # 정제는 한 등급 위까지만 (그 층 정수 → 윗 등급 정수). 이미 윗 등급인 정수는 더 올리지 않는다.
-    refined = []
-    for m in list(r_all):
-        nxt = next((e for e, base in refine.items() if base == m), None)
-        if nxt and fl.cls(m) == 'ess' and nxt not in r_all and nxt not in refined and fl.supply.get(m, 0) > 0:
-            refined.append(nxt)
-    r_all += refined
-    if not r_all:
-        r_all = [fl.ess]
-    return {'bulk': bulk, 'ps': ps, 'R': r_all, 'R_recipe': r_list, 'R_home': extra_home, 'R_refined': refined, 'K': core,
-            'boss': boss, 'how': how, 'label': label, 'kind': kind, 'cat': category(v), 'home_sup': home_sup}
+        # 윗 등급 정수(그 층보다 한 단계 위, 1회 0.6개 안팎)는 원칙 R 이 아니다 — 겹칠 때 B 에서만 (환산하면 가장 비싼 R 이라
+        # 낮은 장비가 보스 장비보다 비싸지지 않게)
+        own = [m for m in home_rare if fl.cls(m) != 'next']
+        tier_a = recipe_rare or own
+        tier_b = [m for m in home_rare if m not in tier_a]
+        # 정제는 한 등급 위까지만 (그 층 정수 → 윗 등급 정수). 이미 윗 등급인 정수는 더 올리지 않는다.
+        tier_c = []
+        for m in tier_a + tier_b:
+            nxt = next((e for e, base in refine.items() if base == m), None)
+            if nxt and fl.cls(m) == 'ess' and nxt not in tier_a + tier_b + tier_c and fl.supply.get(m, 0) > 0:
+                tier_c.append(nxt)
+        if not (tier_a or tier_b or tier_c):
+            tier_a = [fl.ess]
+    # 겹칠 때 바꿔 쓸 R 은 1회 공급량으로 환산해 싼 것부터 (정수 < 정예 재료 < 윗 등급 정수) — 원칙 R(A 의 첫째)은 그대로
+    r_cost = lambda m: sum((R_BOSS if boss else R_COUNT).get(fl.cls(m), R_COUNT['ess'])) / max(1e-9, eff_supply(fl, refine, m))
+    tier_a = tier_a[:1] + sorted(tier_a[1:], key=r_cost)
+    tier_b, tier_c = sorted(tier_b, key=r_cost), sorted(tier_c, key=r_cost)
+    return {'bulk': bulk, 'ps': ps, 'RA': tier_a, 'RB': tier_b, 'RC': tier_c, 'R_recipe': recipe_rare, 'R_home': home_rare,
+            'K': core, 'boss': boss, 'how': how, 'label': label, 'kind': kind, 'cat': category(v), 'home_sup': home_sup}
 
 
-def recipe_of(cand, fl, P, S, R, bump):
+def recipe_of(cand, fl, P, S, R, dp=0, ds=0):
     cat, boss = cand['cat'], cand['boss']
     sc = lambda m: p_scale(fl.supply.get(m, REF_SUPPLY))
-    pc = band_counts(cat, 'P', 'common', sc(P), bump, boss)
-    sc_s = band_counts(cat, 'S', fl.cls(S), sc(S), 0, boss)
+    pc = band_counts(cat, 'P', 'common', sc(P), dp, boss)
+    sc_s = band_counts(cat, 'S', fl.cls(S), sc(S), ds, boss)
     r = {'low': {P: pc['low']}, 'mid': {P: pc['mid'], S: sc_s['mid']}, 'high': {P: pc['high'], S: sc_s['high']}}
     K = cand['K']
     if boss and K:
@@ -430,7 +460,7 @@ def signature(r):
     return json.dumps(r, sort_keys=True)
 
 
-def build(c):
+def build(c, cfg):
     items, tables, mobs, bosses, floors, recipes = c['items'], c['tables'], c['mobs'], c['bosses'], c['floors'], c['recipes']
     fls = {}
     for f, fd in floors.items():
@@ -445,52 +475,92 @@ def build(c):
     gear = [i for i, v in items.items() if v.get('type') in ('weapon', 'armor')]
     out, meta = {}, {}
     used = collections.defaultdict(dict)  # 층 → 서명 → 장비
-    collisions = []
+    collisions, unfair = [], []
 
     def order_key(i):
         v = items[i]
         cand = cands[i]
-        # 레시피 장비 먼저(원칙 그대로 받을 차례), 종류에 맞는 재료가 주 재료인 장비 먼저 → 어긋나는 장비가 순서 바꿈을 받는다
+        # 일반 장비 먼저(모든 층), 보스 장비는 그 뒤 — 보스 장비는 핵이 들어 보스 장비끼리만 겹칠 수 있고, 같은 층·같은 분류 일반 장비가
+        # 정해진 뒤에야 그보다 싸지 않은 개수를 고를 수 있다. 일반 장비는 낮은 레벨·등급부터 — 겹침을 피하는 변형은 높은 장비가 받는다.
+        # 같으면 레시피 장비 먼저(원칙 그대로 받을 차례), 종류에 맞는 재료가 주 재료인 장비 먼저.
         affinity = fls[gear_floor(v)].hard if KIND_HARD.get(cand['kind'], True) else fls[gear_floor(v)].soft
-        return (gear_floor(v), 0 if cand['how'] == 'recipe' else 1, 0 if cand['bulk'][0] == affinity else 1,
-                KIND_ORDER.index(cand['kind']) if cand['kind'] in KIND_ORDER else 99, v.get('level_req', 1),
-                RARITY_ORDER.index(v.get('rarity')) if v.get('rarity') in RARITY_ORDER else 0, i)
+        return (1 if cand['boss'] else 0, gear_floor(v), v.get('level_req', 1),
+                RARITY_ORDER.index(v.get('rarity')) if v.get('rarity') in RARITY_ORDER else 0,
+                0 if cand['how'] == 'recipe' else 1, 0 if cand['bulk'][0] == affinity else 1,
+                KIND_ORDER.index(cand['kind']) if cand['kind'] in KIND_ORDER else 99, i)
 
     cands = {}
     for i in gear:
         fl = fls.get(gear_floor(items[i])) or fls[min(fls, key=lambda x: abs(x - gear_floor(items[i])))]
         cands[i] = candidates(i, items[i], fl, tables, by_result.get(i), refine)
+    steps = range(1, cfg['max'] + 1)
+    norm_max = {}  # (층, 분류) → 단계 → 일반 장비 중 가장 비싼 1회 공급량 환산값
+
+    def stages_of(cand, bump_lists):
+        """겹침을 피하는 변형을 단계별로: 원칙 R(A) → 레시피 밖 나오는 곳 드롭(B) → 정제 정수(C), 각 단계 안에서 R 바꿈 → P·S 순서 →
+        개수 +1 (bump_lists 차례로 — 첫 목록을 A·B·C 에 다 써 본 뒤에야 다음 목록)."""
+        stages = []
+        for bumps in bump_lists:
+            for tier in ('RA', 'RB', 'RC'):
+                stage = [(P, S, R, tag, dp, ds, tier) for (dp, ds) in bumps for (P, S, tag) in cand['ps'] for R in cand[tier]
+                         # S 정수를 정제한 윗 정수는 R 로 쓰지 않는다 (같은 정수를 두 번 걷어 가서 +10 이 너무 길어짐)
+                         if R not in (P, S) and refine.get(R) != S]
+                if stage:
+                    stages.append(stage)
+        return stages
+
+    def pick(cand, fl, f, stages, ok):
+        for stage in stages:
+            for var in stage:
+                r = recipe_of(cand, fl, var[0], var[1], var[2], var[4], var[5])
+                if signature(r) not in used[f] and ok(r):
+                    return var, r
+        return None
+
     for i in sorted(gear, key=order_key):
         v = items[i]
         f = gear_floor(v)
         fl = fls.get(f) or fls[min(fls, key=lambda x: abs(x - f))]
         cand = cands[i]
-        variants = []
-        for bump in range(0, 4):
-            for (P, S, tag) in cand['ps']:
-                for R in cand['R']:
-                    # S 정수를 정제한 윗 정수는 R 로 쓰지 않는다 (같은 정수를 두 번 걷어 가서 +10 이 너무 길어짐)
-                    if R not in (P, S) and refine.get(R) != S:
-                        variants.append((P, S, R, tag, bump))
-        if not variants:
+        need = None
+        if cand['boss']:
+            key = (f, cand['cat'])
+            if key not in norm_max:
+                group = [n for n, m in meta.items() if not m['boss'] and m['floor'] == f and m['cat'] == cand['cat']]
+                norm_max[key] = {t: max(step_value(fl, refine, out[n], t) for n in group) for t in steps} if group else None
+            need = norm_max[key]
+            # 보스 장비: P·S 순서 바꿈도 개수 +1 하나만큼으로 친다 — 원칙(P = 가장 많이 드는 재료)을 먼저 지키고, 개수를 가장 적게
+            stages = [sorted(st, key=lambda x: (x[4] + x[5] + (x[3] == 'swap'), x[4], x[3] == 'swap')) for st in stages_of(cand, [BOSS_BUMPS])]
+        else:
+            stages = stages_of(cand, [STAGE_BUMPS, MORE_BUMPS])
+        if not stages:
             raise SystemExit(f'{i}: 고를 수 있는 귀한 재료(R)가 없다 — 후보 {cand}')
-        chosen = None
-        for (P, S, R, tag, bump) in variants:
-            r = recipe_of(cand, fl, P, S, R, bump)
-            if signature(r) not in used[f]:
-                chosen = (P, S, R, tag, bump, r)
-                break
+        first = stages[0][0]
+        # 보스 장비: 겹치지 않으면서 모든 단계에서 같은 층·같은 분류 일반 장비 중 가장 비싼 것 이상인 첫 변형
+        dominates = (lambda r: all(step_value(fl, refine, r, t) >= need[t] * (1 - 1e-9) for t in steps)) if need else (lambda r: True)
+        chosen = pick(cand, fl, f, stages, dominates)
+        if chosen is None and need:
+            chosen = pick(cand, fl, f, stages, lambda r: True)
+            unfair.append(i)
         if chosen is None:
-            P, S, R, tag, bump = variants[0]
-            chosen = (P, S, R, tag, bump, recipe_of(cand, fl, P, S, R, bump))
-            collisions.append((i, used[f][signature(chosen[5])]))
-        P, S, R, tag, bump, r = chosen
+            r = recipe_of(cand, fl, *first[:3], first[4], first[5])
+            chosen = (first, r)
+            collisions.append((i, used[f][signature(r)]))
+        var, r = chosen
+        P, S, R, tag, dp, ds, tier = var
         used[f].setdefault(signature(r), i)
         out[i] = r
-        first_r = next(x for x in cand['R'] if x not in (P, S) and refine.get(x) != S)
-        meta[i] = dict(cand, floor=f, P=P, S=S, Rm=R, swapped=(tag == 'swap'), s_alt=(tag == 'S'), bump=bump,
-                       canonical=(tag == '' and bump == 0 and R == first_r), r_rot=(R != first_r))
-    return out, meta, fls, collisions
+        # 왜 원칙 그대로가 아닌가: 보스 장비는 '일반 장비 이상'(겹침을 빼고 봐도 원칙 그대로로는 싼 단계가 있음) · '겹침 피함'
+        reasons = []
+        if var != first:
+            fair_first = next((x for st in stages for x in st if dominates(recipe_of(cand, fl, x[0], x[1], x[2], x[4], x[5]))), first)
+            if fair_first != first:
+                reasons.append('일반 장비 이상')
+            if var != fair_first:
+                reasons.append('겹침 피함')
+        meta[i] = dict(cand, floor=f, P=P, S=S, Rm=R, swapped=(tag == 'swap'), dp=dp, ds=ds, bump=dp + ds, tier=tier,
+                       canonical=(var == first), r_rot=(R != first[2]), reasons=reasons)
+    return out, meta, fls, collisions, unfair
 
 
 def costs_for(recipe, target):
@@ -550,6 +620,54 @@ def obtainable_problems(items, recipes_out, meta, fls, refine):
     return bad
 
 
+# ───────────────────────── 보스 장비 ≥ 일반 장비 검사 ─────────────────────────
+def eff_supply(fl, refine, m):
+    """1회 공급량 — 윗 등급 정수는 아래 정수 5:1 정제분까지."""
+    s = fl.supply.get(m, 0)
+    if refine.get(m):
+        s += fl.supply.get(refine[m], 0) / 5
+    return s
+
+
+def step_value(fl, refine, recipe, t):
+    """목표 단계 t 시도 1번의 장비 재료를 '클리어 몇 회분'으로 환산 (개수 ÷ 1회 공급량의 합)."""
+    return sum(c / max(1e-9, eff_supply(fl, refine, m)) for m, c in costs_for(recipe, t).items())
+
+
+def step_grade(fl, recipe, t):
+    return max((GRADE[fl.cls(m)] for m in costs_for(recipe, t)), default=0)
+
+
+def fairness(cfg, out, meta, fls, refine):
+    """보스 장비(보스 고유·칭호 보상) 와 같은 층·같은 분류(무기 / 방패 / 흉갑·하의 / 투구·신발) 일반 장비 비교.
+
+    grade_bad : 단계마다 보스 장비 재료의 최고 등급(일반 < 정수 < 정예 < 핵)이 일반 장비 최고 등급보다 낮은 경우 — 생성 실패
+    r_bad     : +7·+8 귀한 재료가 정예 재료가 아닌 보스 장비 — 생성 실패
+    cheaper   : 단계 → [(배율, 보스 장비, 그보다 비싼 일반 장비)] — 1회 공급량 환산값이 가장 비싼 일반 장비보다 싼 보스 장비 (참고)
+    """
+    groups = collections.defaultdict(lambda: {'boss': [], 'norm': []})
+    for i, m in meta.items():
+        groups[(m['floor'], m['cat'])]['boss' if m['boss'] else 'norm'].append(i)
+    grade_bad, cheaper, compared = [], {t: [] for t in range(1, cfg['max'] + 1)}, 0
+    r_bad = [i for i, m in meta.items() if m['boss'] and fls[m['floor']].cls(m['Rm']) != 'elite']
+    for (f, cat), g in sorted(groups.items()):
+        if not g['boss'] or not g['norm']:
+            continue
+        fl = fls[f]
+        compared += len(g['boss'])
+        for t in range(1, cfg['max'] + 1):
+            ng = max(step_grade(fl, out[n], t) for n in g['norm'])
+            nv, nmax = max((step_value(fl, refine, out[n], t), n) for n in sorted(g['norm']))
+            for b in sorted(g['boss']):
+                bg = step_grade(fl, out[b], t)
+                if bg < ng:
+                    grade_bad.append(f'{b} +{t}: 보스 장비 재료 등급 {GRADE_NAME[bg]} < 같은 층 {GROUP[cat]} 일반 장비 {GRADE_NAME[ng]}')
+                bv = step_value(fl, refine, out[b], t)
+                if bv < nv * (1 - 1e-9):
+                    cheaper[t].append((nv / bv, b, nmax))
+    return {'grade_bad': grade_bad, 'r_bad': r_bad, 'cheaper': cheaper, 'compared': compared}
+
+
 # ───────────────────────── 출력 ─────────────────────────
 def fmt_counts(c):
     return '[' + ', '.join(str(x) for x in c) + ']'
@@ -605,17 +723,21 @@ def report_rows(cfg, items, recipes_out, meta, fls, refine):
     return rows
 
 
-def write_yaml(cfg, items, recipes_out, meta, fls, rows, collisions, source_note):
+def write_yaml(cfg, items, recipes_out, meta, fls, rows, collisions, fair, source_note):
     att10 = attempts(cfg, 10)
     att10p = attempts(cfg, 10, protect=True)
     att5 = attempts(cfg, 5)
     n_recipe = sum(1 for m in meta.values() if m['how'] == 'recipe')
     n_drop = len(meta) - n_recipe
+    normal = [m for m in meta.values() if not m['boss']]
+    boss = [m for m in meta.values() if m['boss']]
     n_canon = sum(1 for m in meta.values() if m['canonical'])
-    n_swap = sum(1 for m in meta.values() if m['swapped'] and not m['bump'])
-    n_salt = sum(1 for m in meta.values() if m['s_alt'] and not m['bump'])
-    n_bump = sum(1 for m in meta.values() if m['bump'])
-    n_rrot = len(meta) - n_canon - n_swap - n_salt - n_bump
+    n_rrot = sum(1 for m in meta.values() if m['r_rot'])
+    n_swap = sum(1 for m in meta.values() if m['swapped'])
+    n_sb = sum(1 for m in normal if m['ds'] and not m['dp'])
+    n_pb = sum(1 for m in normal if m['dp'])
+    n_out = sum(1 for m in meta.values() if m['tier'] != 'RA')
+    n_boss_extra = sum(1 for m in boss if m['bump'])
     k10 = sum(att10[t] * K_COUNT[min(len(K_COUNT) - 1, t - 7)] for t in range(7, 11))
     L = []
     w = L.append
@@ -634,22 +756,27 @@ def write_yaml(cfg, items, recipes_out, meta, fls, rows, collisions, source_note
     w('#   ① 제작법이 있는 장비 (recipes.yml 결과 = 그 장비) → 그 제작 재료로 강화한다.')
     w('#      low  (+1~+3) : 주 재료 P = 레시피에서 가장 많이 드는 재료')
     w('#      mid  (+4~+6) : P + 보조 S = 레시피의 두 번째 재료')
-    w('#      high (+7~+10): P + S + 귀한 재료 R = 레시피에서 가장 귀한 재료 (보스 핵 > 정예 재료 > 정수)')
-    w('#                     보스 핵이 든 레시피는 핵을 +9·+10 시도에만, +7·+8 에는 핵 다음으로 귀한 재료를 쓴다 —')
-    w('#                     시도 1번당 재료는 언제나 3종이라 보스 장비가 같은 층 일반 장비보다 싼 단계가 없다.')
-    w('#      레시피가 일반 재료 2종뿐이면 R 은 그 장비가 나오는 곳(정예·몬스터·상자)의 귀한 드롭.')
+    w('#      high (+7~+10): P + S + 귀한 재료 R = 레시피에서 가장 귀한 재료 (정예 재료 > 정수)')
+    w('#      레시피가 일반 재료 2종뿐이면 R 은 그 장비가 나오는 곳(정예·몬스터·상자)의 귀한 드롭 (정예 재료 > 정수).')
     w('#   ② 제작법이 없는 장비 → 그 장비를 떨어뜨리는 곳의 드롭 재료로 강화한다.')
     w('#      low = 그 층 일반 재료 중 장비 종류에 맞는 쪽 (검방·대검·단검·흉갑·신발 = 단단한 재료, 활·지팡이·홀·투구·하의 = 부드러운 재료)')
-    w('#      mid = + 그 장비가 나오는 곳이 같이 떨어뜨리는 정수 (정예 장비는 정예 재료) — 같은 층 제작 장비와 구성이 갈린다')
-    w('#      high = + 나오는 곳의 귀한 드롭 (정예 재료 > 윗 등급 정수). 보스 고유는 +7·+8 에 귀한 드롭, +9·+10 에 그 보스의 핵.')
-    w('#      집: 층 공용 무기 = 그 층 몬스터·상자 · 정예 장비 = 그 정예 · 보스 고유 = 그 보스 ·')
+    w('#      mid = + 나오는 곳이 같이 떨어뜨리는 다른 일반 재료 (몬스터·상자·정예·보스 모두 그 층 일반 재료 2종을 준다)')
+    w('#      high = + 나오는 곳의 귀한 드롭 (정예 재료 > 정수)')
+    w('#      집: 층 공용 무기 = 그 층 몬스터·상자 · 보스 고유 = 그 보스 ·')
     w('#          시작 지급(수련생) = 1층 몬스터·상자 · 칭호 보상(악몽의 왕관) = 그 칭호를 주는 10층 보스 (핵 포함)')
-    w('#   ③ 같은 층에 재료 구성(개수까지)이 똑같은 장비가 생기면 차례로 바꾼다:')
-    w('#      R 을 그 장비의 다른 귀한 재료로 → 나오는 곳의 귀한 드롭 → 레시피·드롭 정수를 대장간에서 정제한 윗 등급 정수')
-    w('#      → (드롭 재료 장비) S 를 정예 재료·다른 일반 재료로 → P·S 순서 바꿈 → 마지막으로 P 개수 +1.')
-    w('#      (같은 레시피를 쓰는 같은 층 무기 6종도 서로 다르다. 귀한 재료가 2종뿐인 9·10층만 몇 개가 P +1)')
+    w('#   → 어느 장비든 mid 까지는 일반 재료 2종, 정수·정예 재료는 high 의 R 에만 — 낮은 장비의 mid 가 보스 장비보다 귀해지지 않는다.')
+    w('#   ③ 보스 장비 (보스 고유 · 보스가 주는 칭호 보상) — 제작법이 있으면 ①, 없으면 ② 에 더해:')
+    w('#      +7·+8 의 R 은 정예 재료만 — 레시피의 정예 재료, 없으면 그 보스 드롭의 정예 재료 (보스 드롭마다 1회 0.5개). 정수로 내려가지 않는다.')
+    w('#      +9·+10 은 R 대신 그 보스의 핵.')
+    w('#      그리고 단계마다 같은 층·같은 분류(무기 / 방패 / 흉갑·하의 / 투구·신발) 일반 장비 중 가장 비싼 것보다 싸지 않게')
+    w('#      (재료 개수 ÷ 그 재료 1회 공급량으로 환산) P·S 개수를 가장 적게 더한다 — 아래 "검사" 참고.')
+    w('#   ④ 같은 층에 재료 구성(개수까지)이 똑같은 장비가 생기면, 원칙에서 덜 벗어나는 것부터 차례로:')
+    w('#      1단계 (원칙 재료 그대로) R 을 같은 원칙 안의 다른 귀한 재료로(환산해 싼 쪽부터) → P·S 순서 바꿈 → S +1 → S +2 → P +1 …')
+    w('#      2단계 (원칙 밖, 1단계로 안 될 때만) 나오는 곳의 다른 귀한 드롭·윗 등급 정수 → 3단계 그 정수를 대장간에서 정제한 윗 등급 정수')
+    w('#      일반 장비는 낮은 레벨·등급부터 원칙 그대로 받고 변형은 높은 장비가 받는다. S 를 먼저 늘리는 것은 S 가 mid·high 에만 들어 싸서.')
     w(f'#   결과: 장비 {len(meta)}종 (제작 재료 {n_recipe} · 드롭 재료 {n_drop}) — 원칙 그대로 {n_canon}종 · R 바꿈 {n_rrot}종 ·'
-      f' S 바꿈 {n_salt}종 · P·S 순서 바꿈 {n_swap}종 · P +1 {n_bump}종. 같은 층에서 구성이 똑같은 장비 {len(collisions)}쌍.')
+      f' P·S 순서 바꿈 {n_swap}종 · 일반 장비 S +n {n_sb}종 · P +n {n_pb}종 · 원칙 밖 R {n_out}종 (겹칠 수 있음)')
+    w(f'#         보스 장비 {len(boss)}종 중 개수를 더한 장비 {n_boss_extra}종. 같은 층에서 구성이 똑같은 장비 {len(collisions)}쌍.')
     w('#   강화석(하급·상급·최상급)은 그대로 모든 장비에 공용으로 든다 — 장비 재료는 그 위에 더하는 몫.')
     w('#')
     w('# ── 개수 (시도 1번당) ─────────────────────────────────────────────────────────')
@@ -658,12 +785,9 @@ def write_yaml(cfg, items, recipes_out, meta, fls, rows, collisions, source_note
     w('#   P (일반 재료, low · mid · high)  무기 ' + fb('weapon') + ' | 방패 ' + fb('shield'))
     w('#                                    흉갑·하의 ' + fb('armor_body') + ' | 투구·신발 ' + fb('armor'))
     w('#   S (mid · high)  일반 재료: 무기·방패 ' + fs('weapon') + ' | 흉갑·하의 ' + fs('armor_body') + ' | 투구·신발 ' + fs('armor'))
-    w('#                   정수: ' + fmt_counts(S_RARE['ess']['mid']) + ' · ' + fmt_counts(S_RARE['ess']['high'])
-      + ' | 정예 재료: ' + fmt_counts(S_RARE['elite']['mid']) + ' · ' + fmt_counts(S_RARE['elite']['high']) + '  (드롭 재료 장비)')
     w('#                   일반 재료 P·S 는 그 재료 1회 공급량 ÷ 40 (0.25 단위, ×1.0 ~ ×2.0) 을 곱하고 .5 는 올린다 — 깊은 층일수록 많이 떨어지고 많이 든다.')
     w('#   R (+7~+10)      정예 재료 ' + fmt_counts(R_COUNT['elite']) + ' · 정수 ' + fmt_counts(R_COUNT['ess'])
-      + ' · 윗 등급 정수 ' + fmt_counts(R_COUNT['next']) + '   (보스 장비는 +7·+8 만: 정예 ' + fmt_counts(R_BOSS['elite'])
-      + ' · 정수 ' + fmt_counts(R_BOSS['ess']) + ')')
+      + ' · 윗 등급 정수 ' + fmt_counts(R_COUNT['next']) + '   (보스 장비는 +7·+8 만: 정예 재료 ' + fmt_counts(R_BOSS['elite']) + ')')
     w('#   보스 핵 K       ' + fmt_counts(K_COUNT) + ' (+9·+10 시도만)   — 상승폭이 커져(+10 ×' + f"{1 + cfg['bonus'][-1]:.2f}".rstrip('0').rstrip('.')
       + ') +8~+10 개수를 예전보다 조금 올렸다.')
     w('#')
@@ -685,7 +809,7 @@ def write_yaml(cfg, items, recipes_out, meta, fls, rows, collisions, source_note
     w('#   +10 까지 (주문서 없이) ' + ' · '.join(f'+{t} {att10[t]:.1f}' for t in range(7, 11)) + f'  합 {sum(att10.values()):.1f}회 — 대부분 +7·+8 하락 고리')
     w(f'#   +10 까지 (하락을 전부 주문서로 막으면) {sum(att10p.values()):.1f}회 · 주문서 {sum(att10p[t] * (1 - cfg["chance"][t - 1]) for t in att10p if t - 1 >= cfg["down"]):.1f}장')
     w(f'#   보스 핵을 high 모든 시도에 넣으면 +10 까지 핵 {sum(att10[t] for t in range(7, 11)):.0f}개(= 그 보스 {sum(att10[t] for t in range(7, 11)):.0f}번) — 너무 많아서'
-      f' +9·+10 시도에만 넣는다 (+10 까지 핵 {k10:.0f}개). 대신 +7·+8 에는 핵 다음으로 귀한 재료.')
+      f' +9·+10 시도에만 넣는다 (+10 까지 핵 {k10:.0f}개). 대신 +7·+8 에는 그 층 정예 재료.')
     w('#')
     w('# ── 결과: 예상 클리어 수 (그 층만 돌고, 그 재료를 강화에만 쓸 때) ─────────────────')
     w('#   층  | 장비 1개 +5 | 대표 한 벌(무기+방어구 4+방패) +5 (병목) | +10 장비 1개 — R 종류별 (병목 재료) / 강화석')
@@ -701,9 +825,23 @@ def write_yaml(cfg, items, recipes_out, meta, fls, rows, collisions, source_note
                 parts.append(f'{label[key]} {rng}회({name(items, which)})')
         w(f"#   {r['floor']:>2}층 | {r['one5']:.1f}회 | {r['kit5'][0]:.1f}회 ({name(items, r['kit5'][1])}) | " + ' · '.join(parts)
           + f" / 강화석 {r['stone10']:.0f}회")
-    w('#   → +5 는 장비 하나가 1회 안팎, 한 벌이 1~6층 3~4회 · 7~10층 2~3회 (강화석이 병목 — mid 까지는 제작 재료라 제작과 같이 모인다).')
-    w('#   → +10 은 장기 목표: 일반 장비 13~26회, 보스 장비는 핵 때문에 그 보스 24회 안팎 (보호 주문서를 쓰면 크게 준다).')
+    one5 = [r['one5'] for r in rows]
+    kit5 = [r['kit5'][0] for r in rows]
+    ten_n = [x for r in rows for k, v in r['ten'].items() if k != 'boss' for x, _ in v]
+    ten_b = [x for r in rows for x, _ in r['ten'].get('boss', [])]
+    span = lambda xs, d: f'{min(xs):.{d}f}' if f'{min(xs):.{d}f}' == f'{max(xs):.{d}f}' else f'{min(xs):.{d}f}~{max(xs):.{d}f}'
+    w(f'#   → +5 는 장비 하나가 {span(one5, 1)}회, 대표 한 벌이 {span(kit5, 1)}회 (강화석이 병목 — mid 까지는 일반 재료 2종이라 제작과 같이 모인다).')
+    w(f'#   → +10 은 장기 목표: 일반 장비 {span(ten_n, 0)}회, 보스 장비는 핵 때문에 그 보스 {span(ten_b, 0)}회 (보호 주문서를 쓰면 크게 준다).')
     w('#   1~3층 하급 강화석은 떠돌이 상인 핀에게서 살 수 있어 병목이 아니다.')
+    w('#')
+    w('# ── 검사: 보스 장비 vs 같은 층·같은 분류(무기 / 방패 / 흉갑·하의 / 투구·신발) 일반 장비 ─────────')
+    n_boss = sum(1 for m in meta.values() if m['boss'])
+    n_elite = sum(1 for m in meta.values() if m['boss'] and fls[m['floor']].cls(m['Rm']) == 'elite')
+    w(f"#   +7·+8 귀한 재료가 정예 재료인 보스 장비 {n_elite}/{n_boss}종 · 단계마다 재료 등급(일반 < 정수 < 정예 < 핵)이"
+      f" 같은 분류 일반 장비 최고 등급보다 낮은 경우 {len(fair['grade_bad'])}건")
+    w('#   1회 공급량 환산(개수 ÷ 그 재료 1회 공급량, 윗 등급 정수는 정제분 포함)이 같은 분류 일반 장비 중 가장 비싼 것보다 싼 보스 장비 수'
+      f" (비교 {fair['compared']}종 — 그 층에 일반 방패가 없는 방패는 빠짐):")
+    w('#     ' + ' · '.join(f"+{t} {len(v)}" + (f"(최대 ×{max(v)[0]:.2f})" if v else '') for t, v in fair['cheaper'].items()))
     w('# ─────────────────────────────────────────────────────────────────────────────')
     w('version: 1')
     w('')
@@ -730,21 +868,21 @@ def write_yaml(cfg, items, recipes_out, meta, fls, rows, collisions, source_note
         why = '제작 재료' if m['how'] == 'recipe' else {'mob·chest': '몬스터·상자 드롭', 'mob': '몬스터 드롭', 'chest': '상자 드롭',
                                                         'elite': '정예 드롭', 'boss': '보스 드롭', 'reward': '칭호를 주는 보스 드롭',
                                                         'starter': '1층 몬스터·상자 드롭'}.get(m['label'], '드롭 재료')
-        if m['how'] == 'recipe' and m['Rm'] in m['R_home']:
-            why += ' + 나오는 곳 드롭'
-        if m['Rm'] in m['R_refined']:
+        if m['tier'] == 'RC':
             why += ' + 정제 정수'
+        elif m['how'] == 'recipe' and m['Rm'] not in m['R_recipe']:
+            why += ' + 나오는 곳 드롭'
         notes = []
         if m['r_rot']:
             notes.append('R 바꿈')
-        if m['s_alt']:
-            notes.append('S 바꿈')
         if m['swapped']:
             notes.append('P·S 바꿈')
-        if m['bump']:
-            notes.append(f"P +{m['bump']}")
+        if m['dp']:
+            notes.append(f"P +{m['dp']}")
+        if m['ds']:
+            notes.append(f"S +{m['ds']}")
         w(f"  {i}:  # {v.get('name', i)} · {KIND_NAME.get(m['kind'], m['kind'])} · {home_text(v, m['label'])} → {why}"
-          + (f" ({', '.join(notes)} — 겹침 피함)" if notes else ''))
+          + (f" ({', '.join(notes)} — {' · '.join(m['reasons'])})" if notes else ''))
         r = recipes_out[i]
         for b in ('low', 'mid', 'high'):
             body = ', '.join(f'{k}: {fmt_counts(c)}' for k, c in r[b].items())
@@ -765,22 +903,29 @@ def main():
     cfg = enhance_config()
     c = load_content(a.content, a.spec)
     items = c['items']
-    recipes_out, meta, fls, collisions = build(c)
+    recipes_out, meta, fls, collisions, unfair = build(c, cfg)
     refine = refined_from(c['recipes'])
     rows = report_rows(cfg, items, recipes_out, meta, fls, refine)
     problems = obtainable_problems(items, recipes_out, meta, fls, refine)
     note = a.note or (f'content/ — 장비 {len(recipes_out)}종 · 레시피 {len(c["recipes"])}개 · 루팅 테이블 {len(c["tables"])}개'
                       + (' + 루팅 명세 ' + Path(a.spec).name if a.spec else ''))
-    text = write_yaml(cfg, items, recipes_out, meta, fls, rows, collisions, note)
+    fair = fairness(cfg, recipes_out, meta, fls, refine)
+    problems += [f'{i}: 보스 장비 +7·+8 귀한 재료가 정예 재료가 아님 ({meta[i]["Rm"]})' for i in fair['r_bad']] + fair['grade_bad']
+    text = write_yaml(cfg, items, recipes_out, meta, fls, rows, collisions, fair, note)
     summary = (f'장비 {len(recipes_out)}개 · 같은 층 똑같은 구성 {len(collisions)}쌍 {collisions[:5]}'
                f" · 원칙 그대로 {sum(1 for m in meta.values() if m['canonical'])} · P·S 바꿈 {sum(1 for m in meta.values() if m['swapped'])}"
-               f" · 개수 +1 {sum(1 for m in meta.values() if m['bump'])} · 재료 문제 {len(problems)}")
+               f" · 개수 더함 {sum(1 for m in meta.values() if m['bump'])} · 원칙 밖 R {sum(1 for m in meta.values() if m['tier'] != 'RA')}"
+               f" · 보스 장비가 일반 장비보다 싼 단계 {sum(len(v) for v in fair['cheaper'].values())}"
+               f" (일반 장비 이상을 못 맞춘 보스 장비 {unfair}) · 재료 문제 {len(problems)}")
     if problems:
         print('재료 문제:', *problems, sep='\n  ', file=sys.stderr)
     if a.report:
         print('\n'.join(l for l in text.splitlines() if l.startswith('#')))
+        for t, v in fair['cheaper'].items():
+            for ratio, b, n in sorted(v, reverse=True)[:3]:
+                print(f'  +{t} {b} < {n} ×{ratio:.2f}')
         print(summary)
-        return 0
+        return 1 if problems else 0
     if a.check:
         cur = Path(a.out).read_text(encoding='utf-8') if Path(a.out).exists() else ''
         same = cur == text
