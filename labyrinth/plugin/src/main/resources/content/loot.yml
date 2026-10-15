@@ -181,7 +181,6 @@ tables:
       - {table: tonics, chance: 0.06}
       - {rarity_pool: uncommon, floor: 2, chance: 0.2}
       - {rarity_pool: rare, floor: 3, chance: 0.05}
-      - {table: enhance_chest_t1, chance: 0.5}
   maze_chest_gold_1:   # 금 상자 (1~3층) — 희귀 이상 장비 확률
     rolls: 2
     gold: [70, 150]
@@ -195,7 +194,6 @@ tables:
       - {table: rare_consumables, chance: 0.05}
       - {rarity_pool: rare, floor: 3, chance: 0.35}
       - {rarity_pool: epic, floor: 4, chance: 0.05}
-      - {table: enhance_chest_t1, chance: 1.0}
   maze_chest_wood_2:   # 나무 상자 (4~6층)
     rolls: 1
     gold: [50, 110]
@@ -217,7 +215,6 @@ tables:
       - {table: tonics, chance: 0.06}
       - {rarity_pool: rare, floor: 6, chance: 0.2}
       - {rarity_pool: epic, floor: 4, chance: 0.05}
-      - {table: enhance_chest_t2, chance: 0.5}
   maze_chest_gold_2:   # 금 상자 (4~6층) — 희귀 이상 장비 확률
     rolls: 2
     gold: [220, 420]
@@ -231,7 +228,6 @@ tables:
       - {table: rare_consumables, chance: 0.05}
       - {rarity_pool: epic, floor: 4, chance: 0.35}
       - {rarity_pool: epic, floor: 6, chance: 0.05}
-      - {table: enhance_chest_t2, chance: 1.0}
   maze_chest_wood_3:   # 나무 상자 (7~9층)
     rolls: 1
     gold: [150, 300]
@@ -253,7 +249,6 @@ tables:
       - {table: tonics, chance: 0.06}
       - {rarity_pool: epic, floor: 8, chance: 0.2}
       - {rarity_pool: epic, floor: 9, chance: 0.05}
-      - {table: enhance_chest_t2, chance: 0.5}
   maze_chest_gold_3:   # 금 상자 (7~9층) — 희귀 이상 장비 확률
     rolls: 2
     gold: [550, 950]
@@ -267,7 +262,6 @@ tables:
       - {table: rare_consumables, chance: 0.05}
       - {rarity_pool: epic, floor: 9, chance: 0.35}
       - {rarity_pool: legendary, floor: 9, chance: 0.012}
-      - {table: enhance_chest_t2, chance: 1.0}
   maze_chest_wood_4:   # 나무 상자 (10층)
     rolls: 1
     gold: [300, 550]
@@ -289,7 +283,6 @@ tables:
       - {table: tonics, chance: 0.06}
       - {rarity_pool: epic, floor: 9, chance: 0.2}
       - {rarity_pool: epic, floor: 9, chance: 0.05}
-      - {table: enhance_chest_t3, chance: 0.5}
   maze_chest_gold_4:   # 금 상자 (10층) — 희귀 이상 장비 확률
     rolls: 2
     gold: [900, 1500]
@@ -303,6 +296,31 @@ tables:
       - {table: rare_consumables, chance: 0.05}
       - {rarity_pool: epic, floor: 9, chance: 0.35}
       - {rarity_pool: legendary, floor: 10, chance: 0.012}
+  # 미로 상자 강화석 — 위 상자 표와 따로, 철·금 상자를 열 때 한 번만 굴린다 (Treasures, 나무 상자는 없음).
+  # 등급은 상자 구간이 아니라 강화석 구간(config enhance.stones): t1 = 1~3층 · t2 = 4~7층 · t3 = 8~10층
+  maze_enhance_iron_t1:
+    rolls: 1
+    entries:
+      - {table: enhance_chest_t1, chance: 0.5}
+  maze_enhance_gold_t1:
+    rolls: 1
+    guaranteed:
+      - {table: enhance_chest_t1, chance: 1.0}
+  maze_enhance_iron_t2:
+    rolls: 1
+    entries:
+      - {table: enhance_chest_t2, chance: 0.5}
+  maze_enhance_gold_t2:
+    rolls: 1
+    guaranteed:
+      - {table: enhance_chest_t2, chance: 1.0}
+  maze_enhance_iron_t3:
+    rolls: 1
+    entries:
+      - {table: enhance_chest_t3, chance: 0.5}
+  maze_enhance_gold_t3:
+    rolls: 1
+    guaranteed:
       - {table: enhance_chest_t3, chance: 1.0}
 
   # ═════════ 지하 1층 — 이끼 낀 회랑 ═════════

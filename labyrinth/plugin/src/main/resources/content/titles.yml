@@ -615,6 +615,6 @@ achievements:
     category: craft
     condition: {type: ENHANCE, level: 10, server_first: true}
     title: "<gradient:#ff8a3d:#ffd36b:#fff4d6><b>모루의 전설</b></gradient>"
-    bonus: {STR: 1, DEX: 1, INT: 1}
+    bonus: {STR: 1, DEX: 1, INT: 1, VIT: 1, WIS: 1, LUK: 1}
     broadcast: true
     reward: {gold: 10000}

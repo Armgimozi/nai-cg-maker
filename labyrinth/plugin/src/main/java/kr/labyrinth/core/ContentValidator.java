@@ -326,6 +326,8 @@ public final class ContentValidator {
             int bracket = kr.labyrinth.dungeon.treasure.ChestSettings.of(f.raw().sub("chests")).bracket();
             for (kr.labyrinth.dungeon.treasure.ChestTier tier : kr.labyrinth.dungeon.treasure.ChestTier.values()) {
                 requireTable(w + " 미로 상자", tier.table(f.number(), bracket));
+                String et = tier.enhanceTable(f.number());
+                if (et != null) requireTable(w + " 미로 상자 강화석", et);
             }
             requireTable(w + " 기믹방", "gimmick_floor_" + f.number());
             String failSpawn = f.gimmickParams().str("fail_spawn");

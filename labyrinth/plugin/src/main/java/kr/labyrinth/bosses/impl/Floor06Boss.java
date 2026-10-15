@@ -487,12 +487,10 @@ public final class Floor06Boss extends Boss {
         BossFx.particle(Particle.END_ROD, at.clone().add(0, 1.5, 0), 20, 0.4, 0.8, 0.4, 0.05);
     }
 
-    /** 파티(접속 중인 인스턴스 멤버 + 아레나 안 플레이어)의 직업 역할 → 낼 수 있는 피해 유형. */
+    /** 아레나 안에서 싸울 수 있는 플레이어(쓰러짐·관전·아레나 밖 제외)의 직업 역할 → 낼 수 있는 피해 유형. */
     private Set<DamageType> partyTypes(Params p) {
-        List<Player> ps = new ArrayList<>(players());
-        if (!adhoc) for (Player m : ctx.onlineMembers()) if (!ps.contains(m)) ps.add(m);
         List<String> roles = new ArrayList<>();
-        for (Player pl : ps) {
+        for (Player pl : players()) {
             ClassDef c = services.classes().classOf(pl);
             roles.add(c == null ? null : c.role());
         }

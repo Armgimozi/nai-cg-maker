@@ -280,7 +280,7 @@ public final class Floor07Boss extends Boss {
             if (pol == Polarity.LIGHT) light++;
             else dark++;
             setPolarity(p, pol);
-            notify(p, "<white>당신의 극성:</white> " + pol.tag() + " <gray>— 기둥에 닿으면 바뀝니다</gray>");
+            notify(p, pol.tag() + " <gray>이 당신의 가슴에 깃든다…</gray>");
         }
     }
 

@@ -259,6 +259,8 @@ public final class Treasures {
         ChestTier t = tier[i];
         Location at = block.getLocation().add(0.5, 1.0, 0.5);
         fs.loot(t.table(fs.floor(), bracket()), List.of(p), at, "chest");
+        String et = t.enhanceTable(fs.floor());   // 강화석은 층 기준 등급으로 따로 한 번 (철·금만)
+        if (et != null) fs.loot(et, List.of(p), at, "chest");
         p.playSound(at, Sound.BLOCK_CHEST_OPEN, 0.8f, t == ChestTier.GOLD ? 0.8f : 1.1f);
         p.spawnParticle(t == ChestTier.GOLD ? Particle.TOTEM_OF_UNDYING : Particle.HAPPY_VILLAGER, at, t == ChestTier.GOLD ? 24 : 10,
                 0.3, 0.3, 0.3, 0.15);

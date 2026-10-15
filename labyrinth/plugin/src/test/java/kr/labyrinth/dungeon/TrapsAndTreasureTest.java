@@ -3,6 +3,7 @@ package kr.labyrinth.dungeon;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
@@ -15,6 +16,7 @@ import java.util.Set;
 import java.util.UUID;
 import kr.labyrinth.content.Content;
 import kr.labyrinth.content.FloorDef;
+import kr.labyrinth.content.LootTable;
 import kr.labyrinth.content.Params;
 import kr.labyrinth.core.ContentLoader;
 import kr.labyrinth.dungeon.gen.FloorGenerator;
@@ -29,6 +31,7 @@ import kr.labyrinth.dungeon.treasure.ChestTier;
 import kr.labyrinth.dungeon.treasure.TreasurePlan;
 import kr.labyrinth.dungeon.treasure.TreasurePlanner;
 import kr.labyrinth.dungeon.treasure.VaultKeys;
+import kr.labyrinth.items.enhance.EnhanceRules;
 import kr.labyrinth.titles.AchievementRules;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -257,6 +260,50 @@ class TrapsAndTreasureTest {
         assertEquals(kr.labyrinth.content.ItemType.KEY, content.item(VaultKeys.ITEM_ID).type());
         for (ChestTier t : ChestTier.values()) {
             for (int fl = 1; fl <= 10; fl++) assertNotNull(content.lootTable(t.table(fl, 0)), t.table(fl, 0));
+        }
+    }
+
+    @Test
+    void mazeChestEnhanceStonesFollowStoneTiers() {
+        // 강화석 등급은 상자 구간(1~3·4~6·7~9·10)이 아니라 config enhance.stones 구간 — 8~9층 상자도 최상급
+        for (int fl = 1; fl <= 10; fl++) {
+            assertNull(ChestTier.WOOD.enhanceTable(fl), "나무 상자는 강화석 없음");
+            String want = null;
+            for (EnhanceRules.Stone s : EnhanceRules.Config.DEFAULT.stones()) {
+                if (fl <= s.maxFloor()) {
+                    want = s.item();
+                    break;
+                }
+            }
+            for (ChestTier t : List.of(ChestTier.IRON, ChestTier.GOLD)) {
+                String id = t.enhanceTable(fl);
+                LootTable et = content.lootTable(id);
+                assertNotNull(et, id);
+                assertEquals(1, et.rolls(), id + " 는 한 번만 굴린다");
+                Set<String> got = new HashSet<>();
+                lootItems(et, got);
+                assertEquals(Set.of(want), got, fl + "층 " + id);
+                if (t == ChestTier.GOLD) assertTrue(et.entries().isEmpty() && !et.guaranteed().isEmpty(), id + " 금 상자는 확정");
+                else assertTrue(et.guaranteed().isEmpty() && et.entries().get(0).chance() < 1.0, id + " 철 상자는 확률");
+            }
+            // 상자 표 자체는 강화석 표를 굴리지 않는다 (rolls 2 에 들어가 두 번 굴리던 문제)
+            for (ChestTier t : ChestTier.values()) {
+                LootTable mt = content.lootTable(t.table(fl, 0));
+                List<LootTable.Entry> all = new ArrayList<>(mt.entries());
+                all.addAll(mt.guaranteed());
+                for (LootTable.Entry e : all) {
+                    assertFalse(e.kind() == LootTable.Kind.TABLE && e.table().startsWith("enhance_"), mt.id() + " → " + e.table());
+                }
+            }
+        }
+    }
+
+    private static void lootItems(LootTable t, Set<String> out) {
+        List<LootTable.Entry> all = new ArrayList<>(t.entries());
+        all.addAll(t.guaranteed());
+        for (LootTable.Entry e : all) {
+            if (e.kind() == LootTable.Kind.ITEM) out.add(e.item());
+            else if (e.kind() == LootTable.Kind.TABLE) lootItems(content.lootTable(e.table()), out);
         }
     }
 

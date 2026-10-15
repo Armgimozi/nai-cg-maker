@@ -319,7 +319,7 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   정예방 정리 → `treasures().onEliteCleared(room)`(열쇠), 블록 상호작용은 DungeonManager 가 `treasures().onInteract` 먼저 묻는다.
   floors.yml 층별 `traps: {density, types, mark, spacing}`·`chests: {dead_end, minor, iron, gold, gold_behind_trap, mimic, vault, key_from_elite, bracket}`,
   dungeon.yml `traps.*`(disarm_seconds·shadow_disarm_seconds·shadow_sense_radius·disarm_gold·disarm_xp)·`treasure.mimic_lock_seconds`
-  → `DungeonConfig.traps()`(TrapRules). loot.yml `maze_chest_<wood|iron|gold>_<1~4>`(층 구간 1~3·4~6·7~9·10), items.yml `vault_key`(type key,
+  → `DungeonConfig.traps()`(TrapRules). loot.yml `maze_chest_<wood|iron|gold>_<1~4>`(층 구간 1~3·4~6·7~9·10) + 철·금 상자 강화석 `maze_enhance_<iron|gold>_t<1~3>`(강화석 구간 1~3·4~7·8~10, 상자마다 따로 한 번), items.yml `vault_key`(type key,
   PDC "런id#층" — `Run.restore`·`Run.begin`(입장자)·`DungeonManager.recoverStranded`·다음 층 첫 도착 때 지움). titles.yml 조건 `TREASURE {kind: chest|gold_chest|vault|mimic, count}` —
   카운터 `titles.treasure.<kind>`. PlayerData 카운터 `dungeon.traps_disarmed`. 자가 진단 결과에 `traps=·chests=·vaults=·secret_rooms=·mimics=`.
 - **TitleService** 실제 구현 `titles.LabTitleService`. 기본 메서드 추가: `setBonusSuppressed(p, on)`(칭호 스탯 보너스 잠시 끄기 — 지금은 부르는 곳 없음),
