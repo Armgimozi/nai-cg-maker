@@ -3,21 +3,22 @@
 #
 # 스키마: ARCHITECTURE.md §6 items.yml (+ 추가 필드는 §6.2). 생략한 필드는 null / 기본값.
 #  type        : weapon | armor | accessory | material | consumable | key
-#  weapon_type : sword_shield | greatsword | bow | staff | scepter | dagger  (classes.yml weapon_types = 직업 추천 무기와 매칭)
-#  armor_slot  : head | chest | legs | feet | offhand(방패 — 보조손, 수호기사 추천)
+#  weapon_type : sword_shield | greatsword | bow | staff | scepter | dagger  (classes.yml weapon_types 와 같은 값)
+#  armor_slot  : head | chest | legs | feet | offhand(방패 — 보조손)
 #  armor_set   : 장비 에셋 id(labyrinth:<set>). 투구는 플러그인이 assetId 를 넣지 않고 3D 모델을 머리에 씌운다
 #  rarity      : common < uncommon < rare < epic < legendary < mythic (GDD §11.1)
-#  level_req   : 착용 레벨.   floor : 이 장비가 속한 층 단계(1~10) — loot.yml rarity_pool 의 후보 기준
-#  classes     : 어울리는 직업 (비우면 모두) — 착용 제한이 아니다. 드롭 직업 편향·대장간 "추천 장비만" 필터에만 쓴다 (툴팁에는 표시 안 함)
+#  level_req   : 착용 레벨 (그 층 레벨 구간 안).   floor : 이 장비가 속한 층(1~10) — 장비는 그 층의 루팅 테이블·레시피에서만 나온다
+#  classes     : 어울리는 직업 (비우면 모두) — 착용 제한이 아니다. 드롭 직업 편향(loot.yml own_class_bias)에만 쓴다 (툴팁·대장간에 표시 안 함)
 #  stats       : 키 = GDD §11.7 닫힌 목록. 값 [최소, 최대] 를 드롭·제작 순간 굴려 PDC 에 저장
 #                damage = 무기 피해(공격력의 기반) · 백분율 키는 0~1 (0.05 = 5%)
 #  set_bonus   : sets: 의 세트 id.   aura : fx.yml auras id (전설·신화 무기)
-#  pool        : false 면 rarity_pool 이 뽑지 않음 (보스 전용·제작 전용·칭호 보상). 생략 = true
-#  sources     : 획득처 (툴팁·도감 표시용, 생성 시 loot/recipes/titles/npcs 에서 계산해 적음)
-#                drop 일반 몹 · elite 엘리트 · boss 보스 · chest 보물방/기믹방 상자 · craft 제작 · reward 업적 보상 · shop 상인
+#  pool        : false 면 rarity_pool 이 뽑지 않음. 생략 = true. loot.yml 은 rarity_pool 을 쓰지 않으므로 장비는 전부 false (실수로 풀을 다시 써도 안전)
+#  sources     : 획득처 (툴팁·도감 표시용, loot/recipes/titles/npcs 에서 계산해 적음). 장비 하나 = 한 층, 집은 최대 2곳
+#                drop·chest 그 층 몬스터·상자(gear_fNN_common 한 집 — 일반 몹·보물방·기믹방·미로 상자) · elite 그 층 정예 · boss 그 층 보스 고유
+#                craft 대장간 · reward 칭호 보상 · shop 상인 · starter 시작 지급(config starter_kit — 몹·상자·대장간에서 안 나옴)
 #  use         : 소모품 효과 (action 닫힌 목록 = GDD §11.9)
 #  weapon_skills : 일부 상위 무기의 무기 스킬. id = 구현 키(GDD §17 Weapon skill catalog 닫힌 목록, 공용 구현 재사용)
-#                input = LEFT | RIGHT | SNEAK_LEFT | SNEAK_RIGHT (활은 RIGHT 당기기 유지 → LEFT·SNEAK_LEFT 만)
+#                input = LEFT | RIGHT | SNEAK_LEFT | SNEAK_RIGHT (활은 RIGHT 가 바닐라 당기기라 금지 → SNEAK_LEFT · SNEAK_RIGHT(웅크리고 당겨 쏘기), 일부 신화 활만 LEFT)
 #                params.damage = 공격력 배율, params.fx = fx.yml models 이름, params.damage_type = melee|ranged|magic
 #  model       : 3D 템플릿 {shape, length} (GDD §14.1). 재료·소모품만 shape: icon (2D)
 #  texture     : 생성기 지시 {style, palette(4~6색, 어두움→밝음), animated, frames, frametime, effect} (GDD §14.2)
@@ -94,7 +95,8 @@ items:
     floor: 1
     classes: [guardian]
     stats: {damage: [7, 8], STR: [1, 2], VIT: [1, 2]}
-    sources: [drop, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: longsword, length: 1.0}
     texture: {style: steel, palette: ["#2a2e33", "#565c63", "#9aa2ab", "#d8dde2", "#5f7d2e"]}
     lore: "무너진 회랑을 지키던 옛 수비대의 제식 장검. 칼자루에 감긴 이끼 낀 끈이 손에 익는다."
@@ -107,10 +109,25 @@ items:
     floor: 1
     classes: [guardian]
     stats: {damage: [7, 8], STR: [1, 2], crit_damage: [0.02, 0.027]}
+    pool: false
     sources: [drop, chest, craft]
     model: {shape: warhammer, length: 1.0}
     texture: {style: steel, palette: ["#22261f", "#4a5245", "#8a9484", "#c9d0c2", "#6f9a3a"]}
     lore: "무너진 회랑의 석공들이 기둥을 다듬던 망치. 등판에 낀 이끼 덕에 땀에 젖어도 손에서 미끄러지지 않는다."
+  grove_warden_maul:
+    name: "파수꾼의 이끼바위 망치"
+    type: weapon
+    weapon_type: sword_shield
+    rarity: rare
+    level_req: 5
+    floor: 1
+    classes: [guardian]
+    stats: {damage: [9, 10], STR: [2, 3], VIT: [1, 2], hp: [16, 22]}
+    pool: false
+    sources: [boss, craft]
+    model: {shape: warhammer, length: 1.05}
+    texture: {style: moss, palette: ["#1a1d16", "#3a4034", "#6a7a5a", "#a8d055", "#f0ffc0"]}
+    lore: "그로브의 팔에서 떨어져 나온 바위 주먹에 손잡이를 박았다. 등에 붙은 이끼가 충격을 머금어 손목이 덜 저린다."
   minewarden_mace:
     name: "갱도 감시자의 철퇴"
     type: weapon
@@ -120,7 +137,8 @@ items:
     floor: 2
     classes: [guardian]
     stats: {damage: [8, 10], STR: [1, 2], VIT: [1, 2]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: mace, length: 1.0}
     texture: {style: rusted_iron, palette: ["#1f1611", "#4a3121", "#8c5a34", "#b8743c", "#d9d2c8"]}
     lore: "갱목이 무너질 때마다 이 철퇴로 바위를 깨고 갇힌 동료를 꺼냈다고 한다."
@@ -133,7 +151,8 @@ items:
     floor: 2
     classes: [guardian]
     stats: {damage: [10, 11], STR: [2, 3], attack_speed: [0.018, 0.025]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     model: {shape: falchion, length: 1.0}
     texture: {style: rusted_iron, palette: ["#1f1611", "#4a3121", "#8c5a34", "#c0a080", "#e0e4ec"]}
     lore: "갱도 거미줄로 손잡이를 감은 외날 칼. 무게가 칼끝에 몰려 있어 가볍게 휘둘러도 깊게 들어간다."
@@ -146,7 +165,8 @@ items:
     floor: 3
     classes: [guardian]
     stats: {damage: [12, 14], STR: [3, 4], VIT: [2, 3], hp: [32, 44]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: broadsword, length: 1.0}
     texture: {style: silver, palette: ["#231a2c", "#4a3a5e", "#9aa0b8", "#e2e6f2", "#d988b8"]}
     lore: "균사 동굴의 독 포자를 베어 내도록 날 전체에 은을 입혔다. 은빛이 흐려지면 독이 스민 것이다."
@@ -159,10 +179,36 @@ items:
     floor: 3
     classes: [guardian]
     stats: {damage: [14, 16], STR: [3, 5], defense: [5, 7], hp_regen: [0.8, 1.0]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     model: {shape: warhammer, length: 1.0}
     texture: {style: wood, palette: ["#231a2c", "#4a3a5e", "#8a6ea8", "#d8c8e8", "#d988b8"]}
     lore: "거대한 갓꼬마의 갓을 그대로 굳혀 머리로 삼은 망치. 내려칠 때마다 흩날린 포자가 든 사람의 상처를 덮는다."
+  mycelking_guard_blade:
+    name: "균사왕 근위 넓은검"
+    type: weapon
+    weapon_type: sword_shield
+    rarity: epic
+    level_req: 15
+    floor: 3
+    classes: [guardian]
+    stats: {damage: [16, 19], STR: [4, 6], VIT: [3, 4], hp: [52, 70], hp_regen: [1.0, 1.3]}
+    pool: false
+    sources: [boss, craft]
+    weapon_skills:
+      - id: mechanics
+        name: "근위 포자벽"
+        input: RIGHT
+        cooldown: 13.0
+        mana: 16
+        description: "검을 땅에 꽂아 포자를 터뜨린다. 주변 적을 2초 도발하고 자신은 잠시 보호막을 얻는다."
+        mechanics:
+          - {"type": "nova", "radius": 4, "display": "shockwave", "particle": "SPORE_BLOSSOM_AIR", "effects": [{"damage": 1.4}, {"taunt": 2}]}
+          - {"type": "self", "effects": [{"absorption": {"amount": 0.1, "seconds": 4}}]}
+          - {"type": "sound", "sound": "block.moss.break", "pitch": 0.6, "volume": 1.2}
+    model: {shape: broadsword, length: 1.0}
+    texture: {style: silver, palette: ["#1a1018", "#3e2438", "#7a3e6a", "#d07ab0", "#f5e05a"]}
+    lore: "무르노크의 근위대가 들던 넓은검. 날에 뿌리내린 균사가 주인이 상처 입을 때마다 살을 덮는다."
   sluice_breaker_mace:
     name: "수문 부수개"
     type: weapon
@@ -172,7 +218,8 @@ items:
     floor: 4
     classes: [guardian]
     stats: {damage: [18, 21], STR: [5, 7], VIT: [3, 4], hp: [59, 79], damage_reduction: [0.021, 0.028]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     weapon_skills:
       - id: riposte
         name: "수문 막기"
@@ -202,7 +249,8 @@ items:
     floor: 4
     classes: [guardian]
     stats: {damage: [19, 21], STR: [4, 6], lifesteal: [0.018, 0.025], attack_speed: [0.032, 0.043]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: falchion, length: 1.05}
     texture: {style: copper, palette: ["#10241e", "#1f4a3c", "#3f8a6e", "#a8743c", "#c8f0dc"]}
     lore: "잠긴 수로의 소금기에 절어 날이 바다색으로 바랬다. 넓은 칼끝이 물을 가르듯 무겁게 떨어진다."
@@ -215,7 +263,8 @@ items:
     floor: 5
     classes: [guardian]
     stats: {damage: [24, 27], STR: [6, 8], VIT: [4, 5], crit_damage: [0.098, 0.132], defense: [9, 12]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     weapon_skills:
       - id: mechanics
         name: "단조 강타"
@@ -236,10 +285,11 @@ items:
     weapon_type: sword_shield
     rarity: epic
     level_req: 24
-    floor: 6
+    floor: 5
     classes: [guardian]
     stats: {damage: [26, 30], STR: [6, 9], VIT: [4, 5], hp: [81, 110], defense: [10, 13]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     weapon_skills:
       - id: mechanics
         name: "모루의 맹세"
@@ -269,10 +319,10 @@ items:
     type: weapon
     weapon_type: sword_shield
     rarity: legendary
-    level_req: 27
-    floor: 6
+    level_req: 25
+    floor: 5
     classes: [guardian]
-    stats: {damage: [33, 37], STR: [9, 12], VIT: [5, 7], hp: [110, 149], damage_reduction: [0.032, 0.044], skill_damage: [0.075, 0.101]}
+    stats: {damage: [30, 34], STR: [8, 11], VIT: [5, 7], hp: [110, 149], damage_reduction: [0.032, 0.044], skill_damage: [0.075, 0.101]}
     aura: dawn
     pool: false
     sources: [boss, craft]
@@ -302,6 +352,30 @@ items:
     model: {shape: longsword, length: 1.0}
     texture: {style: holy, palette: ["#3a2410", "#8a5a1a", "#d9a83a", "#ffd27a", "#fff4d6"], animated: true, frames: 8, frametime: 2, effect: sun_glow}
     lore: "용광로 심장부의 마지막 불씨가 꺼지기 직전, 그 빛을 검에 가두었다. 칼날 위로 새벽이 끝없이 밝아 온다."
+  frostgrave_mace:
+    name: "서리 묘지기의 철퇴"
+    type: weapon
+    weapon_type: sword_shield
+    rarity: epic
+    level_req: 27
+    floor: 6
+    classes: [guardian]
+    stats: {damage: [30, 35], STR: [7, 10], VIT: [4, 6], hp: [91, 123], damage_reduction: [0.027, 0.036]}
+    pool: false
+    sources: [drop, chest, craft]
+    weapon_skills:
+      - id: mechanics
+        name: "묘지기의 종"
+        input: RIGHT
+        cooldown: 12.0
+        mana: 18
+        description: "철퇴로 땅을 울려 서리 파동을 일으킨다. 주변 적은 느려지고 2초 도발된다."
+        mechanics:
+          - {"type": "nova", "radius": 4, "display": "frost_nova_ring", "particle": "SNOWFLAKE", "effects": [{"damage": 1.6}, {"slow": 2}, {"taunt": 2}]}
+          - {"type": "sound", "sound": "block.bell.use", "pitch": 0.5, "volume": 1.2}
+    model: {shape: mace, length: 1.0}
+    texture: {style: frost, palette: ["#16283a", "#3a4a6a", "#8aa0c8", "#d8e6ff", "#ffffff"]}
+    lore: "서리 묘역의 묘지기가 무덤을 파헤치는 자를 쫓던 철퇴. 머리에 낀 얼음은 아무리 두드려도 깨지지 않는다."
   resonant_longsword:
     name: "공명 수정 장검"
     type: weapon
@@ -311,7 +385,8 @@ items:
     floor: 7
     classes: [guardian]
     stats: {damage: [35, 41], STR: [7, 9], VIT: [4, 6], hp: [90, 121]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: longsword, length: 1.0}
     texture: {style: crystal, palette: ["#160f24", "#3a2a5a", "#7a52b8", "#c8a0ff", "#f4ecff"]}
     lore: "자수정 결을 따라 벼린 장검. 방패에 부딪힐 때마다 맑은 공명음이 동굴 가득 퍼진다."
@@ -324,7 +399,8 @@ items:
     floor: 7
     classes: [guardian]
     stats: {damage: [39, 44], STR: [7, 10], crit_chance: [0.035, 0.047], attack_speed: [0.043, 0.058]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     model: {shape: falchion, length: 1.05}
     texture: {style: crystal, palette: ["#1a0e2a", "#3a1e5a", "#7a4ab0", "#c8a8ff", "#f0e8ff"]}
     lore: "자수정 결정을 갈아 칼끝을 넓힌 외날 칼. 휘두를 때마다 맑은 음이 동굴 벽에 울린다."
@@ -337,7 +413,8 @@ items:
     floor: 8
     classes: [guardian]
     stats: {damage: [49, 55], STR: [10, 13], cooldown_reduction: [0.045, 0.061], skill_damage: [0.079, 0.106], VIT: [6, 8]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest, craft]
     weapon_skills:
       - id: mechanics
         name: "인장 내려찍기"
@@ -356,13 +433,13 @@ items:
     type: weapon
     weapon_type: sword_shield
     rarity: legendary
-    level_req: 36
+    level_req: 39
     floor: 8
     classes: [guardian]
-    stats: {damage: [49, 55], STR: [11, 15], VIT: [7, 9], hp: [146, 197], defense: [17, 23], cooldown_reduction: [0.052, 0.071]}
+    stats: {damage: [55, 62], STR: [12, 16], VIT: [7, 9], hp: [146, 197], defense: [17, 23], cooldown_reduction: [0.052, 0.071]}
     aura: codex
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     weapon_skills:
       - id: mechanics
         name: "봉인 문장"
@@ -396,7 +473,8 @@ items:
     floor: 9
     classes: [guardian]
     stats: {damage: [54, 62], STR: [10, 14], VIT: [6, 8], hp: [137, 185], attack_speed: [0.058, 0.079]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest, craft]
     weapon_skills:
       - id: mechanics
         name: "시계추 강타"
@@ -426,7 +504,8 @@ items:
     floor: 10
     classes: [guardian]
     stats: {damage: [65, 74], STR: [11, 15], lifesteal: [0.038, 0.052], crit_damage: [0.171, 0.232], move_speed: [0.034, 0.046]}
-    sources: [drop, elite, boss, chest]
+    pool: false
+    sources: [drop, chest, craft]
     weapon_skills:
       - id: mechanics
         name: "공허 가르기"
@@ -447,12 +526,13 @@ items:
     type: weapon
     weapon_type: sword_shield
     rarity: legendary
-    level_req: 44
-    floor: 9
+    level_req: 48
+    floor: 10
     classes: [guardian]
-    stats: {damage: [66, 75], STR: [13, 18], VIT: [8, 11], hp: [177, 240], damage_reduction: [0.045, 0.061], defense: [20, 27]}
+    stats: {damage: [76, 86], STR: [14, 19], VIT: [8, 11], hp: [177, 240], damage_reduction: [0.045, 0.061], defense: [20, 27]}
     aura: abyssal
-    sources: [elite, boss, chest, craft]
+    pool: false
+    sources: [boss, craft]
     weapon_skills:
       - id: mechanics
         name: "심연 끌개"
@@ -491,7 +571,8 @@ items:
     classes: [guardian]
     stats: {damage: [85, 94], STR: [17, 23], VIT: [10, 14], hp: [233, 315], damage_reduction: [0.058, 0.078], skill_damage: [0.137, 0.185], defense: [26, 36]}
     aura: celestial
-    sources: [drop, elite, boss, chest]
+    pool: false
+    sources: [boss]
     weapon_skills:
       - id: slash_wave
         name: "성좌 검기"
@@ -536,7 +617,8 @@ items:
     floor: 1
     classes: [berserker]
     stats: {damage: [10, 12], STR: [1, 2], hp: [3, 4]}
-    sources: [drop, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: greatsword, length: 1.0}
     texture: {style: steel, palette: ["#1d1610", "#4e3520", "#7a5a34", "#9aa2ab", "#d8dde2"]}
     lore: "회랑을 뒤덮은 뿌리를 쳐내던 벌목용 대검. 날이 두껍고 무겁지만 그만큼 정직하다."
@@ -549,6 +631,7 @@ items:
     floor: 1
     classes: [berserker]
     stats: {damage: [11, 13], STR: [1, 2], lifesteal: [0.006, 0.008]}
+    pool: false
     sources: [drop, chest, craft]
     model: {shape: war_scythe, length: 1.0}
     texture: {style: wood, palette: ["#1e160e", "#4a3420", "#7a5a36", "#b89a6a", "#7fae4a"]}
@@ -562,7 +645,8 @@ items:
     floor: 2
     classes: [berserker]
     stats: {damage: [12, 15], STR: [1, 2], crit_damage: [0.031, 0.041]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: great_axe, length: 1.0}
     texture: {style: rusted_iron, palette: ["#1a1410", "#4a3121", "#8c5a34", "#b8743c", "#c9ced6"]}
     lore: "은광의 광맥을 통째로 쪼개던 광부의 대도끼. 날 끝에 은 부스러기가 아직 박혀 있다."
@@ -575,10 +659,35 @@ items:
     floor: 2
     classes: [berserker]
     stats: {damage: [15, 17], STR: [2, 3], damage_reduction: [0.01, 0.014]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     model: {shape: glaive, length: 1.0}
     texture: {style: rusted_iron, palette: ["#1a1410", "#3e2c20", "#7a5236", "#b8a890", "#e8ecf4"]}
     lore: "갱도 버팀목을 깎은 긴 자루에 낡은 광산 칼날을 박았다. 자루에 겹겹이 감은 은실이 충격을 받아 낸다."
+  silkqueen_reaper:
+    name: "베셀라의 거미다리 큰낫"
+    type: weapon
+    weapon_type: greatsword
+    rarity: epic
+    level_req: 10
+    floor: 2
+    classes: [berserker]
+    stats: {damage: [19, 22], STR: [3, 4], lifesteal: [0.016, 0.022], crit_damage: [0.061, 0.083], hp: [36, 48]}
+    pool: false
+    sources: [boss, craft]
+    weapon_skills:
+      - id: mechanics
+        name: "거미다리 휩쓸기"
+        input: RIGHT
+        cooldown: 11.0
+        mana: 14
+        description: "큰낫을 크게 휘둘러 앞쪽 반원을 벤다. 맞은 적은 은실에 감겨 잠시 느려진다."
+        mechanics:
+          - {"type": "cone", "range": 4.5, "angle": 180, "display": "slash_arc", "particle": "SWEEP_ATTACK", "effects": [{"damage": 1.6}, {"slow": 2}]}
+          - {"type": "sound", "sound": "entity.spider.ambient", "pitch": 0.7, "volume": 1.0}
+    model: {shape: war_scythe, length: 1.05}
+    texture: {style: silk, palette: ["#14161c", "#2e3240", "#6a7088", "#c0c8dc", "#a070f0"]}
+    lore: "실잣는 여왕의 다리 하나를 통째로 벼려 만든 큰낫. 휘두를 때마다 끊긴 은실이 날을 따라 흩날린다."
   capsplitter_cleaver:
     name: "갓 가르는 참마도"
     type: weapon
@@ -588,7 +697,8 @@ items:
     floor: 3
     classes: [berserker]
     stats: {damage: [18, 22], STR: [3, 4], crit_damage: [0.054, 0.072], attack_speed: [0.025, 0.034]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: cleaver, length: 1.0}
     texture: {style: bone, palette: ["#2a1410", "#5a2a1c", "#d9563a", "#f5d6a8", "#fff4e0"]}
     lore: "거대 버섯의 갓을 반으로 가르던 참마도. 손잡이는 말린 균사로 칭칭 감았다."
@@ -601,7 +711,8 @@ items:
     floor: 3
     classes: [berserker]
     stats: {damage: [22, 25], STR: [3, 5], lifesteal: [0.016, 0.021], crit_chance: [0.019, 0.026]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     model: {shape: war_scythe, length: 1.05}
     texture: {style: bone, palette: ["#1e1824", "#3e3248", "#7a6890", "#c8b8d8", "#a0f0c8"]}
     lore: "균사 걸음꾼의 뼈를 엮어 만든 큰낫. 베인 자리에서 실 같은 균사가 피를 빨아올린다."
@@ -614,7 +725,8 @@ items:
     floor: 4
     classes: [berserker]
     stats: {damage: [28, 32], STR: [5, 7], hp: [59, 79], crit_damage: [0.083, 0.112], lifesteal: [0.021, 0.028]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     weapon_skills:
       - id: mechanics
         name: "닻 던지기"
@@ -646,10 +758,35 @@ items:
     floor: 4
     classes: [berserker]
     stats: {damage: [29, 33], STR: [4, 6], defense: [7, 9], hp: [54, 73]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: glaive, length: 1.05}
     texture: {style: rusted_iron, palette: ["#121c1e", "#2a3c40", "#4f6e70", "#9ab8b0", "#7fd0c0"]}
     lore: "수로 바닥에서 건져 올린 옛 수비대의 언월도. 물에 잠겨 있던 세월만큼 묵직하다."
+  osric_drowned_axe:
+    name: "오스릭의 익사 닻도끼"
+    type: weapon
+    weapon_type: greatsword
+    rarity: epic
+    level_req: 20
+    floor: 4
+    classes: [berserker]
+    stats: {damage: [33, 38], STR: [6, 7], hp: [68, 92], damage_reduction: [0.022, 0.03], crit_damage: [0.092, 0.124]}
+    pool: false
+    sources: [boss, craft]
+    weapon_skills:
+      - id: mechanics
+        name: "수문 내려찍기"
+        input: RIGHT
+        cooldown: 12.0
+        mana: 18
+        description: "닻도끼를 내리찍어 주변에 물보라를 일으킨다. 맞은 적은 밀려나고 느려진다."
+        mechanics:
+          - {"type": "nova", "radius": 4.5, "display": "shockwave", "particle": "SPLASH", "effects": [{"damage": 2.0}, {"slow": 2}, {"knockback": 0.6}]}
+          - {"type": "sound", "sound": "entity.generic.splash", "pitch": 0.6, "volume": 1.5}
+    model: {shape: great_axe, length: 1.05}
+    texture: {style: rusted_iron, palette: ["#0a1416", "#183034", "#2e5a5e", "#a8743c", "#c0f0e8"]}
+    lore: "수문의 망령이 끌고 다니던 닻에 도끼날을 덧댔다. 내려칠 때마다 수로의 물이 함께 쏟아진다."
   cinderdrake_glaive:
     name: "잿불 용 언월도"
     type: weapon
@@ -659,7 +796,8 @@ items:
     floor: 5
     classes: [berserker]
     stats: {damage: [37, 42], STR: [6, 8], crit_chance: [0.03, 0.041], crit_damage: [0.098, 0.132], move_speed: [0.021, 0.029]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     weapon_skills:
       - id: mechanics
         name: "용의 숨결"
@@ -679,10 +817,11 @@ items:
     weapon_type: greatsword
     rarity: epic
     level_req: 24
-    floor: 6
+    floor: 5
     classes: [berserker]
     stats: {damage: [40, 46], STR: [6, 9], crit_damage: [0.104, 0.141], hp: [81, 110], attack_speed: [0.042, 0.057]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     weapon_skills:
       - id: mechanics
         name: "쇳물 붓기"
@@ -714,13 +853,13 @@ items:
     type: weapon
     weapon_type: greatsword
     rarity: legendary
-    level_req: 27
-    floor: 6
+    level_req: 25
+    floor: 5
     classes: [berserker]
-    stats: {damage: [51, 57], STR: [9, 12], crit_damage: [0.137, 0.185], attack_speed: [0.055, 0.074], lifesteal: [0.032, 0.044], hp: [110, 149]}
+    stats: {damage: [46, 52], STR: [8, 11], crit_damage: [0.137, 0.185], attack_speed: [0.055, 0.074], lifesteal: [0.032, 0.044], hp: [110, 149]}
     aura: ember
     pool: false
-    sources: [boss]
+    sources: [boss, craft]
     weapon_skills:
       - id: slash_wave
         name: "잿불 검기"
@@ -750,6 +889,30 @@ items:
     model: {shape: greatsword, length: 1.0}
     texture: {style: ember, palette: ["#2b0d05", "#7a2410", "#e0571d", "#ffc46b", "#fff4d6"], animated: true, frames: 8, frametime: 2, effect: ember_flicker}
     lore: "용광로 대장간의 마지막 불씨로 벼린 검. 휘두를 때마다 잿불이 바람을 타고 흩날린다."
+  rime_reaper_scythe:
+    name: "서리 수확자의 큰낫"
+    type: weapon
+    weapon_type: greatsword
+    rarity: epic
+    level_req: 27
+    floor: 6
+    classes: [berserker]
+    stats: {damage: [47, 54], STR: [7, 10], crit_damage: [0.113, 0.153], lifesteal: [0.027, 0.036], hp: [91, 123]}
+    pool: false
+    sources: [drop, chest, craft]
+    weapon_skills:
+      - id: mechanics
+        name: "서리꽃 수확"
+        input: RIGHT
+        cooldown: 13.0
+        mana: 20
+        description: "큰낫을 한 바퀴 크게 돌려 주위를 벤다. 맞은 적에게 서리가 한 겹 쌓인다(다섯 겹이면 얼어붙는다)."
+        mechanics:
+          - {"type": "cone", "range": 5, "angle": 360, "display": "rime_slash", "particle": "SNOWFLAKE", "effects": [{"damage": 1.8}, {"freeze": 2}]}
+          - {"type": "sound", "sound": "entity.player.attack.sweep", "pitch": 0.6, "volume": 1.2}
+    model: {shape: war_scythe, length: 1.1}
+    texture: {style: frost, palette: ["#16283a", "#3a4a6a", "#8aa0c8", "#d8e6ff", "#ffffff"]}
+    lore: "묘역에 쌓인 서리를 거둬들이던 큰낫. 날이 지나간 자리에 하얀 서리꽃이 한 줄로 핀다."
   amethyst_cleaver:
     name: "자수정 참마도"
     type: weapon
@@ -759,7 +922,8 @@ items:
     floor: 7
     classes: [berserker]
     stats: {damage: [54, 63], STR: [7, 9], crit_damage: [0.107, 0.145], hp: [90, 121]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: cleaver, length: 1.0}
     texture: {style: crystal, palette: ["#16141a", "#34303c", "#5a5468", "#9a62e0", "#efd8ff"]}
     lore: "정동 거한의 등에서 떼어 낸 자수정 판을 그대로 날로 삼았다."
@@ -772,7 +936,8 @@ items:
     floor: 7
     classes: [berserker]
     stats: {damage: [60, 68], STR: [7, 10], lifesteal: [0.026, 0.035], hp_regen: [1.6, 2.2]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     model: {shape: war_scythe, length: 1.05}
     texture: {style: crystal, palette: ["#141024", "#2e2650", "#5a4ea0", "#a8a0f0", "#ffd0f8"]}
     lore: "정동을 반으로 갈라 날로 삼은 큰낫. 안쪽의 결정이 벤 것의 생기를 머금었다가 주인에게 돌려준다."
@@ -785,7 +950,8 @@ items:
     floor: 8
     classes: [berserker]
     stats: {damage: [75, 86], STR: [10, 13], skill_damage: [0.079, 0.106], cooldown_reduction: [0.045, 0.061], hp: [127, 172]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest, craft]
     weapon_skills:
       - id: mechanics
         name: "필경 돌진"
@@ -804,13 +970,13 @@ items:
     type: weapon
     weapon_type: greatsword
     rarity: legendary
-    level_req: 36
-    floor: 8
+    level_req: 35
+    floor: 7
     classes: [berserker]
-    stats: {damage: [76, 85], STR: [11, 15], crit_damage: [0.17, 0.23], attack_speed: [0.065, 0.087], hp: [146, 197], crit_chance: [0.052, 0.071]}
+    stats: {damage: [73, 82], STR: [11, 15], crit_damage: [0.17, 0.23], attack_speed: [0.065, 0.087], hp: [146, 197], crit_chance: [0.052, 0.071]}
     aura: geode
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     weapon_skills:
       - id: mechanics
         name: "정동 낙하"
@@ -850,7 +1016,8 @@ items:
     floor: 9
     classes: [berserker]
     stats: {damage: [84, 97], STR: [10, 14], attack_speed: [0.058, 0.079], crit_damage: [0.156, 0.211], hp: [137, 185]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest, craft]
     weapon_skills:
       - id: mechanics
         name: "태엽 돌진"
@@ -881,7 +1048,8 @@ items:
     floor: 10
     classes: [berserker]
     stats: {damage: [101, 115], STR: [11, 15], lifesteal: [0.038, 0.052], crit_chance: [0.052, 0.071], crit_damage: [0.171, 0.232]}
-    sources: [drop, elite, boss, chest]
+    pool: false
+    sources: [drop, chest, craft]
     weapon_skills:
       - id: mechanics
         name: "공허 거두기"
@@ -907,7 +1075,8 @@ items:
     classes: [berserker]
     stats: {damage: [103, 116], STR: [13, 18], crit_damage: [0.2, 0.27], attack_speed: [0.073, 0.099], hp: [177, 240], lifesteal: [0.045, 0.061]}
     aura: chrono
-    sources: [elite, boss, chest, craft]
+    pool: false
+    sources: [boss, craft]
     weapon_skills:
       - id: mechanics
         name: "톱니 선풍"
@@ -949,7 +1118,8 @@ items:
     classes: [berserker]
     stats: {damage: [132, 146], STR: [17, 23], crit_damage: [0.259, 0.35], lifesteal: [0.058, 0.078], attack_speed: [0.094, 0.127], hp: [233, 315], crit_chance: [0.079, 0.107]}
     aura: bloodmoon
-    sources: [drop, elite, boss, chest]
+    pool: false
+    sources: [boss]
     weapon_skills:
       - id: mechanics
         name: "만월 학살"
@@ -997,7 +1167,8 @@ items:
     floor: 1
     classes: [hunter]
     stats: {damage: [9, 10], DEX: [1, 2], crit_chance: [0.009, 0.011]}
-    sources: [drop, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: longbow, length: 1.0}
     texture: {style: wood, palette: ["#1d1610", "#4e3520", "#7a5a34", "#c9a46a", "#7fa043"]}
     lore: "회랑의 등불 정령을 쫓던 사냥꾼들의 장궁. 시위는 질긴 이끼 섬유로 꼬았다."
@@ -1010,10 +1181,25 @@ items:
     floor: 1
     classes: [hunter]
     stats: {damage: [9, 10], DEX: [1, 2], attack_speed: [0.012, 0.016]}
+    pool: false
     sources: [drop, chest, craft]
     model: {shape: horn_bow, length: 1.0}
     texture: {style: wood, palette: ["#1a1a10", "#3e4424", "#6e7a3e", "#b8c48a", "#e6dcc0"]}
     lore: "짐승 뿔과 덩굴을 겹쳐 만든 짧은 활. 작아서 회랑의 좁은 모퉁이에서도 재빨리 당길 수 있다."
+  grove_rootstring_bow:
+    name: "뿌리시위 파수궁"
+    type: weapon
+    weapon_type: bow
+    rarity: rare
+    level_req: 5
+    floor: 1
+    classes: [hunter]
+    stats: {damage: [11, 13], DEX: [2, 3], crit_chance: [0.012, 0.017], hp_regen: [0.4, 0.5]}
+    pool: false
+    sources: [boss, craft]
+    model: {shape: horn_bow, length: 1.0}
+    texture: {style: wood, palette: ["#1a1d16", "#3a4034", "#6a7a5a", "#a8d055", "#f0ffc0"]}
+    lore: "파수꾼의 등에서 뻗어 나온 뿌리를 그대로 시위로 엮었다. 당길수록 뿌리가 손가락을 감싸 화살을 놓치지 않게 한다."
   silkstring_recurve:
     name: "은실 시위 만곡궁"
     type: weapon
@@ -1023,7 +1209,8 @@ items:
     floor: 2
     classes: [hunter]
     stats: {damage: [10, 12], DEX: [1, 2], crit_chance: [0.01, 0.013]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: recurve_bow, length: 1.0}
     texture: {style: wood, palette: ["#1a1c22", "#4a3121", "#8c5a34", "#c0c8dc", "#f4f8ff"]}
     lore: "갱도 거미의 은실로 시위를 걸었다. 끊어지지 않고, 놓을 때 거의 소리가 나지 않는다."
@@ -1036,7 +1223,8 @@ items:
     floor: 2
     classes: [hunter]
     stats: {damage: [13, 14], DEX: [2, 3], crit_damage: [0.037, 0.05]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     model: {shape: blade_bow, length: 1.0}
     texture: {style: bone, palette: ["#1c1814", "#3e342a", "#7a6a56", "#c8bca8", "#9a2a2a"]}
     lore: "갱도 거미의 다리뼈를 활채에 덧대 등이 칼처럼 선 활. 화살이 떨어지면 그대로 휘둘러도 된다."
@@ -1049,7 +1237,8 @@ items:
     floor: 3
     classes: [hunter]
     stats: {damage: [15, 18], DEX: [3, 4], crit_chance: [0.017, 0.023], crit_damage: [0.054, 0.072]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: longbow, length: 1.0}
     texture: {style: wood, palette: ["#2a2414", "#6e5a24", "#a07a3a", "#d8b440", "#fff2a0"]}
     lore: "빛갓 버섯의 줄기를 말린 활대가 어둠 속에서 은은하게 빛난다. 과녁도, 사냥꾼도 함께 보인다."
@@ -1062,7 +1251,8 @@ items:
     floor: 3
     classes: [hunter]
     stats: {damage: [19, 21], DEX: [3, 5], move_speed: [0.014, 0.02], evasion: [0.016, 0.021]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     model: {shape: horn_bow, length: 1.0}
     texture: {style: wood, palette: ["#1a1420", "#3a2e44", "#6e5a80", "#c0b0d0", "#7af0d0"]}
     lore: "균사로 뿔을 이어 붙인 각궁. 가볍고 소리가 없어 포자 안개 속을 미끄러지듯 오가며 쏜다."
@@ -1075,7 +1265,8 @@ items:
     floor: 4
     classes: [hunter]
     stats: {damage: [23, 27], DEX: [5, 7], crit_chance: [0.026, 0.035], crit_damage: [0.083, 0.112], attack_speed: [0.036, 0.049]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     weapon_skills:
       - id: mechanics
         name: "전기뱀장어 화살"
@@ -1098,7 +1289,8 @@ items:
     floor: 4
     classes: [hunter]
     stats: {damage: [24, 28], DEX: [4, 6], lifesteal: [0.018, 0.025], crit_damage: [0.074, 0.1]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: blade_bow, length: 1.0}
     texture: {style: coral, palette: ["#0e1e24", "#1e3e4a", "#3a7a8a", "#9ad8e0", "#f0a080"]}
     lore: "산호를 깎아 활채 등에 지느러미 같은 날을 세웠다. 물속에서도 시위가 젖지 않는다."
@@ -1111,7 +1303,8 @@ items:
     floor: 5
     classes: [hunter]
     stats: {damage: [31, 35], DEX: [6, 8], skill_damage: [0.054, 0.073], cooldown_reduction: [0.03, 0.041], crit_chance: [0.03, 0.041]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     weapon_skills:
       - id: mechanics
         name: "쇳물 관통탄"
@@ -1131,10 +1324,11 @@ items:
     weapon_type: bow
     rarity: epic
     level_req: 24
-    floor: 6
+    floor: 5
     classes: [hunter]
     stats: {damage: [34, 39], DEX: [6, 9], crit_damage: [0.104, 0.141], crit_chance: [0.032, 0.044], attack_speed: [0.042, 0.057]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     weapon_skills:
       - id: mechanics
         name: "잿더미 비"
@@ -1162,13 +1356,13 @@ items:
     type: weapon
     weapon_type: bow
     rarity: legendary
-    level_req: 24
-    floor: 6
+    level_req: 20
+    floor: 4
     classes: [hunter]
-    stats: {damage: [37, 42], DEX: [8, 10], crit_chance: [0.039, 0.053], crit_damage: [0.126, 0.17], attack_speed: [0.051, 0.069], LUK: [5, 6]}
+    stats: {damage: [30, 34], DEX: [7, 9], crit_chance: [0.039, 0.053], crit_damage: [0.126, 0.17], attack_speed: [0.051, 0.069], LUK: [5, 6]}
     aura: tide
     pool: false
-    sources: [elite, boss, craft]
+    sources: [boss, craft]
     weapon_skills:
       - id: mechanics
         name: "밀물 결계"
@@ -1191,6 +1385,30 @@ items:
     model: {shape: recurve_bow, length: 1.0}
     texture: {style: coral, palette: ["#0e2230", "#1e4a6a", "#3a8ab0", "#5ab0d0", "#d8f8ff"], animated: true, frames: 8, frametime: 2, effect: tide_ripple}
     lore: "녹청 집게 파수꾼의 등딱지 속에 숨겨져 있던 활. 시위를 튕기면 멀리서 밀물 소리가 들린다."
+  frostbone_longbow:
+    name: "얼음뼈 장궁"
+    type: weapon
+    weapon_type: bow
+    rarity: epic
+    level_req: 27
+    floor: 6
+    classes: [hunter]
+    stats: {damage: [39, 45], DEX: [7, 10], crit_chance: [0.035, 0.047], crit_damage: [0.113, 0.153], attack_speed: [0.045, 0.061]}
+    pool: false
+    sources: [drop, chest, craft]
+    weapon_skills:
+      - id: mechanics
+        name: "고드름 화살"
+        input: SNEAK_RIGHT
+        cooldown: 8.0
+        mana: 14
+        description: "웅크리고 당겨 쏘면 고드름 화살이 날아가 맞은 자리에서 터지며 주변을 느리게 한다."
+        mechanics:
+          - {"type": "projectile", "speed": 2.4, "range": 30, "display": "proj_frost_shard", "particle": "SNOWFLAKE", "effects": [{"damage": 1.7, "damage_type": "ranged"}], "explode": {"radius": 2, "particle": "SNOWFLAKE", "effects": [{"damage": 0.5}, {"slow": 2}]}}
+          - {"type": "sound", "sound": "entity.arrow.shoot", "pitch": 1.2, "volume": 1.0}
+    model: {shape: longbow, length: 1.0}
+    texture: {style: bone, palette: ["#1c2230", "#4a5268", "#c8ccd6", "#9ad0ff", "#f0faff"]}
+    lore: "얼음 묘지견의 등뼈를 휘어 만든 장궁. 시위를 당기면 활채에서 서리가 떨어진다."
   prismstring_longbow:
     name: "프리즘 시위 장궁"
     type: weapon
@@ -1200,7 +1418,8 @@ items:
     floor: 7
     classes: [hunter]
     stats: {damage: [45, 53], DEX: [7, 9], crit_chance: [0.033, 0.045], crit_damage: [0.107, 0.145]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: longbow, length: 1.0}
     texture: {style: crystal, palette: ["#14101e", "#2e2a3e", "#6a5aa0", "#e0d0ff", "#ffffff"]}
     lore: "프리즘 파수석의 광선을 묶어 시위로 삼았다. 화살이 빛을 갈라 일곱 갈래로 반짝인다."
@@ -1213,7 +1432,8 @@ items:
     floor: 7
     classes: [hunter]
     stats: {damage: [50, 57], DEX: [7, 10], attack_speed: [0.043, 0.058], move_speed: [0.023, 0.031]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     model: {shape: horn_bow, length: 1.05}
     texture: {style: crystal, palette: ["#10182a", "#203a5a", "#4a7ab0", "#a8d8ff", "#ffe8a0"]}
     lore: "프리즘 파수석의 조각을 뿔 대신 덧댄 각궁. 시위를 놓으면 빛이 갈라져 궤적이 무지개처럼 남는다."
@@ -1226,7 +1446,8 @@ items:
     floor: 8
     classes: [hunter]
     stats: {damage: [63, 72], DEX: [10, 13], LUK: [6, 8], crit_chance: [0.045, 0.061], evasion: [0.033, 0.045]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest, craft]
     weapon_skills:
       - id: mechanics
         name: "깃펜 산탄"
@@ -1245,13 +1466,13 @@ items:
     type: weapon
     weapon_type: bow
     rarity: legendary
-    level_req: 36
-    floor: 8
+    level_req: 35
+    floor: 7
     classes: [hunter]
-    stats: {damage: [63, 72], DEX: [11, 15], attack_speed: [0.065, 0.087], crit_chance: [0.052, 0.071], crit_damage: [0.17, 0.23], move_speed: [0.035, 0.047]}
+    stats: {damage: [60, 69], DEX: [11, 15], attack_speed: [0.065, 0.087], crit_chance: [0.052, 0.071], crit_damage: [0.17, 0.23], move_speed: [0.035, 0.047]}
     aura: gale
     pool: false
-    sources: [elite, boss, craft]
+    sources: [boss, craft]
     weapon_skills:
       - id: mechanics
         name: "회오리 화살"
@@ -1283,7 +1504,8 @@ items:
     floor: 9
     classes: [hunter]
     stats: {damage: [71, 81], DEX: [10, 14], attack_speed: [0.058, 0.079], crit_chance: [0.048, 0.065], crit_damage: [0.156, 0.211]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest, craft]
     weapon_skills:
       - id: mechanics
         name: "용수철 도약"
@@ -1316,7 +1538,8 @@ items:
     floor: 10
     classes: [hunter]
     stats: {damage: [85, 97], DEX: [11, 15], crit_damage: [0.171, 0.232], lifesteal: [0.038, 0.052], attack_speed: [0.063, 0.085]}
-    sources: [drop, elite, boss, chest]
+    pool: false
+    sources: [drop, chest, craft]
     weapon_skills:
       - id: mechanics
         name: "물러서며 베기"
@@ -1341,7 +1564,8 @@ items:
     classes: [hunter]
     stats: {damage: [86, 97], DEX: [13, 18], crit_chance: [0.061, 0.083], crit_damage: [0.2, 0.27], attack_speed: [0.073, 0.099], LUK: [8, 11]}
     aura: quicksilver
-    sources: [elite, boss, chest, craft]
+    pool: false
+    sources: [boss, craft]
     weapon_skills:
       - id: mechanics
         name: "수은비"
@@ -1374,7 +1598,8 @@ items:
     classes: [hunter]
     stats: {damage: [111, 122], DEX: [17, 23], crit_chance: [0.079, 0.107], crit_damage: [0.259, 0.35], attack_speed: [0.094, 0.127], move_speed: [0.051, 0.068], LUK: [10, 14]}
     aura: tempest
-    sources: [drop, elite, boss, chest]
+    pool: false
+    sources: [boss]
     weapon_skills:
       - id: missile
         name: "번개 화살"
@@ -1415,7 +1640,8 @@ items:
     floor: 1
     classes: [arcanist]
     stats: {damage: [7, 8], INT: [1, 2], mp: [2, 3]}
-    sources: [drop, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: staff_orb, length: 1.0}
     texture: {style: wood, palette: ["#2d3b1a", "#4e3520", "#7a5a34", "#d9f27a", "#fffbd6"]}
     lore: "회랑 등불 정령의 빛을 유리구에 가둔 견습 마도사의 지팡이."
@@ -1428,10 +1654,25 @@ items:
     floor: 1
     classes: [arcanist]
     stats: {damage: [8, 9], INT: [1, 2], cooldown_reduction: [0.006, 0.009]}
+    pool: false
     sources: [drop, chest, craft]
     model: {shape: staff_spiral, length: 1.0}
     texture: {style: wood, palette: ["#1c140c", "#46321e", "#7a5a34", "#c8a878", "#9fe07a"]}
     lore: "먼저 내려간 길잡이가 갈림길마다 꽂아 두던 지팡이. 머리의 소용돌이가 늘 출구 쪽으로 기운다."
+  grove_heartwood_staff:
+    name: "심재 반딧불 지팡이"
+    type: weapon
+    weapon_type: staff
+    rarity: rare
+    level_req: 5
+    floor: 1
+    classes: [arcanist]
+    stats: {damage: [10, 11], INT: [2, 3], mp: [8, 12], cooldown_reduction: [0.012, 0.017]}
+    pool: false
+    sources: [boss, craft]
+    model: {shape: staff_spiral, length: 1.0}
+    texture: {style: wood, palette: ["#1e1a0c", "#4a3e1e", "#4f7a28", "#a8d055", "#f0ffc0"]}
+    lore: "그로브의 심재를 깎아 소용돌이 끝에 반딧불 한 마리를 가두었다. 회랑의 어둠 속에서도 길을 잃지 않는다."
   ore_crystal_staff:
     name: "광석 수정 지팡이"
     type: weapon
@@ -1441,7 +1682,8 @@ items:
     floor: 2
     classes: [arcanist]
     stats: {damage: [9, 11], INT: [1, 2], mp: [7, 9]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: staff_crystal, length: 1.0}
     texture: {style: wood, palette: ["#1a1c22", "#5a3a26", "#8e9094", "#c9ced6", "#f1f4fa"]}
     lore: "광맥 흉내쟁이의 몸에서 떼어 낸 은빛 수정을 박았다. 가끔 혼자 꿈틀거린다."
@@ -1454,7 +1696,8 @@ items:
     floor: 2
     classes: [arcanist]
     stats: {damage: [11, 12], INT: [2, 3], crit_chance: [0.012, 0.016]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     model: {shape: staff_fork, length: 1.0}
     texture: {style: copper, palette: ["#1a120c", "#4a2e1a", "#8a5a30", "#d09a5a", "#ffd27a"]}
     lore: "광맥을 점치던 늙은 광부의 갈래 지팡이. 두 갈래 사이에 튀는 불꽃이 클수록 광석이 가깝다."
@@ -1467,7 +1710,8 @@ items:
     floor: 3
     classes: [arcanist]
     stats: {damage: [13, 15], INT: [3, 4], mp: [17, 23], skill_damage: [0.031, 0.042]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: staff_ring, length: 1.0}
     texture: {style: wood, palette: ["#1e1420", "#4a2a4e", "#8c4a7a", "#d988b8", "#ffe0f0"]}
     lore: "균사가 스스로 엮어 만든 고리가 끝에 매달려 있다. 포자를 머금은 마력이 고리를 따라 돈다."
@@ -1480,7 +1724,8 @@ items:
     floor: 3
     classes: [arcanist]
     stats: {damage: [16, 18], INT: [3, 5], mana_regen: [0.3, 0.4], cooldown_reduction: [0.019, 0.026]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     model: {shape: staff_spiral, length: 1.0}
     texture: {style: wood, palette: ["#18141e", "#3a3048", "#6a5a80", "#c8b8e0", "#80ffd0"]}
     lore: "빛갓 군락이 감고 올라간 지팡이. 소용돌이 끝에 맺힌 빛이 숨 쉬듯 밝아졌다 어두워진다."
@@ -1493,7 +1738,8 @@ items:
     floor: 4
     classes: [arcanist]
     stats: {damage: [20, 23], INT: [5, 7], mp: [30, 40], skill_damage: [0.046, 0.063], mana_regen: [0.4, 0.5]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     weapon_skills:
       - id: mechanics
         name: "거품 탄막"
@@ -1525,10 +1771,34 @@ items:
     floor: 4
     classes: [arcanist]
     stats: {damage: [21, 24], INT: [4, 6], crit_chance: [0.023, 0.031], crit_damage: [0.074, 0.1]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: staff_fork, length: 1.0}
     texture: {style: coral, palette: ["#0c1a24", "#1a3a50", "#3a7aa0", "#a0e0f0", "#e8fcff"]}
     lore: "물길을 다스리던 수문 관리인의 삼지창. 가운데 갈래에 물방울이 끝없이 맺혔다 흩어진다."
+  osric_tide_trident:
+    name: "오스릭의 조수 삼지창"
+    type: weapon
+    weapon_type: staff
+    rarity: epic
+    level_req: 20
+    floor: 4
+    classes: [arcanist]
+    stats: {damage: [23, 27], INT: [6, 7], mp: [35, 47], skill_damage: [0.051, 0.069], crit_chance: [0.029, 0.039]}
+    pool: false
+    sources: [boss, craft]
+    weapon_skills:
+      - id: mechanics
+        name: "역류 소용돌이"
+        input: RIGHT
+        cooldown: 14.0
+        mana: 22
+        description: "노린 곳에 소용돌이를 만들어 적을 끌어모은 뒤 물기둥으로 터뜨린다."
+        mechanics:
+          - {"type": "vortex", "at": "aim", "radius": 4, "duration": 1.5, "strength": 0.3, "display": "tide_ring", "particle": "BUBBLE_POP", "effects": [{"damage": 0.3, "magic": true}], "end": [{"type": "nova", "radius": 3, "display": "water_plane", "particle": "SPLASH", "effects": [{"damage": 1.6, "magic": true}, {"slow": 2}]}, {"type": "sound", "sound": "entity.player.splash", "pitch": 0.6, "volume": 1.2}]}
+    model: {shape: staff_fork, length: 1.0}
+    texture: {style: coral, palette: ["#0a1416", "#183034", "#2e5a5e", "#5ab0d0", "#c0f0e8"]}
+    lore: "수문지기들이 수위를 재던 삼지창. 끝을 겨누면 물길이 그쪽으로 휘어 든다."
   cinder_spiral_staff:
     name: "불씨 소용돌이 지팡이"
     type: weapon
@@ -1538,7 +1808,8 @@ items:
     floor: 5
     classes: [arcanist]
     stats: {damage: [26, 30], INT: [6, 8], crit_chance: [0.03, 0.041], crit_damage: [0.098, 0.132], skill_damage: [0.054, 0.073]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     weapon_skills:
       - id: mechanics
         name: "나선 불기둥"
@@ -1558,10 +1829,11 @@ items:
     weapon_type: staff
     rarity: epic
     level_req: 24
-    floor: 6
+    floor: 5
     classes: [arcanist]
     stats: {damage: [29, 33], INT: [6, 9], skill_damage: [0.057, 0.077], mp: [41, 56], cooldown_reduction: [0.032, 0.044]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     weapon_skills:
       - id: mechanics
         name: "불씨 화구"
@@ -1595,7 +1867,7 @@ items:
     stats: {damage: [36, 41], INT: [9, 12], skill_damage: [0.075, 0.101], cooldown_reduction: [0.042, 0.057], mp: [56, 75], mana_regen: [0.6, 0.8]}
     aura: rime
     pool: false
-    sources: [boss]
+    sources: [boss, craft]
     weapon_skills:
       - id: missile
         name: "서리 파편"
@@ -1626,6 +1898,30 @@ items:
     model: {shape: staff_crystal, length: 1.0}
     texture: {style: frost, palette: ["#16283a", "#4a7ab0", "#8ab8e0", "#bfe6ff", "#ffffff"], animated: true, frames: 8, frametime: 2, effect: frost_shimmer}
     lore: "얼음관의 여제가 잠든 동안 뛰던 심장을 수정째 떼어 냈다. 손에 쥐면 손끝부터 서리가 핀다."
+  rimebell_staff:
+    name: "서리방울 고리 지팡이"
+    type: weapon
+    weapon_type: staff
+    rarity: epic
+    level_req: 27
+    floor: 6
+    classes: [arcanist]
+    stats: {damage: [33, 38], INT: [7, 10], mp: [46, 62], skill_damage: [0.062, 0.083], cooldown_reduction: [0.035, 0.047]}
+    pool: false
+    sources: [drop, chest, craft]
+    weapon_skills:
+      - id: mechanics
+        name: "얼음 방울"
+        input: RIGHT
+        cooldown: 7.0
+        mana: 16
+        description: "적을 따라가는 얼음 방울 세 개를 쏜다. 터지면 주변이 느려진다."
+        mechanics:
+          - {"type": "projectile", "count": 3, "spread": 20, "speed": 1.0, "homing": 0.1, "range": 18, "display": "proj_frost_shard", "effects": [{"damage": 0.9, "magic": true}], "explode": {"radius": 1.8, "particle": "SNOWFLAKE", "effects": [{"slow": 1.5}]}}
+          - {"type": "sound", "sound": "block.amethyst_block.chime", "pitch": 1.6, "volume": 0.8}
+    model: {shape: staff_ring, length: 1.0}
+    texture: {style: frost, palette: ["#16283a", "#3a4a6a", "#8aa0c8", "#d8e6ff", "#ffffff"]}
+    lore: "고리에 매단 얼음 방울이 흔들릴 때마다 묘역 전체가 숨을 죽인다."
   resonance_staff:
     name: "공명 고리 지팡이"
     type: weapon
@@ -1635,7 +1931,8 @@ items:
     floor: 7
     classes: [arcanist]
     stats: {damage: [38, 45], INT: [7, 9], mp: [45, 61], skill_damage: [0.058, 0.078]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: staff_ring, length: 1.0}
     texture: {style: crystal, palette: ["#201430", "#4a2a7a", "#a070f0", "#e8d8ff", "#ffffff"]}
     lore: "메아리 정령이 맴돌던 수정 고리를 엮었다. 주문을 외면 고리가 화음으로 따라 부른다."
@@ -1648,7 +1945,8 @@ items:
     floor: 7
     classes: [arcanist]
     stats: {damage: [42, 48], INT: [7, 10], cooldown_reduction: [0.035, 0.047], crit_chance: [0.035, 0.047]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     model: {shape: staff_fork, length: 1.05}
     texture: {style: crystal, palette: ["#160e26", "#2e1e4e", "#5e40a0", "#b8a0ff", "#e8fff8"]}
     lore: "공명 조율자의 소리굽쇠를 지팡이 끝에 세웠다. 갈래 사이에서 맴도는 울림이 주문을 앞당긴다."
@@ -1661,7 +1959,8 @@ items:
     floor: 8
     classes: [arcanist]
     stats: {damage: [53, 61], INT: [10, 13], cooldown_reduction: [0.045, 0.061], mana_regen: [0.7, 0.9], hp: [127, 172]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest, craft]
     weapon_skills:
       - id: mechanics
         name: "먹구름 장막"
@@ -1680,13 +1979,13 @@ items:
     type: weapon
     weapon_type: staff
     rarity: legendary
-    level_req: 36
+    level_req: 39
     floor: 8
     classes: [arcanist]
-    stats: {damage: [54, 61], INT: [11, 15], skill_damage: [0.091, 0.123], cooldown_reduction: [0.052, 0.071], mp: [73, 99], mana_regen: [0.8, 1.1]}
+    stats: {damage: [61, 69], INT: [12, 16], skill_damage: [0.091, 0.123], cooldown_reduction: [0.052, 0.071], mp: [73, 99], mana_regen: [0.8, 1.1]}
     aura: inkblot
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     weapon_skills:
       - id: mechanics
         name: "먹물 탄"
@@ -1726,7 +2025,8 @@ items:
     floor: 9
     classes: [arcanist]
     stats: {damage: [60, 69], INT: [10, 14], skill_damage: [0.083, 0.112], cooldown_reduction: [0.048, 0.065], mp: [69, 93]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest, craft]
     weapon_skills:
       - id: mechanics
         name: "궤도 톱니"
@@ -1759,7 +2059,8 @@ items:
     floor: 10
     classes: [arcanist]
     stats: {damage: [72, 82], INT: [11, 15], skill_damage: [0.091, 0.123], crit_damage: [0.171, 0.232], move_speed: [0.034, 0.046]}
-    sources: [drop, elite, boss, chest]
+    pool: false
+    sources: [drop, chest, craft]
     weapon_skills:
       - id: mechanics
         name: "공허 쌍탄"
@@ -1783,7 +2084,8 @@ items:
     classes: [arcanist]
     stats: {damage: [73, 82], INT: [13, 18], skill_damage: [0.106, 0.143], cooldown_reduction: [0.061, 0.083], mp: [89, 121], crit_chance: [0.061, 0.083]}
     aura: voltaic
-    sources: [elite, boss, chest, craft]
+    pool: false
+    sources: [boss, craft]
     weapon_skills:
       - id: mechanics
         name: "연쇄 전격"
@@ -1824,7 +2126,8 @@ items:
     classes: [arcanist]
     stats: {damage: [94, 104], INT: [17, 23], skill_damage: [0.137, 0.185], cooldown_reduction: [0.079, 0.107], mp: [117, 159], mana_regen: [1.2, 1.7], crit_chance: [0.079, 0.107]}
     aura: void
-    sources: [drop, elite, boss, chest]
+    pool: false
+    sources: [boss]
     weapon_skills:
       - id: missile
         name: "공허탄"
@@ -1875,7 +2178,8 @@ items:
     floor: 1
     classes: [priest]
     stats: {damage: [6, 7], WIS: [1, 2], heal_power: [1, 2]}
-    sources: [drop, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: scepter, length: 1.0}
     texture: {style: wood, palette: ["#2a1d16", "#5a3a26", "#a8a8b0", "#e8e0c8", "#ffe58a"]}
     lore: "입구 마을 예배당의 수련 사제들이 처음 받는 홀. 손때가 묻을수록 빛이 따뜻해진다."
@@ -1888,6 +2192,7 @@ items:
     floor: 1
     classes: [priest]
     stats: {damage: [7, 8], WIS: [1, 2], mp: [3, 5]}
+    pool: false
     sources: [drop, chest, craft]
     model: {shape: chalice_scepter, length: 1.0}
     texture: {style: wood, palette: ["#1e1a0c", "#4a3e1e", "#8a7a3e", "#d8c88a", "#8fd16a"]}
@@ -1901,7 +2206,8 @@ items:
     floor: 2
     classes: [priest]
     stats: {damage: [8, 9], WIS: [1, 2], heal_power: [3, 5]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: censer_staff, length: 1.0}
     texture: {style: copper, palette: ["#2a1d16", "#5a3a26", "#8c5a34", "#b8743c", "#ffd27a"]}
     lore: "갱도 광부들이 나쁜 공기를 살피던 등불을 향로로 고쳤다. 향이 피어오르면 동료가 숨을 돌린다."
@@ -1914,10 +2220,42 @@ items:
     floor: 2
     classes: [priest]
     stats: {damage: [9, 10], WIS: [2, 3], cooldown_reduction: [0.012, 0.016]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     model: {shape: bell_scepter, length: 1.0}
     texture: {style: copper, palette: ["#1e140c", "#4a301a", "#8a5a2e", "#c89050", "#f0d8a0"]}
     lore: "낙반이 일 때 흔들던 경보종을 홀에 매달았다. 종이 울리면 광부들은 하던 일을 멈추고 한데 모였다."
+  silkqueen_spindle_censer:
+    name: "실잣는 물렛가락 향로"
+    type: weapon
+    weapon_type: scepter
+    rarity: epic
+    level_req: 10
+    floor: 2
+    classes: [priest]
+    stats: {damage: [12, 13], WIS: [3, 4], heal_power: [9, 12], mp: [18, 25], evasion: [0.016, 0.022]}
+    pool: false
+    sources: [boss, craft]
+    weapon_skills:
+      - id: mend
+        name: "은실 붕대"
+        input: RIGHT
+        cooldown: 13.0
+        mana: 18
+        params: {"radius": 8, "heal": 0.09, "heal_power_scale": 0.6, "shield": 0.04, "fx": "heal_glyph"}
+        description: "주위 8칸 아군을 최대 HP 9% + 치유력만큼 회복하고 4% 보호막을 씌운다."
+      - id: mechanics
+        name: "은실 고치 요람"
+        input: SNEAK_RIGHT
+        cooldown: 20.0
+        mana: 24
+        description: "은실 고치를 발밑에 짜 5초간 요람 장판을 편다. 안의 아군은 서서히 회복하고 적은 느려진다."
+        mechanics:
+          - {"type": "zone", "at": "self", "radius": 4.5, "duration": 5, "interval": 20, "display": "cocoon", "particle": "WHITE_ASH", "ally_effects": [{"heal": 0.04}], "effects": [{"slow": 1.5}]}
+          - {"type": "sound", "sound": "entity.spider.ambient", "pitch": 1.3, "volume": 0.8}
+    model: {shape: censer_staff, length: 1.0}
+    texture: {style: silk, palette: ["#14161c", "#2e3240", "#6a7088", "#c0c8dc", "#a070f0"]}
+    lore: "여왕이 실을 자아내던 물렛가락에 향로를 매달았다. 피어오른 은실이 동료의 상처를 꿰매듯 감싼다."
   bloom_scepter:
     name: "공생꽃 홀"
     type: weapon
@@ -1927,7 +2265,8 @@ items:
     floor: 3
     classes: [priest]
     stats: {damage: [11, 13], WIS: [3, 4], heal_power: [8, 11], mana_regen: [0.2, 0.3]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: sun_scepter, length: 1.0}
     texture: {style: holy, palette: ["#2a1e14", "#6a5020", "#d9b25a", "#ffd0ea", "#fff4d6"]}
     lore: "균사의 왕이 피운 공생의 꽃 한 송이를 홀 머리에 고정했다. 꽃잎이 열릴 때마다 상처가 아문다."
@@ -1940,10 +2279,35 @@ items:
     floor: 3
     classes: [priest]
     stats: {damage: [14, 15], WIS: [3, 5], hp: [41, 55], hp_regen: [0.8, 1.0]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     model: {shape: chalice_scepter, length: 1.0}
     texture: {style: gold, palette: ["#2a1a24", "#5a3a4e", "#a86a8a", "#f0c0d8", "#ffe58a"]}
     lore: "공생꽃 꽃받침을 그대로 굳혀 만든 성배. 꽃잎 안에 고이는 꿀이 상처를 천천히 아물게 한다."
+  mycelking_scepter:
+    name: "균사왕의 왕홀"
+    type: weapon
+    weapon_type: scepter
+    rarity: epic
+    level_req: 15
+    floor: 3
+    classes: [priest]
+    stats: {damage: [15, 18], WIS: [4, 6], heal_power: [13, 18], hp_regen: [1.0, 1.3], mp: [27, 36]}
+    pool: false
+    sources: [boss, craft]
+    weapon_skills:
+      - id: mechanics
+        name: "포자의 은총"
+        input: RIGHT
+        cooldown: 16.0
+        mana: 22
+        description: "주위 아군을 최대 HP 8% 회복시키고 6초간 받는 피해를 8% 줄인다."
+        mechanics:
+          - {"type": "party", "radius": 8, "particle": "SPORE_BLOSSOM_AIR", "effects": [{"heal": 0.08}, {"buff": {"stats": {"damage_reduction": 0.08}, "seconds": 6}}]}
+          - {"type": "sound", "sound": "block.azalea_leaves.break", "pitch": 0.8, "volume": 1.0}
+    model: {shape: sun_scepter, length: 1.0}
+    texture: {style: gold, palette: ["#1a1018", "#3e2438", "#7a3e6a", "#d07ab0", "#f5e05a"]}
+    lore: "균사의 왕이 백성에게 포자를 나눠 주던 왕홀. 머리의 갓이 열리면 상처 위로 금빛 포자가 내려앉는다."
   tidebell_censer:
     name: "조수종 향로"
     type: weapon
@@ -1953,7 +2317,8 @@ items:
     floor: 4
     classes: [priest]
     stats: {damage: [17, 20], WIS: [5, 7], heal_power: [15, 20], mana_regen: [0.4, 0.5], mp: [30, 40]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     weapon_skills:
       - id: mend
         name: "물방울 축복"
@@ -1983,7 +2348,8 @@ items:
     floor: 4
     classes: [priest]
     stats: {damage: [18, 20], WIS: [4, 6], defense: [7, 9], damage_reduction: [0.018, 0.025]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: bell_scepter, length: 1.0}
     texture: {style: copper, palette: ["#102420", "#20483e", "#3e8a70", "#b0a060", "#d8fff0"]}
     lore: "가라앉은 예배당의 종을 건져 홀에 매달았다. 물속에서 울리던 종소리가 아직 귓가에 남는다."
@@ -1996,7 +2362,8 @@ items:
     floor: 5
     classes: [priest]
     stats: {damage: [22, 26], WIS: [6, 8], skill_damage: [0.054, 0.073], heal_power: [19, 26], crit_chance: [0.03, 0.041]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     weapon_skills:
       - id: mechanics
         name: "도가니 축복"
@@ -2017,10 +2384,11 @@ items:
     weapon_type: scepter
     rarity: epic
     level_req: 24
-    floor: 6
+    floor: 5
     classes: [priest]
     stats: {damage: [25, 28], WIS: [6, 9], heal_power: [21, 28], cooldown_reduction: [0.032, 0.044], mp: [41, 56]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     weapon_skills:
       - id: mechanics
         name: "불씨의 노래"
@@ -2082,6 +2450,30 @@ items:
     model: {shape: sun_scepter, length: 1.0}
     texture: {style: holy, palette: ["#6a5020", "#d9b25a", "#f0d890", "#fff4d6", "#ffffff"], animated: true, frames: 8, frametime: 2, effect: holy_pulse}
     lore: "얼음 묘역 한가운데서도 꺼지지 않던 성소의 등불. 홀을 든 이의 머리 위로 작은 성역이 떠오른다."
+  frost_vigil_censer:
+    name: "서리 철야 향로"
+    type: weapon
+    weapon_type: scepter
+    rarity: epic
+    level_req: 27
+    floor: 6
+    classes: [priest]
+    stats: {damage: [29, 33], WIS: [7, 10], heal_power: [23, 31], mana_regen: [0.5, 0.7], damage_reduction: [0.027, 0.036]}
+    pool: false
+    sources: [drop, chest, craft]
+    weapon_skills:
+      - id: mechanics
+        name: "철야의 등불"
+        input: RIGHT
+        cooldown: 20.0
+        mana: 26
+        description: "6초간 등불 장판을 편다. 안의 아군은 회복하고 적은 느려진다."
+        mechanics:
+          - {"type": "zone", "at": "self", "radius": 5, "duration": 6, "interval": 20, "display": "frost_nova_ring", "particle": "SOUL_FIRE_FLAME", "ally_effects": [{"heal": 0.045}], "effects": [{"slow": 1.5}]}
+          - {"type": "sound", "sound": "block.bell.resonate", "pitch": 1.2, "volume": 0.8}
+    model: {shape: censer_staff, length: 1.0}
+    texture: {style: silver, palette: ["#14161e", "#34384a", "#6a6e86", "#c8b070", "#e8f4ff"]}
+    lore: "망자를 지키며 밤을 새우던 애도자들의 향로. 꺼지지 않는 푸른 불이 냉기를 밀어낸다."
   prism_censer:
     name: "프리즘 향로"
     type: weapon
@@ -2091,7 +2483,8 @@ items:
     floor: 7
     classes: [priest]
     stats: {damage: [33, 39], WIS: [7, 9], heal_power: [23, 31], mp: [45, 61]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: censer_staff, length: 1.0}
     texture: {style: crystal, palette: ["#14101e", "#2e2a3e", "#6a5aa0", "#fff2b0", "#ffffff"]}
     lore: "향 대신 빛을 피워 올리는 수정 향로. 연기 대신 무지개가 흔들린다."
@@ -2104,7 +2497,8 @@ items:
     floor: 7
     classes: [priest]
     stats: {damage: [37, 42], WIS: [7, 10], cooldown_reduction: [0.035, 0.047], mana_regen: [0.5, 0.7]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     model: {shape: bell_scepter, length: 1.05}
     texture: {style: crystal, palette: ["#141428", "#2a2a56", "#5a5ab0", "#b8b8ff", "#fff0ff"]}
     lore: "수정으로 깎은 작은 종을 매단 홀. 종이 울리면 공명동 전체가 따라 울어 마력이 차오른다."
@@ -2117,7 +2511,8 @@ items:
     floor: 8
     classes: [priest]
     stats: {damage: [46, 53], WIS: [10, 13], mp: [64, 87], mana_regen: [0.7, 0.9], hp: [127, 172]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest, craft]
     weapon_skills:
       - id: mechanics
         name: "먹물 성찬"
@@ -2136,13 +2531,13 @@ items:
     type: weapon
     weapon_type: scepter
     rarity: legendary
-    level_req: 36
-    floor: 8
+    level_req: 35
+    floor: 7
     classes: [priest]
-    stats: {damage: [46, 52], WIS: [11, 15], heal_power: [37, 50], skill_damage: [0.091, 0.123], cooldown_reduction: [0.052, 0.071], mana_regen: [0.8, 1.1]}
+    stats: {damage: [44, 50], WIS: [11, 15], heal_power: [37, 50], skill_damage: [0.091, 0.123], cooldown_reduction: [0.052, 0.071], mana_regen: [0.8, 1.1]}
     aura: prism
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     weapon_skills:
       - id: mechanics
         name: "분광선"
@@ -2182,7 +2577,8 @@ items:
     floor: 9
     classes: [priest]
     stats: {damage: [52, 59], WIS: [10, 14], heal_power: [34, 47], cooldown_reduction: [0.048, 0.065], mana_regen: [0.7, 1.0]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest, craft]
     weapon_skills:
       - id: mechanics
         name: "시간 되감기"
@@ -2212,7 +2608,8 @@ items:
     floor: 10
     classes: [priest]
     stats: {damage: [62, 71], WIS: [11, 15], heal_power: [39, 52], damage_reduction: [0.038, 0.052], hp: [153, 207]}
-    sources: [drop, elite, boss, chest]
+    pool: false
+    sources: [drop, chest, craft]
     weapon_skills:
       - id: mechanics
         name: "심연의 메아리"
@@ -2232,12 +2629,13 @@ items:
     type: weapon
     weapon_type: scepter
     rarity: legendary
-    level_req: 44
-    floor: 9
+    level_req: 48
+    floor: 10
     classes: [priest]
-    stats: {damage: [63, 71], WIS: [13, 18], heal_power: [45, 60], mana_regen: [0.9, 1.3], cooldown_reduction: [0.061, 0.083], mp: [89, 121]}
+    stats: {damage: [72, 82], WIS: [14, 19], heal_power: [45, 60], mana_regen: [0.9, 1.3], cooldown_reduction: [0.061, 0.083], mp: [89, 121]}
     aura: aurora
-    sources: [elite, boss, chest, craft]
+    pool: false
+    sources: [boss, craft]
     weapon_skills:
       - id: mend
         name: "극광의 물결"
@@ -2276,7 +2674,8 @@ items:
     classes: [priest]
     stats: {damage: [81, 89], WIS: [17, 23], heal_power: [59, 79], mana_regen: [1.2, 1.7], cooldown_reduction: [0.079, 0.107], mp: [117, 159], skill_damage: [0.137, 0.185]}
     aura: seraph
-    sources: [drop, elite, boss, chest]
+    pool: false
+    sources: [boss]
     weapon_skills:
       - id: mend
         name: "치천의 숨결"
@@ -2315,7 +2714,8 @@ items:
     floor: 1
     classes: [shadow]
     stats: {damage: [4, 5], DEX: [1, 2], crit_chance: [0.009, 0.011]}
-    sources: [drop, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: dagger, length: 1.0}
     texture: {style: steel, palette: ["#1d2b14", "#3f5a23", "#565c63", "#9aa2ab", "#d8dde2"]}
     lore: "회랑의 이끼 사이에 숨어 등 뒤를 노리던 단도. 손잡이에 이끼가 끼어 미끄러지지 않는다."
@@ -2328,6 +2728,7 @@ items:
     floor: 1
     classes: [shadow]
     stats: {damage: [4, 5], DEX: [1, 2], crit_damage: [0.02, 0.027]}
+    pool: false
     sources: [drop, chest, craft]
     model: {shape: katar, length: 1.0}
     texture: {style: steel, palette: ["#25282c", "#4c5258", "#8c949c", "#d0d6dc", "#5f7d2e"]}
@@ -2341,7 +2742,8 @@ items:
     floor: 2
     classes: [shadow]
     stats: {damage: [5, 6], DEX: [1, 2], crit_chance: [0.01, 0.013]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: fang_blade, length: 1.0}
     texture: {style: bone, palette: ["#1a1c22", "#3b404c", "#8d95a8", "#dfe6f2", "#f4f8ff"]}
     lore: "갱도 거미의 송곳니를 통째로 칼날로 썼다. 아직도 미약한 독이 배어 나온다."
@@ -2354,10 +2756,35 @@ items:
     floor: 2
     classes: [shadow]
     stats: {damage: [6, 7], DEX: [2, 3], lifesteal: [0.01, 0.014]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     model: {shape: sickle, length: 1.0}
     texture: {style: silver, palette: ["#1c1c24", "#3e3e4e", "#8a8a9e", "#d8d8e8", "#b0b8ff"]}
     lore: "거미줄을 끊어 내는 데 쓰던 작은 낫. 실을 끊을 때마다 날에 은빛 진액이 배어 든다."
+  silkqueen_fang:
+    name: "베셀라의 독니"
+    type: weapon
+    weapon_type: dagger
+    rarity: epic
+    level_req: 10
+    floor: 2
+    classes: [shadow]
+    stats: {damage: [8, 9], DEX: [3, 4], crit_chance: [0.019, 0.026], crit_damage: [0.061, 0.083], move_speed: [0.015, 0.021]}
+    pool: false
+    sources: [boss, craft]
+    weapon_skills:
+      - id: mechanics
+        name: "여왕의 독니"
+        input: RIGHT
+        cooldown: 9.0
+        mana: 12
+        description: "짧게 미끄러져 들어가며 찌른다. 맞은 적은 3초간 중독된다."
+        mechanics:
+          - {"type": "dash", "distance": 5, "ticks": 3, "particle": "DUST:#c8a0ff:1.2", "effects": [{"damage": 1.5}, {"poison": 3}]}
+          - {"type": "sound", "sound": "entity.spider.hurt", "pitch": 1.4, "volume": 0.8}
+    model: {shape: fang_blade, length: 1.0}
+    texture: {style: bone, palette: ["#1a1c22", "#3b404c", "#8d95a8", "#dfe6f2", "#c8a0ff"]}
+    lore: "베셀라의 송곳니 한 쌍 가운데 하나. 아직 마르지 않은 독이 칼끝에 보랏빛으로 맺힌다."
   spore_kris:
     name: "포자 물결검"
     type: weapon
@@ -2367,7 +2794,8 @@ items:
     floor: 3
     classes: [shadow]
     stats: {damage: [7, 9], DEX: [3, 4], crit_chance: [0.017, 0.023], crit_damage: [0.054, 0.072]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: kris, length: 1.0}
     texture: {style: silver, palette: ["#2a1e2c", "#5a3a5e", "#9a62a0", "#c9ced6", "#fff0ff"]}
     lore: "구불구불한 날의 홈마다 포자 가루를 채웠다. 찔린 상처가 좀처럼 아물지 않는다."
@@ -2380,10 +2808,35 @@ items:
     floor: 3
     classes: [shadow]
     stats: {damage: [9, 10], DEX: [3, 5], attack_speed: [0.028, 0.037], crit_damage: [0.061, 0.083]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     model: {shape: katar, length: 1.0}
     texture: {style: silver, palette: ["#221a2a", "#463a56", "#8a80a0", "#dcd6ea", "#c8f07a"]}
     lore: "포자 사냥꾼이 쓰던 주먹칼. 칼날 홈에 바른 포자 가루가 찌를 때마다 터진다."
+  mycelking_sporefang:
+    name: "포자왕의 송곳"
+    type: weapon
+    weapon_type: dagger
+    rarity: epic
+    level_req: 15
+    floor: 3
+    classes: [shadow]
+    stats: {damage: [10, 11], DEX: [4, 6], crit_chance: [0.024, 0.032], attack_speed: [0.034, 0.046], lifesteal: [0.019, 0.026]}
+    pool: false
+    sources: [boss, craft]
+    weapon_skills:
+      - id: mechanics
+        name: "포자 송곳 투척"
+        input: RIGHT
+        cooldown: 10.0
+        mana: 14
+        description: "포자 송곳 세 개를 부채꼴로 던진다. 맞은 적은 2초간 중독된다."
+        mechanics:
+          - {"type": "projectile", "count": 3, "spread": 30, "speed": 1.4, "range": 12, "display": "proj_spore", "effects": [{"damage": 0.75}, {"poison": 2}]}
+          - {"type": "sound", "sound": "entity.arrow.shoot", "pitch": 1.5, "volume": 0.9}
+    model: {shape: kris, length: 1.0}
+    texture: {style: moss, palette: ["#231a2c", "#4a3a5e", "#8a6ea8", "#d8c8e8", "#d988b8"]}
+    lore: "왕관 아래 숨겨 두던 물결 단검. 찌른 자리에서 포자가 싹을 틔워 독을 퍼뜨린다."
   eel_kris:
     name: "녹물 장어 크리스"
     type: weapon
@@ -2393,7 +2846,8 @@ items:
     floor: 4
     classes: [shadow]
     stats: {damage: [11, 13], DEX: [5, 7], crit_chance: [0.026, 0.035], crit_damage: [0.083, 0.112], evasion: [0.021, 0.028]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     weapon_skills:
       - id: mechanics
         name: "뱀장어 찌르기"
@@ -2416,7 +2870,8 @@ items:
     floor: 4
     classes: [shadow]
     stats: {damage: [12, 13], DEX: [4, 6], lifesteal: [0.018, 0.025], move_speed: [0.017, 0.022]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: sickle, length: 1.0}
     texture: {style: copper, palette: ["#1e1410", "#5a2e1a", "#a0522a", "#d98a46", "#7fd0c0"]}
     lore: "녹물 장어의 지느러미뼈로 날을 세운 낫. 휘두르면 물 흐르는 소리가 난다."
@@ -2429,7 +2884,8 @@ items:
     floor: 5
     classes: [shadow]
     stats: {damage: [15, 17], DEX: [6, 8], lifesteal: [0.024, 0.032], crit_damage: [0.098, 0.132], move_speed: [0.021, 0.029]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     weapon_skills:
       - id: mechanics
         name: "달군 쇠 연타"
@@ -2448,10 +2904,11 @@ items:
     weapon_type: dagger
     rarity: epic
     level_req: 24
-    floor: 6
+    floor: 5
     classes: [shadow]
     stats: {damage: [16, 19], DEX: [6, 9], crit_damage: [0.104, 0.141], attack_speed: [0.042, 0.057], crit_chance: [0.032, 0.044]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     weapon_skills:
       - id: shadow_step
         name: "불씨 잠행"
@@ -2483,7 +2940,7 @@ items:
     stats: {damage: [20, 23], DEX: [9, 12], crit_chance: [0.042, 0.057], crit_damage: [0.137, 0.185], attack_speed: [0.055, 0.074], evasion: [0.032, 0.044]}
     aura: soulfire
     pool: false
-    sources: [boss]
+    sources: [boss, craft]
     weapon_skills:
       - id: mechanics
         name: "혼불 잠행"
@@ -2507,6 +2964,30 @@ items:
     model: {shape: kris, length: 1.0}
     texture: {style: frost, palette: ["#061a24", "#0e4a5e", "#2fb8d0", "#9af4ff", "#e8ffff"], animated: true, frames: 8, frametime: 2, effect: soul_flicker}
     lore: "서리 묘역의 영혼 등불에서 훔친 푸른 혼불이 칼날을 따라 흐른다. 베인 자의 그림자가 잠시 길을 잃는다."
+  gravefrost_katar:
+    name: "묘역 서리 주먹칼"
+    type: weapon
+    weapon_type: dagger
+    rarity: epic
+    level_req: 27
+    floor: 6
+    classes: [shadow]
+    stats: {damage: [19, 21], DEX: [7, 10], crit_chance: [0.035, 0.047], attack_speed: [0.045, 0.061], evasion: [0.027, 0.036]}
+    pool: false
+    sources: [drop, chest, craft]
+    weapon_skills:
+      - id: mechanics
+        name: "서리 도굴"
+        input: RIGHT
+        cooldown: 9.0
+        mana: 14
+        description: "짧게 미끄러져 들어가며 찌른다. 맞은 적은 느려지고 3초간 출혈한다."
+        mechanics:
+          - {"type": "dash", "distance": 5, "ticks": 3, "particle": "SNOWFLAKE", "effects": [{"damage": 1.6}, {"slow": 1.5}, {"bleed": 3}]}
+          - {"type": "sound", "sound": "block.glass.break", "pitch": 1.6, "volume": 0.7}
+    model: {shape: katar, length: 1.0}
+    texture: {style: frost, palette: ["#1c2230", "#4a5268", "#c8ccd6", "#9ad0ff", "#f0faff"]}
+    lore: "묘역 도굴꾼이 얼어붙은 관 뚜껑을 비집어 열던 주먹칼. 날이 닿은 곳마다 서리가 금처럼 번진다."
   shardglass_dagger:
     name: "파편유리 단검"
     type: weapon
@@ -2516,7 +2997,8 @@ items:
     floor: 7
     classes: [shadow]
     stats: {damage: [22, 25], DEX: [7, 9], crit_chance: [0.033, 0.045], crit_damage: [0.107, 0.145]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest]
     model: {shape: dagger, length: 1.0}
     texture: {style: crystal, palette: ["#1a1426", "#3a2a5a", "#7a52b8", "#c8a0ff", "#f4ecff"]}
     lore: "파편 갑충의 껍질을 유리처럼 갈아 냈다. 너무 얇아서 칼날이 보이지 않을 때가 있다."
@@ -2529,7 +3011,8 @@ items:
     floor: 7
     classes: [shadow]
     stats: {damage: [24, 27], DEX: [7, 10], evasion: [0.026, 0.035], move_speed: [0.023, 0.031]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [craft]
     model: {shape: sickle, length: 1.05}
     texture: {style: crystal, palette: ["#0e1a24", "#1e3a4a", "#3e7a90", "#a0e0f0", "#f0ffff"]}
     lore: "깨진 수정 파편을 이어 붙인 낫. 빛을 받으면 날이 사라진 것처럼 보여 상대가 거리를 놓친다."
@@ -2542,7 +3025,8 @@ items:
     floor: 8
     classes: [shadow]
     stats: {damage: [30, 34], DEX: [10, 13], skill_damage: [0.079, 0.106], cooldown_reduction: [0.045, 0.061], crit_chance: [0.045, 0.061]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest, craft]
     weapon_skills:
       - id: mechanics
         name: "책갈피 표식"
@@ -2562,13 +3046,13 @@ items:
     type: weapon
     weapon_type: dagger
     rarity: legendary
-    level_req: 36
+    level_req: 39
     floor: 8
     classes: [shadow]
-    stats: {damage: [30, 34], DEX: [11, 15], crit_chance: [0.052, 0.071], crit_damage: [0.17, 0.23], attack_speed: [0.065, 0.087], move_speed: [0.035, 0.047]}
+    stats: {damage: [34, 38], DEX: [12, 16], crit_chance: [0.052, 0.071], crit_damage: [0.17, 0.23], attack_speed: [0.065, 0.087], move_speed: [0.035, 0.047]}
     aura: nightshade
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     weapon_skills:
       - id: mechanics
         name: "그림자 질주"
@@ -2600,7 +3084,8 @@ items:
     floor: 9
     classes: [shadow]
     stats: {damage: [34, 39], DEX: [10, 14], attack_speed: [0.058, 0.079], crit_chance: [0.048, 0.065], crit_damage: [0.156, 0.211]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [drop, chest, craft]
     weapon_skills:
       - id: mechanics
         name: "태엽 연격"
@@ -2632,7 +3117,8 @@ items:
     floor: 10
     classes: [shadow]
     stats: {damage: [40, 46], DEX: [11, 15], lifesteal: [0.038, 0.052], evasion: [0.038, 0.052], crit_damage: [0.171, 0.232]}
-    sources: [drop, elite, boss, chest]
+    pool: false
+    sources: [drop, chest, craft]
     weapon_skills:
       - id: mechanics
         name: "낫 갈고리"
@@ -2651,12 +3137,13 @@ items:
     type: weapon
     weapon_type: dagger
     rarity: legendary
-    level_req: 44
-    floor: 9
+    level_req: 48
+    floor: 10
     classes: [shadow]
-    stats: {damage: [41, 46], DEX: [13, 18], crit_chance: [0.061, 0.083], crit_damage: [0.2, 0.27], attack_speed: [0.073, 0.099], evasion: [0.045, 0.061]}
+    stats: {damage: [47, 53], DEX: [14, 19], crit_chance: [0.061, 0.083], crit_damage: [0.2, 0.27], attack_speed: [0.073, 0.099], evasion: [0.045, 0.061]}
     aura: venom
-    sources: [elite, boss, chest, craft]
+    pool: false
+    sources: [boss, craft]
     weapon_skills:
       - id: mechanics
         name: "독침 투척"
@@ -2700,7 +3187,8 @@ items:
     classes: [shadow]
     stats: {damage: [53, 58], DEX: [17, 23], crit_chance: [0.079, 0.107], crit_damage: [0.259, 0.35], attack_speed: [0.094, 0.127], move_speed: [0.051, 0.068], evasion: [0.058, 0.078]}
     aura: eclipse
-    sources: [drop, elite, boss, chest]
+    pool: false
+    sources: [boss]
     weapon_skills:
       - id: mechanics
         name: "흑일 검기"
@@ -2752,7 +3240,8 @@ items:
     floor: 1
     classes: [guardian]
     stats: {defense: [1, 2], block_chance: [0.043, 0.053]}
-    sources: [drop, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: round_shield, length: 1.0}
     texture: {style: wood, palette: ["#1d1610", "#4e3520", "#7a5a34", "#a8a8b0", "#d8dde2"]}
     lore: "회랑 수비대가 쓰던 둥근 참나무 방패. 테두리를 쇠로 감아 쉽게 쪼개지지 않는다."
@@ -2765,10 +3254,25 @@ items:
     floor: 2
     classes: [guardian]
     stats: {defense: [2, 3], block_chance: [0.057, 0.07], VIT: [1, 2]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: kite_shield, length: 1.0}
     texture: {style: rusted_iron, palette: ["#1f1611", "#4a3121", "#8c5a34", "#b8743c", "#d9d2c8"]}
     lore: "갱도 수레의 철판을 두드려 편 연꼴 방패. 녹이 슬어도 무게는 정직하다."
+  sporecap_round_shield:
+    name: "포자갓 원형 방패"
+    type: armor
+    armor_slot: offhand
+    rarity: rare
+    level_req: 12
+    floor: 3
+    classes: [guardian]
+    stats: {defense: [4, 5], block_chance: [0.073, 0.09], VIT: [2, 3], hp_regen: [0.4, 0.6]}
+    pool: false
+    sources: [elite, craft]
+    model: {shape: round_shield, length: 1.0}
+    texture: {style: wood, palette: ["#231a2c", "#4a3a5e", "#8a6ea8", "#d8c8e8", "#d988b8"]}
+    lore: "거대한 포자갓을 말려 굳힌 원형 방패. 맞을 때마다 고운 포자 먼지가 피어오른다."
   verdigris_tower_shield:
     name: "녹청 탑 방패"
     type: armor
@@ -2778,7 +3282,8 @@ items:
     floor: 4
     classes: [guardian]
     stats: {defense: [5, 6], block_chance: [0.078, 0.096], VIT: [2, 3], hp: [26, 35]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: tower_shield, length: 1.0}
     texture: {style: copper, palette: ["#10241e", "#1f4a3c", "#3f8a6e", "#7fd0a8", "#c8f0dc"]}
     lore: "녹청 집게 파수꾼의 등딱지를 펴서 구리 테를 둘렀다. 막는 순간 집게처럼 맞물린다."
@@ -2788,13 +3293,28 @@ items:
     armor_slot: offhand
     rarity: epic
     level_req: 25
-    floor: 6
+    floor: 5
     classes: [guardian]
     stats: {defense: [8, 10], block_chance: [0.104, 0.127], VIT: [3, 4], hp: [51, 69], damage_reduction: [0.015, 0.021]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: kite_shield, length: 1.0}
     texture: {style: dark_iron, palette: ["#0e0a0a", "#2e1414", "#5a1e1a", "#9a9aa2", "#ff8a2a"]}
     lore: "모루의 윗면을 그대로 떼어 방패로 삼았다. 망치질을 천 번 받아 낸 면은 어떤 칼도 두렵지 않다."
+  frostgrave_tower_shield:
+    name: "서리 묘비 방패"
+    type: armor
+    armor_slot: offhand
+    rarity: epic
+    level_req: 28
+    floor: 6
+    classes: [guardian]
+    stats: {defense: [9, 10], block_chance: [0.109, 0.133], VIT: [4, 5], hp: [57, 77], damage_reduction: [0.016, 0.022]}
+    pool: false
+    sources: [elite, craft]
+    model: {shape: tower_shield, length: 1.0}
+    texture: {style: frost, palette: ["#16283a", "#3a4a6a", "#8aa0c8", "#d8e6ff", "#ffffff"]}
+    lore: "쓰러진 묘비를 얼음째 떼어 손잡이를 박았다. 새겨진 이름은 이미 서리에 덮여 읽을 수 없다."
   prism_aegis:
     name: "양극의 아이기스"
     type: armor
@@ -2805,10 +3325,24 @@ items:
     classes: [guardian]
     stats: {defense: [12, 14], block_chance: [0.135, 0.165], VIT: [5, 7], hp: [87, 118], damage_reduction: [0.023, 0.032], hp_regen: [1.5, 2.0]}
     pool: false
-    sources: [boss]
+    sources: [boss, craft]
     model: {shape: round_shield, length: 1.0}
     texture: {style: crystal, palette: ["#140c24", "#6a4ab8", "#c8b4ff", "#fff2b0", "#ffffff"], animated: true, frames: 8, frametime: 2, effect: prism_cycle}
     lore: "다이아드의 껍질 중 빛과 어둠이 정확히 반씩 맞물린 조각. 막아 낸 공격의 빛깔이 방패에 남는다."
+  inkbound_kite_shield:
+    name: "먹물 장정 연 방패"
+    type: armor
+    armor_slot: offhand
+    rarity: epic
+    level_req: 38
+    floor: 8
+    classes: [guardian]
+    stats: {defense: [12, 14], block_chance: [0.127, 0.155], VIT: [5, 7], hp: [76, 103], cooldown_reduction: [0.027, 0.037]}
+    pool: false
+    sources: [elite, craft]
+    model: {shape: kite_shield, length: 1.0}
+    texture: {style: ink, palette: ["#06060c", "#141a30", "#2a3a6a", "#5a7ab0", "#efe4c8"]}
+    lore: "두꺼운 금서의 표지를 여러 겹 덧대어 만든 방패. 먹물이 스며 칼날이 미끄러진다."
   clockwork_bastion:
     name: "태엽 성벽 방패"
     type: armor
@@ -2818,12 +3352,151 @@ items:
     floor: 9
     classes: [guardian]
     stats: {defense: [15, 17], block_chance: [0.151, 0.184], VIT: [7, 9], hp: [106, 144], damage_reduction: [0.027, 0.036], hp_regen: [1.8, 2.4]}
-    sources: [elite, boss, chest, craft]
+    pool: false
+    sources: [boss, craft]
     model: {shape: tower_shield, length: 1.0}
     texture: {style: clockwork, palette: ["#140e08", "#4a2e16", "#a0622a", "#f0c070", "#7ae0c0"], animated: true, frames: 8, frametime: 2, effect: gear_tick}
     lore: "대시계의 문짝을 방패 크기로 줄였다. 안쪽 톱니가 돌며 충격을 시간 속으로 흘려보낸다."
+  void_bulwark_shield:
+    name: "공허의 방벽"
+    type: armor
+    armor_slot: offhand
+    rarity: epic
+    level_req: 46
+    floor: 10
+    classes: [guardian]
+    stats: {defense: [14, 16], block_chance: [0.141, 0.172], VIT: [6, 8], hp: [92, 124], damage_reduction: [0.023, 0.031]}
+    pool: false
+    sources: [elite, craft]
+    model: {shape: round_shield, length: 1.0}
+    texture: {style: void, palette: ["#06060e", "#14142a", "#2a2a56", "#6a5ab0", "#2ae0c8"]}
+    lore: "심연의 문지기가 지키던 문의 파편. 막아 낸 충격이 방패 너머 텅 빈 곳으로 사라진다."
 
-  # ═════════ 방어구 세트 · 미궁 길잡이 (wayfarer) — 공용(모든 직업), 제작·드롭, Lv3 ═════════
+  # ═════════ 보스 투구 (1~4층 보스 고유 단품 — 세트 효과 없음, 그 층 보스 + 제작(보스 핵)) ═════════
+  grove_mossguard_helm:
+    name: "그로브의 이끼 투구"
+    type: armor
+    armor_slot: head
+    rarity: rare
+    level_req: 5
+    floor: 1
+    classes: []
+    stats: {defense: [1, 2], VIT: [1, 2], hp: [8, 10], hp_regen: [0.2, 0.3]}
+    pool: false
+    sources: [boss, craft]
+    model: {shape: helm_horned, length: 1.0}
+    texture: {style: moss, palette: ["#1a1d16", "#3a4034", "#6a7a5a", "#a8d055", "#f0ffc0"]}
+    lore: "파수꾼의 머리를 덮던 이끼 석관을 깎아 냈다. 뿔처럼 솟은 뿌리가 날아드는 돌을 튕겨 낸다."
+  silkqueen_veil:
+    name: "베셀라의 은실 면사포"
+    type: armor
+    armor_slot: head
+    rarity: epic
+    level_req: 10
+    floor: 2
+    classes: [hunter, shadow]
+    stats: {defense: [2, 3], DEX: [1, 2], evasion: [0.008, 0.011], crit_chance: [0.009, 0.013]}
+    pool: false
+    sources: [boss, craft]
+    model: {shape: hood, length: 1.0}
+    texture: {style: silk, palette: ["#14161c", "#2e3240", "#6a7088", "#c0c8dc", "#a070f0"]}
+    lore: "여왕의 은실로 짠 얇은 면사포. 쓰고 있으면 날아드는 것이 실에 걸린 듯 느려 보인다."
+  mycelking_spore_crown:
+    name: "무르노크의 포자관"
+    type: armor
+    armor_slot: head
+    rarity: epic
+    level_req: 15
+    floor: 3
+    classes: [arcanist, priest]
+    stats: {defense: [2, 3], INT: [2, 3], WIS: [1, 2], mana_regen: [0.2, 0.3], hp_regen: [0.5, 0.6]}
+    pool: false
+    sources: [boss, craft]
+    model: {shape: crown, length: 1.0}
+    texture: {style: moss, palette: ["#1a1018", "#3e2438", "#7a3e6a", "#d07ab0", "#f5e05a"]}
+    lore: "균사의 왕이 쓰던 관의 바깥 고리. 머리에 얹으면 생각이 균사처럼 사방으로 뻗어 나간다."
+  osric_sluice_helm:
+    name: "오스릭의 수문 투구"
+    type: armor
+    armor_slot: head
+    rarity: epic
+    level_req: 20
+    floor: 4
+    classes: [guardian, berserker]
+    stats: {defense: [5, 6], VIT: [2, 3], STR: [1, 2], hp: [33, 44], damage_reduction: [0.011, 0.015]}
+    pool: false
+    sources: [boss, craft]
+    model: {shape: helm_knight, length: 1.0}
+    texture: {style: copper, palette: ["#0a1416", "#183034", "#2e5a5e", "#a8743c", "#c0f0e8"]}
+    lore: "수문의 망령이 쓰던 투구. 면갑 틈으로 아직도 차가운 수로의 물이 떨어진다."
+
+  # ═════════ 방어구 세트 · 미궁 수련생 (novice) — 공용(모든 직업), 시작 지급 전용(몹·상자·대장간에서 안 나옴), Lv1 ═════════
+  novice_cap:
+    name: "수련생 두건"
+    type: armor
+    armor_slot: head
+    armor_set: novice
+    rarity: common
+    level_req: 1
+    floor: 1
+    classes: []
+    stats: {defense: [1, 1], VIT: [1, 1], hp: [3, 5]}
+    set_bonus: novice
+    pool: false
+    sources: [starter]
+    model: {shape: hood, length: 1.0}
+    texture: {style: cloth, palette: ["#2b2420", "#4d4036", "#7a6a58", "#b8a68a", "#e2d6bd"]}
+    lore: "전직관 세라핀이 첫 원정에 나서는 이에게 씌워 주는 누비 두건. 이마에 미궁 문양이 수놓여 있다."
+  novice_tunic:
+    name: "수련생 누비옷"
+    type: armor
+    armor_slot: chest
+    armor_set: novice
+    rarity: common
+    level_req: 1
+    floor: 1
+    classes: []
+    stats: {defense: [1, 2], VIT: [1, 1], hp: [6, 9]}
+    set_bonus: novice
+    pool: false
+    sources: [starter]
+    model: {shape: leather_vest, length: 1.0}
+    texture: {style: cloth, palette: ["#2b2420", "#4d4036", "#7a6a58", "#b8a68a", "#e2d6bd"]}
+    lore: "솜을 두 겹 넣어 누빈 연습용 웃옷. 이끼 기어다니는 자의 발톱 정도는 막아 준다."
+  novice_trousers:
+    name: "수련생 바지"
+    type: armor
+    armor_slot: legs
+    armor_set: novice
+    rarity: common
+    level_req: 1
+    floor: 1
+    classes: []
+    stats: {defense: [1, 1], VIT: [1, 1], hp: [5, 7]}
+    set_bonus: novice
+    pool: false
+    sources: [starter]
+    model: {shape: leggings, length: 1.0}
+    texture: {style: cloth, palette: ["#2b2420", "#4d4036", "#7a6a58", "#b8a68a", "#e2d6bd"]}
+    lore: "무릎에 가죽을 덧댄 튼튼한 바지. 미궁 입구 마을 재봉사들이 넉넉하게 지어 둔다."
+  novice_boots:
+    name: "수련생 신발"
+    type: armor
+    armor_slot: feet
+    armor_set: novice
+    rarity: common
+    level_req: 1
+    floor: 1
+    classes: []
+    stats: {defense: [1, 1], VIT: [1, 1], move_speed: [0.01, 0.01]}
+    set_bonus: novice
+    pool: false
+    sources: [starter]
+    model: {shape: boots, length: 1.0}
+    texture: {style: leather, palette: ["#2b2420", "#4d4036", "#7a6a58", "#b8a68a", "#e2d6bd"]}
+    lore: "바닥에 징을 박은 가벼운 신발. 젖은 이끼 위에서도 잘 미끄러지지 않는다."
+
+  # ═════════ 방어구 세트 · 미궁 길잡이 (wayfarer) — 공용(모든 직업), 1층 정예 + 제작, Lv3 ═════════
   wayfarer_helm:
     name: "길잡이 두건"
     type: armor
@@ -2831,11 +3504,12 @@ items:
     armor_set: wayfarer
     rarity: uncommon
     level_req: 3
-    floor: 2
+    floor: 1
     classes: []
     stats: {defense: [1, 2], VIT: [1, 2], hp: [3, 5]}
     set_bonus: wayfarer
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: hood, length: 1.0}
     texture: {style: leather, palette: ["#2a1d16", "#5a3a26", "#8c5a34", "#c9a46a", "#7fa043"]}
     lore: "미궁 입구 마을의 길잡이들이 첫 원정대에게 맞춰 주는 차림. 질기고 가벼워 어디든 걸어갈 수 있다."
@@ -2846,11 +3520,12 @@ items:
     armor_set: wayfarer
     rarity: uncommon
     level_req: 3
-    floor: 2
+    floor: 1
     classes: []
     stats: {defense: [1, 2], VIT: [1, 2], hp: [6, 8]}
     set_bonus: wayfarer
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: leather_vest, length: 1.0}
     texture: {style: leather, palette: ["#2a1d16", "#5a3a26", "#8c5a34", "#c9a46a", "#7fa043"]}
     lore: "미궁 입구 마을의 길잡이들이 첫 원정대에게 맞춰 주는 차림. 질기고 가벼워 어디든 걸어갈 수 있다."
@@ -2861,11 +3536,12 @@ items:
     armor_set: wayfarer
     rarity: uncommon
     level_req: 3
-    floor: 2
+    floor: 1
     classes: []
     stats: {defense: [1, 2], VIT: [1, 2], hp: [5, 6]}
     set_bonus: wayfarer
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: leggings, length: 1.0}
     texture: {style: leather, palette: ["#2a1d16", "#5a3a26", "#8c5a34", "#c9a46a", "#7fa043"]}
     lore: "미궁 입구 마을의 길잡이들이 첫 원정대에게 맞춰 주는 차림. 질기고 가벼워 어디든 걸어갈 수 있다."
@@ -2876,28 +3552,228 @@ items:
     armor_set: wayfarer
     rarity: uncommon
     level_req: 3
-    floor: 2
+    floor: 1
     classes: []
     stats: {defense: [1, 2], VIT: [1, 2], move_speed: [0.009, 0.011]}
     set_bonus: wayfarer
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: boots, length: 1.0}
     texture: {style: leather, palette: ["#2a1d16", "#5a3a26", "#8c5a34", "#c9a46a", "#7fa043"]}
     lore: "미궁 입구 마을의 길잡이들이 첫 원정대에게 맞춰 주는 차림. 질기고 가벼워 어디든 걸어갈 수 있다."
 
-  # ═════════ 방어구 세트 · 녹청 수문 경비 (verdigris_guard) — 판금(수호기사·광전사), 제작·드롭, Lv14 ═════════
+  # ═════════ 방어구 세트 · 갱도 감독관 (pit_foreman) — 판금(수호기사·광전사), 2층 정예 + 제작, Lv8 ═════════
+  pit_foreman_helm:
+    name: "감독관의 갱도 투구"
+    type: armor
+    armor_slot: head
+    armor_set: pit_foreman
+    rarity: uncommon
+    level_req: 8
+    floor: 2
+    classes: [guardian, berserker]
+    stats: {defense: [2, 3], VIT: [1, 2], hp: [8, 11]}
+    set_bonus: pit_foreman
+    pool: false
+    sources: [elite, craft]
+    model: {shape: helm_knight, length: 1.0}
+    texture: {style: rusted_iron, palette: ["#1f1611", "#4a3121", "#8c5a34", "#b8743c", "#e8c27a"]}
+    lore: "고르락이 갱도 감독관 시절 쓰던 투구와 같은 틀로 찍어 낸 것. 이마의 등잔 자리는 비어 있다."
+  pit_foreman_chest:
+    name: "감독관의 철판 흉갑"
+    type: armor
+    armor_slot: chest
+    armor_set: pit_foreman
+    rarity: uncommon
+    level_req: 8
+    floor: 2
+    classes: [guardian, berserker]
+    stats: {defense: [3, 4], VIT: [1, 2], STR: [1, 2], hp: [14, 18]}
+    set_bonus: pit_foreman
+    pool: false
+    sources: [elite, craft]
+    model: {shape: chestplate, length: 1.0}
+    texture: {style: rusted_iron, palette: ["#1f1611", "#4a3121", "#8c5a34", "#b8743c", "#e8c27a"]}
+    lore: "광차 철판을 두드려 편 흉갑. 무거운 만큼 무너지는 갱목도 버텨 낸다."
+  pit_foreman_legs:
+    name: "감독관의 철판 다리 보호대"
+    type: armor
+    armor_slot: legs
+    armor_set: pit_foreman
+    rarity: uncommon
+    level_req: 8
+    floor: 2
+    classes: [guardian, berserker]
+    stats: {defense: [3, 4], VIT: [1, 2], STR: [1, 2], hp: [11, 14]}
+    set_bonus: pit_foreman
+    pool: false
+    sources: [elite, craft]
+    model: {shape: leggings, length: 1.0}
+    texture: {style: rusted_iron, palette: ["#1f1611", "#4a3121", "#8c5a34", "#b8743c", "#e8c27a"]}
+    lore: "무릎에 덧댄 철판이 닳아 반들거린다. 감독관들은 무릎을 꿇는 법이 없었다."
+  pit_foreman_boots:
+    name: "감독관의 징 박은 장화"
+    type: armor
+    armor_slot: feet
+    armor_set: pit_foreman
+    rarity: uncommon
+    level_req: 8
+    floor: 2
+    classes: [guardian, berserker]
+    stats: {defense: [2, 3], VIT: [1, 2], move_speed: [0.01, 0.013]}
+    set_bonus: pit_foreman
+    pool: false
+    sources: [elite, craft]
+    model: {shape: boots, length: 1.0}
+    texture: {style: rusted_iron, palette: ["#1f1611", "#4a3121", "#8c5a34", "#b8743c", "#e8c27a"]}
+    lore: "바닥에 징을 박아 젖은 갱도에서도 미끄러지지 않는다."
+
+  # ═════════ 방어구 세트 · 거미줄 잠행자 (webrunner) — 가죽(사냥꾼·그림자), 2층 정예 + 제작, Lv8 ═════════
+  webrunner_helm:
+    name: "잠행자의 거미줄 두건"
+    type: armor
+    armor_slot: head
+    armor_set: webrunner
+    rarity: uncommon
+    level_req: 8
+    floor: 2
+    classes: [hunter, shadow]
+    stats: {defense: [1, 2], DEX: [1, 2], crit_chance: [0.005, 0.006]}
+    set_bonus: webrunner
+    pool: false
+    sources: [elite, craft]
+    model: {shape: hood, length: 1.0}
+    texture: {style: leather, palette: ["#1a1c22", "#3b404c", "#8d95a8", "#dfe6f2", "#a070f0"]}
+    lore: "거미줄을 여러 겹 덧대 소리를 삼키는 두건. 갱도 거미도 이 냄새는 동족으로 여긴다."
+  webrunner_chest:
+    name: "잠행자의 은실 조끼"
+    type: armor
+    armor_slot: chest
+    armor_set: webrunner
+    rarity: uncommon
+    level_req: 8
+    floor: 2
+    classes: [hunter, shadow]
+    stats: {defense: [2, 3], DEX: [1, 2], evasion: [0.007, 0.01]}
+    set_bonus: webrunner
+    pool: false
+    sources: [elite, craft]
+    model: {shape: leather_vest, length: 1.0}
+    texture: {style: leather, palette: ["#1a1c22", "#3b404c", "#8d95a8", "#dfe6f2", "#a070f0"]}
+    lore: "은실을 촘촘히 엮은 가죽 조끼. 가볍고 질겨 칼끝이 미끄러진다."
+  webrunner_legs:
+    name: "잠행자의 은실 바지"
+    type: armor
+    armor_slot: legs
+    armor_set: webrunner
+    rarity: uncommon
+    level_req: 8
+    floor: 2
+    classes: [hunter, shadow]
+    stats: {defense: [2, 3], DEX: [1, 2], attack_speed: [0.01, 0.014]}
+    set_bonus: webrunner
+    pool: false
+    sources: [elite, craft]
+    model: {shape: leggings, length: 1.0}
+    texture: {style: leather, palette: ["#1a1c22", "#3b404c", "#8d95a8", "#dfe6f2", "#a070f0"]}
+    lore: "무릎 안쪽에 은실을 덧대 몸을 낮춰도 소리가 나지 않는다."
+  webrunner_boots:
+    name: "잠행자의 거미발 신"
+    type: armor
+    armor_slot: feet
+    armor_set: webrunner
+    rarity: uncommon
+    level_req: 8
+    floor: 2
+    classes: [hunter, shadow]
+    stats: {defense: [1, 2], DEX: [1, 2], move_speed: [0.01, 0.013]}
+    set_bonus: webrunner
+    pool: false
+    sources: [elite, craft]
+    model: {shape: boots, length: 1.0}
+    texture: {style: leather, palette: ["#1a1c22", "#3b404c", "#8d95a8", "#dfe6f2", "#a070f0"]}
+    lore: "바닥에 거미 발털을 붙인 신. 벽을 타고 오를 때 손보다 발이 먼저 붙는다."
+
+  # ═════════ 방어구 세트 · 은실 직조사 (silkweaver) — 천(비전술사·사제), 2층 정예 + 제작, Lv8 ═════════
+  silkweaver_helm:
+    name: "직조사의 은실 관"
+    type: armor
+    armor_slot: head
+    armor_set: silkweaver
+    rarity: uncommon
+    level_req: 8
+    floor: 2
+    classes: [arcanist, priest]
+    stats: {defense: [1, 2], INT: [1, 2], mana_regen: [0.1, 0.2]}
+    set_bonus: silkweaver
+    pool: false
+    sources: [elite, craft]
+    model: {shape: circlet, length: 1.0}
+    texture: {style: silk, palette: ["#14161c", "#2e3240", "#6a7088", "#c0c8dc", "#f4f8ff"]}
+    lore: "여왕의 은실을 몰래 거둬 엮은 가는 관. 머릿속 생각이 실처럼 가지런해진다."
+  silkweaver_chest:
+    name: "직조사의 은실 로브"
+    type: armor
+    armor_slot: chest
+    armor_set: silkweaver
+    rarity: uncommon
+    level_req: 8
+    floor: 2
+    classes: [arcanist, priest]
+    stats: {defense: [1, 2], INT: [1, 2], WIS: [1, 2], mp: [7, 10]}
+    set_bonus: silkweaver
+    pool: false
+    sources: [elite, craft]
+    model: {shape: robe_top, length: 1.0}
+    texture: {style: silk, palette: ["#14161c", "#2e3240", "#6a7088", "#c0c8dc", "#f4f8ff"]}
+    lore: "갱도 직조공들이 여왕의 실로 지은 로브. 마력이 실을 타고 흐른다."
+  silkweaver_legs:
+    name: "직조사의 은실 치마"
+    type: armor
+    armor_slot: legs
+    armor_set: silkweaver
+    rarity: uncommon
+    level_req: 8
+    floor: 2
+    classes: [arcanist, priest]
+    stats: {defense: [1, 2], WIS: [1, 2], heal_power: [3, 4]}
+    set_bonus: silkweaver
+    pool: false
+    sources: [elite, craft]
+    model: {shape: leggings, length: 1.0}
+    texture: {style: silk, palette: ["#14161c", "#2e3240", "#6a7088", "#c0c8dc", "#f4f8ff"]}
+    lore: "치맛단에 은실로 수놓은 매듭이 상처를 묶는 주문이 된다."
+  silkweaver_boots:
+    name: "직조사의 은실 신"
+    type: armor
+    armor_slot: feet
+    armor_set: silkweaver
+    rarity: uncommon
+    level_req: 8
+    floor: 2
+    classes: [arcanist, priest]
+    stats: {defense: [1, 2], INT: [1, 2], move_speed: [0.01, 0.013]}
+    set_bonus: silkweaver
+    pool: false
+    sources: [elite, craft]
+    model: {shape: boots, length: 1.0}
+    texture: {style: silk, palette: ["#14161c", "#2e3240", "#6a7088", "#c0c8dc", "#f4f8ff"]}
+    lore: "은실을 겹겹이 감아 만든 신. 거미줄 위를 걸어도 줄이 끊어지지 않는다."
+
+  # ═════════ 방어구 세트 · 녹청 수문 경비 (verdigris_guard) — 판금(수호기사·광전사), 4층 정예 + 제작, Lv19 ═════════
   verdigris_guard_helm:
     name: "녹청 수문 투구"
     type: armor
     armor_slot: head
     armor_set: verdigris_guard
     rarity: rare
-    level_req: 14
+    level_req: 19
     floor: 4
     classes: [guardian, berserker]
-    stats: {defense: [3, 4], VIT: [1, 2], hp: [16, 22]}
+    stats: {defense: [4, 5], VIT: [1, 3], hp: [21, 28]}
     set_bonus: verdigris_guard
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: helm_knight, length: 1.0}
     texture: {style: copper, palette: ["#10241e", "#1f4a3c", "#3f8a6e", "#a8743c", "#c8f0dc"]}
     lore: "잠긴 수로의 수문을 지키던 경비대의 갑옷. 녹청이 덮일수록 단단해진다는 구리 합금으로 지었다."
@@ -2907,12 +3783,13 @@ items:
     armor_slot: chest
     armor_set: verdigris_guard
     rarity: rare
-    level_req: 14
+    level_req: 19
     floor: 4
     classes: [guardian, berserker]
-    stats: {defense: [6, 7], VIT: [2, 3], STR: [1, 2], hp: [28, 38]}
+    stats: {defense: [8, 9], VIT: [3, 4], STR: [1, 2], hp: [36, 49]}
     set_bonus: verdigris_guard
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: chestplate, length: 1.0}
     texture: {style: copper, palette: ["#10241e", "#1f4a3c", "#3f8a6e", "#a8743c", "#c8f0dc"]}
     lore: "잠긴 수로의 수문을 지키던 경비대의 갑옷. 녹청이 덮일수록 단단해진다는 구리 합금으로 지었다."
@@ -2922,12 +3799,13 @@ items:
     armor_slot: legs
     armor_set: verdigris_guard
     rarity: rare
-    level_req: 14
+    level_req: 19
     floor: 4
     classes: [guardian, berserker]
-    stats: {defense: [4, 5], VIT: [2, 3], STR: [1, 2], hp: [22, 30]}
+    stats: {defense: [5, 6], VIT: [3, 4], STR: [1, 2], hp: [28, 39]}
     set_bonus: verdigris_guard
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: leggings, length: 1.0}
     texture: {style: copper, palette: ["#10241e", "#1f4a3c", "#3f8a6e", "#a8743c", "#c8f0dc"]}
     lore: "잠긴 수로의 수문을 지키던 경비대의 갑옷. 녹청이 덮일수록 단단해진다는 구리 합금으로 지었다."
@@ -2937,17 +3815,18 @@ items:
     armor_slot: feet
     armor_set: verdigris_guard
     rarity: rare
-    level_req: 14
+    level_req: 19
     floor: 4
     classes: [guardian, berserker]
-    stats: {defense: [3, 4], VIT: [1, 2], hp: [15, 20]}
+    stats: {defense: [4, 5], VIT: [1, 3], hp: [19, 26]}
     set_bonus: verdigris_guard
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: boots, length: 1.0}
     texture: {style: copper, palette: ["#10241e", "#1f4a3c", "#3f8a6e", "#a8743c", "#c8f0dc"]}
     lore: "잠긴 수로의 수문을 지키던 경비대의 갑옷. 녹청이 덮일수록 단단해진다는 구리 합금으로 지었다."
 
-  # ═════════ 방어구 세트 · 균사 추적자 (hypha_stalker) — 가죽(사냥꾼·그림자), 제작·드롭, Lv14 ═════════
+  # ═════════ 방어구 세트 · 균사 추적자 (hypha_stalker) — 가죽(사냥꾼·그림자), 3층 정예 + 제작, Lv14 ═════════
   hypha_stalker_helm:
     name: "균사 추적자 두건"
     type: armor
@@ -2955,11 +3834,12 @@ items:
     armor_set: hypha_stalker
     rarity: rare
     level_req: 14
-    floor: 4
+    floor: 3
     classes: [hunter, shadow]
     stats: {defense: [2, 3], DEX: [1, 2], crit_chance: [0.009, 0.011]}
     set_bonus: hypha_stalker
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: hood, length: 1.0}
     texture: {style: leather, palette: ["#231a14", "#4a3a2c", "#8a7458", "#d8c8a0", "#d988b8"]}
     lore: "균사로 짠 천은 발소리와 체취를 삼킨다. 동굴의 사냥꾼들은 이 옷을 입고 포자 사이를 소리 없이 걸었다."
@@ -2970,11 +3850,12 @@ items:
     armor_set: hypha_stalker
     rarity: rare
     level_req: 14
-    floor: 4
+    floor: 3
     classes: [hunter, shadow]
     stats: {defense: [3, 4], DEX: [2, 3], LUK: [1, 2], evasion: [0.011, 0.015]}
     set_bonus: hypha_stalker
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: leather_vest, length: 1.0}
     texture: {style: leather, palette: ["#231a14", "#4a3a2c", "#8a7458", "#d8c8a0", "#d988b8"]}
     lore: "균사로 짠 천은 발소리와 체취를 삼킨다. 동굴의 사냥꾼들은 이 옷을 입고 포자 사이를 소리 없이 걸었다."
@@ -2985,11 +3866,12 @@ items:
     armor_set: hypha_stalker
     rarity: rare
     level_req: 14
-    floor: 4
+    floor: 3
     classes: [hunter, shadow]
     stats: {defense: [3, 4], DEX: [2, 3], LUK: [1, 2], attack_speed: [0.015, 0.02]}
     set_bonus: hypha_stalker
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: leggings, length: 1.0}
     texture: {style: leather, palette: ["#231a14", "#4a3a2c", "#8a7458", "#d8c8a0", "#d988b8"]}
     lore: "균사로 짠 천은 발소리와 체취를 삼킨다. 동굴의 사냥꾼들은 이 옷을 입고 포자 사이를 소리 없이 걸었다."
@@ -3000,16 +3882,17 @@ items:
     armor_set: hypha_stalker
     rarity: rare
     level_req: 14
-    floor: 4
+    floor: 3
     classes: [hunter, shadow]
     stats: {defense: [2, 3], DEX: [1, 2], move_speed: [0.014, 0.02]}
     set_bonus: hypha_stalker
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: boots, length: 1.0}
     texture: {style: leather, palette: ["#231a14", "#4a3a2c", "#8a7458", "#d8c8a0", "#d988b8"]}
     lore: "균사로 짠 천은 발소리와 체취를 삼킨다. 동굴의 사냥꾼들은 이 옷을 입고 포자 사이를 소리 없이 걸었다."
 
-  # ═════════ 방어구 세트 · 포자 현자 (spore_sage) — 천(비전술사·사제), 제작·드롭, Lv14 ═════════
+  # ═════════ 방어구 세트 · 포자 현자 (spore_sage) — 천(비전술사·사제), 3층 정예 + 제작, Lv14 ═════════
   spore_sage_helm:
     name: "포자 현자의 모자"
     type: armor
@@ -3017,11 +3900,12 @@ items:
     armor_set: spore_sage
     rarity: rare
     level_req: 14
-    floor: 4
+    floor: 3
     classes: [arcanist, priest]
     stats: {defense: [1, 2], INT: [1, 2], WIS: [1, 2], mana_regen: [0.1, 0.2]}
     set_bonus: spore_sage
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: wizard_hat, length: 1.0}
     texture: {style: cloth, palette: ["#1e1420", "#4a2a4e", "#8c4a7a", "#d988b8", "#ffe0f0"]}
     lore: "포자의 흐름을 읽어 날씨를 점치던 동굴 현자들의 옷. 소매 끝에서 은은한 포자 빛이 흘러나온다."
@@ -3032,11 +3916,12 @@ items:
     armor_set: spore_sage
     rarity: rare
     level_req: 14
-    floor: 4
+    floor: 3
     classes: [arcanist, priest]
     stats: {defense: [2, 3], INT: [2, 3], WIS: [2, 3], mp: [15, 20]}
     set_bonus: spore_sage
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: robe_top, length: 1.0}
     texture: {style: cloth, palette: ["#1e1420", "#4a2a4e", "#8c4a7a", "#d988b8", "#ffe0f0"]}
     lore: "포자의 흐름을 읽어 날씨를 점치던 동굴 현자들의 옷. 소매 끝에서 은은한 포자 빛이 흘러나온다."
@@ -3047,11 +3932,12 @@ items:
     armor_set: spore_sage
     rarity: rare
     level_req: 14
-    floor: 4
+    floor: 3
     classes: [arcanist, priest]
     stats: {defense: [2, 3], INT: [1, 2], WIS: [1, 2], heal_power: [6, 8]}
     set_bonus: spore_sage
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: leggings, length: 1.0}
     texture: {style: cloth, palette: ["#1e1420", "#4a2a4e", "#8c4a7a", "#d988b8", "#ffe0f0"]}
     lore: "포자의 흐름을 읽어 날씨를 점치던 동굴 현자들의 옷. 소매 끝에서 은은한 포자 빛이 흘러나온다."
@@ -3062,16 +3948,17 @@ items:
     armor_set: spore_sage
     rarity: rare
     level_req: 14
-    floor: 4
+    floor: 3
     classes: [arcanist, priest]
     stats: {defense: [1, 2], INT: [1, 2], WIS: [1, 2], move_speed: [0.014, 0.02]}
     set_bonus: spore_sage
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: boots, length: 1.0}
     texture: {style: cloth, palette: ["#1e1420", "#4a2a4e", "#8c4a7a", "#d988b8", "#ffe0f0"]}
     lore: "포자의 흐름을 읽어 날씨를 점치던 동굴 현자들의 옷. 소매 끝에서 은은한 포자 빛이 흘러나온다."
 
-  # ═════════ 방어구 세트 · 불씨 단조 (emberforged) — 판금(수호기사·광전사), 제작·드롭, Lv24 ═════════
+  # ═════════ 방어구 세트 · 불씨 단조 (emberforged) — 판금(수호기사·광전사), 5층 정예 + 제작, Lv24 ═════════
   emberforged_helm:
     name: "불씨 단조 투구"
     type: armor
@@ -3079,11 +3966,12 @@ items:
     armor_set: emberforged
     rarity: rare
     level_req: 24
-    floor: 6
+    floor: 5
     classes: [guardian, berserker]
     stats: {defense: [5, 6], VIT: [2, 3], hp: [27, 37]}
     set_bonus: emberforged
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: helm_horned, length: 1.0}
     texture: {style: dark_iron, palette: ["#141010", "#2e2422", "#5a3a2e", "#d9541c", "#ffb04a"]}
     lore: "용광로 심장부의 불씨로 담금질한 판금. 갈라진 틈마다 붉은 열기가 맥박친다."
@@ -3094,11 +3982,12 @@ items:
     armor_set: emberforged
     rarity: rare
     level_req: 24
-    floor: 6
+    floor: 5
     classes: [guardian, berserker]
     stats: {defense: [9, 10], VIT: [3, 4], STR: [2, 3], hp: [47, 64]}
     set_bonus: emberforged
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: chestplate, length: 1.0}
     texture: {style: dark_iron, palette: ["#141010", "#2e2422", "#5a3a2e", "#d9541c", "#ffb04a"]}
     lore: "용광로 심장부의 불씨로 담금질한 판금. 갈라진 틈마다 붉은 열기가 맥박친다."
@@ -3109,11 +3998,12 @@ items:
     armor_set: emberforged
     rarity: rare
     level_req: 24
-    floor: 6
+    floor: 5
     classes: [guardian, berserker]
     stats: {defense: [7, 8], VIT: [2, 3], STR: [1, 2], hp: [37, 50]}
     set_bonus: emberforged
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: leggings, length: 1.0}
     texture: {style: dark_iron, palette: ["#141010", "#2e2422", "#5a3a2e", "#d9541c", "#ffb04a"]}
     lore: "용광로 심장부의 불씨로 담금질한 판금. 갈라진 틈마다 붉은 열기가 맥박친다."
@@ -3124,16 +4014,17 @@ items:
     armor_set: emberforged
     rarity: rare
     level_req: 24
-    floor: 6
+    floor: 5
     classes: [guardian, berserker]
     stats: {defense: [4, 5], VIT: [2, 3], hp: [24, 33]}
     set_bonus: emberforged
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: boots, length: 1.0}
     texture: {style: dark_iron, palette: ["#141010", "#2e2422", "#5a3a2e", "#d9541c", "#ffb04a"]}
     lore: "용광로 심장부의 불씨로 담금질한 판금. 갈라진 틈마다 붉은 열기가 맥박친다."
 
-  # ═════════ 방어구 세트 · 서리송곳니 (rimefang) — 가죽(사냥꾼·그림자), 제작·드롭, Lv24 ═════════
+  # ═════════ 방어구 세트 · 서리송곳니 (rimefang) — 가죽(사냥꾼·그림자), 6층 정예 + 제작, Lv24 ═════════
   rimefang_helm:
     name: "서리송곳니 가면"
     type: armor
@@ -3145,7 +4036,8 @@ items:
     classes: [hunter, shadow]
     stats: {defense: [3, 4], DEX: [2, 3], crit_chance: [0.011, 0.015]}
     set_bonus: rimefang
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: half_mask, length: 1.0}
     texture: {style: leather, palette: ["#1c2230", "#4a5268", "#9ad0ff", "#c8ccd6", "#f0faff"]}
     lore: "얼음 묘지견의 가죽과 송곳니로 지은 사냥복. 숨결이 닿는 곳마다 서리가 맺힌다."
@@ -3160,7 +4052,8 @@ items:
     classes: [hunter, shadow]
     stats: {defense: [5, 6], DEX: [3, 4], LUK: [2, 3], evasion: [0.015, 0.02]}
     set_bonus: rimefang
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: leather_vest, length: 1.0}
     texture: {style: leather, palette: ["#1c2230", "#4a5268", "#9ad0ff", "#c8ccd6", "#f0faff"]}
     lore: "얼음 묘지견의 가죽과 송곳니로 지은 사냥복. 숨결이 닿는 곳마다 서리가 맺힌다."
@@ -3175,7 +4068,8 @@ items:
     classes: [hunter, shadow]
     stats: {defense: [4, 5], DEX: [2, 3], LUK: [1, 2], attack_speed: [0.019, 0.026]}
     set_bonus: rimefang
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: leggings, length: 1.0}
     texture: {style: leather, palette: ["#1c2230", "#4a5268", "#9ad0ff", "#c8ccd6", "#f0faff"]}
     lore: "얼음 묘지견의 가죽과 송곳니로 지은 사냥복. 숨결이 닿는 곳마다 서리가 맺힌다."
@@ -3190,12 +4084,13 @@ items:
     classes: [hunter, shadow]
     stats: {defense: [3, 4], DEX: [2, 3], move_speed: [0.019, 0.025]}
     set_bonus: rimefang
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: boots, length: 1.0}
     texture: {style: leather, palette: ["#1c2230", "#4a5268", "#9ad0ff", "#c8ccd6", "#f0faff"]}
     lore: "얼음 묘지견의 가죽과 송곳니로 지은 사냥복. 숨결이 닿는 곳마다 서리가 맺힌다."
 
-  # ═════════ 방어구 세트 · 묘역 애도자 (crypt_mourner) — 천(비전술사·사제), 제작·드롭, Lv24 ═════════
+  # ═════════ 방어구 세트 · 묘역 애도자 (crypt_mourner) — 천(비전술사·사제), 6층 정예 + 제작, Lv24 ═════════
   crypt_mourner_helm:
     name: "애도자의 면사 두건"
     type: armor
@@ -3207,7 +4102,8 @@ items:
     classes: [arcanist, priest]
     stats: {defense: [2, 3], INT: [1, 2], WIS: [1, 2], mana_regen: [0.2, 0.3]}
     set_bonus: crypt_mourner
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: hood, length: 1.0}
     texture: {style: silk, palette: ["#14161e", "#34384a", "#6a6e86", "#c8b070", "#e8f4ff"]}
     lore: "서리 묘역에서 망자를 위해 곡을 하던 이들의 상복. 은실로 수놓은 애도문이 냉기를 막아 준다."
@@ -3222,7 +4118,8 @@ items:
     classes: [arcanist, priest]
     stats: {defense: [4, 5], INT: [3, 4], WIS: [3, 4], mp: [24, 33]}
     set_bonus: crypt_mourner
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: robe_top, length: 1.0}
     texture: {style: silk, palette: ["#14161e", "#34384a", "#6a6e86", "#c8b070", "#e8f4ff"]}
     lore: "서리 묘역에서 망자를 위해 곡을 하던 이들의 상복. 은실로 수놓은 애도문이 냉기를 막아 준다."
@@ -3237,7 +4134,8 @@ items:
     classes: [arcanist, priest]
     stats: {defense: [3, 4], INT: [2, 3], WIS: [2, 3], heal_power: [9, 13]}
     set_bonus: crypt_mourner
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: leggings, length: 1.0}
     texture: {style: silk, palette: ["#14161e", "#34384a", "#6a6e86", "#c8b070", "#e8f4ff"]}
     lore: "서리 묘역에서 망자를 위해 곡을 하던 이들의 상복. 은실로 수놓은 애도문이 냉기를 막아 준다."
@@ -3252,12 +4150,13 @@ items:
     classes: [arcanist, priest]
     stats: {defense: [2, 3], INT: [1, 2], WIS: [1, 2], move_speed: [0.019, 0.025]}
     set_bonus: crypt_mourner
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: boots, length: 1.0}
     texture: {style: silk, palette: ["#14161e", "#34384a", "#6a6e86", "#c8b070", "#e8f4ff"]}
     lore: "서리 묘역에서 망자를 위해 곡을 하던 이들의 상복. 은실로 수놓은 애도문이 냉기를 막아 준다."
 
-  # ═════════ 방어구 세트 · 정동 성채 (geode_bastion) — 판금(수호기사·광전사), 제작·드롭, Lv34 ═════════
+  # ═════════ 방어구 세트 · 정동 성채 (geode_bastion) — 판금(수호기사·광전사), 7층 정예 + 제작, Lv34 ═════════
   geode_bastion_helm:
     name: "정동 성채 투구"
     type: armor
@@ -3265,11 +4164,12 @@ items:
     armor_set: geode_bastion
     rarity: epic
     level_req: 34
-    floor: 8
+    floor: 7
     classes: [guardian, berserker]
     stats: {defense: [7, 8], VIT: [3, 4], hp: [46, 62], damage_reduction: [0.012, 0.017]}
     set_bonus: geode_bastion
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: helm_winged, length: 1.0}
     texture: {style: crystal, palette: ["#16141a", "#34303c", "#5a5468", "#9a62e0", "#efd8ff"]}
     lore: "정동 거한의 껍질을 판금처럼 다듬었다. 안쪽에서 자라는 자수정이 금 간 곳을 스스로 메운다."
@@ -3280,11 +4180,12 @@ items:
     armor_set: geode_bastion
     rarity: epic
     level_req: 34
-    floor: 8
+    floor: 7
     classes: [guardian, berserker]
     stats: {defense: [13, 15], VIT: [5, 7], STR: [3, 4], hp: [80, 108], damage_reduction: [0.022, 0.029]}
     set_bonus: geode_bastion
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: chestplate, length: 1.0}
     texture: {style: crystal, palette: ["#16141a", "#34303c", "#5a5468", "#9a62e0", "#efd8ff"]}
     lore: "정동 거한의 껍질을 판금처럼 다듬었다. 안쪽에서 자라는 자수정이 금 간 곳을 스스로 메운다."
@@ -3295,11 +4196,12 @@ items:
     armor_set: geode_bastion
     rarity: epic
     level_req: 34
-    floor: 8
+    floor: 7
     classes: [guardian, berserker]
     stats: {defense: [10, 11], VIT: [4, 5], STR: [2, 3], hp: [62, 83], hp_regen: [1.0, 1.4]}
     set_bonus: geode_bastion
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: leggings, length: 1.0}
     texture: {style: crystal, palette: ["#16141a", "#34303c", "#5a5468", "#9a62e0", "#efd8ff"]}
     lore: "정동 거한의 껍질을 판금처럼 다듬었다. 안쪽에서 자라는 자수정이 금 간 곳을 스스로 메운다."
@@ -3310,16 +4212,17 @@ items:
     armor_set: geode_bastion
     rarity: epic
     level_req: 34
-    floor: 8
+    floor: 7
     classes: [guardian, berserker]
     stats: {defense: [6, 8], VIT: [3, 4], hp: [41, 56], move_speed: [0.028, 0.037]}
     set_bonus: geode_bastion
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: boots, length: 1.0}
     texture: {style: crystal, palette: ["#16141a", "#34303c", "#5a5468", "#9a62e0", "#efd8ff"]}
     lore: "정동 거한의 껍질을 판금처럼 다듬었다. 안쪽에서 자라는 자수정이 금 간 곳을 스스로 메운다."
 
-  # ═════════ 방어구 세트 · 파편 무희 (shard_dancer) — 가죽(사냥꾼·그림자), 제작·드롭, Lv34 ═════════
+  # ═════════ 방어구 세트 · 파편 무희 (shard_dancer) — 가죽(사냥꾼·그림자), 7층 정예 + 제작, Lv34 ═════════
   shard_dancer_helm:
     name: "파편 무희의 가면"
     type: armor
@@ -3327,11 +4230,12 @@ items:
     armor_set: shard_dancer
     rarity: epic
     level_req: 34
-    floor: 8
+    floor: 7
     classes: [hunter, shadow]
     stats: {defense: [4, 5], DEX: [3, 4], crit_chance: [0.017, 0.022], crit_damage: [0.054, 0.073]}
     set_bonus: shard_dancer
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: half_mask, length: 1.0}
     texture: {style: leather, palette: ["#1a1426", "#3a2a5a", "#7a52b8", "#c8a0ff", "#f4ecff"]}
     lore: "파편 갑충의 날개 껍질을 비늘처럼 엮었다. 움직일 때마다 빛이 흩어져 적의 눈을 속인다."
@@ -3342,11 +4246,12 @@ items:
     armor_set: shard_dancer
     rarity: epic
     level_req: 34
-    floor: 8
+    floor: 7
     classes: [hunter, shadow]
     stats: {defense: [8, 9], DEX: [5, 7], LUK: [3, 4], evasion: [0.022, 0.029], crit_damage: [0.094, 0.128]}
     set_bonus: shard_dancer
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: leather_vest, length: 1.0}
     texture: {style: leather, palette: ["#1a1426", "#3a2a5a", "#7a52b8", "#c8a0ff", "#f4ecff"]}
     lore: "파편 갑충의 날개 껍질을 비늘처럼 엮었다. 움직일 때마다 빛이 흩어져 적의 눈을 속인다."
@@ -3357,11 +4262,12 @@ items:
     armor_set: shard_dancer
     rarity: epic
     level_req: 34
-    floor: 8
+    floor: 7
     classes: [hunter, shadow]
     stats: {defense: [6, 7], DEX: [4, 5], LUK: [2, 3], attack_speed: [0.028, 0.038], evasion: [0.017, 0.023]}
     set_bonus: shard_dancer
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: leggings, length: 1.0}
     texture: {style: leather, palette: ["#1a1426", "#3a2a5a", "#7a52b8", "#c8a0ff", "#f4ecff"]}
     lore: "파편 갑충의 날개 껍질을 비늘처럼 엮었다. 움직일 때마다 빛이 흩어져 적의 눈을 속인다."
@@ -3372,16 +4278,17 @@ items:
     armor_set: shard_dancer
     rarity: epic
     level_req: 34
-    floor: 8
+    floor: 7
     classes: [hunter, shadow]
     stats: {defense: [4, 5], DEX: [3, 4], move_speed: [0.028, 0.037], evasion: [0.011, 0.015]}
     set_bonus: shard_dancer
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: boots, length: 1.0}
     texture: {style: leather, palette: ["#1a1426", "#3a2a5a", "#7a52b8", "#c8a0ff", "#f4ecff"]}
     lore: "파편 갑충의 날개 껍질을 비늘처럼 엮었다. 움직일 때마다 빛이 흩어져 적의 눈을 속인다."
 
-  # ═════════ 방어구 세트 · 서고지기 (lorekeeper) — 천(비전술사·사제), 제작·드롭, Lv34 ═════════
+  # ═════════ 방어구 세트 · 서고지기 (lorekeeper) — 천(비전술사·사제), 8층 정예 + 제작, Lv34 ═════════
   lorekeeper_helm:
     name: "서고지기의 머리띠"
     type: armor
@@ -3393,7 +4300,8 @@ items:
     classes: [arcanist, priest]
     stats: {defense: [3, 4], INT: [2, 3], WIS: [2, 3], mana_regen: [0.2, 0.3], cooldown_reduction: [0.017, 0.022]}
     set_bonus: lorekeeper
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: circlet, length: 1.0}
     texture: {style: silk, palette: ["#140e0a", "#3a2618", "#6a4a2a", "#c8a060", "#fff0b0"]}
     lore: "망각의 서고를 관리하던 서고지기들의 예복. 옷깃 안쪽에 잊히면 안 될 이름들이 깨알같이 적혀 있다."
@@ -3408,7 +4316,8 @@ items:
     classes: [arcanist, priest]
     stats: {defense: [5, 6], INT: [4, 6], WIS: [4, 6], mp: [40, 54], skill_damage: [0.051, 0.069]}
     set_bonus: lorekeeper
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: robe_top, length: 1.0}
     texture: {style: silk, palette: ["#140e0a", "#3a2618", "#6a4a2a", "#c8a060", "#fff0b0"]}
     lore: "망각의 서고를 관리하던 서고지기들의 예복. 옷깃 안쪽에 잊히면 안 될 이름들이 깨알같이 적혀 있다."
@@ -3423,7 +4332,8 @@ items:
     classes: [arcanist, priest]
     stats: {defense: [4, 5], INT: [3, 4], WIS: [3, 4], heal_power: [16, 21], mp: [31, 42]}
     set_bonus: lorekeeper
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: leggings, length: 1.0}
     texture: {style: silk, palette: ["#140e0a", "#3a2618", "#6a4a2a", "#c8a060", "#fff0b0"]}
     lore: "망각의 서고를 관리하던 서고지기들의 예복. 옷깃 안쪽에 잊히면 안 될 이름들이 깨알같이 적혀 있다."
@@ -3438,12 +4348,13 @@ items:
     classes: [arcanist, priest]
     stats: {defense: [3, 4], INT: [2, 3], WIS: [2, 3], move_speed: [0.028, 0.037], mana_regen: [0.2, 0.3]}
     set_bonus: lorekeeper
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: boots, length: 1.0}
     texture: {style: silk, palette: ["#140e0a", "#3a2618", "#6a4a2a", "#c8a060", "#fff0b0"]}
     lore: "망각의 서고를 관리하던 서고지기들의 예복. 옷깃 안쪽에 잊히면 안 될 이름들이 깨알같이 적혀 있다."
 
-  # ═════════ 방어구 세트 · 태엽 거신 (clockwork_juggernaut) — 판금(수호기사·광전사), 제작·드롭, Lv44 ═════════
+  # ═════════ 방어구 세트 · 태엽 거신 (clockwork_juggernaut) — 판금(수호기사·광전사), 9층 정예 + 제작, Lv44 ═════════
   clockwork_juggernaut_helm:
     name: "태엽 거신 투구"
     type: armor
@@ -3451,11 +4362,12 @@ items:
     armor_set: clockwork_juggernaut
     rarity: legendary
     level_req: 44
-    floor: 10
+    floor: 9
     classes: [guardian, berserker]
     stats: {defense: [10, 11], VIT: [4, 6], hp: [71, 96], damage_reduction: [0.018, 0.024]}
     set_bonus: clockwork_juggernaut
-    sources: [elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: helm_knight, length: 1.0}
     texture: {style: clockwork, palette: ["#140e08", "#4a2e16", "#a0622a", "#f0c070", "#7ae0c0"], animated: true, frames: 8, frametime: 2, effect: gear_tick}
     lore: "대시계 성소를 지키던 태엽 거신의 장갑을 사람 몸에 맞게 다시 짰다. 등 뒤 태엽이 감길수록 단단해진다."
@@ -3466,11 +4378,12 @@ items:
     armor_set: clockwork_juggernaut
     rarity: legendary
     level_req: 44
-    floor: 10
+    floor: 9
     classes: [guardian, berserker]
     stats: {defense: [17, 20], VIT: [8, 11], STR: [5, 6], hp: [124, 168], damage_reduction: [0.031, 0.042]}
     set_bonus: clockwork_juggernaut
-    sources: [elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: chestplate, length: 1.0}
     texture: {style: clockwork, palette: ["#140e08", "#4a2e16", "#a0622a", "#f0c070", "#7ae0c0"]}
     lore: "대시계 성소를 지키던 태엽 거신의 장갑을 사람 몸에 맞게 다시 짰다. 등 뒤 태엽이 감길수록 단단해진다."
@@ -3481,11 +4394,12 @@ items:
     armor_set: clockwork_juggernaut
     rarity: legendary
     level_req: 44
-    floor: 10
+    floor: 9
     classes: [guardian, berserker]
     stats: {defense: [13, 15], VIT: [6, 8], STR: [4, 5], hp: [96, 129], hp_regen: [1.6, 2.2]}
     set_bonus: clockwork_juggernaut
-    sources: [elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: leggings, length: 1.0}
     texture: {style: clockwork, palette: ["#140e08", "#4a2e16", "#a0622a", "#f0c070", "#7ae0c0"]}
     lore: "대시계 성소를 지키던 태엽 거신의 장갑을 사람 몸에 맞게 다시 짰다. 등 뒤 태엽이 감길수록 단단해진다."
@@ -3496,16 +4410,17 @@ items:
     armor_set: clockwork_juggernaut
     rarity: legendary
     level_req: 44
-    floor: 10
+    floor: 9
     classes: [guardian, berserker]
     stats: {defense: [9, 10], VIT: [4, 5], hp: [64, 86], move_speed: [0.039, 0.053]}
     set_bonus: clockwork_juggernaut
-    sources: [elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: boots, length: 1.0}
     texture: {style: clockwork, palette: ["#140e08", "#4a2e16", "#a0622a", "#f0c070", "#7ae0c0"]}
     lore: "대시계 성소를 지키던 태엽 거신의 장갑을 사람 몸에 맞게 다시 짰다. 등 뒤 태엽이 감길수록 단단해진다."
 
-  # ═════════ 방어구 세트 · 심연 보행자 (abyss_walker) — 가죽(사냥꾼·그림자), 제작·드롭, Lv44 ═════════
+  # ═════════ 방어구 세트 · 심연 보행자 (abyss_walker) — 가죽(사냥꾼·그림자), 10층 정예 + 제작, Lv44 ═════════
   abyss_walker_helm:
     name: "심연 보행자 두건"
     type: armor
@@ -3517,7 +4432,8 @@ items:
     classes: [hunter, shadow]
     stats: {defense: [6, 7], DEX: [4, 6], crit_chance: [0.024, 0.033], crit_damage: [0.08, 0.108]}
     set_bonus: abyss_walker
-    sources: [elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: hood, length: 1.0}
     texture: {style: abyss, palette: ["#04080a", "#0c1e24", "#134a52", "#29dfd0", "#c8fff8"], animated: true, frames: 8, frametime: 2, effect: sculk_pulse}
     lore: "심연 추적자의 껍질처럼 빛을 삼키는 가죽. 어둠 속에선 입은 이의 윤곽조차 보이지 않는다."
@@ -3532,7 +4448,8 @@ items:
     classes: [hunter, shadow]
     stats: {defense: [11, 12], DEX: [8, 11], LUK: [5, 6], evasion: [0.031, 0.042], crit_damage: [0.14, 0.189]}
     set_bonus: abyss_walker
-    sources: [elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: leather_vest, length: 1.0}
     texture: {style: abyss, palette: ["#04080a", "#0c1e24", "#134a52", "#29dfd0", "#c8fff8"]}
     lore: "심연 추적자의 껍질처럼 빛을 삼키는 가죽. 어둠 속에선 입은 이의 윤곽조차 보이지 않는다."
@@ -3547,7 +4464,8 @@ items:
     classes: [hunter, shadow]
     stats: {defense: [8, 10], DEX: [6, 8], LUK: [4, 5], attack_speed: [0.04, 0.054], evasion: [0.024, 0.033]}
     set_bonus: abyss_walker
-    sources: [elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: leggings, length: 1.0}
     texture: {style: abyss, palette: ["#04080a", "#0c1e24", "#134a52", "#29dfd0", "#c8fff8"]}
     lore: "심연 추적자의 껍질처럼 빛을 삼키는 가죽. 어둠 속에선 입은 이의 윤곽조차 보이지 않는다."
@@ -3562,12 +4480,13 @@ items:
     classes: [hunter, shadow]
     stats: {defense: [5, 6], DEX: [4, 5], move_speed: [0.039, 0.053], evasion: [0.016, 0.022]}
     set_bonus: abyss_walker
-    sources: [elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: boots, length: 1.0}
     texture: {style: abyss, palette: ["#04080a", "#0c1e24", "#134a52", "#29dfd0", "#c8fff8"]}
     lore: "심연 추적자의 껍질처럼 빛을 삼키는 가죽. 어둠 속에선 입은 이의 윤곽조차 보이지 않는다."
 
-  # ═════════ 방어구 세트 · 별 없는 성가대 (starless_choir) — 천(비전술사·사제), 제작·드롭, Lv44 ═════════
+  # ═════════ 방어구 세트 · 별 없는 성가대 (starless_choir) — 천(비전술사·사제), 10층 정예 + 제작, Lv44 ═════════
   starless_choir_helm:
     name: "별 없는 성가대 모자"
     type: armor
@@ -3579,7 +4498,8 @@ items:
     classes: [arcanist, priest]
     stats: {defense: [4, 5], INT: [4, 5], WIS: [4, 5], mana_regen: [0.4, 0.5], cooldown_reduction: [0.024, 0.033]}
     set_bonus: starless_choir
-    sources: [elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: wizard_hat, length: 1.0}
     texture: {style: silk, palette: ["#04060a", "#101c24", "#22404a", "#2fe0d0", "#e8f8f4"], animated: true, frames: 8, frametime: 2, effect: rune_flow}
     lore: "심연의 핵에서 끝없이 노래하는 공허 성가대의 예복. 별빛 하나 없는 천에 소리만이 수놓여 있다."
@@ -3594,7 +4514,8 @@ items:
     classes: [arcanist, priest]
     stats: {defense: [7, 8], INT: [6, 8], WIS: [6, 8], mp: [62, 85], skill_damage: [0.074, 0.1]}
     set_bonus: starless_choir
-    sources: [elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: robe_top, length: 1.0}
     texture: {style: silk, palette: ["#04060a", "#101c24", "#22404a", "#2fe0d0", "#e8f8f4"]}
     lore: "심연의 핵에서 끝없이 노래하는 공허 성가대의 예복. 별빛 하나 없는 천에 소리만이 수놓여 있다."
@@ -3609,7 +4530,8 @@ items:
     classes: [arcanist, priest]
     stats: {defense: [6, 7], INT: [5, 7], WIS: [5, 7], heal_power: [24, 33], mp: [48, 65]}
     set_bonus: starless_choir
-    sources: [elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: leggings, length: 1.0}
     texture: {style: silk, palette: ["#04060a", "#101c24", "#22404a", "#2fe0d0", "#e8f8f4"]}
     lore: "심연의 핵에서 끝없이 노래하는 공허 성가대의 예복. 별빛 하나 없는 천에 소리만이 수놓여 있다."
@@ -3624,12 +4546,13 @@ items:
     classes: [arcanist, priest]
     stats: {defense: [4, 5], INT: [3, 4], WIS: [3, 4], move_speed: [0.039, 0.053], mana_regen: [0.3, 0.5]}
     set_bonus: starless_choir
-    sources: [elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: boots, length: 1.0}
     texture: {style: silk, palette: ["#04060a", "#101c24", "#22404a", "#2fe0d0", "#e8f8f4"]}
     lore: "심연의 핵에서 끝없이 노래하는 공허 성가대의 예복. 별빛 하나 없는 천에 소리만이 수놓여 있다."
 
-  # ═════════ 방어구 세트 · 용광로 수문장 (forge_warden) — 판금(수호기사·광전사), 보스 전용, Lv25 ═════════
+  # ═════════ 방어구 세트 · 용광로 수문장 (forge_warden) — 판금(수호기사·광전사), 5층 보스 카르둠 + 제작(보스 핵), Lv25 ═════════
   forge_warden_helm:
     name: "용광로 수문장 투구"
     type: armor
@@ -3642,7 +4565,7 @@ items:
     stats: {defense: [5, 6], VIT: [2, 3], hp: [34, 46], damage_reduction: [0.01, 0.014]}
     set_bonus: forge_warden
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     model: {shape: helm_horned, length: 1.0}
     texture: {style: dark_iron, palette: ["#0c0808", "#2a1c18", "#5a3a2a", "#a8a8b0", "#ff6a1a", "#ffd27a"]}
     lore: "모루왕 카르둠의 친위대가 입던 갑옷. 용광로 문을 지키며 쇳물을 뒤집어쓰고도 버텼다."
@@ -3658,7 +4581,7 @@ items:
     stats: {defense: [9, 11], VIT: [4, 5], STR: [2, 3], hp: [59, 80], damage_reduction: [0.018, 0.024]}
     set_bonus: forge_warden
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     model: {shape: chestplate, length: 1.0}
     texture: {style: dark_iron, palette: ["#0c0808", "#2a1c18", "#5a3a2a", "#a8a8b0", "#ff6a1a", "#ffd27a"]}
     lore: "모루왕 카르둠의 친위대가 입던 갑옷. 용광로 문을 지키며 쇳물을 뒤집어쓰고도 버텼다."
@@ -3674,7 +4597,7 @@ items:
     stats: {defense: [7, 9], VIT: [3, 4], STR: [2, 3], hp: [46, 62], hp_regen: [0.8, 1.1]}
     set_bonus: forge_warden
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     model: {shape: leggings, length: 1.0}
     texture: {style: dark_iron, palette: ["#0c0808", "#2a1c18", "#5a3a2a", "#a8a8b0", "#ff6a1a", "#ffd27a"]}
     lore: "모루왕 카르둠의 친위대가 입던 갑옷. 용광로 문을 지키며 쇳물을 뒤집어쓰고도 버텼다."
@@ -3690,12 +4613,12 @@ items:
     stats: {defense: [5, 6], VIT: [2, 3], hp: [30, 41], move_speed: [0.023, 0.031]}
     set_bonus: forge_warden
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     model: {shape: boots, length: 1.0}
     texture: {style: dark_iron, palette: ["#0c0808", "#2a1c18", "#5a3a2a", "#a8a8b0", "#ff6a1a", "#ffd27a"]}
     lore: "모루왕 카르둠의 친위대가 입던 갑옷. 용광로 문을 지키며 쇳물을 뒤집어쓰고도 버텼다."
 
-  # ═════════ 방어구 세트 · 얼음관의 예복 (frost_regalia) — 천(비전술사·사제), 보스 전용, Lv28 ═════════
+  # ═════════ 방어구 세트 · 얼음관의 예복 (frost_regalia) — 천(비전술사·사제), 6층 보스 시린 + 제작(보스 핵), Lv28 ═════════
   frost_regalia_helm:
     name: "얼음관의 왕관"
     type: armor
@@ -3708,7 +4631,7 @@ items:
     stats: {defense: [3, 4], INT: [2, 3], WIS: [2, 3], mana_regen: [0.2, 0.3], cooldown_reduction: [0.014, 0.019]}
     set_bonus: frost_regalia
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     model: {shape: crown, length: 1.0}
     texture: {style: frost, palette: ["#101828", "#2a4466", "#6a9ad0", "#bfe6ff", "#ffffff", "#c8b4ff"]}
     lore: "얼음관의 여제 시린이 잠들기 전 마지막으로 입었던 예복. 옷자락에 맺힌 서리는 천 년 동안 녹지 않았다."
@@ -3724,7 +4647,7 @@ items:
     stats: {defense: [4, 5], INT: [3, 5], WIS: [3, 5], mp: [33, 45], skill_damage: [0.044, 0.06]}
     set_bonus: frost_regalia
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     model: {shape: robe_top, length: 1.0}
     texture: {style: frost, palette: ["#101828", "#2a4466", "#6a9ad0", "#bfe6ff", "#ffffff", "#c8b4ff"]}
     lore: "얼음관의 여제 시린이 잠들기 전 마지막으로 입었던 예복. 옷자락에 맺힌 서리는 천 년 동안 녹지 않았다."
@@ -3740,7 +4663,7 @@ items:
     stats: {defense: [3, 4], INT: [3, 4], WIS: [3, 4], heal_power: [13, 17], mp: [26, 35]}
     set_bonus: frost_regalia
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     model: {shape: leggings, length: 1.0}
     texture: {style: frost, palette: ["#101828", "#2a4466", "#6a9ad0", "#bfe6ff", "#ffffff", "#c8b4ff"]}
     lore: "얼음관의 여제 시린이 잠들기 전 마지막으로 입었던 예복. 옷자락에 맺힌 서리는 천 년 동안 녹지 않았다."
@@ -3756,12 +4679,12 @@ items:
     stats: {defense: [2, 3], INT: [2, 3], WIS: [2, 3], move_speed: [0.024, 0.033], mana_regen: [0.2, 0.3]}
     set_bonus: frost_regalia
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     model: {shape: boots, length: 1.0}
     texture: {style: frost, palette: ["#101828", "#2a4466", "#6a9ad0", "#bfe6ff", "#ffffff", "#c8b4ff"]}
     lore: "얼음관의 여제 시린이 잠들기 전 마지막으로 입었던 예복. 옷자락에 맺힌 서리는 천 년 동안 녹지 않았다."
 
-  # ═════════ 방어구 세트 · 먹물 장막 (inkveil) — 가죽(사냥꾼·그림자), 보스 전용, Lv38 ═════════
+  # ═════════ 방어구 세트 · 먹물 장막 (inkveil) — 가죽(사냥꾼·그림자), 8층 보스 오르벨 + 제작(보스 핵), Lv38 ═════════
   inkveil_helm:
     name: "먹물 장막 가면"
     type: armor
@@ -3774,7 +4697,7 @@ items:
     stats: {defense: [5, 6], DEX: [4, 5], crit_chance: [0.022, 0.029], crit_damage: [0.071, 0.096]}
     set_bonus: inkveil
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     model: {shape: half_mask, length: 1.0}
     texture: {style: ink, palette: ["#06060c", "#141a30", "#2a3a6a", "#5a7ab0", "#efe4c8"], animated: true, frames: 8, frametime: 2, effect: ink_bleed}
     lore: "잉크 사서 오르벨이 분신을 그릴 때 쓰던 먹물을 옷감에 먹였다. 입은 이의 그림자가 한 박자 늦게 따라온다."
@@ -3790,7 +4713,7 @@ items:
     stats: {defense: [9, 11], DEX: [7, 9], LUK: [4, 6], evasion: [0.028, 0.038], crit_damage: [0.124, 0.168]}
     set_bonus: inkveil
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     model: {shape: leather_vest, length: 1.0}
     texture: {style: ink, palette: ["#06060c", "#141a30", "#2a3a6a", "#5a7ab0", "#efe4c8"]}
     lore: "잉크 사서 오르벨이 분신을 그릴 때 쓰던 먹물을 옷감에 먹였다. 입은 이의 그림자가 한 박자 늦게 따라온다."
@@ -3806,7 +4729,7 @@ items:
     stats: {defense: [7, 8], DEX: [5, 7], LUK: [3, 4], attack_speed: [0.036, 0.049], evasion: [0.022, 0.03]}
     set_bonus: inkveil
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     model: {shape: leggings, length: 1.0}
     texture: {style: ink, palette: ["#06060c", "#141a30", "#2a3a6a", "#5a7ab0", "#efe4c8"]}
     lore: "잉크 사서 오르벨이 분신을 그릴 때 쓰던 먹물을 옷감에 먹였다. 입은 이의 그림자가 한 박자 늦게 따라온다."
@@ -3822,12 +4745,12 @@ items:
     stats: {defense: [5, 6], DEX: [4, 5], move_speed: [0.036, 0.048], evasion: [0.015, 0.02]}
     set_bonus: inkveil
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     model: {shape: boots, length: 1.0}
     texture: {style: ink, palette: ["#06060c", "#141a30", "#2a3a6a", "#5a7ab0", "#efe4c8"]}
     lore: "잉크 사서 오르벨이 분신을 그릴 때 쓰던 먹물을 옷감에 먹였다. 입은 이의 그림자가 한 박자 늦게 따라온다."
 
-  # ═════════ 장신구 (2칸, 직업 제한 없음) — 층 장신구 · 보스 전용 · 칭호 보상 + 악몽의 왕관(투구) ═════════
+  # ═════════ 장신구 (2칸, 직업 제한 없음) — 층 장신구(정예 + 제작) · 보스 장신구(보스 + 제작) · 칭호 보상 + 악몽의 왕관(투구) ═════════
   moss_band:
     name: "이끼 덩굴 반지"
     type: accessory
@@ -3836,7 +4759,8 @@ items:
     floor: 1
     classes: []
     stats: {hp: [3, 4], VIT: [1, 2]}
-    sources: [drop, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: ring, length: 1.0}
     texture: {style: moss, palette: ["#1d2b14", "#3f5a23", "#7fa043", "#c9d98a"]}
     lore: "회랑의 덩굴을 손가락 굵기로 감아 굳힌 반지. 끼고 있으면 작은 상처가 금방 아문다."
@@ -3848,7 +4772,8 @@ items:
     floor: 2
     classes: []
     stats: {LUK: [1, 2], gold_bonus: [0.014, 0.019]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: charm, length: 1.0}
     texture: {style: copper, palette: ["#2a1d16", "#5a3a26", "#b8743c", "#e8c27a"]}
     lore: "무너진 갱도에서 혼자 살아 나온 광부가 평생 지니고 다녔다는 놋쇠 부적."
@@ -3860,7 +4785,8 @@ items:
     floor: 3
     classes: []
     stats: {WIS: [2, 3], mana_regen: [0.2, 0.3], hp: [21, 28]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: amulet, length: 1.0}
     texture: {style: moss, palette: ["#2a2414", "#6e5a24", "#d8b440", "#fff2a0"]}
     lore: "빛갓 나방의 날개 가루를 유리병에 담았다. 은은한 빛이 마음을 가라앉힌다."
@@ -3872,7 +4798,8 @@ items:
     floor: 4
     classes: []
     stats: {crit_chance: [0.016, 0.022], DEX: [2, 3], LUK: [1, 2]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: ring, length: 1.0}
     texture: {style: coral, palette: ["#1a2626", "#2e4a48", "#a3c9b4", "#e6f2e8"]}
     lore: "소금물 뿜개의 껍데기에서 꺼낸 진주를 박았다. 빛에 비추면 안에서 물결이 인다."
@@ -3881,10 +4808,11 @@ items:
     type: accessory
     rarity: rare
     level_req: 22
-    floor: 6
+    floor: 5
     classes: []
     stats: {STR: [3, 4], crit_damage: [0.065, 0.088], hp: [40, 54]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: amulet, length: 1.0}
     texture: {style: ember, palette: ["#1a0a06", "#5a1a0a", "#c43c12", "#ff9a2a", "#fff0a0"]}
     lore: "불씨 조각을 녹여 심장 모양으로 굳힌 목걸이. 가슴에 닿는 곳이 늘 따뜻하다."
@@ -3896,7 +4824,8 @@ items:
     floor: 6
     classes: []
     stats: {WIS: [4, 5], heal_power: [18, 24], damage_reduction: [0.017, 0.023]}
-    sources: [drop, elite, boss, chest]
+    pool: false
+    sources: [elite, craft]
     model: {shape: charm, length: 1.0}
     texture: {style: silver, palette: ["#14161e", "#34384a", "#6a6e86", "#c8b070", "#e8f4ff"]}
     lore: "묘역의 종지기가 망자마다 하나씩 달아 주던 작은 종. 흔들면 소리 대신 고요가 퍼진다."
@@ -3908,7 +4837,8 @@ items:
     floor: 7
     classes: []
     stats: {INT: [4, 5], skill_damage: [0.045, 0.061]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: ring, length: 1.0}
     texture: {style: crystal, palette: ["#201430", "#4a2a7a", "#a070f0", "#e8d8ff"]}
     lore: "두 개의 자수정 고리가 서로 맞물려 돈다. 주문을 외면 반지가 화음을 넣는다."
@@ -3920,7 +4850,8 @@ items:
     floor: 8
     classes: []
     stats: {cooldown_reduction: [0.034, 0.046], INT: [4, 6], WIS: [4, 6], mp: [38, 51]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: bracelet, length: 1.0}
     texture: {style: ink, palette: ["#0c0a10", "#22182e", "#4a2a5a", "#c8a060", "#e8e0ff"]}
     lore: "금서의 봉인 사슬을 팔찌로 줄였다. 풀리지 않는 매듭에 잊힌 주문이 잠들어 있다."
@@ -3932,7 +4863,8 @@ items:
     floor: 9
     classes: []
     stats: {attack_speed: [0.046, 0.063], DEX: [5, 7], STR: [5, 7], move_speed: [0.02, 0.027]}
-    sources: [drop, elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: bracelet, length: 1.0}
     texture: {style: clockwork, palette: ["#16100a", "#4a3020", "#a06a34", "#e0b070", "#7ae0c0"]}
     lore: "감긴 태엽이 손목 맥박에 맞춰 조금씩 풀린다. 차고 있으면 몸이 한 박자 빨라진다."
@@ -3944,7 +4876,8 @@ items:
     floor: 10
     classes: []
     stats: {crit_chance: [0.05, 0.067], crit_damage: [0.163, 0.22], skill_damage: [0.069, 0.093], LUK: [6, 9]}
-    sources: [elite, boss, chest, craft]
+    pool: false
+    sources: [elite, craft]
     model: {shape: amulet, length: 1.0}
     texture: {style: abyss, palette: ["#05060a", "#141a2a", "#3a2a6a", "#2fe0d0", "#fff8e0"], animated: true, frames: 8, frametime: 2, effect: sculk_pulse}
     lore: "심연의 눈 하나를 수정 속에 봉인했다. 목에 걸면 눈이 대신 약점을 찾아 준다."
@@ -3957,7 +4890,7 @@ items:
     classes: []
     stats: {VIT: [1, 2], hp_regen: [0.3, 0.4], hp: [13, 17]}
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     model: {shape: charm, length: 1.0}
     texture: {style: wood, palette: ["#1a1d16", "#3a4034", "#4f7a28", "#a8d055", "#f0ffc0"]}
     lore: "이끼 파수꾼의 심재 한 조각을 깎아 만든 부적. 지닌 이의 상처에 이끼처럼 새살이 돋는다."
@@ -3970,7 +4903,7 @@ items:
     classes: []
     stats: {DEX: [2, 3], evasion: [0.01, 0.014], move_speed: [0.009, 0.011]}
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     model: {shape: bracelet, length: 1.0}
     texture: {style: silk, palette: ["#14161c", "#2e3240", "#6a7088", "#c0c8dc", "#f4f8ff"]}
     lore: "실잣는 여왕의 은실을 일곱 번 꼬았다. 손목이 공격을 먼저 알아채고 비켜선다."
@@ -3983,7 +4916,7 @@ items:
     classes: []
     stats: {hp_regen: [0.7, 0.9], heal_power: [9, 13], lifesteal: [0.012, 0.016], VIT: [2, 3]}
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     model: {shape: ring, length: 1.0}
     texture: {style: moss, palette: ["#1a1018", "#3e2438", "#7a3e6a", "#d07ab0", "#f5e05a"]}
     lore: "균사의 왕이 지니던 공생의 반지. 준 만큼 돌려받는 것이 균사의 법칙이다."
@@ -3996,7 +4929,7 @@ items:
     classes: []
     stats: {mp: [25, 34], mana_regen: [0.3, 0.4], INT: [2, 3], WIS: [2, 3]}
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     model: {shape: emblem, length: 1.0}
     texture: {style: copper, palette: ["#0a1416", "#183034", "#2e5a5e", "#e8c870", "#c0f0e8"]}
     lore: "수문의 망령이 수문 일지에 찍던 인장. 찍는 곳마다 물길이 열렸다."
@@ -4009,7 +4942,7 @@ items:
     classes: []
     stats: {STR: [4, 5], defense: [7, 10], hp: [63, 85], crit_damage: [0.065, 0.087]}
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     model: {shape: emblem, length: 1.0}
     texture: {style: dark_iron, palette: ["#0c0808", "#2a1c18", "#5a3a2a", "#ff6a1a", "#ffd27a"]}
     lore: "모루왕이 인정한 대장장이에게만 찍어 주던 낙인을 쇠판에 옮겼다. 아직도 뜨겁다."
@@ -4022,7 +4955,7 @@ items:
     classes: []
     stats: {INT: [5, 7], WIS: [5, 7], cooldown_reduction: [0.035, 0.047], mp: [37, 50]}
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     model: {shape: amulet, length: 1.0}
     texture: {style: frost, palette: ["#101828", "#2a4466", "#6a9ad0", "#bfe6ff", "#ffffff"], animated: true, frames: 8, frametime: 2, effect: frost_shimmer}
     lore: "얼음관의 여제가 잠들기 전 흘린 단 한 방울의 눈물. 천 년 동안 녹지 않았다."
@@ -4035,7 +4968,7 @@ items:
     classes: []
     stats: {skill_damage: [0.069, 0.093], crit_chance: [0.039, 0.053], INT: [5, 7], DEX: [5, 7]}
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     model: {shape: relic_orb, length: 1.0}
     texture: {style: crystal, palette: ["#0c0814", "#2a1e48", "#6a4ab8", "#fff2b0", "#ffffff"], animated: true, frames: 8, frametime: 2, effect: prism_cycle}
     lore: "빛과 어둠이 한 구슬 안에서 서로를 쫓는다. 어느 쪽이 이기든 쥔 자에게는 힘이 된다."
@@ -4048,7 +4981,7 @@ items:
     classes: []
     stats: {cooldown_reduction: [0.044, 0.059], skill_damage: [0.076, 0.103], mp: [50, 67], WIS: [6, 7]}
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     model: {shape: charm, length: 1.0}
     texture: {style: ink, palette: ["#06060c", "#141a30", "#2a3a6a", "#c8a060", "#efe4c8"], animated: true, frames: 8, frametime: 2, effect: ink_bleed}
     lore: "잉크 사서의 깃펜 깃털 하나를 부적으로 묶었다. 지닌 이의 다음 주문을 미리 적어 둔다."
@@ -4061,7 +4994,7 @@ items:
     classes: []
     stats: {attack_speed: [0.058, 0.078], cooldown_reduction: [0.048, 0.065], move_speed: [0.025, 0.034], DEX: [6, 8]}
     pool: false
-    sources: [elite, boss]
+    sources: [boss, craft]
     model: {shape: amulet, length: 1.0}
     texture: {style: clockwork, palette: ["#100a06", "#3a2412", "#8a5a26", "#e8b060", "#7ae0c0"], animated: true, frames: 8, frametime: 2, effect: gear_tick}
     lore: "시계탑의 간수가 품던 회중시계. 초침이 가끔 거꾸로 돌며 지닌 이에게 한 박자를 더 준다."
@@ -4158,7 +5091,7 @@ items:
     texture: {style: obsidian, palette: ["#05020a", "#2a0a1a", "#6a0a2a", "#b01a3a", "#ff6a6a", "#ffd27a"], animated: true, frames: 16, frametime: 2, effect: void_swirl}
     lore: "악몽 난이도의 심연을 끝까지 걸어간 자의 머리에만 맞는 왕관. 쓴 자의 꿈에는 더 이상 악몽이 찾아오지 않는다."
 
-  # ═════════ 재료 (층별: 일반 몹 2종 · 엘리트 1종 · 보스 핵 1종 + 미궁 정수 4단계) ═════════
+  # ═════════ 재료 (층별: 일반 몹 2종 · 엘리트 1종 · 보스 핵 1종 + 미궁 정수 4단계) — 레시피는 그 층 재료만, 보스 핵은 그 보스 장비 전용 ═════════
   moss_fiber:
     name: "이끼 섬유"
     type: material
@@ -4194,7 +5127,7 @@ items:
     sources: [boss]
     model: {shape: icon}
     texture: {style: core, palette: ["#1a1d16", "#3a4034", "#4f7a28", "#a8d055", "#f0ffc0"]}
-    lore: "이끼 파수꾼 그로브의 가슴 속에서 뛰던 나무 심장. 쪼개도 다시 이끼가 돋는다."
+    lore: "이끼 파수꾼 그로브의 가슴 속에서 뛰던 나무 심장. 쪼개도 다시 이끼가 돋는다. 대장장이 두르간에게 가져가면 그로브의 장비를 벼릴 수 있다."
   spider_silk:
     name: "갱도 거미줄"
     type: material
@@ -4230,7 +5163,7 @@ items:
     sources: [boss]
     model: {shape: icon}
     texture: {style: essence, palette: ["#14161c", "#2e3240", "#6a7088", "#c0c8dc", "#a070f0"]}
-    lore: "실잣는 여왕 베셀라의 실샘. 손끝으로 누르면 은실이 저절로 흘러나온다."
+    lore: "실잣는 여왕 베셀라의 실샘. 손끝으로 누르면 은실이 저절로 흘러나온다. 대장장이 두르간에게 가져가면 베셀라의 장비를 벼릴 수 있다."
   spore_cap:
     name: "포자 갓"
     type: material
@@ -4266,7 +5199,7 @@ items:
     sources: [boss]
     model: {shape: icon}
     texture: {style: crown, palette: ["#1a1018", "#3e2438", "#7a3e6a", "#d07ab0", "#f5e05a"]}
-    lore: "균사의 왕 무르노크의 머리 위에서 자라던 관. 동굴의 모든 균사가 이 관을 향해 뻗었다."
+    lore: "균사의 왕 무르노크의 머리 위에서 자라던 관. 동굴의 모든 균사가 이 관을 향해 뻗었다. 대장장이 두르간에게 가져가면 무르노크의 장비를 벼릴 수 있다."
   brine_pearl:
     name: "소금물 진주"
     type: material
@@ -4302,7 +5235,7 @@ items:
     sources: [boss]
     model: {shape: icon}
     texture: {style: key, palette: ["#0a1416", "#183034", "#2e5a5e", "#e8c870", "#c0f0e8"]}
-    lore: "수문의 망령 오스릭이 죽어서도 놓지 않던 열쇠. 어떤 문을 여는지는 아무도 모른다."
+    lore: "수문의 망령 오스릭이 죽어서도 놓지 않던 열쇠. 어떤 문을 여는지는 아무도 모른다. 대장장이 두르간에게 가져가면 오스릭의 장비를 벼릴 수 있다."
   slag_ingot:
     name: "슬래그 주괴"
     type: material
@@ -4338,7 +5271,7 @@ items:
     sources: [boss]
     model: {shape: icon}
     texture: {style: core, palette: ["#0c0808", "#5a3a2a", "#ff6a1a", "#ffd27a", "#fff4d6"]}
-    lore: "모루왕 카르둠의 가슴에서 타오르던 용광로의 핵. 전설의 무기는 이 불로만 벼릴 수 있다."
+    lore: "모루왕 카르둠의 가슴에서 타오르던 용광로의 핵. 전설의 무기는 이 불로만 벼릴 수 있다. 대장장이 두르간이 이 불로 카르둠의 장비를 벼려 준다."
   rime_crystal:
     name: "서리 결정"
     type: material
@@ -4374,7 +5307,7 @@ items:
     sources: [boss]
     model: {shape: icon}
     texture: {style: crown, palette: ["#101828", "#2a4466", "#6a9ad0", "#bfe6ff", "#c8b4ff"]}
-    lore: "얼음관의 여제 시린의 왕관에서 떨어진 조각. 쥔 채로 잠들면 천 년 전의 꿈을 꾼다."
+    lore: "얼음관의 여제 시린의 왕관에서 떨어진 조각. 쥔 채로 잠들면 천 년 전의 꿈을 꾼다. 대장장이 두르간에게 가져가면 시린의 장비를 벼릴 수 있다."
   amethyst_shard:
     name: "자수정 파편"
     type: material
@@ -4410,7 +5343,7 @@ items:
     sources: [boss]
     model: {shape: icon}
     texture: {style: heart, palette: ["#0c0814", "#2a1e48", "#6a4ab8", "#fff2b0", "#ffffff"]}
-    lore: "다이아드의 중심에서 빛과 어둠이 맞물려 뛰던 심장. 반쪽은 따뜻하고 반쪽은 차갑다."
+    lore: "다이아드의 중심에서 빛과 어둠이 맞물려 뛰던 심장. 반쪽은 따뜻하고 반쪽은 차갑다. 대장장이 두르간에게 가져가면 다이아드의 장비를 벼릴 수 있다."
   ink_essence:
     name: "먹물 정수"
     type: material
@@ -4446,7 +5379,7 @@ items:
     sources: [boss]
     model: {shape: icon}
     texture: {style: feather, palette: ["#06060c", "#141a30", "#2a3a6a", "#c8a060", "#efe4c8"]}
-    lore: "잉크 사서 오르벨의 깃펜. 펜촉이 닿은 곳에 쓴 것은 현실이 된다고 한다."
+    lore: "잉크 사서 오르벨의 깃펜. 펜촉이 닿은 곳에 쓴 것은 현실이 된다고 한다. 대장장이 두르간에게 가져가면 오르벨의 장비를 벼릴 수 있다."
   brass_gear:
     name: "놋쇠 톱니"
     type: material
@@ -4482,7 +5415,7 @@ items:
     sources: [boss]
     model: {shape: icon}
     texture: {style: heart, palette: ["#100a06", "#3a2412", "#8a5a26", "#e8b060", "#7ae0c0"]}
-    lore: "시계탑의 간수 테오라를 움직이던 심장. 귀에 대면 초침 소리가 들린다."
+    lore: "시계탑의 간수 테오라를 움직이던 심장. 귀에 대면 초침 소리가 들린다. 대장장이 두르간에게 가져가면 테오라의 장비를 벼릴 수 있다."
   abyss_ichor:
     name: "심연의 체액"
     type: material
@@ -4518,7 +5451,7 @@ items:
     sources: [boss]
     model: {shape: icon}
     texture: {style: heart, palette: ["#020306", "#08141a", "#123842", "#2fe0d0", "#b01a3a"]}
-    lore: "심연의 심장 넬카르에서 떨어져 나온 조각. 아직도 아주 느리게 박동한다."
+    lore: "심연의 심장 넬카르에서 떨어져 나온 조각. 아직도 아주 느리게 박동한다. 대장장이 두르간에게 가져가면 넬카르가 지키던 전설 무기를 벼릴 수 있다."
   dim_essence:
     name: "희미한 미궁 정수"
     type: material
@@ -4733,12 +5666,32 @@ items:
     lore: "가방에 있으면 쓰러지는 순간 저절로 타오르며 HP 30%로 일어나 2초간 무적이 된다. (5분에 한 번)"
 
 # 세트 효과: bonuses 의 키 = 착용 개수(이상), 값 = 고정 수치(굴림 없음). look = 생성기의 장비 레이어 실루엣
+# bonuses 생략 = 세트 효과 없음 (수련생 — 장비 레이어·도감 묶음용)
 sets:
+  novice:
+    name: "미궁 수련생"
+    look: light
+    pieces: [novice_cap, novice_tunic, novice_trousers, novice_boots]
   wayfarer:
     name: "미궁 길잡이"
     look: light
     pieces: [wayfarer_helm, wayfarer_chest, wayfarer_legs, wayfarer_boots]
     bonuses: {2: {hp: 25, move_speed: 0.03}, 4: {VIT: 3, hp_regen: 0.8}}
+  pit_foreman:
+    name: "갱도 감독관"
+    look: heavy
+    pieces: [pit_foreman_helm, pit_foreman_chest, pit_foreman_legs, pit_foreman_boots]
+    bonuses: {2: {VIT: 3}, 4: {damage_reduction: 0.02, hp: 40}}
+  webrunner:
+    name: "거미줄 잠행자"
+    look: light
+    pieces: [webrunner_helm, webrunner_chest, webrunner_legs, webrunner_boots]
+    bonuses: {2: {DEX: 3}, 4: {crit_chance: 0.015, evasion: 0.02}}
+  silkweaver:
+    name: "은실 직조사"
+    look: cloth
+    pieces: [silkweaver_helm, silkweaver_chest, silkweaver_legs, silkweaver_boots]
+    bonuses: {2: {INT: 2, WIS: 2}, 4: {mana_regen: 0.4, heal_power: 8}}
   verdigris_guard:
     name: "녹청 수문 경비"
     look: heavy
