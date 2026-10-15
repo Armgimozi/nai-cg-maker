@@ -5,7 +5,8 @@
 재료는 단계 구간마다 다르다 (목표 단계 기준):
   low  (+1 ~ +3) : 주 재료 P            — 그 층 일반 재료 2종 중 무기 종류 / 방어구 부위로 고른 1종
   mid  (+4 ~ +6) : P + 보조 S           — 그 층 정예급 재료(정예 재료 E 또는 그 층 등급 정수)
-  high (+7 ~ +10): P + S + 희귀 R        — 보스 고유 장비는 R 대신 그 보스의 핵 K(+9·+10 시도만)
+  high (+7 ~ +10): P + S + 희귀 R        — 보스 고유 장비는 +7·+8 에 R, +9·+10 에 R 대신 그 보스의 핵 K
+                                         (시도 1번당 재료는 언제나 3종 — 보스 장비가 일반 장비보다 싼 단계가 없다)
 같은 층 · 같은 종류(부위) 안에서는 (S, R) 짝을 번갈아 써서 재료 구성이 겹치지 않게 한다.
 개수는 그 층 1회 클리어 공급량(loot.yml 를 펼쳐 계산)에 맞춘다 — 자세한 근거는 생성된 파일 머리 주석.
 
@@ -62,6 +63,7 @@ S_COUNT = {'E': {'mid': [1, 1, 2], 'high': [1, 1, 1, 2]},             # 정예 �
            'ess': {'mid': [2, 2, 3], 'high': [2, 2, 3, 3]}}          # 정수는 1회 9~12개
 R_COUNT = {'E': [1, 1, 1, 2], 'ess': [1, 1, 2, 2], 'next': [1, 1, 1, 1]}
 K_COUNT = [0, 0, 1, 1]                                                # 보스 핵: +9 · +10 시도만 (근거는 머리 주석)
+R_BOSS = [1, 1, 0, 0]                                                 # 보스 고유 장비의 희귀 R: +7 · +8 시도만 (+9 · +10 은 핵이 대신)
 PAIRS = [('E', 'ess'), ('ess', 'E'), ('E', 'next')]  # 같은 층·종류 안 n번째 장비의 (S, R) — 보스 고유는 S 만 E ↔ 정수
 # 같은 주 재료를 쓰는 종류끼리 시작 짝을 엇갈려(검방 0 · 대검 1 · 단검 2 …) 층 안에서 똑같은 구성을 줄인다
 KIND_OFFSET = {'sword_shield': 0, 'greatsword': 1, 'dagger': 2, 'bow': 0, 'staff': 1, 'scepter': 2,
@@ -71,7 +73,12 @@ REF_SUPPLY = 40.0                                                      # 1~3층 
 
 def p_scale(supply):
     """일반 재료 공급이 많은 깊은 층은 개수도 늘린다 (0.25 단위, 1.0 ~ 2.0)."""
-    return max(1.0, min(2.0, round(supply / REF_SUPPLY * 4) / 4))
+    return max(1.0, min(2.0, half_up(supply / REF_SUPPLY * 4) / 4))
+
+
+def half_up(x):
+    """.5 는 언제나 올림 (파이썬 round() 는 짝수 쪽으로 반올림해 ×1.25 · ×1.5 층 개수가 고르지 않게 뛴다: 4.5 → 4, 2.5 → 2)."""
+    return int(x + 0.5)
 
 
 # ───────────────────────── 콘텐츠 읽기 ─────────────────────────
@@ -304,13 +311,19 @@ def build(items, tables, mobs, bosses, floors):
             s_key, r_key = pairs[k % len(pairs)]
             bump = n // len(pairs)  # 짝이 바닥나면 주 재료를 1개씩 더 (같은 종류 안에서 겹치지 않게)
             cat = 'weapon' if items[i].get('type') == 'weapon' else 'shield' if kind == 'offhand' else 'armor'
-            p_counts = {b: [max(1, round(x * sc)) + bump for x in P_BASE[cat][b]] for b in BANDS}
+            p_counts = {b: [max(1, half_up(x * sc)) + bump for x in P_BASE[cat][b]] for b in BANDS}
             S = fm[s_key]
             r = {'low': {P: p_counts['low']},
                  'mid': {P: p_counts['mid'], S: S_COUNT[s_key]['mid']}}
             if boss:
                 K = mats[boss_only[i]]['K'] if boss_only[i] in mats and mats[boss_only[i]]['K'] else fm['K']
-                r['high'] = {P: p_counts['high'], S: S_COUNT[s_key]['high'], K: K_COUNT}
+                # +7 · +8 은 일반 장비처럼 희귀 R(E · 정수 중 S 가 아닌 쪽, 같으면 윗 정수)을 1개, +9 · +10 은 R 대신 핵.
+                # 그래서 high 의 모든 시도에 재료가 3종 — 가장 좋은 층 장비가 high 앞쪽에서 더 싸지 않다.
+                R = next((fm[x] for x in ('ess' if s_key == 'E' else 'E', 'next') if fm.get(x) and fm[x] not in (P, S, K)), None)
+                r['high'] = {P: p_counts['high'], S: S_COUNT[s_key]['high']}
+                if R:
+                    r['high'][R] = R_BOSS
+                r['high'][K] = K_COUNT
             else:
                 R = fm[r_key]
                 r['high'] = {P: p_counts['high'], S: S_COUNT[s_key]['high'], R: R_COUNT[r_key]}
@@ -438,9 +451,10 @@ def write_yaml(cfg, items, recipes, meta, supply, mats, rows, source_note):
     w('#   low  (+1~+3) : 주 재료 P = 그 장비 층의 일반 재료 2종 중 하나 — 근접 날붙이(검방·대검·단검)·흉갑·신발·방패는 단단한 쪽')
     w('#                  (껍질·금속·뼈·비늘·톱니), 활·지팡이·홀·투구·하의는 부드러운/마법 쪽(섬유·실·진주·결정·체액).')
     w('#   mid  (+4~+6) : P + 보조 S = 그 층 정예급 재료 — 정예 재료 E(볏·휘장·핵…) 또는 그 층 등급 정수.')
-    w('#   high (+7~+10): P + S + 희귀 R = E·정수·한 등급 위 정수 중 S 와 다른 것. 보스 고유 장비는 R 대신 그 보스의 핵(+9·+10 시도).')
+    w('#   high (+7~+10): P + S + 희귀 R = E·정수·한 등급 위 정수 중 S 와 다른 것. 보스 고유 장비는 +7·+8 에 R(E·정수 중 S 가 아닌 쪽),')
+    w('#                  +9·+10 에 R 대신 그 보스의 핵 — 시도 1번당 재료는 언제나 3종이라 보스 장비가 일반 장비보다 싼 단계가 없다.')
     w('#   같은 층·같은 종류(부위) 장비는 (S, R) 짝을 (E, 정수) → (정수, E) → (E, 윗 정수) 순으로 번갈아 써서 구성이 겹치지 않는다.')
-    w('#   P 개수는 그 재료 1회 공급량 ÷ 40 (0.25 단위, ×1.0 ~ ×2.0) 을 곱한다 — 깊은 층일수록 많이 떨어지고 많이 든다.')
+    w('#   P 개수는 그 재료 1회 공급량 ÷ 40 (0.25 단위, ×1.0 ~ ×2.0) 을 곱하고 .5 는 올린다 — 깊은 층일수록 많이 떨어지고 많이 든다.')
     w('#')
     w('# ── 근거: 1회 클리어 공급량 (보통·솔로·1인, LUK 0 — loot.yml 을 펼쳐 계산) ──────────')
     w(f'#   가정: 몹 수 GDD §16.1 (1층 24 … 10층 60), 미로 상자 나무 4~6 · 철 2~3 · 금 3~4, 보물방 상자 3개 × 방 수, 기믹방 1, 정예 1~2, 보스 1.')
@@ -461,6 +475,7 @@ def write_yaml(cfg, items, recipes, meta, supply, mats, rows, source_note):
     w('#   보스 핵을 high 구간 모든 시도에 넣으면 +10 까지 핵 ' + f"{sum(att10[t] for t in range(7, 11)):.0f}개(= 그 보스 {sum(att10[t] for t in range(7, 11)):.0f}번)"
       + f" — 강화석 병목(장비 하나 +10 ≈ 강화석 {sum(att10[t] * cfg['stones'][t - 1] for t in att10):.0f}개)의 3배라서, +9·+10 시도에만 1개씩"
       + f" (+10 까지 핵 {sum(att10[t] * K_COUNT[min(len(K_COUNT) - 1, t - 7)] for t in range(7, 11)):.0f}개) 로 맞췄다.")
+    w('#   대신 +7·+8 시도에는 일반 장비처럼 희귀 재료 R 을 1개씩 받는다 (보스 장비 +7 이 같은 층 일반 장비 +7 보다 싸지 않게).')
     w('#')
     w('# ── 결과: 예상 클리어 수 (그 층만 돌고, 그 재료를 강화에만 쓸 때) ─────────────────')
     w('#   층  | 장비 1개 +5 | 대표 한 벌(무기+방어구 4+방패) +5 (병목) | +10 장비 1개 (재료 병목 / 강화석)')

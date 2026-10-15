@@ -106,6 +106,8 @@ class EnhanceMaterialsTest {
         }
         assertEquals(10, cores.size(), "보스 핵 10종: " + cores);
         Map<String, String> seen = new HashMap<>();
+        // 같은 주 재료(= 같은 층·같은 단단/부드러움) · 같은 종류 묶음별 high 단계 재료 종류 수: 일반 장비 최대 / 보스 장비 최소
+        Map<String, int[]> normalKinds = new HashMap<>(), bossKinds = new HashMap<>();
         for (ItemDef d : content.items().values()) {
             if (!EnhanceRules.enhanceable(d)) continue;
             EnhanceDef t = content.enhance();
@@ -116,11 +118,15 @@ class EnhanceMaterialsTest {
             assertEquals(low.get(0).item(), mid.get(0).item(), d.id() + " mid 는 low 재료를 이어 쓴다");
             assertEquals(mid.get(0).item(), high.get(0).item(), d.id());
             assertEquals(mid.get(1).item(), high.get(1).item(), d.id() + " high 는 mid 보조를 이어 쓴다");
-            // 단계 안에서 개수는 줄지 않는다
+            // 단계 안에서 개수는 줄지 않는다 — 보스 장비의 희귀 재료가 보스 핵으로 바뀌는 단계(+9)만 예외
             for (int tg = 2; tg <= 10; tg++) {
                 if (t.band(tg) != t.band(tg - 1)) continue;
                 Map<String, Integer> a = asMap(t.costs(d.id(), tg - 1)), b = asMap(t.costs(d.id(), tg));
-                for (var e : a.entrySet()) assertTrue(b.getOrDefault(e.getKey(), 0) >= e.getValue(), d.id() + " +" + tg + " " + e.getKey());
+                boolean coreArrives = a.keySet().stream().noneMatch(cores::contains) && b.keySet().stream().anyMatch(cores::contains);
+                for (var e : a.entrySet()) {
+                    if (coreArrives && !b.containsKey(e.getKey())) continue;
+                    assertTrue(b.getOrDefault(e.getKey(), 0) >= e.getValue(), d.id() + " +" + tg + " " + e.getKey());
+                }
             }
             // 보스 고유 장비 = high 에 보스 핵. 보스가 주지 않는 장비는 보스 핵을 쓰지 않는다.
             // (루팅 재구성 전 items.yml 은 보스 장비가 정예에서도 나와 sources 가 넓다 — 그래서 한쪽씩만 본다)
@@ -132,12 +138,30 @@ class EnhanceMaterialsTest {
             for (int tg = 1; tg <= 6; tg++) {
                 for (EnhanceDef.Cost c : t.costs(d.id(), tg)) assertFalse(cores.contains(c.item()), d.id() + " +" + tg + " 에 보스 핵");
             }
-            // 같은 층 재료 · 같은 종류 안에서 구성이 겹치지 않는다
             String kind = d.isWeapon() ? d.weaponType() : d.armorSlot();
+            int[] kinds = (usesCore ? bossKinds : normalKinds).computeIfAbsent(low.get(0).item() + "|" + kind,
+                    k -> new int[] {usesCore ? 99 : 0, usesCore ? 99 : 0, usesCore ? 99 : 0, usesCore ? 99 : 0});
+            for (int tg = 7; tg <= 10; tg++) {
+                int n = t.costs(d.id(), tg).size();
+                kinds[tg - 7] = usesCore ? Math.min(kinds[tg - 7], n) : Math.max(kinds[tg - 7], n);
+            }
+            // 같은 층 재료 · 같은 종류 안에서 구성이 겹치지 않는다
             String key = low.get(0).item() + "|" + kind + "|" + recipe(t, d.id());
             String other = seen.put(key, d.id());
             assertNull(other, d.id() + " 와 " + other + " 의 강화 재료 구성이 똑같다 (같은 종류)");
         }
+        // 보스 고유 장비가 같은 층·같은 종류 일반 장비보다 싼 high 단계가 없다 (+7·+8 은 희귀 재료, +9·+10 은 보스 핵 — 언제나 3종)
+        int compared = 0;
+        for (var e : bossKinds.entrySet()) {
+            int[] normal = normalKinds.get(e.getKey());
+            if (normal == null) continue;
+            compared++;
+            for (int k = 0; k < 4; k++) {
+                assertTrue(e.getValue()[k] >= normal[k], e.getKey() + " +" + (k + 7) + ": 보스 장비 재료 " + e.getValue()[k]
+                        + "종 < 일반 장비 " + normal[k] + "종");
+            }
+        }
+        assertTrue(compared > 0, "비교할 보스 장비 묶음이 없다");
     }
 
     private static String recipe(EnhanceDef t, String id) {

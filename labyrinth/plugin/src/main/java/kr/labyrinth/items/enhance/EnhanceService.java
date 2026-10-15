@@ -13,6 +13,7 @@ import kr.labyrinth.core.Log;
 import kr.labyrinth.core.Text;
 import kr.labyrinth.data.PlayerData;
 import kr.labyrinth.event.EnhanceEvent;
+import kr.labyrinth.ui.UiTheme;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
@@ -68,6 +69,8 @@ public final class EnhanceService {
 
     private final Services services;
     private EnhanceGlow glow;
+    /** glyphs.yml {@code menus.enhance.slots} 원문 — 강화 창 배경 소켓 자리 (없으면 null, 시작 · reload 때 읽음). */
+    private volatile Map<String, Object> menuSlots;
 
     public EnhanceService(Services services) { this.services = services; }
 
@@ -86,6 +89,12 @@ public final class EnhanceService {
     private void configure() {
         Enhancement.configure(services.plugin().getConfig().getConfigurationSection("enhance"));
         warnTable(services.content());
+        menuSlots = EnhanceLayout.readSlots(services.plugin().getDataFolder().toPath().resolve("content").resolve("glyphs.yml"));
+    }
+
+    /** 강화 창 비용 줄 배치 — 전용 배경을 깔면 그 소켓 자리, 아니면(글리프 끔) 왼쪽부터 차례로. */
+    EnhanceLayout layout() {
+        return EnhanceLayout.of(menuSlots, UiTheme.background("enhance", 6) != null);
     }
 
     /** enhance.yml 확인 결과를 시작·reload 때 한 번 알린다 (없는 재료·장비, 항목이 없는 장비 = 강화석·골드만). */

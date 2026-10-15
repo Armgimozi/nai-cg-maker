@@ -13,9 +13,10 @@
 #   low  (+1~+3) : 주 재료 P = 그 장비 층의 일반 재료 2종 중 하나 — 근접 날붙이(검방·대검·단검)·흉갑·신발·방패는 단단한 쪽
 #                  (껍질·금속·뼈·비늘·톱니), 활·지팡이·홀·투구·하의는 부드러운/마법 쪽(섬유·실·진주·결정·체액).
 #   mid  (+4~+6) : P + 보조 S = 그 층 정예급 재료 — 정예 재료 E(볏·휘장·핵…) 또는 그 층 등급 정수.
-#   high (+7~+10): P + S + 희귀 R = E·정수·한 등급 위 정수 중 S 와 다른 것. 보스 고유 장비는 R 대신 그 보스의 핵(+9·+10 시도).
+#   high (+7~+10): P + S + 희귀 R = E·정수·한 등급 위 정수 중 S 와 다른 것. 보스 고유 장비는 +7·+8 에 R(E·정수 중 S 가 아닌 쪽),
+#                  +9·+10 에 R 대신 그 보스의 핵 — 시도 1번당 재료는 언제나 3종이라 보스 장비가 일반 장비보다 싼 단계가 없다.
 #   같은 층·같은 종류(부위) 장비는 (S, R) 짝을 (E, 정수) → (정수, E) → (E, 윗 정수) 순으로 번갈아 써서 구성이 겹치지 않는다.
-#   P 개수는 그 재료 1회 공급량 ÷ 40 (0.25 단위, ×1.0 ~ ×2.0) 을 곱한다 — 깊은 층일수록 많이 떨어지고 많이 든다.
+#   P 개수는 그 재료 1회 공급량 ÷ 40 (0.25 단위, ×1.0 ~ ×2.0) 을 곱하고 .5 는 올린다 — 깊은 층일수록 많이 떨어지고 많이 든다.
 #
 # ── 근거: 1회 클리어 공급량 (보통·솔로·1인, LUK 0 — loot.yml 을 펼쳐 계산) ──────────
 #   가정: 몹 수 GDD §16.1 (1층 24 … 10층 60), 미로 상자 나무 4~6 · 철 2~3 · 금 3~4, 보물방 상자 3개 × 방 수, 기믹방 1, 정예 1~2, 보스 1.
@@ -37,6 +38,7 @@
 #   +10 까지 (주문서 없이) +7 17.4 · +8 20.6 · +9 14.3 · +10 5.0  합 63.6회 — 대부분 +7·+8 하락 고리
 #   +10 까지 (하락을 전부 주문서로 막으면) 17.8회 · 주문서 6.9장
 #   보스 핵을 high 구간 모든 시도에 넣으면 +10 까지 핵 57개(= 그 보스 57번) — 강화석 병목(장비 하나 +10 ≈ 강화석 168개)의 3배라서, +9·+10 시도에만 1개씩 (+10 까지 핵 19개) 로 맞췄다.
+#   대신 +7·+8 시도에는 일반 장비처럼 희귀 재료 R 을 1개씩 받는다 (보스 장비 +7 이 같은 층 일반 장비 +7 보다 싸지 않게).
 #
 # ── 결과: 예상 클리어 수 (그 층만 돌고, 그 재료를 강화에만 쓸 때) ─────────────────
 #   층  | 장비 1개 +5 | 대표 한 벌(무기+방어구 4+방패) +5 (병목) | +10 장비 1개 (재료 병목 / 강화석)
@@ -76,7 +78,7 @@ items:
   grove_warden_maul:  # 파수꾼의 이끼바위 망치 · 검방 · 보스 고유
     low:  {beetle_shell: [2, 2, 3]}
     mid:  {beetle_shell: [3, 3, 4], alpha_moss_crest: [1, 1, 2]}
-    high: {beetle_shell: [4, 4, 5, 6], alpha_moss_crest: [1, 1, 1, 2], warden_heartwood: [0, 0, 1, 1]}
+    high: {beetle_shell: [4, 4, 5, 6], alpha_moss_crest: [1, 1, 1, 2], dim_essence: [1, 1, 0, 0], warden_heartwood: [0, 0, 1, 1]}
   rootcutter_greatsword:  # 뿌리 베는 대검 · 대검 · 몬스터·상자
     low:  {beetle_shell: [2, 2, 3]}
     mid:  {beetle_shell: [3, 3, 4], dim_essence: [2, 2, 3]}
@@ -96,7 +98,7 @@ items:
   grove_rootstring_bow:  # 뿌리시위 파수궁 · 활 · 보스 고유
     low:  {moss_fiber: [2, 2, 3]}
     mid:  {moss_fiber: [3, 3, 4], alpha_moss_crest: [1, 1, 2]}
-    high: {moss_fiber: [4, 4, 5, 6], alpha_moss_crest: [1, 1, 1, 2], warden_heartwood: [0, 0, 1, 1]}
+    high: {moss_fiber: [4, 4, 5, 6], alpha_moss_crest: [1, 1, 1, 2], dim_essence: [1, 1, 0, 0], warden_heartwood: [0, 0, 1, 1]}
   lantern_staff:  # 등불 지팡이 · 지팡이 · 몬스터·상자
     low:  {moss_fiber: [2, 2, 3]}
     mid:  {moss_fiber: [3, 3, 4], dim_essence: [2, 2, 3]}
@@ -108,7 +110,7 @@ items:
   grove_heartwood_staff:  # 심재 반딧불 지팡이 · 지팡이 · 보스 고유
     low:  {moss_fiber: [2, 2, 3]}
     mid:  {moss_fiber: [3, 3, 4], dim_essence: [2, 2, 3]}
-    high: {moss_fiber: [4, 4, 5, 6], dim_essence: [2, 2, 3, 3], warden_heartwood: [0, 0, 1, 1]}
+    high: {moss_fiber: [4, 4, 5, 6], dim_essence: [2, 2, 3, 3], alpha_moss_crest: [1, 1, 0, 0], warden_heartwood: [0, 0, 1, 1]}
   acolyte_scepter:  # 수련 사제의 홀 · 홀 · 몬스터·상자
     low:  {moss_fiber: [2, 2, 3]}
     mid:  {moss_fiber: [3, 3, 4], alpha_moss_crest: [1, 1, 2]}
@@ -136,7 +138,7 @@ items:
   grove_mossguard_helm:  # 그로브의 이끼 투구 · 투구 · 보스 고유
     low:  {moss_fiber: [2, 2, 2]}
     mid:  {moss_fiber: [2, 3, 3], alpha_moss_crest: [1, 1, 2]}
-    high: {moss_fiber: [3, 4, 4, 5], alpha_moss_crest: [1, 1, 1, 2], warden_heartwood: [0, 0, 1, 1]}
+    high: {moss_fiber: [3, 4, 4, 5], alpha_moss_crest: [1, 1, 1, 2], dim_essence: [1, 1, 0, 0], warden_heartwood: [0, 0, 1, 1]}
   novice_tunic:  # 수련생 누비옷 · 흉갑 · 시작 지급
     low:  {beetle_shell: [2, 2, 2]}
     mid:  {beetle_shell: [2, 3, 3], alpha_moss_crest: [1, 1, 2]}
@@ -168,25 +170,25 @@ items:
 
   # ════ 지하 2층 — 단단 녹슨 철괴 · 부드러움 갱도 거미줄 · 정예 감독관의 휘장 · 정수 희미한 미궁 정수 · 핵 여왕의 방적돌기 ════
   minewarden_mace:  # 갱도 감시자의 철퇴 · 검방 · 몬스터·상자
-    low:  {rusted_iron: [2, 2, 4]}
+    low:  {rusted_iron: [3, 3, 4]}
     mid:  {rusted_iron: [4, 4, 5], foreman_badge: [1, 1, 2]}
     high: {rusted_iron: [5, 5, 6, 8], foreman_badge: [1, 1, 1, 2], dim_essence: [1, 1, 2, 2]}
   silkguard_falchion:  # 은실 손잡이 팔시온 · 검방 · 대장간
-    low:  {rusted_iron: [2, 2, 4]}
+    low:  {rusted_iron: [3, 3, 4]}
     mid:  {rusted_iron: [4, 4, 5], dim_essence: [2, 2, 3]}
     high: {rusted_iron: [5, 5, 6, 8], dim_essence: [2, 2, 3, 3], foreman_badge: [1, 1, 1, 2]}
   ore_splitter_axe:  # 광맥 쪼개개 · 대검 · 몬스터·상자
-    low:  {rusted_iron: [2, 2, 4]}
+    low:  {rusted_iron: [3, 3, 4]}
     mid:  {rusted_iron: [4, 4, 5], dim_essence: [2, 2, 3]}
     high: {rusted_iron: [5, 5, 6, 8], dim_essence: [2, 2, 3, 3], foreman_badge: [1, 1, 1, 2]}
   silkspan_glaive:  # 은실 언월도 · 대검 · 대장간
-    low:  {rusted_iron: [2, 2, 4]}
+    low:  {rusted_iron: [3, 3, 4]}
     mid:  {rusted_iron: [4, 4, 5], foreman_badge: [1, 1, 2]}
     high: {rusted_iron: [5, 5, 6, 8], foreman_badge: [1, 1, 1, 2], labyrinth_essence: [1, 1, 1, 1]}
   silkqueen_reaper:  # 베셀라의 거미다리 큰낫 · 대검 · 보스 고유
-    low:  {rusted_iron: [2, 2, 4]}
+    low:  {rusted_iron: [3, 3, 4]}
     mid:  {rusted_iron: [4, 4, 5], dim_essence: [2, 2, 3]}
-    high: {rusted_iron: [5, 5, 6, 8], dim_essence: [2, 2, 3, 3], silk_queen_spinneret: [0, 0, 1, 1]}
+    high: {rusted_iron: [5, 5, 6, 8], dim_essence: [2, 2, 3, 3], foreman_badge: [1, 1, 0, 0], silk_queen_spinneret: [0, 0, 1, 1]}
   silkstring_recurve:  # 은실 시위 만곡궁 · 활 · 몬스터·상자
     low:  {spider_silk: [2, 2, 3]}
     mid:  {spider_silk: [3, 3, 4], foreman_badge: [1, 1, 2]}
@@ -214,19 +216,19 @@ items:
   silkqueen_spindle_censer:  # 실잣는 물렛가락 향로 · 홀 · 보스 고유
     low:  {spider_silk: [2, 2, 3]}
     mid:  {spider_silk: [3, 3, 4], foreman_badge: [1, 1, 2]}
-    high: {spider_silk: [4, 4, 5, 6], foreman_badge: [1, 1, 1, 2], silk_queen_spinneret: [0, 0, 1, 1]}
+    high: {spider_silk: [4, 4, 5, 6], foreman_badge: [1, 1, 1, 2], dim_essence: [1, 1, 0, 0], silk_queen_spinneret: [0, 0, 1, 1]}
   skitter_fang:  # 갱도 거미 송곳니 · 단검 · 몬스터·상자
-    low:  {rusted_iron: [2, 2, 4]}
+    low:  {rusted_iron: [3, 3, 4]}
     mid:  {rusted_iron: [4, 4, 5], foreman_badge: [1, 1, 2]}
     high: {rusted_iron: [5, 5, 6, 8], foreman_badge: [1, 1, 1, 2], labyrinth_essence: [1, 1, 1, 1]}
   silk_sickle:  # 은실 낫 · 단검 · 대장간
-    low:  {rusted_iron: [2, 2, 4]}
+    low:  {rusted_iron: [3, 3, 4]}
     mid:  {rusted_iron: [4, 4, 5], foreman_badge: [1, 1, 2]}
     high: {rusted_iron: [5, 5, 6, 8], foreman_badge: [1, 1, 1, 2], dim_essence: [1, 1, 2, 2]}
   silkqueen_fang:  # 베셀라의 독니 · 단검 · 보스 고유
-    low:  {rusted_iron: [2, 2, 4]}
+    low:  {rusted_iron: [3, 3, 4]}
     mid:  {rusted_iron: [4, 4, 5], foreman_badge: [1, 1, 2]}
-    high: {rusted_iron: [5, 5, 6, 8], foreman_badge: [1, 1, 1, 2], silk_queen_spinneret: [0, 0, 1, 1]}
+    high: {rusted_iron: [5, 5, 6, 8], foreman_badge: [1, 1, 1, 2], dim_essence: [1, 1, 0, 0], silk_queen_spinneret: [0, 0, 1, 1]}
   pit_foreman_helm:  # 감독관의 갱도 투구 · 투구 · 정예
     low:  {spider_silk: [2, 2, 2]}
     mid:  {spider_silk: [2, 3, 3], foreman_badge: [1, 1, 2]}
@@ -242,18 +244,18 @@ items:
   silkqueen_veil:  # 베셀라의 은실 면사포 · 투구 · 보스 고유
     low:  {spider_silk: [2, 2, 2]}
     mid:  {spider_silk: [2, 3, 3], foreman_badge: [1, 1, 2]}
-    high: {spider_silk: [3, 4, 4, 5], foreman_badge: [1, 1, 1, 2], silk_queen_spinneret: [0, 0, 1, 1]}
+    high: {spider_silk: [3, 4, 4, 5], foreman_badge: [1, 1, 1, 2], dim_essence: [1, 1, 0, 0], silk_queen_spinneret: [0, 0, 1, 1]}
   pit_foreman_chest:  # 감독관의 철판 흉갑 · 흉갑 · 정예
-    low:  {rusted_iron: [2, 2, 2]}
-    mid:  {rusted_iron: [2, 4, 4], foreman_badge: [1, 1, 2]}
+    low:  {rusted_iron: [3, 3, 3]}
+    mid:  {rusted_iron: [3, 4, 4], foreman_badge: [1, 1, 2]}
     high: {rusted_iron: [4, 5, 5, 6], foreman_badge: [1, 1, 1, 2], dim_essence: [1, 1, 2, 2]}
   silkweaver_chest:  # 직조사의 은실 로브 · 흉갑 · 정예
-    low:  {rusted_iron: [2, 2, 2]}
-    mid:  {rusted_iron: [2, 4, 4], dim_essence: [2, 2, 3]}
+    low:  {rusted_iron: [3, 3, 3]}
+    mid:  {rusted_iron: [3, 4, 4], dim_essence: [2, 2, 3]}
     high: {rusted_iron: [4, 5, 5, 6], dim_essence: [2, 2, 3, 3], foreman_badge: [1, 1, 1, 2]}
   webrunner_chest:  # 잠행자의 은실 조끼 · 흉갑 · 정예
-    low:  {rusted_iron: [2, 2, 2]}
-    mid:  {rusted_iron: [2, 4, 4], foreman_badge: [1, 1, 2]}
+    low:  {rusted_iron: [3, 3, 3]}
+    mid:  {rusted_iron: [3, 4, 4], foreman_badge: [1, 1, 2]}
     high: {rusted_iron: [4, 5, 5, 6], foreman_badge: [1, 1, 1, 2], labyrinth_essence: [1, 1, 1, 1]}
   pit_foreman_legs:  # 감독관의 철판 다리 보호대 · 하의 · 정예
     low:  {spider_silk: [2, 2, 2]}
@@ -268,41 +270,41 @@ items:
     mid:  {spider_silk: [2, 3, 3], foreman_badge: [1, 1, 2]}
     high: {spider_silk: [3, 4, 4, 5], foreman_badge: [1, 1, 1, 2], dim_essence: [1, 1, 2, 2]}
   pit_foreman_boots:  # 감독관의 징 박은 장화 · 신발 · 정예
-    low:  {rusted_iron: [2, 2, 2]}
-    mid:  {rusted_iron: [2, 4, 4], dim_essence: [2, 2, 3]}
+    low:  {rusted_iron: [3, 3, 3]}
+    mid:  {rusted_iron: [3, 4, 4], dim_essence: [2, 2, 3]}
     high: {rusted_iron: [4, 5, 5, 6], dim_essence: [2, 2, 3, 3], foreman_badge: [1, 1, 1, 2]}
   silkweaver_boots:  # 직조사의 은실 신 · 신발 · 정예
-    low:  {rusted_iron: [2, 2, 2]}
-    mid:  {rusted_iron: [2, 4, 4], foreman_badge: [1, 1, 2]}
+    low:  {rusted_iron: [3, 3, 3]}
+    mid:  {rusted_iron: [3, 4, 4], foreman_badge: [1, 1, 2]}
     high: {rusted_iron: [4, 5, 5, 6], foreman_badge: [1, 1, 1, 2], labyrinth_essence: [1, 1, 1, 1]}
   webrunner_boots:  # 잠행자의 거미발 신 · 신발 · 정예
-    low:  {rusted_iron: [2, 2, 2]}
-    mid:  {rusted_iron: [2, 4, 4], foreman_badge: [1, 1, 2]}
+    low:  {rusted_iron: [3, 3, 3]}
+    mid:  {rusted_iron: [3, 4, 4], foreman_badge: [1, 1, 2]}
     high: {rusted_iron: [4, 5, 5, 6], foreman_badge: [1, 1, 1, 2], dim_essence: [1, 1, 2, 2]}
   ironbound_kite_shield:  # 철띠 연 방패 · 방패 · 정예
-    low:  {rusted_iron: [2, 4, 4]}
+    low:  {rusted_iron: [3, 4, 4]}
     mid:  {rusted_iron: [4, 5, 5], foreman_badge: [1, 1, 2]}
     high: {rusted_iron: [5, 6, 6, 8], foreman_badge: [1, 1, 1, 2], labyrinth_essence: [1, 1, 1, 1]}
 
   # ════ 지하 3층 — 단단 포자 갓 · 부드러움 균사 실 · 정예 군락체의 핵 · 정수 희미한 미궁 정수 · 핵 균사의 왕관 ════
   sporeward_broadsword:  # 포자막이 넓은검 · 검방 · 몬스터·상자
-    low:  {spore_cap: [2, 2, 4]}
+    low:  {spore_cap: [3, 3, 4]}
     mid:  {spore_cap: [4, 4, 5], brood_core: [1, 1, 2]}
     high: {spore_cap: [5, 5, 6, 8], brood_core: [1, 1, 1, 2], dim_essence: [1, 1, 2, 2]}
   sporecap_warhammer:  # 포자갓 망치 · 검방 · 대장간
-    low:  {spore_cap: [2, 2, 4]}
+    low:  {spore_cap: [3, 3, 4]}
     mid:  {spore_cap: [4, 4, 5], dim_essence: [2, 2, 3]}
     high: {spore_cap: [5, 5, 6, 8], dim_essence: [2, 2, 3, 3], brood_core: [1, 1, 1, 2]}
   mycelking_guard_blade:  # 균사왕 근위 넓은검 · 검방 · 보스 고유
-    low:  {spore_cap: [2, 2, 4]}
+    low:  {spore_cap: [3, 3, 4]}
     mid:  {spore_cap: [4, 4, 5], brood_core: [1, 1, 2]}
-    high: {spore_cap: [5, 5, 6, 8], brood_core: [1, 1, 1, 2], mycelium_crown: [0, 0, 1, 1]}
+    high: {spore_cap: [5, 5, 6, 8], brood_core: [1, 1, 1, 2], dim_essence: [1, 1, 0, 0], mycelium_crown: [0, 0, 1, 1]}
   capsplitter_cleaver:  # 갓 가르는 참마도 · 대검 · 몬스터·상자
-    low:  {spore_cap: [2, 2, 4]}
+    low:  {spore_cap: [3, 3, 4]}
     mid:  {spore_cap: [4, 4, 5], dim_essence: [2, 2, 3]}
     high: {spore_cap: [5, 5, 6, 8], dim_essence: [2, 2, 3, 3], brood_core: [1, 1, 1, 2]}
   mycel_scythe:  # 균사 큰낫 · 대검 · 대장간
-    low:  {spore_cap: [2, 2, 4]}
+    low:  {spore_cap: [3, 3, 4]}
     mid:  {spore_cap: [4, 4, 5], brood_core: [1, 1, 2]}
     high: {spore_cap: [5, 5, 6, 8], brood_core: [1, 1, 1, 2], labyrinth_essence: [1, 1, 1, 1]}
   glowcap_longbow:  # 빛갓 장궁 · 활 · 몬스터·상자
@@ -332,19 +334,19 @@ items:
   mycelking_scepter:  # 균사왕의 왕홀 · 홀 · 보스 고유
     low:  {hypha_thread: [2, 2, 3]}
     mid:  {hypha_thread: [3, 3, 4], brood_core: [1, 1, 2]}
-    high: {hypha_thread: [4, 4, 5, 6], brood_core: [1, 1, 1, 2], mycelium_crown: [0, 0, 1, 1]}
+    high: {hypha_thread: [4, 4, 5, 6], brood_core: [1, 1, 1, 2], dim_essence: [1, 1, 0, 0], mycelium_crown: [0, 0, 1, 1]}
   spore_kris:  # 포자 물결검 · 단검 · 몬스터·상자
-    low:  {spore_cap: [2, 2, 4]}
+    low:  {spore_cap: [3, 3, 4]}
     mid:  {spore_cap: [4, 4, 5], brood_core: [1, 1, 2]}
     high: {spore_cap: [5, 5, 6, 8], brood_core: [1, 1, 1, 2], labyrinth_essence: [1, 1, 1, 1]}
   spore_katar:  # 포자 주먹칼 · 단검 · 대장간
-    low:  {spore_cap: [2, 2, 4]}
+    low:  {spore_cap: [3, 3, 4]}
     mid:  {spore_cap: [4, 4, 5], brood_core: [1, 1, 2]}
     high: {spore_cap: [5, 5, 6, 8], brood_core: [1, 1, 1, 2], dim_essence: [1, 1, 2, 2]}
   mycelking_sporefang:  # 포자왕의 송곳 · 단검 · 보스 고유
-    low:  {spore_cap: [2, 2, 4]}
+    low:  {spore_cap: [3, 3, 4]}
     mid:  {spore_cap: [4, 4, 5], brood_core: [1, 1, 2]}
-    high: {spore_cap: [5, 5, 6, 8], brood_core: [1, 1, 1, 2], mycelium_crown: [0, 0, 1, 1]}
+    high: {spore_cap: [5, 5, 6, 8], brood_core: [1, 1, 1, 2], dim_essence: [1, 1, 0, 0], mycelium_crown: [0, 0, 1, 1]}
   hypha_stalker_helm:  # 균사 추적자 두건 · 투구 · 정예
     low:  {hypha_thread: [2, 2, 2]}
     mid:  {hypha_thread: [2, 3, 3], brood_core: [1, 1, 2]}
@@ -356,14 +358,14 @@ items:
   mycelking_spore_crown:  # 무르노크의 포자관 · 투구 · 보스 고유
     low:  {hypha_thread: [2, 2, 2]}
     mid:  {hypha_thread: [2, 3, 3], brood_core: [1, 1, 2]}
-    high: {hypha_thread: [3, 4, 4, 5], brood_core: [1, 1, 1, 2], mycelium_crown: [0, 0, 1, 1]}
+    high: {hypha_thread: [3, 4, 4, 5], brood_core: [1, 1, 1, 2], dim_essence: [1, 1, 0, 0], mycelium_crown: [0, 0, 1, 1]}
   hypha_stalker_chest:  # 균사 추적자 조끼 · 흉갑 · 정예
-    low:  {spore_cap: [2, 2, 2]}
-    mid:  {spore_cap: [2, 4, 4], brood_core: [1, 1, 2]}
+    low:  {spore_cap: [3, 3, 3]}
+    mid:  {spore_cap: [3, 4, 4], brood_core: [1, 1, 2]}
     high: {spore_cap: [4, 5, 5, 6], brood_core: [1, 1, 1, 2], dim_essence: [1, 1, 2, 2]}
   spore_sage_chest:  # 포자 현자의 로브 · 흉갑 · 정예
-    low:  {spore_cap: [2, 2, 2]}
-    mid:  {spore_cap: [2, 4, 4], dim_essence: [2, 2, 3]}
+    low:  {spore_cap: [3, 3, 3]}
+    mid:  {spore_cap: [3, 4, 4], dim_essence: [2, 2, 3]}
     high: {spore_cap: [4, 5, 5, 6], dim_essence: [2, 2, 3, 3], brood_core: [1, 1, 1, 2]}
   hypha_stalker_legs:  # 균사 추적자 바지 · 하의 · 정예
     low:  {hypha_thread: [2, 2, 2]}
@@ -374,423 +376,423 @@ items:
     mid:  {hypha_thread: [2, 3, 3], brood_core: [1, 1, 2]}
     high: {hypha_thread: [3, 4, 4, 5], brood_core: [1, 1, 1, 2], labyrinth_essence: [1, 1, 1, 1]}
   hypha_stalker_boots:  # 균사 추적자 장화 · 신발 · 정예
-    low:  {spore_cap: [2, 2, 2]}
-    mid:  {spore_cap: [2, 4, 4], dim_essence: [2, 2, 3]}
+    low:  {spore_cap: [3, 3, 3]}
+    mid:  {spore_cap: [3, 4, 4], dim_essence: [2, 2, 3]}
     high: {spore_cap: [4, 5, 5, 6], dim_essence: [2, 2, 3, 3], brood_core: [1, 1, 1, 2]}
   spore_sage_boots:  # 포자 현자의 신발 · 신발 · 정예
-    low:  {spore_cap: [2, 2, 2]}
-    mid:  {spore_cap: [2, 4, 4], brood_core: [1, 1, 2]}
+    low:  {spore_cap: [3, 3, 3]}
+    mid:  {spore_cap: [3, 4, 4], brood_core: [1, 1, 2]}
     high: {spore_cap: [4, 5, 5, 6], brood_core: [1, 1, 1, 2], labyrinth_essence: [1, 1, 1, 1]}
   sporecap_round_shield:  # 포자갓 원형 방패 · 방패 · 정예
-    low:  {spore_cap: [2, 4, 4]}
+    low:  {spore_cap: [3, 4, 4]}
     mid:  {spore_cap: [4, 5, 5], brood_core: [1, 1, 2]}
     high: {spore_cap: [5, 6, 6, 8], brood_core: [1, 1, 1, 2], labyrinth_essence: [1, 1, 1, 1]}
 
   # ════ 지하 4층 — 단단 녹물 장어 비늘 · 부드러움 소금물 진주 · 정예 녹청 등판 · 정수 미궁 정수 · 핵 수문의 열쇠 ════
   sluice_breaker_mace:  # 수문 부수개 · 검방 · 대장간
-    low:  {eel_scale: [2, 2, 4]}
+    low:  {eel_scale: [3, 3, 4]}
     mid:  {eel_scale: [4, 4, 5], verdigris_plate: [1, 1, 2]}
     high: {eel_scale: [5, 5, 6, 8], verdigris_plate: [1, 1, 1, 2], labyrinth_essence: [1, 1, 2, 2]}
   brine_falchion:  # 소금물 팔시온 · 검방 · 몬스터·상자
-    low:  {eel_scale: [2, 2, 4]}
+    low:  {eel_scale: [3, 3, 4]}
     mid:  {eel_scale: [4, 4, 5], labyrinth_essence: [2, 2, 3]}
     high: {eel_scale: [5, 5, 6, 8], labyrinth_essence: [2, 2, 3, 3], verdigris_plate: [1, 1, 1, 2]}
   drowned_anchor_cleaver:  # 익사한 닻날 · 대검 · 대장간
-    low:  {eel_scale: [2, 2, 4]}
+    low:  {eel_scale: [3, 3, 4]}
     mid:  {eel_scale: [4, 4, 5], labyrinth_essence: [2, 2, 3]}
     high: {eel_scale: [5, 5, 6, 8], labyrinth_essence: [2, 2, 3, 3], verdigris_plate: [1, 1, 1, 2]}
   drowned_glaive:  # 익사자의 언월도 · 대검 · 몬스터·상자
-    low:  {eel_scale: [2, 2, 4]}
+    low:  {eel_scale: [3, 3, 4]}
     mid:  {eel_scale: [4, 4, 5], verdigris_plate: [1, 1, 2]}
     high: {eel_scale: [5, 5, 6, 8], verdigris_plate: [1, 1, 1, 2], radiant_essence: [1, 1, 1, 1]}
   osric_drowned_axe:  # 오스릭의 익사 닻도끼 · 대검 · 보스 고유
-    low:  {eel_scale: [2, 2, 4]}
+    low:  {eel_scale: [3, 3, 4]}
     mid:  {eel_scale: [4, 4, 5], labyrinth_essence: [2, 2, 3]}
-    high: {eel_scale: [5, 5, 6, 8], labyrinth_essence: [2, 2, 3, 3], floodgate_key: [0, 0, 1, 1]}
+    high: {eel_scale: [5, 5, 6, 8], labyrinth_essence: [2, 2, 3, 3], verdigris_plate: [1, 1, 0, 0], floodgate_key: [0, 0, 1, 1]}
   eelbone_recurve:  # 장어뼈 만곡궁 · 활 · 대장간
-    low:  {brine_pearl: [2, 2, 4]}
+    low:  {brine_pearl: [3, 3, 4]}
     mid:  {brine_pearl: [4, 4, 5], verdigris_plate: [1, 1, 2]}
     high: {brine_pearl: [5, 5, 6, 8], verdigris_plate: [1, 1, 1, 2], labyrinth_essence: [1, 1, 2, 2]}
   brine_bladebow:  # 소금물 날활 · 활 · 몬스터·상자
-    low:  {brine_pearl: [2, 2, 4]}
+    low:  {brine_pearl: [3, 3, 4]}
     mid:  {brine_pearl: [4, 4, 5], labyrinth_essence: [2, 2, 3]}
     high: {brine_pearl: [5, 5, 6, 8], labyrinth_essence: [2, 2, 3, 3], verdigris_plate: [1, 1, 1, 2]}
   tidecaller_bow:  # 조수 부르는 활 · 활 · 보스 고유
-    low:  {brine_pearl: [2, 2, 4]}
+    low:  {brine_pearl: [3, 3, 4]}
     mid:  {brine_pearl: [4, 4, 5], verdigris_plate: [1, 1, 2]}
-    high: {brine_pearl: [5, 5, 6, 8], verdigris_plate: [1, 1, 1, 2], floodgate_key: [0, 0, 1, 1]}
+    high: {brine_pearl: [5, 5, 6, 8], verdigris_plate: [1, 1, 1, 2], labyrinth_essence: [1, 1, 0, 0], floodgate_key: [0, 0, 1, 1]}
   brine_orb_staff:  # 소금물 구슬 지팡이 · 지팡이 · 대장간
-    low:  {brine_pearl: [2, 2, 4]}
+    low:  {brine_pearl: [3, 3, 4]}
     mid:  {brine_pearl: [4, 4, 5], labyrinth_essence: [2, 2, 3]}
     high: {brine_pearl: [5, 5, 6, 8], labyrinth_essence: [2, 2, 3, 3], verdigris_plate: [1, 1, 1, 2]}
   tide_fork_staff:  # 조류의 삼지창 지팡이 · 지팡이 · 몬스터·상자
-    low:  {brine_pearl: [2, 2, 4]}
+    low:  {brine_pearl: [3, 3, 4]}
     mid:  {brine_pearl: [4, 4, 5], verdigris_plate: [1, 1, 2]}
     high: {brine_pearl: [5, 5, 6, 8], verdigris_plate: [1, 1, 1, 2], radiant_essence: [1, 1, 1, 1]}
   osric_tide_trident:  # 오스릭의 조수 삼지창 · 지팡이 · 보스 고유
-    low:  {brine_pearl: [2, 2, 4]}
+    low:  {brine_pearl: [3, 3, 4]}
     mid:  {brine_pearl: [4, 4, 5], labyrinth_essence: [2, 2, 3]}
-    high: {brine_pearl: [5, 5, 6, 8], labyrinth_essence: [2, 2, 3, 3], floodgate_key: [0, 0, 1, 1]}
+    high: {brine_pearl: [5, 5, 6, 8], labyrinth_essence: [2, 2, 3, 3], verdigris_plate: [1, 1, 0, 0], floodgate_key: [0, 0, 1, 1]}
   tidebell_censer:  # 조수종 향로 · 홀 · 대장간
-    low:  {brine_pearl: [2, 2, 4]}
+    low:  {brine_pearl: [3, 3, 4]}
     mid:  {brine_pearl: [4, 4, 5], verdigris_plate: [1, 1, 2]}
     high: {brine_pearl: [5, 5, 6, 8], verdigris_plate: [1, 1, 1, 2], radiant_essence: [1, 1, 1, 1]}
   brine_bell_scepter:  # 소금물 종 홀 · 홀 · 몬스터·상자
-    low:  {brine_pearl: [2, 2, 4]}
+    low:  {brine_pearl: [3, 3, 4]}
     mid:  {brine_pearl: [4, 4, 5], verdigris_plate: [1, 1, 2]}
     high: {brine_pearl: [5, 5, 6, 8], verdigris_plate: [1, 1, 1, 2], labyrinth_essence: [1, 1, 2, 2]}
   eel_kris:  # 녹물 장어 크리스 · 단검 · 대장간
-    low:  {eel_scale: [2, 2, 4]}
+    low:  {eel_scale: [3, 3, 4]}
     mid:  {eel_scale: [4, 4, 5], verdigris_plate: [1, 1, 2]}
     high: {eel_scale: [5, 5, 6, 8], verdigris_plate: [1, 1, 1, 2], radiant_essence: [1, 1, 1, 1]}
   eelfin_sickle:  # 장어지느러미 낫 · 단검 · 몬스터·상자
-    low:  {eel_scale: [2, 2, 4]}
+    low:  {eel_scale: [3, 3, 4]}
     mid:  {eel_scale: [4, 4, 5], verdigris_plate: [1, 1, 2]}
     high: {eel_scale: [5, 5, 6, 8], verdigris_plate: [1, 1, 1, 2], labyrinth_essence: [1, 1, 2, 2]}
   verdigris_guard_helm:  # 녹청 수문 투구 · 투구 · 정예
-    low:  {brine_pearl: [2, 2, 2]}
-    mid:  {brine_pearl: [2, 4, 4], verdigris_plate: [1, 1, 2]}
+    low:  {brine_pearl: [3, 3, 3]}
+    mid:  {brine_pearl: [3, 4, 4], verdigris_plate: [1, 1, 2]}
     high: {brine_pearl: [4, 5, 5, 6], verdigris_plate: [1, 1, 1, 2], labyrinth_essence: [1, 1, 2, 2]}
   osric_sluice_helm:  # 오스릭의 수문 투구 · 투구 · 보스 고유
-    low:  {brine_pearl: [2, 2, 2]}
-    mid:  {brine_pearl: [2, 4, 4], verdigris_plate: [1, 1, 2]}
-    high: {brine_pearl: [4, 5, 5, 6], verdigris_plate: [1, 1, 1, 2], floodgate_key: [0, 0, 1, 1]}
+    low:  {brine_pearl: [3, 3, 3]}
+    mid:  {brine_pearl: [3, 4, 4], verdigris_plate: [1, 1, 2]}
+    high: {brine_pearl: [4, 5, 5, 6], verdigris_plate: [1, 1, 1, 2], labyrinth_essence: [1, 1, 0, 0], floodgate_key: [0, 0, 1, 1]}
   verdigris_guard_chest:  # 녹청 수문 흉갑 · 흉갑 · 정예
-    low:  {eel_scale: [2, 2, 2]}
-    mid:  {eel_scale: [2, 4, 4], verdigris_plate: [1, 1, 2]}
+    low:  {eel_scale: [3, 3, 3]}
+    mid:  {eel_scale: [3, 4, 4], verdigris_plate: [1, 1, 2]}
     high: {eel_scale: [4, 5, 5, 6], verdigris_plate: [1, 1, 1, 2], labyrinth_essence: [1, 1, 2, 2]}
   verdigris_guard_legs:  # 녹청 수문 각반 · 하의 · 정예
-    low:  {brine_pearl: [2, 2, 2]}
-    mid:  {brine_pearl: [2, 4, 4], labyrinth_essence: [2, 2, 3]}
+    low:  {brine_pearl: [3, 3, 3]}
+    mid:  {brine_pearl: [3, 4, 4], labyrinth_essence: [2, 2, 3]}
     high: {brine_pearl: [4, 5, 5, 6], labyrinth_essence: [2, 2, 3, 3], verdigris_plate: [1, 1, 1, 2]}
   verdigris_guard_boots:  # 녹청 수문 철장화 · 신발 · 정예
-    low:  {eel_scale: [2, 2, 2]}
-    mid:  {eel_scale: [2, 4, 4], labyrinth_essence: [2, 2, 3]}
+    low:  {eel_scale: [3, 3, 3]}
+    mid:  {eel_scale: [3, 4, 4], labyrinth_essence: [2, 2, 3]}
     high: {eel_scale: [4, 5, 5, 6], labyrinth_essence: [2, 2, 3, 3], verdigris_plate: [1, 1, 1, 2]}
   verdigris_tower_shield:  # 녹청 탑 방패 · 방패 · 정예
-    low:  {eel_scale: [2, 4, 4]}
+    low:  {eel_scale: [3, 4, 4]}
     mid:  {eel_scale: [4, 5, 5], verdigris_plate: [1, 1, 2]}
     high: {eel_scale: [5, 6, 6, 8], verdigris_plate: [1, 1, 1, 2], radiant_essence: [1, 1, 1, 1]}
 
   # ════ 지하 5층 — 단단 슬래그 주괴 · 부드러움 불씨 조각 · 정예 집행관의 칼날 · 정수 미궁 정수 · 핵 용광로 핵 ════
   emberforge_warhammer:  # 잿불 단조 망치 · 검방 · 몬스터·상자
-    low:  {slag_ingot: [2, 2, 4]}
+    low:  {slag_ingot: [3, 3, 4]}
     mid:  {slag_ingot: [4, 4, 5], executioner_edge: [1, 1, 2]}
     high: {slag_ingot: [5, 5, 6, 8], executioner_edge: [1, 1, 1, 2], labyrinth_essence: [1, 1, 2, 2]}
   anvil_oath_broadsword:  # 모루 서약 넓은검 · 검방 · 대장간
-    low:  {slag_ingot: [2, 2, 4]}
+    low:  {slag_ingot: [3, 3, 4]}
     mid:  {slag_ingot: [4, 4, 5], labyrinth_essence: [2, 2, 3]}
     high: {slag_ingot: [5, 5, 6, 8], labyrinth_essence: [2, 2, 3, 3], executioner_edge: [1, 1, 1, 2]}
   dawnbringer:  # 여명을 맹세한 검 · 검방 · 보스 고유
-    low:  {slag_ingot: [2, 2, 4]}
+    low:  {slag_ingot: [3, 3, 4]}
     mid:  {slag_ingot: [4, 4, 5], executioner_edge: [1, 1, 2]}
-    high: {slag_ingot: [5, 5, 6, 8], executioner_edge: [1, 1, 1, 2], forge_core: [0, 0, 1, 1]}
+    high: {slag_ingot: [5, 5, 6, 8], executioner_edge: [1, 1, 1, 2], labyrinth_essence: [1, 1, 0, 0], forge_core: [0, 0, 1, 1]}
   cinderdrake_glaive:  # 잿불 용 언월도 · 대검 · 몬스터·상자
-    low:  {slag_ingot: [2, 2, 4]}
+    low:  {slag_ingot: [3, 3, 4]}
     mid:  {slag_ingot: [4, 4, 5], labyrinth_essence: [2, 2, 3]}
     high: {slag_ingot: [5, 5, 6, 8], labyrinth_essence: [2, 2, 3, 3], executioner_edge: [1, 1, 1, 2]}
   slagforged_greatsword:  # 슬래그 단조 대검 · 대검 · 대장간
-    low:  {slag_ingot: [2, 2, 4]}
+    low:  {slag_ingot: [3, 3, 4]}
     mid:  {slag_ingot: [4, 4, 5], executioner_edge: [1, 1, 2]}
     high: {slag_ingot: [5, 5, 6, 8], executioner_edge: [1, 1, 1, 2], radiant_essence: [1, 1, 1, 1]}
   ember_greatsword:  # 잿불 대검 · 대검 · 보스 고유
-    low:  {slag_ingot: [2, 2, 4]}
+    low:  {slag_ingot: [3, 3, 4]}
     mid:  {slag_ingot: [4, 4, 5], labyrinth_essence: [2, 2, 3]}
-    high: {slag_ingot: [5, 5, 6, 8], labyrinth_essence: [2, 2, 3, 3], forge_core: [0, 0, 1, 1]}
+    high: {slag_ingot: [5, 5, 6, 8], labyrinth_essence: [2, 2, 3, 3], executioner_edge: [1, 1, 0, 0], forge_core: [0, 0, 1, 1]}
   slagedge_bladebow:  # 슬래그 날활 · 활 · 몬스터·상자
-    low:  {ember_shard: [2, 2, 4]}
+    low:  {ember_shard: [3, 3, 4]}
     mid:  {ember_shard: [4, 4, 5], executioner_edge: [1, 1, 2]}
     high: {ember_shard: [5, 5, 6, 8], executioner_edge: [1, 1, 1, 2], labyrinth_essence: [1, 1, 2, 2]}
   bellows_composite_bow:  # 풀무 복합궁 · 활 · 대장간
-    low:  {ember_shard: [2, 2, 4]}
+    low:  {ember_shard: [3, 3, 4]}
     mid:  {ember_shard: [4, 4, 5], labyrinth_essence: [2, 2, 3]}
     high: {ember_shard: [5, 5, 6, 8], labyrinth_essence: [2, 2, 3, 3], executioner_edge: [1, 1, 1, 2]}
   cinder_spiral_staff:  # 불씨 소용돌이 지팡이 · 지팡이 · 몬스터·상자
-    low:  {ember_shard: [2, 2, 4]}
+    low:  {ember_shard: [3, 3, 4]}
     mid:  {ember_shard: [4, 4, 5], labyrinth_essence: [2, 2, 3]}
     high: {ember_shard: [5, 5, 6, 8], labyrinth_essence: [2, 2, 3, 3], executioner_edge: [1, 1, 1, 2]}
   cinder_crystal_staff:  # 불씨 수정 지팡이 · 지팡이 · 대장간
-    low:  {ember_shard: [2, 2, 4]}
+    low:  {ember_shard: [3, 3, 4]}
     mid:  {ember_shard: [4, 4, 5], executioner_edge: [1, 1, 2]}
     high: {ember_shard: [5, 5, 6, 8], executioner_edge: [1, 1, 1, 2], radiant_essence: [1, 1, 1, 1]}
   crucible_chalice:  # 도가니 성배 · 홀 · 몬스터·상자
-    low:  {ember_shard: [2, 2, 4]}
+    low:  {ember_shard: [3, 3, 4]}
     mid:  {ember_shard: [4, 4, 5], executioner_edge: [1, 1, 2]}
     high: {ember_shard: [5, 5, 6, 8], executioner_edge: [1, 1, 1, 2], radiant_essence: [1, 1, 1, 1]}
   embersong_scepter:  # 불씨노래 홀 · 홀 · 대장간
-    low:  {ember_shard: [2, 2, 4]}
+    low:  {ember_shard: [3, 3, 4]}
     mid:  {ember_shard: [4, 4, 5], executioner_edge: [1, 1, 2]}
     high: {ember_shard: [5, 5, 6, 8], executioner_edge: [1, 1, 1, 2], labyrinth_essence: [1, 1, 2, 2]}
   slag_katar:  # 슬래그 주먹칼 · 단검 · 몬스터·상자
-    low:  {slag_ingot: [2, 2, 4]}
+    low:  {slag_ingot: [3, 3, 4]}
     mid:  {slag_ingot: [4, 4, 5], executioner_edge: [1, 1, 2]}
     high: {slag_ingot: [5, 5, 6, 8], executioner_edge: [1, 1, 1, 2], radiant_essence: [1, 1, 1, 1]}
   cinder_fang:  # 불씨 송곳니 · 단검 · 대장간
-    low:  {slag_ingot: [2, 2, 4]}
+    low:  {slag_ingot: [3, 3, 4]}
     mid:  {slag_ingot: [4, 4, 5], executioner_edge: [1, 1, 2]}
     high: {slag_ingot: [5, 5, 6, 8], executioner_edge: [1, 1, 1, 2], labyrinth_essence: [1, 1, 2, 2]}
   emberforged_helm:  # 불씨 단조 투구 · 투구 · 정예
-    low:  {ember_shard: [2, 2, 2]}
-    mid:  {ember_shard: [2, 4, 4], executioner_edge: [1, 1, 2]}
+    low:  {ember_shard: [3, 3, 3]}
+    mid:  {ember_shard: [3, 4, 4], executioner_edge: [1, 1, 2]}
     high: {ember_shard: [4, 5, 5, 6], executioner_edge: [1, 1, 1, 2], labyrinth_essence: [1, 1, 2, 2]}
   forge_warden_helm:  # 용광로 수문장 투구 · 투구 · 보스 고유
-    low:  {ember_shard: [2, 2, 2]}
-    mid:  {ember_shard: [2, 4, 4], executioner_edge: [1, 1, 2]}
-    high: {ember_shard: [4, 5, 5, 6], executioner_edge: [1, 1, 1, 2], forge_core: [0, 0, 1, 1]}
+    low:  {ember_shard: [3, 3, 3]}
+    mid:  {ember_shard: [3, 4, 4], executioner_edge: [1, 1, 2]}
+    high: {ember_shard: [4, 5, 5, 6], executioner_edge: [1, 1, 1, 2], labyrinth_essence: [1, 1, 0, 0], forge_core: [0, 0, 1, 1]}
   emberforged_chest:  # 불씨 단조 흉갑 · 흉갑 · 정예
-    low:  {slag_ingot: [2, 2, 2]}
-    mid:  {slag_ingot: [2, 4, 4], executioner_edge: [1, 1, 2]}
+    low:  {slag_ingot: [3, 3, 3]}
+    mid:  {slag_ingot: [3, 4, 4], executioner_edge: [1, 1, 2]}
     high: {slag_ingot: [4, 5, 5, 6], executioner_edge: [1, 1, 1, 2], labyrinth_essence: [1, 1, 2, 2]}
   forge_warden_chest:  # 용광로 수문장 흉갑 · 흉갑 · 보스 고유
-    low:  {slag_ingot: [2, 2, 2]}
-    mid:  {slag_ingot: [2, 4, 4], executioner_edge: [1, 1, 2]}
-    high: {slag_ingot: [4, 5, 5, 6], executioner_edge: [1, 1, 1, 2], forge_core: [0, 0, 1, 1]}
+    low:  {slag_ingot: [3, 3, 3]}
+    mid:  {slag_ingot: [3, 4, 4], executioner_edge: [1, 1, 2]}
+    high: {slag_ingot: [4, 5, 5, 6], executioner_edge: [1, 1, 1, 2], labyrinth_essence: [1, 1, 0, 0], forge_core: [0, 0, 1, 1]}
   emberforged_legs:  # 불씨 단조 각반 · 하의 · 정예
-    low:  {ember_shard: [2, 2, 2]}
-    mid:  {ember_shard: [2, 4, 4], labyrinth_essence: [2, 2, 3]}
+    low:  {ember_shard: [3, 3, 3]}
+    mid:  {ember_shard: [3, 4, 4], labyrinth_essence: [2, 2, 3]}
     high: {ember_shard: [4, 5, 5, 6], labyrinth_essence: [2, 2, 3, 3], executioner_edge: [1, 1, 1, 2]}
   forge_warden_legs:  # 용광로 수문장 각반 · 하의 · 보스 고유
-    low:  {ember_shard: [2, 2, 2]}
-    mid:  {ember_shard: [2, 4, 4], labyrinth_essence: [2, 2, 3]}
-    high: {ember_shard: [4, 5, 5, 6], labyrinth_essence: [2, 2, 3, 3], forge_core: [0, 0, 1, 1]}
+    low:  {ember_shard: [3, 3, 3]}
+    mid:  {ember_shard: [3, 4, 4], labyrinth_essence: [2, 2, 3]}
+    high: {ember_shard: [4, 5, 5, 6], labyrinth_essence: [2, 2, 3, 3], executioner_edge: [1, 1, 0, 0], forge_core: [0, 0, 1, 1]}
   emberforged_boots:  # 불씨 단조 철장화 · 신발 · 정예
-    low:  {slag_ingot: [2, 2, 2]}
-    mid:  {slag_ingot: [2, 4, 4], labyrinth_essence: [2, 2, 3]}
+    low:  {slag_ingot: [3, 3, 3]}
+    mid:  {slag_ingot: [3, 4, 4], labyrinth_essence: [2, 2, 3]}
     high: {slag_ingot: [4, 5, 5, 6], labyrinth_essence: [2, 2, 3, 3], executioner_edge: [1, 1, 1, 2]}
   forge_warden_boots:  # 용광로 수문장 철장화 · 신발 · 보스 고유
-    low:  {slag_ingot: [2, 2, 2]}
-    mid:  {slag_ingot: [2, 4, 4], labyrinth_essence: [2, 2, 3]}
-    high: {slag_ingot: [4, 5, 5, 6], labyrinth_essence: [2, 2, 3, 3], forge_core: [0, 0, 1, 1]}
+    low:  {slag_ingot: [3, 3, 3]}
+    mid:  {slag_ingot: [3, 4, 4], labyrinth_essence: [2, 2, 3]}
+    high: {slag_ingot: [4, 5, 5, 6], labyrinth_essence: [2, 2, 3, 3], executioner_edge: [1, 1, 0, 0], forge_core: [0, 0, 1, 1]}
   anvil_face_shield:  # 모룻면 방패 · 방패 · 정예
-    low:  {slag_ingot: [2, 4, 4]}
+    low:  {slag_ingot: [3, 4, 4]}
     mid:  {slag_ingot: [4, 5, 5], executioner_edge: [1, 1, 2]}
     high: {slag_ingot: [5, 6, 6, 8], executioner_edge: [1, 1, 1, 2], radiant_essence: [1, 1, 1, 1]}
 
   # ════ 지하 6층 — 단단 묘지 뼈 · 부드러움 서리 결정 · 정예 장송종 파편 · 정수 미궁 정수 · 핵 얼음관 조각 ════
   frostgrave_mace:  # 서리 묘지기의 철퇴 · 검방 · 몬스터·상자
-    low:  {grave_bone: [2, 2, 4]}
+    low:  {grave_bone: [3, 3, 4]}
     mid:  {grave_bone: [4, 4, 5], funeral_bell_shard: [1, 1, 2]}
     high: {grave_bone: [5, 5, 6, 8], funeral_bell_shard: [1, 1, 1, 2], labyrinth_essence: [1, 1, 2, 2]}
   rime_reaper_scythe:  # 서리 수확자의 큰낫 · 대검 · 몬스터·상자
-    low:  {grave_bone: [2, 2, 4]}
+    low:  {grave_bone: [3, 3, 4]}
     mid:  {grave_bone: [4, 4, 5], labyrinth_essence: [2, 2, 3]}
     high: {grave_bone: [5, 5, 6, 8], labyrinth_essence: [2, 2, 3, 3], funeral_bell_shard: [1, 1, 1, 2]}
   frostbone_longbow:  # 얼음뼈 장궁 · 활 · 몬스터·상자
-    low:  {rime_crystal: [2, 2, 4]}
+    low:  {rime_crystal: [3, 3, 4]}
     mid:  {rime_crystal: [4, 4, 5], funeral_bell_shard: [1, 1, 2]}
     high: {rime_crystal: [5, 5, 6, 8], funeral_bell_shard: [1, 1, 1, 2], labyrinth_essence: [1, 1, 2, 2]}
   rimebell_staff:  # 서리방울 고리 지팡이 · 지팡이 · 몬스터·상자
-    low:  {rime_crystal: [2, 2, 4]}
+    low:  {rime_crystal: [3, 3, 4]}
     mid:  {rime_crystal: [4, 4, 5], labyrinth_essence: [2, 2, 3]}
     high: {rime_crystal: [5, 5, 6, 8], labyrinth_essence: [2, 2, 3, 3], funeral_bell_shard: [1, 1, 1, 2]}
   rimeheart_staff:  # 서리심장 지팡이 · 지팡이 · 보스 고유
-    low:  {rime_crystal: [2, 2, 4]}
+    low:  {rime_crystal: [3, 3, 4]}
     mid:  {rime_crystal: [4, 4, 5], labyrinth_essence: [2, 2, 3]}
-    high: {rime_crystal: [5, 5, 6, 8], labyrinth_essence: [2, 2, 3, 3], frozen_crown_shard: [0, 0, 1, 1]}
+    high: {rime_crystal: [5, 5, 6, 8], labyrinth_essence: [2, 2, 3, 3], funeral_bell_shard: [1, 1, 0, 0], frozen_crown_shard: [0, 0, 1, 1]}
   frost_vigil_censer:  # 서리 철야 향로 · 홀 · 몬스터·상자
-    low:  {rime_crystal: [2, 2, 4]}
+    low:  {rime_crystal: [3, 3, 4]}
     mid:  {rime_crystal: [4, 4, 5], funeral_bell_shard: [1, 1, 2]}
     high: {rime_crystal: [5, 5, 6, 8], funeral_bell_shard: [1, 1, 1, 2], radiant_essence: [1, 1, 1, 1]}
   sanctum_scepter:  # 성역의 홀 · 홀 · 보스 고유
-    low:  {rime_crystal: [2, 2, 4]}
+    low:  {rime_crystal: [3, 3, 4]}
     mid:  {rime_crystal: [4, 4, 5], funeral_bell_shard: [1, 1, 2]}
-    high: {rime_crystal: [5, 5, 6, 8], funeral_bell_shard: [1, 1, 1, 2], frozen_crown_shard: [0, 0, 1, 1]}
+    high: {rime_crystal: [5, 5, 6, 8], funeral_bell_shard: [1, 1, 1, 2], labyrinth_essence: [1, 1, 0, 0], frozen_crown_shard: [0, 0, 1, 1]}
   gravefrost_katar:  # 묘역 서리 주먹칼 · 단검 · 몬스터·상자
-    low:  {grave_bone: [2, 2, 4]}
+    low:  {grave_bone: [3, 3, 4]}
     mid:  {grave_bone: [4, 4, 5], funeral_bell_shard: [1, 1, 2]}
     high: {grave_bone: [5, 5, 6, 8], funeral_bell_shard: [1, 1, 1, 2], radiant_essence: [1, 1, 1, 1]}
   soulflame_kris:  # 혼불 물결검 · 단검 · 보스 고유
-    low:  {grave_bone: [2, 2, 4]}
+    low:  {grave_bone: [3, 3, 4]}
     mid:  {grave_bone: [4, 4, 5], funeral_bell_shard: [1, 1, 2]}
-    high: {grave_bone: [5, 5, 6, 8], funeral_bell_shard: [1, 1, 1, 2], frozen_crown_shard: [0, 0, 1, 1]}
+    high: {grave_bone: [5, 5, 6, 8], funeral_bell_shard: [1, 1, 1, 2], labyrinth_essence: [1, 1, 0, 0], frozen_crown_shard: [0, 0, 1, 1]}
   crypt_mourner_helm:  # 애도자의 면사 두건 · 투구 · 정예
-    low:  {rime_crystal: [2, 2, 2]}
-    mid:  {rime_crystal: [2, 4, 4], funeral_bell_shard: [1, 1, 2]}
+    low:  {rime_crystal: [3, 3, 3]}
+    mid:  {rime_crystal: [3, 4, 4], funeral_bell_shard: [1, 1, 2]}
     high: {rime_crystal: [4, 5, 5, 6], funeral_bell_shard: [1, 1, 1, 2], labyrinth_essence: [1, 1, 2, 2]}
   rimefang_helm:  # 서리송곳니 가면 · 투구 · 정예
-    low:  {rime_crystal: [2, 2, 2]}
-    mid:  {rime_crystal: [2, 4, 4], labyrinth_essence: [2, 2, 3]}
+    low:  {rime_crystal: [3, 3, 3]}
+    mid:  {rime_crystal: [3, 4, 4], labyrinth_essence: [2, 2, 3]}
     high: {rime_crystal: [4, 5, 5, 6], labyrinth_essence: [2, 2, 3, 3], funeral_bell_shard: [1, 1, 1, 2]}
   frost_regalia_helm:  # 얼음관의 왕관 · 투구 · 보스 고유
-    low:  {rime_crystal: [2, 2, 2]}
-    mid:  {rime_crystal: [2, 4, 4], funeral_bell_shard: [1, 1, 2]}
-    high: {rime_crystal: [4, 5, 5, 6], funeral_bell_shard: [1, 1, 1, 2], frozen_crown_shard: [0, 0, 1, 1]}
+    low:  {rime_crystal: [3, 3, 3]}
+    mid:  {rime_crystal: [3, 4, 4], funeral_bell_shard: [1, 1, 2]}
+    high: {rime_crystal: [4, 5, 5, 6], funeral_bell_shard: [1, 1, 1, 2], labyrinth_essence: [1, 1, 0, 0], frozen_crown_shard: [0, 0, 1, 1]}
   crypt_mourner_chest:  # 애도자의 상복 · 흉갑 · 정예
-    low:  {grave_bone: [2, 2, 2]}
-    mid:  {grave_bone: [2, 4, 4], funeral_bell_shard: [1, 1, 2]}
+    low:  {grave_bone: [3, 3, 3]}
+    mid:  {grave_bone: [3, 4, 4], funeral_bell_shard: [1, 1, 2]}
     high: {grave_bone: [4, 5, 5, 6], funeral_bell_shard: [1, 1, 1, 2], labyrinth_essence: [1, 1, 2, 2]}
   rimefang_chest:  # 서리송곳니 조끼 · 흉갑 · 정예
-    low:  {grave_bone: [2, 2, 2]}
-    mid:  {grave_bone: [2, 4, 4], labyrinth_essence: [2, 2, 3]}
+    low:  {grave_bone: [3, 3, 3]}
+    mid:  {grave_bone: [3, 4, 4], labyrinth_essence: [2, 2, 3]}
     high: {grave_bone: [4, 5, 5, 6], labyrinth_essence: [2, 2, 3, 3], funeral_bell_shard: [1, 1, 1, 2]}
   frost_regalia_chest:  # 얼음관의 예복 · 흉갑 · 보스 고유
-    low:  {grave_bone: [2, 2, 2]}
-    mid:  {grave_bone: [2, 4, 4], funeral_bell_shard: [1, 1, 2]}
-    high: {grave_bone: [4, 5, 5, 6], funeral_bell_shard: [1, 1, 1, 2], frozen_crown_shard: [0, 0, 1, 1]}
+    low:  {grave_bone: [3, 3, 3]}
+    mid:  {grave_bone: [3, 4, 4], funeral_bell_shard: [1, 1, 2]}
+    high: {grave_bone: [4, 5, 5, 6], funeral_bell_shard: [1, 1, 1, 2], labyrinth_essence: [1, 1, 0, 0], frozen_crown_shard: [0, 0, 1, 1]}
   crypt_mourner_legs:  # 애도자의 하의 · 하의 · 정예
-    low:  {rime_crystal: [2, 2, 2]}
-    mid:  {rime_crystal: [2, 4, 4], labyrinth_essence: [2, 2, 3]}
+    low:  {rime_crystal: [3, 3, 3]}
+    mid:  {rime_crystal: [3, 4, 4], labyrinth_essence: [2, 2, 3]}
     high: {rime_crystal: [4, 5, 5, 6], labyrinth_essence: [2, 2, 3, 3], funeral_bell_shard: [1, 1, 1, 2]}
   rimefang_legs:  # 서리송곳니 바지 · 하의 · 정예
-    low:  {rime_crystal: [2, 2, 2]}
-    mid:  {rime_crystal: [2, 4, 4], funeral_bell_shard: [1, 1, 2]}
+    low:  {rime_crystal: [3, 3, 3]}
+    mid:  {rime_crystal: [3, 4, 4], funeral_bell_shard: [1, 1, 2]}
     high: {rime_crystal: [4, 5, 5, 6], funeral_bell_shard: [1, 1, 1, 2], radiant_essence: [1, 1, 1, 1]}
   frost_regalia_legs:  # 얼음관의 치맛자락 · 하의 · 보스 고유
-    low:  {rime_crystal: [2, 2, 2]}
-    mid:  {rime_crystal: [2, 4, 4], labyrinth_essence: [2, 2, 3]}
-    high: {rime_crystal: [4, 5, 5, 6], labyrinth_essence: [2, 2, 3, 3], frozen_crown_shard: [0, 0, 1, 1]}
+    low:  {rime_crystal: [3, 3, 3]}
+    mid:  {rime_crystal: [3, 4, 4], labyrinth_essence: [2, 2, 3]}
+    high: {rime_crystal: [4, 5, 5, 6], labyrinth_essence: [2, 2, 3, 3], funeral_bell_shard: [1, 1, 0, 0], frozen_crown_shard: [0, 0, 1, 1]}
   crypt_mourner_boots:  # 애도자의 신발 · 신발 · 정예
-    low:  {grave_bone: [2, 2, 2]}
-    mid:  {grave_bone: [2, 4, 4], labyrinth_essence: [2, 2, 3]}
+    low:  {grave_bone: [3, 3, 3]}
+    mid:  {grave_bone: [3, 4, 4], labyrinth_essence: [2, 2, 3]}
     high: {grave_bone: [4, 5, 5, 6], labyrinth_essence: [2, 2, 3, 3], funeral_bell_shard: [1, 1, 1, 2]}
   rimefang_boots:  # 서리송곳니 장화 · 신발 · 정예
-    low:  {grave_bone: [2, 2, 2]}
-    mid:  {grave_bone: [2, 4, 4], funeral_bell_shard: [1, 1, 2]}
+    low:  {grave_bone: [3, 3, 3]}
+    mid:  {grave_bone: [3, 4, 4], funeral_bell_shard: [1, 1, 2]}
     high: {grave_bone: [4, 5, 5, 6], funeral_bell_shard: [1, 1, 1, 2], radiant_essence: [1, 1, 1, 1]}
   frost_regalia_boots:  # 얼음관의 신 · 신발 · 보스 고유
-    low:  {grave_bone: [2, 2, 2]}
-    mid:  {grave_bone: [2, 4, 4], labyrinth_essence: [2, 2, 3]}
-    high: {grave_bone: [4, 5, 5, 6], labyrinth_essence: [2, 2, 3, 3], frozen_crown_shard: [0, 0, 1, 1]}
+    low:  {grave_bone: [3, 3, 3]}
+    mid:  {grave_bone: [3, 4, 4], labyrinth_essence: [2, 2, 3]}
+    high: {grave_bone: [4, 5, 5, 6], labyrinth_essence: [2, 2, 3, 3], funeral_bell_shard: [1, 1, 0, 0], frozen_crown_shard: [0, 0, 1, 1]}
   frostgrave_tower_shield:  # 서리 묘비 방패 · 방패 · 정예
-    low:  {grave_bone: [2, 4, 4]}
+    low:  {grave_bone: [3, 4, 4]}
     mid:  {grave_bone: [4, 5, 5], funeral_bell_shard: [1, 1, 2]}
     high: {grave_bone: [5, 6, 6, 8], funeral_bell_shard: [1, 1, 1, 2], radiant_essence: [1, 1, 1, 1]}
 
   # ════ 지하 7층 — 단단 자수정 파편 · 부드러움 프리즘 가루 · 정예 조율 소리굽쇠 · 정수 찬란한 미궁 정수 · 핵 양극의 심장 ════
   resonant_longsword:  # 공명 수정 장검 · 검방 · 몬스터·상자
-    low:  {amethyst_shard: [3, 3, 4]}
-    mid:  {amethyst_shard: [4, 4, 6], tuning_fork_core: [1, 1, 2]}
+    low:  {amethyst_shard: [3, 3, 5]}
+    mid:  {amethyst_shard: [5, 5, 6], tuning_fork_core: [1, 1, 2]}
     high: {amethyst_shard: [6, 6, 8, 9], tuning_fork_core: [1, 1, 1, 2], radiant_essence: [1, 1, 2, 2]}
   amethyst_falchion:  # 자수정 팔시온 · 검방 · 대장간
-    low:  {amethyst_shard: [3, 3, 4]}
-    mid:  {amethyst_shard: [4, 4, 6], radiant_essence: [2, 2, 3]}
+    low:  {amethyst_shard: [3, 3, 5]}
+    mid:  {amethyst_shard: [5, 5, 6], radiant_essence: [2, 2, 3]}
     high: {amethyst_shard: [6, 6, 8, 9], radiant_essence: [2, 2, 3, 3], tuning_fork_core: [1, 1, 1, 2]}
   amethyst_cleaver:  # 자수정 참마도 · 대검 · 몬스터·상자
-    low:  {amethyst_shard: [3, 3, 4]}
-    mid:  {amethyst_shard: [4, 4, 6], radiant_essence: [2, 2, 3]}
+    low:  {amethyst_shard: [3, 3, 5]}
+    mid:  {amethyst_shard: [5, 5, 6], radiant_essence: [2, 2, 3]}
     high: {amethyst_shard: [6, 6, 8, 9], radiant_essence: [2, 2, 3, 3], tuning_fork_core: [1, 1, 1, 2]}
   geode_scythe:  # 정동 큰낫 · 대검 · 대장간
-    low:  {amethyst_shard: [3, 3, 4]}
-    mid:  {amethyst_shard: [4, 4, 6], tuning_fork_core: [1, 1, 2]}
+    low:  {amethyst_shard: [3, 3, 5]}
+    mid:  {amethyst_shard: [5, 5, 6], tuning_fork_core: [1, 1, 2]}
     high: {amethyst_shard: [6, 6, 8, 9], tuning_fork_core: [1, 1, 1, 2], primordial_essence: [1, 1, 1, 1]}
   geode_sunderer:  # 정동 파쇄 도끼 · 대검 · 보스 고유
-    low:  {amethyst_shard: [3, 3, 4]}
-    mid:  {amethyst_shard: [4, 4, 6], radiant_essence: [2, 2, 3]}
-    high: {amethyst_shard: [6, 6, 8, 9], radiant_essence: [2, 2, 3, 3], dyad_heart: [0, 0, 1, 1]}
+    low:  {amethyst_shard: [3, 3, 5]}
+    mid:  {amethyst_shard: [5, 5, 6], radiant_essence: [2, 2, 3]}
+    high: {amethyst_shard: [6, 6, 8, 9], radiant_essence: [2, 2, 3, 3], tuning_fork_core: [1, 1, 0, 0], dyad_heart: [0, 0, 1, 1]}
   prismstring_longbow:  # 프리즘 시위 장궁 · 활 · 몬스터·상자
-    low:  {prism_dust: [2, 2, 4]}
+    low:  {prism_dust: [3, 3, 4]}
     mid:  {prism_dust: [4, 4, 5], tuning_fork_core: [1, 1, 2]}
     high: {prism_dust: [5, 5, 6, 8], tuning_fork_core: [1, 1, 1, 2], radiant_essence: [1, 1, 2, 2]}
   prism_hornbow:  # 프리즘 각궁 · 활 · 대장간
-    low:  {prism_dust: [2, 2, 4]}
+    low:  {prism_dust: [3, 3, 4]}
     mid:  {prism_dust: [4, 4, 5], radiant_essence: [2, 2, 3]}
     high: {prism_dust: [5, 5, 6, 8], radiant_essence: [2, 2, 3, 3], tuning_fork_core: [1, 1, 1, 2]}
   galewing_bow:  # 질풍 날개 활 · 활 · 보스 고유
-    low:  {prism_dust: [2, 2, 4]}
+    low:  {prism_dust: [3, 3, 4]}
     mid:  {prism_dust: [4, 4, 5], tuning_fork_core: [1, 1, 2]}
-    high: {prism_dust: [5, 5, 6, 8], tuning_fork_core: [1, 1, 1, 2], dyad_heart: [0, 0, 1, 1]}
+    high: {prism_dust: [5, 5, 6, 8], tuning_fork_core: [1, 1, 1, 2], radiant_essence: [1, 1, 0, 0], dyad_heart: [0, 0, 1, 1]}
   resonance_staff:  # 공명 고리 지팡이 · 지팡이 · 몬스터·상자
-    low:  {prism_dust: [2, 2, 4]}
+    low:  {prism_dust: [3, 3, 4]}
     mid:  {prism_dust: [4, 4, 5], radiant_essence: [2, 2, 3]}
     high: {prism_dust: [5, 5, 6, 8], radiant_essence: [2, 2, 3, 3], tuning_fork_core: [1, 1, 1, 2]}
   resonant_fork_staff:  # 공명 소리굽쇠 지팡이 · 지팡이 · 대장간
-    low:  {prism_dust: [2, 2, 4]}
+    low:  {prism_dust: [3, 3, 4]}
     mid:  {prism_dust: [4, 4, 5], tuning_fork_core: [1, 1, 2]}
     high: {prism_dust: [5, 5, 6, 8], tuning_fork_core: [1, 1, 1, 2], primordial_essence: [1, 1, 1, 1]}
   prism_censer:  # 프리즘 향로 · 홀 · 몬스터·상자
-    low:  {prism_dust: [2, 2, 4]}
+    low:  {prism_dust: [3, 3, 4]}
     mid:  {prism_dust: [4, 4, 5], tuning_fork_core: [1, 1, 2]}
     high: {prism_dust: [5, 5, 6, 8], tuning_fork_core: [1, 1, 1, 2], primordial_essence: [1, 1, 1, 1]}
   crystal_bell_scepter:  # 수정 종 홀 · 홀 · 대장간
-    low:  {prism_dust: [2, 2, 4]}
+    low:  {prism_dust: [3, 3, 4]}
     mid:  {prism_dust: [4, 4, 5], tuning_fork_core: [1, 1, 2]}
     high: {prism_dust: [5, 5, 6, 8], tuning_fork_core: [1, 1, 1, 2], radiant_essence: [1, 1, 2, 2]}
   twin_light_scepter:  # 양극광 홀 · 홀 · 보스 고유
-    low:  {prism_dust: [2, 2, 4]}
+    low:  {prism_dust: [3, 3, 4]}
     mid:  {prism_dust: [4, 4, 5], tuning_fork_core: [1, 1, 2]}
-    high: {prism_dust: [5, 5, 6, 8], tuning_fork_core: [1, 1, 1, 2], dyad_heart: [0, 0, 1, 1]}
+    high: {prism_dust: [5, 5, 6, 8], tuning_fork_core: [1, 1, 1, 2], radiant_essence: [1, 1, 0, 0], dyad_heart: [0, 0, 1, 1]}
   shardglass_dagger:  # 파편유리 단검 · 단검 · 몬스터·상자
-    low:  {amethyst_shard: [3, 3, 4]}
-    mid:  {amethyst_shard: [4, 4, 6], tuning_fork_core: [1, 1, 2]}
+    low:  {amethyst_shard: [3, 3, 5]}
+    mid:  {amethyst_shard: [5, 5, 6], tuning_fork_core: [1, 1, 2]}
     high: {amethyst_shard: [6, 6, 8, 9], tuning_fork_core: [1, 1, 1, 2], primordial_essence: [1, 1, 1, 1]}
   shardglass_sickle:  # 파편유리 낫 · 단검 · 대장간
-    low:  {amethyst_shard: [3, 3, 4]}
-    mid:  {amethyst_shard: [4, 4, 6], tuning_fork_core: [1, 1, 2]}
+    low:  {amethyst_shard: [3, 3, 5]}
+    mid:  {amethyst_shard: [5, 5, 6], tuning_fork_core: [1, 1, 2]}
     high: {amethyst_shard: [6, 6, 8, 9], tuning_fork_core: [1, 1, 1, 2], radiant_essence: [1, 1, 2, 2]}
   geode_bastion_helm:  # 정동 성채 투구 · 투구 · 정예
-    low:  {prism_dust: [2, 2, 2]}
-    mid:  {prism_dust: [2, 4, 4], tuning_fork_core: [1, 1, 2]}
+    low:  {prism_dust: [3, 3, 3]}
+    mid:  {prism_dust: [3, 4, 4], tuning_fork_core: [1, 1, 2]}
     high: {prism_dust: [4, 5, 5, 6], tuning_fork_core: [1, 1, 1, 2], radiant_essence: [1, 1, 2, 2]}
   shard_dancer_helm:  # 파편 무희의 가면 · 투구 · 정예
-    low:  {prism_dust: [2, 2, 2]}
-    mid:  {prism_dust: [2, 4, 4], radiant_essence: [2, 2, 3]}
+    low:  {prism_dust: [3, 3, 3]}
+    mid:  {prism_dust: [3, 4, 4], radiant_essence: [2, 2, 3]}
     high: {prism_dust: [4, 5, 5, 6], radiant_essence: [2, 2, 3, 3], tuning_fork_core: [1, 1, 1, 2]}
   geode_bastion_chest:  # 정동 성채 흉갑 · 흉갑 · 정예
     low:  {amethyst_shard: [3, 3, 3]}
-    mid:  {amethyst_shard: [3, 4, 4], tuning_fork_core: [1, 1, 2]}
-    high: {amethyst_shard: [4, 6, 6, 8], tuning_fork_core: [1, 1, 1, 2], radiant_essence: [1, 1, 2, 2]}
+    mid:  {amethyst_shard: [3, 5, 5], tuning_fork_core: [1, 1, 2]}
+    high: {amethyst_shard: [5, 6, 6, 8], tuning_fork_core: [1, 1, 1, 2], radiant_essence: [1, 1, 2, 2]}
   shard_dancer_chest:  # 파편 무희의 조끼 · 흉갑 · 정예
     low:  {amethyst_shard: [3, 3, 3]}
-    mid:  {amethyst_shard: [3, 4, 4], radiant_essence: [2, 2, 3]}
-    high: {amethyst_shard: [4, 6, 6, 8], radiant_essence: [2, 2, 3, 3], tuning_fork_core: [1, 1, 1, 2]}
+    mid:  {amethyst_shard: [3, 5, 5], radiant_essence: [2, 2, 3]}
+    high: {amethyst_shard: [5, 6, 6, 8], radiant_essence: [2, 2, 3, 3], tuning_fork_core: [1, 1, 1, 2]}
   geode_bastion_legs:  # 정동 성채 각반 · 하의 · 정예
-    low:  {prism_dust: [2, 2, 2]}
-    mid:  {prism_dust: [2, 4, 4], radiant_essence: [2, 2, 3]}
+    low:  {prism_dust: [3, 3, 3]}
+    mid:  {prism_dust: [3, 4, 4], radiant_essence: [2, 2, 3]}
     high: {prism_dust: [4, 5, 5, 6], radiant_essence: [2, 2, 3, 3], tuning_fork_core: [1, 1, 1, 2]}
   shard_dancer_legs:  # 파편 무희의 바지 · 하의 · 정예
-    low:  {prism_dust: [2, 2, 2]}
-    mid:  {prism_dust: [2, 4, 4], tuning_fork_core: [1, 1, 2]}
+    low:  {prism_dust: [3, 3, 3]}
+    mid:  {prism_dust: [3, 4, 4], tuning_fork_core: [1, 1, 2]}
     high: {prism_dust: [4, 5, 5, 6], tuning_fork_core: [1, 1, 1, 2], primordial_essence: [1, 1, 1, 1]}
   geode_bastion_boots:  # 정동 성채 철장화 · 신발 · 정예
     low:  {amethyst_shard: [3, 3, 3]}
-    mid:  {amethyst_shard: [3, 4, 4], radiant_essence: [2, 2, 3]}
-    high: {amethyst_shard: [4, 6, 6, 8], radiant_essence: [2, 2, 3, 3], tuning_fork_core: [1, 1, 1, 2]}
+    mid:  {amethyst_shard: [3, 5, 5], radiant_essence: [2, 2, 3]}
+    high: {amethyst_shard: [5, 6, 6, 8], radiant_essence: [2, 2, 3, 3], tuning_fork_core: [1, 1, 1, 2]}
   shard_dancer_boots:  # 파편 무희의 장화 · 신발 · 정예
     low:  {amethyst_shard: [3, 3, 3]}
-    mid:  {amethyst_shard: [3, 4, 4], tuning_fork_core: [1, 1, 2]}
-    high: {amethyst_shard: [4, 6, 6, 8], tuning_fork_core: [1, 1, 1, 2], primordial_essence: [1, 1, 1, 1]}
+    mid:  {amethyst_shard: [3, 5, 5], tuning_fork_core: [1, 1, 2]}
+    high: {amethyst_shard: [5, 6, 6, 8], tuning_fork_core: [1, 1, 1, 2], primordial_essence: [1, 1, 1, 1]}
   prism_aegis:  # 양극의 아이기스 · 방패 · 보스 고유
-    low:  {amethyst_shard: [3, 4, 4]}
-    mid:  {amethyst_shard: [4, 6, 6], tuning_fork_core: [1, 1, 2]}
-    high: {amethyst_shard: [6, 8, 8, 9], tuning_fork_core: [1, 1, 1, 2], dyad_heart: [0, 0, 1, 1]}
+    low:  {amethyst_shard: [3, 5, 5]}
+    mid:  {amethyst_shard: [5, 6, 6], tuning_fork_core: [1, 1, 2]}
+    high: {amethyst_shard: [6, 8, 8, 9], tuning_fork_core: [1, 1, 1, 2], radiant_essence: [1, 1, 0, 0], dyad_heart: [0, 0, 1, 1]}
 
   # ════ 지하 8층 — 단단 바랜 책장 · 부드러움 먹물 정수 · 정예 금서의 봉인 · 정수 찬란한 미궁 정수 · 핵 사서의 깃펜 ════
   inkseal_warhammer:  # 금서 봉인 망치 · 검방 · 몬스터·상자
-    low:  {old_page: [3, 3, 4]}
-    mid:  {old_page: [4, 4, 6], forbidden_seal: [1, 1, 2]}
+    low:  {old_page: [3, 3, 5]}
+    mid:  {old_page: [5, 5, 6], forbidden_seal: [1, 1, 2]}
     high: {old_page: [6, 6, 8, 9], forbidden_seal: [1, 1, 1, 2], radiant_essence: [1, 1, 2, 2]}
   index_keeper_sword:  # 색인 수호자의 넓은검 · 검방 · 보스 고유
-    low:  {old_page: [3, 3, 4]}
-    mid:  {old_page: [4, 4, 6], forbidden_seal: [1, 1, 2]}
-    high: {old_page: [6, 6, 8, 9], forbidden_seal: [1, 1, 1, 2], librarian_quill: [0, 0, 1, 1]}
+    low:  {old_page: [3, 3, 5]}
+    mid:  {old_page: [5, 5, 6], forbidden_seal: [1, 1, 2]}
+    high: {old_page: [6, 6, 8, 9], forbidden_seal: [1, 1, 1, 2], radiant_essence: [1, 1, 0, 0], librarian_quill: [0, 0, 1, 1]}
   lore_glaive:  # 금서 언월도 · 대검 · 몬스터·상자
-    low:  {old_page: [3, 3, 4]}
-    mid:  {old_page: [4, 4, 6], radiant_essence: [2, 2, 3]}
+    low:  {old_page: [3, 3, 5]}
+    mid:  {old_page: [5, 5, 6], radiant_essence: [2, 2, 3]}
     high: {old_page: [6, 6, 8, 9], radiant_essence: [2, 2, 3, 3], forbidden_seal: [1, 1, 1, 2]}
   inkquill_hornbow:  # 깃펜 각궁 · 활 · 몬스터·상자
     low:  {ink_essence: [4, 4, 5]}
     mid:  {ink_essence: [5, 5, 7], forbidden_seal: [1, 1, 2]}
-    high: {ink_essence: [7, 7, 9, 10], forbidden_seal: [1, 1, 1, 2], radiant_essence: [1, 1, 2, 2]}
+    high: {ink_essence: [7, 7, 9, 11], forbidden_seal: [1, 1, 1, 2], radiant_essence: [1, 1, 2, 2]}
   ink_spiral_staff:  # 먹물 소용돌이 지팡이 · 지팡이 · 몬스터·상자
     low:  {ink_essence: [4, 4, 5]}
     mid:  {ink_essence: [5, 5, 7], radiant_essence: [2, 2, 3]}
-    high: {ink_essence: [7, 7, 9, 10], radiant_essence: [2, 2, 3, 3], forbidden_seal: [1, 1, 1, 2]}
+    high: {ink_essence: [7, 7, 9, 11], radiant_essence: [2, 2, 3, 3], forbidden_seal: [1, 1, 1, 2]}
   inkwell_staff:  # 먹물 서고 지팡이 · 지팡이 · 보스 고유
     low:  {ink_essence: [4, 4, 5]}
     mid:  {ink_essence: [5, 5, 7], radiant_essence: [2, 2, 3]}
-    high: {ink_essence: [7, 7, 9, 10], radiant_essence: [2, 2, 3, 3], librarian_quill: [0, 0, 1, 1]}
+    high: {ink_essence: [7, 7, 9, 11], radiant_essence: [2, 2, 3, 3], forbidden_seal: [1, 1, 0, 0], librarian_quill: [0, 0, 1, 1]}
   ink_chalice:  # 먹물 잔 홀 · 홀 · 몬스터·상자
     low:  {ink_essence: [4, 4, 5]}
     mid:  {ink_essence: [5, 5, 7], forbidden_seal: [1, 1, 2]}
-    high: {ink_essence: [7, 7, 9, 10], forbidden_seal: [1, 1, 1, 2], primordial_essence: [1, 1, 1, 1]}
+    high: {ink_essence: [7, 7, 9, 11], forbidden_seal: [1, 1, 1, 2], primordial_essence: [1, 1, 1, 1]}
   lorekeeper_katar:  # 금서지기의 주먹칼 · 단검 · 몬스터·상자
-    low:  {old_page: [3, 3, 4]}
-    mid:  {old_page: [4, 4, 6], forbidden_seal: [1, 1, 2]}
+    low:  {old_page: [3, 3, 5]}
+    mid:  {old_page: [5, 5, 6], forbidden_seal: [1, 1, 2]}
     high: {old_page: [6, 6, 8, 9], forbidden_seal: [1, 1, 1, 2], primordial_essence: [1, 1, 1, 1]}
   nightshade_dagger:  # 야음 단검 · 단검 · 보스 고유
-    low:  {old_page: [3, 3, 4]}
-    mid:  {old_page: [4, 4, 6], forbidden_seal: [1, 1, 2]}
-    high: {old_page: [6, 6, 8, 9], forbidden_seal: [1, 1, 1, 2], librarian_quill: [0, 0, 1, 1]}
+    low:  {old_page: [3, 3, 5]}
+    mid:  {old_page: [5, 5, 6], forbidden_seal: [1, 1, 2]}
+    high: {old_page: [6, 6, 8, 9], forbidden_seal: [1, 1, 1, 2], radiant_essence: [1, 1, 0, 0], librarian_quill: [0, 0, 1, 1]}
   lorekeeper_helm:  # 서고지기의 머리띠 · 투구 · 정예
     low:  {ink_essence: [4, 4, 4]}
     mid:  {ink_essence: [4, 5, 5], forbidden_seal: [1, 1, 2]}
@@ -798,15 +800,15 @@ items:
   inkveil_helm:  # 먹물 장막 가면 · 투구 · 보스 고유
     low:  {ink_essence: [4, 4, 4]}
     mid:  {ink_essence: [4, 5, 5], forbidden_seal: [1, 1, 2]}
-    high: {ink_essence: [5, 7, 7, 9], forbidden_seal: [1, 1, 1, 2], librarian_quill: [0, 0, 1, 1]}
+    high: {ink_essence: [5, 7, 7, 9], forbidden_seal: [1, 1, 1, 2], radiant_essence: [1, 1, 0, 0], librarian_quill: [0, 0, 1, 1]}
   lorekeeper_chest:  # 서고지기의 예복 · 흉갑 · 정예
     low:  {old_page: [3, 3, 3]}
-    mid:  {old_page: [3, 4, 4], forbidden_seal: [1, 1, 2]}
-    high: {old_page: [4, 6, 6, 8], forbidden_seal: [1, 1, 1, 2], radiant_essence: [1, 1, 2, 2]}
+    mid:  {old_page: [3, 5, 5], forbidden_seal: [1, 1, 2]}
+    high: {old_page: [5, 6, 6, 8], forbidden_seal: [1, 1, 1, 2], radiant_essence: [1, 1, 2, 2]}
   inkveil_chest:  # 먹물 장막 외투 · 흉갑 · 보스 고유
     low:  {old_page: [3, 3, 3]}
-    mid:  {old_page: [3, 4, 4], forbidden_seal: [1, 1, 2]}
-    high: {old_page: [4, 6, 6, 8], forbidden_seal: [1, 1, 1, 2], librarian_quill: [0, 0, 1, 1]}
+    mid:  {old_page: [3, 5, 5], forbidden_seal: [1, 1, 2]}
+    high: {old_page: [5, 6, 6, 8], forbidden_seal: [1, 1, 1, 2], radiant_essence: [1, 1, 0, 0], librarian_quill: [0, 0, 1, 1]}
   lorekeeper_legs:  # 서고지기의 하의 · 하의 · 정예
     low:  {ink_essence: [4, 4, 4]}
     mid:  {ink_essence: [4, 5, 5], radiant_essence: [2, 2, 3]}
@@ -814,18 +816,18 @@ items:
   inkveil_legs:  # 먹물 장막 바지 · 하의 · 보스 고유
     low:  {ink_essence: [4, 4, 4]}
     mid:  {ink_essence: [4, 5, 5], radiant_essence: [2, 2, 3]}
-    high: {ink_essence: [5, 7, 7, 9], radiant_essence: [2, 2, 3, 3], librarian_quill: [0, 0, 1, 1]}
+    high: {ink_essence: [5, 7, 7, 9], radiant_essence: [2, 2, 3, 3], forbidden_seal: [1, 1, 0, 0], librarian_quill: [0, 0, 1, 1]}
   lorekeeper_boots:  # 서고지기의 신발 · 신발 · 정예
     low:  {old_page: [3, 3, 3]}
-    mid:  {old_page: [3, 4, 4], radiant_essence: [2, 2, 3]}
-    high: {old_page: [4, 6, 6, 8], radiant_essence: [2, 2, 3, 3], forbidden_seal: [1, 1, 1, 2]}
+    mid:  {old_page: [3, 5, 5], radiant_essence: [2, 2, 3]}
+    high: {old_page: [5, 6, 6, 8], radiant_essence: [2, 2, 3, 3], forbidden_seal: [1, 1, 1, 2]}
   inkveil_boots:  # 먹물 장막 장화 · 신발 · 보스 고유
     low:  {old_page: [3, 3, 3]}
-    mid:  {old_page: [3, 4, 4], radiant_essence: [2, 2, 3]}
-    high: {old_page: [4, 6, 6, 8], radiant_essence: [2, 2, 3, 3], librarian_quill: [0, 0, 1, 1]}
+    mid:  {old_page: [3, 5, 5], radiant_essence: [2, 2, 3]}
+    high: {old_page: [5, 6, 6, 8], radiant_essence: [2, 2, 3, 3], forbidden_seal: [1, 1, 0, 0], librarian_quill: [0, 0, 1, 1]}
   inkbound_kite_shield:  # 먹물 장정 연 방패 · 방패 · 정예
-    low:  {old_page: [3, 4, 4]}
-    mid:  {old_page: [4, 6, 6], forbidden_seal: [1, 1, 2]}
+    low:  {old_page: [3, 5, 5]}
+    mid:  {old_page: [5, 6, 6], forbidden_seal: [1, 1, 2]}
     high: {old_page: [6, 8, 8, 9], forbidden_seal: [1, 1, 1, 2], primordial_essence: [1, 1, 1, 1]}
 
   # ════ 지하 9층 — 단단 놋쇠 톱니 · 부드러움 태엽 용수철 · 정예 조속 진자 · 정수 태고의 미궁 정수 · 핵 태엽 심장 ════
@@ -840,26 +842,26 @@ items:
   doomclock_executioner:  # 종말시계 단두도끼 · 대검 · 보스 고유
     low:  {brass_gear: [4, 4, 6]}
     mid:  {brass_gear: [6, 6, 8], primordial_essence: [2, 2, 3]}
-    high: {brass_gear: [8, 8, 10, 12], primordial_essence: [2, 2, 3, 3], clockwork_heart: [0, 0, 1, 1]}
+    high: {brass_gear: [8, 8, 10, 12], primordial_essence: [2, 2, 3, 3], regulator_pendulum: [1, 1, 0, 0], clockwork_heart: [0, 0, 1, 1]}
   springloaded_bow:  # 용수철 연발궁 · 활 · 몬스터·상자
-    low:  {mainspring: [3, 3, 4]}
-    mid:  {mainspring: [4, 4, 6], regulator_pendulum: [1, 1, 2]}
+    low:  {mainspring: [3, 3, 5]}
+    mid:  {mainspring: [5, 5, 6], regulator_pendulum: [1, 1, 2]}
     high: {mainspring: [6, 6, 8, 9], regulator_pendulum: [1, 1, 1, 2], primordial_essence: [1, 1, 2, 2]}
   quicksilver_longbow:  # 수은 장궁 · 활 · 보스 고유
-    low:  {mainspring: [3, 3, 4]}
-    mid:  {mainspring: [4, 4, 6], regulator_pendulum: [1, 1, 2]}
-    high: {mainspring: [6, 6, 8, 9], regulator_pendulum: [1, 1, 1, 2], clockwork_heart: [0, 0, 1, 1]}
+    low:  {mainspring: [3, 3, 5]}
+    mid:  {mainspring: [5, 5, 6], regulator_pendulum: [1, 1, 2]}
+    high: {mainspring: [6, 6, 8, 9], regulator_pendulum: [1, 1, 1, 2], primordial_essence: [1, 1, 0, 0], clockwork_heart: [0, 0, 1, 1]}
   orrery_staff:  # 태엽 천구 지팡이 · 지팡이 · 몬스터·상자
-    low:  {mainspring: [3, 3, 4]}
-    mid:  {mainspring: [4, 4, 6], primordial_essence: [2, 2, 3]}
+    low:  {mainspring: [3, 3, 5]}
+    mid:  {mainspring: [5, 5, 6], primordial_essence: [2, 2, 3]}
     high: {mainspring: [6, 6, 8, 9], primordial_essence: [2, 2, 3, 3], regulator_pendulum: [1, 1, 1, 2]}
   tesla_coil_staff:  # 전격 코일 지팡이 · 지팡이 · 보스 고유
-    low:  {mainspring: [3, 3, 4]}
-    mid:  {mainspring: [4, 4, 6], primordial_essence: [2, 2, 3]}
-    high: {mainspring: [6, 6, 8, 9], primordial_essence: [2, 2, 3, 3], clockwork_heart: [0, 0, 1, 1]}
+    low:  {mainspring: [3, 3, 5]}
+    mid:  {mainspring: [5, 5, 6], primordial_essence: [2, 2, 3]}
+    high: {mainspring: [6, 6, 8, 9], primordial_essence: [2, 2, 3, 3], regulator_pendulum: [1, 1, 0, 0], clockwork_heart: [0, 0, 1, 1]}
   pendulum_censer:  # 진자 향로 · 홀 · 몬스터·상자
-    low:  {mainspring: [3, 3, 4]}
-    mid:  {mainspring: [4, 4, 6], regulator_pendulum: [1, 1, 2]}
+    low:  {mainspring: [3, 3, 5]}
+    mid:  {mainspring: [5, 5, 6], regulator_pendulum: [1, 1, 2]}
     high: {mainspring: [6, 6, 8, 9], regulator_pendulum: [1, 1, 1, 2], primordial_essence: [1, 1, 2, 2]}
   mainspring_dagger:  # 태엽 단검 · 단검 · 몬스터·상자
     low:  {brass_gear: [4, 4, 6]}
@@ -867,16 +869,16 @@ items:
     high: {brass_gear: [8, 8, 10, 12], regulator_pendulum: [1, 1, 1, 2], primordial_essence: [1, 1, 2, 2]}
   clockwork_juggernaut_helm:  # 태엽 거신 투구 · 투구 · 정예
     low:  {mainspring: [3, 3, 3]}
-    mid:  {mainspring: [3, 4, 4], regulator_pendulum: [1, 1, 2]}
-    high: {mainspring: [4, 6, 6, 8], regulator_pendulum: [1, 1, 1, 2], primordial_essence: [1, 1, 2, 2]}
+    mid:  {mainspring: [3, 5, 5], regulator_pendulum: [1, 1, 2]}
+    high: {mainspring: [5, 6, 6, 8], regulator_pendulum: [1, 1, 1, 2], primordial_essence: [1, 1, 2, 2]}
   clockwork_juggernaut_chest:  # 태엽 거신 흉갑 · 흉갑 · 정예
     low:  {brass_gear: [4, 4, 4]}
     mid:  {brass_gear: [4, 6, 6], regulator_pendulum: [1, 1, 2]}
     high: {brass_gear: [6, 8, 8, 10], regulator_pendulum: [1, 1, 1, 2], primordial_essence: [1, 1, 2, 2]}
   clockwork_juggernaut_legs:  # 태엽 거신 각반 · 하의 · 정예
     low:  {mainspring: [3, 3, 3]}
-    mid:  {mainspring: [3, 4, 4], primordial_essence: [2, 2, 3]}
-    high: {mainspring: [4, 6, 6, 8], primordial_essence: [2, 2, 3, 3], regulator_pendulum: [1, 1, 1, 2]}
+    mid:  {mainspring: [3, 5, 5], primordial_essence: [2, 2, 3]}
+    high: {mainspring: [5, 6, 6, 8], primordial_essence: [2, 2, 3, 3], regulator_pendulum: [1, 1, 1, 2]}
   clockwork_juggernaut_boots:  # 태엽 거신 철장화 · 신발 · 정예
     low:  {brass_gear: [4, 4, 4]}
     mid:  {brass_gear: [4, 6, 6], primordial_essence: [2, 2, 3]}
@@ -884,29 +886,29 @@ items:
   clockwork_bastion:  # 태엽 성벽 방패 · 방패 · 보스 고유
     low:  {brass_gear: [4, 6, 6]}
     mid:  {brass_gear: [6, 8, 8], regulator_pendulum: [1, 1, 2]}
-    high: {brass_gear: [8, 10, 10, 12], regulator_pendulum: [1, 1, 1, 2], clockwork_heart: [0, 0, 1, 1]}
+    high: {brass_gear: [8, 10, 10, 12], regulator_pendulum: [1, 1, 1, 2], primordial_essence: [1, 1, 0, 0], clockwork_heart: [0, 0, 1, 1]}
 
   # ════ 지하 10층 — 단단 스컬크 촉수 · 부드러움 심연의 체액 · 정예 문지기의 룬 · 정수 태고의 미궁 정수 · 핵 심연 심장 파편 ════
   void_falchion:  # 공허 팔시온 · 검방 · 몬스터·상자
     low:  {sculk_tendril: [4, 4, 5]}
     mid:  {sculk_tendril: [5, 5, 7], gatekeeper_rune: [1, 1, 2]}
-    high: {sculk_tendril: [7, 7, 9, 10], gatekeeper_rune: [1, 1, 1, 2], primordial_essence: [1, 1, 2, 2]}
+    high: {sculk_tendril: [7, 7, 9, 11], gatekeeper_rune: [1, 1, 1, 2], primordial_essence: [1, 1, 2, 2]}
   abyss_sentinel_longsword:  # 심연 파수검 · 검방 · 보스 고유
     low:  {sculk_tendril: [4, 4, 5]}
     mid:  {sculk_tendril: [5, 5, 7], gatekeeper_rune: [1, 1, 2]}
-    high: {sculk_tendril: [7, 7, 9, 10], gatekeeper_rune: [1, 1, 1, 2], abyssal_heart_fragment: [0, 0, 1, 1]}
+    high: {sculk_tendril: [7, 7, 9, 11], gatekeeper_rune: [1, 1, 1, 2], primordial_essence: [1, 1, 0, 0], abyssal_heart_fragment: [0, 0, 1, 1]}
   celestial_oathkeeper:  # 천궁의 맹세수호검 · 검방 · 보스 고유
     low:  {sculk_tendril: [4, 4, 5]}
     mid:  {sculk_tendril: [5, 5, 7], primordial_essence: [2, 2, 3]}
-    high: {sculk_tendril: [7, 7, 9, 10], primordial_essence: [2, 2, 3, 3], abyssal_heart_fragment: [0, 0, 1, 1]}
+    high: {sculk_tendril: [7, 7, 9, 11], primordial_essence: [2, 2, 3, 3], gatekeeper_rune: [1, 1, 0, 0], abyssal_heart_fragment: [0, 0, 1, 1]}
   void_scythe:  # 공허의 큰낫 · 대검 · 몬스터·상자
     low:  {sculk_tendril: [4, 4, 5]}
     mid:  {sculk_tendril: [5, 5, 7], primordial_essence: [2, 2, 3]}
-    high: {sculk_tendril: [7, 7, 9, 10], primordial_essence: [2, 2, 3, 3], gatekeeper_rune: [1, 1, 1, 2]}
+    high: {sculk_tendril: [7, 7, 9, 11], primordial_essence: [2, 2, 3, 3], gatekeeper_rune: [1, 1, 1, 2]}
   bloodmoon_reaver:  # 혈월의 수확자 · 대검 · 보스 고유
     low:  {sculk_tendril: [4, 4, 5]}
     mid:  {sculk_tendril: [5, 5, 7], primordial_essence: [2, 2, 3]}
-    high: {sculk_tendril: [7, 7, 9, 10], primordial_essence: [2, 2, 3, 3], abyssal_heart_fragment: [0, 0, 1, 1]}
+    high: {sculk_tendril: [7, 7, 9, 11], primordial_essence: [2, 2, 3, 3], gatekeeper_rune: [1, 1, 0, 0], abyssal_heart_fragment: [0, 0, 1, 1]}
   abyss_bladebow:  # 심연 날활 · 활 · 몬스터·상자
     low:  {abyss_ichor: [4, 4, 6]}
     mid:  {abyss_ichor: [6, 6, 8], gatekeeper_rune: [1, 1, 2]}
@@ -914,7 +916,7 @@ items:
   tempest_bow:  # 폭풍의 눈 · 활 · 보스 고유
     low:  {abyss_ichor: [4, 4, 6]}
     mid:  {abyss_ichor: [6, 6, 8], gatekeeper_rune: [1, 1, 2]}
-    high: {abyss_ichor: [8, 8, 10, 12], gatekeeper_rune: [1, 1, 1, 2], abyssal_heart_fragment: [0, 0, 1, 1]}
+    high: {abyss_ichor: [8, 8, 10, 12], gatekeeper_rune: [1, 1, 1, 2], primordial_essence: [1, 1, 0, 0], abyssal_heart_fragment: [0, 0, 1, 1]}
   void_fork_staff:  # 공허 갈래 지팡이 · 지팡이 · 몬스터·상자
     low:  {abyss_ichor: [4, 4, 6]}
     mid:  {abyss_ichor: [6, 6, 8], primordial_essence: [2, 2, 3]}
@@ -922,7 +924,7 @@ items:
   voidheart_staff:  # 공허의 심장 지팡이 · 지팡이 · 보스 고유
     low:  {abyss_ichor: [4, 4, 6]}
     mid:  {abyss_ichor: [6, 6, 8], primordial_essence: [2, 2, 3]}
-    high: {abyss_ichor: [8, 8, 10, 12], primordial_essence: [2, 2, 3, 3], abyssal_heart_fragment: [0, 0, 1, 1]}
+    high: {abyss_ichor: [8, 8, 10, 12], primordial_essence: [2, 2, 3, 3], gatekeeper_rune: [1, 1, 0, 0], abyssal_heart_fragment: [0, 0, 1, 1]}
   abyss_bell_scepter:  # 심연 울림종 홀 · 홀 · 몬스터·상자
     low:  {abyss_ichor: [4, 4, 6]}
     mid:  {abyss_ichor: [6, 6, 8], gatekeeper_rune: [1, 1, 2]}
@@ -930,23 +932,23 @@ items:
   aurora_scepter:  # 오로라 성광 홀 · 홀 · 보스 고유
     low:  {abyss_ichor: [4, 4, 6]}
     mid:  {abyss_ichor: [6, 6, 8], gatekeeper_rune: [1, 1, 2]}
-    high: {abyss_ichor: [8, 8, 10, 12], gatekeeper_rune: [1, 1, 1, 2], abyssal_heart_fragment: [0, 0, 1, 1]}
+    high: {abyss_ichor: [8, 8, 10, 12], gatekeeper_rune: [1, 1, 1, 2], primordial_essence: [1, 1, 0, 0], abyssal_heart_fragment: [0, 0, 1, 1]}
   seraph_scepter:  # 치천사의 홀 · 홀 · 보스 고유
     low:  {abyss_ichor: [4, 4, 6]}
     mid:  {abyss_ichor: [6, 6, 8], primordial_essence: [2, 2, 3]}
-    high: {abyss_ichor: [8, 8, 10, 12], primordial_essence: [2, 2, 3, 3], abyssal_heart_fragment: [0, 0, 1, 1]}
+    high: {abyss_ichor: [8, 8, 10, 12], primordial_essence: [2, 2, 3, 3], gatekeeper_rune: [1, 1, 0, 0], abyssal_heart_fragment: [0, 0, 1, 1]}
   abyss_sickle:  # 심연 낫 · 단검 · 몬스터·상자
     low:  {sculk_tendril: [4, 4, 5]}
     mid:  {sculk_tendril: [5, 5, 7], gatekeeper_rune: [1, 1, 2]}
-    high: {sculk_tendril: [7, 7, 9, 10], gatekeeper_rune: [1, 1, 1, 2], primordial_essence: [1, 1, 2, 2]}
+    high: {sculk_tendril: [7, 7, 9, 11], gatekeeper_rune: [1, 1, 1, 2], primordial_essence: [1, 1, 2, 2]}
   eclipse_blade:  # 일식의 칼날 · 단검 · 보스 고유
     low:  {sculk_tendril: [4, 4, 5]}
     mid:  {sculk_tendril: [5, 5, 7], primordial_essence: [2, 2, 3]}
-    high: {sculk_tendril: [7, 7, 9, 10], primordial_essence: [2, 2, 3, 3], abyssal_heart_fragment: [0, 0, 1, 1]}
+    high: {sculk_tendril: [7, 7, 9, 11], primordial_essence: [2, 2, 3, 3], gatekeeper_rune: [1, 1, 0, 0], abyssal_heart_fragment: [0, 0, 1, 1]}
   viper_fang:  # 독사의 송곳니 · 단검 · 보스 고유
     low:  {sculk_tendril: [4, 4, 5]}
     mid:  {sculk_tendril: [5, 5, 7], gatekeeper_rune: [1, 1, 2]}
-    high: {sculk_tendril: [7, 7, 9, 10], gatekeeper_rune: [1, 1, 1, 2], abyssal_heart_fragment: [0, 0, 1, 1]}
+    high: {sculk_tendril: [7, 7, 9, 11], gatekeeper_rune: [1, 1, 1, 2], primordial_essence: [1, 1, 0, 0], abyssal_heart_fragment: [0, 0, 1, 1]}
   abyss_walker_helm:  # 심연 보행자 두건 · 투구 · 정예
     low:  {abyss_ichor: [4, 4, 4]}
     mid:  {abyss_ichor: [4, 6, 6], gatekeeper_rune: [1, 1, 2]}
@@ -986,4 +988,4 @@ items:
   void_bulwark_shield:  # 공허의 방벽 · 방패 · 정예
     low:  {sculk_tendril: [4, 5, 5]}
     mid:  {sculk_tendril: [5, 7, 7], gatekeeper_rune: [1, 1, 2]}
-    high: {sculk_tendril: [7, 9, 9, 10], gatekeeper_rune: [1, 1, 1, 2], primordial_essence: [1, 1, 2, 2]}
+    high: {sculk_tendril: [7, 9, 9, 11], gatekeeper_rune: [1, 1, 1, 2], primordial_essence: [1, 1, 2, 2]}

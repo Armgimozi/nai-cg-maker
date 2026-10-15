@@ -25,21 +25,26 @@ import org.bukkit.inventory.PlayerInventory;
  * 아이템을 그 자리에서 고친다(아이템이 창에 머물지 않으니 닫기·튕김으로 잃어버릴 일이 없다).
  * <pre>
  *  4 규칙 · 11 장비 칸 → 13 성공 확률 → 15 [강화] · 22 실패하면
- *  비용 줄: 28 골드 · 29 강화석 · 30~32 그 장비 재료(enhance.yml, 최대 3종 — 보유/필요 ✔/✘) · 33 보호 주문서(켜기/끄기)
+ *  비용 줄(4번째 줄): 골드 · 강화석 · 그 장비 재료(enhance.yml, 3칸 — 보유/필요 ✔/✘) · 보호 주문서(켜기/끄기)
+ *    — 자리는 {@link EnhanceLayout}: 배경 소켓(glyphs.yml menus.enhance.slots)을 따른다.
+ *      예전 배경(소켓 29·31·33) = 29 골드 · 31 강화석 · 33 주문서 · 재료 30 · 32 · 28, 글리프 끔 = 28 · 29 · 30~32 · 33
  *  37~42 착용 장비 · 43 도움말 · 45 대장간으로 · 49 보유 골드 · 53 닫기
  * </pre>
+ * [강화] 버튼 설명에는 언제나(강화할 수 없을 때도) 골드와 비용 줄 전부가 나온다 — 모자란 것(✘)이 먼저.
  */
 final class EnhanceMenu extends Menu {
 
-    private static final int S_RULES = 4, S_GEAR = 11, S_CHANCE = 13, S_GO = 15, S_FAIL = 22, S_GOLD = 28, S_STONE = 29,
-            S_SCROLL = 33, S_HELP = 43, S_BACK = 45, S_PURSE = 49, S_CLOSE = 53;
-    /** 그 장비 재료 칸 (강화석 오른쪽, enhance.yml 순서). 더 많으면 [강화] 버튼 설명에 전부 나온다. */
-    private static final int[] S_MATS = {30, 31, 32};
+    private static final int S_RULES = 4, S_GEAR = 11, S_CHANCE = 13, S_GO = 15, S_FAIL = 22, S_HELP = 43, S_BACK = 45, S_PURSE = 49,
+            S_CLOSE = 53;
     private static final int[] EQUIP_SLOTS = {37, 38, 39, 40, 41, 42};
     private static final String[] EQUIP_NAMES = {"주손", "보조손(방패)", "투구", "흉갑", "각반", "장화"};
 
     private final Services services;
     private final EnhanceService enhance;
+    /** 비용 줄 칸 (골드 · 강화석 · 재료 · 주문서) — 배경 소켓에 맞춘 배치. */
+    private final int sGold, sStone, sScroll;
+    /** 그 장비 재료 칸 (enhance.yml 순서). 더 많으면 마지막 칸과 [강화] 버튼 설명에 전부 나온다. */
+    private final int[] sMats;
     /** 고른 칸 (플레이어 인벤토리 번호, -1 = 없음) + 고를 때의 사본(그 칸이 그대로인지 확인용). */
     private int slot = -1;
     private ItemStack snapshot;
@@ -50,6 +55,11 @@ final class EnhanceMenu extends Menu {
         super(6, UiTheme.title("enhance", 6, "<#f3e3bd>장비 강화 — 대장장이 두르간"));
         this.services = services;
         this.enhance = enhance;
+        EnhanceLayout layout = enhance.layout();
+        this.sGold = layout.gold();
+        this.sStone = layout.stone();
+        this.sScroll = layout.protection();
+        this.sMats = layout.materials();
         // 주손 장비가 강화할 수 있는 것이면 바로 골라 둔다
         int held = viewer.getInventory().getHeldItemSlot();
         ItemStack main = viewer.getInventory().getItem(held);
@@ -133,29 +143,31 @@ final class EnhanceMenu extends Menu {
         // 비용 · 확률
         if (plan == null || plan.problem() == EnhanceService.Problem.MAX_LEVEL) {
             String why = plan == null ? "장비를 고르면 보입니다" : "최대 단계 — 더 강화할 수 없습니다";
-            deco(S_GOLD, Button.icon(Material.GOLD_NUGGET, "<gray>골드", List.of("<dark_gray>" + why)));
-            deco(S_STONE, Button.icon(Material.AMETHYST_SHARD, "<gray>강화석", List.of("<dark_gray>" + why)));
-            deco(S_MATS[0], Button.icon(Material.BUNDLE, "<gray>장비 재료", List.of("<dark_gray>" + why,
+            deco(sGold, Button.icon(Material.GOLD_NUGGET, "<gray>골드", List.of("<dark_gray>" + why)));
+            deco(sStone, Button.icon(Material.AMETHYST_SHARD, "<gray>강화석", List.of("<dark_gray>" + why)));
+            deco(sMats[0], Button.icon(Material.BUNDLE, "<gray>장비 재료", List.of("<dark_gray>" + why,
                     "<dark_gray>장비마다 드는 재료가 다릅니다.")));
             deco(S_CHANCE, Button.icon(Material.GLASS_BOTTLE, "<gray>성공 확률", List.of("<dark_gray>" + why)));
             deco(S_FAIL, Button.icon(Material.GRAY_DYE, "<gray>실패하면", List.of("<dark_gray>" + why)));
         } else {
             boolean goldOk = d.gold() >= plan.gold();
-            deco(S_GOLD, Button.icon(Material.GOLD_INGOT, (goldOk ? "<#ffd27a>✔ " : "<#ff6b6b>✘ ") + "골드 " + Text.num(plan.gold()),
+            deco(sGold, Button.icon(Material.GOLD_INGOT, (goldOk ? "<#ffd27a>✔ " : "<#ff6b6b>✘ ") + "골드 " + Text.num(plan.gold()),
                     List.of("<gray>보유 " + (goldOk ? "<white>" : "<#ff6b6b>") + Text.num(d.gold()),
                             "<dark_gray>장비 레벨·희귀도·단계가 높을수록 비쌉니다.",
                             "<dark_gray>실패해도 돌려받지 못합니다.")));
             EnhanceCost.Check st = plan.stone();
-            if (st != null) deco(S_STONE, costIcon(st, Material.AMETHYST_SHARD, "#c890ff", stoneSourceText(st.line().item())));
+            if (st != null) deco(sStone, costIcon(st, Material.AMETHYST_SHARD, "#c890ff", stoneSourceText(st.line().item())));
             List<EnhanceCost.Check> mats = plan.materials();
-            for (int k = 0; k < S_MATS.length && k < mats.size(); k++) {
+            long hiddenMissing = mats.stream().skip(sMats.length).filter(h -> !h.ok()).count();
+            for (int k = 0; k < sMats.length && k < mats.size(); k++) {
                 EnhanceCost.Check c = mats.get(k);
-                String more = k == S_MATS.length - 1 && mats.size() > S_MATS.length
-                        ? "그 밖에 " + (mats.size() - S_MATS.length) + "종 — [강화] 버튼 설명 참고" : null;
-                deco(S_MATS[k], costIcon(c, Material.PAPER, "#e8d9b0", more != null ? more : materialSourceText(c.line().item())));
+                String more = k == sMats.length - 1 && mats.size() > sMats.length
+                        ? "그 밖에 " + (mats.size() - sMats.length) + "종" + (hiddenMissing > 0 ? " (" + hiddenMissing + "종 모자람)" : "")
+                                + " — [강화] 버튼 설명 참고" : null;
+                deco(sMats[k], costIcon(c, Material.PAPER, "#e8d9b0", more != null ? more : materialSourceText(c.line().item())));
             }
             if (mats.isEmpty()) {
-                deco(S_MATS[0], Button.icon(Material.LIGHT_GRAY_DYE, "<gray>장비 재료 없음",
+                deco(sMats[0], Button.icon(Material.LIGHT_GRAY_DYE, "<gray>장비 재료 없음",
                         List.of("<dark_gray>이 장비는 이 단계에 강화석·골드만 듭니다.")));
             }
             String pc = plan.chance() >= 0.999 ? "#7fe07f" : plan.chance() >= 0.5 ? "#c8e07f" : plan.chance() >= 0.3 ? "#ffd27a" : "#ff8a6b";
@@ -239,7 +251,7 @@ final class EnhanceMenu extends Menu {
         if (have > 0) icon.setAmount(Math.min(64, have));
         UiTheme.glint(icon, needed && protect && have > 0);
         final boolean toggle = needed && have > 0;
-        set(S_SCROLL, icon, ctx -> {
+        set(sScroll, icon, ctx -> {
             if (busy) return;
             if (!toggle) {
                 deny(ctx.player());
@@ -260,15 +272,23 @@ final class EnhanceMenu extends Menu {
             set(S_GO, Button.icon(Material.ANVIL, "<gray>[ 강화 ]", List.of("<dark_gray>먼저 장비를 고르세요.")), ctx -> deny(ctx.player()));
             return;
         }
+        long purse = services.data().get(viewer).gold();
         if (!plan.ok()) {
-            set(S_GO, Button.icon(Material.BARRIER, "<#ff6b6b>" + EnhanceService.message(plan.problem()), List.of()),
+            List<String> lore = new ArrayList<>();
+            if (plan.cost() != null) {
+                // 재료 칸이 모자라 다 못 보여 줄 때도 여기서 전부 보인다 — 모자란 것(✘) 먼저
+                lore.add("<gray>+" + plan.level() + " → +" + plan.target() + " · 성공 확률 <white>" + EnhanceRules.pct(plan.chance()));
+                lore.addAll(costLines(plan, purse, true));
+                lore.add("");
+                lore.add("<dark_gray>모두 갖추면 강화할 수 있습니다.");
+            }
+            set(S_GO, Button.icon(Material.BARRIER, "<#ff6b6b>" + EnhanceService.message(plan.problem()), lore),
                     ctx -> deny(ctx.player()));
             return;
         }
         List<String> lore = new ArrayList<>();
         lore.add("<gray>+" + plan.level() + " → <#ffd36b>+" + plan.target() + " <gray>· 성공 확률 <white>" + EnhanceRules.pct(plan.chance()));
-        lore.add("<gray>골드 <white>" + Text.num(plan.gold()));
-        for (EnhanceCost.Check c : plan.checks()) lore.add(checkLine(c));
+        lore.addAll(costLines(plan, purse, false));
         if (plan.downgrade()) {
             boolean guarded = protect && plan.haveScrolls() > 0;
             lore.add(guarded ? "<#7fd8ff>보호 주문서 사용 — 실패해도 내려가지 않음" : "<#ff8a8a>⚠ 실패하면 한 단계 내려갑니다");
@@ -393,6 +413,18 @@ final class EnhanceMenu extends Menu {
                         "<dark_gray>실패해도 돌려받지 못합니다."));
         icon.setAmount(Math.max(1, Math.min(64, c.line().amount())));
         return icon;
+    }
+
+    /** [강화] 버튼 설명의 비용 줄: 골드 + 강화석 + 장비 재료 (missingFirst = 모자란 ✘ 줄을 먼저). */
+    private List<String> costLines(EnhanceService.Plan plan, long purse, boolean missingFirst) {
+        boolean goldOk = purse >= plan.gold();
+        String gold = (goldOk ? "<#7fe07f>✔ <gray>" : "<#ff6b6b>✘ <gray>") + "골드 <white>" + Text.num(plan.gold())
+                + " <dark_gray>(보유 " + Text.num(purse) + ")";
+        List<String> bad = new ArrayList<>(), good = new ArrayList<>();
+        (goldOk || !missingFirst ? good : bad).add(gold);
+        for (EnhanceCost.Check c : plan.checks()) (c.ok() || !missingFirst ? good : bad).add(checkLine(c));
+        bad.addAll(good);
+        return bad;
     }
 
     /** [강화] 버튼 설명의 비용 한 줄 ("✔ 균사 실 ×3 (보유 5)"). */
