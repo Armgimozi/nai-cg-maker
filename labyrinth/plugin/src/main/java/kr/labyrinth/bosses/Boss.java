@@ -113,6 +113,8 @@ public abstract class Boss implements BossHandle {
     private long tauntUntil;
     private UUID targetId;
     private UUID lastDamager;
+    /** 이번 전투에서 플레이어별로 준 피해 합 (칭호: 파티 공동 위업은 가장 많이 때린 한 명이 받는다). */
+    private final Map<UUID, Double> damageBy = new HashMap<>();
 
     // 애니메이션·이동
     protected float bodyYaw;
@@ -1102,6 +1104,12 @@ public abstract class Boss implements BossHandle {
     }
 
     @Override
+    public Map<UUID, Double> damageByPlayer() { return Map.copyOf(damageBy); }
+
+    @Override
+    public UUID lastHitPlayer() { return lastDamager; }
+
+    @Override
     public void addThreat(Player player, double amount) {
         if (player == null || dead) return;
         threat.merge(player.getUniqueId(), amount, Double::sum);
@@ -1137,7 +1145,10 @@ public abstract class Boss implements BossHandle {
         hp -= dealt;
         hurtTick = now;
         Player attacker = dctx == null ? null : dctx.attackerPlayer();
-        if (attacker != null) lastDamager = attacker.getUniqueId();
+        if (attacker != null) {
+            lastDamager = attacker.getUniqueId();
+            damageBy.merge(lastDamager, dealt, Double::sum);
+        }
         if (now % 6 == 0) BossFx.sound(entity.getLocation(), def.sounds().str("hurt"), 0.9f, (float) def.sounds().dbl("pitch", 1.0));
         if (hp <= 0.0001) {
             hp = 0;

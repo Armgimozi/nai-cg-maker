@@ -1,5 +1,7 @@
 package kr.labyrinth.mobs;
 
+import java.util.Map;
+import java.util.UUID;
 import kr.labyrinth.combat.HealthPool;
 import kr.labyrinth.dungeon.InstanceContext;
 import org.bukkit.Location;
@@ -50,4 +52,13 @@ public interface CustomMob extends HealthPool {
 
     /** 처치 보상 배율 지정 (전투방 웨이브가 스폰 직후 기록). 지원하지 않는 구현은 무시. */
     default void rewardMultiplier(double mult) {}
+
+    /**
+     * 이번 전투에서 플레이어마다 이 몹에게 실제로 준 피해 합 (uuid → 피해). 칭호가 파티 공동 위업을 받을 한 명
+     * (가장 많이 때린 사람)을 고를 때 쓴다. 기록하지 않는 구현은 빈 맵 (보스만 기록한다).
+     */
+    default Map<UUID, Double> damageByPlayer() { return Map.of(); }
+
+    /** 마지막으로 피해를 준 플레이어 (모르면 null). */
+    default UUID lastHitPlayer() { return null; }
 }

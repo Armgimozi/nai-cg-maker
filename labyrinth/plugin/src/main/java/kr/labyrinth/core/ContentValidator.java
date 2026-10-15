@@ -568,6 +568,11 @@ public final class ContentValidator {
                 err(w, "TREASURE kind 가 올바르지 않음: " + cond.str("kind"));
             }
             for (String k : a.bonus().keySet()) if (!TITLE_BONUS_KEYS.contains(k)) err(w, "bonus 키가 올바르지 않음: " + k);
+            if (kr.labyrinth.titles.AchievementRules.CLEAR_TYPES.contains(a.conditionType()) && cond.integer("floor", 0) <= 0) {
+                err(w, "돌파 조건에 floor 가 없음");
+            }
+            if ("SPEED_CLEAR".equals(a.conditionType()) && cond.integer("seconds", 0) <= 0) err(w, "SPEED_CLEAR 에 seconds 가 없음");
+            if (a.description().isBlank()) warn(w, "lore(칭호 설명) 없음");
             for (String id : a.rewardItems().keySet()) requireItem(w + ".reward.items", id);
         }
     }

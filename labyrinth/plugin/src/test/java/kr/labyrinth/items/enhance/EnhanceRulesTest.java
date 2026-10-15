@@ -269,7 +269,7 @@ class EnhanceRulesTest {
         }
         assertTrue(sold, "떠돌이 상인이 하급 강화석을 판다");
         assertTrue(content.achievements().values().stream().anyMatch(a -> "ENHANCE".equals(a.conditionType())
-                && a.condition().bool("server_first", false) && a.condition().integer("level", 0) == 10), "최초 +10 칭호");
+                && a.condition().integer("level", 0) == 10), "최초 +10 칭호");
     }
 
     @Test

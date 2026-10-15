@@ -18,7 +18,7 @@
 9. Mob skill types (일반 몹 스킬 닫힌 목록) · 상태이상 · AI
 10. 기믹방 (Gimmick rooms)
 11. 장비와 획득 루트 · 아우라 · 스탯 키 · 세트 · 소모품 · 루팅 · 제작 · 강화
-12. 칭호·업적
+12. 칭호 (칭호마다 서버에서 단 한 명)
 13. NPC
 14. Pack generator templates (리소스팩 생성기 닫힌 목록)
 15. 교차참조 요구사항 (다른 작업자가 만들어야 할 ID)
@@ -342,7 +342,7 @@
   미궁을 나가거나 다음 층에 내려가면 바스러진다(미궁 밖으로 못 가져감).
 - **미믹**: 막다른 길 상자(금 제외)의 `mimic`(1층 4% → 10층 17.5%). 가끔 혼자 "덜컥" 소리(눈치). 처음 연 순간 층 일반 몹 (2 + 층/4)마리를 부르고
   잠긴다. 몹을 다 잡으면(최대 `treasure.mimic_lock_seconds` 30초) 풀리고 **한 단계 좋은 상자**(나무→철→금)가 된다. 보물방(§5.2)의 미믹은 따로.
-- **칭호** (titles.yml `TREASURE {kind, count}`): 금고털이의 원조(서버 최초로 금고를 연 1명, records.yml) · 보물 사냥꾼(미로 상자 40개) · 미믹 길들이는 자(5마리, 숨김).
+- **칭호** (titles.yml `TREASURE {kind, count}`): 미로 보물로 얻는 칭호 1개 (§12 — 칭호마다 한 명, 조건은 주인이 생기기 전까지 비밀).
 - 확인: `MAZE_DUMP=<폴더> ./gradlew test --tests '*MazeRenderDump*'` PNG 에 함정(종류별 색 원)·상자(등급 색 네모, 미믹 빨간 테, 열쇠 흰 테)·금고(마젠타) 표시.
   자가 진단 결과에 `traps= chests= vaults= secret_rooms= mimics=` + 함정 사람 없이 한 번씩 발동·해제, 상자 블록·금고 문 열기·미믹 소환 확인.
 
@@ -1024,7 +1024,7 @@ LOD: 보는 사람이 24칸 밖이면 입자 절반, 48칸 밖이면 링만. 같
 **미궁 정수 4단계**(상위 제작의 공용 재료 — 기믹방 상자·미로 금 상자 확정, 보물방·엘리트·보스·일반 몹 낮은 확률, 5:1 정제 가능):
 `dim_essence` 희미한(1~3층) → `labyrinth_essence` 미궁(4~6층) → `radiant_essence` 찬란한(7~8층) → `primordial_essence` 태고의(9~10층).
 **강화 재료**(§11.13): `lesser_enhance_stone` 하급 강화석(1~3층 장비용, 상인도 판매) · `greater_enhance_stone` 상급(4~7층) ·
-`supreme_enhance_stone` 최상급(8~10층) · `enhance_protection_scroll` 강화 보호 주문서(정예·보스 드롭, +7 칭호 보상). 전부 2D 아이콘
+`supreme_enhance_stone` 최상급(8~10층) · `enhance_protection_scroll` 강화 보호 주문서(정예·보스 드롭). 전부 2D 아이콘
 (`rune_stone` 3색 · `scroll`). 강화에는 그 위에 장비마다 다른 재료(그 층 재료·정예 재료·정수·보스 핵)가 든다 — `enhance.yml`(§11.13).
 재료는 64개, 소모품 16개, 장비·열쇠 1개씩 쌓인다(ItemService 기본값).
 
@@ -1261,7 +1261,7 @@ LOD: 보는 사람이 24칸 밖이면 입자 절반, 48칸 밖이면 링만. 같
 - 연출: 망치질 세 번(0.6초) 뒤 결과 — 성공(빛 입자·레벨업 소리·제목) / 실패(둔탁한 모루·연기) / 하락(모루 부서지는 소리·붉은 경고 제목) /
   보호(방패 막는 소리·파란 제목). 판정은 클릭 순간 끝난다(창을 닫아도 결과 같음).
 - **+8 이상 성공 = 서버 전체 방송**(아이템 툴팁 호버), +10 은 도전 완료 효과음. 칭호(`titles.yml`, 조건 `ENHANCE {level}`):
-  `enhance_7` "빛나는 칼날"(첫 +7, 보호 주문서 1장 보상) · `first_enhance_10` "모루의 전설"(**서버 최초 +10**, `server_first`, 방송·전 스탯 보너스).
+  강화 단계 칭호 2개 (§12 — 칭호마다 한 명).
 
 **강화 창** (6줄, 배경 `gui_enhance`): 4 규칙(확률·하락·곡선·재료 규칙) · 11 장비 칸 → 13 성공 확률(배율 → 다음 배율, 이번·그다음 단계 상승폭) →
 15 [강화] · 22 실패하면(유지/하락/보호) · **비용 줄** 29 골드 · 31 강화석 · 30·32·28 장비 재료(보유/필요 ✔/✘, 아이콘에 얻는 곳) · 33 보호 주문서(켜기/끄기) ·
@@ -1368,31 +1368,23 @@ LOD: 보는 사람이 24칸 밖이면 입자 절반, 48칸 밖이면 링만. 같
 
 ---
 
-## 12. 칭호·업적
+## 12. 칭호
 
-`titles.yml` 에 57개. 카테고리 7개(UI 탭, + 전체): 개척(pioneer) · 돌파(clear) · 도전(challenge) · 전투(combat) · 성장(growth) · 수집(collection) · 제작(craft).
+`titles.yml` 에 **12개**, **칭호마다 서버에서 단 한 명**만 가진다 — 조건을 가장 먼저 채운 사람이 주인(`records.yml` `title.<id>`, 재시작해도 유지).
+**조건은 주인이 생기기 전까지 비밀**: 메뉴·/칭호·도감·방송 어디에도 조건이 없고 "조건: ???". 주인이 생기면 그때부터 모두에게 조건과
+"주인: <이름>" 이 보이고, 방송도 조건을 함께 알린다. 칭호 이름·`lore` 는 조건을 암시하지 않는다. 관리자는 `/labadmin title list` 로 조건을 본다.
 
-| 조건 type | 파라미터 | 판정 시점 |
-|---|---|---|
-| `FIRST_CLEAR` | floor | 보스 처치 순간, `records.yml` 에 그 층 기록이 없으면 **그 파티 전원**에게. 서버당 1회 |
-| `CLEAR` | floor, count | 보스 처치 시 층별 누적 |
-| `SOLO_CLEAR` | floor | 입장 인원 1명으로 클리어 |
-| `NO_DEATH_CLEAR` | floor, party_min | 인스턴스 동안 사망 0, 입장 인원 ≥ party_min |
-| `DIFFICULTY_CLEAR` | floor, difficulty | 서버 난이도 ≥ difficulty |
-| `SPEED_CLEAR` | floor, seconds | 시작방 개방 ~ 보스 처치 |
-| `KILL` | count, mob?, mobs?, rank? | 처치(막타 아닌 **기여자 전원**) 누적. `mobs: [id…]` = 나열한 몹 처치 수의 합(몹 무리 칭호 — 용 사냥꾼·비늘 갑옷 파괴자) |
-| `BOSS_KILL` | count, boss? | 보스 처치 참가 누적 |
-| `LEVEL` | level | 레벨업 시 |
-| `OBTAIN_RARITY` | rarity, count | 장비 획득 시(드롭·제작·보상), 그 희귀도 정확히 일치 개수 |
-| `CRAFT` | count, rarity? | 제작 완료 시 (rarity 이상만 셈) |
-| `ENHANCE` | level | 강화 성공으로 장비를 +level 까지 올린 순간(최고 기록 — 뒤에 하락해도 유지, §11.13) |
-| `TREASURE` | kind(chest·gold_chest·vault·mimic), count | 미로 상자에서 내 몫을 챙김·금 상자·금고를 열쇠로 염·미믹 길들임 누적 (§5.6). `server_first` 가능 |
-| (선택) `server_first: true` | 어느 조건에나 붙임 | 서버에서 처음 달성한 1명만 (records.yml 1회) |
-
-- **방송**: `broadcast: true` 는 서버 전체에 `[칭호] <플레이어> 님이 <칭호> 칭호를 얻었습니다!` + 효과음. 서버 최초 기록은 파티원 이름 전부 나열.
-- **장착**: 1개. 채팅·탭·이름표 접두어. `bonus` 는 장착 중에만(키: STR/DEX/INT/VIT/WIS/LUK, `xp_bonus`, `gold_bonus`).
-- **보상**: `reward.gold` / `reward.items` 는 달성 즉시 1회. `hidden: true` 는 달성 전 `???`.
-- 서버 최초 칭호는 1등 파티만 받을 수 있어 **판매 포인트**(서버의 역사). 10층 최초 정복은 전 스탯 +2 와 신화 장신구 보상.
+- **판정**: 사건(층 돌파 · 몹/보스 처치 · 레벨업 · 장비 획득 · 제작 · 강화 성공 · 미로 보물)이 일어난 그 순간에만, 주인 없는 칭호만.
+  접속·리로드로는 주지 않는다. 한 번에 끝나는 위업(혼자·무사망·난이도·시간·강화 단계)은 그 사건 자체로, 누적 조건(처치 수 등)은
+  그 사건이 맞는 종류일 때 누적 카운터로(예전 판 카운터도 이어짐).
+- **파티**: 층 돌파·보스 처치로 생기는 칭호는 한 명만 — 그 보스에게 가장 많은 피해를 준 사람, 같으면 막타, 기록이 없으면 파티 순서.
+- 조건 type: `FIRST_CLEAR`(그 층 서버 최초 돌파) · `CLEAR {floor, count}` · `SOLO_CLEAR` · `NO_DEATH_CLEAR {party_min}` · `DIFFICULTY_CLEAR {difficulty}` ·
+  `SPEED_CLEAR {seconds}` (돌파 조건 공통 선택 키 `solo`·`no_death`·`party_min`·`difficulty`·`seconds`) · `KILL {count, mob|mobs|rank}` ·
+  `BOSS_KILL {boss, count}` · `LEVEL`(그 레벨을 넘는 순간) · `OBTAIN_RARITY`(관리자 지급·칭호 보상 제외) · `CRAFT {rarity, count}` · `ENHANCE {level}` ·
+  `TREASURE {kind}`.
+- 구성(난이도): 초반 3 · 중반 5 · 후반 4. 전투·탐험·제작·도전, 혼자도·파티도 노릴 수 있게 섞음. 후반 칭호 일부는 예전 칭호 장신구(§11)를 보상으로 준다.
+- **장착**: 1개. 채팅·탭·이름표 접두어. `bonus` 는 장착 중에만, 한 명만 가지니 작게(스탯 하나 +2~3 또는 경험치·골드 +5%). 장비 요구 능력치에도 셈.
+- **0.3.4 초기화**: 첫 접속 때 예전 칭호(57종)를 모두 회수하고 장착을 뗀다 (ext `titles.reset_034`). 받은 골드·아이템·카운터는 그대로.
 
 ---
 
@@ -1655,12 +1647,12 @@ effect 프리셋 동작 (frames 동안 한 주기, 루프):
 | `return_scroll` | 상인 (100G) | consumable, 미궁에서 입구로 귀환(전투 중 5초 시전) |
 | `stat_reset_scroll` | 상인 (2000G) | consumable, 스탯 초기화 |
 | `class_change_scroll` | 상인 (3000G) | material(우클릭 사용 없음), 직업을 바꿀 때 1장 소모 (§4.5, config `class_change.item`) |
-| `pioneer_signet` | 5층 서버 최초 보상 | accessory, epic, shape ring, LUK·전 스탯 소량 |
-| `conqueror_emblem` | 10층 서버 최초 보상 | accessory, mythic, shape emblem, 전 스탯 |
-| `lone_star_ring` | 10층 솔로 보상 | accessory, legendary, shape ring |
-| `nightmare_crown` | 악몽 10층 보상 | armor(head), mythic, shape crown, 애니메이션 텍스처 |
-| `slayer_fang_amulet` | 5,000킬 보상 | accessory, legendary, shape amulet |
-| `master_smith_charm` | 제작 100회 보상 | accessory, legendary, shape charm (제작 비용 할인 효과는 선택) |
+| `pioneer_signet` | 칭호 보상 (§12) | accessory, epic, shape ring, LUK·전 스탯 소량 |
+| `conqueror_emblem` | 칭호 보상 (§12) | accessory, mythic, shape emblem, 전 스탯 |
+| `lone_star_ring` | 칭호 보상 (§12) | accessory, legendary, shape ring |
+| `nightmare_crown` | 칭호 보상 (§12) | armor(head), mythic, shape crown, 애니메이션 텍스처 |
+| `slayer_fang_amulet` | 칭호 보상 (§12) | accessory, legendary, shape amulet |
+| `master_smith_charm` | 칭호 보상 (§12) | accessory, legendary, shape charm (제작 비용 할인 효과는 선택) |
 | `novice_cap` `novice_tunic` `novice_trousers` `novice_boots` | config `starter_kit` (시작 꾸러미, §2.7) | armor, common, Lv1, floor 1, 세트 `novice`(효과 없음), `sources: [starter]` — 루팅·레시피에 넣지 말 것 |
 
 ### 15.2 loot.yml 에 반드시 있어야 할 테이블
@@ -1714,7 +1706,7 @@ dungeon.yml 의 초반 완화 키(`party_mob_count`·`party_mob_reward`·`room_c
 - 루팅 항목 4종 `item` `rarity_pool` `one_of` `table` + `guaranteed` · `gold` · `min_difficulty` · `settings`(§11.10) — `rarity_pool` 은 콘텐츠에서 쓰지 않음(검사기 경고)
 - 장비별 강화 재료 `enhance.yml` `{version, bands: {low, mid, high}, items: {<장비 id>: {low|mid|high: {재료: 개수 | [단계별 개수]}}}}`(§11.13)
 - 레시피 `category` · `amount`(§11.11), 세트 `bonuses`(착용 개수 이상) · `look`(§14.7)
-- 칭호 조건 선택 키 `server_first`(어느 조건에나 — 처음 달성한 1명), 조건 `ENHANCE {level}`
+- 칭호는 모두 서버에서 1명만 (0.3.4 — 예전 키 `server_first` 무시), 조건 `ENHANCE {level}`
 - PvP = 파티 규칙 하나(§18, config `pvp`) — 투기장·매치·레이팅 키 없음
 - 강화(§11.13): PDC `item_enhance`(ITEM_VERSION 2), 결과 `success | fail | downgrade | protected`(EnhanceEvent), 카운터
   `titles.enhance_best` · `titles.enhance_success`

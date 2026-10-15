@@ -21,7 +21,7 @@ import org.bukkit.entity.Player;
 /**
  * ui+titles 담당 모듈 진입점 — 업적 판정·칭호 장착·서버 최초 기록 ({@link LabTitleService}).
  * 명령: /칭호 (메뉴) · /칭호 장착|equip &lt;id&gt; · /칭호 해제|unequip · /칭호 목록|list · /칭호 기록|records,
- * 관리: /labadmin title grant|revoke &lt;플레이어&gt; &lt;id&gt; · /labadmin title recheck [플레이어].
+ * 관리: /labadmin title list (조건까지 보임 — 관리자 전용) · grant|revoke &lt;플레이어&gt; &lt;id&gt; · free &lt;id&gt; · recheck.
  */
 public final class TitlesModule implements Module {
 
@@ -104,23 +104,31 @@ public final class TitlesModule implements Module {
             cmd.addSubcommand("title", Commands.literal(n).executes(ctx -> run(ctx, () -> records(ctx.getSource().getSender()))));
         }
         cmd.addSubcommand("labadmin", Commands.literal("title")
+                .then(Commands.literal("list").executes(ctx -> run(ctx, () -> adminList(ctx.getSource().getSender()))))
                 .then(Commands.literal("grant").then(Commands.argument("player", StringArgumentType.word()).suggests(players())
                         .then(Commands.argument("id", StringArgumentType.word()).suggests(allIds())
                                 .executes(ctx -> run(ctx, () -> admin(ctx, true))))))
                 .then(Commands.literal("revoke").then(Commands.argument("player", StringArgumentType.word()).suggests(players())
                         .then(Commands.argument("id", StringArgumentType.word()).suggests(allIds())
                                 .executes(ctx -> run(ctx, () -> admin(ctx, false))))))
+                .then(Commands.literal("free").then(Commands.argument("id", StringArgumentType.word()).suggests(allIds())
+                        .executes(ctx -> run(ctx, () -> {
+                            String id = StringArgumentType.getString(ctx, "id");
+                            boolean ok = impl != null && impl.free(id);
+                            Text.send(ctx.getSource().getSender(), ok ? "<yellow>주인 기록을 지웠습니다. 다시 누구나 얻을 수 있습니다."
+                                    : "<gray>주인이 없는 칭호입니다.");
+                        }))))
                 .then(Commands.literal("recheck")
                         .executes(ctx -> run(ctx, () -> {
                             Bukkit.getOnlinePlayers().forEach(services.titles()::recheck);
-                            Text.send(ctx.getSource().getSender(), "<green>접속 중인 모든 플레이어의 업적을 다시 검사했습니다.");
+                            Text.send(ctx.getSource().getSender(), "<green>접속 중인 모든 플레이어의 칭호를 주인 기록과 맞췄습니다.");
                         }))));
     }
 
     private void equip(Player p, String id) {
         AchievementDef def = services.content().achievements().get(id);
         if (def == null || !services.data().get(p).hasAchievement(id)) {
-            Text.error(p, "아직 얻지 못한 칭호입니다.");
+            Text.error(p, "내 칭호가 아닙니다.");
             return;
         }
         services.titles().equip(p, id);
@@ -129,15 +137,26 @@ public final class TitlesModule implements Module {
 
     private void list(Player p) {
         PlayerData d = services.data().get(p);
-        p.sendMessage(Text.mm("<gradient:#c9a2ff:#ffd36b><b>━━━ 내 칭호 ━━━</b></gradient> <gray>" + d.achievements().size()
-                + " / " + services.content().achievements().size()));
-        for (String id : d.achievements().keySet()) {
-            AchievementDef def = services.content().achievements().get(id);
-            if (def == null) continue;
-            boolean eq = id.equals(d.equippedTitle());
-            p.sendMessage(Text.mm(" <click:run_command:'/title equip " + id + "'><hover:show_text:'<gray>클릭하여 장착'>"
-                    + (eq ? "<#ffd36b>▶ </#ffd36b>" : "<dark_gray>· </dark_gray>") + def.title() + "</hover></click> <dark_gray>— "
-                    + Text.escape(def.description())));
+        int owned = 0;
+        for (String id : services.content().achievements().keySet()) if (impl != null && impl.owner(id) != null) owned++;
+        p.sendMessage(Text.mm("<gradient:#c9a2ff:#ffd36b><b>━━━ 칭호 ━━━</b></gradient> <gray>" + services.content().achievements().size()
+                + "개 · 주인 있음 " + owned + " · 칭호마다 단 한 명"));
+        for (AchievementDef def : services.content().achievements().values()) {
+            boolean mine = d.hasAchievement(def.id());
+            String line = TitleView.listLine(def, impl == null ? null : impl.owner(def.id()), mine, services.content());
+            if (mine) line = "<click:run_command:'/title equip " + def.id() + "'><hover:show_text:'<gray>클릭하여 장착'>" + line + "</hover></click>";
+            p.sendMessage(Text.mm(line));
+        }
+    }
+
+    /** 관리자 전용: 조건까지 전부 (플레이어에게는 주인이 생기기 전까지 비밀). */
+    private void adminList(CommandSender s) {
+        s.sendMessage(Text.mm("<gold><b>━━━ 칭호 (관리자 — 조건 포함) ━━━</b></gold>"));
+        for (AchievementDef def : services.content().achievements().values()) {
+            TitleView.Owner o = impl == null ? null : impl.owner(def.id());
+            s.sendMessage(Text.mm(" <white>" + def.id() + "</white> " + def.title() + " <gray>— "
+                    + Text.escape(AchievementRules.conditionText(def, services.content())) + " <dark_gray>· "
+                    + (o == null ? "주인 없음" : "주인 " + Text.escape(o.name()))));
         }
     }
 
@@ -164,14 +183,23 @@ public final class TitlesModule implements Module {
             return;
         }
         if (services.content().achievements().get(id) == null) {
-            Text.error(s, "없는 업적: " + Text.escape(id));
+            Text.error(s, "없는 칭호: " + Text.escape(id));
             return;
         }
         if (grant) {
+            TitleView.Owner o = impl == null ? null : impl.owner(id);
+            if (o != null) {
+                Text.error(s, "이미 주인이 있습니다: " + Text.escape(o.name()) + " — 먼저 /labadmin title free " + Text.escape(id));
+                return;
+            }
             boolean ok = services.titles().grant(t, id);
-            Text.send(s, ok ? "<green>지급했습니다." : "<gray>이미 가지고 있습니다.");
+            Text.send(s, ok ? "<green>지급했습니다 (이 칭호의 주인이 됨)." : "<gray>지급하지 못했습니다.");
         } else {
             PlayerData d = services.data().get(t);
+            if (impl != null && services.records().get(TitleView.recordKey(id))
+                    .map(r -> r.players().contains(t.getUniqueId())).orElse(false)) {
+                impl.free(id);
+            }
             d.revokeAchievement(id);
             if (id.equals(d.equippedTitle())) services.titles().equip(t, null);
             Text.send(s, "<yellow>회수했습니다.");

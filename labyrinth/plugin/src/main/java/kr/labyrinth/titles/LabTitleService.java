@@ -4,7 +4,7 @@ import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +22,7 @@ import kr.labyrinth.content.Rarity;
 import kr.labyrinth.core.Log;
 import kr.labyrinth.core.Text;
 import kr.labyrinth.data.PlayerData;
+import kr.labyrinth.data.ServerRecords;
 import kr.labyrinth.event.CraftEvent;
 import kr.labyrinth.event.EnhanceEvent;
 import kr.labyrinth.event.FloorClearEvent;
@@ -34,7 +35,6 @@ import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -46,40 +46,48 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
 /**
- * 업적·칭호 실제 구현 (GDD §12). 이벤트 → {@link TitleCounters} 로 카운터 갱신 → {@link AchievementRules} 로 판정 → 지급.
- * 서버 최초 기록은 {@code ServerRecords} 로 확정(키 {@code first_clear.floor_<n>}, {@code title.<업적 id>}),
- * 방송·효과음·불꽃놀이 같은 파티클 연출, 칭호 장착(채팅 렌더러 · 탭 목록 · 이름표 접두어), 장착 칭호 보너스(StatContributor).
+ * 칭호 실제 구현 (GDD §12). 칭호마다 서버에서 단 한 명 — 사건이 일어나면 {@link TitleCounters} 로 카운터를 올리고,
+ * 아직 주인이 없는 칭호만 {@link AchievementRules#qualifies} 로 판정해, 조건을 채운 첫 사람에게 records.yml
+ * {@code title.<id>} 로 확정(claim — 메인 스레드에서 한 번만 성공, 재시작 후에도 유지)한 뒤 지급한다.
+ * 파티 사건(층 돌파·보스 처치)은 그 보스에게 가장 많은 피해를 준 한 명({@link AwardOrder})만 받는다.
+ * 접속·리로드로는 칭호를 주지 않는다. 서버 최초 돌파 기록({@code first_clear.floor_<n>})·최단 기록({@code speed.floor_<n>})도 여기서 남긴다.
  */
 public final class LabTitleService extends BasicTitleService implements Listener {
 
     private static final Pattern HEX = Pattern.compile("#([0-9a-fA-F]{6})");
+    /** 보스 처치 → 층 돌파 사이에 쓰는 전투 기록 유효 시간. */
+    private static final long FIGHT_TTL_MS = 120_000L;
 
     /** 비동기 채팅 렌더러용 접두어 캐시 (메인 스레드에서 갱신). */
     private final Map<UUID, Component> prefixCache = new ConcurrentHashMap<>();
     private final Set<UUID> suppressed = ConcurrentHashMap.newKeySet();
     private final StatContributor bonusContributor = this::contributeBonus;
+    /** 인스턴스 id → 방금 끝난 보스 전투 (피해·막타). 층 돌파 사건에서 받을 사람을 고를 때 쓴다. */
+    private final Map<String, Fight> fights = new HashMap<>();
+
+    private record Fight(Map<UUID, Double> damage, UUID lastHit, long at) {}
 
     public LabTitleService(Services services) { super(services); }
 
     void enable() {
         Bukkit.getPluginManager().registerEvents(this, services.plugin());
         services.stats().addContributor(bonusContributor);
-        for (Player p : Bukkit.getOnlinePlayers()) applyDisplay(p);
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            migrateAndSync(p);
+            applyDisplay(p);
+        }
     }
 
     void disable() {
         HandlerList.unregisterAll(this);
         services.stats().removeContributor(bonusContributor);
         prefixCache.clear();
+        fights.clear();
     }
 
-    /** reload: 칭호 정의가 바뀌었을 수 있으니 접두어·보너스 갱신 + 소급 판정. */
+    /** reload: 칭호 정의가 바뀌었을 수 있으니 주인 대조·접두어·보너스만 갱신 (새로 주지는 않는다). */
     void reload() {
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            applyDisplay(p);
-            services.stats().markDirty(p);
-            recheck(p);
-        }
+        for (Player p : Bukkit.getOnlinePlayers()) recheck(p);
     }
 
     // ── 조회 헬퍼 ─────────────────────────────────────────────────────────
@@ -95,33 +103,39 @@ public final class LabTitleService extends BasicTitleService implements Listener
         return k -> "level".equals(k) ? d.level() : d.counter(k);
     }
 
-    @Override
-    public long[] progress(Player player, String achievementId) {
-        AchievementDef def = services.content().achievements().get(achievementId);
-        if (def == null) return new long[] {0, 1};
-        PlayerData d = services.data().get(player);
-        if (d.hasAchievement(achievementId)) {
-            long[] pr = AchievementRules.progress(def, lookup(d));
-            return new long[] {pr[1], pr[1]};
-        }
-        return AchievementRules.progress(def, lookup(d));
+    /** 칭호의 주인 (없으면 null). */
+    public TitleView.Owner owner(String achievementId) {
+        ServerRecords.Record r = services.records().get(TitleView.recordKey(achievementId)).orElse(null);
+        if (r == null) return null;
+        return new TitleView.Owner(r.names().isEmpty() ? "?" : r.names().get(0), r.time());
     }
 
     // ── 지급 ──────────────────────────────────────────────────────────────
 
+    /** 관리자 지급: 주인이 없을 때만 (있으면 false — /labadmin title free 로 먼저 비운다). */
     @Override
     public boolean grant(Player player, String achievementId) {
         AchievementDef def = services.content().achievements().get(achievementId);
         if (def == null) return false;
-        if (!grantQuiet(player, def)) return false;
-        if (def.broadcast()) broadcast(def, List.of(player.getName()), isServerFirst(def));
+        return claim(player, def);
+    }
+
+    /** 주인 확정 (records.yml) → 지급 → 방송. 이미 주인이 있으면 false. */
+    private boolean claim(Player player, AchievementDef def) {
+        String key = TitleView.recordKey(def.id());
+        if (services.records().isClaimed(key)) return false;
+        if (!services.records().claim(key, List.of(player.getUniqueId()), List.of(player.getName()),
+                Map.of("achievement", def.id()))) return false;
+        Log.info("칭호 주인: " + def.id() + " — " + player.getName());
+        grantQuiet(player, def);
+        if (def.broadcast()) broadcast(def, player.getName());
         return true;
     }
 
-    /** 방송 없이 지급 + 개인 연출. */
-    private boolean grantQuiet(Player player, AchievementDef def) {
+    /** 데이터 지급 + 보상 + 개인 연출 (방송 없이). */
+    private void grantQuiet(Player player, AchievementDef def) {
         PlayerData d = services.data().get(player);
-        if (!d.grantAchievement(def.id())) return false;
+        d.grantAchievement(def.id());
         if (def.rewardGold() > 0) d.addGold(def.rewardGold());
         def.rewardItems().forEach((id, n) -> {
             try {
@@ -137,47 +151,23 @@ public final class LabTitleService extends BasicTitleService implements Listener
             ItemDef idef = services.content().item(id);
             reward.append(" <white>").append(idef == null ? id : idef.name()).append(" ×").append(n).append("</white>");
         });
-        Text.send(player, "<#ffd36b>칭호 획득!</#ffd36b> <title> <dark_gray>—</dark_gray> <gray><desc></gray>" + reward,
-                Text.ph("title", title), Text.ph("desc", def.description()));
+        Text.send(player, TitleView.ownerMessage(def, services.content(), reward.toString()));
         if (!def.bonus().isEmpty()) {
-            Text.send(player, "<gray>장착 효과: <white>" + bonusText(def.bonus()) + "</white> <dark_gray>(/칭호 에서 장착)");
+            Text.send(player, "<gray>장착 효과: <white>" + TitleView.bonusText(def.bonus()) + "</white> <dark_gray>(/칭호 에서 장착)");
         }
-        player.showTitle(Title.title(Text.mm("<#ffd36b>✦ 칭호 획득 ✦"), title,
+        player.showTitle(Title.title(Text.mm("<#ffd36b>✦ 칭호의 주인 ✦"), title,
                 Title.Times.times(Duration.ofMillis(250), Duration.ofMillis(2600), Duration.ofMillis(700))));
         player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.9f, 1.0f);
-        celebrate(player, colorOf(def.title()), isServerFirst(def) || def.broadcast());
+        celebrate(player, colorOf(def.title()), true);
         services.hud().refresh(player);
-        if (equipped(player) == null) {
-            // 첫 칭호는 자동 장착 (처음 하는 사람도 바로 보이게)
-            equip(player, def.id());
-        }
-        return true;
+        if (equipped(player) == null) equip(player, def.id()); // 첫 칭호는 바로 달아 준다
     }
 
-    private static boolean isServerFirst(AchievementDef def) {
-        return "FIRST_CLEAR".equalsIgnoreCase(def.conditionType())
-                || (def.condition() != null && def.condition().bool("server_first", false));
-    }
-
-    private void broadcast(AchievementDef def, List<String> names, boolean serverFirst) {
-        String who = String.join(", ", names.stream().map(Text::escape).toList());
-        Component msg;
-        if (serverFirst) {
-            msg = Text.mm("<gradient:#ffd36b:#ff8a3d><b>[서버 최초]</b></gradient> <white>" + who + "</white> <gray>"
-                    + (names.size() > 1 ? "파티가" : "님이") + " </gray><title> <gray>칭호를 손에 넣었습니다!</gray> <dark_gray>— <desc>",
-                    Text.ph("title", Text.mm(def.title())), Text.ph("desc", def.description()));
-        } else {
-            msg = Text.mm("<#c9a2ff>[칭호]</#c9a2ff> <white>" + who + "</white> <gray>님이 </gray><title> <gray>칭호를 얻었습니다!",
-                    Text.ph("title", Text.mm(def.title())));
-        }
-        Bukkit.getServer().sendMessage(msg);
+    private void broadcast(AchievementDef def, String name) {
+        Bukkit.getServer().sendMessage(Text.mm(TitleView.broadcast(def, name, services.content())));
         for (Player p : Bukkit.getOnlinePlayers()) {
-            if (serverFirst) {
-                p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.7f, 0.8f);
-                p.playSound(p.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_TWINKLE_FAR, 0.8f, 1.0f);
-            } else {
-                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 0.6f, 1.5f);
-            }
+            p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.7f, 0.8f);
+            p.playSound(p.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_TWINKLE_FAR, 0.8f, 1.0f);
         }
     }
 
@@ -216,54 +206,75 @@ public final class LabTitleService extends BasicTitleService implements Listener
         return Color.fromRGB(0xFFD36B);
     }
 
-    static String bonusText(Map<String, Double> bonus) {
-        List<String> parts = new ArrayList<>();
-        bonus.forEach((k, v) -> {
-            kr.labyrinth.stats.Stat st = kr.labyrinth.stats.Stat.byKey(k);
-            if (st != null) parts.add(st.displayName() + " +" + Math.round(v));
-            else if ("xp_bonus".equals(k)) parts.add("경험치 +" + Text.pct(v));
-            else if ("gold_bonus".equals(k)) parts.add("골드 +" + Text.pct(v));
-            else parts.add(k + " +" + v);
-        });
-        return String.join(" · ", parts);
-    }
-
     // ── 판정 ──────────────────────────────────────────────────────────────
 
-    /** 여러 플레이어를 한 번에 판정 → 같은 업적은 방송을 한 번만 (파티 클리어 등). */
-    private void evaluate(List<Player> players) {
-        Map<String, List<Player>> newly = new LinkedHashMap<>();
-        for (Player p : players) {
-            if (p == null || !p.isOnline()) continue;
-            PlayerData d = services.data().get(p);
-            ToLongFunction<String> look = lookup(d);
-            for (AchievementDef def : services.content().achievements().values()) {
+    /**
+     * 사건 하나 판정: 주인이 없는 칭호마다 ranked 순서로 조건을 채운 첫 사람에게 준다 (한 칭호 = 한 명).
+     * 주인이 생긴 칭호는 건너뛴다 — 다시는 판정하지 않는다.
+     */
+    private void award(TitleTrigger t, List<Player> ranked) {
+        if (ranked.isEmpty()) return;
+        for (AchievementDef def : services.content().achievements().values()) {
+            if (services.records().isClaimed(TitleView.recordKey(def.id()))) continue;
+            for (Player p : ranked) {
+                if (p == null || !p.isOnline()) continue;
+                PlayerData d = services.data().get(p);
                 if (d.hasAchievement(def.id())) continue;
-                if (def.condition() != null && def.condition().bool("server_first", false)
-                        && AchievementRules.baseMet(def.conditionType(), def.condition(), look)) {
-                    trySoloServerFirst(p, d, def);
-                }
-                if (AchievementRules.met(def, look)) newly.computeIfAbsent(def.id(), k -> new ArrayList<>()).add(p);
+                if (!AchievementRules.qualifies(def, t, lookup(d))) continue;
+                claim(p, def);
+                break;
             }
         }
-        newly.forEach((id, list) -> {
-            AchievementDef def = services.content().achievements().get(id);
-            List<String> names = new ArrayList<>();
-            for (Player p : list) if (grantQuiet(p, def)) names.add(p.getName());
-            if (!names.isEmpty() && def.broadcast()) broadcast(def, names, isServerFirst(def));
-        });
     }
 
-    private void trySoloServerFirst(Player p, PlayerData d, AchievementDef def) {
-        String key = "title." + def.id();
-        if (services.records().isClaimed(key)) return;
-        if (services.records().claim(key, List.of(p.getUniqueId()), List.of(p.getName()), Map.of("achievement", def.id()))) {
-            d.counter(AchievementRules.P + "server_first." + def.id(), 1);
+    /** 주인 기록과 데이터를 맞추고 접두어·보너스를 다시 건다. 칭호를 새로 주지는 않는다. */
+    @Override
+    public void recheck(Player player) {
+        sync(player);
+        applyDisplay(player);
+        services.stats().markDirty(player);
+    }
+
+    /** 0.3.4 초기화(한 번) + 주인 대조. 바뀐 게 있으면 보너스를 다시 계산. */
+    private void migrateAndSync(Player p) {
+        PlayerData d = services.data().get(p);
+        TitleMigration.Result r = TitleMigration.reset034(d, services.content().achievements().keySet());
+        boolean changed = sync(p);
+        if (r.ran()) {
+            if (!r.revoked().isEmpty()) Log.info("칭호 초기화(0.3.4): " + p.getName() + " — 예전 칭호 " + r.revoked().size() + "개 회수");
+            if (r.announce()) Text.send(p, TitleMigration.NOTICE);
+        }
+        if (changed || r.clearedEquipped() || !r.revoked().isEmpty()) {
+            services.stats().markDirty(p);
+            services.stats().recalc(p);
         }
     }
 
-    @Override
-    public void recheck(Player player) { evaluate(List.of(player)); }
+    /** records.yml(주인)과 PlayerData 맞추기. 바뀌었으면 true. */
+    private boolean sync(Player p) {
+        PlayerData d = services.data().get(p);
+        Map<String, List<UUID>> owners = new LinkedHashMap<>();
+        for (String id : services.content().achievements().keySet()) {
+            services.records().get(TitleView.recordKey(id)).ifPresent(rec -> owners.put(id, rec.players()));
+        }
+        TitleMigration.Sync s = TitleMigration.sync(d, services.content().achievements().keySet(), owners);
+        if (!s.revoked().isEmpty()) Log.info("칭호 회수(주인 아님): " + p.getName() + " — " + s.revoked());
+        if (!s.restored().isEmpty()) Log.info("칭호 복구(주인 기록): " + p.getName() + " — " + s.restored());
+        return s.changed();
+    }
+
+    /** 관리자: 칭호를 다시 주인 없는 상태로 (records 기록 삭제 + 접속 중인 주인에게서 회수). */
+    public boolean free(String achievementId) {
+        String key = TitleView.recordKey(achievementId);
+        ServerRecords.Record r = services.records().get(key).orElse(null);
+        if (r == null) return false;
+        services.records().remove(key);
+        for (UUID u : r.players()) {
+            Player p = Bukkit.getPlayer(u);
+            if (p != null && p.isOnline()) recheck(p);
+        }
+        return true;
+    }
 
     // ── 이벤트 ────────────────────────────────────────────────────────────
 
@@ -277,7 +288,9 @@ public final class LabTitleService extends BasicTitleService implements Listener
                 TitleCounters.onClear(store(d), floor, e.partySize(), e.deaths(), e.seconds(), e.difficulty(),
                         d.counter("dungeon.clear_floor_" + floor));
             }
+            // 층 서버 최초 돌파 기록 (입장 메뉴·/미궁 기록이 쓴다) — 칭호와 별개로 파티 전원 이름
             String key = "first_clear.floor_" + floor;
+            boolean firstClear = false;
             if (!members.isEmpty() && !services.records().isClaimed(key)) {
                 List<UUID> ids = members.stream().map(Player::getUniqueId).toList();
                 List<String> names = members.stream().map(Player::getName).toList();
@@ -286,11 +299,15 @@ public final class LabTitleService extends BasicTitleService implements Listener
                 extra.put("seconds", Math.round(e.seconds()));
                 extra.put("party_size", e.partySize());
                 if (services.records().claim(key, ids, names, extra)) {
+                    firstClear = true;
                     for (Player p : members) services.data().get(p).counter(AchievementRules.P + "first_clear." + floor, 1);
                     Log.info("서버 최초 돌파 기록: 지하 " + floor + "층 — " + String.join(", ", names));
+                    Bukkit.getServer().sendMessage(Text.mm("<gradient:#ffd36b:#ff8a3d><b>[서버 최초]</b></gradient> <white>"
+                            + Text.escape(String.join(", ", names)) + "</white> <gray>" + (names.size() > 1 ? "파티가" : "님이")
+                            + " 지하 " + floor + "층을 서버에서 처음으로 돌파했습니다!"));
                 }
             }
-            // 스피드런 서버 기록 (이전 기록을 깼을 때만 방송 — 첫 기록은 최초 돌파 방송으로 충분)
+            // 스피드런 서버 기록 (이전 기록을 깼을 때만 방송 — 첫 기록은 최초 돌파로 충분)
             String speedKey = "speed.floor_" + floor;
             boolean hadRecord = services.records().isClaimed(speedKey);
             if (!members.isEmpty() && e.seconds() > 0 && services.records().bestTime(speedKey, e.seconds(),
@@ -301,7 +318,10 @@ public final class LabTitleService extends BasicTitleService implements Listener
                             + AchievementRules.timeText(Math.round(e.seconds()))));
                 }
             }
-            evaluate(members);
+            Fight f = fights.remove(e.instanceId());
+            if (f != null && System.currentTimeMillis() - f.at() > FIGHT_TTL_MS) f = null;
+            List<Player> ranked = rank(members, f == null ? Map.of() : f.damage(), f == null ? null : f.lastHit());
+            award(TitleTrigger.clear(floor, e.partySize(), e.deaths(), e.seconds(), e.difficulty(), firstClear), ranked);
         });
     }
 
@@ -313,27 +333,61 @@ public final class LabTitleService extends BasicTitleService implements Listener
                 MobDef def = services.content().mob(e.mobId());
                 rank = def == null ? "normal" : def.rank();
             }
-            List<Player> list = new ArrayList<>(e.participants());
-            if (e.killer() != null && !list.contains(e.killer())) list.add(e.killer());
+            List<Player> list = new ArrayList<>();
+            if (e.killer() != null) list.add(e.killer()); // 막타 먼저 (보스가 아니면 이 순서로 받는다)
+            for (Player p : e.participants()) if (!list.contains(p)) list.add(p);
             for (Player p : list) {
                 if (!p.isOnline()) continue;
                 TitleCounters.onKill(store(services.data().get(p)), e.mobId(), rank, e.isBoss());
             }
-            evaluate(list);
+            List<Player> ranked = list;
+            if (e.isBoss()) {
+                Map<UUID, Double> dmg = Map.of();
+                UUID last = e.killer() == null ? null : e.killer().getUniqueId();
+                try {
+                    dmg = e.mob().damageByPlayer();
+                    if (e.mob().lastHitPlayer() != null) last = e.mob().lastHitPlayer();
+                } catch (Throwable ignored) {
+                    // 피해 기록이 없는 구현 → 막타·파티 순서
+                }
+                ranked = rank(list, dmg, last);
+                try {
+                    var inst = e.mob().instance();
+                    if (inst != null) {
+                        fights.values().removeIf(f -> System.currentTimeMillis() - f.at() > FIGHT_TTL_MS);
+                        fights.put(inst.id(), new Fight(dmg, last, System.currentTimeMillis()));
+                    }
+                } catch (Throwable ignored) {
+                    // 인스턴스 밖 보스
+                }
+            }
+            award(TitleTrigger.kill(e.mobId(), rank, e.isBoss()), ranked);
         });
     }
 
+    /** 피해 많은 순 → 막타 → 원래 순서 (AwardOrder). */
+    private static List<Player> rank(List<Player> players, Map<UUID, Double> damage, UUID lastHit) {
+        Map<UUID, Player> byId = new LinkedHashMap<>();
+        for (Player p : players) if (p != null) byId.putIfAbsent(p.getUniqueId(), p);
+        List<Player> out = new ArrayList<>();
+        for (UUID u : AwardOrder.rank(new ArrayList<>(byId.keySet()), damage, lastHit)) out.add(byId.get(u));
+        return out;
+    }
+
     @EventHandler(priority = EventPriority.MONITOR)
-    public void onLevel(LevelUpEvent e) { safe("LevelUpEvent", () -> evaluate(List.of(e.player()))); }
+    public void onLevel(LevelUpEvent e) {
+        safe("LevelUpEvent", () -> award(TitleTrigger.level(e.oldLevel(), e.newLevel()), List.of(e.player())));
+    }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onObtain(ItemObtainEvent e) {
         safe("ItemObtainEvent", () -> {
             ItemDef def = e.def();
-            if (def == null || !def.isGear() || "admin".equals(e.source())) return;
+            // 관리자 지급·칭호 보상은 세지 않는다 (칭호 보상이 다른 칭호를 연달아 주지 않게)
+            if (def == null || !def.isGear() || "admin".equals(e.source()) || "reward".equals(e.source())) return;
             TitleCounters.onObtain(store(services.data().get(e.player())), def.rarity(),
                     e.stack() == null ? 1 : Math.max(1, e.stack().getAmount()));
-            evaluate(List.of(e.player()));
+            award(TitleTrigger.obtain(def.rarity()), List.of(e.player()));
         });
     }
 
@@ -343,7 +397,7 @@ public final class LabTitleService extends BasicTitleService implements Listener
             ItemDef def = e.recipe() == null ? null : services.content().item(e.recipe().result());
             Rarity r = def == null ? null : def.rarity();
             TitleCounters.onCraft(store(services.data().get(e.player())), r);
-            evaluate(List.of(e.player()));
+            award(TitleTrigger.craft(r), List.of(e.player()));
         });
     }
 
@@ -351,8 +405,13 @@ public final class LabTitleService extends BasicTitleService implements Listener
     public void onEnhance(EnhanceEvent e) {
         safe("EnhanceEvent", () -> {
             TitleCounters.onEnhance(store(services.data().get(e.player())), e.success(), e.to());
-            if (e.success()) evaluate(List.of(e.player()));
+            if (e.success()) award(TitleTrigger.enhance(e.to()), List.of(e.player()));
         });
+    }
+
+    @Override
+    public void onTreasure(Player player, String kind) {
+        safe("treasure", () -> award(TitleTrigger.treasure(kind), List.of(player)));
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -360,8 +419,8 @@ public final class LabTitleService extends BasicTitleService implements Listener
         Player p = e.getPlayer();
         Bukkit.getScheduler().runTaskLater(services.plugin(), () -> {
             if (!p.isOnline()) return;
+            safe("join", () -> migrateAndSync(p));
             applyDisplay(p);
-            recheck(p);
         }, 30L);
     }
 
@@ -414,6 +473,8 @@ public final class LabTitleService extends BasicTitleService implements Listener
         if (suppressed.contains(p.getUniqueId())) return;
         AchievementDef def = equipped(p);
         if (def == null || def.bonus().isEmpty()) return;
+        // 주인이 아닌 칭호(회수 직전 등)는 보너스를 주지 않는다
+        if (!services.data().get(p).hasAchievement(def.id())) return;
         def.bonus().forEach(block::add);
     }
 

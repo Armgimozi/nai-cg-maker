@@ -480,7 +480,7 @@ public final class ContentParser {
         Map<String, Integer> rewardItems = new LinkedHashMap<>();
         Params ri = reward.sub("items");
         for (String k : ri.keys()) rewardItems.put(k, ri.integer(k, 1));
-        return new AchievementDef(id, p.str("name", id), p.str("description", ""), p.str("category", "growth"),
+        return new AchievementDef(id, p.str("name", id), p.str("lore", p.str("description", "")), p.str("category", "title"),
                 cond.str("type", "").toUpperCase(), cond, p.str("title", p.str("name", id)),
                 Collections.unmodifiableMap(bonus), p.bool("broadcast", false), p.bool("hidden", false),
                 reward.integer("gold", 0), Collections.unmodifiableMap(rewardItems));

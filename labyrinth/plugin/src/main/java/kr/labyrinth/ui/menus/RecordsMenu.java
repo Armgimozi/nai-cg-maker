@@ -10,12 +10,13 @@ import kr.labyrinth.content.AchievementDef;
 import kr.labyrinth.content.FloorDef;
 import kr.labyrinth.core.Text;
 import kr.labyrinth.data.ServerRecords;
+import kr.labyrinth.titles.TitleView;
 import kr.labyrinth.ui.Button;
 import kr.labyrinth.ui.UiTheme;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
-/** 서버의 역사: 층별 최초 돌파 파티(날짜·난이도·시간)와 최단 기록, 서버 최초 칭호의 주인. */
+/** 서버의 역사: 층별 최초 돌파 파티(날짜·난이도·시간)와 최단 기록, 칭호의 주인. */
 public final class RecordsMenu extends LabMenu {
 
     private static final int[] FLOOR_SLOTS = {11, 12, 13, 14, 15, 20, 21, 22, 23, 24};
@@ -30,7 +31,7 @@ public final class RecordsMenu extends LabMenu {
     protected void draw(Player p) {
         SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd HH:mm");
         deco(4, Button.icon(Material.WRITABLE_BOOK, "<#ffd36b><b>미궁의 역사</b>",
-                List.of("<gray>각 층을 처음 돌파한 파티는 영원히 기록됩니다.", "<gray>그 파티원 전원만 개척 칭호를 받습니다.")));
+                List.of("<gray>각 층을 처음 돌파한 파티는 영원히 기록됩니다.", "<gray>칭호는 칭호마다 단 한 명만 가집니다.")));
         for (int i = 0; i < FLOOR_SLOTS.length; i++) {
             int n = i + 1;
             FloorDef f = services.content().floor(n);
@@ -52,17 +53,13 @@ public final class RecordsMenu extends LabMenu {
             deco(FLOOR_SLOTS[i], UiTheme.glint(Button.icon(first == null ? Material.GRAY_DYE : Material.GOLD_BLOCK,
                     (first == null ? "<dark_gray>" : "<#ffd36b>") + "<b>지하 " + n + "층</b>" + name, lore), first != null));
         }
-        int slot = 37;
+        // 칭호의 주인 (칭호마다 서버에서 단 한 명) — 조건은 주인이 생긴 칭호만 (TitleView)
+        List<String> owners = new ArrayList<>();
         for (AchievementDef a : services.content().achievements().values()) {
-            if (a.condition() == null || !a.condition().bool("server_first", false)) continue;
-            if (slot > 43) break;
-            ServerRecords.Record r = services.records().get("title." + a.id()).orElse(null);
-            List<String> lore = new ArrayList<>();
-            lore.add("<gray>" + Text.escape(a.description()));
-            lore.add(r == null ? "<dark_gray>주인 없음" : "<white>" + Text.escape(String.join(", ", r.names())));
-            if (r != null) lore.add("<dark_gray>" + fmt.format(new Date(r.time())));
-            deco(slot++, Button.icon(r == null ? Material.FIREWORK_STAR : Material.NETHER_STAR, a.title(), lore));
+            TitleView.Owner o = TitlesMenu.owner(services, a.id());
+            owners.add(a.title() + " <dark_gray>— " + (o == null ? "주인 없음" : "<white>" + Text.escape(o.name())));
         }
+        deco(40, Button.icon(Material.NETHER_STAR, "<#ffd36b><b>칭호의 주인</b>", owners));
         backButton(45, back);
     }
 
