@@ -258,7 +258,8 @@ public final class Treasures {
         opens++;
         ChestTier t = tier[i];
         Location at = block.getLocation().add(0.5, 1.0, 0.5);
-        fs.loot(t.table(fs.floor(), bracket()), List.of(p), at, "chest");
+        // 층별 표(maze_chest_<tier>_f<층>)가 있으면 그것 — 구간 표는 3개 층이 같이 써서 장비가 없다 (floors.yml chests.bracket 강제 시만)
+        fs.loot(t.table(fs.floor(), bracket(), id -> fs.services().content().lootTable(id) != null), List.of(p), at, "chest");
         String et = t.enhanceTable(fs.floor());   // 강화석은 층 기준 등급으로 따로 한 번 (철·금만)
         if (et != null) fs.loot(et, List.of(p), at, "chest");
         p.playSound(at, Sound.BLOCK_CHEST_OPEN, 0.8f, t == ChestTier.GOLD ? 0.8f : 1.1f);

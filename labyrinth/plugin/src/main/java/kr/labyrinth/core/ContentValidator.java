@@ -3,9 +3,11 @@ package kr.labyrinth.core;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import kr.labyrinth.content.AchievementDef;
 import kr.labyrinth.content.AuraDef;
 import kr.labyrinth.content.BossDef;
@@ -97,6 +99,7 @@ public final class ContentValidator {
         floors();
         loot();
         recipes();
+        gearHomes();
         titles();
         npcs();
         fx();
@@ -325,7 +328,8 @@ public final class ContentValidator {
             }
             int bracket = kr.labyrinth.dungeon.treasure.ChestSettings.of(f.raw().sub("chests")).bracket();
             for (kr.labyrinth.dungeon.treasure.ChestTier tier : kr.labyrinth.dungeon.treasure.ChestTier.values()) {
-                requireTable(w + " 미로 상자", tier.table(f.number(), bracket));
+                // Treasures 와 같은 규칙: 구간 강제가 없으면 층별 표, 없으면 구간 표
+                requireTable(w + " 미로 상자", tier.table(f.number(), bracket, c.lootTables()::containsKey));
                 String et = tier.enhanceTable(f.number());
                 if (et != null) requireTable(w + " 미로 상자 강화석", et);
             }
@@ -359,6 +363,10 @@ public final class ContentValidator {
             if (t.entries().isEmpty() && t.guaranteed().isEmpty() && t.gold().max() == 0) warn(w, "빈 테이블");
             for (LootTable.Entry e : t.entries()) lootEntry(w, e);
             for (LootTable.Entry e : t.guaranteed()) lootEntry(w + ".guaranteed", e);
+            // rarity_pool 은 층 번호만으로 후보를 모아 같은 장비가 여러 층·여러 경로에서 나온다 → 명시 목록(one_of)으로
+            long pools = t.entries().stream().filter(e -> e.kind() == LootTable.Kind.RARITY_POOL).count()
+                    + t.guaranteed().stream().filter(e -> e.kind() == LootTable.Kind.RARITY_POOL).count();
+            if (pools > 0) warn(w, "rarity_pool 항목 " + pools + "개 — 장비 획득처가 섞인다. one_of 명시 목록을 권장");
         }
         // 순환 참조 검사
         for (String id : c.lootTables().keySet()) {
@@ -379,6 +387,121 @@ public final class ContentValidator {
         }
         stack.remove(id);
         return false;
+    }
+
+    // ── 장비 획득처 구조 (GDD §11 — 장비 하나는 자기 층에만, 집은 최대 2곳) ──────────────
+
+    /** 집 이름 (경고 문구용). */
+    private static final Map<String, String> HOME_NAMES = Map.of("common", "몬스터·상자", "elite", "정예", "boss", "보스",
+            "craft", "제작", "reward", "칭호 보상", "shop", "상점", "starter", "시작 지급");
+
+    /**
+     * 층에 묶인 테이블(몹·정예·보스·보물방·기믹방·미로 상자)을 펼쳐 (a) 다른 층 장비, (b) 집이 3곳 이상인 장비,
+     * (c) items.yml sources(툴팁·도감 표시)가 실제와 다른 장비, (d) 루팅·제작에도 나오는 시작 지급 장비를 경고한다.
+     */
+    /** 층에 묶인 테이블 하나 — 집(common·elite·boss), items.yml sources 꼬리표(drop·chest·elite·boss), 층(-1 = 여러 층이 같이 씀). */
+    private record FloorTable(String home, String tag, int floor) {}
+
+    private static void bind(Map<String, FloorTable> out, String table, String home, String tag, int floor) {
+        FloorTable prev = out.get(table);
+        out.put(table, new FloorTable(home, tag, prev != null && prev.floor() != floor ? -1 : floor));
+    }
+
+    private void gearHomes() {
+        Map<String, FloorTable> bound = new LinkedHashMap<>();
+        for (MobDef m : c.mobs().values()) {
+            if (m.drops() != null) bind(bound, m.drops(), m.isElite() ? "elite" : "common", m.isElite() ? "elite" : "drop", m.floor());
+        }
+        for (BossDef b : c.bosses().values()) {
+            if (b.drops() != null) bind(bound, b.drops(), "boss", "boss", b.floor());
+        }
+        for (FloorDef f : c.floors().values()) {
+            List<String> chests = new ArrayList<>(List.of("treasure_floor_" + f.number(), "gimmick_floor_" + f.number()));
+            int bracket = kr.labyrinth.dungeon.treasure.ChestSettings.of(f.raw().sub("chests")).bracket();
+            for (kr.labyrinth.dungeon.treasure.ChestTier tier : kr.labyrinth.dungeon.treasure.ChestTier.values()) {
+                chests.add(tier.table(f.number(), bracket, c.lootTables()::containsKey)); // Treasures 가 실제로 굴리는 표
+            }
+            for (String t : chests) if (c.lootTables().containsKey(t)) bind(bound, t, "common", "chest", f.number());
+        }
+        Map<String, Set<String>> homes = new HashMap<>();
+        Map<String, Set<String>> tags = new HashMap<>();
+        bound.forEach((t, ft) -> {
+            List<String> leaks = new ArrayList<>();
+            for (String id : expand(t)) {
+                ItemDef d = c.item(id);
+                if (d == null || !d.isGear()) continue;
+                homes.computeIfAbsent(id, k -> new HashSet<>()).add(ft.home());
+                tags.computeIfAbsent(id, k -> new HashSet<>()).add(ft.tag());
+                if (ft.floor() == -1 || (ft.floor() > 0 && d.floor() != ft.floor())) leaks.add(id + "(" + d.floor() + "층)");
+            }
+            if (!leaks.isEmpty()) {
+                warn("loot." + t, (ft.floor() == -1 ? "여러 층이 같이 쓰는 표인데 장비 " : "지하 " + ft.floor() + "층 표인데 다른 층 장비 ")
+                        + leaks.size() + "종 (예: " + String.join(", ", leaks.subList(0, Math.min(3, leaks.size()))) + ")");
+            }
+        });
+        for (RecipeDef r : c.recipes().values()) {
+            homes.computeIfAbsent(r.result(), k -> new HashSet<>()).add("craft");
+            tags.computeIfAbsent(r.result(), k -> new HashSet<>()).add("craft");
+        }
+        for (AchievementDef a : c.achievements().values()) {
+            for (String id : a.rewardItems().keySet()) {
+                homes.computeIfAbsent(id, k -> new HashSet<>()).add("reward");
+                tags.computeIfAbsent(id, k -> new HashSet<>()).add("reward");
+            }
+        }
+        for (NpcDef n : c.npcs().values()) {
+            for (NpcDef.ShopEntry s : n.shop()) {
+                homes.computeIfAbsent(s.item(), k -> new HashSet<>()).add("shop");
+                tags.computeIfAbsent(s.item(), k -> new HashSet<>()).add("shop");
+            }
+        }
+        for (ItemDef d : c.items().values()) {
+            if (!d.isGear()) continue;
+            String w = "items." + d.id();
+            Set<String> h = new HashSet<>(homes.getOrDefault(d.id(), Set.of()));
+            Set<String> tg = new HashSet<>(tags.getOrDefault(d.id(), Set.of()));
+            if (d.sources().contains("starter")) {
+                if (!h.isEmpty()) warn(w, "시작 지급 장비인데 " + homeNames(h) + "에서도 나옴");
+                h.add("starter");
+                tg.add("starter");
+            }
+            if (h.size() > 2) warn(w, "획득처가 " + h.size() + "곳 (" + homeNames(h) + ") — 장비는 최대 2곳 권장");
+            if (!tg.isEmpty() && !tg.equals(new HashSet<>(d.sources()))) {
+                warn(w, "sources " + d.sources() + " 가 실제 획득처 " + new TreeSet<>(tg) + " 와 다름 (툴팁·도감 표시가 틀림)");
+            }
+        }
+    }
+
+    private static String homeNames(Set<String> homes) {
+        List<String> out = new ArrayList<>();
+        for (String k : List.of("common", "elite", "boss", "craft", "reward", "shop", "starter")) {
+            if (homes.contains(k)) out.add(HOME_NAMES.get(k));
+        }
+        return String.join("·", out);
+    }
+
+    /** 테이블이 줄 수 있는 아이템 id (하위 테이블·one_of·guaranteed·rarity_pool 후보 포함, 순환은 끊는다). */
+    private Set<String> expand(String tableId) {
+        Set<String> out = new HashSet<>();
+        expand(c.lootTable(tableId), out, new HashSet<>());
+        return out;
+    }
+
+    private void expand(LootTable t, Set<String> out, Set<String> visiting) {
+        if (t == null || !visiting.add(t.id())) return;
+        List<LootTable.Entry> all = new ArrayList<>(t.entries());
+        all.addAll(t.guaranteed());
+        for (LootTable.Entry e : all) {
+            switch (e.kind()) {
+                case ITEM -> { if (e.item() != null) out.add(e.item()); }
+                case ONE_OF -> out.addAll(e.oneOf());
+                case TABLE -> expand(c.lootTable(e.table()), out, visiting);
+                case RARITY_POOL -> {
+                    if (e.rarityPool() != null) for (ItemDef d : c.poolCandidates(e.floor(), e.rarityPool())) out.add(d.id());
+                }
+            }
+        }
+        visiting.remove(t.id());
     }
 
     private void recipes() {

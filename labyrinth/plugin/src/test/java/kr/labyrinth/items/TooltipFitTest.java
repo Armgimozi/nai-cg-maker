@@ -1,14 +1,20 @@
 package kr.labyrinth.items;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import kr.labyrinth.content.BossDef;
 import kr.labyrinth.content.Content;
 import kr.labyrinth.content.ItemDef;
+import kr.labyrinth.content.MobDef;
 import kr.labyrinth.core.ContentLoader;
+import kr.labyrinth.core.Text;
 import kr.labyrinth.items.enhance.EnhanceRules;
 import kr.labyrinth.items.enhance.Enhancement;
 import kr.labyrinth.ui.menus.CodexMenu;
@@ -35,6 +41,10 @@ class TooltipFitTest {
                 Map<String, Double> bonus = d.isGear() && lv > 0 && EnhanceRules.enhanceable(d) ? rules.bonus(d, rolls, lv) : Map.of();
                 List<String> l = ItemTooltip.lines(content, d, rolls, bonus, enh);
                 assertTrue(l.size() <= ItemTooltip.MAX_LINES, d.id() + " +" + lv + " = " + l.size() + "줄\n" + String.join("\n", l));
+                // 보스 고유 장비는 강화해도 어느 보스 것인지가 남는다
+                if (d.isGear() && d.sources().contains("boss")) {
+                    assertTrue(l.stream().anyMatch(x -> x.startsWith(ItemTooltip.SOURCE_PREFIX + "보스 ")), d.id() + " +" + lv + " 획득처 없음\n" + String.join("\n", l));
+                }
                 for (String s : l) assertTrue(width(s) <= MAX_WIDTH_PX, d.id() + " 너무 넓은 줄 (" + width(s) + "px): " + s);
                 if (l.size() > worst) { worst = l.size(); worstId = d.id(); }
             }
@@ -48,8 +58,9 @@ class TooltipFitTest {
         int worst = 0;
         for (ItemDef d : content.items().values()) {
             List<String> s = src.getOrDefault(d.id(), List.of("알려진 획득처 없음"));
-            List<String> l = new ArrayList<>(ItemTooltip.lines(content, d, null, Map.of(), List.of(), 1 + Math.min(s.size(), CodexMenu.SOURCE_LINES)));
-            l.removeIf(x -> x.startsWith(ItemTooltip.SOURCE_PREFIX));
+            // CodexMenu.itemIcon 과 같은 순서: 한 줄 요약 없이 그리고 아래에 "◆ 획득처" + 목록
+            List<String> l = new ArrayList<>(ItemTooltip.lines(content, d, null, Map.of(), List.of(), 1 + Math.min(s.size(), CodexMenu.SOURCE_LINES), false));
+            assertFalse(l.stream().anyMatch(x -> x.startsWith(ItemTooltip.SOURCE_PREFIX)), d.id());
             int room = ItemTooltip.MAX_LINES - l.size() - 1;
             assertTrue(room >= 1, d.id() + ": 획득처 자리가 없음\n" + String.join("\n", l));
             worst = Math.max(worst, l.size() + 1 + Math.min(room, s.size()));
@@ -58,6 +69,64 @@ class TooltipFitTest {
         }
         assertTrue(worst <= ItemTooltip.MAX_LINES);
         System.out.println("TOOLTIP 도감 최대 " + worst + "줄");
+    }
+
+    @Test
+    void sourceLineNamesTheBossAndKeepsOneHomePerLabel() {
+        int boss = 0, elite = 0, common = 0, starter = 0;
+        for (ItemDef d : content.items().values()) {
+            String line = ItemTooltip.sourceLine(content, d);
+            if (d.sources().isEmpty()) {
+                assertEquals(null, line, d.id());
+                continue;
+            }
+            assertNotNull(line, d.id());
+            assertTrue(width(line) <= MAX_WIDTH_PX, d.id() + " 너무 넓은 획득처 (" + width(line) + "px): " + line);
+            // 예전 라벨(엘리트·업적 보상·제작)과 한 집이 라벨 둘로 갈라진 표기("몬스터 · 보물 상자")는 없다
+            for (String old : List.of("엘리트", "업적 보상", "제작", "몬스터 · 보물 상자")) assertFalse(line.contains(old), d.id() + ": " + line);
+            if (!d.isGear()) continue;
+            if (d.sources().contains("boss")) {
+                // 보스 고유 장비 = 그 층 보스 이름 ("획득처: 보스 테오라(9층) · 대장간")
+                BossDef b = content.bossOfFloor(d.floor());
+                assertTrue(line.startsWith(ItemTooltip.SOURCE_PREFIX + "보스 " + ItemTooltip.bossShortName(b) + "(" + d.floor() + "층)"), d.id() + ": " + line);
+                boss++;
+            }
+            if (d.sources().contains("elite")) {
+                MobDef m = content.mob(content.floor(d.floor()).elite());
+                assertTrue(line.contains("정예 " + Text.strip(m.name()).trim() + "(" + d.floor() + "층)"), d.id() + ": " + line);
+                elite++;
+            }
+            if (d.sources().contains("drop")) {
+                assertTrue(line.startsWith(ItemTooltip.SOURCE_PREFIX + "지하 " + d.floor() + "층 몬스터·상자"), d.id() + ": " + line);
+                common++;
+            }
+            if (d.sources().contains("craft")) assertTrue(line.endsWith(" · 대장간") || line.equals(ItemTooltip.SOURCE_PREFIX + "대장간"), d.id() + ": " + line);
+            if (d.sources().contains("starter")) {
+                assertEquals(ItemTooltip.SOURCE_PREFIX + "시작 지급", line, d.id());
+                starter++;
+            }
+        }
+        assertTrue(boss >= 40 && elite >= 40 && common >= 60, "보스 " + boss + " · 정예 " + elite + " · 공용 " + common);
+        assertEquals(4, starter, "수련생 4종");
+        assertEquals(ItemTooltip.SOURCE_PREFIX + "보스 테오라(9층) · 대장간", ItemTooltip.sourceLine(content, content.item("doomclock_executioner")));
+    }
+
+    @Test
+    void codexGroupsCommonWeaponsIntoOneHome() {
+        Map<String, List<String>> src = CodexMenu.buildSources(content);
+        for (ItemDef d : content.items().values()) {
+            if (!d.isGear()) continue;
+            List<String> s = src.getOrDefault(d.id(), List.of());
+            assertFalse(s.isEmpty(), d.id() + " 도감 획득처 없음");
+            String all = String.join("\n", s);
+            if (d.sources().contains("drop")) {
+                // 몹 6종·보물방·기믹방 이름이 줄줄이 붙지 않고 "몬스터·상자 지하 N층" 한 줄
+                assertTrue(s.get(0).contains("몬스터·상자") && s.get(0).endsWith("지하 " + d.floor() + "층"), d.id() + ": " + all);
+                assertFalse(all.contains("보물 상자") || all.contains("기믹 방") || all.contains("(" + d.floor() + "층)"), d.id() + ": " + all);
+            }
+            if (d.sources().contains("starter")) assertTrue(s.size() == 1 && s.get(0).contains("시작 지급"), d.id() + ": " + all);
+            if (d.sources().contains("boss")) assertTrue(all.contains(ItemTooltip.bossShortName(content.bossOfFloor(d.floor())) + "(" + d.floor() + "층)"), d.id() + ": " + all);
+        }
     }
 
     @Test

@@ -21,7 +21,7 @@ import org.bukkit.inventory.ItemStack;
 
 /**
  * 대장장이 두르간 GUI (GDD §11.11). 탭 = recipes.yml category(무기 · 방어구·방패 · 장신구 · 정수 정제),
- * 레시피마다 재료 보유/필요 · 골드 · 레벨 표시(부족하면 빨강), 클릭 = 제작. "추천 장비만" 필터(장비는 어느 직업이든 쓸 수 있다).
+ * 레시피마다 재료 보유/필요 · 골드 · 레벨 표시(부족하면 빨강), 클릭 = 제작. 직업 필터는 없다(장비는 어느 직업이든 쓸 수 있다).
  * 배너 가운데(13) = [장비 강화] → 강화 창 (GDD §11.13).
  */
 final class BlacksmithMenu extends Menu {
@@ -37,7 +37,6 @@ final class BlacksmithMenu extends Menu {
     private final LabCraftingService crafting;
     private int tab;
     private int page;
-    private boolean suitedOnly = true;
 
     BlacksmithMenu(Services services, LabCraftingService crafting, Player viewer) {
         super(6, kr.labyrinth.ui.UiTheme.title("blacksmith", 6, "<#f3e3bd>대장장이 두르간의 대장간"));
@@ -45,15 +44,13 @@ final class BlacksmithMenu extends Menu {
         this.crafting = crafting;
     }
 
-    private List<RecipeDef> recipes(Player p) {
+    private List<RecipeDef> recipes() {
         String cat = TABS[tab];
-        String cls = services.data().get(p).classId();
         List<RecipeDef> out = new ArrayList<>();
         for (RecipeDef r : services.content().recipes().values()) {
             if (!cat.equals(r.category() == null ? "weapon" : r.category())) continue;
             ItemDef def = services.content().item(r.result());
             if (def == null) continue;
-            if (suitedOnly && cls != null && !def.suitedFor(cls)) continue;
             out.add(r);
         }
         out.sort(Comparator.comparingInt(RecipeDef::levelReq)
@@ -95,7 +92,7 @@ final class BlacksmithMenu extends Menu {
             });
         }
 
-        List<RecipeDef> list = recipes(viewer);
+        List<RecipeDef> list = recipes();
         int pages = Math.max(1, (list.size() + PER_PAGE - 1) / PER_PAGE);
         page = Math.max(0, Math.min(page, pages - 1));
         int start = page * PER_PAGE;
@@ -111,10 +108,7 @@ final class BlacksmithMenu extends Menu {
                 refresh();
             });
         }
-        if (list.isEmpty()) {
-            deco(31, Button.icon(Material.BARRIER, "<gray>제작할 수 있는 물건이 없습니다",
-                    List.of(suitedOnly ? "<dark_gray>'추천 장비만' 필터를 꺼 보세요." : "")));
-        }
+        if (list.isEmpty()) deco(31, Button.icon(Material.BARRIER, "<gray>제작할 수 있는 물건이 없습니다", List.of()));
 
         if (page > 0) set(45, Button.icon(Material.ARROW, "<white>이전 쪽", List.of("<gray>" + page + " / " + pages)), ctx -> {
             page--;
@@ -126,18 +120,10 @@ final class BlacksmithMenu extends Menu {
             click(viewer);
             refresh();
         });
-        set(47, Button.icon(suitedOnly ? Material.LIME_DYE : Material.GRAY_DYE,
-                suitedOnly ? "<#9be89b>내 직업 추천 장비만 보기: 켜짐" : "<gray>내 직업 추천 장비만 보기: 꺼짐",
-                List.of("<gray>장비는 어느 직업이든 쓸 수 있습니다.", "<dark_gray>클릭하여 전환")), ctx -> {
-            suitedOnly = !suitedOnly;
-            page = 0;
-            click(viewer);
-            refresh();
-        });
         double disc = services.stats().get(viewer).craftDiscount();
         deco(49, Button.icon(Material.GOLD_NUGGET, "<#ffd27a>보유 골드 " + Text.num(d.gold()),
                 List.of("<gray>레벨 " + d.level() + (disc > 0 ? " · 제작 할인 " + Text.pct(Math.min(RecipeCheck.MAX_DISCOUNT, disc)) : ""),
-                        "<dark_gray>재료는 미궁의 몬스터·엘리트·보스에게서 얻습니다.")));
+                        "<dark_gray>재료는 미궁의 몬스터·정예·보스에게서 얻습니다.")));
         set(51, Button.icon(Material.OAK_DOOR, "<gray>닫기", List.of()), ctx -> viewer.closeInventory());
     }
 
