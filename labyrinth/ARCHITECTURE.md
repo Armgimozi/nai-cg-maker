@@ -691,6 +691,8 @@ hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100,
 - `arena` 4층: `platform_block`/`platform_base`(단상 블록, 기본 PRISMARINE_BRICKS/DARK_PRISMARINE), `valve_block`(기본 WAXED_OXIDIZED_COPPER).
 - `arena` 6층: `sigil_ring_radius`(인장 링, 기본 10), `floor_thaw`(기본 true — 전투 동안 아레나 바닥의 원래 얼음을 눈·방해석으로 덮어
   영구 동토 얼음판만 미끄럽게, 끝나면 복원). 6층 `glacier_shell.role_damage` = classes.yml `role` → 깰 수 있는 인장 유형(melee|ranged|magic).
+- 9층 `timed_seals`·`doom_clock`: 바늘·봉인석은 바닥 판(`clock_hand`/`clock_hand_reverse`, `seal_glyph`/`seal_glyph_open` 모델 교체)이고 블록을 바꾸지 않는다.
+  종말 시계는 세 번째 보스바(HUD 키 `boss_doom`), 이 보스는 기본 광폭화 대신 종말 시계를 쓴다(`enrage` 를 적으면 둘 다). 되감기·시간 역류는 `impl.PositionHistory`(0.5초 링버퍼).
 
 ## 7. 성능·안정성 규칙
 
