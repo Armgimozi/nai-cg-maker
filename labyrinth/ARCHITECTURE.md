@@ -33,6 +33,7 @@ labyrinth/
     requirements.txt     ← Pillow, PyYAML 만
     src/...              ← 생성기 모듈
     dist/                ← 결과물 (git 에는 zip 만 커밋하지 않음; 빌드 산출물)
+  tools/                 ← check_assets.py(에셋 id 대조) · maze_render.py · gen_enhance.py(content/enhance.yml 생성, §6.6) · build_world.sh …
 ```
 
 빌드: `cd labyrinth/plugin && ./gradlew build` (JDK 25 필요; 이 컨테이너는 `/opt/jdk25`, `~/.gradle/gradle.properties` 에 설정됨).
@@ -324,7 +325,9 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   정예방 정리 → `treasures().onEliteCleared(room)`(열쇠), 블록 상호작용은 DungeonManager 가 `treasures().onInteract` 먼저 묻는다.
   floors.yml 층별 `traps: {density, types, mark, spacing}`·`chests: {dead_end, minor, iron, gold, gold_behind_trap, mimic, vault, key_from_elite, bracket}`,
   dungeon.yml `traps.*`(disarm_seconds·shadow_disarm_seconds·shadow_sense_radius·disarm_gold·disarm_xp)·`treasure.mimic_lock_seconds`
-  → `DungeonConfig.traps()`(TrapRules). loot.yml `maze_chest_<wood|iron|gold>_<1~4>`(층 구간 1~3·4~6·7~9·10) + 철·금 상자 강화석 `maze_enhance_<iron|gold>_t<1~3>`(강화석 구간 1~3·4~7·8~10, 상자마다 따로 한 번), items.yml `vault_key`(type key,
+  → `DungeonConfig.traps()`(TrapRules). loot.yml 미로 상자 = `treasure.ChestTier.table(층, chests.bracket, 존재)`: bracket 강제가 없으면 층별 표
+  `maze_chest_<wood|iron|gold>_f<층>`(있을 때), 아니면 구간 표 `maze_chest_<tier>_<1~4>`(층 구간 1~3·4~6·7~9·10 — 여러 층 공용이라 장비 없음). 검사기·도감도
+  같은 함수로 실제로 굴릴 표를 고른다. + 철·금 상자 강화석 `maze_enhance_<iron|gold>_t<1~3>`(강화석 구간 1~3·4~7·8~10, 상자마다 따로 한 번), items.yml `vault_key`(type key,
   PDC "런id#층" — `Run.restore`·`Run.begin`(입장자)·`DungeonManager.recoverStranded`·다음 층 첫 도착 때 지움). titles.yml 조건 `TREASURE {kind: chest|gold_chest|vault|mimic, count}` —
   카운터 `titles.treasure.<kind>`. PlayerData 카운터 `dungeon.traps_disarmed`. 자가 진단 결과에 `traps=·chests=·vaults=·secret_rooms=·mimics=`.
 - **TitleService** 실제 구현 `titles.LabTitleService`. 기본 메서드 추가: `setBonusSuppressed(p, on)`(칭호 스탯 보너스 잠시 끄기 — 지금은 부르는 곳 없음),
@@ -364,6 +367,7 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 ### dungeon+party 구현 메모 (다른 모듈이 알아야 할 것)
 - **설정 파일**: 미궁 진행 수치는 `plugins/Labyrinth/dungeon.yml` (jar 기본값 `src/main/resources/dungeon.yml`: 틱당 블록 수, 동시 인스턴스,
   층 높이·간격, 문 닫힘 지연, 몹 수 인원 보정, 휴식방 회복, 대체 보스 배율, 보물방 미믹 확률 …). 난이도·파티 배율은 그대로 config.yml.
+  0.3.2: 솔로·2인 몹 수 `party_mob_count` + 보상 보정 `party_mob_reward` · 방 정리 회복 `room_clear_heal` · 층 첫 돌파 보너스 `first_clear_bonus` (§6.7).
 - **공허 월드 좌표**: 미궁 인스턴스는 `InstanceAllocator` 슬롯(간격 2048, **z ≥ 2048** 영역)만 쓴다. **다른 모듈이 공허 월드에 무언가 지어야 하면 z < 0 영역을 쓸 것.**
   층 n 의 바닥 y = `top_floor_y − (n−1) × floor_spacing` (기본 280, 30 → B1 y280 … B10 y10). 같은 슬롯에서 아래층일수록 실제로 낮다.
 - **인스턴스 id**: `InstanceContext.id()` = `r<번호>s<슬롯>-<세션>-b<층>` (세션 = 플러그인 활성 시각 36진수 — 재시작 뒤 run id 가 다시 나오지 않음. 층마다 새 컨텍스트, 같은 Run 의 배율·난이도 유지). 몹·보스 정리는 이 id 로.
@@ -439,7 +443,9 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   피해(분노 임계)·처치(사망 스킬) → 소환물·허수아비 정리. 자가 진단은 플레이어가 없으면 스킬을 한 번도 안 쓰므로, **새 몹·새 스킬은 이걸로 확인**.
   로그 `[몹 훈련] 결과: 예외 0 · 몹 n/n · 시전 … · 허수아비 적중 …`. 스킬 대상은 `LivingEntity`(플레이어 또는 허수아비) — 광역 판정은 `LabMob.victimsNear`.
 - **도감** `/codex` = `/도감` = `/미궁 도감` (`ui.menus.CodexMenu`): 종류·희귀도별 아이템(실제 툴팁 + 획득처: 몹/보스 드롭·보물 상자·기믹 방·
-  제작 재료·상점·칭호 보상 — loot 테이블 중첩·rarity_pool 까지 계산), 몬스터·보스(모델 머리 아이콘·능력치·드롭).
+  제작 재료·상점·칭호 보상·시작 지급 — loot 테이블 중첩까지 계산. 하위 테이블 `gear_fNN_common` 은 따라 들어가지 않고 "몬스터·상자 지하 N층" 한 줄,
+  층별 미로 상자는 `ChestTier` 규칙으로 실제로 굴리는 표를 보물 상자로), 몬스터·보스(모델 머리 아이콘·능력치·드롭, 수치는 "(보통·보정 전)").
+  획득처 그룹 순서(장비) = 보스 · 정예 · 몬스터·상자 · 제작 · 칭호 보상.
 - **config.yml** 추가 키: `mobs.elite_variant_chance`(기본 0.06), `mobs.model_yaw_offset`(도, 기본 0).
 - **에셋 id 대조** `python3 tools/check_assets.py [팩.zip]`: 아이템(활 당김 모델 포함)·방어구 세트·몹/보스 파트·NPC 스킨·fx(fx.yml + 아우라·params.fx
   참조 + Java 스킬 fx 기본값)·글리프(font/ui.json 문자, 메뉴 배경 줄 수) ↔ 팩 zip. 오류 0 이어야 배포.
@@ -455,11 +461,15 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   각 직업 스킬 4개(3 + 궁극기), 레벨에 따라 해금. 직업마다 추천 무기 타입(장비 제한은 없음 — 누구나 모든 장비).
 - 희귀도: 일반(흰) < 고급(초록) < 희귀(파랑) < 영웅(보라) < 전설(금, 아우라) < 신화(빨강, 애니메이션 아우라).
   **전설·신화 무기 텍스처는 프레임 애니메이션(.mcmeta, GIF 처럼 움직임)** + 들고 있을 때 파티클/링 아우라.
-- 장비 획득 루트: 일반 몹 드롭 / 엘리트·보스 드롭(보스 전용 장비) / 대장장이 제작(몹 재료) / 보물방 상자 / 칭호 보상.
+- 장비 획득 루트 (GDD §11.3): **장비 하나 = 한 층, 집은 최대 2곳** — 몬스터·상자(그 층 `gear_fNN_common`) / 정예(그 층 방어구·방패·장신구) /
+  보스(그 보스 고유 장비, 핵으로 대장간) / 대장장이 제작(그 층 재료만) / 칭호 보상 / 시작 지급(수련생 장비). 다른 층 테이블에 장비를 넣지 않는다.
 - 미궁: 지하 1~10층. 층마다 테마·몹 3~4종·엘리트·고유 보스(페이즈 2~3, 고유 기믹). 보스 처치 → 다음 층 계단.
   - 해금: 처음엔 1층만. 층을 깨면 다음 층 해금. 파티는 **파티원 중 최소 해금층**까지 선택 가능.
   - 솔로 입장 또는 파티 입장(파티원 모두 입구 근처, 파티장만 시작).
   - **파티 인원 배율**: 몹 HP ×(1 + `hp_per_member`×(n−1)), 피해 ×(1 + `dmg_per_member`×(n−1)), 보상 약간 증가. config.
+    솔로(1명)만 HP ×`party.solo_hp`·피해 ×`party.solo_damage`(0.85, 보상 그대로 — `core.PartyScaling`).
+  - **난이도 층 램프**: 어려움·악몽의 HP·피해·경고 시간은 낮은 층에서 완만하게 시작해 `ramp.full_floor` 층부터 원래 값(`Difficulty.atFloor`,
+    InstanceContext 가 층마다 한 번 적용 — 몹·보스·함정·보스 기믹 배율이 모두 층 실효값). 드롭·경험치는 1층부터 원래 값. GDD §2.4.
   - **난이도는 서버 전체 설정 하나**: 쉬움/보통/어려움/악몽 (HP·피해·드롭 배율, config.yml 프리셋). **난이도 해금 없음**,
     입장할 때 고르지도 않음. **서버를 처음 만들 때 관리자가 정한다**: 첫 실행 시 `config.yml: difficulty` 가 비어 있으면
     처음 접속한 관리자(OP/`labyrinth.admin`)에게 **초기 설정 GUI**(난이도 4개 + 입구 방식 블록/NPC-only)를 띄우고,
@@ -510,7 +520,10 @@ items:
     armor_set: null           # 방어구면 장비 에셋 세트 id
     rarity: legendary
     level_req: 25
-    classes: [berserker]      # 추천 직업 (비우면 모두) — 착용 제한 아님, 드롭 편향·표시용
+    classes: [berserker]      # 어울리는 직업 (비우면 모두) — 착용 제한·표시 아님, 드롭 직업 편향(own_class_bias)에만
+    floor: 5                  # 장비가 속한 층 — 그 층 테이블·레시피에서만 나온다
+    pool: false               # rarity_pool 미사용 (장비는 전부 false)
+    sources: [boss, craft]    # 획득처 (툴팁·도감) — 집 최대 2곳, GDD §11.3
     stats: {damage: [38, 44], STR: [6, 9], crit_chance: [0.04, 0.06]}   # [최소, 최대] 굴림
     set_bonus: null           # 세트 id (sets: 섹션 참고)
     aura: ember               # fx.yml aura id (전설/신화 무기)
@@ -599,20 +612,24 @@ floors:
 
 # loot.yml
 tables:
+  gear_f01_common:            # 그 층 공용 무기 (몬스터·상자 한 집) — 하위 테이블
+    rolls: 1
+    entries:
+      - {one_of: [corridor_longsword, rootcutter_greatsword, ...], chance: 1.0}
   moss_crawler:
     rolls: 1
     entries:
-      - {item: moss_fiber, chance: 0.6, amount: [1, 2]}
-      - {item: mossbound_dagger, chance: 0.02}
-      - {rarity_pool: uncommon, chance: 0.05, floor: 1}   # 해당 층 장비 중 희귀도 랜덤
+      - {item: moss_fiber, chance: 0.55, amount: [1, 2]}
+      - {table: gear_f01_common, chance: 0.03}           # 장비는 이름으로만 (rarity_pool 은 쓰지 않음)
+      - {table: enhance_mob_t1, chance: 1.0}
 
 # recipes.yml
 recipes:
   ember_greatsword:
     result: ember_greatsword
     station: blacksmith
-    materials: {forge_core: 1, ember_shard: 12, dark_iron_ingot: 8}
-    gold: 1500
+    materials: {forge_core: 1, ember_shard: 20, slag_ingot: 16, executioner_edge: 3, labyrinth_essence: 5}   # 그 층 재료 + 그 보스 핵
+    gold: 9000
     level_req: 25
 
 # titles.yml
@@ -667,6 +684,8 @@ hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100,
   `params.effect` = §9.2. `model.parts[]` 에 `form`·`size: [w,h,d]`(px) 추가, `model.style` 에 `features` 추가 (form/anim/shape/features 목록 = GDD §14.3).
   새 몸 형태 단계 추가 키: projectile `blast_radius`·`blast_delay`·`blast_damage`·`blast_knockback`(착탄 폭발), cleave `rear`·`knockback`(꼬리 휩쓸기),
   form `wing`·`neck`·`segment`, anim `wings_flap`·`neck`·`tail_chain`, shape `drake`·`wyvern`·`dragonkin`·`naga`·`centaur`·`harpy`·`minotaur`·`lich`·`worm`.
+  0.3.2 추가 키: 몹 최상위 `attack_interval`(기본 공격 간격 초, 없으면 1.2 — 떼 ×0.85, 원거리 기본탄 +0.8초, `MobAi.attackInterval`; 1층 몹 1.5 · 2층 몹 1.35),
+  `summon` 스킬 params `solo_count`·`solo_max_alive`(1인일 때 count·max_alive 대신, 2인 이상은 원래 값 — `Params.scaledInt`, GDD §8.4·§2.7).
 - **bosses.yml**: `core`(핵심 기믹 키, 보스마다 다름), `description`, `speed`, `flying`, `bossbar`(BossBar 색),
   `lines: {intro, phase2, phase3, death}`, `rotation: {페이즈번호: [패턴키…]}`, `sounds`, `arena` 에 보스별 배치 키
   (pillars/nests/platforms/valves/anchors/pylons/rune_shelves/corridor_length …). 패턴 params 공통 규칙(`*_base`·`*_per_member`·
@@ -687,9 +706,14 @@ hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100,
 모두 **추가** 필드이며 닫힌 목록과 해석은 GDD.md 에 있다(§번호 표기). 생략한 필드 = null / 기본값.
 
 - **items.yml**
-  - `floor`(1~10): 장비가 속한 층 단계 — loot `rarity_pool` 후보 기준(GDD §11.10). 재료는 정보용(획득 층).
-  - `pool`(기본 true): false 면 rarity_pool 이 뽑지 않음(보스 전용·제작 전용·칭호 보상).
-  - `sources`: 획득처 목록 `drop | elite | boss | chest | craft | reward | shop` (툴팁 "획득처"·도감용, 콘텐츠 생성 시 계산해 적음).
+  - `floor`(1~10): 장비가 속한 층 — **장비는 그 층의 루팅 테이블·레시피에서만 나온다**(GDD §11.3, 검사기가 다른 층 테이블의 장비를 경고).
+    강화석 등급(`enhance.stones.max_floor`)도 이 값으로 고른다. 재료는 정보용(획득 층).
+  - `pool`(기본 true): false 면 rarity_pool 이 뽑지 않음. loot.yml 은 rarity_pool 을 쓰지 않으므로 장비는 **전부 false**(실수로 풀을 다시 써도 안전).
+  - `sources`: 획득처 목록 `drop | chest | elite | boss | craft | reward | shop | starter` (툴팁 "획득처"·도감용, loot/recipes/titles/npcs/config `starter_kit` 에서
+    계산해 적음). `drop`+`chest` = 그 층 몬스터·상자 한 집(`gear_fNN_common`), `starter` = 시작 지급(몹·상자·대장간에서 안 나옴). **장비 하나 = 집 최대 2곳**
+    (몬스터·상자 / 정예 / 보스 / 대장간 / 칭호 / 시작 지급). 실제 획득처와 다르면 검사기 경고. 툴팁 한 줄 = `ItemTooltip.sourceLine`
+    ("보스 테오라(9층) · 대장간", "정예 <이름>(N층)", "지하 N층 몬스터·상자", "시작 지급" — 이름은 주는 보스·정예가 하나뿐일 때만, 콘텐츠를 다시 읽을 때 계산).
+  - `classes`: 어울리는 직업 — 착용 제한도 툴팁·대장간 표시도 아니다. `ItemDef.suitedFor` = 드롭 직업 편향(`own_class_bias`)·시작 무기 고르기에만.
   - `armor_slot: offhand` = 방패(수호기사). 보조손에 있을 때만 스탯 적용, `block_chance` 로 막기(GDD §11.2).
   - `stats` 키 = GDD §11.7 닫힌 목록 26개(`damage`, 스탯 6종, hp, mp, defense, crit_chance, crit_damage, attack_speed, move_speed,
     cooldown_reduction, skill_damage, mana_regen, hp_regen, heal_power, lifesteal, damage_reduction, evasion, block_chance, gold_bonus,
@@ -709,9 +733,17 @@ hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100,
   - `sets.<id>.look`: heavy | light | cloth — 장비 에셋 레이어 실루엣(GDD §14.7). `bonuses` 키 = 착용 개수(이상).
 - **loot.yml**
   - 최상위 `settings: {own_class_bias, luck_per_point, party_bonus_per_member, max_chance, rarity_weight: {난이도: {희귀도: 배율}}, announce_rarity}`.
-  - 테이블 `guaranteed: [{item, amount}]`(배율 무관 확정 지급), `gold: [min, max]`(상자 골드).
+  - 테이블 `guaranteed: [{item, amount}]`(배율 무관 확정 지급 — `one_of`·`table` 도 가능), `gold: [min, max]`(상자 골드).
   - 항목 종류 추가: `{one_of: [id…], chance}`, `{table: id, chance}`(순환 금지). 공통 선택 키 `min_difficulty`. 해석 = GDD §11.10.
+  - **장비 배치 테이블 (0.3.2, GDD §11.3)**: `gear_f01_common` … `gear_f10_common` = 그 층 공용 무기 `one_of`(chance 1.0) 하나 — 그 층 일반 몹·`treasure_floor_N`·
+    `gimmick_floor_N`·층별 미로 상자가 `{table: gear_fNN_common, chance: p}` 로 굴린다(p 에 난이도·파티·LUK 배율, 안쪽 one_of 는 배율 없이 1개 + 직업 편향).
+    정예·보스 장비는 그 층 정예·`floorNN_boss` 테이블에 `one_of`/`item` 으로 직접. `rarity_pool` 항목은 쓰지 않는다(검사기 경고).
+  - **미로 상자 표**: 층별 `maze_chest_<wood|iron|gold>_f<N>`(그 층 재료·`gear_fNN_common`·금 상자는 그 층 정예 재료) 가 **우선**이고, floors.yml `chests.bracket`
+    강제(> 0)나 층별 표가 없을 때만 구간 표 `maze_chest_<tier>_<1~4>`(장비 없음). 판정 = `dungeon.treasure.ChestTier.table(floor, bracket, exists)`.
+  - 검사기(`ContentValidator`) 경고: rarity_pool 사용 · 층에 묶인 테이블이 다른 층 장비를 줌 · 장비 집 3곳 이상 · items.yml `sources` 불일치 ·
+    시작 지급 장비가 루팅·제작에서도 나옴 (한 테이블을 몹·정예·보스·상자가 같이 쓰면 집을 모두 모은다).
 - **recipes.yml**: `category`(weapon | armor | accessory | material — 대장장이 GUI 탭), `amount`(결과 개수, 기본 1).
+  레시피 재료는 그 층 것만(그 층 일반 재료 + 그 층 정예 재료 + 그 층 정수 등급, 보스 장비는 + 그 보스 핵 — 정예 장비에는 핵을 넣지 않는다). 대장간 GUI 에 직업 필터는 없다.
 - **titles.yml**: condition 선택 키 `server_first: true`(어느 조건에나(TREASURE 포함) — 서버에서 처음 달성한 1명만, records.yml).
   (예전 파티 대전용 PVP_* 조건과 arenas.yml 은 없앴다 — PvP 는 파티 규칙 하나, GDD §18.)
 - **fx.yml**: 전설 아우라 9종(soulfire, codex, geode, inkblot, abyssal, voltaic, quicksilver, aurora, venom)과 각자의 `_ring/_slash/_orb/_burst`,
@@ -746,20 +778,95 @@ hints:
   thresholds: [2, 4, 6]    # 실패 횟수 경계 → 단계 1..3 (파티원 중 최댓값 기준)
 ```
 
-### 6.5 강화 단계에서 추가된 것 (GDD §11.13 — 전부 추가)
-- **config.yml** `enhance:` — `enabled, max_level, chances[], downgrade_from, protection_item, stat_per_level, weapon_stats[], armor_stats[],
+### 6.6 강화 단계에서 추가된 것 (GDD §11.13 — 전부 추가)
+- **config.yml** `enhance:` — `enabled, max_level, chances[], downgrade_from, protection_item, stat_bonus[], weapon_stats[], armor_stats[],
   gold_base, gold_level_offset, gold_rarity{}, gold_steps[], craft_discount, stone_counts[], stones[{item, max_floor}], broadcast_from,
   glint_from, glow_interval`. 목록은 목표 단계 +1.. 순(모자라면 마지막 값). 원본 파서 = `items.enhance.EnhanceRules.Config.from`.
+  **`stat_bonus`**(0.3.2 — 예전 `stat_per_level` 을 대체): 단계별 **누적** 보너스, 배율 = 1 + stat_bonus[단계−1]. 기본(키가 없거나 빈 목록·숫자 없음)
+  `[0.04, 0.08, 0.13, 0.19, 0.26, 0.35, 0.46, 0.60, 0.78, 1.00]` = 상승폭 4·4·5·6·7·9·11·14·18·22% → +5 ×1.26 · +8 ×1.6 · +10 ×2.0
+  (`EnhanceRules.Config.defaultStatBonus()` = 번들 config 값, 테스트가 같음을 확인). 줄어드는 값은 앞 값으로 올려 막는다(단조). `stat_per_level` 은 읽지 않는다
+  (예전 config.yml 에 남아 있어도 무시 → 기본 곡선). `EnhanceRules.multiplier(단계)`·`stepGain(단계)`(다음 단계 상승 몫).
+- **content/enhance.yml** (선택 파일 — 없으면 모든 장비가 강화석·골드만, 시작 때 경고 한 번. 파서 `ContentParser` → `content.EnhanceDef`, `Content.enhance()`):
+  ```yaml
+  version: 1
+  bands: {low: [1, 3], mid: [4, 6], high: [7, 10]}   # 목표 단계 구간. 마지막 구간 너머(max_level 을 올렸을 때) = 마지막 구간의 마지막 개수
+  items:
+    grove_warden_maul:                               # 장비 id → 구간 → {재료 id: 개수}  (YAML 순서 = 강화 창 표시 순서, 툴팁에는 첫 재료만)
+      low:  {moss_fiber: [4, 4, 5]}                  # 개수 = 숫자 하나(구간 전체) 또는 목록(구간 안 목표 단계 순, 모자라면 마지막 값, 0 = 그 단계엔 없음)
+      mid:  {moss_fiber: [5, 5, 6], beetle_shell: [3, 3, 4]}
+      high: {moss_fiber: [6, 7, 8, 9], beetle_shell: [4, 4, 5, 6], alpha_moss_crest: [1, 2, 0, 0], warden_heartwood: [0, 0, 1, 2]}
+  ```
+  `EnhanceDef.costs(id, 목표)` = 그 시도의 장비 재료(개수 > 0). 없는 재료·장비 id 는 읽을 때 경고 목록(`warnings`)에 넣고 그 줄만 무시.
+  **생성기** `tools/gen_enhance.py`(`--check`·`--report`·`--spec`): loot.yml 을 펼쳐 층별 1회 공급량을 계산해 개수를 맞추고, 규칙·공급량·예상 클리어 수·검사 결과를
+  파일 머리 주석에 쓴다. 재료 규칙(GDD §11.13): 제작법이 있는 장비 = 그 레시피 재료(P 가장 많이 드는 것 · S 두 번째 · R 가장 귀한 것), 없는 장비 = 그 장비를
+  주는 곳의 드롭, 보스 장비 +7·+8 = 정예 재료 · +9·+10 = 그 보스 핵, mid 까지는 일반 재료만, 같은 층 구성 겹침 0. 장비·레시피·루팅을 바꾸면 다시 돌릴 것
+  (`EnhanceMaterialsTest` 가 재료 존재·그 층에서 얻을 수 있음·구간 규칙·보스 핵·겹침·번들 파일 경고 0 을 검사).
+- **비용** `EnhanceRules.cost(def, 목표, 할인, EnhanceDef)` → `EnhanceCost(gold, lines)` — 강화석 줄이 맨 앞(`stone()`), 그다음 장비 재료(`materials()`), 같은 id 는 한 줄로 합침.
+  `EnhanceCost` 는 골드·강화석·재료를 **전부 확인한 뒤에만** 한꺼번에 소모(하나라도 모자라면 아무것도 안 가져감), 실패해도 소모. 강화 창 비용 줄 배치 = `EnhanceLayout`
+  (glyphs.yml `menus.enhance.slots` 의 `gold`·`stone`·`protection` 소켓, `materials: [..]` 가 있으면 그 칸 — 지금 배경은 29·31·33 소켓이라 재료 30·32·28, 글리프 끔 28~33,
+  값이 틀리면 예전 소켓 배치). 자가 진단은 단계마다 비용이 실제 아이템을 가리키는지 확인한다.
 - **아이템 PDC** `Keys.ITEM_ENHANCE`(Integer 0~max, 없으면 0). 쓸 때 `ITEM_VERSION` 을 2 로 올린다(1 이하 = 강화 0). 다른 모듈은
   `items.enhance.Enhancement.level(stack)` 로 읽고, 단계를 바꾼 뒤 `services.items().refresh(stack)`(이름 `+N`·툴팁·광택 다시 그리기).
   `ItemService.rolledStats` 는 **강화 배율 포함**(무기 `damage`, 방어구·방패 `defense`·`hp`) — 장비 StatContributor·PvP 장비 보정이 그대로 쓴다.
 - **items.yml** 재료 4종: `lesser_enhance_stone` · `greater_enhance_stone` · `supreme_enhance_stone` · `enhance_protection_scroll`(2D 아이콘).
+  장비별 재료는 기존 재료(층 재료·정예 재료·정수·보스 핵)를 그대로 쓴다 — 강화 전용 새 재료는 없다.
 - **loot.yml** 하위 테이블 `enhance_{mob|swarm|elite|boss|chest|gimmick}_t{1|2|3}` · `enhance_preview_t{2|3}` — 몹·보스 테이블은 entries 에,
   rolls 2 인 보물·기믹 상자는 `guaranteed` 에 `{table: enhance_*, chance: 1.0}` 한 줄. **새 몹/층 테이블을 만들면 이 한 줄을 같이 넣을 것.**
 - **titles.yml** 조건 `ENHANCE {level}` (+ `server_first`), 카운터 `titles.enhance_best` · `titles.enhance_success`. 이벤트 `event.EnhanceEvent`
   (player, def, item, from, to, outcome = success | fail | downgrade | protected).
 - **glyphs.yml** 배경 `gui_enhance`(U+E0E8, 6줄) + `menus.enhance.slots`, `menus.blacksmith.slots.enhance: 13`(배너 모루 자리 = [장비 강화]).
 - **명령** `/미궁 강화|enhance`, `/labadmin enhance <단계> [플레이어]`. 자가 진단에 `enhance_checked`(강화 가능 장비 전부 +1~+10 기록·배율 확인).
+
+### 6.7 0.3.2 에서 추가된 설정 (config.yml · dungeon.yml — 전부 추가, 키가 없어도 동작)
+기존 서버는 `saveDefaultConfig()`·dungeon.yml 이 이미 있는 파일을 덮어쓰지 않으므로, 아래 키를 읽는 코드는 **Bukkit jar 기본값에 기대지 않고**
+키가 없거나 묶음이 비어 있으면 **코드 기본값(= jar 의 값)** 을 쓴다(`core.Settings`, `dungeon.DungeonConfig.of`). 끄는 방법은 키마다 명시값으로 정했다.
+```yaml
+# config.yml
+difficulties:
+  hard:      {…, ramp: {from_floor: 1, full_floor: 4, start: {hp: 1.2, damage: 1.15, telegraph: 0.95}}}
+  nightmare: {…, ramp: {from_floor: 1, full_floor: 6, start: {hp: 1.8, damage: 1.6, telegraph: 0.85}}}
+  # ramp: 층 램프 (core.Difficulty.Ramp — 층 f 값 = start + (원래 − start) × clamp((f − from)/(full − from), 0, 1)).
+  #   hp·damage·telegraph 와 보스 기믹 배율(MechanicScaling: 쿨다운·속도·오브젝트 HP·제한 시간 보간, 추가 개수는 진행도 0.5 부터)만. drop·xp 는 그대로.
+  #   키 없음/빈 묶음 = Difficulty.Ramp.defaultFor(id) (어려움·악몽만, 원래 값이 기본 시작 값보다 낮으면 그 값으로 자름) · 빠진 하위 키 = 기본 램프 값
+  #   끄기 = ramp: {enabled: false} 또는 ramp: false · full_floor ≤ from_floor 면 램프 없음
+party:
+  solo_hp: 0.85            # 1명일 때만 몹·보스 HP 배율 (PartyScaling.hp(1)), 0.1~1.5 로 자름. 끄기 1.0
+  solo_damage: 0.85        # 1명일 때만 몹·보스 피해 배율. 보상은 그대로
+starter_kit:               # 직업을 처음 고를 때 플레이어당 한 번 (LabyrinthClassService, PlayerData ext starter.kit, 지급 출처 "starter")
+  enabled: true            #   끄기 = enabled: false 또는 starter_kit: false. 키 없음/빈 묶음/items 비면 코드 기본 목록(Settings.DEFAULT_STARTER_KIT)
+  items: [{item: novice_cap, amount: 1}, {item: novice_tunic, amount: 1}, {item: novice_trousers, amount: 1},
+          {item: novice_boots, amount: 1}, {item: minor_healing_potion, amount: 5}]   # 콘텐츠에 없는 id 는 경고 후 건너뜀, amount ≤ 64
+  # 기존 플레이어(이미 직업 있음): 접속 때 Lv.5 이하이고 dungeon.clear_floor_1 == 0 일 때만 지급, 그 밖에는 starter.kit 만 기록
+class_change:              # 직업 변경 제한 (§4.1 ClassChangeGate) — 끄기 class_change: false (또는 require_item: false + cooldown_hours: 0)
+  require_item: true
+  item: class_change_scroll
+  cooldown_hours: 24       # 바꾼 뒤 대기 (실제 시간, ext class.changed_at — 첫 선택은 기록하지 않음)
+death:                     # 인벤세이브 (core.DeathKeep) — 키 없으면 둘 다 true
+  keep_inventory: true
+  keep_level: true
+enhance:
+  stat_bonus: [0.04, 0.08, 0.13, 0.19, 0.26, 0.35, 0.46, 0.60, 0.78, 1.00]   # §6.6 (stat_per_level 대체)
+
+# dungeon.yml
+party_mob_count:           # 솔로·2인 전투방 몹 수 배율 {인원: 배율} (0.1~1.5, 없는 인원 1.0). 정예방 호위도 같은 배율(최소 1)
+  enabled: true            #   키 없음/인원 키 없음 = 코드 기본 {1: 0.7, 2: 0.9} · 끄기 = enabled: false 또는 party_mob_count: false (또는 {1: 1.0, 2: 1.0})
+  1: 0.7
+  2: 0.9
+party_mob_reward: true     # 줄인 만큼 웨이브 몹 보상 보정 — 끄기 false
+room_clear_heal: 0.15      # 전투방·정예방 정리 때 살아 있는 파티원 최대 HP 비율 회복 (0~1) — 끄기 0
+first_clear_bonus: 0.4     # 층 첫 돌파 경험치 = 그 층 level_range 최소→최대 필요 경험치 합 × 값 (0~2, 난이도 배율 없음) — 끄기 0
+```
+- **몹 수·보상**: `DungeonConfig.battleWave(굴림, n)` / `eliteEscort(굴림, n)` → `Wave(count, rewardMult)`. 전투방 = round(굴림 × party_mob_count[n] × (1 +
+  `mob_count_per_member`×(n−1))), 1 ~ `max_mobs_per_room`; rewardMult = '배율 없이 나왔을 수 ÷ 실제 수'(`party_mob_reward: false` 면 1). BattleRoom 이
+  웨이브 몹마다 `CustomMob.rewardMultiplier(m)` 로 기록 → `MobServiceImpl.reward` 가 경험치·골드에 곱하고 `LootService.drop(table, looters, at, ctx, source, extraMult)`
+  로 루팅 확률(정예 변종 두 번째 굴림·테이블 골드 포함)에 곱한다(`LabLootService` = 확률 배율 × extraMult, 기본 구현은 extraMult 무시).
+  정예 본체·소환물·미믹·경보 몹은 1. **새 방 종류가 몹 수를 줄이면 같은 방법으로 rewardMult 를 넘길 것.**
+- **방 정리 회복**: `BattleRoom` 정리 때 `fs.alivePlayers()` 각자 `stats().heal(maxHp × room_clear_heal)` + 액션바 "+15% HP".
+- **첫 돌파 보너스**: `Run.onFloorCleared` — 카운터 `dungeon.clear_floor_<n>` 이 1이 된 사람에게 `DungeonConfig.firstClearXp(curve, level_range)`.
+- **램프 적용 지점**: `InstanceContext` 생성자가 층 실효 `Difficulty.atFloor(floor)` 와 `rampProgress` 를 한 번 정한다(돌려받은 값은 ramp = null 이라 두 번 적용 안 됨).
+  대체 보스(BossRoom·SelfTest)는 원래 ctx 의 rampProgress 를 넘기는 생성자를 쓴다. 표시: `Difficulty.hpDamageText()`/`telegraphText()`(초기 설정·난이도 변경),
+  입장 메뉴·채팅 설정 메뉴는 고른 층의 실효 배율 + 솔로 보정 줄.
+- **mobs.yml** `attack_interval`, summon `solo_count`·`solo_max_alive` 는 §6.1. classes.yml 은 수치만 바뀜(그림자 base_hp 115·VIT 5, 비전술사 110·VIT 4, 마력탄 damage 2.0).
 
 ## 7. 성능·안정성 규칙
 
@@ -774,6 +881,10 @@ hints:
 
 - 순수 로직(경험치 곡선, 스탯 계산, 피해 공식, 배율, 루팅 확률, 미로 생성 연결성, YAML 로딩/검증, 점진 힌트 단계 `HintsTest`,
   미궁 게임 모드 규칙 `GameModesTest`)은 JUnit 5.
+- 0.3.2 콘텐츠 규칙 테스트: `LootHomesTest`(장비 집 1~2곳·다른 층 누수 0·sources 일치·보스 장비는 그 층 보스만·수련생 비드롭·층별 미로 상자·
+  요구 레벨 ≤ 층 구간), `EnhanceMaterialsTest`·`EnhanceRulesTest`·`EnhanceLayoutTest`(재료 규칙·곡선·비용 줄 배치), `ScalingTest`(램프·솔로 보정·예전 설정 기본값),
+  `RoomRewardTest`(솔로·2인 몹 수·보상 보정·방 정리 회복·첫 돌파), `EarlySoloDataTest`(1·2층 공격 간격·소환 솔로 값·직업 HP), `StarterKitTest`, `ClassChangeRuleTest`.
+  콘텐츠를 고치면 이 테스트와 `tools/gen_enhance.py --check` 를 같이 돌릴 것.
 - `labadmin selftest` 는 층마다 기믹방 단서 3단계·보스 단서의 MiniMessage 읽기를 확인한다(`hints` 단계, `hint_gimmicks`/`hint_bosses` 개수).
 - `./gradlew build` 가 테스트 포함 통과해야 함.
 - `ContentValidator`: 모든 YAML 교차참조(아이템·몹·루팅·레시피·층·보스 id)가 유효한지 시작 시 + 테스트에서 검사.
