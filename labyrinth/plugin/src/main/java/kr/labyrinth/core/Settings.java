@@ -30,6 +30,7 @@ public final class Settings {
     private final Level level;
     private final Map<String, Double> weaponAttackSpeed;
     private final List<KitItem> starterKit;
+    private final int starterGold;
     private final Death death;
     private final ClassChange classChange;
 
@@ -95,10 +96,20 @@ public final class Settings {
         public long cooldownMs() { return Math.round(cooldownHours * 3_600_000d); }
     }
 
-    /** 시작 꾸러미 코드 기본값 (= jar 의 config.yml) — 수련생 방어구 4종 + 하급 치유 물약 5. */
+    /**
+     * 시작 꾸러미 코드 기본값 (= jar 의 config.yml) — 수련생 방어구 4종 + 하급 치유 물약 10 · 하급 마나 물약 5 · 귀환 주문서 2 ·
+     * 빵 16 (minecraft: = 바닐라 아이템). 골드는 {@link #DEFAULT_STARTER_GOLD}.
+     */
     public static final List<KitItem> DEFAULT_STARTER_KIT = List.of(new KitItem("novice_cap", 1),
             new KitItem("novice_tunic", 1), new KitItem("novice_trousers", 1), new KitItem("novice_boots", 1),
+            new KitItem("minor_healing_potion", 10), new KitItem("minor_mana_potion", 5), new KitItem("return_scroll", 2),
+            new KitItem("minecraft:bread", 16));
+    /** 예전 판(0.3.2)이 config.yml 에 그대로 적어 둔 목록 — 손대지 않은 것이므로 새 기본값으로 올린다. */
+    public static final List<KitItem> LEGACY_STARTER_KIT_032 = List.of(new KitItem("novice_cap", 1),
+            new KitItem("novice_tunic", 1), new KitItem("novice_trousers", 1), new KitItem("novice_boots", 1),
             new KitItem("minor_healing_potion", 5));
+    /** 시작 골드 기본값 (starter_kit.gold). 하급 물약 15병 · 귀환 주문서 3장 정도. */
+    public static final int DEFAULT_STARTER_GOLD = 300;
 
     public Settings(ConfigurationSection c) {
         if (c == null) c = new MemoryConfiguration();
@@ -156,6 +167,7 @@ public final class Settings {
         this.weaponAttackSpeed = Collections.unmodifiableMap(was);
         this.starterKit = Boolean.FALSE.equals(c.get("starter_kit")) ? List.of()
                 : starterKit(c.getConfigurationSection("starter_kit"));
+        this.starterGold = starterKit.isEmpty() ? 0 : Math.max(0, c.getInt("starter_kit.gold", DEFAULT_STARTER_GOLD));
         this.death = new Death(c.getBoolean("death.keep_inventory", Death.DEFAULT.keepInventory()),
                 c.getBoolean("death.keep_level", Death.DEFAULT.keepLevel()));
         this.classChange = Boolean.FALSE.equals(c.get("class_change")) ? ClassChange.NONE
@@ -208,7 +220,8 @@ public final class Settings {
             int amount = m.get("amount") instanceof Number n ? n.intValue() : 1;
             if (amount > 0) out.add(new KitItem(String.valueOf(item).trim(), Math.min(64, amount)));
         }
-        return out.isEmpty() ? DEFAULT_STARTER_KIT : List.copyOf(out);
+        // 예전 판 기본 목록을 그대로 둔 서버는 새 기본값 (직접 고친 목록은 그대로 따른다)
+        return out.isEmpty() || out.equals(LEGACY_STARTER_KIT_032) ? DEFAULT_STARTER_KIT : List.copyOf(out);
     }
 
     private static double clamp(double v, double lo, double hi) { return Math.max(lo, Math.min(hi, v)); }
@@ -236,6 +249,8 @@ public final class Settings {
 
     /** 시작 꾸러미 (직업을 처음 고를 때 한 번). 빈 목록 = 꺼짐. */
     public List<KitItem> starterKit() { return starterKit; }
+    /** 시작 꾸러미 골드 (꾸러미를 끄면 0). */
+    public int starterGold() { return starterGold; }
 
     /** 죽을 때 소지품·레벨 보존 (인벤세이브). */
     public Death death() { return death; }

@@ -832,11 +832,16 @@ difficulties:
 party:
   solo_hp: 0.85            # 1명일 때만 몹·보스 HP 배율 (PartyScaling.hp(1)), 0.1~1.5 로 자름. 끄기 1.0
   solo_damage: 0.85        # 1명일 때만 몹·보스 피해 배율. 보상은 그대로
-starter_kit:               # 직업을 처음 고를 때 플레이어당 한 번 (LabyrinthClassService, PlayerData ext starter.kit, 지급 출처 "starter")
+starter_kit:               # 직업을 처음 고를 때 플레이어당 한 번 (LabyrinthClassService + classes.StarterKit, 지급 출처 "starter")
   enabled: true            #   끄기 = enabled: false 또는 starter_kit: false. 키 없음/빈 묶음/items 비면 코드 기본 목록(Settings.DEFAULT_STARTER_KIT)
+  gold: 300                #   시작 골드 (키 없으면 300)
   items: [{item: novice_cap, amount: 1}, {item: novice_tunic, amount: 1}, {item: novice_trousers, amount: 1},
-          {item: novice_boots, amount: 1}, {item: minor_healing_potion, amount: 5}]   # 콘텐츠에 없는 id 는 경고 후 건너뜀, amount ≤ 64
-  # 기존 플레이어(이미 직업 있음): 접속 때 Lv.5 이하이고 dungeon.clear_floor_1 == 0 일 때만 지급, 그 밖에는 starter.kit 만 기록
+          {item: novice_boots, amount: 1}, {item: minor_healing_potion, amount: 10}, {item: minor_mana_potion, amount: 5},
+          {item: return_scroll, amount: 2}, {item: "minecraft:bread", amount: 16}]
+  # id 가 minecraft: 로 시작하면 바닐라 아이템. 콘텐츠에 없는 id 는 경고 후 건너뜀, amount ≤ 64.
+  # 0.3.2 기본 목록(수련생 4 + 하급 치유 물약 5)이 그대로면 새 기본값으로 읽는다 (Settings.LEGACY_STARTER_KIT_032).
+  # 받은 양 = PlayerData ext starter.kit_got ["id*개수", …, "$gold*n"] — 꾸러미를 늘리면 차이만 지급. 예전 starter.kit: true = 0.3.2 목록을 받은 것.
+  # 기존 플레이어(이미 직업 있음): 접속 때 Lv.5 이하이고 dungeon.clear_floor_1 == 0 일 때만 지급, 그 밖에는 받은 것으로 기록만
 class_change:              # 직업 변경 제한 (§4.1 ClassChangeGate) — 끄기 class_change: false (또는 require_item: false + cooldown_hours: 0)
   require_item: true
   item: class_change_scroll

@@ -129,7 +129,10 @@
 - **층 첫 돌파 보너스** (`first_clear_bonus: 0.4`): 보스를 쓰러뜨려 그 층을 **처음** 깬 파티원(카운터 `dungeon.clear_floor_<n>` 이 1이 될 때)에게
   그 층 `level_range` 최소→최대 레벨 필요 경험치 합 × 0.4 를 한 번 준다(난이도 배율 없음). 예: 1층(1~5) ≈ 400 XP.
 - **시작 꾸러미** (config `starter_kit`): 직업을 처음 고를 때(시작 무기 §4.4 와 함께) 수련생 방어구 4종(수련생 두건·누비옷·바지·신발 —
-  일반 Lv1 경량 세트 `novice`, 세트 효과 없음) + 하급 치유 물약 5 를 **플레이어당 한 번**(ext `starter.kit`). 직업을 바꿔도 다시 주지 않는다.
+  일반 Lv1 경량 세트 `novice`, 세트 효과 없음) + 하급 치유 물약 10 · 하급 마나 물약 5 · 귀환 주문서 2 · 빵 16(바닐라 `minecraft:bread`) ·
+  300 골드(`starter_kit.gold`)를 **플레이어당 한 번**. 받은 양은 ext `starter.kit_got`("id*개수" 목록)에 남겨, 꾸러미를 늘리면 같은 조건의
+  사람에게 **차이만** 준다(예전 판 표시 `starter.kit: true` = 수련생 4종 + 하급 치유 물약 5 를 받은 것으로 계산). 직업을 바꿔도 다시 주지 않는다.
+  config.yml 에 0.3.2 기본 목록이 그대로 있으면 새 기본값으로 올려 읽는다(직접 고친 목록은 그대로).
   이 기능 전에 직업을 고른 사람은 접속할 때 **Lv.5 이하이고 지하 1층을 깬 적이 없을 때만** 받고, 그 밖에는 받은 것으로 기록만 한다.
   수련생 장비는 시작 지급 전용(몹·상자·대장간에서 나오지 않음, 획득처 "시작 지급"). 콘텐츠에 없는 아이템 줄은 경고 후 건너뛴다.
 - **1·2층 몹 공격 간격** (mobs.yml `attack_interval`, 기본 1.2초): 1층 몹 8종(정예·소환물 포함) 1.5초, 2층 몹 8종 1.35초.
@@ -1682,7 +1685,7 @@ difficulties:           # ramp = 층 램프 (§2.4, 키가 없으면 어려움·
 difficulty: ""          # 서버 난이도. 비어 있으면 첫 관리자 접속 시 초기 설정 GUI
 party: {max_size: 10, hp_per_member: 0.6, dmg_per_member: 0.08, reward_per_member: 0.05,
         solo_hp: 0.85, solo_damage: 0.85}          # 솔로 보정 (§2.5, 끄기 1.0)
-starter_kit: {enabled: true, items: [{item: novice_cap, amount: 1}, …, {item: minor_healing_potion, amount: 5}]}   # §2.7
+starter_kit: {enabled: true, gold: 300, items: [{item: novice_cap, amount: 1}, …, {item: minor_healing_potion, amount: 10}, {item: minor_mana_potion, amount: 5}, {item: return_scroll, amount: 2}, {item: "minecraft:bread", amount: 16}]}   # §2.7
 class_change: {require_item: true, item: class_change_scroll, cooldown_hours: 24}   # §4.5 (끄기 class_change: false)
 death: {keep_inventory: true, keep_level: true}     # 인벤세이브 §2.6
 pvp: {enabled: true, damage_multiplier: 0.7, max_hit_ratio: 0.35, safe_zone_village: true, safe_zone_margin: 8, party_name_color: true}  # §18

@@ -127,15 +127,20 @@ level:
 
 # 시작 꾸러미 — 직업을 처음 고를 때 플레이어당 한 번 (시작 무기와 함께). 직업을 바꿔도 다시 주지 않는다.
 #   이미 직업이 있던 사람은 다음 접속 때 받되, Lv.5 이하이고 지하 1층을 깬 적이 없을 때만 (그 밖에는 받은 것으로 기록).
+#   목록을 늘리면 이미 받은 사람(같은 조건)에게는 모자란 만큼만 더 준다. item 이 minecraft: 로 시작하면 바닐라 아이템.
 #   키가 없으면 아래 기본 목록이 쓰이고, 끄려면 enabled: false
 starter_kit:
   enabled: true
+  gold: 300
   items:
     - {item: novice_cap, amount: 1}
     - {item: novice_tunic, amount: 1}
     - {item: novice_trousers, amount: 1}
     - {item: novice_boots, amount: 1}
-    - {item: minor_healing_potion, amount: 5}
+    - {item: minor_healing_potion, amount: 10}
+    - {item: minor_mana_potion, amount: 5}
+    - {item: return_scroll, amount: 2}
+    - {item: "minecraft:bread", amount: 16}
 
 # 직업 변경 (최상위 키) — 첫 직업 선택은 무료. 그 뒤로 바꿀 때마다:
 #   require_item: true 면 item(전직의 두루마리, 떠돌이 상인 핀이 판다) 1장이 사라진다.

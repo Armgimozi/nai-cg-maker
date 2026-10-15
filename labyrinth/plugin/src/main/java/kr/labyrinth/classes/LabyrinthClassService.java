@@ -32,8 +32,6 @@ import org.bukkit.scheduler.BukkitTask;
 public final class LabyrinthClassService implements ClassService, SkillContext.Host {
 
     private static final double TICK_SECONDS = 0.1;
-    /** 시작 꾸러미 지급 기록 (PlayerData ext). 플레이어당 한 번 — 직업을 바꿔도 다시 주지 않는다. */
-    static final String KIT_FLAG = "starter.kit";
     /** 기존 플레이어가 접속 때 시작 꾸러미를 받을 수 있는 최대 레벨. */
     static final int KIT_JOIN_MAX_LEVEL = 5;
 
@@ -159,15 +157,17 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
     }
 
     /**
-     * 기존 플레이어의 시작 꾸러미: {@link #joinGrantsKit} 이고 직업이 있으면 지급, 조건 밖이면 받은 것으로 기록만 한다
+     * 기존 플레이어의 시작 꾸러미: {@link #joinGrantsKit} 이고 직업이 있으면 모자란 몫을 지급, 조건 밖이면 받은 것으로 기록만 한다
      * (이미 진행한 사람에게 새로 주지 않음). 직업이 없으면 전직할 때 받는다.
      */
     private void ensureStarterKit(Player player) {
         if (services.settings().starterKit().isEmpty()) return;
         PlayerData d = services.data().get(player);
-        if (Boolean.TRUE.equals(d.ext().get(KIT_FLAG))) return;
         if (!joinGrantsKit(d.level(), d.counter("dungeon.clear_floor_1"))) {
-            d.ext().put(KIT_FLAG, true);
+            Map<String, Integer> got = StarterKit.received(d.ext());
+            Map<String, Integer> owed = StarterKit.owed(services.settings().starterKit(), services.settings().starterGold(), got);
+            if (owed.isEmpty()) return;
+            d.ext().put(StarterKit.GOT, StarterKit.record(got, owed)); // 지급 없이 받은 것으로
             d.markDirty();
         } else if (classOf(player) != null) {
             giveStarterKit(player);
@@ -180,29 +180,56 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
     }
 
     /**
-     * 시작 꾸러미 (config.yml starter_kit — 수련생 방어구 4종 + 하급 치유 물약 5) 를 한 번 지급. 꺼져 있거나 이미 받았으면 무시.
-     * 콘텐츠에 없는 아이템 줄은 건너뛰고, 하나도 못 줬으면 기록하지 않는다 (콘텐츠가 들어온 뒤 다시 시도). 가방이 차면 발밑에 떨군다.
+     * 시작 꾸러미 (config.yml starter_kit — 수련생 방어구 4종 · 물약 · 귀환 주문서 · 빵 · 골드) 중 아직 받지 않은 몫을 지급.
+     * 꾸러미를 늘린 판에서는 예전 꾸러미를 받은 사람에게 차이만 준다. 콘텐츠에 없는 아이템 줄은 건너뛰고(기록도 안 함),
+     * minecraft: 로 시작하는 id 는 바닐라 아이템. 가방이 차면 발밑에 떨군다.
      */
     private void giveStarterKit(Player player) {
         var kit = services.settings().starterKit();
         if (kit.isEmpty()) return;
         PlayerData d = services.data().get(player);
-        if (Boolean.TRUE.equals(d.ext().get(KIT_FLAG))) return;
-        List<String> got = new ArrayList<>();
-        for (Settings.KitItem k : kit) {
-            ItemDef item = services.content().item(k.item());
-            if (item == null) {
-                Log.warnOnce("starter-kit-" + k.item(), "[직업] 시작 꾸러미 아이템이 콘텐츠에 없습니다: " + k.item());
-                continue;
+        Map<String, Integer> got = StarterKit.received(d.ext());
+        Map<String, Integer> owed = StarterKit.owed(kit, services.settings().starterGold(), got);
+        if (owed.isEmpty()) return;
+        Map<String, Integer> given = new java.util.LinkedHashMap<>();
+        List<String> shown = new ArrayList<>();
+        boolean fresh = got.isEmpty();
+        for (Map.Entry<String, Integer> e : owed.entrySet()) {
+            String id = e.getKey();
+            int amount = e.getValue();
+            if (StarterKit.GOLD.equals(id)) {
+                d.addGold(amount);
+                given.put(id, amount);
+                shown.add("<#ffd36b>" + Text.num(amount) + " 골드</#ffd36b>");
+            } else if (id.startsWith("minecraft:")) {
+                org.bukkit.Material m = org.bukkit.Material.matchMaterial(id);
+                if (m == null || !m.isItem()) {
+                    Log.warnOnce("starter-kit-" + id, "[직업] 시작 꾸러미 바닐라 아이템 id 가 잘못됐습니다: " + id);
+                    continue;
+                }
+                var stack = new org.bukkit.inventory.ItemStack(m, amount);
+                player.getInventory().addItem(stack).values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
+                given.put(id, amount);
+                // 바닐라 이름은 접속한 사람의 언어로 (<lang:item.minecraft.bread> → "빵")
+                shown.add("<white><lang:" + m.translationKey() + "></white>" + (amount > 1 ? " <gray>×" + amount : ""));
+            } else {
+                ItemDef item = services.content().item(id);
+                if (item == null) {
+                    Log.warnOnce("starter-kit-" + id, "[직업] 시작 꾸러미 아이템이 콘텐츠에 없습니다: " + id);
+                    continue;
+                }
+                int n = services.items().give(player, item.id(), amount, "starter");
+                if (n <= 0) continue;
+                given.put(id, n);
+                shown.add("<white>" + item.name() + "</white>" + (n > 1 ? " <gray>×" + n : ""));
             }
-            int n = services.items().give(player, item.id(), k.amount(), "starter");
-            if (n > 0) got.add("<white>" + item.name() + "</white>" + (n > 1 ? " <gray>×" + n : ""));
         }
-        if (got.isEmpty()) return;
+        if (given.isEmpty()) return;
         services.stats().markDirty(player);
-        d.ext().put(KIT_FLAG, true);
+        d.ext().put(StarterKit.GOT, StarterKit.record(got, given));
+        d.ext().remove(StarterKit.LEGACY_FLAG);
         d.markDirty();
-        Text.send(player, "<gray>시작 꾸러미를 받았습니다: " + String.join("<gray>, ", got));
+        Text.send(player, "<gray>" + (fresh ? "시작 꾸러미를 받았습니다: " : "시작 꾸러미가 늘어나 더 받았습니다: ") + String.join("<gray>, ", shown));
     }
 
     /**

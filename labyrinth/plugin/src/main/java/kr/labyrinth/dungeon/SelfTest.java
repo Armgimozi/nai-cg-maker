@@ -118,7 +118,9 @@ final class SelfTest {
         // 시작 꾸러미: 설정의 아이템 id 가 콘텐츠에 있는지 (없으면 지급할 때 그 줄만 건너뛴다)
         step("content", () -> {
             for (var k : services.settings().starterKit()) {
-                if (services.content().item(k.item()) != null) {
+                boolean vanilla = k.item().startsWith("minecraft:");
+                org.bukkit.Material m = vanilla ? org.bukkit.Material.matchMaterial(k.item()) : null;
+                if (vanilla ? m != null && m.isItem() : services.content().item(k.item()) != null) {
                     count("starter_kit_items", 1);
                 } else {
                     bump(errors, "content");
