@@ -22,10 +22,18 @@ public final class FloorGenerator {
     /** 투기장이 격자 밖으로 나가도 되게 x 쪽 여백. */
     public static final int MARGIN_X = 26;
     public static final int MARGIN_Z = 2;
+    /** 심연의 가장자리(추격 복도 끝 원형 단) 바깥 낭떠러지 폭 — 생성기는 바닥으로 깔고, 보스가 전투 중 비운다(10층). */
+    public static final int RIM_MOAT = 3;
 
     /** 층 설계 입력 (floors.yml + bosses.yml arena 에서 뽑은 값). */
     public record Params(int cells, Map<String, Integer> rooms, int roomHeight, int hallHeight, boolean liquid,
-                         int arenaRadius, int arenaHeight, int arenaCorridorLength, int arenaCorridorWidth) {
+                         int arenaRadius, int arenaHeight, int arenaCorridorLength, int arenaCorridorWidth, int arenaRimRadius) {
+        /** 가장자리 단 없는 투기장 (1~9층). */
+        public Params(int cells, Map<String, Integer> rooms, int roomHeight, int hallHeight, boolean liquid,
+                      int arenaRadius, int arenaHeight, int arenaCorridorLength, int arenaCorridorWidth) {
+            this(cells, rooms, roomHeight, hallHeight, liquid, arenaRadius, arenaHeight, arenaCorridorLength, arenaCorridorWidth, 0);
+        }
+
         public Params {
             roomHeight = clamp(roomHeight, 4, 12);
             hallHeight = clamp(hallHeight, 3, roomHeight);
@@ -33,7 +41,19 @@ public final class FloorGenerator {
             arenaHeight = clamp(arenaHeight, 6, 20);
             arenaCorridorLength = clamp(arenaCorridorLength, 0, 120);
             arenaCorridorWidth = clamp(arenaCorridorWidth <= 0 ? 7 : arenaCorridorWidth, 3, 11);
+            arenaRimRadius = arenaCorridorLength > 0 && arenaRimRadius > 0 ? clamp(arenaRimRadius, 6, 18) : 0;
         }
+
+        /** 가장자리 단(낭떠러지 포함) 바깥 반경. 0 = 없음. */
+        public int rimOuter() { return arenaRimRadius > 0 ? arenaRimRadius + RIM_MOAT : 0; }
+    }
+
+    /**
+     * 심연의 가장자리 단 중심의 z 오프셋 (투기장 중심 기준, +z). 추격 복도 끝 줄이 단 북쪽 가장자리와 겹친다.
+     * 보스 구현(10층)도 같은 식으로 단 위치를 계산한다 — 관리자 소환처럼 레이아웃이 없을 때도.
+     */
+    public static int rimCenterOffset(int arenaRadius, int corridorLength, int rimRadius) {
+        return arenaRadius + corridorLength + rimRadius + RIM_MOAT - 1;
     }
 
     private FloorGenerator() {}
@@ -50,7 +70,7 @@ public final class FloorGenerator {
         int r = p.arenaRadius();
         int width = MARGIN_X * 2 + n * PITCH;
         int arenaCz = MARGIN_Z + n * PITCH + BOSS_CORRIDOR + r;
-        int depth = arenaCz + r + 2 + (p.arenaCorridorLength() > 0 ? p.arenaCorridorLength() + 2 : 0) + 2;
+        int depth = arenaCz + r + 2 + (p.arenaCorridorLength() > 0 ? p.arenaCorridorLength() + 2 : 0) + 2 + p.rimOuter() * 2;
         Grid g = new Grid(width, depth);
 
         List<FloorLayout.RoomInfo> rooms = new ArrayList<>();
@@ -137,7 +157,20 @@ public final class FloorGenerator {
                 }
             }
         }
-        int minZ = cz - r, maxZ = cz + r + (p.arenaCorridorLength() > 0 ? p.arenaCorridorLength() : 0);
+        // 심연의 가장자리 (10층): 추격 복도 끝의 원형 단. 바깥 RIM_MOAT 칸은 보스가 전투 중 비워 낭떠러지가 된다.
+        int rimR = p.rimOuter();
+        int maxZ = cz + r + (p.arenaCorridorLength() > 0 ? p.arenaCorridorLength() : 0);
+        if (rimR > 0) {
+            int rcz = cz + rimCenterOffset(r, p.arenaCorridorLength(), p.arenaRimRadius());
+            for (int z = rcz - rimR; z <= rcz + rimR; z++) {
+                for (int x = cx - rimR; x <= cx + rimR; x++) {
+                    int dx = x - cx, dz = z - rcz;
+                    if (dx * dx + dz * dz <= rimR * rimR + rimR) g.set(x, z, FloorLayout.FLOOR, bossIdx, p.arenaHeight());
+                }
+            }
+            maxZ = rcz + rimR;
+        }
+        int minZ = cz - r;
         rooms.add(new FloorLayout.RoomInfo(bossIdx, RoomType.BOSS, -1, cx - r, minZ, cx + r, maxZ, cx, cz, p.arenaHeight(), null));
         doorLists.add(bossDoors);
 
@@ -149,7 +182,8 @@ public final class FloorGenerator {
             finalRooms.add(new FloorLayout.RoomInfo(ri.index(), ri.type(), ri.cell(), ri.minX(), ri.minZ(), ri.maxX(), ri.maxZ(),
                     ri.centerX(), ri.centerZ(), ri.height(), doors));
         }
-        FloorLayout.Arena arena = new FloorLayout.Arena(cx, cz, r, p.arenaHeight(), p.arenaCorridorLength(), p.arenaCorridorWidth());
+        FloorLayout.Arena arena = new FloorLayout.Arena(cx, cz, r, p.arenaHeight(), p.arenaCorridorLength(), p.arenaCorridorWidth(),
+                p.arenaRimRadius());
         return new FloorLayout(width, depth, g.kind, g.region, g.height, finalRooms, startRoom, bossIdx, arena, plan);
     }
 

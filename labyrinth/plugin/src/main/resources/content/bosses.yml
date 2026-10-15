@@ -472,6 +472,7 @@ bosses:
     gold: [900, 1400]
     drops: floor10_boss
     bossbar: RED
+    # ① 심장실 r18(3×3 타일) ② 추격 회랑 +z 길이 80 폭 7 ③ 심연의 가장자리 단 r12 (+ 바깥 3칸 낭떠러지 — FloorGenerator.RIM_MOAT)
     arena: {radius: 18, theme: abyss, shape: tiled_circle, tile_size: 3, height: 16, corridor_length: 80, corridor_width: 7, rim_radius: 12}
     lines:
       intro: "<dark_aqua>넬카르</dark_aqua><gray>: ...쿵. ...쿵. 너희가 밟고 온 모든 층이, 나의 혈관이다.</gray>"
@@ -484,7 +485,7 @@ bosses:
       3: [tendril_lash, rotating_gaze, abyss_rift, floor_echoes, heartbeat_pulse]
     patterns:
       tendril_lash: {damage: 1.4, angle: 100, length: 7, windup: 1.0, cooldown: 6}
-      void_orbs: {count_base: 2, count_per_member: 0.5, speed: 0.35, homing: 0.06, radius: 2, damage: 1.2, lifetime: 8, fx: proj_void_orb, cooldown: 12}
+      void_orbs: {count_base: 2, count_per_member: 0.5, speed: 0.2, homing: 0.06, windup: 0.8, radius: 2, damage: 1.2, lifetime: 8, fx: proj_void_orb, cooldown: 12}
       abyssal_collapse: {tile_size: 3, warn_time: 2.5, regen_time: 15, interval: 9, tiles_per_wave: 0.30, tiles_per_wave_per_member: 0.02, layouts: [scatter, checker, rings, cross, spiral], fall_damage_pct: 0.25, fall_mark_vulnerable: 0.2, fall_mark_duration: 3, fx: telegraph_tile}
       devouring_pursuit: {start_delay: 3, wall_speed: 4.6, wall_accel: 0.05, wall_damage_pct: 0.5, wall_push: 1.2, debris_base: 6, debris_per_member: 1, debris_radius: 2, debris_damage: 1.0, gaps: 3, gap_length: 2, fx_wall: abyss_wall}
       rotating_gaze: {beams: 2, p3_beams: 3, length: 16, width: 1.5, rotation_speed: 30, duration: 8, tick: 0.25, damage_per_tick: 0.5, windup: 2.0, fx: telegraph_line, cooldown: 20}
@@ -501,3 +502,11 @@ bosses:
         - {name: crown, form: horn_pair, size: [34, 18, 6], pivot: [0, 3.3, 0], anim: body}
         - {name: ring, form: ring, size: [48, 4, 48], pivot: [0, 2.2, 0], anim: orbit}
       style: {shape: colossus, palette: ["#020306", "#08141a", "#123842", "#2fe0d0", "#c8fff8", "#b01a3a"], features: [sculk_veins, veined_eye, emissive_core, heartbeat_glow, boss_trim]}
+
+# 보스 공략 점진 힌트 (힌트 API 가 읽는다): 1 = 흐릿한 단서, 2 = 조금 더 분명한 단서, 3 = 거의 정답.
+# 보스 대사·보스바는 분위기·단서만 — 조작법은 여기 3단계로만 풀어 준다.
+hints:
+  floor10_abyss_heart:
+    - "바닥이 숨을 들이쉴 때 보랏빛이 번지는 곳은 곧 사라진다. 심장이 가라앉으면 뒤돌아보는 자부터 삼켜진다. 끝자락에선 지금까지 쓰러뜨린 것들이 다시 말을 건다."
+    - "금 가며 깜빡이는 타일에서 벗어나라 — 무너지는 모양은 매번 바뀐다. 심장이 가라앉으면 남쪽 회랑으로 쉬지 말고 달리고, 끊긴 바닥은 뛰어넘어라. 끝자락의 응시는 같은 방향으로 함께 걸으면 비켜 간다."
+    - "심연 붕괴: 보라 타일 2.5초 뒤 실제로 무너짐(떨어지면 최대 HP 25% + 3초간 받는 피해 +20%), 9초마다 흩뿌리기·체스판·동심원·십자·나선. 2페이즈: 회랑 끝 가장자리까지 전력 질주(해일 초당 HP 50%), 낙석 원 피하고 틈 3곳 점프. 회전 응시는 광선이 도는 방향으로 같이 걷기, 균열 원 밖으로. 3페이즈 메아리는 각 층 대응 그대로(돌진 옆으로·포자 흩어지기·꽃 모이기·해일 옆으로·빙창 갈래 사이·되감기 왔던 길 피하기·지우기 보스 뒤로) — 단조 진동은 솟아난 사슬 말뚝 2칸 안에서 웅크려야 낭떠러지로 안 날아간다. 박동은 갈수록 아프니 빨리 끝내기."

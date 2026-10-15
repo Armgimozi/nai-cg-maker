@@ -330,7 +330,8 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   층 n 의 바닥 y = `top_floor_y − (n−1) × floor_spacing` (기본 280, 30 → B1 y280 … B10 y10). 같은 슬롯에서 아래층일수록 실제로 낮다.
 - **인스턴스 id**: `InstanceContext.id()` = `r<번호>s<슬롯>-b<층>` (층마다 새 컨텍스트, 같은 Run 의 배율·난이도 유지). 몹·보스 정리는 이 id 로.
 - **보스방**: 원형 투기장(bosses.yml `arena.radius/height`, `shape: circle|clock_face|tiled_circle` 바닥 무늬, `corridor_length/width` 면
-  중심에서 **+z 방향**으로 추격 복도). 입구는 북쪽(−z). `spawnBoss(floor, 중심, ctx)` 의 중심 = 바닥 위 1칸. 보스 구현이 투기장에 놓은 블록은
+  중심에서 **+z 방향**으로 추격 복도, `rim_radius` 면 복도 끝에 원형 단 + 바깥 `FloorGenerator.RIM_MOAT`(3)칸 고리 —
+  단 중심 z 오프셋 = `FloorGenerator.rimCenterOffset(radius, corridor_length, rim_radius)`, 고리는 바닥으로 깔고 보스가 비운다). 입구는 북쪽(−z). `spawnBoss(floor, 중심, ctx)` 의 중심 = 바닥 위 1칸. 보스 구현이 투기장에 놓은 블록은
   층 정리 때 원기둥(바닥 아래 2칸~천장) 전체를 비우므로 따로 안 지워도 된다. null 이면 층 정예 몹을 HP×`boss_fallback.hp_mult` 로 대신 세운다.
   보스 처치 후 투기장 중심 남쪽에 아래층 계단이 생긴다(중심 +2~+11 z 칸을 비워 둘 것).
 - **이벤트**: 보스 처치 시 `FloorClearEvent`(참가자 전원, 입장 인원, 그 층 사망 수, 그 층 소요 초, 서버 난이도). 해금층 = 깬 층+1.
@@ -345,6 +346,8 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 - **구조**: `bosses/LabBossService`(BossService 구현 — 층→`BossFactory` 등록부, 1틱 루프 하나로 모든 보스 진행, 엔티티→핸들 조회,
   웅크리기·바닐라 피해 이벤트를 아레나의 보스에 전달) · `Boss`(추상 기반) · `impl/FloorNNBoss extends Boss`(생성자 `(Boss.Init)`).
   새 층 보스는 `LabBossService#registerDefaults()` 에 `register(NN, FloorNNBoss::new)` 한 줄.
+- **아레나가 옮겨 가는 보스**(10층): `Boss#relocate(위치)` = 전투 중심(`center` — 경계·`randomPoint`·관전자·`bossAt` 기준) 이동 + 순간이동,
+  `blockAllowed(Block)` 를 넓히면 원 밖(추격 복도·가장자리)에도 `setBlock`, `validPlayer` 를 재정의하면 판정 구역을 넓힌다.
 - **Boss 기반이 해 주는 것**: 자체 HP 풀(DamageService 경로·위협 표·도발), 페이즈(`phases`, 전환 시 진행 중 경고 정리 + 1.5초 무적 + 대사 +
   보스바 깜빡임), `PatternScheduler`(GDD §8.3: cooldown/interval/system, 가중치 `weight`, 직전과 다른 패턴 우선, 최소 1.2초 간격),
   광폭화 타이머, 보스바(이름·칭호·페이즈·광폭/기절) + 시전 바(`boss_cast` 키, 끊을 수 있는 시전은 파란색), 아레나 경계(이탈 시 복귀),
