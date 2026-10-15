@@ -18,10 +18,11 @@ import kr.labyrinth.content.Params;
 import kr.labyrinth.content.Range;
 import kr.labyrinth.content.Rarity;
 import kr.labyrinth.core.Text;
+import kr.labyrinth.stats.Stat;
 
 /**
  * 아이템 툴팁(lore) 생성 — MiniMessage 문자열 목록. Bukkit 무관(단위 테스트 가능).
- * 구성: 희귀도·분류·아우라 / 요구 레벨 / 스탯(첫 스탯은 범위·굴림 품질과 한 줄, 나머지 두 개씩) / 강화 / 무기 스킬 /
+ * 구성: 희귀도·분류·아우라 / 요구 능력치(무기·방어구, 없으면 줄 없음 — 소모품은 사용 레벨) / 스탯(첫 스탯은 범위·굴림 품질과 한 줄, 나머지 두 개씩) / 강화 / 무기 스킬 /
  * 세트 효과·사용 효과 / 설명 / 획득처("보스 테오라(9층) · 대장간"). 화면에 다 들어가도록 {@link #MAX_LINES} 를 넘으면 덜 중요한 줄부터 뺀다.
  */
 public final class ItemTooltip {
@@ -150,10 +151,20 @@ public final class ItemTooltip {
     public static List<String> lines(Content content, ItemDef def, Map<String, Double> rolls,
                                      Map<String, Double> enhanceBonus, List<String> enhanceLines, int reserve,
                                      boolean withSource) {
+        return lines(content, def, rolls, enhanceBonus, enhanceLines, reserve, withSource, null);
+    }
+
+    /**
+     * @param viewer 보는 사람의 요구치 판정 능력치 ({@code StatService.requirementStats}) — 알면 요구 능력치 줄을 맞춤 초록 /
+     *               모자람 빨강 "(현재 22)" 로, null(아이템에 박히는 설명)이면 "요구 힘 30" 그대로
+     */
+    public static List<String> lines(Content content, ItemDef def, Map<String, Double> rolls,
+                                     Map<String, Double> enhanceBonus, List<String> enhanceLines, int reserve,
+                                     boolean withSource, Map<Stat, Integer> viewer) {
         Rarity r = def.rarity();
         String c = "<" + r.color() + ">";
 
-        // 머리: 희귀도·분류·층·아우라 / 요구 레벨
+        // 머리: 희귀도·분류·층·아우라 / 요구 능력치
         List<String> head = new ArrayList<>();
         StringBuilder top = new StringBuilder(c + r.displayName() + " " + category(def) + "</" + r.color() + ">");
         if (def.floor() > 0 && def.isGear()) top.append(" <dark_gray>· 지하 ").append(def.floor()).append("층</dark_gray>");
@@ -163,8 +174,10 @@ public final class ItemTooltip {
         }
         head.add(top.toString());
         if (def.isGear()) {
-            // 직업 표시는 하지 않는다 (어느 직업이든 모든 장비 — 직업별 추천 무기는 직업 메뉴에서만)
-            head.add("<gray>요구 레벨 <white>" + def.levelReq() + "</white>");
+            // 직업 표시는 하지 않는다 (어느 직업이든 모든 장비 — 직업별 추천 무기는 직업 메뉴에서만).
+            // 레벨 제한은 없다 — level_req 는 숨은 내부 레벨. 요구 능력치가 없으면(장신구·초반 장비) 줄 자체가 없다.
+            String req = requirementLine(def, viewer);
+            if (req != null) head.add(req);
         } else if (def.levelReq() > 1) {
             head.add("<gray>사용 레벨 <white>" + def.levelReq());
         }
@@ -259,6 +272,11 @@ public final class ItemTooltip {
             if (out.size() <= budget) break;
         }
         return out;
+    }
+
+    /** 요구 능력치 한 줄 ("요구 힘 30", 보는 사람을 알면 초록/빨강) — 무기·방어구·방패만, 요구 없음 = null. */
+    public static String requirementLine(ItemDef def, Map<Stat, Integer> viewer) {
+        return def.requirement().tooltipLine(viewer);
     }
 
     // ── 획득처 한 줄 ──────────────────────────────────────────────────────

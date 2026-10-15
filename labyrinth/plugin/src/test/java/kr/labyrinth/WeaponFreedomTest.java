@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -19,10 +20,13 @@ import kr.labyrinth.content.Content;
 import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.Range;
 import kr.labyrinth.content.Rarity;
+import kr.labyrinth.content.StatRequirement;
 import kr.labyrinth.content.WeaponTypes;
 import kr.labyrinth.core.ContentLoader;
+import kr.labyrinth.core.ContentValidator;
 import kr.labyrinth.items.EquipRules;
 import kr.labyrinth.items.ItemTooltip;
+import kr.labyrinth.stats.Stat;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -48,20 +52,29 @@ class WeaponFreedomTest {
         return content.items().values().stream().filter(ItemDef::isWeapon).toList();
     }
 
+    /** 모든 능력치가 n 인 판정 능력치. */
+    private static Map<Stat, Integer> all(int n) {
+        Map<Stat, Integer> m = new EnumMap<>(Stat.class);
+        for (Stat s : Stat.values()) m.put(s, n);
+        return m;
+    }
+
     @Test
     void everyItemIsUsableByEveryClass() {
         int checked = 0;
         for (ItemDef def : content.items().values()) {
             for (String cls : classIdsAndNone()) {
                 assertTrue(def.usableBy(cls), def.id() + " / " + cls);
-                assertEquals(EquipRules.Problem.NONE, EquipRules.check(def, Math.max(50, def.levelReq()), cls), def.id() + " / " + cls);
+                // 직업은 판정에 없다 — 능력치만 맞추면 누구든 (레벨 조건도 없음)
+                assertEquals(EquipRules.Problem.NONE, EquipRules.check(def, all(999)), def.id() + " / " + cls);
                 checked++;
             }
         }
         assertTrue(checked > 1000, "검사 수 " + checked);
-        // 레벨 조건은 그대로
-        ItemDef ember = content.item("ember_greatsword");
-        assertEquals(EquipRules.Problem.LEVEL, EquipRules.check(ember, ember.levelReq() - 1, "priest"));
+        // 능력치 조건은 직업과 상관없이 같다
+        ItemDef ember = content.item("ember_greatsword").withRequires(StatRequirement.of(Map.of(Stat.STR, 60), Map.of()));
+        assertEquals(EquipRules.Problem.STATS, EquipRules.check(ember, all(59)));
+        assertEquals(EquipRules.Problem.NONE, EquipRules.check(ember, all(60)));
     }
 
     @Test
@@ -104,10 +117,15 @@ class WeaponFreedomTest {
         assertEquals(9.0, WeaponTypes.classSkillCooldown(hunter, bow, 10.0), EPS);
         assertEquals(10.0, WeaponTypes.classSkillCooldown(hunter, dagger, 10.0), EPS);
         assertEquals(10.0, WeaponTypes.classSkillCooldown(hunter, null, 10.0), EPS);
-        // 레벨이 모자라 능력치가 안 붙는 무기는 '든 무기 없음' 취급 → 보너스 없음
-        ItemDef stormEye = weapons().stream().filter(w -> "bow".equals(w.weaponType()) && w.rarity() == Rarity.MYTHIC).findFirst().orElseThrow();
-        assertNull(WeaponTypes.effective(stormEye, stormEye.levelReq() - 1));
-        assertEquals(stormEye, WeaponTypes.effective(stormEye, stormEye.levelReq()));
+        // 요구 능력치를 못 맞춰 능력치가 안 붙는 무기는 '든 무기 없음' 취급 → 보너스 없음 (레벨은 보지 않는다)
+        ItemDef stormEye = weapons().stream().filter(w -> "bow".equals(w.weaponType()) && w.rarity() == Rarity.MYTHIC).findFirst().orElseThrow()
+                .withRequires(StatRequirement.of(Map.of(Stat.DEX, 120), Map.of()));
+        assertNull(WeaponTypes.effective(stormEye, all(119)));
+        assertEquals(stormEye, WeaponTypes.effective(stormEye, all(120)));
+        assertEquals(9.0, WeaponTypes.classSkillCooldown(hunter, WeaponTypes.effective(stormEye, all(120)), 10.0), EPS);
+        assertEquals(10.0, WeaponTypes.classSkillCooldown(hunter, WeaponTypes.effective(stormEye, all(119)), 10.0), EPS);
+        ItemDef free = stormEye.withRequires(StatRequirement.NONE);
+        assertEquals(free, WeaponTypes.effective(free, all(0)));
     }
 
     /** 같은 단계 = 같은 층·같은 집(몬스터·상자 공용 줄 / 대장간 전용 줄)·같은 요구 레벨에 무기 종류마다 1개씩 있는 묶음. 키 = "층:집:레벨". */
@@ -164,6 +182,9 @@ class WeaponFreedomTest {
             assertTrue(cls.recommendsWeapon(w.weaponType()), cls.id() + " → " + w.id());
             assertEquals(Rarity.COMMON, w.rarity(), w.id());
             assertEquals(1, w.levelReq(), w.id());
+            // Lv.1 에 직업 기본 능력치 + 시작 포인트로 들 수 있다
+            int need = w.requirement().pointsNeeded(StatRequirement.playerStats(cls, Map.of(), Map.of()));
+            assertTrue(need <= ContentValidator.START_POINTS, cls.id() + " → " + w.id() + " " + w.requirement().text() + " (" + need + " 필요)");
         }
     }
 

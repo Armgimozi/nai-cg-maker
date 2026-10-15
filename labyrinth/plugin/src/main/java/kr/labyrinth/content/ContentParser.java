@@ -187,11 +187,35 @@ public final class ContentParser {
                     s.str("input", "RIGHT").toUpperCase(), s.dbl("cooldown", 0), s.dbl("mana", 0), sp,
                     s.str("description", "")));
         }
+        StatRequirement req = StatRequirement.of(requirementStats(id, p, "requires"), requirementStats(id, p, "requires_any"));
         return new ItemDef(id, p.str("name", id), type, p.str("weapon_type"), p.str("armor_slot"),
-                p.str("armor_set"), rarity, p.integer("level_req", 1), p.strings("classes"),
+                p.str("armor_set"), rarity, p.integer("level_req", 1), req, p.strings("classes"),
                 Collections.unmodifiableMap(stats), p.str("set_bonus"), p.str("aura"), List.copyOf(ws),
                 p.integer("floor", 0), p.bool("pool", true), p.strings("sources"), p.sub("use"), p.sub("model"),
                 p.sub("texture"), p.str("lore", ""), p);
+    }
+
+    /** requires / requires_any: {STR: 30, ...} — 키는 STR DEX INT VIT WIS LUK, 값은 0 이상 정수 (0 = 요구 없음). */
+    private Map<Stat, Integer> requirementStats(String id, Params p, String key) {
+        if (!p.has(key)) return Map.of();
+        if (!(p.get(key) instanceof Map<?, ?>)) {
+            problem("items.yml", id, key + " 는 {STR: 30, ...} 꼴이어야 함");
+            return Map.of();
+        }
+        Params r = p.sub(key);
+        Map<Stat, Integer> out = new EnumMap<>(Stat.class);
+        for (String k : r.keys()) {
+            Stat s = Stat.byKey(k);
+            Object raw = r.get(k);
+            if (s == null) {
+                problem("items.yml", id, key + "." + k + " — 능력치는 STR DEX INT VIT WIS LUK 중 하나");
+            } else if (!(raw instanceof Number n) || n.doubleValue() < 0 || n.doubleValue() != Math.rint(n.doubleValue())) {
+                problem("items.yml", id, key + "." + k + " 는 0 이상 정수여야 함: " + raw);
+            } else if (n.intValue() > 0) {
+                out.put(s, n.intValue());
+            }
+        }
+        return out;
     }
 
     private ItemSetDef parseSet(String id, Params p) {

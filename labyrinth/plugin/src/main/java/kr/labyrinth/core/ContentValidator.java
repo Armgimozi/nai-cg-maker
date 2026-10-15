@@ -24,6 +24,7 @@ import kr.labyrinth.content.NpcDef;
 import kr.labyrinth.content.Params;
 import kr.labyrinth.content.Rarity;
 import kr.labyrinth.content.RecipeDef;
+import kr.labyrinth.content.StatRequirement;
 import kr.labyrinth.content.WeaponTypes;
 
 /**
@@ -99,6 +100,7 @@ public final class ContentValidator {
         floors();
         loot();
         recipes();
+        requirements();
         gearHomes();
         titles();
         npcs();
@@ -190,6 +192,33 @@ public final class ContentValidator {
             }
             if (d.rarity().atLeast(Rarity.LEGENDARY) && d.isWeapon() && d.aura() == null) {
                 warn(w, "전설/신화 무기인데 aura 가 없음");
+            }
+            if (d.requires() != null && !d.requires().isEmpty() && d.requirement().isEmpty()) {
+                warn(w, "requires/requires_any 는 무기·방어구·방패만 — " + d.type().id() + " 에는 무시됨");
+            }
+        }
+    }
+
+    /** Lv.1 시작 포인트 (config level.start_points 기본값 — 검사는 번들 기본 기준). */
+    public static final int START_POINTS = 5;
+
+    /**
+     * 요구 능력치 (items.yml requires / requires_any): 시작 지급 장비는 요구 없음, 직업마다 처음 받는 시작 무기
+     * ({@link WeaponTypes#starterWeapon})는 Lv.1 에 직업 기본 능력치 + 시작 포인트 {@value #START_POINTS} 로 쓸 수 있어야 한다.
+     */
+    private void requirements() {
+        for (ItemDef d : c.items().values()) {
+            if (d.isGear() && d.sources().contains("starter") && !d.requirement().isEmpty()) {
+                warn("items." + d.id(), "시작 지급 장비인데 요구 능력치가 있음 (" + d.requirement().text() + ")");
+            }
+        }
+        for (ClassDef cls : c.classes().values()) {
+            ItemDef weapon = WeaponTypes.starterWeapon(c.items().values(), cls);
+            if (weapon == null) continue;
+            int need = weapon.requirement().pointsNeeded(StatRequirement.playerStats(cls, Map.of(), Map.of()));
+            if (need > START_POINTS) {
+                warn("items." + weapon.id(), "직업 " + cls.id() + " 의 시작 무기인데 Lv.1 에 쓸 수 없음 (" + weapon.requirement().text()
+                        + " — 시작 포인트 " + START_POINTS + " 로 " + need + " 필요)");
             }
         }
     }

@@ -9,8 +9,10 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import kr.labyrinth.Services;
+import kr.labyrinth.content.AchievementDef;
 import kr.labyrinth.content.ClassDef;
 import kr.labyrinth.content.ItemDef;
+import kr.labyrinth.content.StatRequirement;
 import kr.labyrinth.core.Log;
 import kr.labyrinth.core.Module;
 import kr.labyrinth.core.Settings;
@@ -88,6 +90,23 @@ public final class StatService implements Module, Listener {
     public DerivedStats get(Player p) {
         DerivedStats s = cache.get(p.getUniqueId());
         return s != null ? s : recalc(p);
+    }
+
+    /**
+     * 장비 요구 능력치 판정용 능력치 = 직업 기본 + 분배 포인트 + 장착 칭호 보너스 (장비·버프 제외 — 장비가 스스로 조건을 채우지 않게).
+     * {@code items.EquipRules} 와 무기 스킬·직업 스킬 무기 판정이 같이 쓴다.
+     */
+    public Map<Stat, Integer> requirementStats(Player p) {
+        PlayerData d = services.data().get(p);
+        ClassDef cls = services.content().classDef(d.classId());
+        Map<String, Double> title = Map.of();
+        try {
+            AchievementDef t = services.titles() == null ? null : services.titles().equipped(p);
+            if (t != null && t.bonus() != null) title = t.bonus();
+        } catch (Throwable e) {
+            Log.error("칭호 보너스 읽기 오류", e);
+        }
+        return StatRequirement.playerStats(cls, d.allocated(), title);
     }
 
     /** 다음 틱에 다시 계산 (같은 틱 여러 번 호출해도 1회). */

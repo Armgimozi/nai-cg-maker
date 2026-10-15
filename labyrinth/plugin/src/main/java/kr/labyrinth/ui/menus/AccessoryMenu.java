@@ -46,7 +46,7 @@ public final class AccessoryMenu extends LabMenu {
         PlayerData d = services.data().get(p);
         deco(4, Button.icon(Material.AMETHYST_CLUSTER, "<#c79bff><b>장신구 2칸</b>",
                 List.of("<gray>아래 내 가방에서 장신구를 클릭하면 장착합니다.", "<gray>위 칸을 클릭하면 가방으로 돌려받습니다.",
-                        "<dark_gray>요구 레벨만 되면 어느 직업이든 장착할 수 있습니다.")));
+                        "<dark_gray>장신구는 요구 능력치가 없습니다 — 어느 직업이든 장착할 수 있습니다.")));
         for (int i = 0; i < SLOTS.length; i++) {
             ItemStack acc = load(d, i);
             final int idx = i;
@@ -54,7 +54,10 @@ public final class AccessoryMenu extends LabMenu {
                 set(SLOTS[i], Button.icon(Material.LIGHT_GRAY_STAINED_GLASS_PANE, "<gray>장신구 칸 " + (i + 1),
                         List.of("<dark_gray>비어 있음")), ctx -> deny(ctx.player()));
             } else {
-                set(SLOTS[i], acc.clone(), ctx -> unequip(ctx.player(), idx));
+                // 예전 판 설명("요구 레벨" 등)도 지금 규칙으로 다시 그려 보여 준다 (저장된 아이템은 그대로)
+                ItemStack shown = acc.clone();
+                services.items().refresh(shown);
+                set(SLOTS[i], shown, ctx -> unequip(ctx.player(), idx));
             }
         }
         // 합계 미리보기
@@ -81,11 +84,7 @@ public final class AccessoryMenu extends LabMenu {
             return;
         }
         PlayerData d = services.data().get(p);
-        if (d.level() < def.levelReq()) {
-            deny(p);
-            Text.error(p, "레벨 " + def.levelReq() + " 이상 필요합니다.");
-            return;
-        }
+        // 장신구는 레벨·능력치 조건 없이 장착한다
         int target = -1;
         for (int i = 0; i < SLOTS.length; i++) if (load(d, i) == null) { target = i; break; }
         ItemStack one = clicked.asOne();
@@ -118,6 +117,7 @@ public final class AccessoryMenu extends LabMenu {
             return;
         }
         d.accessory(idx, null);
+        services.items().refresh(acc);
         p.getInventory().addItem(acc);
         services.stats().markDirty(p);
         services.stats().recalc(p);

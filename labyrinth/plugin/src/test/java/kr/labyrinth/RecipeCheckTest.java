@@ -9,7 +9,7 @@ import kr.labyrinth.items.CraftingService.Result;
 import kr.labyrinth.items.crafting.RecipeCheck;
 import org.junit.jupiter.api.Test;
 
-/** 대장장이 조건 확인 순서·할인 상한 (GDD §11.11). */
+/** 대장장이 조건 확인 순서(재료 → 골드, 레벨 제한 없음)·할인 상한 (GDD §11.11). */
 class RecipeCheckTest {
 
     private static RecipeDef recipe() {
@@ -25,8 +25,11 @@ class RecipeCheckTest {
     }
 
     @Test
-    void checksLevelFirst() {
-        assertEquals(Result.LEVEL_TOO_LOW, RecipeCheck.check(recipe(), 4, 0, 0, id -> 0));
+    void noCraftingLevelGate() {
+        // recipes.yml level_req 는 더 이상 보지 않는다 — 장비는 입을 때 요구 능력치로 가린다
+        assertEquals(Result.OK, RecipeCheck.check(recipe(), 1, 1000, 0, id -> 99));
+        assertEquals(Result.OK, RecipeCheck.check(recipe(), 1000, 0, id -> 99));
+        assertEquals(Result.MISSING_MATERIALS, RecipeCheck.check(recipe(), 1, 0, 0, id -> 0));
     }
 
     @Test
