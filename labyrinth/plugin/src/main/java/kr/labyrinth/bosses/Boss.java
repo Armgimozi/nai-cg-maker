@@ -157,7 +157,7 @@ public abstract class Boss implements BossHandle {
         this.arenaHeight = def.arena().dbl("height", 10);
         this.now = service.now();
         this.spawnTick = now;
-        this.scaling = new MechanicScaling(ctx.partySize(), ctx.difficulty().id(), 1, false);
+        this.scaling = new MechanicScaling(ctx.partySize(), ctx.difficulty().id(), 1, false, ctx.rampProgress()); // 층 램프까지
         this.maxHp = Math.max(1, def.hp() * ctx.hpMultiplier());
         this.hp = maxHp;
         this.baseDamage = def.damage() * ctx.damageMultiplier();

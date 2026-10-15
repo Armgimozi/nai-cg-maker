@@ -1,7 +1,9 @@
 package kr.labyrinth.core;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import org.bukkit.Bukkit;
@@ -27,6 +29,7 @@ public final class Settings {
     private final Combat combat;
     private final Level level;
     private final Map<String, Double> weaponAttackSpeed;
+    private final List<KitItem> starterKit;
 
     public record Entrance(String mode, String world, double x, double y, double z, float yaw, float pitch, double radius) {
         public boolean isSet() { return world != null && !world.isBlank(); }
@@ -56,22 +59,32 @@ public final class Settings {
         public int startPointsOwed(int granted) { return Math.max(0, startPoints - Math.max(0, granted)); }
     }
 
+    /** 시작 꾸러미 한 줄 (config.yml starter_kit.items). */
+    public record KitItem(String item, int amount) {}
+
+    /** 시작 꾸러미 코드 기본값 (= jar 의 config.yml) — 수련생 방어구 4종 + 하급 치유 물약 5. */
+    public static final List<KitItem> DEFAULT_STARTER_KIT = List.of(new KitItem("novice_cap", 1),
+            new KitItem("novice_tunic", 1), new KitItem("novice_trousers", 1), new KitItem("novice_boots", 1),
+            new KitItem("minor_healing_potion", 5));
+
     public Settings(ConfigurationSection c) {
         if (c == null) c = new MemoryConfiguration();
         Map<String, Difficulty> diffs = new LinkedHashMap<>();
         diffs.put("easy", Difficulty.EASY);
         diffs.put("normal", Difficulty.NORMAL);
-        diffs.put("hard", Difficulty.HARD);
-        diffs.put("nightmare", Difficulty.NIGHTMARE);
+        diffs.put("hard", Difficulty.HARD.withRamp(Difficulty.Ramp.HARD));
+        diffs.put("nightmare", Difficulty.NIGHTMARE.withRamp(Difficulty.Ramp.NIGHTMARE));
         ConfigurationSection ds = c.getConfigurationSection("difficulties");
         if (ds != null) {
             for (String id : ds.getKeys(false)) {
                 ConfigurationSection d = ds.getConfigurationSection(id);
                 if (d == null) continue;
                 Difficulty def = diffs.getOrDefault(id, Difficulty.NORMAL);
-                diffs.put(id, new Difficulty(id, d.getString("name", def.name()), d.getDouble("hp", def.hp()),
+                Difficulty read = new Difficulty(id, d.getString("name", def.name()), d.getDouble("hp", def.hp()),
                         d.getDouble("damage", def.damage()), d.getDouble("drop", def.drop()),
-                        d.getDouble("xp", def.xp()), d.getDouble("telegraph", def.telegraph())));
+                        d.getDouble("xp", def.xp()), d.getDouble("telegraph", def.telegraph()));
+                diffs.put(id, read.withRamp(Boolean.FALSE.equals(d.get("ramp")) ? null
+                        : ramp(d.getConfigurationSection("ramp"), read)));
             }
         }
         this.difficulties = Collections.unmodifiableMap(diffs);
@@ -81,7 +94,9 @@ public final class Settings {
 
         this.party = new PartyScaling(Math.max(1, c.getInt("party.max_size", 10)),
                 c.getDouble("party.hp_per_member", 0.6), c.getDouble("party.dmg_per_member", 0.08),
-                c.getDouble("party.reward_per_member", 0.05));
+                c.getDouble("party.reward_per_member", 0.05),
+                clamp(c.getDouble("party.solo_hp", PartyScaling.DEFAULT_SOLO), 0.1, 1.5),
+                clamp(c.getDouble("party.solo_damage", PartyScaling.DEFAULT_SOLO), 0.1, 1.5));
         this.partyInviteTimeout = c.getInt("party.invite_timeout", 60);
         this.worldName = c.getString("world.name", "labyrinth_world");
         this.entrance = new Entrance(c.getString("entrance.mode", ""), c.getString("entrance.world", ""),
@@ -106,7 +121,49 @@ public final class Settings {
         if (ws != null) for (String k : ws.getKeys(false)) was.put(k, ws.getDouble(k));
         was.putIfAbsent("none", 1.6);
         this.weaponAttackSpeed = Collections.unmodifiableMap(was);
+        this.starterKit = Boolean.FALSE.equals(c.get("starter_kit")) ? List.of()
+                : starterKit(c.getConfigurationSection("starter_kit"));
     }
+
+    /**
+     * difficulties.&lt;id&gt;.ramp — 키가 없거나 비어 있으면 코드 기본값({@link Difficulty.Ramp#defaultFor}, 어려움·악몽만).
+     * 끄기 = {@code ramp: {enabled: false}} (또는 {@code ramp: false}). from_floor(기본 1)·full_floor(from 이하면 램프 없음)·
+     * start.hp/damage/telegraph 중 빠진 값은 기본 램프 값, 기본 램프가 없는 난이도면 그 난이도 원래 값.
+     */
+    static Difficulty.Ramp ramp(ConfigurationSection r, Difficulty d) {
+        Difficulty.Ramp def = Difficulty.Ramp.defaultFor(d.id());
+        if (def != null) { // hp·damage 를 기본보다 낮춰 쓰는 서버: 기본 시작 값이 원래 값보다 세지 않게
+            def = new Difficulty.Ramp(def.fromFloor(), def.fullFloor(), Math.min(def.startHp(), d.hp()),
+                    Math.min(def.startDamage(), d.damage()), Math.max(def.startTelegraph(), d.telegraph()));
+        }
+        if (r == null || r.getKeys(false).isEmpty()) return def;
+        if (!r.getBoolean("enabled", true)) return null;
+        int from = r.getInt("from_floor", def == null ? 1 : def.fromFloor());
+        int full = r.getInt("full_floor", def == null ? from : def.fullFloor());
+        if (full <= from) return null;
+        return new Difficulty.Ramp(from, full, r.getDouble("start.hp", def == null ? d.hp() : def.startHp()),
+                r.getDouble("start.damage", def == null ? d.damage() : def.startDamage()),
+                r.getDouble("start.telegraph", def == null ? d.telegraph() : def.startTelegraph()));
+    }
+
+    /**
+     * starter_kit — 섹션이 없거나 비어 있거나 items 가 비면 코드 기본값.
+     * 끄기 = {@code enabled: false} (또는 {@code starter_kit: false}) → 빈 목록.
+     */
+    static List<KitItem> starterKit(ConfigurationSection k) {
+        if (k == null || k.getKeys(false).isEmpty()) return DEFAULT_STARTER_KIT;
+        if (!k.getBoolean("enabled", true)) return List.of();
+        List<KitItem> out = new ArrayList<>();
+        for (Map<?, ?> m : k.getMapList("items")) {
+            Object item = m.get("item");
+            if (item == null || String.valueOf(item).isBlank()) continue;
+            int amount = m.get("amount") instanceof Number n ? n.intValue() : 1;
+            if (amount > 0) out.add(new KitItem(String.valueOf(item).trim(), Math.min(64, amount)));
+        }
+        return out.isEmpty() ? DEFAULT_STARTER_KIT : List.copyOf(out);
+    }
+
+    private static double clamp(double v, double lo, double hi) { return Math.max(lo, Math.min(hi, v)); }
 
     public Map<String, Difficulty> difficulties() { return difficulties; }
 
@@ -128,6 +185,9 @@ public final class Settings {
     public int autosaveMinutes() { return autosaveMinutes; }
     public Combat combat() { return combat; }
     public Level level() { return level; }
+
+    /** 시작 꾸러미 (직업을 처음 고를 때 한 번). 빈 목록 = 꺼짐. */
+    public List<KitItem> starterKit() { return starterKit; }
 
     public double weaponAttackSpeed(String weaponType) {
         if (weaponType == null) return weaponAttackSpeed.get("none");

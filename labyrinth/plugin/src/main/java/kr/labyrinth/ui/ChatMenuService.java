@@ -102,10 +102,24 @@ public class ChatMenuService implements MenuService {
         p.sendMessage(Text.mm("<gray>서버 난이도를 골라 주세요. 나중에 <white>/미궁 난이도</white> 로 바꿀 수 있습니다."));
         StringBuilder sb = new StringBuilder();
         for (Difficulty d : services.settings().difficulties().values()) {
+            // 층 램프: 1층 값→원래 값 (지하 N층부터 최대)
+            Difficulty first = d.atFloor(1);
+            String ramp = d.ramp() == null ? "" : " (지하 " + d.ramp().fullFloor() + "층부터 최대)";
             sb.append(button("<yellow>[" + d.name() + "]</yellow>", "/lab difficulty " + d.id(),
-                    "몹 HP ×" + d.hp() + " · 피해 ×" + d.damage() + " · 드롭 ×" + d.drop())).append("  ");
+                    "몹 HP ×" + range(first.hp(), d.hp()) + " · 피해 ×" + range(first.damage(), d.damage()) + ramp
+                            + " · 드롭 ×" + num(d.drop()))).append("  ");
         }
         p.sendMessage(Text.mm(sb.toString()));
+    }
+
+    private static String num(double v) {
+        return java.math.BigDecimal.valueOf(Math.round(v * 100) / 100.0).stripTrailingZeros().toPlainString();
+    }
+
+    /** 층 램프 범위 "1.8→2.4" (같으면 하나). */
+    private static String range(double from, double to) {
+        String a = num(from), b = num(to);
+        return a.equals(b) ? b : a + "→" + b;
     }
 
     @Override

@@ -1,5 +1,7 @@
 package kr.labyrinth.classes;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,6 +14,7 @@ import kr.labyrinth.content.ClassDef;
 import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.WeaponTypes;
 import kr.labyrinth.core.Log;
+import kr.labyrinth.core.Settings;
 import kr.labyrinth.core.Text;
 import kr.labyrinth.data.PlayerData;
 import net.kyori.adventure.text.Component;
@@ -23,12 +26,16 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
 /**
- * 직업 서비스 실제 구현: 전직/변경, 마나(WIS 재생, {@link ManaPool}), 쿨다운({@link CooldownTracker}, cooldown_slow 반영),
+ * 직업 서비스 실제 구현: 전직/변경(시작 무기·시작 꾸러미), 마나(WIS 재생, {@link ManaPool}), 쿨다운({@link CooldownTracker}, cooldown_slow 반영),
  * 직업 스킬 입력(F/웅크리기+F/Q/웅크리기+Q → {@link SkillRegistry} 의 {@link Skill}), 액션바 피드백.
  */
 public final class LabyrinthClassService implements ClassService, SkillContext.Host {
 
     private static final double TICK_SECONDS = 0.1;
+    /** 시작 꾸러미 지급 기록 (PlayerData ext). 플레이어당 한 번 — 직업을 바꿔도 다시 주지 않는다. */
+    static final String KIT_FLAG = "starter.kit";
+    /** 기존 플레이어가 접속 때 시작 꾸러미를 받을 수 있는 최대 레벨. */
+    static final int KIT_JOIN_MAX_LEVEL = 5;
 
     private static final class PlayerState {
         ManaPool mana;
@@ -118,13 +125,63 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
         SkillFx.helix(player.getLocation(), 0.8, 2.4, 30, Particle.DUST, SkillFx.dust(rgb(col), 1.2f));
         SkillFx.sound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.7f, 1.2f);
         giveStarterWeapon(player, def);
+        if (cur == null) giveStarterKit(player); // 처음 전직: 조건 없이 한 번
+        else ensureStarterKit(player);           // 직업 변경: 기존 플레이어 규칙 (보통은 이미 받았거나 기록됨)
         return true;
     }
 
-    /** 접속할 때: 직업은 있는데 추천 무기를 받은 적도 가진 것도 없으면(예전 판에서 전직한 사람) 한 번 지급. */
+    /** 접속할 때: 직업은 있는데 시작 무기를 받은 적도 가진 것도 없으면(예전 판에서 전직한 사람) 한 번 지급 + 시작 꾸러미 규칙. */
     public void ensureStarterWeapon(Player player) {
         ClassDef def = classOf(player);
         if (def != null) giveStarterWeapon(player, def);
+        ensureStarterKit(player);
+    }
+
+    /**
+     * 기존 플레이어의 시작 꾸러미: {@link #joinGrantsKit} 이고 직업이 있으면 지급, 조건 밖이면 받은 것으로 기록만 한다
+     * (이미 진행한 사람에게 새로 주지 않음). 직업이 없으면 전직할 때 받는다.
+     */
+    private void ensureStarterKit(Player player) {
+        if (services.settings().starterKit().isEmpty()) return;
+        PlayerData d = services.data().get(player);
+        if (Boolean.TRUE.equals(d.ext().get(KIT_FLAG))) return;
+        if (!joinGrantsKit(d.level(), d.counter("dungeon.clear_floor_1"))) {
+            d.ext().put(KIT_FLAG, true);
+            d.markDirty();
+        } else if (classOf(player) != null) {
+            giveStarterKit(player);
+        }
+    }
+
+    /** 접속(기존 플레이어) 경로의 시작 꾸러미 조건: Lv.5 이하이고 지하 1층을 깬 적이 없을 때만. 처음 전직할 때는 조건 없이 한 번. */
+    static boolean joinGrantsKit(int level, long floor1Clears) {
+        return level <= KIT_JOIN_MAX_LEVEL && floor1Clears <= 0;
+    }
+
+    /**
+     * 시작 꾸러미 (config.yml starter_kit — 수련생 방어구 4종 + 하급 치유 물약 5) 를 한 번 지급. 꺼져 있거나 이미 받았으면 무시.
+     * 콘텐츠에 없는 아이템 줄은 건너뛰고, 하나도 못 줬으면 기록하지 않는다 (콘텐츠가 들어온 뒤 다시 시도). 가방이 차면 발밑에 떨군다.
+     */
+    private void giveStarterKit(Player player) {
+        var kit = services.settings().starterKit();
+        if (kit.isEmpty()) return;
+        PlayerData d = services.data().get(player);
+        if (Boolean.TRUE.equals(d.ext().get(KIT_FLAG))) return;
+        List<String> got = new ArrayList<>();
+        for (Settings.KitItem k : kit) {
+            ItemDef item = services.content().item(k.item());
+            if (item == null) {
+                Log.warnOnce("starter-kit-" + k.item(), "[직업] 시작 꾸러미 아이템이 콘텐츠에 없습니다: " + k.item());
+                continue;
+            }
+            int n = services.items().give(player, item.id(), k.amount(), "starter");
+            if (n > 0) got.add("<white>" + item.name() + "</white>" + (n > 1 ? " <gray>×" + n : ""));
+        }
+        if (got.isEmpty()) return;
+        services.stats().markDirty(player);
+        d.ext().put(KIT_FLAG, true);
+        d.markDirty();
+        Text.send(player, "<gray>시작 꾸러미를 받았습니다: " + String.join("<gray>, ", got));
     }
 
     /**
@@ -145,9 +202,8 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
         services.stats().markDirty(player); // 빈 손 칸에 들어갔을 수 있다 — setClass 의 재계산은 지급 전에 끝났다
         d.ext().put(flag, true);
         d.markDirty();
-        Text.send(player, "<gray>추천 무기를 받았습니다: <white>" + best.name() + "</white> <gray>— 스킬은 무엇을 들었든 <white>"
-                + kr.labyrinth.core.InputKeys.CLASS_KEYS + "</white> <dark_gray>(추천 무기를 들면 재사용 대기 −"
-                + Text.pct(WeaponTypes.RECOMMENDED_COOLDOWN_CUT) + ")");
+        Text.send(player, "<gray>시작 무기를 받았습니다: <white>" + best.name() + "</white> <gray>— 스킬은 무엇을 들었든 <white>"
+                + kr.labyrinth.core.InputKeys.CLASS_KEYS);
     }
 
     // ── 마나 ──────────────────────────────────────────────────────────────
