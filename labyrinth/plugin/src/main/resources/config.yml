@@ -207,6 +207,27 @@ enhance:
   glint_from: 7                   # 이 단계부터 이름 금빛 + 인챈트 광택
   glow_interval: 10               # 최대 단계 장비의 은은한 빛 입자 간격(틱, 0 = 끔). 아우라 무기는 링도 더 밝아진다.
 
+# 판매 — 떠돌이 상인 핀의 상점 [물건 팔기] · /미궁 판매 (미궁 공략 중에는 불가). 가방에서 클릭해 올리고 [판매] 로 한꺼번에.
+#   재료  = materials[희귀도] × (1 + material_floor_bonus × 층)        (층 = items.yml floor, 정수·강화석처럼 층이 없으면 0)
+#   장비  = gear[희귀도] × (1 + gear_floor_bonus × 층) × (1 + enhance_bonus × 강화 단계)   (무기·방어구·방패·장신구)
+#   소모품 = 핀이 파는 것이면 산 값 × consumable_shop_ratio, 아니면 재료 값
+#   핀이 파는 물건은 무엇이든 산 값 × shop_item_cap 이하이고, 언제나 산 값보다 싸다 (사서 되팔아 골드를 불릴 수 없음).
+#   팔 수 없음: 시작 지급품 · 열쇠·직업 문장(type: key) · 전직의 두루마리(class_change.item) · unsellable 목록.
+#   confirm_rarity 이상이거나 강화 confirm_enhance 이상인 물건이 섞이면 [판매] 를 두 번 눌러야 판다 (0 = 강화로는 묻지 않음).
+#   키가 없으면 아래 기본값이 쓰이고, 끄려면 enabled: false
+sell:
+  enabled: true
+  materials: {common: 2, uncommon: 5, rare: 15, epic: 40, legendary: 120, mythic: 300}
+  material_floor_bonus: 0.15
+  gear: {common: 10, uncommon: 25, rare: 60, epic: 150, legendary: 400, mythic: 1000}
+  gear_floor_bonus: 0.10
+  enhance_bonus: 0.25
+  consumable_shop_ratio: 0.25
+  shop_item_cap: 0.5
+  confirm_rarity: epic
+  confirm_enhance: 1
+  unsellable: [class_change_scroll]
+
 # 몬스터
 mobs:
   # 미궁 안 일반 몹이 정예 변종(HP·피해 강화 + 추가 스킬 + 금빛 발광)으로 나올 확률 (0 = 끔)

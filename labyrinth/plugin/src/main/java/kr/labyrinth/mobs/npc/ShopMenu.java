@@ -9,6 +9,7 @@ import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.NpcDef;
 import kr.labyrinth.core.Text;
 import kr.labyrinth.data.PlayerData;
+import kr.labyrinth.items.sell.SellService;
 import kr.labyrinth.ui.Button;
 import kr.labyrinth.ui.ClickContext;
 import kr.labyrinth.ui.Menu;
@@ -21,6 +22,7 @@ import org.bukkit.inventory.ItemStack;
 /**
  * 떠돌이 상인 상점 (npcs.yml merchant 의 {@code shop: [{item, price, level_req?}]}).
  * 좌클릭 1개, 쉬프트+좌클릭 5개(스택 가능한 물건만), 우클릭 = 설명만. 골드는 PlayerData, 지급은 ItemService(source=shop).
+ * [물건 팔기] = 판매 창({@link kr.labyrinth.items.sell.SellMenu}, {@code /미궁 판매} 와 같은 창 — 미궁 공략 중에는 막힘).
  */
 public final class ShopMenu extends Menu {
 
@@ -41,7 +43,8 @@ public final class ShopMenu extends Menu {
         for (int i = 0; i < size(); i++) deco(i, frame);
         PlayerData data = services.data().get(viewer);
         deco(4, Button.icon(Material.GOLD_INGOT, "<gold><b>보유 골드</b></gold>",
-                List.of("<yellow>" + Text.num(data.gold()) + " G", "", "<gray>좌클릭: 1개 구매", "<gray>쉬프트+좌클릭: 5개 구매")));
+                List.of("<yellow>" + Text.num(data.gold()) + " G", "", "<gray>좌클릭: 1개 구매", "<gray>쉬프트+좌클릭: 5개 구매",
+                        "<gray>팔 때는 아래 <green>[물건 팔기]")));
         int i = 0;
         for (NpcDef.ShopEntry entry : npc.shop()) {
             if (i >= SLOTS.length) break;
@@ -50,7 +53,32 @@ public final class ShopMenu extends Menu {
             int slot = SLOTS[i++];
             set(slot, icon(entry, def, data), ctx -> buy(ctx, entry, def));
         }
+        set(38, sellIcon(viewer), this::openSell);
         set(40, Button.icon(Material.BARRIER, "<red>닫기", List.of()), ctx -> ctx.player().closeInventory());
+    }
+
+    private ItemStack sellIcon(Player viewer) {
+        SellService sell = SellService.get();
+        if (sell == null) return Button.icon(Material.GRAY_DYE, "<gray>물건 팔기", List.of("<dark_gray>지금은 물건을 사지 않습니다."));
+        if (sell.blocked(viewer)) {
+            return Button.icon(Material.GRAY_DYE, "<gray>물건 팔기", List.of("<#ff8a8a>미궁 안에서는 팔 수 없습니다.",
+                    "<dark_gray>마을로 돌아온 뒤 /미궁 판매"));
+        }
+        return Button.icon(Material.EMERALD, "<green><b>물건 팔기</b>", List.of("<gray>가방의 미궁 재료·장비·소모품을",
+                "<gray>골드를 받고 " + Text.strip(npc.name()) + " 에게 팝니다.", "<dark_gray>(시작 지급품·열쇠·전직의 두루마리 제외)", "",
+                "<yellow>▶ 클릭: 판매 창 열기"));
+    }
+
+    private void openSell(ClickContext ctx) {
+        Player p = ctx.player();
+        SellService sell = SellService.get();
+        if (sell == null || sell.blocked(p)) {
+            p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.6f, 1.2f);
+            if (sell != null) Text.error(p, "미궁 안에서는 물건을 팔 수 없습니다.");
+            return;
+        }
+        p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.3f);
+        sell.open(p, npc);
     }
 
     private ItemStack icon(NpcDef.ShopEntry entry, ItemDef def, PlayerData data) {
