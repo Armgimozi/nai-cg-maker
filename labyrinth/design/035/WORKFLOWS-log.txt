@@ -1,0 +1,87 @@
+# 사용자 결정: 검토(review)→수정(fix) 단계는 빼기. 각 워크플로가 review 를 시작하면 TaskStop.
+wf_2138a017-7a1  task=wjotfp0me  village-world   (메인 브랜치 /home/user/nai-cg-maker, 에이전트는 커밋 안 함)
+wf_a3e48891-6ec  task=wadhxk5xb  mob-voxel       (/home/user/nai-mobs, 브랜치 mob-voxel)
+wf_688644c0-ddc  task=wjc293x7t  content-0-3     (/home/user/w-int c-int ← c-unlock c-enh c-wpn c-newmobs)
+wf_d6c1a51a-bd9  task=wr6hliyr5  bosses-6-10     (/home/user/w-bint c-bint ← c-b6..c-b10)
+wf_b197487c-c15  task=wsagd2dd3  maze-traps      (/home/user/w-maze c-maze)
+wf_f6e15aba-a85  task=w75u3rxcq  pvp-party-rule  (/home/user/w-pvp c-pvp)
+wf_9ecee1c3-9e0  task=wpxnuckaa  fixes-ui        (/home/user/w-fix2 c-fix2, /home/user/w-ui c-ui)
+완료 브랜치: c-nolevel 7a76320 (권장 레벨 제거), c-skillany 3f5b448 (스킬 언제나), c-motd 6a948e3 (아이콘만, 글 원래대로)
+감시 모니터: review_seen.txt / Monitor task b0baxs52t (30분마다 다시 걸기)
+최종 점검 예약: trig_0183oiDfmxsX15QafhYD49Q8 (23:30 UTC)
+사용량 초기화 재시작 예약: trig_01T2NnK7jrRDxyn9MYcWjzVY (23:05 UTC = 08:05 KST). 워크플로 스크립트에서 Review/Fix 단계 제거함(재개 시 안 돎).
+백업: 사용자 허락(백업ㅇㅇ). 원격 backup/<브랜치> 19개. 20분 주기 백그라운드 bvzsa1qmp (최대 2시간 — 끝나면 다시 걸기).
+사용자 결정(03:50 KST): 11시에 자르지 말고 다 될 때까지 기다렸다 한 번에 전달 (12~13시 예상).
+== 23:06 UTC 사용량 초기화 후 재시작 (이전 워크플로 전부 한도로 실패 종료, WIP 커밋함) ==
+resume-core       task=wc5arftxg run=wf_000c6f2e-3bf : enh·pvp·fix2·ui 마무리 → weapons · mob-bosses(nai-mobs)
+resume-maze-mobs  task=w9gwr7ed7 run=wf_c40b8862-47d : maze→traps / newmobs data→models a,b → content integrate(c-int)
+resume-bosses     task=w10f7oehc run=wf_7f031d09-bcf : boss7·8(이어서)·9·10 → bosses integrate(c-bint)
+다음: 셋 다 끝나면 최종 통합(메인에 mob-voxel·c-int·c-bint·c-maze·c-pvp·c-fix2·c-ui·c-nolevel·c-skillany·c-motd) → 0.3.0 → 월드 재생성 → release → 검증 → 전달
+c-final (/home/user/w-final, 메인 기준): 통합 1 완료 aa61d5f = c-nolevel+c-motd+c-unlock+c-skillany (빌드·테스트 통과). 원격 backup/c-final 은 수동으로 올림.
+c-final 통합 2: +c-pvp +c-fix2 +c-ui (빌드·테스트 통과, 메인에 반영). c-enh 는 15파일 충돌 → 최종 통합 에이전트가 c-int 와 함께 처리.
+통합 3: +mob-voxel (전 몹 복셀) + PvP 문양 정리, 메인 b1d56d5. 남음: c-int(콘텐츠), c-bint(보스), c-maze(함정).
+통합 4: +c-bint (보스 6~10 실제 구현 + 6~10 단서) fee056b — 검증 실행 중(bbv0pd1b2, /opt/srv-final 포트 25650). 남음: c-int(콘텐츠), c-maze(함정).
+
+== 01:5x UTC 최종 단계
+c-final: 3bf507b(c-int 합침) 12d12d9(c-maze 합침) cd12501(0.3.0 README) 37e4d99(gradle version 입력) — backup/c-final 푸시
+selftest 10 예외0, 마을 selftest 예외0, release zip(dist/Labyrinth-Server-0.3.0.zip) 빈 폴더 검증 OK (단 jar 버전 0.2.0 표기 → 37e4d99 로 수정, 재빌드 필요)
+QA wf_0689bc69-427 → scratchpad/qa.json (17 확정, 중복 빼고 13)
+수정 wf_c6ed08ee-b84 : worktree w-fixa..d (fix-a..d), 그룹 a=[2,3,7,11] b=[0,12] c=[1,8,10] d=[4,9,5,6,13,14,15,16]
+다음: fix-a..d 를 c-final 에 합침 → 빌드·selftest 10 → release.sh (SKIP_PACK=1, 월드 재사용 가능) → 빈 폴더 검증 → main ff + push → 전달
+
+== 0.3.1 배포 후 (사용자: 추천 직업 지우기 · 획득처 한정/보스 고유 장비 · 보통 솔로 초반 어려움 · 악몽 초반 불가)
+f80cf02 추천 직업 표기 제거 (push 완료)
+설계: wf_8370d173-f80 (loot ok, balance 는 한도로 보고만 잃음 — design/balance_spec.* 완성본), 교차검토 wf_618c92be-f3f → design/review.md (L1–L8, B1–B4)
+구현: wf_f331ee74-c5b — worktree w-wp1..w-wp6 (branch wp1..wp6, base f80cf02). wp5 는 wp1 위에 ff.
+남은 것: wp1..wp6 머지 → 팩 재생성(WP6) → WP7 문서·0.3.2 → 빌드·check_assets·selftest 10 → release → 빈 폴더 검증 → push·전달
+강화 재설계: wf_a1bd76be-248 — worktree w-wp8 (branch wp8, base f80cf02). stat_bonus 누적 [3,6,10,14,19,25,33,43,56,72]%, content/enhance.yml 장비별 재료(낮음+1~3 층 일반 재료 / 중간 +4~6 정예 재료 / 높음 +7~10 보스 핵 또는 희귀 재료), tools/gen_enhance.py
+사용자 결정(강화 재료): 강화석은 남기고 + 장비별 재료는 '제작 재료와 연결' (그 장비의 제작 재료, 또는 그 장비를 떨구는 몬스터·보스의 재료). wd3hfuahg 끝나면 gen_enhance.py 규칙만 이 방식으로 바꾸는 후속 작업 필요.
+사용자 추가 요청 (WP9, 현재 작업 머지 후):
+- 강화 상승폭 더 크게: 누적 [4,8,13,19,26,35,46,60,78,100]% → +10 = ×2.0 (WP8 후속에서 곡선 교체)
+- 인벤세이브: config death.keep_inventory 기본 true (코드 기본값도 true) — 어디서 죽든 소지품·레벨 유지 (DungeonManager 440 은 미궁만, 주 월드는 바닐라 드롭이었음)
+- 직업 바꾸기 제한: 첫 선택 무료, 이후 '전직의 두루마리'(상인 핀 3000G) 필요 + 바꾼 뒤 24시간 대기(config classes.change.*), 미궁 안에서는 불가, 직업 메뉴에 남은 시간 표시
+강화 후속 wf_ef5c92b9-689 (w-wp8 에 wp1 머지 → 재료 '제작 재료·드롭 출처 연결' + 곡선 [4..100]%). 이후: 메인 워크플로(wmov1ujj1) 끝나면 int 브랜치에 wp1..wp6 + wp8 머지 → WP9(인벤세이브·직업 변경 제한) + WP7 문서 → 검증·0.3.2
+통합: worktree w-int2 (branch int-032) = wp1..wp6 머지 2a0b874, 307 테스트 통과, backup/int-032 푸시. WP9 wf_e93bbceb-10a 진행 (인벤세이브·직업 제한·잔여). 남은 것: wp8 머지 → 문서(WP7)·0.3.2 → 팩 재생성 → 검증 → 메인 ff·push·전달
+
+== 0.3.2 배포 (63d3e58) → 0.3.3 시작 꾸러미 확대 (6ac42a3, push·jar 전달)
+사용자: "좀 넉넉해야 하는거 아님?" = 방어구 모델링(몸에 딱 붙어 보임). 결정: 어깨·등 3D 장식(디스플레이 엔티티, 본인 1인칭 숨김) + 장비 텍스처 다시. 시작 꾸러미는 그대로 두기.
+방어구 wf_7684e6bf-c86 : w-arm1 (branch arm1: armor_piece 모델 + ArmorCosmetics 서버) / w-arm2 (branch arm2: equipment.py 텍스처). 미리보기 scratchpad/armor_preview/
+다음: 미리보기 직접 확인 → 머지 → 팩 재생성 → 빌드·selftest → 0.3.4 배포
+사용자 추가 (0.3.4 묶음): 판매 기능 · 층별 난이도 통합(램프 없앰) · 상위(영웅+) 무기 획득처 하나 · 장비 레벨 제한 → 스탯 요구치
+wf_b899b951-f27 : w-r1 데이터(items/loot/recipes/enhance) / w-r2 요구치 코드 / w-r3 판매 / w-r4 난이도 — base 6ac42a3
+결정: requires/requires_any, R=ceil(2.5×(L−1)) (L=내부 level_req, ≤2 면 없음), 대검·검방 STR / 활·단검 DEX / 지팡이 INT / 홀 WIS / 판금·방패 VIT / 가죽 DEX / 천 INT|WIS, 플레이어 스탯 = 기본+투자+칭호(장비 제외)
+판매: 핀 상점 판매 모드 + /미궁 판매, 가격 config sell (재료·장비 희귀도표, 소모품 25%), 시작 지급·열쇠·전직 두루마리 판매 불가
+남은 것: 방어구(wf_7684e6bf-c86) + 이것 머지 → 팩 재생성 → 문서 → 0.3.4 검증·배포
+몹 관절: wf_01a9c0fe-24e — w-rig (branch rig, base 6ac42a3). 원인 = 다리 한 부품(leg_pair 31·leg_quad 12·leg_six 4·leg_eight 4) 통째 회전. 미리보기 scratchpad/rig_preview/ (before_/after_). 사용자 영상 프레임 rig_preview/user_video_legs.jpg
+무기 손 위치: wf_07544dd5-edd — w-wpnhold (branch wpnhold). 낫(war_scythe 등) 1인칭에서 날이 화면을 향해 덩어리처럼 보이고 휘두르면 망치질처럼 보임. 미리보기 scratchpad/weapon_preview/ (before_/after_<shape>.png, hold_audit.md)
+== 09:03 한도 리셋 후 재개: wt1mbuhf9(statreq, r1·r2 캐시), wp5fwgmk7(armor, texture 캐시), wr4nf8fdm(rig), wpvgiee3l(weapon hold). 각 프롬프트에 '중단된 작업 이어서' 안내 추가
+갑옷 겹침: 원인 = 갑옷 텍스처 빈칸으로 스킨(파란 옷)이 비침 → 몸과 섞여 보임. wf_3d5bda35-a8a (w-arm2): 빈틈 없이 덮기 + 테두리 + 투구가 머리 감싸기, 스킨 비침 픽셀 검사 렌더(coverage_*.png). 증강 스카이블럭 = 장비 레이어 텍스처 + 3D 투구 + 발광 셰이더(모양 변형 없음)
+== 09:45 사용자 추가: "장비 수를 더 늘려 특히 무기를" + "상자나 특별 시련 보상으로도, 제작·보스가 무조건 정답이 아니게"
+설계 wbvpu79cw 중단 → 확장 설계 wf_8b7a5e09-2fc (task wi40ep91j): 고유 효과(A) + 방어구 겉모습(B) + 새 무기·방어구·획득처·특별 시련(C) → 새 무기 효과 배정(D) → 교차 검토 review2.md (구현 묶음 P1~P6)
+목표: 무기 131 → 약 220~240 (종류×5레벨 구간마다 4개 이상, 획득처 3종류 이상), 방어구 세트 +6, 6·8·9·10층 상자/시련 전용 무기로 되살림(획득처 하나 규칙 유지)
+== 10:00 사용자: 23시 KST(14:00 UTC) 친구들과 플레이 → 그 전에 0.3.4. 검토 같은 후순위는 미루고 사용량 절감
+장비 확장 설계 wi40ep91j 중단(나중에 다시: scriptPath gear-expansion-design-wf_8b7a5e09-2fc.js). statreq 중단(review:r4 건너뜀)
+int-034 (/home/user/w-int4, base 6ac42a3) = r1+r2(리뷰 반영 4b09adf)+r4+r3(bb2933c) — 387 테스트 통과
+남음: arm1(장식 보완 진행 중) · arm2(빈칸 메우기 진행 중) · rig · wpnhold — 각 검토 시작하면 멈춤 (Monitor b28aa4q3e, tools/wfwatch.py)
+마감 계획: 12:30 UTC 까지 안 끝난 건 빼고 0.3.4 → 팩 재생성·selftest·release·빈 폴더 검증 13:30 UTC
+10:2x wpnhold bd298f2 머지(검토 생략, 낫 미리보기 직접 확인 OK). int-034 = r1 r2 r4 r3 + 4c179e8(무료 초기화 1회) + wpnhold
+10:3x 사용자: 칭호 줄이기(12개 안팎) · 칭호마다 서버 1명 · 조건 전부 비밀 · 기존 칭호 새로 시작 → wf_e891e530-06b (task wrqzepyu0) w-titles(branch titles, base int-034 b8daf98) 구현만
+10:31 arm1 79eb71c 머지 (리뷰 6건 반영됨) → int-034 406 테스트 통과. 칭호 에이전트(aa74fdb2088c7d281)에 '주인 생기면 조건 공개' 전달함
+10:4x arm2 a7984f1 머지(검토 생략, 비침 픽셀 0)
+11:05 0.3.4 배포: main 31f4757 push, dist/Labyrinth-Server-0.3.4.zip 빈 폴더 검증 OK(마을 예외0·selftest3 예외0), srv-final selftest10 예외0. 다음: 장비 확장 설계 재개(scriptPath gear-expansion-design-wf_8b7a5e09-2fc.js) + 미룬 검토들(r4 난이도, rig, wpnhold, arm2, titles)
+11:15 사용자: jar 만 바꿔도 안 바뀜 → 원인: 예전에 Labyrinth-0.3.3.jar 이름으로 전달 → plugins 에 두 jar → Paper 가 0.3.3 을 켬(Ambiguous). 앞으로 항상 Labyrinth.jar 이름으로 전달. 업그레이드 재현 upgrade_repro.sh OK
+11:2x 사용자(남은 사용량 12%): 장비 확장 진행 → 설계 wf_50b95a59-9e6 (task wmtv1vbm1) 순차 실행 A→C→B→D→review. 한도로 끊기면: Workflow({scriptPath: gear-expansion-design-wf_8b7a5e09-2fc.js, resumeFromRunId: 'wf_50b95a59-9e6'}). 설계 끝나면 review2.md 의 P1~P6 구현 묶음 실행
+11:35 0.3.4.1 (695d1d4 push, jar 전달): 칭호 보너스 +8/+12/+20, 스킬 알림 hud.skill_messages·skill_bar_on_swap 기본 끔. 무기 분류 없애기 = 설계(NOTYPES)에 넣음 → 0.3.5. 설계 A 끝나면(bd2rzqqw8 알림) wmtv1vbm1 멈추고 resumeFromRunId wf_50b95a59-9e6 로 재개(편집본: C/B/D/review 에 NOTYPES)
+11:47 0.3.4.2 (12232f1 push, jar 전달): 어깨·등 장식 없앰(서비스·명령·config·selftest 단계). 팩의 armor_piece 모델·ArmorCosmetics/ArmorPieceLayout 코드·테스트는 남음 → 0.3.5 팩 재생성 때 정리. 설계 재개 wrjy3q5e0 (C→B→D→review)
+14:03 사용량 리셋 후 설계 재개 wz9ir4gur (A 캐시, C·B 동시 → D → review)
+14:0x 사용자 질문(한손검 vs 대검): DPS 거의 같음(1.5 vs 1.47). 0.3.5 구현 때 툴팁에 '초당 피해'(공격력×공격 속도) 표시 추가 — 설계 review2 구현 묶음(P6 툴팁)에 넣기
+14:1x 사용자 결정: 공격 속도 무기마다 유지·설명엔 속도 포함 '공격력' 하나 / 힘=물리 공격력(직업·무기 불문) / 지능=마법 공격력 / 민첩=치명·공속·회피만(원거리 공격력 없앰). 설계 스크립트 D·review 에 STATS 넣음. C·B 끝나면(bqm521qnj) wz9ir4gur 멈추고 resume → D·review 가 새 지시로
+14:2x 사용자: 공격 게이지 없앰 + 무기마다 다른 간격(서버가 강제, 이른 클릭 1개 버퍼 등 UX) — 설계 STATS 1) 갱신
+14:3x 사용자: 공격력=한 방 피해 표기(+공격 속도 줄), 민첩=간격 단축, '난이도 고려해서 설계 다시' → 설계 재구성: A(캐시) → E 전투·난이도(combat_spec) → C·B 동시 → D(기존 무기 효과 수치도 재계산, unique_assign_all.json) → review(+난이도 재검증, P0 전투·P0b 분류 제거). 스크립트: /home/user/nai-cg-maker/.claude/wf/gear-design.js (gitignore), task wittruwqa
+14:4x 구현 때 꼭: 기존 무기 아이템(PDC 굴림값)을 새 한 방 피해·간격 범위로 옮길 때 굴림 위치(품질) 유지해 다시 매핑 + 스탯 초기화 무료 1회(새 플래그). 사용자는 오늘 0.3.4.2 로 플레이
+14:5x 사용자: requires_any(또는) 없앰 · 요구치 2~3 능력치로 섞기(힘15+민첩10, 효과 방향 따라) · 장비 층 분류 없앰(층 표시 X, 레벨 구간 풀로 여러 층 섞임, 보스·전용 종류는 유지, 영웅+ '획득처 종류 하나') → 스크립트 REQMIX(C·B·D·review). E 끝나면(bpdrpw?) wittruwqa 멈추고 resume
+15:0x 사용자: PvP — 기절→둔화 변환 X(플레이어 상대 시간만 줄임+감소 누적+짧은 면역), 한 방 상한(35%) 없앰(원턴킬 가능), 대신 유리대포 메타 X(방어형은 한 턴 버팀) → 설계에 TASK P(pvp_spec) 추가, C·B·P 동시. E 끝나면 resume
+15:1x E(전투·난이도) 완료 캐시, resume wfed563ps (C·B·P 동시 → D → review). 결정 필요 항목: 사제 Lv10 +11%·10층 보스 14분, 3층 정예방 4분, 요구치 60/40 분할 권고
+18:59 컨테이너 재시작 → 설계 review 만 남음. resume (A·E·C·B·P·D 캐시). 결과: design2/ gear_spec, look_spec, pvp_spec, combat_spec, unique_assign_all(무기 237 = 131+106)
+22:15 0.3.5 구현 시작 wf_b2ffdd0b-018 (task wcvpytfag), 스크립트 /home/user/nai-cg-maker/.claude/wf/impl-035.js. worktree: w-int35(int-035, P0→P0b→P0c→P1→P2→P3→통합→P6), w-p4(p4-trial), w-p5(p5-pack). 결정: B3 약하게 0.6 · B2 +8(245) · D1 구르기 5초 · C1 합계 75/민첩 45. 끊기면 resumeFromRunId
+22:19 사용자(주간 한도 87%): 검수 단계 줄이기 → impl-035.js 에서 review·fixup 제거(전체본 impl-035.js.full). 돌고 있는 run 은 review 시작 감지(b5p4wdp8f, 2h 만료 시 다시 걸기) 때 멈춤
