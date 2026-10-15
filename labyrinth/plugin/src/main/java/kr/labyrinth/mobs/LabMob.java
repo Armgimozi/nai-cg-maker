@@ -231,6 +231,9 @@ public final class LabMob implements CustomMob {
     public boolean isAlive() { return !dead && hp > 0; }
 
     @Override
+    public UUID lastHitPlayer() { return lastDamager; }
+
+    @Override
     public double applyDamage(double amount, DamageContext dctx) {
         if (dead || amount <= 0) return 0;
         long now = service.now();

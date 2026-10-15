@@ -302,7 +302,7 @@ pvp/     파티 규칙 PvP (GDD §18 — 대전·투기장·레이팅 없음): �
          VillageZone(마을 안전지대 = 주 월드 폴더 labyrinth-village.yml center/radius, 없으면 없음), PvpListener(물약·잔류 구름·발화·
          늑대·낚싯대·바닐라 경로 배율·죽음 메시지·월드 PvP 규칙), PvpModule(DamageService 훅: 파티원 피해 차단·배율·한 방 상한,
          1초마다 파티원 이름표 초록·모든 월드 게임 규칙 pvp = pvp.enabled)
-titles/  Achievement(titles.yml), TitleService(조건 검사, 서버 최초 달성 방송, 칭호 장착: 채팅·탭·이름표 접두어, 소소한 보너스)
+titles/  Achievement(titles.yml), TitleService(사건 판정 → 칭호마다 주인 한 명(records.yml), 주인 방송, 칭호 장착: 채팅·탭·이름표 접두어, 소소한 보너스)
 npc/     NpcService(npcs.yml: 안내인/대장장이/전직관/칭호관리인… Mannequin + 커스텀 스킨, 우클릭 → GUI)
 ui/      Menu 프레임워크(InventoryHolder 기반, 커스텀 폰트 배경 타이틀, 버튼 콜백), menus/*(초기 설정(난이도), 스탯, 직업, 파티, 입장(층 선택),
          대장장이, 칭호, 장신구), HudService(액션바: HP/MP 바·레벨·골드, 사이드바: 층·남은 적·파티원 HP, 보스바)
@@ -665,15 +665,21 @@ recipes:
     level_req: 25
 
 # titles.yml
-achievements:
-  first_clear_floor_1:
-    name: "회랑의 개척자"
-    description: "서버 최초로 지하 1층을 돌파"
-    condition: {type: FIRST_CLEAR, floor: 1}   # FIRST_CLEAR | CLEAR | SOLO_CLEAR | NO_DEATH_CLEAR | DIFFICULTY_CLEAR |
-                                               # SPEED_CLEAR | KILL | BOSS_KILL | LEVEL | OBTAIN_RARITY | CRAFT
-    title: "<gradient:#7fa043:#c9d98a>회랑의 개척자</gradient>"
-    bonus: {LUK: 1}
-    broadcast: true
+achievements:                    # 0.3.4: 12개, 칭호마다 서버에서 단 한 명 (records.yml title.<id>)
+  black_blade:
+    name: "검은 칼날"               # 이름·lore 는 조건을 암시하지 않게
+    lore: "칼집에서 나온 적이 드문 칼일수록 이름이 길게 남는다."
+    condition: {type: SOLO_CLEAR, floor: 5}   # FIRST_CLEAR | CLEAR | SOLO_CLEAR | NO_DEATH_CLEAR | DIFFICULTY_CLEAR |
+                                               # SPEED_CLEAR | KILL | BOSS_KILL | LEVEL | OBTAIN_RARITY | CRAFT | ENHANCE | TREASURE
+                                               # 돌파 조건 공통 선택 키: solo · no_death · party_min · difficulty · seconds
+    title: "<gradient:#1e1e26:#6a6a7a:#d8d8e8>검은 칼날</gradient>"
+    bonus: {STR: 2}                 # 장착 중에만, 한 명만 가지니 작게
+    broadcast: true                 # 주인이 생기면 방송 (조건 공개)
+    reward: {gold: 1500}            # 주인이 될 때 1회
+  # 판정: 사건(층 돌파·처치·레벨업·획득·제작·강화·미로 보물)이 일어난 순간만, 주인 없는 칭호만 (titles.AchievementRules.qualifies).
+  # 파티 사건은 그 보스에게 가장 많은 피해를 준 한 명 (CustomMob.damageByPlayer → titles.AwardOrder: 피해 → 막타 → 파티 순서).
+  # 조건 문구(AchievementRules.conditionText)는 주인이 생긴 칭호와 /labadmin title list 에서만 (titles.TitleView).
+  # 예전 키 server_first · category · hidden · description 은 읽어도 쓰지 않음. 0.3.4 첫 접속 때 예전 칭호 회수 (ext titles.reset_034).
 
 # npcs.yml
 npcs:
@@ -724,7 +730,7 @@ hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100,
   `*_per_members`·`*_pct`·`solo_*`·`p2_*`) = GDD §8.4. rotation 에 없는 패턴 키 = 상시 시스템/페이즈 트리거(GDD §8.3).
 - **npcs.yml**: `role` 에 `lore`(층 휴식방 이야기 NPC) 추가, `nameplate`, `placement(overworld|floor)`, `floor`, `dialogue: [..]`,
   `shop: [{item, price, level_req?}]`(merchant), `skin_style` 에 `hair`, `accessories` (목록 = GDD §14.5, palette 6색 순서 고정).
-- **titles.yml**: `category(pioneer|clear|challenge|combat|growth|collection|craft)`, `hidden`, `reward: {gold, items: {id: 개수}}`.
+- **titles.yml**: `lore`, `reward: {gold, items: {id: 개수}}` (`category`·`hidden` 은 0.3.4 부터 안 씀).
   condition 파라미터: CLEAR `{floor, count?}`, NO_DEATH_CLEAR `{floor, party_min?}`, DIFFICULTY_CLEAR `{floor, difficulty}`,
   SPEED_CLEAR `{floor, seconds}`, KILL `{count, mob?, mobs?(id 목록 — 처치 수 합), rank?}`, BOSS_KILL `{count, boss?}`, LEVEL `{level}`, OBTAIN_RARITY `{rarity, count?}`,
   CRAFT `{count, rarity?}`, ENHANCE `{level}`. `bonus` 키 = 스탯 6종 + `xp_bonus`, `gold_bonus`.
@@ -776,7 +782,7 @@ hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100,
     시작 지급 장비가 루팅·제작에서도 나옴 (한 테이블을 몹·정예·보스·상자가 같이 쓰면 집을 모두 모은다).
 - **recipes.yml**: `category`(weapon | armor | accessory | material — 대장장이 GUI 탭), `amount`(결과 개수, 기본 1).
   레시피 재료는 그 층 것만(그 층 일반 재료 + 그 층 정예 재료 + 그 층 정수 등급, 보스 장비는 + 그 보스 핵 — 정예 장비에는 핵을 넣지 않는다). 대장간 GUI 에 직업 필터는 없다.
-- **titles.yml**: condition 선택 키 `server_first: true`(어느 조건에나(TREASURE 포함) — 서버에서 처음 달성한 1명만, records.yml).
+- **titles.yml**: (0.3.4) 모든 칭호가 서버에서 1명만 — 예전 선택 키 `server_first` 는 무시.
   (예전 파티 대전용 PVP_* 조건과 arenas.yml 은 없앴다 — PvP 는 파티 규칙 하나, GDD §18.)
 - **fx.yml**: 전설 아우라 9종(soulfire, codex, geode, inkblot, abyssal, voltaic, quicksilver, aurora, venom)과 각자의 `_ring/_slash/_orb/_burst`,
   무기 스킬 전용 모델(`*_arrow`, `*_beam`, `venom_knife`). motif 9개 추가(GDD §14.4).

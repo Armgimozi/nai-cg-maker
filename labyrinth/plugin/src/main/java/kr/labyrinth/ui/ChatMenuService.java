@@ -81,12 +81,12 @@ public class ChatMenuService implements MenuService {
     @Override
     public void openTitles(Player p) {
         PlayerData d = services.data().get(p);
-        p.sendMessage(Text.mm("<light_purple><b>━━━━ 칭호 ━━━━</b></light_purple>  <gray>달성 " + d.achievements().size()
-                + " / " + services.content().achievements().size()));
-        d.achievements().keySet().forEach(id -> {
-            var def = services.content().achievements().get(id);
-            if (def != null) p.sendMessage(Text.mm(" " + def.title() + " <dark_gray>— " + Text.escape(def.description())));
-        });
+        p.sendMessage(Text.mm("<light_purple><b>━━━━ 칭호 ━━━━</b></light_purple>  <gray>칭호마다 서버에서 단 한 명"));
+        for (var def : services.content().achievements().values()) {
+            var r = services.records().get(kr.labyrinth.titles.TitleView.recordKey(def.id())).orElse(null);
+            var o = r == null ? null : new kr.labyrinth.titles.TitleView.Owner(r.names().isEmpty() ? "?" : r.names().get(0), r.time());
+            p.sendMessage(Text.mm(kr.labyrinth.titles.TitleView.listLine(def, o, d.hasAchievement(def.id()), services.content())));
+        }
     }
 
     @Override

@@ -362,7 +362,7 @@ public final class CodexMenu extends LabMenu {
         }
         for (AchievementDef a : c.achievements().values()) {
             if (a.rewardItems() == null) continue;
-            for (String id : a.rewardItems().keySet()) add(src, id, new Src("칭호 보상", Text.strip(a.name())));
+            for (String id : a.rewardItems().keySet()) add(src, id, new Src("칭호 보상", "칭호의 주인에게 한 번"));
         }
         // 시작 꾸러미 (items.yml sources: [starter]) — 루팅·제작에는 없다
         for (ItemDef d : c.items().values()) {

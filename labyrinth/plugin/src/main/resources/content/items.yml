@@ -5248,7 +5248,7 @@ items:
     sources: [reward]
     model: {shape: ring, length: 1.0}
     texture: {style: gold, palette: ["#3a2410", "#8a5a1a", "#d9a83a", "#ffd27a", "#fff4d6"]}
-    lore: "서버에서 처음으로 용광로 심장부를 돌파한 원정대에게만 새겨 준 인장. 이름이 반지 안쪽에 남는다."
+    lore: "단 한 사람에게만 새겨 준 인장. 주인의 이름이 반지 안쪽에 남는다."
   conqueror_emblem:
     name: "미궁 정복자의 문장"
     type: accessory
@@ -5261,7 +5261,7 @@ items:
     sources: [reward]
     model: {shape: emblem, length: 1.0}
     texture: {style: gold, palette: ["#1a0a06", "#5a3a10", "#ffb627", "#fff4d6", "#ffffff"], animated: true, frames: 16, frametime: 2, effect: star_twinkle}
-    lore: "미궁의 끝을 처음으로 본 원정대의 문장. 이 서버에 단 한 번만 주어진다."
+    lore: "황금으로 새긴 오래된 문장. 이 서버에 단 한 번만 주어진다."
   lone_star_ring:
     name: "외로운 별의 반지"
     type: accessory
@@ -5274,7 +5274,7 @@ items:
     sources: [reward]
     model: {shape: ring, length: 1.0}
     texture: {style: silver, palette: ["#0a1430", "#2a4a9a", "#a8b4c4", "#e8eef8", "#ffffff"], animated: true, frames: 8, frametime: 2, effect: star_twinkle}
-    lore: "홀로 심연의 심장을 멈춘 자에게 밤하늘이 내려 준 별. 혼자일수록 밝게 빛난다."
+    lore: "밤하늘이 단 한 사람에게 내려 준 별. 혼자일수록 밝게 빛난다."
   slayer_fang_amulet:
     name: "학살자의 송곳니 목걸이"
     type: accessory
@@ -5287,7 +5287,7 @@ items:
     sources: [reward]
     model: {shape: amulet, length: 1.0}
     texture: {style: bone, palette: ["#1a0006", "#5a0a18", "#c8ccd6", "#f0faff"], animated: true, frames: 8, frametime: 2, effect: blood_pulse}
-    lore: "오천 마리의 몬스터에게서 하나씩 뽑은 송곳니 중 가장 날카로운 것만 꿰었다."
+    lore: "수많은 송곳니 중 가장 날카로운 것만 골라 꿰었다."
   master_smith_charm:
     name: "명장의 부적"
     type: accessory
@@ -5300,7 +5300,7 @@ items:
     sources: [reward]
     model: {shape: charm, length: 1.0}
     texture: {style: gold, palette: ["#2b0d05", "#7a2410", "#e0571d", "#ffc46b", "#fff4d6"], animated: true, frames: 8, frametime: 2, effect: ember_flicker}
-    lore: "백 번의 담금질을 견딘 대장장이에게 두르간이 직접 벼려 준 부적. 제작 골드 10% 할인."
+    lore: "두르간이 단 한 사람을 위해 직접 벼려 준 부적. 제작 골드 10% 할인."
   nightmare_crown:
     name: "악몽의 왕관"
     type: armor
@@ -5315,7 +5315,7 @@ items:
     sources: [reward]
     model: {shape: crown, length: 1.0}
     texture: {style: obsidian, palette: ["#05020a", "#2a0a1a", "#6a0a2a", "#b01a3a", "#ff6a6a", "#ffd27a"], animated: true, frames: 16, frametime: 2, effect: void_swirl}
-    lore: "악몽 난이도의 심연을 끝까지 걸어간 자의 머리에만 맞는 왕관. 쓴 자의 꿈에는 더 이상 악몽이 찾아오지 않는다."
+    lore: "단 한 사람의 머리에만 맞는 왕관. 쓴 자의 꿈에는 더 이상 악몽이 찾아오지 않는다."
 
   # ═════════ 재료 (층별: 일반 몹 2종 · 엘리트 1종 · 보스 핵 1종 + 미궁 정수 4단계) — 레시피는 그 층 재료만, 보스 핵은 그 보스 장비 전용 ═════════
   moss_fiber:

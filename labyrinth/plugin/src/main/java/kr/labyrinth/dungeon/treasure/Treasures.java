@@ -421,7 +421,7 @@ public final class Treasures {
     private void count(Player p, String kind) {
         try {
             fs.services().data().get(p).increment("titles.treasure." + kind, 1);
-            fs.services().titles().recheck(p);
+            fs.services().titles().onTreasure(p, kind);
         } catch (Throwable t) {
             Log.error("보물 칭호 카운터 실패", t);
         }

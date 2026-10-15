@@ -719,11 +719,9 @@ def gui_titles(seed):
             v = 0.5 + 0.5 * h2(x // 2, y // 2, seed)
             cv.set(x, y, mix((40, 10, 24), (66, 18, 38), v * 0.6))
     _gold_frame(cv, 5, _row_y(1) - 2, 170, _row_y(5) + 1, thick=1)
-    cat_cols = ['#ffd27a', '#7fd0ff', '#ff7a5a', '#e05050', '#8fe08f', '#c890ff', '#f0a050', '#ff5a7a']
-    for k in range(8):
-        g.sock(k, 'tab', cat_cols[k])
-    g.sock(8, 'gem', '#ffd27a')
-    g.sock(list(range(9, 45)), 'plain')
+    # 칭호 12개 = 4줄 x 3칸 (TitlesMenu.SLOTS_12) + 위 가운데 안내
+    g.sock(4, 'gem', '#ffd27a')
+    g.sock([11, 13, 15, 20, 22, 24, 29, 31, 33, 38, 40, 42], 'big', '#ffd27a')
     g.sock([45, 53], 'button')
     g.sock(49, 'big', '#ffd27a')
     return g

@@ -1,620 +1,151 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# titles.yml — 업적 57종 → 칭호
+# titles.yml — 칭호 12종 (0.3.4: 칭호마다 서버에서 단 한 명)
 #
-# 스키마: ARCHITECTURE.md §6 titles.yml (+ 추가 필드는 §6 에 기록됨)
+#  ※ 이 파일은 관리자용입니다. 조건은 칭호에 주인이 생기기 전까지 플레이어에게 보이지 않습니다
+#    (메뉴·/칭호·도감·방송 어디에도 "조건: ???"). 주인이 생기면 그때부터 모두에게 조건이 공개됩니다.
+#    관리자는 /labadmin title list 로 조건과 주인을 볼 수 있습니다.
+#
+# 스키마: ARCHITECTURE.md §6 titles.yml
+#  규칙: 칭호 하나 = 주인 한 명. 조건을 가장 먼저 채운 사람이 주인 (records.yml title.<id>, 재시작해도 유지).
+#        판정은 그 일이 일어난 순간에만 (접속·리로드로는 주지 않음). 주인이 생긴 칭호는 다시 판정하지 않음.
+#        파티로 한 일(층 돌파·보스 처치)은 그 보스에게 가장 많은 피해를 준 한 명만 (같으면 막타, 기록이 없으면 파티 순서).
 #  condition.type (닫힌 목록) 과 파라미터:
-#    FIRST_CLEAR      {floor}                         서버 최초로 그 층 보스를 잡은 파티 전원 (records.yml 에 1회만)
-#    CLEAR            {floor, count?=1}               그 층 클리어 누적 count 회 (난이도 무관)
-#    SOLO_CLEAR       {floor}                         혼자 입장해서 클리어
-#    NO_DEATH_CLEAR   {floor, party_min?=1}           파티원 누구도 죽지 않고 클리어 (party_min 명 이상 파티)
-#    DIFFICULTY_CLEAR {floor, difficulty}             difficulty 이상(easy<normal<hard<nightmare)으로 클리어
-#    SPEED_CLEAR      {floor, seconds}                입장~보스 처치 시간이 seconds 이하
-#    KILL             {count, mob?, mobs?, rank?}     누적 처치 (mob = mobs.yml id, mobs = id 목록의 합(몹 무리 칭호), rank = normal|elite|add)
-#    BOSS_KILL        {count, boss?}                  보스 누적 처치 (boss = bosses.yml id, 없으면 아무 보스)
-#    LEVEL            {level}                         레벨 도달
-#    OBTAIN_RARITY    {rarity, count?=1}              그 희귀도 장비를 count 개 획득 (드롭·제작·보상 모두)
-#    CRAFT            {count, rarity?}                대장장이 제작 누적 (rarity 있으면 그 희귀도 이상만 셈)
-#    ENHANCE          {level}                         대장장이 강화 성공으로 장비를 +level 까지 올림 (GDD §11.13)
-#    TREASURE         {kind, count?=1}                미로 보물: kind = chest(상자에서 내 몫) | gold_chest | vault(금고를 열쇠로 염) | mimic(미믹 길들임)
-#    server_first     : (선택 키, 어느 조건에나) true 면 서버에서 처음 달성한 1명만 받음 (records.yml)
+#    FIRST_CLEAR      {floor}                     그 층의 서버 최초 돌파(records first_clear.floor_N 을 세운 돌파)
+#    CLEAR            {floor, count?=1}           그 층 돌파 (누적 count 번째 이상)
+#    SOLO_CLEAR       {floor, count?=1}           혼자 입장해서 돌파
+#    NO_DEATH_CLEAR   {floor, party_min?=1}       아무도 쓰러지지 않고 돌파 (party_min 명 이상 파티)
+#    DIFFICULTY_CLEAR {floor, difficulty}         서버 난이도 difficulty 이상(easy<normal<hard<nightmare)에서 돌파
+#    SPEED_CLEAR      {floor, seconds}            그 층 시작~보스 처치가 seconds 이하
+#      (돌파 조건 공통 선택 키: solo: true · no_death: true · party_min · difficulty · seconds — 섞어 쓸 수 있음)
+#    KILL             {count, mob?, mobs?, rank?} 누적 처치 (그 몹을 잡는 순간 판정)
+#    BOSS_KILL        {count?=1, boss?}           보스 처치 (boss = bosses.yml id)
+#    LEVEL            {level}                     그 레벨을 넘는 순간
+#    OBTAIN_RARITY    {rarity, count?=1}          그 희귀도 장비 획득 (드롭·제작 — 관리자 지급·칭호 보상은 안 셈)
+#    CRAFT            {count?=1, rarity?}         대장간 제작 (rarity 이상만 셈)
+#    ENHANCE          {level}                     강화 성공으로 +level 이상이 되는 순간
+#    TREASURE         {kind, count?=1}            미로 보물: chest | gold_chest | vault | mimic
+#  name      : 칭호 이름 (조건을 암시하지 않게)
+#  lore      : 한 줄 설명 (조건을 암시하지 않게)
 #  title     : 장착 시 채팅·탭·이름표 접두어 (MiniMessage)
-#  bonus     : 장착 중에만 적용. 키 = STR|DEX|INT|VIT|WIS|LUK 또는 xp_bonus|gold_bonus (비율)
-#  broadcast : 달성 시 서버 전체 방송
-#  reward    : 달성 즉시 1회 지급. gold, items(items.yml id → 개수)
-#  category  : UI 탭 분류 — pioneer | clear | challenge | combat | growth | collection | craft
-#  hidden    : true 면 달성 전엔 이름·조건이 ??? 로 표시
+#  bonus     : 장착 중에만. STR|DEX|INT|VIT|WIS|LUK 또는 xp_bonus|gold_bonus (비율)
+#  broadcast : 주인이 생기면 서버 전체 방송 (조건 공개)
+#  reward    : 주인이 될 때 1회. gold, items(items.yml id → 개수)
+#  (예전 키 server_first · category · hidden · description 은 읽어도 쓰지 않음)
 # ─────────────────────────────────────────────────────────────────────────────
 version: 1
 
 achievements:
 
-  # ═══════════════════════ 서버 최초 돌파 (1등 파티 전원) ═══════════════════════
+  # ── 초반 ──
 
-  first_clear_floor_1:
-    name: "회랑의 개척자"
-    description: "서버 최초로 지하 1층을 돌파"
-    category: pioneer
-    condition: {type: FIRST_CLEAR, floor: 1}
-    title: "<gradient:#7fa043:#c9d98a>회랑의 개척자</gradient>"
-    bonus: {LUK: 1}
-    broadcast: true
-    reward: {gold: 300}
-
-  first_clear_floor_2:
-    name: "은실을 끊은 자"
-    description: "서버 최초로 지하 2층을 돌파"
-    category: pioneer
-    condition: {type: FIRST_CLEAR, floor: 2}
-    title: "<gradient:#8d95a8:#f4f8ff>은실을 끊은 자</gradient>"
-    bonus: {LUK: 1}
-    broadcast: true
-    reward: {gold: 500}
-
-  first_clear_floor_3:
-    name: "포자를 걷어낸 자"
-    description: "서버 최초로 지하 3층을 돌파"
-    category: pioneer
-    condition: {type: FIRST_CLEAR, floor: 3}
-    title: "<gradient:#9a62a0:#ffd0ea>포자를 걷어낸 자</gradient>"
-    bonus: {LUK: 1}
-    broadcast: true
-    reward: {gold: 800}
-
-  first_clear_floor_4:
-    name: "수문을 닫은 자"
-    description: "서버 최초로 지하 4층을 돌파"
-    category: pioneer
-    condition: {type: FIRST_CLEAR, floor: 4}
-    title: "<gradient:#3f8a6e:#b0e8ff>수문을 닫은 자</gradient>"
-    bonus: {LUK: 1, VIT: 1}
-    broadcast: true
-    reward: {gold: 1200}
-
-  first_clear_floor_5:
-    name: "용광로를 식힌 자"
-    description: "서버 최초로 지하 5층을 돌파"
-    category: pioneer
-    condition: {type: FIRST_CLEAR, floor: 5}
-    title: "<gradient:#e0571d:#ffd27a>용광로를 식힌 자</gradient>"
-    bonus: {LUK: 1, STR: 1}
-    broadcast: true
-    reward: {gold: 1800, items: {pioneer_signet: 1}}
-
-  first_clear_floor_6:
-    name: "봄을 부른 자"
-    description: "서버 최초로 지하 6층을 돌파"
-    category: pioneer
-    condition: {type: FIRST_CLEAR, floor: 6}
-    title: "<gradient:#6a9ad0:#ffffff:#c8b4ff>봄을 부른 자</gradient>"
-    bonus: {LUK: 1, WIS: 1}
-    broadcast: true
-    reward: {gold: 2500}
-
-  first_clear_floor_7:
-    name: "공명을 조율한 자"
-    description: "서버 최초로 지하 7층을 돌파"
-    category: pioneer
-    condition: {type: FIRST_CLEAR, floor: 7}
-    title: "<gradient:#fff2b0:#ffffff:#6a4ab8>공명을 조율한 자</gradient>"
-    bonus: {LUK: 2, INT: 1}
-    broadcast: true
-    reward: {gold: 3500}
-
-  first_clear_floor_8:
-    name: "이름을 되찾은 자"
-    description: "서버 최초로 지하 8층을 돌파"
-    category: pioneer
-    condition: {type: FIRST_CLEAR, floor: 8}
-    title: "<gradient:#c8a060:#efe4c8:#5a7ab0>이름을 되찾은 자</gradient>"
-    bonus: {LUK: 2, DEX: 1}
-    broadcast: true
-    reward: {gold: 5000}
-
-  first_clear_floor_9:
-    name: "시간을 멈춘 자"
-    description: "서버 최초로 지하 9층을 돌파"
-    category: pioneer
-    condition: {type: FIRST_CLEAR, floor: 9}
-    title: "<gradient:#8a5a26:#e8b060:#7ae0c0>시간을 멈춘 자</gradient>"
-    bonus: {LUK: 2, VIT: 1}
-    broadcast: true
-    reward: {gold: 7000}
-
-  first_clear_floor_10:
-    name: "미궁의 첫 정복자"
-    description: "서버 최초로 지하 10층, 심연의 심장을 멈춤"
-    category: pioneer
-    condition: {type: FIRST_CLEAR, floor: 10}
-    title: "<bold><gradient:#b01a3a:#ffe9a8:#2fe0d0:#ffe9a8:#b01a3a>미궁의 첫 정복자</gradient></bold>"
-    bonus: {STR: 2, DEX: 2, INT: 2, VIT: 2, WIS: 2, LUK: 2}
-    broadcast: true
-    reward: {gold: 15000, items: {conqueror_emblem: 1}}
-
-  # ═══════════════════════ 층 돌파 ═══════════════════════
-
-  clear_floor_1:
-    name: "미궁 입문자"
-    description: "지하 1층을 처음으로 돌파"
-    category: clear
-    condition: {type: CLEAR, floor: 1}
-    title: "<gradient:#a8b89a:#e0ead8>미궁 입문자</gradient>"
-    bonus: {}
-    broadcast: false
-    reward: {gold: 100}
-
-  clear_floor_3:
-    name: "동굴 탐험가"
-    description: "지하 3층 돌파"
-    category: clear
-    condition: {type: CLEAR, floor: 3}
-    title: "<gradient:#8a7458:#d8c8a0>동굴 탐험가</gradient>"
-    bonus: {}
-    broadcast: false
-    reward: {gold: 300}
-
-  clear_floor_5:
-    name: "불꽃을 견딘 자"
-    description: "지하 5층 돌파"
-    category: clear
-    condition: {type: CLEAR, floor: 5}
-    title: "<gradient:#c45a22:#ffc06a>불꽃을 견딘 자</gradient>"
-    bonus: {VIT: 1}
-    broadcast: false
-    reward: {gold: 800}
-
-  clear_floor_7:
-    name: "수정의 순례자"
-    description: "지하 7층 돌파"
-    category: clear
-    condition: {type: CLEAR, floor: 7}
-    title: "<gradient:#7a52b8:#e8d8ff>수정의 순례자</gradient>"
-    bonus: {INT: 1}
-    broadcast: false
-    reward: {gold: 1500}
-
-  clear_floor_10:
-    name: "심연 돌파자"
-    description: "지하 10층, 심연의 심장 처치"
-    category: clear
-    condition: {type: CLEAR, floor: 10}
-    title: "<gradient:#123842:#2fe0d0:#c8fff8>심연 돌파자</gradient>"
-    bonus: {LUK: 1, VIT: 1}
-    broadcast: true
-    reward: {gold: 5000}
-
-  clear_floor_10_x10:
-    name: "심연의 단골손님"
-    description: "지하 10층을 10회 돌파"
-    category: clear
-    condition: {type: CLEAR, floor: 10, count: 10}
-    title: "<gradient:#2fe0d0:#b01a3a>심연의 단골손님</gradient>"
-    bonus: {gold_bonus: 0.05}
-    broadcast: false
-    reward: {gold: 10000}
-
-  # ═══════════════════════ 도전 (솔로·무사망·난이도·속도) ═══════════════════════
-
-  solo_floor_1:
-    name: "홀로 선 자"
-    description: "혼자서 지하 1층 돌파"
-    category: challenge
-    condition: {type: SOLO_CLEAR, floor: 1}
-    title: "<gradient:#9a9aa2:#ffffff>홀로 선 자</gradient>"
-    bonus: {}
-    broadcast: false
-    reward: {gold: 200}
-
-  solo_floor_5:
-    name: "홀로 불을 건넌 자"
-    description: "혼자서 지하 5층 돌파"
-    category: challenge
-    condition: {type: SOLO_CLEAR, floor: 5}
-    title: "<gradient:#ff8a2a:#ffffff>홀로 불을 건넌 자</gradient>"
-    bonus: {STR: 1, DEX: 1}
-    broadcast: true
-    reward: {gold: 2000}
-
-  solo_floor_10:
-    name: "단 한 사람의 전설"
-    description: "혼자서 지하 10층 돌파"
-    category: challenge
-    condition: {type: SOLO_CLEAR, floor: 10}
-    title: "<bold><gradient:#ffffff:#ffe9a8:#ffffff>단 한 사람의 전설</gradient></bold>"
-    bonus: {STR: 2, DEX: 2, INT: 2}
-    broadcast: true
-    hidden: true
-    reward: {gold: 20000, items: {lone_star_ring: 1}}
-
-  no_death_floor_5:
-    name: "흠집 없는 강철"
-    description: "3명 이상 파티로, 아무도 쓰러지지 않고 지하 5층 돌파"
-    category: challenge
-    condition: {type: NO_DEATH_CLEAR, floor: 5, party_min: 3}
-    title: "<gradient:#a8a8b0:#ffffff:#a8a8b0>흠집 없는 강철</gradient>"
-    bonus: {VIT: 2}
-    broadcast: false
-    reward: {gold: 1500}
-
-  no_death_floor_10:
-    name: "불사의 원정대"
-    description: "3명 이상 파티로, 아무도 쓰러지지 않고 지하 10층 돌파"
-    category: challenge
-    condition: {type: NO_DEATH_CLEAR, floor: 10, party_min: 3}
-    title: "<gradient:#ffd27a:#fff4d6:#7fb2ff>불사의 원정대</gradient>"
-    bonus: {VIT: 2, WIS: 2}
-    broadcast: true
-    hidden: true
-    reward: {gold: 12000}
-
-  hard_floor_5:
-    name: "단련된 자"
-    description: "어려움 이상 난이도로 지하 5층 돌파"
-    category: challenge
-    condition: {type: DIFFICULTY_CLEAR, floor: 5, difficulty: hard}
-    title: "<gradient:#c43c12:#ff9a2a>단련된 자</gradient>"
-    bonus: {STR: 1, VIT: 1}
-    broadcast: false
-    reward: {gold: 2500}
-
-  hard_floor_10:
-    name: "심연의 도전자"
-    description: "어려움 이상 난이도로 지하 10층 돌파"
-    category: challenge
-    condition: {type: DIFFICULTY_CLEAR, floor: 10, difficulty: hard}
-    title: "<gradient:#b01a3a:#ff5a3c:#ffe9a8>심연의 도전자</gradient>"
-    bonus: {STR: 1, DEX: 1, INT: 1, WIS: 1}
-    broadcast: true
-    reward: {gold: 10000}
-
-  nightmare_floor_1:
-    name: "악몽의 문턱"
-    description: "악몽 난이도로 지하 1층 돌파"
-    category: challenge
-    condition: {type: DIFFICULTY_CLEAR, floor: 1, difficulty: nightmare}
-    title: "<gradient:#3a0a14:#b01a3a>악몽의 문턱</gradient>"
-    bonus: {LUK: 1}
-    broadcast: false
-    reward: {gold: 3000}
-
-  nightmare_floor_5:
-    name: "악몽을 벼린 자"
-    description: "악몽 난이도로 지하 5층 돌파"
-    category: challenge
-    condition: {type: DIFFICULTY_CLEAR, floor: 5, difficulty: nightmare}
-    title: "<gradient:#3a0a14:#ff6a1a:#3a0a14>악몽을 벼린 자</gradient>"
-    bonus: {STR: 2, VIT: 1}
-    broadcast: true
-    reward: {gold: 8000}
-
-  nightmare_floor_10:
-    name: "악몽의 끝을 본 자"
-    description: "악몽 난이도로 지하 10층 돌파"
-    category: challenge
-    condition: {type: DIFFICULTY_CLEAR, floor: 10, difficulty: nightmare}
-    title: "<bold><gradient:#1a0006:#b01a3a:#ff3b3b:#b01a3a:#1a0006>악몽의 끝을 본 자</gradient></bold>"
-    bonus: {STR: 3, DEX: 3, INT: 3, VIT: 3, WIS: 3, LUK: 3}
-    broadcast: true
-    hidden: true
-    reward: {gold: 30000, items: {nightmare_crown: 1}}
-
-  speed_floor_1:
-    name: "회랑의 질주자"
-    description: "지하 1층을 8분 안에 돌파"
-    category: challenge
-    condition: {type: SPEED_CLEAR, floor: 1, seconds: 480}
-    title: "<gradient:#8fd16a:#ffffff>회랑의 질주자</gradient>"
-    bonus: {DEX: 1}
-    broadcast: false
-    reward: {gold: 300}
-
-  speed_floor_5:
-    name: "용광로 질주"
-    description: "지하 5층을 15분 안에 돌파"
-    category: challenge
-    condition: {type: SPEED_CLEAR, floor: 5, seconds: 900}
-    title: "<gradient:#ff9a2a:#fff0a0>용광로 질주</gradient>"
-    bonus: {DEX: 1}
-    broadcast: false
-    reward: {gold: 2000}
-
-  speed_floor_10:
-    name: "시간을 앞지른 자"
-    description: "지하 10층을 25분 안에 돌파"
-    category: challenge
-    condition: {type: SPEED_CLEAR, floor: 10, seconds: 1500}
-    title: "<gradient:#e8b060:#ffffff:#2fe0d0>시간을 앞지른 자</gradient>"
-    bonus: {DEX: 2}
-    broadcast: true
-    reward: {gold: 8000}
-
-  # ═══════════════════════ 전투 ═══════════════════════
-
-  kill_100:
-    name: "사냥 입문"
-    description: "미궁의 몬스터 100마리 처치"
-    category: combat
-    condition: {type: KILL, count: 100}
-    title: "<gradient:#a8b89a:#ffffff>사냥 입문</gradient>"
-    bonus: {}
-    broadcast: false
-    reward: {gold: 150}
-
-  kill_1000:
-    name: "천 번의 사냥"
-    description: "미궁의 몬스터 1,000마리 처치"
-    category: combat
-    condition: {type: KILL, count: 1000}
-    title: "<gradient:#c45a22:#ffc06a>천 번의 사냥</gradient>"
-    bonus: {STR: 1}
-    broadcast: false
-    reward: {gold: 1500}
-
-  kill_5000:
-    name: "미궁의 재앙"
-    description: "미궁의 몬스터 5,000마리 처치"
-    category: combat
-    condition: {type: KILL, count: 5000}
-    title: "<gradient:#5a1e1a:#ff3b3b:#5a1e1a>미궁의 재앙</gradient>"
-    bonus: {STR: 1, DEX: 1}
-    broadcast: true
-    reward: {gold: 6000, items: {slayer_fang_amulet: 1}}
-
-  kill_elite_50:
-    name: "우두머리 사냥꾼"
-    description: "엘리트 몬스터 50마리 처치"
-    category: combat
-    condition: {type: KILL, count: 50, rank: elite}
-    title: "<gradient:#d9b25a:#fff4d6>우두머리 사냥꾼</gradient>"
-    bonus: {LUK: 1}
-    broadcast: false
-    reward: {gold: 3000}
-
-  kill_moss_crawler_200:
-    name: "이끼 청소부"
-    description: "이끼 기어다니는 자 200마리 처치"
-    category: combat
-    condition: {type: KILL, count: 200, mob: moss_crawler}
-    title: "<gradient:#3f5a23:#c9d98a>이끼 청소부</gradient>"
-    bonus: {}
-    broadcast: false
-    reward: {gold: 400}
-
-  dragon_slayer_30:
-    name: "용 사냥꾼"
-    description: "드래곤(새끼용·드레이크·와이번·고룡) 30마리 처치"
-    category: combat
-    condition: {type: KILL, count: 30, mobs: [moss_drakeling, bog_drake, ember_drake, frost_wyvern, clockwork_wyvern, void_drake]}
-    title: "<gradient:#5f8a33:#ff8a2a:#2fe0d0>용 사냥꾼</gradient>"
-    bonus: {STR: 1}
-    broadcast: false
-    reward: {gold: 1500}
-
-  dragonkin_breaker_30:
-    name: "비늘 갑옷 파괴자"
-    description: "용인족(코볼트·용인 기사) 30마리 처치"
-    category: combat
-    condition: {type: KILL, count: 30, mobs: [thorn_kobold, kobold_sapper, forge_dragonkin, crystal_dragonkin, abyss_dragonkin]}
-    title: "<gradient:#6e2a1c:#c8a8ff>비늘 갑옷 파괴자</gradient>"
-    bonus: {VIT: 1}
-    broadcast: false
-    reward: {gold: 1500}
-
-  ancient_dragon_10:
-    name: "고룡 살해자"
-    description: "심연 고룡 10마리 처치"
-    category: combat
-    condition: {type: KILL, count: 10, mob: void_drake}
-    title: "<gradient:#123842:#2fe0d0:#123842>고룡 살해자</gradient>"
-    bonus: {STR: 1, DEX: 1}
-    broadcast: true
-    reward: {gold: 6000}
-
-  boss_kill_10:
-    name: "보스 사냥꾼"
-    description: "보스 10회 처치"
-    category: combat
-    condition: {type: BOSS_KILL, count: 10}
-    title: "<gradient:#b27a3a:#e8c27a>보스 사냥꾼</gradient>"
-    bonus: {}
-    broadcast: false
-    reward: {gold: 800}
-
-  boss_kill_50:
-    name: "군주 살해자"
-    description: "보스 50회 처치"
-    category: combat
-    condition: {type: BOSS_KILL, count: 50}
-    title: "<gradient:#8c2a1c:#ffd27a:#8c2a1c>군주 살해자</gradient>"
-    bonus: {STR: 1, INT: 1}
-    broadcast: true
-    reward: {gold: 5000}
-
-  heart_stopper_10:
-    name: "심장을 멈춘 자"
-    description: "심연의 심장 넬카르 10회 처치"
-    category: combat
-    condition: {type: BOSS_KILL, count: 10, boss: floor10_abyss_heart}
-    title: "<gradient:#b01a3a:#2fe0d0>심장을 멈춘 자</gradient>"
+  ashen_wolf:
+    name: "잿빛 늑대"
+    lore: "이 이름을 먼저 차지한 자의 발자국은 아직 식지 않았다."
+    condition: {type: BOSS_KILL, boss: floor04_floodwarden}
+    title: "<gradient:#8a8f99:#e6e9ef>잿빛 늑대</gradient>"
     bonus: {VIT: 2}
     broadcast: true
-    reward: {gold: 12000}
-
-  # ═══════════════════════ 성장 ═══════════════════════
-
-  level_10:
-    name: "견습 모험가"
-    description: "레벨 10 달성"
-    category: growth
-    condition: {type: LEVEL, level: 10}
-    title: "<gradient:#7fb2ff:#ffffff>견습 모험가</gradient>"
-    bonus: {}
-    broadcast: false
-    reward: {gold: 200}
-
-  level_25:
-    name: "숙련 모험가"
-    description: "레벨 25 달성"
-    category: growth
-    condition: {type: LEVEL, level: 25}
-    title: "<gradient:#4a6ab0:#bfe6ff>숙련 모험가</gradient>"
-    bonus: {xp_bonus: 0.02}
-    broadcast: false
-    reward: {gold: 1000}
-
-  level_40:
-    name: "백전의 베테랑"
-    description: "레벨 40 달성"
-    category: growth
-    condition: {type: LEVEL, level: 40}
-    title: "<gradient:#2a3a6a:#7fb2ff:#ffffff>백전의 베테랑</gradient>"
-    bonus: {VIT: 1, xp_bonus: 0.03}
-    broadcast: false
-    reward: {gold: 3000}
-
-  level_50:
-    name: "미궁의 전설"
-    description: "최고 레벨 50 달성"
-    category: growth
-    condition: {type: LEVEL, level: 50}
-    title: "<bold><gradient:#ffd27a:#ffffff:#ffd27a>미궁의 전설</gradient></bold>"
-    bonus: {STR: 1, DEX: 1, INT: 1, VIT: 1, WIS: 1, LUK: 1}
-    broadcast: true
-    reward: {gold: 10000}
-
-  # ═══════════════════════ 수집 ═══════════════════════
-
-  # 미로 보물 (GDD §5.6 — TREASURE 조건: kind = chest | gold_chest | vault | mimic)
-  first_vault:
-    name: "금고털이의 원조"
-    description: "서버에서 처음으로 미궁의 열쇠 금고를 연 사람"
-    category: collection
-    condition: {type: TREASURE, kind: vault, count: 1, server_first: true}
-    title: "<gradient:#c89a2a:#fff6c8:#c89a2a>금고털이의 원조</gradient>"
-    bonus: {LUK: 1}
-    broadcast: true
     reward: {gold: 800}
 
-  treasure_hunter:
-    name: "막다른 길의 보물 사냥꾼"
-    description: "미로의 보물 상자 40개에서 내 몫을 챙김"
-    category: collection
-    condition: {type: TREASURE, kind: chest, count: 40}
-    title: "<gradient:#8a6a3a:#ffd36b>보물 사냥꾼</gradient>"
-    bonus: {gold_bonus: 0.02}
-    broadcast: false
-    reward: {gold: 500}
-
-  mimic_tamer:
-    name: "미믹 길들이는 자"
-    description: "미믹 상자 5개를 길들임 (불려 나온 몬스터를 모두 쓰러뜨림)"
-    category: collection
-    condition: {type: TREASURE, kind: mimic, count: 5}
-    title: "<gradient:#7a1a2a:#ff8a6a>미믹 길들이는 자</gradient>"
-    bonus: {}
-    broadcast: true
-    hidden: true
-    reward: {gold: 600}
-
-  obtain_epic:
-    name: "영웅의 증표"
-    description: "영웅 등급 장비를 처음으로 획득"
-    category: collection
-    condition: {type: OBTAIN_RARITY, rarity: epic}
-    title: "<gradient:#7a3ab8:#d8a0ff>영웅의 증표</gradient>"
-    bonus: {}
-    broadcast: false
-    reward: {gold: 300}
-
-  obtain_legendary:
-    name: "전설을 쥔 자"
-    description: "전설 등급 장비를 처음으로 획득"
-    category: collection
-    condition: {type: OBTAIN_RARITY, rarity: legendary}
-    title: "<gradient:#d9a020:#ffe58a:#d9a020>전설을 쥔 자</gradient>"
-    bonus: {LUK: 1}
-    broadcast: true
-    reward: {gold: 2000}
-
-  obtain_mythic:
-    name: "신화의 주인"
-    description: "신화 등급 장비를 처음으로 획득"
-    category: collection
-    condition: {type: OBTAIN_RARITY, rarity: mythic}
-    title: "<bold><gradient:#8a0a1a:#ff3b3b:#ffc0a0:#ff3b3b:#8a0a1a>신화의 주인</gradient></bold>"
+  glass_butterfly:
+    name: "유리 나비"
+    lore: "손끝에 앉았다가, 아무 말 없이 날아갔다."
+    condition: {type: TREASURE, kind: mimic}
+    title: "<gradient:#9fe8ff:#f4fbff:#c9a2ff>유리 나비</gradient>"
     bonus: {LUK: 2}
     broadcast: true
-    reward: {gold: 8000}
+    reward: {gold: 500}
 
-  obtain_mythic_3:
-    name: "신화 수집가"
-    description: "신화 등급 장비를 3개 획득"
-    category: collection
-    condition: {type: OBTAIN_RARITY, rarity: mythic, count: 3}
-    title: "<gradient:#ff3b3b:#ffd27a:#ff3b3b>신화 수집가</gradient>"
-    bonus: {LUK: 2, gold_bonus: 0.05}
+  crimson_oath:
+    name: "붉은 서약"
+    lore: "지키지 못할 약속은 처음부터 하지 않는다."
+    condition: {type: ENHANCE, level: 7}
+    title: "<gradient:#a3123a:#ff6b6b>붉은 서약</gradient>"
+    bonus: {gold_bonus: 0.05}
     broadcast: true
-    hidden: true
-    reward: {gold: 15000}
+    reward: {gold: 800}
 
-  # ═══════════════════════ 제작 ═══════════════════════
+  # ── 중반 ──
 
-  craft_1:
-    name: "첫 망치질"
-    description: "대장장이에게 처음으로 장비 제작"
-    category: craft
-    condition: {type: CRAFT, count: 1}
-    title: "<gradient:#7b4f2c:#e8c27a>첫 망치질</gradient>"
-    bonus: {}
-    broadcast: false
-    reward: {gold: 100}
+  black_blade:
+    name: "검은 칼날"
+    lore: "칼집에서 나온 적이 드문 칼일수록 이름이 길게 남는다."
+    condition: {type: SOLO_CLEAR, floor: 5}
+    title: "<gradient:#1e1e26:#6a6a7a:#d8d8e8>검은 칼날</gradient>"
+    bonus: {STR: 2}
+    broadcast: true
+    reward: {gold: 1500}
 
-  craft_25:
-    name: "숙련 장인"
-    description: "장비 25개 제작"
-    category: craft
-    condition: {type: CRAFT, count: 25}
-    title: "<gradient:#b27a3a:#fff4d6>숙련 장인</gradient>"
-    bonus: {gold_bonus: 0.03}
-    broadcast: false
+  white_night_banner:
+    name: "백야의 깃발"
+    lore: "바람이 멎은 언덕에서도 이 깃발은 펄럭인다."
+    condition: {type: NO_DEATH_CLEAR, floor: 6, party_min: 3}
+    title: "<gradient:#e8eef8:#ffffff:#9fc4ff>백야의 깃발</gradient>"
+    bonus: {WIS: 2}
+    broadcast: true
+    reward: {gold: 2000, items: {pioneer_signet: 1}}
+
+  silver_fox:
+    name: "은빛 여우"
+    lore: "여우는 같은 길을 두 번 걷지 않는다."
+    condition: {type: SPEED_CLEAR, floor: 7, seconds: 900}
+    title: "<gradient:#a8b4c4:#ffffff:#a8b4c4>은빛 여우</gradient>"
+    bonus: {DEX: 2}
+    broadcast: true
     reward: {gold: 2000}
 
-  craft_100:
-    name: "미궁의 명장"
-    description: "장비 100개 제작"
-    category: craft
-    condition: {type: CRAFT, count: 100}
-    title: "<gradient:#e0571d:#ffc46b:#fff4d6>미궁의 명장</gradient>"
-    bonus: {STR: 1, VIT: 1, gold_bonus: 0.05}
+  rusted_star:
+    name: "녹슨 별"
+    lore: "빛을 잃은 별도 누군가에게는 길잡이였다."
+    condition: {type: KILL, count: 300, rank: elite}
+    title: "<gradient:#8a4a1a:#d9a85a:#8a4a1a>녹슨 별</gradient>"
+    bonus: {INT: 2}
     broadcast: true
-    reward: {gold: 8000, items: {master_smith_charm: 1}}
+    reward: {gold: 2500, items: {slayer_fang_amulet: 1}}
 
-  craft_legendary:
-    name: "전설의 대장장이"
-    description: "전설 등급 이상 장비를 직접 제작"
-    category: craft
-    condition: {type: CRAFT, count: 1, rarity: legendary}
-    title: "<gradient:#ff6a1a:#ffd27a:#ff6a1a>전설의 대장장이</gradient>"
-    bonus: {LUK: 1}
+  summers_end:
+    name: "여름의 끝"
+    lore: "끝나는 계절에도 남는 것이 있다."
+    condition: {type: CRAFT, rarity: legendary}
+    title: "<gradient:#ff9a2a:#ffe58a:#7fd06a>여름의 끝</gradient>"
+    bonus: {xp_bonus: 0.05}
     broadcast: true
-    reward: {gold: 3000}
+    reward: {gold: 3000, items: {master_smith_charm: 1}}
 
-  # 강화 (GDD §11.13) — ENHANCE {level} = 강화 성공으로 그 단계에 처음 도달 (하락해도 기록은 남음)
-  enhance_7:
-    name: "빛나는 칼날"
-    description: "장비를 처음으로 +7 까지 강화"
-    category: craft
-    condition: {type: ENHANCE, level: 7}
-    title: "<gradient:#ffd36b:#fff4d6>빛나는 칼날</gradient>"
-    bonus: {}
-    broadcast: false
-    reward: {gold: 1000, items: {enhance_protection_scroll: 1}}
+  # ── 후반 ──
 
-  first_enhance_10:
-    name: "모루의 전설"
-    description: "서버 최초로 장비를 +10 까지 강화"
-    category: craft
-    condition: {type: ENHANCE, level: 10, server_first: true}
-    title: "<gradient:#ff8a3d:#ffd36b:#fff4d6><b>모루의 전설</b></gradient>"
-    bonus: {STR: 1, DEX: 1, INT: 1, VIT: 1, WIS: 1, LUK: 1}
+  twilight_king:
+    name: "황혼의 왕"
+    lore: "왕좌는 비어 있었고, 그는 끝내 앉지 않았다."
+    condition: {type: CLEAR, floor: 10}
+    title: "<bold><gradient:#5a2a6a:#ffb36b:#ffe9a8>황혼의 왕</gradient></bold>"
+    bonus: {LUK: 3}
     broadcast: true
-    reward: {gold: 10000}
+    reward: {gold: 5000, items: {conqueror_emblem: 1}}
+
+  obsidian_eye:
+    name: "흑요석 눈"
+    lore: "그 눈동자에 비친 것을 아는 사람은 없다."
+    condition: {type: SOLO_CLEAR, floor: 10}
+    title: "<bold><gradient:#05020a:#4a3a6a:#c8b4ff>흑요석 눈</gradient></bold>"
+    bonus: {DEX: 3}
+    broadcast: true
+    reward: {gold: 5000, items: {lone_star_ring: 1}}
+
+  blood_moon:
+    name: "핏빛 달"
+    lore: "달이 붉게 뜨는 밤이면 미궁도 숨을 죽인다."
+    condition: {type: DIFFICULTY_CLEAR, floor: 10, difficulty: nightmare}
+    title: "<bold><gradient:#3a0a14:#ff3b3b:#3a0a14>핏빛 달</gradient></bold>"
+    bonus: {VIT: 3}
+    broadcast: true
+    reward: {gold: 5000, items: {nightmare_crown: 1}}
+
+  thousand_names:
+    name: "천 개의 이름"
+    lore: "그를 부르는 이름은 많지만, 진짜 이름은 하나뿐이다."
+    condition: {type: ENHANCE, level: 10}
+    title: "<bold><gradient:#ffd36b:#fff4d6:#ffd36b>천 개의 이름</gradient></bold>"
+    bonus: {WIS: 3}
+    broadcast: true
+    reward: {gold: 5000}

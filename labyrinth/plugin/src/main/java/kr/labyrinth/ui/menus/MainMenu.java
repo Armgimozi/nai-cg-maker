@@ -72,8 +72,8 @@ public final class MainMenu extends LabMenu {
                 List.of("<gray>현재 " + (cls == null ? "<dark_gray>없음" : "<" + cls.color() + ">" + cls.name()),
                         "<gray>6가지 역할군 · 스킬 설명", "", "<#ffd36b>클릭: 직업 메뉴")),
                 ctx -> { click(ctx.player()); services.menus().openClass(ctx.player()); });
-        set(33, model("first_seal", Material.NAME_TAG, "<#ffd36b><b>칭호 · 업적</b>",
-                List.of("<gray>달성 <white>" + d.achievements().size() + "</white> / " + services.content().achievements().size(),
+        set(33, model("first_seal", Material.NAME_TAG, "<#ffd36b><b>칭호</b>",
+                List.of("<gray>내 칭호 <white>" + d.achievements().size() + "</white> · 칭호마다 서버에서 단 한 명",
                         "<gray>장착한 칭호는 채팅·탭·이름표에 표시됩니다.", "", "<#ffd36b>클릭: 칭호 목록")),
                 ctx -> { click(ctx.player()); services.menus().openTitles(ctx.player()); });
 
