@@ -1,0 +1,107 @@
+{
+ "spec": {
+  "20": {
+   "class_all": {
+    "guardian": 0.669,
+    "berserker": 0.681,
+    "hunter": 0.453,
+    "arcanist": 0.545,
+    "priest": 0.295,
+    "shadow": 0.371
+   },
+   "shadow_rot_glass": 0.935
+  },
+  "35": {
+   "class_all": {
+    "guardian": 0.255,
+    "berserker": 0.733,
+    "hunter": 0.8,
+    "arcanist": 0.262,
+    "priest": 0.608,
+    "shadow": 0.356
+   },
+   "shadow_rot_glass": 0.831
+  },
+  "50": {
+   "class_all": {
+    "guardian": 0.739,
+    "berserker": 0.443,
+    "hunter": 0.508,
+    "arcanist": 0.289,
+    "priest": 0.523,
+    "shadow": 0.486
+   },
+   "shadow_rot_glass": 1.174
+  }
+ },
+ "shadow_fix": {
+  "20": {
+   "class_all": {
+    "guardian": 0.668,
+    "berserker": 0.672,
+    "hunter": 0.434,
+    "arcanist": 0.521,
+    "priest": 0.26,
+    "shadow": 0.452
+   },
+   "shadow_rot_glass": 1.027
+  },
+  "35": {
+   "class_all": {
+    "guardian": 0.245,
+    "berserker": 0.722,
+    "hunter": 0.799,
+    "arcanist": 0.24,
+    "priest": 0.608,
+    "shadow": 0.401
+   },
+   "shadow_rot_glass": 0.924
+  },
+  "50": {
+   "class_all": {
+    "guardian": 0.739,
+    "berserker": 0.431,
+    "hunter": 0.497,
+    "arcanist": 0.277,
+    "priest": 0.504,
+    "shadow": 0.542
+   },
+   "shadow_rot_glass": 1.287
+  }
+ },
+ "shadow_fix_cm1.1": {
+  "20": {
+   "class_all": {
+    "guardian": 0.668,
+    "berserker": 0.681,
+    "hunter": 0.466,
+    "arcanist": 0.556,
+    "priest": 0.306,
+    "shadow": 0.335
+   },
+   "shadow_rot_glass": 0.941
+  },
+  "35": {
+   "class_all": {
+    "guardian": 0.273,
+    "berserker": 0.736,
+    "hunter": 0.802,
+    "arcanist": 0.285,
+    "priest": 0.622,
+    "shadow": 0.293
+   },
+   "shadow_rot_glass": 0.847
+  },
+  "50": {
+   "class_all": {
+    "guardian": 0.739,
+    "berserker": 0.45,
+    "hunter": 0.513,
+    "arcanist": 0.293,
+    "priest": 0.532,
+    "shadow": 0.46
+   },
+   "shadow_rot_glass": 1.18
+  }
+ }
+}

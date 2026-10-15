@@ -1,0 +1,242 @@
+{
+"old|A|average|normal|1": {
+"clear": 1.0,
+"room_t": 33.1,
+"boss_t": 210.6
+},
+"old|A|average|normal|5": {
+"clear": 1.0,
+"room_t": 35.2,
+"boss_t": 280.1
+},
+"old|A|average|normal|10": {
+"clear": 1.0,
+"room_t": 75.2,
+"boss_t": 1041.9
+},
+"old|A|skilled|normal|1": {
+"clear": 1.0,
+"room_t": 30.6,
+"boss_t": 199.3
+},
+"old|A|skilled|normal|5": {
+"clear": 1.0,
+"room_t": 33.2,
+"boss_t": 265.2
+},
+"old|A|skilled|normal|10": {
+"clear": 1.0,
+"room_t": 55.0,
+"boss_t": 575.1
+},
+"old|A|average|nightmare|1": {
+"clear": 0.0,
+"room_t": 69.6,
+"boss_t": null
+},
+"old|A|average|nightmare|5": {
+"clear": 1.0,
+"room_t": 61.1,
+"boss_t": 749.8
+},
+"old|A|average|nightmare|10": {
+"clear": 0.0,
+"room_t": 228.3,
+"boss_t": null
+},
+"old|A|skilled|nightmare|1": {
+"clear": 1.0,
+"room_t": 55.2,
+"boss_t": 1200.0
+},
+"old|A|skilled|nightmare|5": {
+"clear": 1.0,
+"room_t": 58.1,
+"boss_t": 732.0
+},
+"old|A|skilled|nightmare|10": {
+"clear": 1.0,
+"room_t": 107.9,
+"boss_t": 1200.0
+},
+"old|B|average|normal|1": {
+"clear": 0.667,
+"room_t": 24.7,
+"boss_t": 112.8
+},
+"old|B|average|normal|5": {
+"clear": 1.0,
+"room_t": 20.1,
+"boss_t": 153.6
+},
+"old|B|average|normal|10": {
+"clear": 0.067,
+"room_t": 24.5,
+"boss_t": 136.9
+},
+"old|B|skilled|normal|1": {
+"clear": 1.0,
+"room_t": 21.0,
+"boss_t": 122.3
+},
+"old|B|skilled|normal|5": {
+"clear": 1.0,
+"room_t": 19.8,
+"boss_t": 165.4
+},
+"old|B|skilled|normal|10": {
+"clear": 1.0,
+"room_t": 24.3,
+"boss_t": 197.4
+},
+"old|B|average|nightmare|1": {
+"clear": 0.0,
+"room_t": 34.3,
+"boss_t": null
+},
+"old|B|average|nightmare|5": {
+"clear": 0.0,
+"room_t": 32.5,
+"boss_t": null
+},
+"old|B|average|nightmare|10": {
+"clear": 0.0,
+"room_t": 40.6,
+"boss_t": null
+},
+"old|B|skilled|nightmare|1": {
+"clear": 0.0,
+"room_t": 41.3,
+"boss_t": null
+},
+"old|B|skilled|nightmare|5": {
+"clear": 0.433,
+"room_t": 34.1,
+"boss_t": 277.2
+},
+"old|B|skilled|nightmare|10": {
+"clear": 0.0,
+"room_t": 45.8,
+"boss_t": null
+},
+"new|A|average|normal|1": {
+"clear": 1.0,
+"room_t": 27.1,
+"boss_t": 163.8
+},
+"new|A|average|normal|5": {
+"clear": 1.0,
+"room_t": 32.0,
+"boss_t": 258.4
+},
+"new|A|average|normal|10": {
+"clear": 1.0,
+"room_t": 72.0,
+"boss_t": 985.8
+},
+"new|A|skilled|normal|1": {
+"clear": 1.0,
+"room_t": 28.5,
+"boss_t": 171.7
+},
+"new|A|skilled|normal|5": {
+"clear": 1.0,
+"room_t": 31.7,
+"boss_t": 252.6
+},
+"new|A|skilled|normal|10": {
+"clear": 1.0,
+"room_t": 55.2,
+"boss_t": 617.6
+},
+"new|A|average|nightmare|1": {
+"clear": 0.0,
+"room_t": 55.6,
+"boss_t": null
+},
+"new|A|average|nightmare|5": {
+"clear": 1.0,
+"room_t": 56.2,
+"boss_t": 664.2
+},
+"new|A|average|nightmare|10": {
+"clear": 0.0,
+"room_t": 239.6,
+"boss_t": null
+},
+"new|A|skilled|nightmare|1": {
+"clear": 1.0,
+"room_t": 48.8,
+"boss_t": 1200.0
+},
+"new|A|skilled|nightmare|5": {
+"clear": 1.0,
+"room_t": 59.3,
+"boss_t": 713.1
+},
+"new|A|skilled|nightmare|10": {
+"clear": 0.933,
+"room_t": 109.6,
+"boss_t": 1200.0
+},
+"new|B|average|normal|1": {
+"clear": 0.833,
+"room_t": 20.7,
+"boss_t": 102.9
+},
+"new|B|average|normal|5": {
+"clear": 1.0,
+"room_t": 19.2,
+"boss_t": 149.9
+},
+"new|B|average|normal|10": {
+"clear": 0.2,
+"room_t": 23.3,
+"boss_t": 171.2
+},
+"new|B|skilled|normal|1": {
+"clear": 1.0,
+"room_t": 20.2,
+"boss_t": 119.5
+},
+"new|B|skilled|normal|5": {
+"clear": 1.0,
+"room_t": 20.5,
+"boss_t": 165.9
+},
+"new|B|skilled|normal|10": {
+"clear": 1.0,
+"room_t": 23.9,
+"boss_t": 194.1
+},
+"new|B|average|nightmare|1": {
+"clear": 0.0,
+"room_t": 31.4,
+"boss_t": null
+},
+"new|B|average|nightmare|5": {
+"clear": 0.0,
+"room_t": 32.4,
+"boss_t": null
+},
+"new|B|average|nightmare|10": {
+"clear": 0.0,
+"room_t": 41.0,
+"boss_t": null
+},
+"new|B|skilled|nightmare|1": {
+"clear": 0.0,
+"room_t": 36.3,
+"boss_t": null
+},
+"new|B|skilled|nightmare|5": {
+"clear": 0.3,
+"room_t": 35.6,
+"boss_t": 279.8
+},
+"new|B|skilled|nightmare|10": {
+"clear": 0.0,
+"room_t": 45.9,
+"boss_t": null
+}
+}

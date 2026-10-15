@@ -1,0 +1,8 @@
+normal    average  파티A: F1 100%→100% 보스 210.6→163.8s | F5 100%→100% 보스 280.1→258.4s | F10 100%→100% 보스 1041.9→985.8s
+normal    average  파티B: F1 67%→83% 보스 112.8→102.9s | F5 100%→100% 보스 153.6→149.9s | F10 7%→20% 보스 136.9→171.2s
+normal    skilled  파티A: F1 100%→100% 보스 199.3→171.7s | F5 100%→100% 보스 265.2→252.6s | F10 100%→100% 보스 575.1→617.6s
+normal    skilled  파티B: F1 100%→100% 보스 122.3→119.5s | F5 100%→100% 보스 165.4→165.9s | F10 100%→100% 보스 197.4→194.1s
+nightmare average  파티A: F1 0%→0% 보스 None→Nones | F5 100%→100% 보스 749.8→664.2s | F10 0%→0% 보스 None→Nones
+nightmare average  파티B: F1 0%→0% 보스 None→Nones | F5 0%→0% 보스 None→Nones | F10 0%→0% 보스 None→Nones
+nightmare skilled  파티A: F1 100%→100% 보스 1200.0→1200.0s | F5 100%→100% 보스 732.0→713.1s | F10 100%→93% 보스 1200.0→1200.0s
+nightmare skilled  파티B: F1 0%→0% 보스 None→Nones | F5 43%→30% 보스 277.2→279.8s | F10 0%→0% 보스 None→Nones

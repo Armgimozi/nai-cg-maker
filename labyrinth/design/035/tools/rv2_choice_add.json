@@ -1,0 +1,106 @@
+{
+ "fixes": 23,
+ "adds": [
+  {
+   "cell": "priest|2",
+   "band": "6–10",
+   "style": "caster",
+   "req": {
+    "WIS": 12,
+    "VIT": 8
+   },
+   "like": "bulwark"
+  },
+  {
+   "cell": "guardian|3",
+   "band": "11–15",
+   "style": "melee",
+   "req": {
+    "VIT": 22,
+    "STR": 14
+   },
+   "like": "support"
+  },
+  {
+   "cell": "guardian|4",
+   "band": "16–20",
+   "style": "melee",
+   "req": {
+    "VIT": 26,
+    "STR": 18
+   },
+   "like": "ambush"
+  },
+  {
+   "cell": "arcanist|4",
+   "band": "16–20",
+   "style": "caster",
+   "req": {
+    "INT": 26,
+    "VIT": 18
+   },
+   "like": "ambush"
+  },
+  {
+   "cell": "hunter|7",
+   "added": null
+  },
+  {
+   "cell": "arcanist|7",
+   "added": null
+  },
+  {
+   "cell": "priest|7",
+   "added": null
+  },
+  {
+   "cell": "priest|8",
+   "added": null
+  },
+  {
+   "cell": "guardian|9",
+   "band": "41–45",
+   "style": "melee",
+   "req": {
+    "VIT": 68,
+    "STR": 45
+   },
+   "like": "affliction"
+  },
+  {
+   "cell": "priest|9",
+   "band": "41–45",
+   "style": "caster",
+   "req": {
+    "WIS": 68,
+    "VIT": 45
+   },
+   "like": "affliction"
+  },
+  {
+   "cell": "shadow|9",
+   "added": null
+  },
+  {
+   "cell": "arcanist|10",
+   "band": "46–50",
+   "style": "caster",
+   "req": {
+    "INT": 76,
+    "VIT": 51
+   },
+   "like": "mana_flow"
+  },
+  {
+   "cell": "priest|10",
+   "band": "46–50",
+   "style": "caster",
+   "req": {
+    "WIS": 76,
+    "VIT": 51
+   },
+   "like": "mana_flow"
+  }
+ ],
+ "pass_cells": 55
+}

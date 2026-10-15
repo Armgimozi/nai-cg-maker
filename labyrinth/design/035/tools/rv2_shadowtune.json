@@ -1,0 +1,74 @@
+{
+"old|1|average": [
+0.54,
+0.55
+],
+"old|1|skilled": [
+1.0,
+1.0
+],
+"old|5|average": [
+0.68,
+0.7
+],
+"old|5|skilled": [
+1.0,
+1.0
+],
+"old|10|average": [
+0.0,
+0.0
+],
+"old|10|skilled": [
+0.45,
+0.55
+],
+"new|1|average": [
+0.83,
+0.85
+],
+"new|1|skilled": [
+1.0,
+1.0
+],
+"new|5|average": [
+0.61,
+0.48
+],
+"new|5|skilled": [
+1.0,
+1.0
+],
+"new|10|average": [
+0.01,
+0.0
+],
+"new|10|skilled": [
+0.23,
+0.22
+],
+"both|1|average": [
+0.87,
+0.83
+],
+"both|1|skilled": [
+1.0,
+1.0
+],
+"both|5|average": [
+0.75,
+0.72
+],
+"both|5|skilled": [
+1.0,
+1.0
+],
+"both|10|average": [
+0.0,
+0.0
+],
+"both|10|skilled": [
+0.37,
+0.5
+]
+}

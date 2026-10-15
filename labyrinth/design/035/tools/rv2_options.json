@@ -1,0 +1,1464 @@
+{
+ "guardian|4": {
+  "ok": false,
+  "dom": "sluice_breaker_mace",
+  "rows": [
+   {
+    "id": "sluice_breaker_mace",
+    "name": "수문 부수개",
+    "rar": "epic",
+    "eff": "가시 반격",
+    "src": "대장간",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "무리",
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "melee"
+   },
+   {
+    "id": "osric_drowned_axe",
+    "name": "오스릭의 익사 닻도끼",
+    "rar": "epic",
+    "eff": "갑옷 부수기",
+    "src": "보스",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "보스 파티"
+    ],
+    "top": 0.97,
+    "fixed": false,
+    "style": "melee"
+   },
+   {
+    "id": "sluice_morning_star",
+    "name": "수문 모닝스타",
+    "rar": "epic",
+    "eff": "포식",
+    "src": "금고·미믹",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [],
+    "top": 0.91,
+    "fixed": true,
+    "style": "ranged"
+   }
+  ]
+ },
+ "guardian|5": {
+  "ok": true,
+  "dom": null,
+  "rows": [
+   {
+    "id": "forge_cleaver",
+    "name": "단조 참마도",
+    "rar": "epic",
+    "eff": "휩쓸기",
+    "src": "정예",
+    "looks": [
+     "판금"
+    ],
+    "wins": [
+     "무리"
+    ],
+    "top": 1.0,
+    "fixed": true,
+    "style": "melee"
+   },
+   {
+    "id": "dawnbringer",
+    "name": "여명을 맹세한 검",
+    "rar": "legendary",
+    "eff": "축성",
+    "src": "보스",
+    "looks": [
+     "판금"
+    ],
+    "wins": [
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "melee"
+   },
+   {
+    "id": "ember_greatsword",
+    "name": "잿불 대검",
+    "rar": "legendary",
+    "eff": "포식",
+    "src": "보스",
+    "looks": [
+     "판금"
+    ],
+    "wins": [
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 0.97,
+    "fixed": false,
+    "style": "melee"
+   }
+  ]
+ },
+ "guardian|8": {
+  "ok": true,
+  "dom": null,
+  "rows": [
+   {
+    "id": "index_war_spear",
+    "name": "색인 창",
+    "rar": "epic",
+    "eff": "가시 반격",
+    "src": "정예",
+    "looks": [
+     "판금"
+    ],
+    "wins": [
+     "무리",
+     "정예"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "melee"
+   },
+   {
+    "id": "ink_great_maul",
+    "name": "봉인 대형 망치",
+    "rar": "epic",
+    "eff": "갑옷 부수기",
+    "src": "몬스터·상자",
+    "looks": [
+     "판금"
+    ],
+    "wins": [
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": true,
+    "style": "melee"
+   },
+   {
+    "id": "ink_morning_star",
+    "name": "먹물 모닝스타",
+    "rar": "epic",
+    "eff": "굳건함",
+    "src": "시련방",
+    "looks": [
+     "판금"
+    ],
+    "wins": [],
+    "top": 0.94,
+    "fixed": false,
+    "style": "melee"
+   }
+  ]
+ },
+ "guardian|9": {
+  "ok": false,
+  "dom": null,
+  "rows": [
+   {
+    "id": "clock_broadsword",
+    "name": "놋쇠 넓은검",
+    "rar": "epic",
+    "eff": "방패 강타",
+    "src": "금고·미믹",
+    "looks": [
+     "판금"
+    ],
+    "wins": [
+     "무리",
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "melee"
+   },
+   {
+    "id": "clock_greatsword",
+    "name": "톱니 대검",
+    "rar": "epic",
+    "eff": "갑옷 부수기",
+    "src": "특별 시련",
+    "looks": [
+     "판금"
+    ],
+    "wins": [
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "melee"
+   }
+  ]
+ },
+ "berserker|4": {
+  "ok": false,
+  "dom": "sluice_breaker_mace",
+  "rows": [
+   {
+    "id": "sluice_breaker_mace",
+    "name": "수문 부수개",
+    "rar": "epic",
+    "eff": "가시 반격",
+    "src": "대장간",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "무리",
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "melee"
+   },
+   {
+    "id": "osric_drowned_axe",
+    "name": "오스릭의 익사 닻도끼",
+    "rar": "epic",
+    "eff": "갑옷 부수기",
+    "src": "보스",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "보스 파티"
+    ],
+    "top": 0.97,
+    "fixed": false,
+    "style": "melee"
+   },
+   {
+    "id": "sluice_morning_star",
+    "name": "수문 모닝스타",
+    "rar": "epic",
+    "eff": "포식",
+    "src": "금고·미믹",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [],
+    "top": 0.91,
+    "fixed": true,
+    "style": "ranged"
+   }
+  ]
+ },
+ "berserker|5": {
+  "ok": true,
+  "dom": null,
+  "rows": [
+   {
+    "id": "forge_cleaver",
+    "name": "단조 참마도",
+    "rar": "epic",
+    "eff": "휩쓸기",
+    "src": "정예",
+    "looks": [
+     "판금"
+    ],
+    "wins": [
+     "무리"
+    ],
+    "top": 1.0,
+    "fixed": true,
+    "style": "melee"
+   },
+   {
+    "id": "ember_greatsword",
+    "name": "잿불 대검",
+    "rar": "legendary",
+    "eff": "포식",
+    "src": "보스",
+    "looks": [
+     "판금"
+    ],
+    "wins": [
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "melee"
+   },
+   {
+    "id": "anvil_oath_broadsword",
+    "name": "모루 서약 넓은검",
+    "rar": "epic",
+    "eff": "굳건함",
+    "src": "대장간",
+    "looks": [
+     "판금"
+    ],
+    "wins": [],
+    "top": 0.91,
+    "fixed": false,
+    "style": "melee"
+   }
+  ]
+ },
+ "berserker|8": {
+  "ok": true,
+  "dom": null,
+  "rows": [
+   {
+    "id": "index_war_spear",
+    "name": "색인 창",
+    "rar": "epic",
+    "eff": "가시 반격",
+    "src": "정예",
+    "looks": [
+     "판금"
+    ],
+    "wins": [
+     "무리",
+     "정예"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "melee"
+   },
+   {
+    "id": "ink_great_maul",
+    "name": "봉인 대형 망치",
+    "rar": "epic",
+    "eff": "갑옷 부수기",
+    "src": "몬스터·상자",
+    "looks": [
+     "판금"
+    ],
+    "wins": [
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": true,
+    "style": "melee"
+   },
+   {
+    "id": "ink_morning_star",
+    "name": "먹물 모닝스타",
+    "rar": "epic",
+    "eff": "굳건함",
+    "src": "시련방",
+    "looks": [
+     "판금"
+    ],
+    "wins": [],
+    "top": 0.94,
+    "fixed": false,
+    "style": "melee"
+   }
+  ]
+ },
+ "berserker|9": {
+  "ok": false,
+  "dom": null,
+  "rows": [
+   {
+    "id": "clock_broadsword",
+    "name": "놋쇠 넓은검",
+    "rar": "epic",
+    "eff": "방패 강타",
+    "src": "금고·미믹",
+    "looks": [
+     "판금"
+    ],
+    "wins": [
+     "무리",
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "melee"
+   },
+   {
+    "id": "clock_greatsword",
+    "name": "톱니 대검",
+    "rar": "epic",
+    "eff": "갑옷 부수기",
+    "src": "특별 시련",
+    "looks": [
+     "판금"
+    ],
+    "wins": [
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "melee"
+   }
+  ]
+ },
+ "hunter|4": {
+  "ok": true,
+  "dom": null,
+  "rows": [
+   {
+    "id": "eel_twin_bow",
+    "name": "장어 쌍현 활",
+    "rar": "epic",
+    "eff": "관통 사격",
+    "src": "특별 시련",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "무리",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "ranged"
+   },
+   {
+    "id": "tidecaller_bow",
+    "name": "조수 부르는 활",
+    "rar": "legendary",
+    "eff": "원소 부여",
+    "src": "보스",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "무리",
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "ranged"
+   },
+   {
+    "id": "sluice_morning_star",
+    "name": "수문 모닝스타",
+    "rar": "epic",
+    "eff": "포식",
+    "src": "금고·미믹",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [],
+    "top": 0.92,
+    "fixed": true,
+    "style": "ranged"
+   }
+  ]
+ },
+ "hunter|5": {
+  "ok": true,
+  "dom": null,
+  "rows": [
+   {
+    "id": "bellows_composite_bow",
+    "name": "풀무 복합궁",
+    "rar": "epic",
+    "eff": "연타",
+    "src": "대장간",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "무리",
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "ranged"
+   },
+   {
+    "id": "ember_tanto",
+    "name": "잿불 탄토",
+    "rar": "epic",
+    "eff": "등 찌르기",
+    "src": "금고·미믹",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": true,
+    "style": "ranged"
+   },
+   {
+    "id": "bellows_bone_bow",
+    "name": "풀무 뼈 활",
+    "rar": "epic",
+    "eff": "피 냄새",
+    "src": "특별 시련",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [],
+    "top": 0.93,
+    "fixed": true,
+    "style": "ranged"
+   }
+  ]
+ },
+ "hunter|8": {
+  "ok": true,
+  "dom": null,
+  "rows": [
+   {
+    "id": "ink_flamberge",
+    "name": "먹물 플랑베르주",
+    "rar": "epic",
+    "eff": "포식",
+    "src": "금고·미믹",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "무리",
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": true,
+    "style": "ranged"
+   },
+   {
+    "id": "ink_bone_bow",
+    "name": "먹물 뼈 활",
+    "rar": "epic",
+    "eff": "생명 흡수",
+    "src": "특별 시련",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "ranged"
+   },
+   {
+    "id": "inkquill_hornbow",
+    "name": "깃펜 각궁",
+    "rar": "epic",
+    "eff": "찢는 치명",
+    "src": "대장간",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 0.98,
+    "fixed": false,
+    "style": "ranged"
+   }
+  ]
+ },
+ "hunter|9": {
+  "ok": true,
+  "dom": null,
+  "rows": [
+   {
+    "id": "clock_katar",
+    "name": "톱니 주먹칼",
+    "rar": "epic",
+    "eff": "등 찌르기",
+    "src": "금고·미믹",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": true,
+    "style": "ranged"
+   },
+   {
+    "id": "springloaded_bow",
+    "name": "용수철 연발궁",
+    "rar": "epic",
+    "eff": "연타",
+    "src": "대장간",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "무리",
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "ranged"
+   },
+   {
+    "id": "clock_blade_bow",
+    "name": "태엽 날활",
+    "rar": "epic",
+    "eff": "선제",
+    "src": "몬스터·상자",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [],
+    "top": 0.93,
+    "fixed": false,
+    "style": "ranged"
+   }
+  ]
+ },
+ "arcanist|4": {
+  "ok": false,
+  "dom": "brine_orb_staff",
+  "rows": [
+   {
+    "id": "brine_orb_staff",
+    "name": "소금물 구슬 지팡이",
+    "rar": "epic",
+    "eff": "과부하",
+    "src": "대장간",
+    "looks": [
+     "판금",
+     "천"
+    ],
+    "wins": [
+     "무리",
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "caster"
+   },
+   {
+    "id": "tidebell_censer",
+    "name": "조수종 향로",
+    "rar": "epic",
+    "eff": "마력 흡수",
+    "src": "대장간",
+    "looks": [
+     "판금",
+     "천"
+    ],
+    "wins": [],
+    "top": 0.95,
+    "fixed": false,
+    "style": "caster"
+   }
+  ]
+ },
+ "arcanist|5": {
+  "ok": true,
+  "dom": null,
+  "rows": [
+   {
+    "id": "crucible_chalice",
+    "name": "도가니 성배",
+    "rar": "epic",
+    "eff": "약점 파고들기",
+    "src": "몬스터·상자",
+    "looks": [
+     "천"
+    ],
+    "wins": [
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "caster"
+   },
+   {
+    "id": "slagedge_bladebow",
+    "name": "슬래그 날활",
+    "rar": "epic",
+    "eff": "과부하",
+    "src": "몬스터·상자",
+    "looks": [
+     "판금",
+     "천"
+    ],
+    "wins": [
+     "무리",
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": true,
+    "style": "ranged"
+   },
+   {
+    "id": "embersong_scepter",
+    "name": "불씨노래 홀",
+    "rar": "epic",
+    "eff": "과부하",
+    "src": "대장간",
+    "looks": [
+     "판금",
+     "천"
+    ],
+    "wins": [
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 0.99,
+    "fixed": false,
+    "style": "caster"
+   }
+  ]
+ },
+ "arcanist|8": {
+  "ok": true,
+  "dom": null,
+  "rows": [
+   {
+    "id": "ink_recurve",
+    "name": "먹물 만곡궁",
+    "rar": "epic",
+    "eff": "연쇄 번개",
+    "src": "몬스터·상자",
+    "looks": [
+     "판금",
+     "천"
+    ],
+    "wins": [
+     "무리"
+    ],
+    "top": 1.0,
+    "fixed": true,
+    "style": "ranged"
+   },
+   {
+    "id": "ink_spiral_staff",
+    "name": "먹물 소용돌이 지팡이",
+    "rar": "epic",
+    "eff": "약점 파고들기",
+    "src": "대장간",
+    "looks": [
+     "판금",
+     "천"
+    ],
+    "wins": [
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "caster"
+   },
+   {
+    "id": "inkwell_staff",
+    "name": "먹물 서고 지팡이",
+    "rar": "legendary",
+    "eff": "시체 폭발",
+    "src": "보스",
+    "looks": [
+     "판금",
+     "천"
+    ],
+    "wins": [
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "caster"
+   }
+  ]
+ },
+ "arcanist|9": {
+  "ok": true,
+  "dom": null,
+  "rows": [
+   {
+    "id": "orrery_staff",
+    "name": "태엽 천구 지팡이",
+    "rar": "epic",
+    "eff": "과부하",
+    "src": "대장간",
+    "looks": [
+     "판금",
+     "천"
+    ],
+    "wins": [
+     "무리",
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "caster"
+   },
+   {
+    "id": "tesla_coil_staff",
+    "name": "전격 코일 지팡이",
+    "rar": "legendary",
+    "eff": "연쇄 번개",
+    "src": "보스",
+    "looks": [
+     "판금",
+     "천"
+    ],
+    "wins": [
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "caster"
+   },
+   {
+    "id": "clock_antler_staff",
+    "name": "놋쇠 가지 지팡이",
+    "rar": "epic",
+    "eff": "약점 파고들기",
+    "src": "금고·미믹",
+    "looks": [
+     "판금",
+     "천"
+    ],
+    "wins": [
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 0.98,
+    "fixed": false,
+    "style": "caster"
+   }
+  ]
+ },
+ "priest|4": {
+  "ok": false,
+  "dom": "brine_orb_staff",
+  "rows": [
+   {
+    "id": "brine_orb_staff",
+    "name": "소금물 구슬 지팡이",
+    "rar": "epic",
+    "eff": "과부하",
+    "src": "대장간",
+    "looks": [
+     "판금",
+     "천"
+    ],
+    "wins": [
+     "무리",
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "caster"
+   },
+   {
+    "id": "tidebell_censer",
+    "name": "조수종 향로",
+    "rar": "epic",
+    "eff": "마력 흡수",
+    "src": "대장간",
+    "looks": [
+     "판금",
+     "천"
+    ],
+    "wins": [],
+    "top": 0.95,
+    "fixed": false,
+    "style": "caster"
+   }
+  ]
+ },
+ "priest|5": {
+  "ok": true,
+  "dom": null,
+  "rows": [
+   {
+    "id": "slagedge_bladebow",
+    "name": "슬래그 날활",
+    "rar": "epic",
+    "eff": "과부하",
+    "src": "몬스터·상자",
+    "looks": [
+     "판금",
+     "천"
+    ],
+    "wins": [
+     "무리",
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": true,
+    "style": "ranged"
+   },
+   {
+    "id": "embersong_scepter",
+    "name": "불씨노래 홀",
+    "rar": "epic",
+    "eff": "과부하",
+    "src": "대장간",
+    "looks": [
+     "판금",
+     "천"
+    ],
+    "wins": [
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "caster"
+   },
+   {
+    "id": "forge_chime_rod",
+    "name": "용광로 풍경 홀",
+    "rar": "epic",
+    "eff": "수호 기운",
+    "src": "금고·미믹",
+    "looks": [
+     "판금",
+     "천"
+    ],
+    "wins": [],
+    "top": 0.93,
+    "fixed": true,
+    "style": "caster"
+   }
+  ]
+ },
+ "priest|8": {
+  "ok": false,
+  "dom": null,
+  "rows": [
+   {
+    "id": "inkwell_staff",
+    "name": "먹물 서고 지팡이",
+    "rar": "legendary",
+    "eff": "시체 폭발",
+    "src": "보스",
+    "looks": [
+     "판금",
+     "천"
+    ],
+    "wins": [
+     "무리",
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "caster"
+   }
+  ]
+ },
+ "priest|9": {
+  "ok": false,
+  "dom": null,
+  "rows": [
+   {
+    "id": "orrery_staff",
+    "name": "태엽 천구 지팡이",
+    "rar": "epic",
+    "eff": "과부하",
+    "src": "대장간",
+    "looks": [
+     "판금",
+     "천"
+    ],
+    "wins": [
+     "무리",
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "caster"
+   },
+   {
+    "id": "tesla_coil_staff",
+    "name": "전격 코일 지팡이",
+    "rar": "legendary",
+    "eff": "연쇄 번개",
+    "src": "보스",
+    "looks": [
+     "판금",
+     "천"
+    ],
+    "wins": [
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "caster"
+   }
+  ]
+ },
+ "shadow|4": {
+  "ok": true,
+  "dom": null,
+  "rows": [
+   {
+    "id": "drowned_anchor_cleaver",
+    "name": "익사한 닻날",
+    "rar": "epic",
+    "eff": "광기",
+    "src": "대장간",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "무리",
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "melee"
+   },
+   {
+    "id": "eel_twin_bow",
+    "name": "장어 쌍현 활",
+    "rar": "epic",
+    "eff": "관통 사격",
+    "src": "특별 시련",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "무리",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "ranged"
+   },
+   {
+    "id": "sluice_breaker_mace",
+    "name": "수문 부수개",
+    "rar": "epic",
+    "eff": "가시 반격",
+    "src": "대장간",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "무리",
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "melee"
+   },
+   {
+    "id": "tidecaller_bow",
+    "name": "조수 부르는 활",
+    "rar": "legendary",
+    "eff": "원소 부여",
+    "src": "보스",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "무리",
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "ranged"
+   },
+   {
+    "id": "osric_drowned_axe",
+    "name": "오스릭의 익사 닻도끼",
+    "rar": "epic",
+    "eff": "갑옷 부수기",
+    "src": "보스",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [],
+    "top": 0.94,
+    "fixed": false,
+    "style": "melee"
+   },
+   {
+    "id": "sluice_morning_star",
+    "name": "수문 모닝스타",
+    "rar": "epic",
+    "eff": "포식",
+    "src": "금고·미믹",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [],
+    "top": 0.91,
+    "fixed": true,
+    "style": "ranged"
+   }
+  ]
+ },
+ "shadow|5": {
+  "ok": true,
+  "dom": null,
+  "rows": [
+   {
+    "id": "forge_cleaver",
+    "name": "단조 참마도",
+    "rar": "epic",
+    "eff": "휩쓸기",
+    "src": "정예",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "무리"
+    ],
+    "top": 1.0,
+    "fixed": true,
+    "style": "melee"
+   },
+   {
+    "id": "ember_greatsword",
+    "name": "잿불 대검",
+    "rar": "legendary",
+    "eff": "포식",
+    "src": "보스",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "melee"
+   },
+   {
+    "id": "ember_tanto",
+    "name": "잿불 탄토",
+    "rar": "epic",
+    "eff": "등 찌르기",
+    "src": "금고·미믹",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [],
+    "top": 0.94,
+    "fixed": true,
+    "style": "ranged"
+   },
+   {
+    "id": "bellows_composite_bow",
+    "name": "풀무 복합궁",
+    "rar": "epic",
+    "eff": "연타",
+    "src": "대장간",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [],
+    "top": 0.91,
+    "fixed": false,
+    "style": "ranged"
+   },
+   {
+    "id": "anvil_oath_broadsword",
+    "name": "모루 서약 넓은검",
+    "rar": "epic",
+    "eff": "굳건함",
+    "src": "대장간",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [],
+    "top": 0.91,
+    "fixed": false,
+    "style": "melee"
+   }
+  ]
+ },
+ "shadow|8": {
+  "ok": true,
+  "dom": null,
+  "rows": [
+   {
+    "id": "ink_great_maul",
+    "name": "봉인 대형 망치",
+    "rar": "epic",
+    "eff": "갑옷 부수기",
+    "src": "몬스터·상자",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": true,
+    "style": "melee"
+   },
+   {
+    "id": "index_keeper_sword",
+    "name": "색인 수호자의 넓은검",
+    "rar": "legendary",
+    "eff": "마무리",
+    "src": "보스",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "무리",
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "melee"
+   },
+   {
+    "id": "nightshade_dagger",
+    "name": "야음 단검",
+    "rar": "legendary",
+    "eff": "선제",
+    "src": "보스",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "무리"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "melee"
+   },
+   {
+    "id": "ink_stiletto",
+    "name": "먹물 스틸레토",
+    "rar": "epic",
+    "eff": "등 찌르기",
+    "src": "금고·미믹",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "보스 파티"
+    ],
+    "top": 0.95,
+    "fixed": false,
+    "style": "melee"
+   },
+   {
+    "id": "index_war_spear",
+    "name": "색인 창",
+    "rar": "epic",
+    "eff": "가시 반격",
+    "src": "정예",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [],
+    "top": 0.95,
+    "fixed": false,
+    "style": "melee"
+   }
+  ]
+ },
+ "shadow|9": {
+  "ok": false,
+  "dom": "doomclock_executioner",
+  "rows": [
+   {
+    "id": "doomclock_executioner",
+    "name": "종말시계 단두도끼",
+    "rar": "legendary",
+    "eff": "마무리",
+    "src": "보스",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "무리",
+     "정예",
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 1.0,
+    "fixed": false,
+    "style": "melee"
+   },
+   {
+    "id": "clock_broadsword",
+    "name": "놋쇠 넓은검",
+    "rar": "epic",
+    "eff": "방패 강타",
+    "src": "금고·미믹",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "무리",
+     "정예"
+    ],
+    "top": 0.96,
+    "fixed": false,
+    "style": "melee"
+   },
+   {
+    "id": "regulator_greatsword",
+    "name": "조율기 대검",
+    "rar": "epic",
+    "eff": "연타",
+    "src": "대장간",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "보스 혼자",
+     "보스 파티"
+    ],
+    "top": 0.95,
+    "fixed": false,
+    "style": "melee"
+   },
+   {
+    "id": "clock_greatsword",
+    "name": "톱니 대검",
+    "rar": "epic",
+    "eff": "갑옷 부수기",
+    "src": "특별 시련",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [
+     "보스 파티"
+    ],
+    "top": 0.95,
+    "fixed": false,
+    "style": "melee"
+   },
+   {
+    "id": "clockguard_mace",
+    "name": "태엽 수비 철퇴",
+    "rar": "epic",
+    "eff": "가속",
+    "src": "대장간",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [],
+    "top": 0.94,
+    "fixed": false,
+    "style": "melee"
+   },
+   {
+    "id": "clock_katar",
+    "name": "톱니 주먹칼",
+    "rar": "epic",
+    "eff": "등 찌르기",
+    "src": "금고·미믹",
+    "looks": [
+     "판금",
+     "가죽"
+    ],
+    "wins": [],
+    "top": 0.91,
+    "fixed": true,
+    "style": "ranged"
+   }
+  ]
+ }
+}

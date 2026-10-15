@@ -1,0 +1,62 @@
+{
+ "arcanist|average|new": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "arcanist|average|old": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "arcanist|skilled|new": [
+  0.54,
+  0.54,
+  0.64
+ ],
+ "arcanist|skilled|old": [
+  0.57,
+  0.48,
+  0.4
+ ],
+ "hunter|average|new": [
+  0.48,
+  0.41,
+  0.38
+ ],
+ "hunter|average|old": [
+  0.42,
+  0.49,
+  0.49
+ ],
+ "hunter|skilled|new": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "hunter|skilled|old": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "shadow|average|new": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "shadow|average|old": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "shadow|skilled|new": [
+  0.26,
+  0.19,
+  0.21
+ ],
+ "shadow|skilled|old": [
+  0.47,
+  0.54,
+  0.48
+ ]
+}
