@@ -18,7 +18,7 @@ import org.bukkit.inventory.ItemStack;
 
 /**
  * 미궁 입장 — 층 선택(해금 기준: 솔로 = 내 해금층, 파티 = 파티원 중 최소 해금층) + 파티 준비 상태(입구 근처·레벨)
- * + 서버 난이도 표시(선택 없음 — 층 램프 범위, 층 아이콘마다 그 층 실효 배율·솔로 보정). 클릭 = {@code DungeonService.enter}
+ * + 서버 난이도 표시(선택 없음 — 난이도 배율 한 벌, 층 아이콘마다 그 층 실효 배율·솔로 보정). 클릭 = {@code DungeonService.enter}
  * (검사·안내는 dungeon 담당).
  */
 public final class EntranceMenu extends LabMenu {
@@ -58,11 +58,12 @@ public final class EntranceMenu extends LabMenu {
         List<String> info = new ArrayList<>();
         info.add("<gray>서버 난이도 " + (s.isDifficultySet() ? "<white><b>" + d.name() + "</b>" : "<#ff6b6b>미설정 — 관리자가 정하기 전엔 입장 불가"));
         if (s.isDifficultySet()) {
-            // 층 램프: 얕은 층 값 → 원래 값 (층마다 실제 값은 아래 층 아이콘)
+            // 기본은 모든 층 같은 배율 한 벌. 관리자가 층 램프를 직접 적었을 때만 1층 값→원래 값 범위 (층마다 실제 값은 아래 층 아이콘)
             Difficulty first = d.atFloor(1);
             info.add("<dark_gray>몬스터 HP ×" + range(first.hp(), d.hp()) + " · 피해 ×" + range(first.damage(), d.damage())
                     + " · 드롭 ×" + MainMenu.decimal(d.drop()));
-            if (d.ramp() != null) info.add("<dark_gray>깊이 내려갈수록 강해져 지하 " + d.ramp().fullFloor() + "층부터 최대");
+            info.add(d.ramp() != null ? "<dark_gray>깊이 내려갈수록 강해져 지하 " + d.ramp().fullFloor() + "층부터 최대"
+                    : "<dark_gray>1층부터 모든 층 같은 배율");
         }
         info.add("");
         double soloHp = s.party().hp(1), soloDmg = s.party().damage(1);
@@ -90,7 +91,7 @@ public final class EntranceMenu extends LabMenu {
             BossDef boss = services.content().bossOfFloor(n);
             if (boss != null && open) lore.add("<gray>수호자 <#ff9a4d>" + Text.escape(Text.strip(boss.name())));
             if (open && s.isDifficultySet()) {
-                // 이 층 실효 배율 = 난이도(층 램프) × 인원 (솔로 보정 포함) — 입장 안내문과 같은 값
+                // 이 층 실효 배율 = 난이도(직접 적은 층 램프가 있으면 그 층 값) × 인원 (솔로 보정 포함) — 입장 안내문과 같은 값
                 Difficulty fd = d.atFloor(n);
                 lore.add("<dark_gray>몬스터 HP ×" + String.format("%.2f", fd.hp() * s.party().hp(size))
                         + " · 피해 ×" + String.format("%.2f", fd.damage() * s.party().damage(size)));
@@ -145,7 +146,7 @@ public final class EntranceMenu extends LabMenu {
         backButton(45, MainMenu::reopen);
     }
 
-    /** 층 램프 범위 "1.8→2.4" (같으면 하나). */
+    /** 직접 적은 층 램프 범위 "1.5→1.8" (램프가 없어 같으면 하나). */
     private static String range(double from, double to) {
         String a = MainMenu.decimal(from), b = MainMenu.decimal(to);
         return a.equals(b) ? b : a + "→" + b;

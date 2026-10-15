@@ -35,7 +35,7 @@ public final class ServerSetup {
         }
         boolean first = !services.settings().isDifficultySet();
         services.updateConfig(c -> c.set("difficulty", d.id()));
-        // 층 램프: 1층 값 → 원래 값 (예: "1층 HP ×1.8·피해 ×1.6 → 6층부터 ×2.4·×2.0"). 드롭·경험치는 1층부터 그대로
+        // 난이도 배율 한 벌 (예: "HP ×1.8·피해 ×1.6"). 관리자가 층 램프를 직접 적었을 때만 "1층 HP … → N층부터 …"
         Text.send(s, "<green>서버 난이도: <white>" + d.name() + "</white></green> <gray>(몹 " + d.hpDamageText() + ", 드롭 ×"
                 + Difficulty.mult(d.drop()) + ", 경험치 ×" + Difficulty.mult(d.xp()) + ")");
         if (first) {

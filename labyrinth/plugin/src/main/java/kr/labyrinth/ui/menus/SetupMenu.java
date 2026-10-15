@@ -77,17 +77,19 @@ public final class SetupMenu extends LabMenu {
             String col = diffColor(d.id());
             List<String> lore = new ArrayList<>();
             if (d.rampsAtFloor1()) {
-                // 층 램프: 얕은 층은 완만하게 시작해 full_floor 층부터 원래 값 (hp·damage·telegraph 만, 보상은 1층부터 그대로)
+                // 관리자가 직접 적은 층 램프만: 1층 값 → full_floor 층부터 원래 값 (hp·damage·telegraph 만, 보상은 1층부터 그대로)
                 Difficulty f1 = d.atFloor(1);
                 lore.add("<gray>1층 몬스터 HP <white>×" + Difficulty.mult(f1.hp()) + "  <gray>피해 <white>×" + Difficulty.mult(f1.damage()));
                 lore.add("<gray>→ " + d.ramp().fullFloor() + "층부터 HP <white>×" + Difficulty.mult(d.hp()) + "  <gray>피해 <white>×"
                         + Difficulty.mult(d.damage()));
             } else {
+                // 기본: 난이도마다 배율 한 벌 — 1층부터 마지막 층까지 같은 값
                 lore.add("<gray>몬스터 HP <white>×" + Difficulty.mult(d.hp()) + "  <gray>피해 <white>×" + Difficulty.mult(d.damage()));
             }
             lore.add("<gray>드롭 <white>×" + Difficulty.mult(d.drop()) + "  <gray>경험치 <white>×" + Difficulty.mult(d.xp())
                     + (d.rampsAtFloor1() ? " <dark_gray>(1층부터)" : ""));
             lore.add("<gray>경고 시간 <white>" + d.telegraphText());
+            if (!d.rampsAtFloor1()) lore.add("<dark_gray>1층부터 모든 층 같은 배율");
             lore.add("");
             lore.addAll(wrap(diffBlurb(d.id()), 24, "<" + col + ">"));
             lore.add("");

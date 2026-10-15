@@ -114,21 +114,12 @@ public final class Settings {
     public Settings(ConfigurationSection c) {
         if (c == null) c = new MemoryConfiguration();
         Map<String, Difficulty> diffs = new LinkedHashMap<>();
-        diffs.put("easy", Difficulty.EASY);
-        diffs.put("normal", Difficulty.NORMAL);
-        diffs.put("hard", Difficulty.HARD.withRamp(Difficulty.Ramp.HARD));
-        diffs.put("nightmare", Difficulty.NIGHTMARE.withRamp(Difficulty.Ramp.NIGHTMARE));
+        for (String id : List.of("easy", "normal", "hard", "nightmare")) diffs.put(id, Difficulty.defaultFor(id));
         ConfigurationSection ds = c.getConfigurationSection("difficulties");
         if (ds != null) {
             for (String id : ds.getKeys(false)) {
                 ConfigurationSection d = ds.getConfigurationSection(id);
-                if (d == null) continue;
-                Difficulty def = diffs.getOrDefault(id, Difficulty.NORMAL);
-                Difficulty read = new Difficulty(id, d.getString("name", def.name()), d.getDouble("hp", def.hp()),
-                        d.getDouble("damage", def.damage()), d.getDouble("drop", def.drop()),
-                        d.getDouble("xp", def.xp()), d.getDouble("telegraph", def.telegraph()));
-                diffs.put(id, read.withRamp(Boolean.FALSE.equals(d.get("ramp")) ? null
-                        : ramp(d.getConfigurationSection("ramp"), read)));
+                if (d != null) diffs.put(id, difficulty(id, d, diffs.getOrDefault(id, Difficulty.NORMAL)));
             }
         }
         this.difficulties = Collections.unmodifiableMap(diffs);
@@ -186,18 +177,50 @@ public final class Settings {
     }
 
     /**
-     * difficulties.&lt;id&gt;.ramp — 키가 없거나 비어 있으면 코드 기본값({@link Difficulty.Ramp#defaultFor}, 어려움·악몽만).
-     * 끄기 = {@code ramp: {enabled: false}} (또는 {@code ramp: false}). from_floor(기본 1)·full_floor(from 이하면 램프 없음)·
-     * start.hp/damage/telegraph 중 빠진 값은 기본 램프 값, 기본 램프가 없는 난이도면 그 난이도 원래 값.
+     * difficulties.&lt;id&gt; 한 줄 — 난이도마다 배율 한 벌 (층 램프 없음이 기본, 0.3.3).
+     * <ul>
+     *   <li>빠진 키 = 코드 기본값({@link Difficulty#defaultFor}, 모르는 id 면 보통).</li>
+     *   <li>예전 판(0.3.2)이 적어 둔 어려움·악몽 값({@link Difficulty#legacy032})과 같은 키는 '안 고친 값'으로 보고 새 기본값을 쓴다
+     *       (시작 꾸러미와 같은 방식). 다른 값은 직접 고친 값이므로 그대로.</li>
+     *   <li>ramp: 0.3.2 의 jar 기본 램프({@link Difficulty.Ramp#legacy032}) 그대로거나 비어 있으면 지운다(= 통합).
+     *       직접 고친 램프는 계속 따르고, 그 난이도는 숫자를 적힌 그대로 쓴다(램프가 그 숫자에 맞춰졌으므로 예전 값 승격 없음).
+     *       {@code ramp: false}·{@code ramp: {enabled: false}} 도 직접 고친 것 — "예전 값을 1층부터" 그대로 쓴다.</li>
+     * </ul>
+     */
+    static Difficulty difficulty(String id, ConfigurationSection d, Difficulty def) {
+        Difficulty read = new Difficulty(id, d.getString("name", def.name()), d.getDouble("hp", def.hp()),
+                d.getDouble("damage", def.damage()), d.getDouble("drop", def.drop()),
+                d.getDouble("xp", def.xp()), d.getDouble("telegraph", def.telegraph()));
+        ConfigurationSection rs = d.getConfigurationSection("ramp");
+        boolean off = Boolean.FALSE.equals(d.get("ramp")) || (rs != null && !rs.getBoolean("enabled", true));
+        Difficulty.Ramp r = off ? null : ramp(rs, read);
+        if (off || (r != null && !r.equals(Difficulty.Ramp.legacy032(id)))) return read.withRamp(r); // 직접 고친 램프 (끈 것 포함)
+        Difficulty old = Difficulty.legacy032(id);
+        if (old == null) return read;
+        return new Difficulty(id, read.name(), upgrade(read.hp(), old.hp(), def.hp()), upgrade(read.damage(), old.damage(), def.damage()),
+                upgrade(read.drop(), old.drop(), def.drop()), upgrade(read.xp(), old.xp(), def.xp()),
+                upgrade(read.telegraph(), old.telegraph(), def.telegraph()));
+    }
+
+    /** 예전 기본값과 같으면 새 기본값, 아니면 적힌 값. */
+    private static double upgrade(double v, double legacy, double now) {
+        return Math.abs(v - legacy) < 1e-9 ? now : v;
+    }
+
+    /**
+     * difficulties.&lt;id&gt;.ramp — 키가 없거나 비어 있으면 램프 없음(null). 끄기 = {@code ramp: {enabled: false}}
+     * (또는 {@code ramp: false}). from_floor(기본 1)·full_floor(from 이하면 램프 없음)·start.hp/damage/telegraph 중 빠진 값은
+     * 0.3.2 때처럼 그 판의 기본 램프 값({@link Difficulty.Ramp#legacy032}, 원래 값보다 세지 않게 자름), 그것도 없는 난이도면
+     * 그 난이도 원래 값(= 그 항목은 램프 안 함).
      */
     static Difficulty.Ramp ramp(ConfigurationSection r, Difficulty d) {
-        Difficulty.Ramp def = Difficulty.Ramp.defaultFor(d.id());
-        if (def != null) { // hp·damage 를 기본보다 낮춰 쓰는 서버: 기본 시작 값이 원래 값보다 세지 않게
+        if (r == null || r.getKeys(false).isEmpty()) return null;
+        if (!r.getBoolean("enabled", true)) return null;
+        Difficulty.Ramp def = Difficulty.Ramp.legacy032(d.id());
+        if (def != null) { // hp·damage 를 낮춰 쓰는 서버: 빠진 시작 값이 원래 값보다 세지 않게
             def = new Difficulty.Ramp(def.fromFloor(), def.fullFloor(), Math.min(def.startHp(), d.hp()),
                     Math.min(def.startDamage(), d.damage()), Math.max(def.startTelegraph(), d.telegraph()));
         }
-        if (r == null || r.getKeys(false).isEmpty()) return def;
-        if (!r.getBoolean("enabled", true)) return null;
         int from = r.getInt("from_floor", def == null ? 1 : def.fromFloor());
         int full = r.getInt("full_floor", def == null ? from : def.fullFloor());
         if (full <= from) return null;

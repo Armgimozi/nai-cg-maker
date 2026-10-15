@@ -8,8 +8,9 @@ import kr.labyrinth.content.Params;
  *   <li>파티 인원: GDD §8.4 의 {@code *_base/_per_member/_per_members/solo_*} 를 {@link Params#scaled} 로 (패턴마다 YAML).</li>
  *   <li>난이도: 경고 시간은 {@code Difficulty.windup}(telegraph 배율, 최소 0.5초). 여기서는 그 밖의 것 —
  *       패턴 쿨다운 배율, 다중 대상 패턴의 추가 개수, 투사체·돌진 속도, 오브젝트 HP 배율.</li>
- *   <li>층 램프: ramp = 난이도 층 램프 진행도(0~1, {@code InstanceContext.rampProgress}). 난이도 배율 v 는
- *       1 + (v − 1) × ramp 로 보간하고, 추가 개수는 ramp 0.5 이상부터 붙는다 (악몽 1층 = 보통과 같은 패턴).</li>
+ *   <li>난이도마다 값 한 벌 — 1층부터 같은 쿨다운·추가 개수·속도·오브젝트 HP·제한 시간 (0.3.3, 층 램프 기본값 없음 → ramp 1).</li>
+ *   <li>층 램프(관리자가 config 에 직접 적었을 때만): ramp = 난이도 층 램프 진행도(0~1, {@code InstanceContext.rampProgress}).
+ *       난이도 배율 v 는 1 + (v − 1) × ramp 로 보간하고, 추가 개수는 ramp 0.5 이상부터 붙는다.</li>
  *   <li>페이즈: 3페이즈부터 쿨다운 −10%, 광폭화(엔레이지) 후 쿨다운 × {@link #ENRAGE_COOLDOWN}.</li>
  * </ul>
  * 난이도 id 는 config 프리셋 키(easy/normal/hard/nightmare). 모르는 id 는 보통.
@@ -18,7 +19,7 @@ public record MechanicScaling(int partySize, String difficulty, int phase, boole
 
     public static final double ENRAGE_COOLDOWN = 0.6;
     public static final double MIN_COOLDOWN_MULT = 0.45;
-    /** 이 램프 진행도부터 다중 대상 패턴의 난이도 추가 개수가 붙는다. */
+    /** (직접 적은 층 램프) 이 진행도부터 다중 대상 패턴의 난이도 추가 개수가 붙는다. */
     public static final double EXTRA_COUNT_RAMP = 0.5;
 
     public MechanicScaling {
@@ -28,7 +29,7 @@ public record MechanicScaling(int partySize, String difficulty, int phase, boole
         ramp = Double.isNaN(ramp) ? 1.0 : Math.max(0.0, Math.min(1.0, ramp));
     }
 
-    /** 램프 없음 (다 오른 층 = 난이도 원래 값). */
+    /** 램프 없음 = 난이도 값 그대로 (기본). */
     public MechanicScaling(int partySize, String difficulty, int phase, boolean enraged) {
         this(partySize, difficulty, phase, enraged, 1.0);
     }
@@ -53,7 +54,7 @@ public record MechanicScaling(int partySize, String difficulty, int phase, boole
 
     /**
      * 다중 대상 패턴(표식·장판·쫄 수)의 추가 개수: 어려움 = 인원 6명 이상일 때 +1, 악몽 = +1 (6명 이상이면 +2).
-     * 층 램프 진행도가 {@link #EXTRA_COUNT_RAMP} 미만이면 0.
+     * 직접 적은 층 램프의 진행도가 {@link #EXTRA_COUNT_RAMP} 미만이면 0 (기본은 램프가 없어 1층부터 붙는다).
      */
     public int extraCount() {
         if (ramp < EXTRA_COUNT_RAMP) return 0;
