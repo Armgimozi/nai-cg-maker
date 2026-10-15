@@ -29,10 +29,10 @@ import org.bukkit.scheduler.BukkitTask;
  * <ul>
  *   <li>강철 의지(수호기사): 받는 피해 −10%(스탯), 위협 ×2, HP 30% 이하 → 5초 피해 감소 +20% (60초 1회)</li>
  *   <li>피의 분노(광전사): 잃은 HP 비례 피해 +최대 25%(HP 50% 이하부터), 기본 공격 적중 시 MP 3</li>
- *   <li>매의 눈(사냥꾼): 끝까지 당긴 화살 +15%·MP 3, 12칸 이상 적에게 치명타 +8%</li>
+ *   <li>매의 눈(사냥꾼): 끝까지 당긴 화살 +30%·MP 3, 12칸 이상 적에게 치명타 +8%</li>
  *   <li>비전 공명(비전술사): 3명 이상 적중 시 MP 50% 환급(SkillContext), 서로 다른 스킬 4초 안 연계 +10%</li>
- *   <li>은총(사제): 넘친 치유 → 보호막, 치유 시 MP (SkillContext.heal)</li>
- *   <li>급소 찌르기(그림자): 등 뒤 치명타 +20%, 독 중첩 대상 치명타 시 독 지속시간 갱신</li>
+ *   <li>은총(사제): 마법 피해 +2% → Lv.45 +18% ({@link #graceMagicDamage}), 넘친 치유 → 보호막, 치유 시 MP (SkillContext.heal)</li>
+ *   <li>급소 찌르기(그림자): 치명타 피해 +50%, 등 뒤 치명타 +20%, 독 중첩 대상 치명타 시 독 지속시간 갱신</li>
  * </ul>
  */
 public final class ClassPassives implements DamageService.Hook, StatContributor {
@@ -80,12 +80,24 @@ public final class ClassPassives implements DamageService.Hook, StatContributor 
         Params pp = c.passive().params();
         switch (c.passive().id()) {
             case "iron_will" -> block.add("damage_reduction", pp.dbl("damage_reduction", 0.10));
+            case "vital_point" -> block.add("crit_damage", pp.dbl("crit_damage", 0.50));
+            case "grace" -> block.add("magic_damage", graceMagicDamage(services.data().get(player).level(),
+                    pp.dbl("magic_damage", 0.02), pp.dbl("magic_damage_per_level", 0.0036), pp.dbl("magic_damage_max", 0.20)));
             case "bloodrage" -> {
                 double bonus = bloodrageApplied.getOrDefault(player.getUniqueId(), 0.0);
                 if (bonus > 0) block.add("damage_mult", bonus);
             }
             default -> { }
         }
+    }
+
+    /**
+     * 사제 은총의 마법 피해 가산 = base + perLevel × (레벨 − 1), 0 ~ max. 초반(Lv.10 +5%)은 낮고 깊은 층(Lv.45 +18%)은 높다 —
+     * 0.3.5 기대값 모델에서 사제가 초반 +11% · 후반 −9% 로 벌어지던 것을 ±6% 안으로 (combat_spec §6.2).
+     */
+    static double graceMagicDamage(int level, double base, double perLevel, double max) {
+        double v = base + perLevel * (Math.max(1, level) - 1);
+        return Math.max(0, Math.min(max, v));
     }
 
     /** 광전사 피의 분노 보너스 = max_bonus × (threshold − HP비율) / threshold (0~max). */
@@ -131,7 +143,7 @@ public final class ClassPassives implements DamageService.Hook, StatContributor 
             case "iron_will" -> ctx.threat(ctx.threatMultiplier() * pp.dbl("threat_mult", 2.0));
             case "keen_eye" -> {
                 if (ctx.type() == DamageType.RANGED && !ctx.isSkill() && ctx.usesAttackPower() && ctx.attackMultiplier() >= 0.999) {
-                    ctx.amount(ctx.amount() * (1 + pp.dbl("full_draw_bonus", 0.15)));
+                    ctx.amount(ctx.amount() * (1 + pp.dbl("full_draw_bonus", 0.30)));
                 }
                 if (atk.getLocation().distanceSquared(target.getLocation()) >= Math.pow(pp.dbl("far_distance", 12), 2)) {
                     ctx.critBonus(pp.dbl("far_crit", 0.08));

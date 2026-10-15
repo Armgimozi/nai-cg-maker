@@ -64,9 +64,29 @@ public final class DamageService implements Module {
     @Override
     public String name() { return "combat"; }
 
+    private AttackClock clock;
+    private CombatListener listener;
+
     @Override
     public void enable() {
-        Bukkit.getPluginManager().registerEvents(new CombatListener(services, this), services.plugin());
+        clock = new AttackClock(services);
+        clock.start();
+        listener = new CombatListener(services, this, clock);
+        Bukkit.getPluginManager().registerEvents(listener, services.plugin());
+    }
+
+    @Override
+    public void disable() {
+        if (clock != null) clock.stop();
+        if (listener != null) org.bukkit.event.HandlerList.unregisterAll(listener);
+    }
+
+    /**
+     * 서버가 잰 활 당김 세기 0~1 (combat_spec §2.5) — 화살 피해·무기 스킬 '웅크리고 당겨 쏘기' 위력이 같은 값을 쓴다.
+     * @param vanillaForce 이벤트의 바닐라 세기 (당긴 시간을 못 읽을 때만 씀)
+     */
+    public double bowForce(Player p, double vanillaForce) {
+        return clock == null ? Math.max(0, Math.min(1, vanillaForce)) : clock.bowForce(p, vanillaForce);
     }
 
     public DamageNumbers numbers() { return numbers; }
@@ -131,9 +151,10 @@ public final class DamageService implements Module {
         Player attackerPlayer = ctx.attackerPlayer();
         DerivedStats atk = attackerPlayer != null ? services.stats().get(attackerPlayer) : null;
 
-        // 원피해 결정
+        // 원피해 결정 (0.3.5): 기준(기본 공격 = 무기 한 방 W, 스킬 = 스킬 위력 SP) × 피해 종류의 스탯 배율 × 배율
         if (ctx.usesAttackPower()) {
-            ctx.amount((atk != null ? atk.attackPower() : 1.0) * ctx.attackMultiplier());
+            ctx.kind(resolveKind(ctx, atk));
+            ctx.amount(rawAmount(atk, ctx.base(), ctx.kind(), ctx.attackMultiplier()));
         } else if (ctx.isPercent()) {
             ctx.amount(maxHp(target) * ctx.percent());
         }
@@ -217,6 +238,8 @@ public final class DamageService implements Module {
         } else {
             double before = target.getHealth();
             applyVanilla(target, finalDamage, ctx.attacker());
+            // 미궁 밖 바닐라 몹: 바닐라 무적 시간(10틱)이 빠른 무기의 다음 타격을 막지 않게 (공격 간격은 공격하는 쪽 시계가 지킨다)
+            if (attackerPlayer != null && !target.isDead()) target.setNoDamageTicks(0);
             dealt = Math.min(before, finalDamage);
             killed = target.isDead();
         }
@@ -237,11 +260,30 @@ public final class DamageService implements Module {
             DamageNumbers.Kind kind = out.blocked() || fullyAbsorbed ? DamageNumbers.Kind.BLOCK
                     : targetPlayer != null ? DamageNumbers.Kind.PLAYER_HURT
                     : out.crit() ? DamageNumbers.Kind.CRIT
-                    : ctx.type() == DamageType.TRUE ? DamageNumbers.Kind.TRUE : DamageNumbers.Kind.DAMAGE;
+                    : ctx.type() == DamageType.TRUE ? DamageNumbers.Kind.TRUE
+                    : ctx.effectiveKind() == DamageKind.MAGIC ? DamageNumbers.Kind.MAGIC : DamageNumbers.Kind.DAMAGE;
             numbers.show(target, finalDamage, kind);
         }
         if (targetPlayer != null) services.hud().refresh(targetPlayer);
         return ctx;
+    }
+
+    /** 피해 종류: 정해 둔 값 → 기본 공격이면 손에 든 무기의 종류 → 유형의 기본값. */
+    static DamageKind resolveKind(DamageContext ctx, DerivedStats atk) {
+        if (ctx.kind() != null) return ctx.kind();
+        if (atk != null && ctx.base() == DamageContext.Base.PER_HIT && !ctx.isSkill()) return atk.weaponKind();
+        return DamageKind.of(ctx.type());
+    }
+
+    /**
+     * 플레이어 공격의 원피해 (방어·치명 전) = 기준 × 피해 종류의 배율 × 배율 × (마법이면 1 + 마법 피해 가산).
+     * 공격자 능력치가 없으면 배율 그대로 (예전과 같음).
+     */
+    static double rawAmount(DerivedStats atk, DamageContext.Base base, DamageKind kind, double multiplier) {
+        if (atk == null) return multiplier;
+        double b = base == DamageContext.Base.SKILL ? atk.skillPower() : atk.weaponDamage();
+        double magic = kind == DamageKind.MAGIC ? atk.magicDamage() : kind == DamageKind.HYBRID ? 0.5 * atk.magicDamage() : 0;
+        return b * atk.power(kind) * multiplier * Math.max(0.1, 1.0 + magic);
     }
 
     /** 치유 (커스텀 HP 단위). 플레이어·커스텀 몹 공통. @return 실제 회복량 */

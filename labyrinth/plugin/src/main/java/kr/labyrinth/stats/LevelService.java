@@ -118,8 +118,30 @@ public final class LevelService implements Module {
 
     /** 순수 판정: 아직 안 받았으면 표시하고, 나눈 포인트가 있으면 무료 초기화를 되돌려 true. */
     static boolean grantRequirementReset(PlayerData d) {
-        if (Boolean.TRUE.equals(d.ext().get(REQ_RESET_FLAG))) return false;
-        d.ext().put(REQ_RESET_FLAG, true);
+        return grantFreeReset(d, REQ_RESET_FLAG);
+    }
+
+    /** PlayerData ext: 0.3.5 스탯 역할 변경(힘 = 물리 · 지능 = 마법 · 민첩 = 공속·치명·회피) 무료 초기화를 이미 받았는지. */
+    static final String ROLE_RESET_FLAG = "stats.role_reset_035";
+
+    /**
+     * 0.3.5 에서 스탯이 맡는 일이 바뀌었다 (공격력: 힘 = 물리, 지능 = 마법 · 민첩 = 공격 속도·치명·회피). 예전 판에서 포인트를 이미 나눈
+     * 플레이어에게 무료 초기화를 한 번 되돌려 준다 (접속할 때 한 번만, 0.3.4 {@link #ensureRequirementReset} 와 같은 모양).
+     */
+    public void ensureRoleReset(Player p) {
+        if (grantRoleReset(services.data().get(p))) {
+            Text.send(p, "<#c79bff>힘은 물리, 지능은 마법 공격력이 되었습니다. 민첩은 공격 속도·치명·회피입니다.</#c79bff> <gray>/스탯</gray> <white>에서 스탯 초기화를 한 번 무료로 할 수 있습니다.");
+        }
+    }
+
+    /** 순수 판정: 아직 안 받았으면 표시하고, 나눈 포인트가 있으면 무료 초기화를 되돌려 true (쌓이지 않음 — 이미 무료면 그대로). */
+    static boolean grantRoleReset(PlayerData d) {
+        return grantFreeReset(d, ROLE_RESET_FLAG);
+    }
+
+    private static boolean grantFreeReset(PlayerData d, String flag) {
+        if (Boolean.TRUE.equals(d.ext().get(flag))) return false;
+        d.ext().put(flag, true);
         d.markDirty();
         int spent = 0;
         for (int v : d.allocated().values()) spent += v;

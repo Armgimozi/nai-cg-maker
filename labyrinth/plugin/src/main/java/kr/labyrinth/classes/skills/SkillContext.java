@@ -5,9 +5,7 @@ import kr.labyrinth.Services;
 import kr.labyrinth.combat.DamageContext;
 import kr.labyrinth.combat.DamageType;
 import kr.labyrinth.content.ClassDef;
-import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.Params;
-import kr.labyrinth.content.WeaponTypes;
 import kr.labyrinth.mobs.CustomMob;
 import kr.labyrinth.stats.DerivedStats;
 import org.bukkit.entity.Entity;
@@ -119,15 +117,14 @@ public final class SkillContext {
     // ── 피해·치유 ─────────────────────────────────────────────────────────
 
     /**
-     * 직업 스킬 무기 환산 배율 (GDD §4.4) = 추천 무기 피해 배율 ÷ 든 무기 배율 — 무기 종류가 달라도 같은 단계면 직업 스킬 위력이 같다.
-     * 피해 순간마다 다시 본다(지속 스킬 도중 무기를 바꿔도 공격력과 환산이 함께 바뀐다).
+     * 직업 스킬 배율 (0.3.5) = classes.yml {@code skill_scale}. 직업 스킬 피해 = 스킬 위력 × 이 값 × 스킬 배율 — 스킬 위력이
+     * 무기 무게와 상관없으므로 무엇을 들든 같은 단계면 같다 (예전 '추천 무기 환산'을 대신함).
      */
     public double weaponScale() { return weaponScale(services, caster, classDef); }
 
-    /** {@link #weaponScale()} 의 정적 판 — 스킬 문맥 밖(독날 적중 등)에서 쓴다. 요구 능력치를 못 맞춘 무기는 '든 무기 없음'(1). */
+    /** {@link #weaponScale()} 의 정적 판 — 스킬 문맥 밖(독날 적중 등)에서 쓴다. */
     public static double weaponScale(Services services, Player player, ClassDef cls) {
-        ItemDef held = WeaponTypes.effective(services.items().heldWeapon(player), services.stats().requirementStats(player));
-        return WeaponTypes.classSkillScale(cls, held);
+        return cls == null ? 1.0 : cls.skillScale();
     }
 
     /**
@@ -138,7 +135,7 @@ public final class SkillContext {
 
     public static double dotRatio(double ratio, double scale) { return Math.min(0.95, ratio * scale); }
 
-    /** 공격력 × mult × 무기 환산의 스킬 피해. TargetFilter 로 적인지 다시 확인한다. @return 결과 (적이 아니면 null) */
+    /** 스킬 위력 × mult × 직업 스킬 배율의 스킬 피해. TargetFilter 로 적인지 다시 확인한다. @return 결과 (적이 아니면 null) */
     public DamageContext damage(LivingEntity target, double mult, DamageType type) {
         return damage(target, mult, type, 1.0, 0);
     }

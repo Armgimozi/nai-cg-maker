@@ -320,8 +320,23 @@ final class EquipmentListener implements Listener, StatContributor {
     public void onHeld(PlayerItemHeldEvent e) {
         // 조건 미달 무기 경고는 다시 계산할 때(contribute → warnUnmet) 한 번 — 여기서는 활 화살만
         Player p = e.getPlayer();
-        ItemDef def = services.items().defOf(p.getInventory().getItem(e.getNewSlot())).orElse(null);
+        ItemStack held = p.getInventory().getItem(e.getNewSlot());
+        ItemDef def = services.items().defOf(held).orElse(null);
         if (def != null && GearItemService.isBow(def)) Bukkit.getScheduler().runTask(services.plugin(), () -> ensureArrow(p));
+        // 손에 든 예전 장비(0.3.5 전 굴림)는 들 때도 옮겨 쓴다 (접속·상자·줍기에서 놓친 것)
+        if (def != null && def.isGear()) {
+            Integer ver = held.getPersistentDataContainer().get(Keys.ITEM_COMBAT_VER, PersistentDataType.INTEGER);
+            if (ItemMigration035.needed(def, ver == null ? 0 : ver)) {
+                int slot = e.getNewSlot();
+                Bukkit.getScheduler().runTask(services.plugin(), () -> {
+                    ItemStack it = p.getInventory().getItem(slot);
+                    if (it == null || services.items().defOf(it).map(d -> !d.id().equals(def.id())).orElse(true)) return;
+                    ItemStack copy = it.clone();
+                    services.items().refresh(copy);
+                    if (!copy.equals(it)) p.getInventory().setItem(slot, copy);
+                });
+            }
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR)

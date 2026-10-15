@@ -16,6 +16,7 @@ import kr.labyrinth.content.Range;
 import kr.labyrinth.content.StatRequirement;
 import kr.labyrinth.core.ContentLoader;
 import kr.labyrinth.items.EquipRules;
+import kr.labyrinth.items.ItemMigration035;
 import kr.labyrinth.items.ItemRolls;
 import kr.labyrinth.items.ItemTooltip;
 import kr.labyrinth.stats.Stat;
@@ -134,5 +135,66 @@ class ItemRollsTest {
                 .withRequires(StatRequirement.of(Map.of(Stat.LUK, 99), Map.of()));
         assertTrue(acc.requirement().isEmpty());
         assertEquals(EquipRules.Problem.NONE, EquipRules.check(acc, Map.of()));
+    }
+
+    // ── 0.3.5 굴림 옮기기 (ItemMigration035) ─────────────────────────────
+
+    @Test
+    void migrationKeepsRelativePositionInNewRange() {
+        Range old = new Range(20, 30), now = new Range(40, 60);
+        assertEquals(40, ItemMigration035.migrateDamage(20, old, now), "최소 → 최소");
+        assertEquals(60, ItemMigration035.migrateDamage(30, old, now), "최대 → 최대");
+        assertEquals(50, ItemMigration035.migrateDamage(25, old, now));
+        assertEquals(44, ItemMigration035.migrateDamage(22, old, now));
+        // 범위가 같으면 그대로, 폭 0 범위는 가운데로
+        assertEquals(27, ItemMigration035.migrateDamage(27, old, old));
+        assertEquals(15, ItemMigration035.migrateDamage(10, new Range(10, 10), new Range(14, 16)));
+        // 옛 범위 밖(관리자 지급 등)은 가운데값 비율 (25 → 50 = ×2)
+        assertEquals(80, ItemMigration035.migrateDamage(40, old, now));
+        assertEquals(10, ItemMigration035.migrateDamage(5, old, now));
+    }
+
+    @Test
+    void migrationTouchesOnlyWeaponDamageOnce() {
+        ItemDef sword = content.item("corridor_longsword");
+        Range old = ItemMigration035.OLD_DAMAGE.get(sword.id());
+        assertNotNull(old);
+        ItemDef rebased = withDamage(sword, new Range(8, 10)); // combat_spec 새 한 방 범위
+        Map<String, Double> rolls = new java.util.LinkedHashMap<>();
+        rolls.put("damage", old.max());
+        rolls.put("crit_chance", 0.031);
+        Map<String, Double> out = ItemMigration035.migrate(rebased, rolls);
+        assertEquals(10.0, out.get("damage"), 1e-9);
+        assertEquals(0.031, out.get("crit_chance"), 1e-9, "다른 스탯 굴림은 그대로");
+        assertEquals(rolls.get("damage"), old.max(), 1e-9, "입력 맵은 그대로");
+        // 지금 데이터(범위 같음)면 아무것도 안 바뀐다
+        assertEquals(rolls, ItemMigration035.migrate(sword, rolls));
+        // 깃발 35 면 다시 옮기지 않음, 장비가 아니면 옮길 것 없음
+        assertTrue(ItemMigration035.needed(sword, 0));
+        assertFalse(ItemMigration035.needed(sword, ItemMigration035.VERSION));
+        ItemDef potion = content.items().values().stream().filter(d -> d.type() == ItemType.CONSUMABLE).findFirst().orElseThrow();
+        assertFalse(ItemMigration035.needed(potion, 0));
+        // 방어구·표에 없는 무기는 피해 굴림을 건드리지 않음
+        ItemDef armor = content.items().values().stream().filter(d -> d.type() == ItemType.ARMOR).findFirst().orElseThrow();
+        assertEquals(Map.of("defense", 5.0), ItemMigration035.migrate(armor, Map.of("defense", 5.0)));
+    }
+
+    @Test
+    void migrationTableCoversAll034Weapons() {
+        assertEquals(131, ItemMigration035.OLD_DAMAGE.size());
+        for (Map.Entry<String, Range> e : ItemMigration035.OLD_DAMAGE.entrySet()) {
+            ItemDef d = content.item(e.getKey());
+            assertNotNull(d, e.getKey());
+            assertTrue(d.isWeapon(), e.getKey());
+            assertTrue(e.getValue().min() > 0 && e.getValue().max() >= e.getValue().min(), e.getKey());
+        }
+    }
+
+    private static ItemDef withDamage(ItemDef d, Range dmg) {
+        Map<String, Range> stats = new java.util.LinkedHashMap<>(d.stats());
+        stats.put("damage", dmg);
+        return new ItemDef(d.id(), d.name(), d.type(), d.weaponType(), d.armorSlot(), d.armorSet(), d.rarity(), d.levelReq(),
+                d.requires(), d.classes(), stats, d.setBonus(), d.aura(), d.weaponSkills(), d.floor(), d.pool(), d.sources(),
+                d.use(), d.model(), d.texture(), d.lore(), d.raw());
     }
 }

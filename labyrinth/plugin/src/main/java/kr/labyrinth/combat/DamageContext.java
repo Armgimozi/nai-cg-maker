@@ -5,6 +5,11 @@ import org.bukkit.entity.Player;
 
 /**
  * 피해 한 건의 입력 + 결과. 모든 피해는 {@link DamageService#deal(DamageContext)} 한 곳을 지난다.
+ * <p>
+ * 0.3.5 원피해 (플레이어 공격자, {@link #attack}): 기준 × 피해 종류의 스탯 배율 × multiplier.
+ * 기준 = {@link Base#PER_HIT}(기본 공격 — 무기 한 방 W) 또는 {@link Base#SKILL}(스킬 — 스킬 위력 SP, {@link #skill} 을 부르면 이것).
+ * 피해 종류 = {@link #kind(DamageKind)} 로 정한 값, 없으면 기본 공격은 손에 든 무기의 종류, 그 밖은 유형에서
+ * ({@link DamageKind#of}: 근접·원거리 물리 · 마법 마법 · 고정 고정).
  * <pre>
  * // 플레이어 스킬: 공격력 × 1.2 배율의 마법 피해
  * services.damage().deal(DamageContext.attack(player, target, 1.2, DamageType.MAGIC).skill("arcane_bolt"));
@@ -22,6 +27,8 @@ public final class DamageContext {
     private double attackMultiplier = Double.NaN;
     private double percent = Double.NaN;
     private DamageType type;
+    private DamageKind kind;
+    private Base base = Base.PER_HIT;
     private boolean skill;
     private boolean pattern;
     private boolean canCrit = true;
@@ -44,6 +51,9 @@ public final class DamageContext {
     private boolean killed;
     private boolean cancelled;
 
+    /** 원피해 기준: 무기 한 방 W(기본 공격) · 스킬 위력 SP(직업·무기 스킬). */
+    public enum Base { PER_HIT, SKILL }
+
     private DamageContext(LivingEntity attacker, LivingEntity target, DamageType type) {
         this.attacker = attacker;
         this.target = target;
@@ -64,6 +74,17 @@ public final class DamageContext {
         return c;
     }
 
+    /** 기본 공격: 무기 한 방 W × 손에 든 무기 피해 종류의 배율 × multiplier. */
+    public static DamageContext basic(Player attacker, LivingEntity target, double multiplier, DamageType type) {
+        return attack(attacker, target, multiplier, type);
+    }
+
+    /** 스킬 피해: 스킬 위력 SP × 피해 종류의 배율 × multiplier (skill_damage 적용). */
+    public static DamageContext skill(Player attacker, LivingEntity target, double multiplier, DamageType type, DamageKind kind,
+                                      String id) {
+        return attack(attacker, target, multiplier, type).kind(kind).skill(id);
+    }
+
     /** 대상 최대 HP × pct 의 TRUE 피해 (방어·회피·치명타·막기 무시, GDD §8.4 *_pct). */
     public static DamageContext percent(LivingEntity attacker, LivingEntity target, double pct) {
         DamageContext c = new DamageContext(attacker, target, DamageType.TRUE);
@@ -76,8 +97,12 @@ public final class DamageContext {
     }
 
     // ── 옵션 (체이닝) ─────────────────────────────────────────────────────
-    /** 직업·무기 스킬 피해 (skill_damage 적용). */
-    public DamageContext skill(String id) { this.skill = true; this.sourceId = id; return this; }
+    /** 직업·무기 스킬 피해 (skill_damage 적용, 원피해 기준 = 스킬 위력). */
+    public DamageContext skill(String id) { this.skill = true; this.base = Base.SKILL; this.sourceId = id; return this; }
+    /** 피해 종류 (null = 기본값). */
+    public DamageContext kind(DamageKind k) { this.kind = k; return this; }
+    /** 원피해 기준을 직접 정한다 (스킬이 한 방 기준을 쓰고 싶을 때 등). */
+    public DamageContext base(Base b) { this.base = b == null ? Base.PER_HIT : b; return this; }
     /** 보스 패턴/장판 피해: 회피 불가. */
     public DamageContext pattern(String id) { this.pattern = true; this.canEvade = false; this.sourceId = id; return this; }
     public DamageContext source(String id) { this.sourceId = id; return this; }
@@ -105,6 +130,11 @@ public final class DamageContext {
     public boolean isPercent() { return !Double.isNaN(percent); }
     public double percent() { return percent; }
     public DamageType type() { return type; }
+    /** 정해 둔 피해 종류 (없으면 null — DamageService 가 기본값으로 채운다). */
+    public DamageKind kind() { return kind; }
+    /** 실제 피해 종류 (정해 둔 값 → 유형의 기본값). DamageService 가 원피해를 정한 뒤에는 늘 채워져 있다. */
+    public DamageKind effectiveKind() { return kind != null ? kind : DamageKind.of(type); }
+    public Base base() { return base; }
     public boolean isSkill() { return skill; }
     public boolean isPattern() { return pattern; }
     public boolean canCrit() { return canCrit; }

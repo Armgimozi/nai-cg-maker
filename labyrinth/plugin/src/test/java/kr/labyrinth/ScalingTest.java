@@ -39,7 +39,7 @@ class ScalingTest {
     @Test
     void difficultiesAreOneSetForAllFloors() {
         // 0.3.3: 난이도마다 배율 한 벌 — 1층부터 마지막 층까지 같은 값, 보스 기믹 진행도도 1
-        assertRamp(Difficulty.HARD, 1.4, 1.3, 0.9);
+        assertRamp(Difficulty.HARD, 1.45, 1.3, 0.9); // 0.3.5: 어려움 HP 1.4 → 1.45
         assertRamp(Difficulty.NIGHTMARE, 1.8, 1.6, 0.85);
         assertEquals(1.3, Difficulty.HARD.drop(), 1e-9);
         assertEquals(1.8, Difficulty.NIGHTMARE.drop(), 1e-9);
@@ -89,8 +89,8 @@ class ScalingTest {
         // 새 어려움 값 위에 직접 적은 1→4층 램프
         Difficulty hard = Difficulty.HARD.withRamp(new Difficulty.Ramp(1, 4, 1.1, 1.0, 1.0));
         assertRamp(hard.atFloor(1), 1.1, 1.0, 1.0);
-        assertRamp(hard.atFloor(2), 1.2, 1.1, 1.0 - 0.1 / 3);
-        assertRamp(hard.atFloor(4), 1.4, 1.3, 0.9);
+        assertRamp(hard.atFloor(2), 1.1 + 0.35 / 3, 1.1, 1.0 - 0.1 / 3);
+        assertRamp(hard.atFloor(4), 1.45, 1.3, 0.9);
         assertTrue(hard.rampsAtFloor1());
         assertEquals(1.0, new Difficulty.Ramp(3, 3, 1, 1, 1).progress(1), 1e-9, "full ≤ from = 램프 없음");
     }
@@ -115,7 +115,7 @@ class ScalingTest {
             assertSame(Difficulty.NIGHTMARE, solo.difficulty());
         }
         InstanceContext party = InstanceContext.adhoc(6, 4, Difficulty.HARD, PartyScaling.DEFAULT);
-        assertEquals(1.4 * (1 + 0.6 * 3), party.hpMultiplier(), 1e-9);
+        assertEquals(1.45 * (1 + 0.6 * 3), party.hpMultiplier(), 1e-9);
         assertEquals(1.3 * (1 + 0.08 * 3), party.damageMultiplier(), 1e-9);
         assertEquals(1.0, party.rampProgress(), 1e-9);
     }
@@ -152,7 +152,7 @@ class ScalingTest {
     void instanceMultipliersCombineDifficultyAndParty() {
         InstanceContext ctx = InstanceContext.adhoc(3, 4, Difficulty.HARD, PartyScaling.DEFAULT);
         assertEquals(4, ctx.partySize());
-        assertEquals(1.4 * (1 + 0.6 * 3), ctx.hpMultiplier(), 1e-9);
+        assertEquals(1.45 * (1 + 0.6 * 3), ctx.hpMultiplier(), 1e-9);
         assertEquals(1.3 * (1 + 0.08 * 3), ctx.damageMultiplier(), 1e-9);
         assertEquals(1.3 * (1 + 0.05 * 3), ctx.dropMultiplier(), 1e-9);
         assertEquals(1.3, ctx.xpMultiplier(), 1e-9);
@@ -273,6 +273,79 @@ class ScalingTest {
               nightmare: {name: "악몽",   hp: 2.4, damage: 2.0, drop: 1.8, xp: 1.7, telegraph: 0.7,
                           ramp: {from_floor: 1, full_floor: 6, start: {hp: 1.8, damage: 1.6, telegraph: 0.85}}}
             """;
+
+    /** 0.3.4 jar 의 config.yml 이 적어 둔 어려움 (HP 1.4). */
+    private static final String CONFIG_034 = """
+            difficulties:
+              hard:      {name: "어려움", hp: 1.4, damage: 1.3, drop: 1.3, xp: 1.3, telegraph: 0.9}
+              nightmare: {name: "악몽",   hp: 1.8, damage: 1.6, drop: 1.8, xp: 1.7, telegraph: 0.85}
+            """;
+
+    @Test
+    void legacy034HardHpUpgradesTo145EditedValuesKept() throws Exception {
+        // 0.3.5: 손대지 않은 0.3.4 어려움 HP 1.4 → 1.45 (combat_spec §10.1, 0.3.2 승격과 같은 방식)
+        Settings s = new Settings(yaml(CONFIG_034));
+        assertEquals(Difficulty.HARD, s.difficulty("hard"));
+        assertEquals(1.45, s.difficulty("hard").hp(), 1e-9);
+        assertEquals(Difficulty.NIGHTMARE, s.difficulty("nightmare"));
+        assertEquals(Difficulty.LEGACY_HARD_034, Difficulty.legacy034("hard"));
+        assertNull(Difficulty.legacy034("nightmare"));
+        // 직접 고친 값은 키마다 그대로 (HP 만 고친 서버는 HP 만, 피해를 고친 서버는 HP 만 새 값)
+        Settings edited = new Settings(yaml("""
+                difficulties:
+                  hard: {hp: 1.6, damage: 1.3, drop: 1.3, xp: 1.3, telegraph: 0.9}
+                """));
+        assertEquals(1.6, edited.difficulty("hard").hp(), 1e-9);
+        Settings dmgEdited = new Settings(yaml("""
+                difficulties:
+                  hard: {hp: 1.4, damage: 1.5, drop: 1.3, xp: 1.3, telegraph: 0.9}
+                """));
+        assertEquals(1.45, dmgEdited.difficulty("hard").hp(), 1e-9);
+        assertEquals(1.5, dmgEdited.difficulty("hard").damage(), 1e-9);
+        // 0.3.2 값(1.5/1.4/0.85)을 둔 서버도 곧바로 새 값
+        Settings v032 = new Settings(yaml("""
+                difficulties:
+                  hard: {hp: 1.5, damage: 1.4, telegraph: 0.85}
+                """));
+        assertEquals(Difficulty.HARD, v032.difficulty("hard"));
+        // 직접 적은 램프가 있으면 숫자를 적힌 그대로 (승격 없음)
+        Settings ramped = new Settings(yaml("""
+                difficulties:
+                  hard: {hp: 1.4, damage: 1.3, telegraph: 0.9, ramp: {from_floor: 1, full_floor: 4, start: {hp: 1.1}}}
+                """));
+        assertEquals(1.4, ramped.difficulty("hard").hp(), 1e-9);
+    }
+
+    @Test
+    void combatKeysDefaultAndRead() throws Exception {
+        Settings bare = new Settings(yaml("difficulty: normal"));
+        Settings.Combat c = bare.combat();
+        assertEquals(Settings.Combat.DEFAULT, c);
+        assertEquals(0.25, c.attackIntervalMin(), 1e-9);
+        assertEquals(0.35, c.earlyClickBuffer(), 1e-9);
+        assertTrue(c.earlyClickSound());
+        assertEquals(50, c.clickToleranceMs());
+        assertEquals(1.2, c.jumpCrit(), 1e-9);
+        assertTrue(c.bowFullDrawCue());
+        assertEquals(1.6, bare.unarmedAttackSpeed(), 1e-9);
+        assertTrue(bare.ignoredWeaponSpeedKeys().isEmpty());
+        Settings custom = new Settings(yaml("""
+                combat: {early_click_buffer: 0, early_click_sound: false, attack_interval_min: 0.3}
+                weapon_attack_speed: {none: 2.0, sword_shield: 1.5, greatsword: 0.95}
+                """));
+        assertEquals(0.0, custom.combat().earlyClickBuffer(), 1e-9, "0 = 기억창 끔");
+        assertFalse(custom.combat().earlyClickSound());
+        assertEquals(0.3, custom.combat().attackIntervalMin(), 1e-9);
+        assertEquals(2.0, custom.unarmedAttackSpeed(), 1e-9);
+        assertEquals(List.of("sword_shield", "greatsword"), custom.ignoredWeaponSpeedKeys(), "예전 종류 키는 읽지 않음");
+        // jar 의 config.yml = 코드 기본값
+        YamlConfiguration jar = new YamlConfiguration();
+        jar.load(new java.io.File("src/main/resources/config.yml"));
+        Settings js = new Settings(jar);
+        assertEquals(Settings.Combat.DEFAULT, js.combat());
+        assertTrue(js.ignoredWeaponSpeedKeys().isEmpty());
+        assertEquals(Difficulty.HARD, js.difficulty("hard"));
+    }
 
     @Test
     void legacy032DifficultyValuesUpgradeToUnifiedDefaults() throws Exception {

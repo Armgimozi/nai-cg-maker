@@ -321,7 +321,8 @@ public final class LabWeaponSkillService implements WeaponSkillService, Listener
     public void onShoot(org.bukkit.event.entity.EntityShootBowEvent e) {
         if (!(e.getEntity() instanceof Player p) || !p.isSneaking()) return;
         if (!isBowWithSneakShot(p)) return;
-        if (handle(p, Input.SNEAK_RIGHT, Math.max(0, Math.min(1, e.getForce())))) {
+        // 당김 세기 = 서버가 잰 세기 (화살 피해와 같은 값, combat_spec §2.5)
+        if (handle(p, Input.SNEAK_RIGHT, Math.max(0, Math.min(1, services.damage().bowForce(p, e.getForce()))))) {
             e.setCancelled(true); // 취소하면 화살도 소모되지 않는다 (미궁 활은 무한)
         }
     }

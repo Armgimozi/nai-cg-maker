@@ -13,12 +13,13 @@ difficulty: ""
 #   어려움·악몽은 밸런스 시뮬레이터로 고른 값: 악몽 1층 솔로(숙련) 클리어율 약 50%, 깊은 층일수록 여전히 가장 어렵다.
 #   0.3.2 에서 그대로 둔 값(어려움 1.5/1.4/0.85 · 악몽 2.4/2.0/0.7 과 그때의 ramp 묶음)은 자동으로 위 새 값으로 바뀐다
 #   (예전 값을 1층부터 그대로 쓰려면 그 줄에 ramp: false 를 함께 적는다).
+#   0.3.5: 어려움 HP 1.4 → 1.45 (공격 게이지가 없어져 1층이 쉬워진 만큼). 0.3.4 의 1.4 를 그대로 둔 서버는 자동으로 1.45 가 된다.
 #   (선택) ramp: {from_floor: 1, full_floor: 5, start: {hp: 1.2, damage: 1.1, telegraph: 0.95}} 처럼 직접 적으면 층 램프를 쓸 수 있다
 #         — from_floor 층에서 start 값으로 시작해 full_floor 층부터 위의 값 (hp·damage·telegraph 와 보스 패턴 배율만, 보상은 1층부터).
 difficulties:
   easy:      {name: "쉬움",   hp: 0.7, damage: 0.6, drop: 0.8, xp: 0.8, telegraph: 1.3}
   normal:    {name: "보통",   hp: 1.0, damage: 1.0, drop: 1.0, xp: 1.0, telegraph: 1.0}
-  hard:      {name: "어려움", hp: 1.4, damage: 1.3, drop: 1.3, xp: 1.3, telegraph: 0.9}
+  hard:      {name: "어려움", hp: 1.45, damage: 1.3, drop: 1.3, xp: 1.3, telegraph: 0.9}
   nightmare: {name: "악몽",   hp: 1.8, damage: 1.6, drop: 1.8, xp: 1.7, telegraph: 0.85}
 
 # 파티 — 인원 n 명일 때 몹 HP ×(1 + hp_per_member×(n−1)), 피해 ×(1 + dmg_per_member×(n−1)),
@@ -100,6 +101,13 @@ combat:
   base_crit_damage: 1.5
   # 낙하·불·익사·바닐라 몹 등 바닐라 피해를 '최대 HP 20 기준 비율'로 환산 (HP 가 커져도 바닐라처럼 위험하게)
   scale_vanilla_damage: true
+  # 0.3.5 — 공격 게이지 없음: 서버가 무기마다 공격 간격을 지키고, 맞으면 언제나 온전한 피해 (무기 간격은 items.yml attack.interval)
+  attack_interval_min: 0.25    # 민첩·공속을 다 쌓아도 이보다 빠르지 않다 (초)
+  early_click_buffer: 0.35     # 간격이 끝나기 이 시간 안의 클릭은 기억했다가 끝나는 순간 넣는다 (0 = 끔)
+  early_click_sound: true      # 너무 이른 클릭에 작은 '휙' 소리 (본인만)
+  click_tolerance_ms: 50       # 이만큼 이른 클릭은 그냥 통과 (지연 보정)
+  jump_crit: 1.2               # 떨어지며 친 근접 공격
+  bow_full_draw_cue: true      # 활을 끝까지 당기면 작은 '탁' 소리 (본인만)
 
 # 플레이어끼리 싸우기 (PvP) — 따로 신청하는 대전 없이 규칙 하나:
 #   같은 파티원끼리는 야생·마을·미궁 어디서든 서로 피해를 줄 수 없고, 그 밖의 플레이어끼리는 피해를 줄 수 있다.
@@ -166,15 +174,10 @@ death:
   keep_inventory: true
   keep_level: true
 
-# 무기 타입별 기본 공격 속도(초당 공격 횟수). attack_speed 스탯이 % 로 곱해진다.
+# 맨손 공격 속도 (초당 횟수). 0.3.5 부터 무기는 저마다 items.yml attack.interval 을 쓰고, 이 표는 none(맨손)만 읽는다.
+#   공격 속도 스탯 = 민첩 0.5%/점(최대 +45%) + 장비·버프, 합계 최대 +75% — 간격 ÷ (1 + 공격 속도).
 weapon_attack_speed:
   none: 1.6
-  sword_shield: 1.5
-  greatsword: 0.95
-  dagger: 2.2
-  bow: 1.2
-  staff: 1.1
-  scepter: 1.3
 
 # 강화 — 대장장이 두르간의 [강화] (GDD §11.13). 미궁 무기·방어구·방패만 (장신구·바닐라 장비는 강화 불가).
 # 목록은 목표 단계 +1, +2, … 순서. 모자라면 마지막 값을 계속 쓴다.

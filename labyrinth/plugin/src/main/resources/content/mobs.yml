@@ -701,10 +701,12 @@ mobs:
     gold: [30, 60]
     ai: caster
     skills:
-      - {type: summon, cooldown: 16, params: {mob: capcap, count: 3, max_alive: 6, solo_count: 2, solo_max_alive: 3, radius: 4}}
+      # 0.3.5: 소환을 줄이고(16초 3·최대 6 → 24초 2·최대 3, 솔로 1·최대 2) 군락 치유를 약하게(14초 15% → 25초 5%) —
+      #   정예방이 20~90초 안에 끝나게 (시뮬레이터: 솔로 보통 28~89초, 예전 38초~끝나지 않음)
+      - {type: summon, cooldown: 24, params: {mob: capcap, count: 2, max_alive: 3, solo_count: 1, solo_max_alive: 2, radius: 4}}
       - {type: projectile, cooldown: 6, params: {fx: proj_spore, speed: 0.6, damage: 1.0, count: 3, spread: 25, gravity: true, range: 18, windup: 0.8, pool_radius: 2, pool_duration: 6, effect: poison, effect_duration: 3}}
       - {type: aura, cooldown: 0, params: {radius: 5, effect: infection, amount: 1, interval: 2.0}}
-      - {type: heal_allies, cooldown: 14, params: {radius: 10, amount: 0.15}}
+      - {type: heal_allies, cooldown: 25, params: {radius: 10, amount: 0.05}}
     drops: spore_mother
     sounds: {ambient: "minecraft:block.fungus.place", hurt: "minecraft:block.slime_block.hit", death: "minecraft:block.slime_block.break", pitch: 0.5}
     model:

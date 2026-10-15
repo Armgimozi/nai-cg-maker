@@ -32,6 +32,14 @@ public interface ItemService {
     /** 굴린 스탯 (키 = GDD §11.7, 강화 단계 배율 포함 — GDD §11.13). 굴림이 없으면 빈 맵. */
     Map<String, Double> rolledStats(ItemStack stack);
 
+    /**
+     * 스킬 위력 기준 무기 피해 = 그 무기 피해 범위의 가운데값 × 강화 배율 (combat_spec §3 'W 가운데값').
+     * 굴림 운이 스킬 위력을 흔들지 않는다. 기본 구현은 굴린 피해 그대로.
+     */
+    default double midDamage(ItemStack stack) {
+        return rolledStats(stack).getOrDefault("damage", 0.0);
+    }
+
     /** 이름·툴팁을 아이템 PDC(굴림값·강화 단계)에서 다시 그린다. 기본 구현은 아무것도 안 한다. */
     default void refresh(ItemStack stack) {}
 

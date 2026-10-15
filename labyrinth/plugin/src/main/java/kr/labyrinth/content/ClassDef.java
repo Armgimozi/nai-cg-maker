@@ -32,6 +32,21 @@ public record ClassDef(
 
     public int baseStat(Stat s) { return baseStats.getOrDefault(s, 0); }
 
+    /**
+     * 직업 스킬 배율 (classes.yml {@code skill_scale}, 0.3.5) — 직업 스킬 피해 = 스킬 위력 × skill_scale × 스킬 배율.
+     * 무기가 무엇이든 같다 (스킬 위력이 무기 무게와 상관없음). 키가 없으면(직접 고친 예전 classes.yml) 직업 id 의 0.3.5 기본값,
+     * 모르는 직업은 1.
+     */
+    public double skillScale() {
+        double def = DEFAULT_SKILL_SCALE.getOrDefault(id, 1.0);
+        double v = raw == null ? def : raw.dbl("skill_scale", def);
+        return v > 0 ? v : def;
+    }
+
+    /** 0.3.5 기본 직업 스킬 배율 (= jar 의 classes.yml). 옛 추천 무기 배율을 직업으로 옮김 (시전 ÷1.05), 그림자 0.62 → 0.70. */
+    public static final Map<String, Double> DEFAULT_SKILL_SCALE = Map.of("guardian", 1.00, "berserker", 1.55, "hunter", 1.55,
+            "arcanist", 1.05, "priest", 0.90, "shadow", 0.70);
+
     public SkillDef skillByInput(String input) {
         for (SkillDef s : skills) if (s.input().equalsIgnoreCase(input)) return s;
         return null;

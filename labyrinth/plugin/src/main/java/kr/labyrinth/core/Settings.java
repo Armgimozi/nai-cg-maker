@@ -28,7 +28,10 @@ public final class Settings {
     private final int autosaveMinutes;
     private final Combat combat;
     private final Level level;
-    private final Map<String, Double> weaponAttackSpeed;
+    private final double unarmedAttackSpeed;
+    private final List<String> ignoredWeaponSpeedKeys;
+    /** 맨손 초당 공격 횟수 기본값 (간격 0.625초). */
+    public static final double DEFAULT_UNARMED_SPEED = 1.6;
     private final List<KitItem> starterKit;
     private final int starterGold;
     private final Death death;
@@ -48,8 +51,34 @@ public final class Settings {
     public record Pack(boolean enabled, int port, String bind, String publicHost, int publicPort, String url, String sha1,
                        boolean required, boolean kickOnDecline, boolean updateFromJar, String prompt) {}
 
+    /**
+     * combat — 0.3.5 게이지 없는 공격 키가 없으면 코드 기본값({@link #DEFAULT}, jar 의 config.yml 과 같음).
+     * @param attackIntervalMin 민첩·공속을 다 쌓아도 이보다 빠르지 않다 (초)
+     * @param earlyClickBuffer  간격이 끝나기 이 시간(초) 안의 클릭은 기억했다가 끝나는 순간 넣는다 (0 = 끔)
+     * @param earlyClickSound   너무 이른 클릭에 작은 '휙' 소리 (본인만)
+     * @param clickToleranceMs  이만큼 이른 클릭은 그냥 통과 (지연 보정)
+     * @param jumpCrit          떨어지며 친 근접 공격 배율
+     * @param bowFullDrawCue    활을 끝까지 당기면 작은 '탁' 소리 (본인만)
+     */
     public record Combat(boolean damageNumbers, int damageNumberTicks, double baseCritChance, double baseCritDamage,
-                         boolean scaleVanillaDamage) {}
+                         boolean scaleVanillaDamage, double attackIntervalMin, double earlyClickBuffer,
+                         boolean earlyClickSound, int clickToleranceMs, double jumpCrit, boolean bowFullDrawCue) {
+        public static final Combat DEFAULT = new Combat(true, 16, 0.05, 1.5, true, 0.25, 0.35, true, 50, 1.2, true);
+
+        /** 0.3.4 판 생성자 (새 키는 기본값). */
+        public Combat(boolean damageNumbers, int damageNumberTicks, double baseCritChance, double baseCritDamage,
+                      boolean scaleVanillaDamage) {
+            this(damageNumbers, damageNumberTicks, baseCritChance, baseCritDamage, scaleVanillaDamage, 0.25, 0.35, true, 50,
+                    1.2, true);
+        }
+
+        public Combat {
+            attackIntervalMin = Double.isNaN(attackIntervalMin) ? 0.25 : Math.max(0.05, Math.min(2.0, attackIntervalMin));
+            earlyClickBuffer = Double.isNaN(earlyClickBuffer) ? 0 : Math.max(0, Math.min(1.0, earlyClickBuffer));
+            clickToleranceMs = Math.max(0, Math.min(250, clickToleranceMs));
+            jumpCrit = Double.isNaN(jumpCrit) ? 1.2 : Math.max(1.0, Math.min(3.0, jumpCrit));
+        }
+    }
 
     /** startPoints = Lv.1 에서 받는 스탯 포인트(레벨업 전에도 분배할 수 있게), pointsPerLevel = 레벨이 오를 때마다. */
     public record Level(int max, int startPoints, int pointsPerLevel, double xpA, double xpExp, double xpB) {
@@ -145,17 +174,26 @@ public final class Settings {
                 c.getBoolean("pack.kick_on_decline", false), c.getBoolean("pack.update_from_jar", true),
                 c.getString("pack.prompt", "<gray>미궁 라비린스 전용 리소스팩입니다.</gray>"));
         this.autosaveMinutes = Math.max(1, c.getInt("data.autosave_minutes", 5));
+        Combat cd = Combat.DEFAULT;
         this.combat = new Combat(c.getBoolean("combat.damage_numbers", true),
                 Math.max(4, c.getInt("combat.damage_number_ticks", 16)), c.getDouble("combat.base_crit_chance", 0.05),
-                c.getDouble("combat.base_crit_damage", 1.5), c.getBoolean("combat.scale_vanilla_damage", true));
+                c.getDouble("combat.base_crit_damage", 1.5), c.getBoolean("combat.scale_vanilla_damage", true),
+                c.getDouble("combat.attack_interval_min", cd.attackIntervalMin()),
+                c.getDouble("combat.early_click_buffer", cd.earlyClickBuffer()),
+                c.getBoolean("combat.early_click_sound", cd.earlyClickSound()),
+                c.getInt("combat.click_tolerance_ms", cd.clickToleranceMs()),
+                c.getDouble("combat.jump_crit", cd.jumpCrit()),
+                c.getBoolean("combat.bow_full_draw_cue", cd.bowFullDrawCue()));
         this.level = new Level(Math.max(1, c.getInt("level.max", 50)), Math.max(0, c.getInt("level.start_points", 5)),
                 c.getInt("level.points_per_level", 5),
                 c.getDouble("level.xp_a", 40), c.getDouble("level.xp_exp", 1.6), c.getDouble("level.xp_b", 60));
-        Map<String, Double> was = new LinkedHashMap<>();
+        // 0.3.5: 무기마다 items.yml attack.interval — 이 표는 none(맨손)만 읽는다. 예전 종류 키(sword_shield …)는 무시.
         ConfigurationSection ws = c.getConfigurationSection("weapon_attack_speed");
-        if (ws != null) for (String k : ws.getKeys(false)) was.put(k, ws.getDouble(k));
-        was.putIfAbsent("none", 1.6);
-        this.weaponAttackSpeed = Collections.unmodifiableMap(was);
+        double none = ws == null ? DEFAULT_UNARMED_SPEED : ws.getDouble("none", DEFAULT_UNARMED_SPEED);
+        this.unarmedAttackSpeed = none > 0 ? Math.min(20, none) : DEFAULT_UNARMED_SPEED;
+        List<String> ignored = new ArrayList<>();
+        if (ws != null) for (String k : ws.getKeys(false)) if (!"none".equals(k)) ignored.add(k);
+        this.ignoredWeaponSpeedKeys = List.copyOf(ignored);
         this.starterKit = Boolean.FALSE.equals(c.get("starter_kit")) ? List.of()
                 : starterKit(c.getConfigurationSection("starter_kit"));
         this.starterGold = starterKit.isEmpty() ? 0 : Math.max(0, c.getInt("starter_kit.gold", DEFAULT_STARTER_GOLD));
@@ -180,8 +218,9 @@ public final class Settings {
      * difficulties.&lt;id&gt; 한 줄 — 난이도마다 배율 한 벌 (층 램프 없음이 기본, 0.3.3).
      * <ul>
      *   <li>빠진 키 = 코드 기본값({@link Difficulty#defaultFor}, 모르는 id 면 보통).</li>
-     *   <li>예전 판(0.3.2)이 적어 둔 어려움·악몽 값({@link Difficulty#legacy032})과 같은 키는 '안 고친 값'으로 보고 새 기본값을 쓴다
-     *       (시작 꾸러미와 같은 방식). 다른 값은 직접 고친 값이므로 그대로.</li>
+     *   <li>예전 판(0.3.2·0.3.4)이 적어 둔 어려움·악몽 값({@link Difficulty#legacy032}·{@link Difficulty#legacy034})과 같은 키는
+     *       '안 고친 값'으로 보고 새 기본값을 쓴다 (시작 꾸러미와 같은 방식). 다른 값은 직접 고친 값이므로 그대로.
+     *       0.3.5: 어려움 HP 1.4(0.3.4)·1.5(0.3.2) → 1.45.</li>
      *   <li>ramp: 0.3.2 의 jar 기본 램프({@link Difficulty.Ramp#legacy032}) 그대로거나 비어 있으면 지운다(= 통합).
      *       직접 고친 램프는 계속 따르고, 그 난이도는 숫자를 적힌 그대로 쓴다(램프가 그 숫자에 맞춰졌으므로 예전 값 승격 없음).
      *       {@code ramp: false}·{@code ramp: {enabled: false}} 도 직접 고친 것 — "예전 값을 1층부터" 그대로 쓴다.</li>
@@ -196,15 +235,19 @@ public final class Settings {
         Difficulty.Ramp r = off ? null : ramp(rs, read);
         if (off || (r != null && !r.equals(Difficulty.Ramp.legacy032(id)))) return read.withRamp(r); // 직접 고친 램프 (끈 것 포함)
         Difficulty old = Difficulty.legacy032(id);
-        if (old == null) return read;
-        return new Difficulty(id, read.name(), upgrade(read.hp(), old.hp(), def.hp()), upgrade(read.damage(), old.damage(), def.damage()),
-                upgrade(read.drop(), old.drop(), def.drop()), upgrade(read.xp(), old.xp(), def.xp()),
-                upgrade(read.telegraph(), old.telegraph(), def.telegraph()));
+        Difficulty old034 = Difficulty.legacy034(id);
+        if (old == null && old034 == null) return read;
+        return new Difficulty(id, read.name(), upgrade(read.hp(), def.hp(), old == null ? null : old.hp(), old034 == null ? null : old034.hp()),
+                upgrade(read.damage(), def.damage(), old == null ? null : old.damage(), old034 == null ? null : old034.damage()),
+                upgrade(read.drop(), def.drop(), old == null ? null : old.drop(), old034 == null ? null : old034.drop()),
+                upgrade(read.xp(), def.xp(), old == null ? null : old.xp(), old034 == null ? null : old034.xp()),
+                upgrade(read.telegraph(), def.telegraph(), old == null ? null : old.telegraph(), old034 == null ? null : old034.telegraph()));
     }
 
-    /** 예전 기본값과 같으면 새 기본값, 아니면 적힌 값. */
-    private static double upgrade(double v, double legacy, double now) {
-        return Math.abs(v - legacy) < 1e-9 ? now : v;
+    /** 예전 판 기본값(0.3.2·0.3.4) 중 하나와 같으면 새 기본값, 아니면 적힌 값. */
+    private static double upgrade(double v, double now, Double... legacy) {
+        for (Double l : legacy) if (l != null && Math.abs(v - l) < 1e-9) return now;
+        return v;
     }
 
     /**
@@ -281,8 +324,9 @@ public final class Settings {
     /** 직업 변경 제한 (전직의 두루마리·대기 시간). */
     public ClassChange classChange() { return classChange; }
 
-    public double weaponAttackSpeed(String weaponType) {
-        if (weaponType == null) return weaponAttackSpeed.get("none");
-        return weaponAttackSpeed.getOrDefault(weaponType, weaponAttackSpeed.get("none"));
-    }
+    /** 맨손 초당 공격 횟수 (config weapon_attack_speed.none). 무기는 저마다 items.yml attack.interval. */
+    public double unarmedAttackSpeed() { return unarmedAttackSpeed; }
+
+    /** config weapon_attack_speed 에 남은 예전 종류 키 (0.3.5 부터 읽지 않음 — 켤 때 정보 로그 한 줄). */
+    public List<String> ignoredWeaponSpeedKeys() { return ignoredWeaponSpeedKeys; }
 }

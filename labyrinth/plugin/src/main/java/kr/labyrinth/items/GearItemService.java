@@ -82,7 +82,8 @@ public final class GearItemService implements ItemService {
         };
     }
 
-    static boolean isBow(ItemDef def) { return def.isWeapon() && "bow".equals(def.weaponType()); }
+    /** 활 = 공격 방식이 원거리인 무기 (바닐라 BOW 로 만들어 당겨 쏜다). */
+    static boolean isBow(ItemDef def) { return def.isWeapon() && kr.labyrinth.combat.WeaponAttack.of(def).ranged(); }
 
     /** 정의 → 아이템. 장비면 seed 로 스탯을 굴린다. */
     public ItemStack build(ItemDef def, long seed, int amount) {
@@ -116,6 +117,7 @@ public final class GearItemService implements ItemService {
                 pdc.set(Keys.ITEM_SEED, PersistentDataType.LONG, seed);
                 pdc.set(Keys.ITEM_ROLLS, PersistentDataType.STRING, ItemRolls.encode(rolls));
                 pdc.set(Keys.ITEM_VERSION, PersistentDataType.INTEGER, ITEM_VERSION);
+                pdc.set(Keys.ITEM_COMBAT_VER, PersistentDataType.INTEGER, ItemMigration035.VERSION);
             }
         });
         render(s, def);
@@ -205,9 +207,28 @@ public final class GearItemService implements ItemService {
         return Optional.ofNullable(services.content().item(id));
     }
 
+    /** 0.3.5 굴림 옮기기를 PDC 에 써 넣고(옮길 것이 있으면) 이름·툴팁을 다시 그린다 — 접속·상자 열기·줍기·손 바꿈 때 불린다. */
     @Override
     public void refresh(ItemStack stack) {
-        defOf(stack).ifPresent(def -> render(stack, def));
+        defOf(stack).ifPresent(def -> {
+            migrate(stack, def);
+            render(stack, def);
+        });
+    }
+
+    /** 깃발이 35 보다 낮은 장비의 굴림을 0.3.5 범위로 옮겨 PDC 에 쓴다 (ItemMigration035). @return 바꿨으면 true */
+    static boolean migrate(ItemStack stack, ItemDef def) {
+        if (stack == null || def == null || !def.isGear()) return false;
+        var pdc = stack.getPersistentDataContainer();
+        Integer ver = pdc.get(Keys.ITEM_COMBAT_VER, PersistentDataType.INTEGER);
+        if (!ItemMigration035.needed(def, ver == null ? 0 : ver)) return false;
+        String enc = pdc.get(Keys.ITEM_ROLLS, PersistentDataType.STRING);
+        Map<String, Double> rolls = enc == null ? Map.of() : ItemRolls.decode(enc);
+        stack.editPersistentDataContainer(w -> {
+            if (!rolls.isEmpty()) w.set(Keys.ITEM_ROLLS, PersistentDataType.STRING, ItemRolls.encode(ItemMigration035.migrate(def, rolls)));
+            w.set(Keys.ITEM_COMBAT_VER, PersistentDataType.INTEGER, ItemMigration035.VERSION);
+        });
+        return true;
     }
 
     /** 굴림값 × 강화 배율 (GDD §11.13 — 무기 피해, 방어구·방패 방어·HP). */
@@ -220,13 +241,31 @@ public final class GearItemService implements ItemService {
         return lv > 0 ? Enhancement.rules().apply(def.get(), base, lv) : base;
     }
 
-    /** 강화 전 굴림값 (PDC 굴림 → 시드 재현 → 범위 중간값 순). */
+    @Override
+    public double midDamage(ItemStack stack) {
+        Optional<ItemDef> def = defOf(stack);
+        if (def.isEmpty() || !def.get().isWeapon()) return 0;
+        kr.labyrinth.content.Range r = def.get().stats().get("damage");
+        if (r == null) return 0;
+        Map<String, Double> mid = Map.of("damage", r.lerp(0.5));
+        int lv = Enhancement.level(stack);
+        Map<String, Double> m = lv > 0 ? Enhancement.rules().apply(def.get(), mid, lv) : mid;
+        return m.getOrDefault("damage", 0.0);
+    }
+
+    /**
+     * 강화 전 굴림값 (PDC 굴림 → 시드 재현 → 범위 중간값 순). PDC 굴림이 0.3.5 전 것(깃발 &lt; 35)이면 같은 위치로 옮긴 값을 돌려준다
+     * ({@link ItemMigration035}, PDC 는 {@link #refresh} 때 고쳐 쓴다).
+     */
     public static Map<String, Double> baseRolls(ItemStack stack, ItemDef def) {
         var pdc = stack.getPersistentDataContainer();
         String enc = pdc.get(Keys.ITEM_ROLLS, PersistentDataType.STRING);
         if (enc != null) {
             Map<String, Double> m = ItemRolls.decode(enc);
-            if (!m.isEmpty()) return m;
+            if (!m.isEmpty()) {
+                Integer ver = pdc.get(Keys.ITEM_COMBAT_VER, PersistentDataType.INTEGER);
+                return ItemMigration035.needed(def, ver == null ? 0 : ver) ? ItemMigration035.migrate(def, m) : m;
+            }
         }
         Long seed = pdc.get(Keys.ITEM_SEED, PersistentDataType.LONG);
         return seed != null ? ItemRolls.roll(def, seed) : ItemRolls.midpoint(def);

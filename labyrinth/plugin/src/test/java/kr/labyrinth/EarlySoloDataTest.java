@@ -48,7 +48,7 @@ class EarlySoloDataTest {
         Map<String, int[]> want = Map.of(
                 "moss_crawler_alpha", new int[] {1, 2, 2, 4},
                 "foreman_gorrak", new int[] {1, 2, 2, 3},
-                "spore_mother", new int[] {2, 3, 3, 6});
+                "spore_mother", new int[] {1, 2, 2, 3}); // 0.3.5: 3층 정예방 20~90초 (소환 줄임)
         for (Map.Entry<String, int[]> e : want.entrySet()) {
             Params p = summonParams(content.mob(e.getKey()));
             assertNotNull(p, e.getKey() + " 소환 스킬");
@@ -63,6 +63,22 @@ class EarlySoloDataTest {
             assertEquals(w[2], p.integer("count", 2));
             assertEquals(w[3], p.integer("max_alive", 4));
         }
+    }
+
+    @Test
+    void floorThreeEliteSummonsSlowerAndHealWeaker() {
+        // 0.3.5 (review2 · 주인 결정 7): 3층 정예방이 소환체 때문에 4분대로 늘어지던 것 — 소환 24초마다, 군락 치유 25초마다 5%
+        MobDef m = content.mob("spore_mother");
+        double summonCd = -1, healCd = -1, heal = -1;
+        for (MobDef.MobSkillDef s : m.skills()) {
+            if ("summon".equals(s.type())) summonCd = s.cooldown();
+            if ("heal_allies".equals(s.type())) {
+                healCd = s.cooldown();
+                heal = s.params().dbl("amount", 0);
+            }
+        }
+        assertTrue(summonCd >= 24, "소환 재사용 ≥ 24초: " + summonCd);
+        assertTrue(healCd >= 25 && heal <= 0.05 + EPS, "치유 25초 · 5% 이하: " + healCd + " / " + heal);
     }
 
     @Test

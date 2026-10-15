@@ -40,6 +40,18 @@ final class VanillaWeapon {
         return 1.0 + add + (sharp > 0 ? 0.5 * sharp + 0.5 : 0);
     }
 
+    /** 바닐라 무기의 초당 공격 횟수 (플레이어 기본 4 + 아이템 수치). 공격 속도 수치가 없으면 0. */
+    static double attacksPerSecond(ItemStack it) {
+        if (it == null || it.getType().isAir()) return 0;
+        double add = sum(it, Attribute.ATTACK_SPEED);
+        return add == 0 ? 0 : Math.max(0.1, PLAYER_BASE_SPEED + add);
+    }
+
+    /** 바닐라 활·쇠뇌 (미궁 활 아님). */
+    static boolean isBow(ItemStack it) {
+        return it != null && (it.getType() == Material.BOW || it.getType() == Material.CROSSBOW);
+    }
+
     /** 아이템 자체에 공격 속도 수치가 있는가 (칼·도끼 등 — 기본 공격 속도를 바닐라 값으로 둬야 원래 속도가 나온다). */
     static boolean hasSpeed(ItemStack it) {
         return it != null && !it.getType().isAir() && sum(it, Attribute.ATTACK_SPEED) != 0;

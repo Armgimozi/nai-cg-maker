@@ -133,6 +133,10 @@ public final class Services {
     void loadSettings() {
         plugin.reloadConfig();
         settings = new Settings(plugin.getConfig());
+        if (!settings.ignoredWeaponSpeedKeys().isEmpty()) {
+            Log.info("config.yml weapon_attack_speed 의 " + String.join(", ", settings.ignoredWeaponSpeedKeys())
+                    + " 는 0.3.5 부터 읽지 않습니다 (무기마다 공격 간격이 있음). none(맨손)만 씁니다.");
+        }
     }
 
     /** config.yml 수정 + 저장 + 다시 읽기 (난이도 설정 등). */

@@ -129,7 +129,7 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
                 return;
             }
             case "damage" -> {
-                double base = baseDamage(source);
+                double base = baseDamage(source, id);
                 services.damage().deal(DamageContext.raw(source, target, base * (potency <= 0 ? 1 : potency), DamageType.TRUE)
                         .source("effect:damage").noCrit().noEvade().noBlock().noLifesteal());
                 return;
@@ -150,7 +150,7 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
                 case "venom" -> 0.1;
                 default -> 0.15;
             };
-            value = Math.max(0.5, ratio * baseDamage(source));
+            value = Math.max(0.5, ratio * baseDamage(source, id));
         } else if (id.equals("frost") || id.equals("infection")) {
             addStacks = Math.max(1, (int) Math.round(potency));
             value = 1;
@@ -196,7 +196,7 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
             case "infection" -> {
                 s.effects.remove("infection");
                 apply(target, "root", 2, 1, source);
-                double base = baseDamage(source);
+                double base = baseDamage(source, id);
                 services.damage().deal(DamageContext.raw(source, target, base * 0.8, DamageType.TRUE).source("effect:infection")
                         .noCrit().noEvade().noBlock().noLifesteal());
                 SkillFx.burst(target.getLocation().add(0, 1, 0), Particle.CRIMSON_SPORE, 40, 0.6, 0.02, null);
@@ -221,9 +221,17 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
         }
     }
 
-    /** 지속 피해 기준: 플레이어 = 공격력, 커스텀 몹 = damage, 그 외 = 10. */
-    private double baseDamage(LivingEntity source) {
-        if (source instanceof Player p) return services.stats().get(p).attackPower();
+    /**
+     * 지속 피해 기준 (부여 순간에 굳음): 플레이어 = 스킬 위력 × 그 상태이상 종류의 스탯 배율 (불태움 = 마법 · 출혈·독·맹독 = 물리,
+     * combat_spec §4.3), 커스텀 몹 = damage, 그 외 = 10.
+     */
+    private double baseDamage(LivingEntity source, String effectId) {
+        if (source instanceof Player p) {
+            var st = services.stats().get(p);
+            kr.labyrinth.combat.DamageKind kind = dotKind(effectId);
+            double magic = kind == kr.labyrinth.combat.DamageKind.MAGIC ? st.magicDamage() : 0;
+            return st.skillPower() * st.power(kind) * Math.max(0.1, 1.0 + magic);
+        }
         if (source != null) {
             var m = services.mobs().byEntity(source);
             if (m.isPresent()) return m.get().damage();
@@ -231,6 +239,14 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
             if (b.isPresent()) return b.get().damage();
         }
         return 10;
+    }
+
+    /** 상태이상 지속 피해의 종류 — 불태움·감전 = 마법, 그 밖(출혈·독·맹독·시듦·감염·즉시 피해) = 물리. */
+    static kr.labyrinth.combat.DamageKind dotKind(String effectId) {
+        return switch (effectId == null ? "" : effectId) {
+            case "burn", "shock" -> kr.labyrinth.combat.DamageKind.MAGIC;
+            default -> kr.labyrinth.combat.DamageKind.PHYSICAL;
+        };
     }
 
     private void knockback(LivingEntity target, LivingEntity source, double strength) {

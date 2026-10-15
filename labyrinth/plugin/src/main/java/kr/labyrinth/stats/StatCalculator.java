@@ -3,6 +3,9 @@ package kr.labyrinth.stats;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
+import kr.labyrinth.combat.CombatMath;
+import kr.labyrinth.combat.DamageKind;
+import kr.labyrinth.combat.WeaponAttack;
 import kr.labyrinth.content.ClassDef;
 
 /**
@@ -17,7 +20,9 @@ public final class StatCalculator {
 
     // 상한 (GDD §11.7)
     public static final double CAP_CRIT = 0.75;
-    public static final double CAP_ATTACK_SPEED = 0.60;
+    /** 공격 속도 합계 상한 +75% (그중 민첩 몫 {@link #CAP_DEX_ATTACK_SPEED}, 간격 하한 0.25초). */
+    public static final double CAP_ATTACK_SPEED = CombatMath.CAP_ATTACK_SPEED;
+    public static final double CAP_DEX_ATTACK_SPEED = CombatMath.DEX_SPEED_CAP;
     public static final double CAP_MOVE_SPEED = 0.30;
     public static final double CAP_CDR = 0.40;
     public static final double CAP_CDR_INT = 0.20;
@@ -31,23 +36,7 @@ public final class StatCalculator {
     private StatCalculator() {}
 
     /**
-     * 직업별 주스탯 혼합 (GDD §3). 수호기사 STR0.6+VIT0.4, 광전사 STR, 사냥꾼 DEX, 비전술사 INT,
-     * 사제 INT0.5+WIS0.5, 그림자 DEX0.7+LUK0.3. 모르는 직업은 primary_stat 100%, 직업 없음은 STR.
-     */
-    public static double primaryMix(ClassDef cls, Map<Stat, Integer> s) {
-        if (cls == null) return s.getOrDefault(Stat.STR, 0);
-        return switch (cls.id()) {
-            case "guardian" -> 0.6 * s.getOrDefault(Stat.STR, 0) + 0.4 * s.getOrDefault(Stat.VIT, 0);
-            case "berserker" -> s.getOrDefault(Stat.STR, 0);
-            case "hunter" -> s.getOrDefault(Stat.DEX, 0);
-            case "arcanist" -> s.getOrDefault(Stat.INT, 0);
-            case "priest" -> 0.5 * s.getOrDefault(Stat.INT, 0) + 0.5 * s.getOrDefault(Stat.WIS, 0);
-            case "shadow" -> 0.7 * s.getOrDefault(Stat.DEX, 0) + 0.3 * s.getOrDefault(Stat.LUK, 0);
-            default -> s.getOrDefault(cls.primaryStat(), 0);
-        };
-    }
-
-    /**
+     * 0.3.4 판 (무기 정보 없음): 손에 든 무기 = 맨손 방식(근접 0.625초·물리), 스킬 위력 기준 = 무기 피해.
      * @param cls        직업 (null = 직업 없음)
      * @param level      레벨 (1~)
      * @param allocated  분배한 스탯 포인트
@@ -57,6 +46,24 @@ public final class StatCalculator {
      */
     public static DerivedStats compute(ClassDef cls, int level, Map<Stat, Integer> allocated, StatBlock bonus,
                                        double baseCrit, double baseCritDamage) {
+        return compute(cls, level, allocated, bonus, baseCrit, baseCritDamage, WeaponAttack.UNARMED, Double.NaN,
+                CombatMath.MIN_INTERVAL);
+    }
+
+    /**
+     * 파생 능력치 (0.3.5 전투 모델, combat_spec §3).
+     * <ul>
+     *   <li>공격력 = 무기 한 방 W × 무기 피해 종류의 배율 (물리 1 + 0.01 STR, 마법 1 + 0.01 INT). 민첩은 공격력을 올리지 않는다.</li>
+     *   <li>민첩: 공격 속도 +0.5%/점(민첩 몫 최대 +45%, 합계 최대 +75%) · 치명 +0.25%p · 회피 +0.1%p.</li>
+     *   <li>스킬 위력 = (W 가운데값 ÷ 간격) ÷ K × skill_power_mult × (1 + 0.5 × 공속) — {@link CombatMath#skillPower}.</li>
+     * </ul>
+     * @param attack      손에 든 무기의 공격 방식 (맨손 {@link WeaponAttack#UNARMED})
+     * @param midDamage   스킬 위력 기준 = 무기 피해 범위 가운데값 × 강화 배율 (NaN·0 이하 = 무기 피해 W)
+     * @param minInterval 간격 하한 (config combat.attack_interval_min, 0.25초)
+     */
+    public static DerivedStats compute(ClassDef cls, int level, Map<Stat, Integer> allocated, StatBlock bonus,
+                                       double baseCrit, double baseCritDamage, WeaponAttack attack, double midDamage,
+                                       double minInterval) {
         int lv = Math.max(1, level);
         Map<Stat, Integer> s = new EnumMap<>(Stat.class);
         for (Stat st : Stat.values()) {
@@ -65,10 +72,14 @@ public final class StatCalculator {
         }
         int str = s.get(Stat.STR), dex = s.get(Stat.DEX), intel = s.get(Stat.INT);
         int vit = s.get(Stat.VIT), wis = s.get(Stat.WIS), luk = s.get(Stat.LUK);
+        WeaponAttack wa = attack == null ? WeaponAttack.UNARMED : attack;
 
         double weapon = bonus.get("damage");
         if (weapon <= 0) weapon = UNARMED_DAMAGE;
-        double attackPower = weapon * (1.0 + 0.02 * primaryMix(cls, s));
+        double mid = Double.isNaN(midDamage) || midDamage <= 0 ? weapon : midDamage;
+        double physical = CombatMath.power(DamageKind.PHYSICAL, str, intel);
+        double magic = CombatMath.power(DamageKind.MAGIC, str, intel);
+        double attackPower = weapon * CombatMath.power(wa.kind(), str, intel);
 
         double baseHp = cls == null ? BASE_HP_NO_CLASS : cls.baseHp();
         double baseMp = cls == null ? BASE_MP_NO_CLASS : cls.baseMp();
@@ -78,9 +89,9 @@ public final class StatCalculator {
         double maxMp = Math.max(0, baseMp + mpPer * (lv - 1) + intel * 3.0 + wis * 2.0 + bonus.get("mp"));
 
         double defense = Math.max(0, vit * 0.5 + bonus.get("defense"));
-        double crit = clamp(baseCrit + dex * 0.0015 + luk * 0.0025 + bonus.get("crit_chance"), 0, CAP_CRIT);
+        double crit = clamp(baseCrit + dex * CombatMath.DEX_CRIT + luk * CombatMath.LUK_CRIT + bonus.get("crit_chance"), 0, CAP_CRIT);
         double critDmg = Math.max(1.0, baseCritDamage + bonus.get("crit_damage"));
-        double atkSpeed = clamp(dex * 0.004 + bonus.get("attack_speed"), -0.5, CAP_ATTACK_SPEED);
+        double atkSpeed = CombatMath.attackSpeed(dex, bonus.get("attack_speed"));
         double moveSpeed = clamp(bonus.get("move_speed"), -0.6, CAP_MOVE_SPEED);
         double cdr = clamp(Math.min(CAP_CDR_INT, intel * 0.002) + bonus.get("cooldown_reduction"), 0, CAP_CDR);
         double skillDmg = bonus.get("skill_damage");
@@ -89,7 +100,7 @@ public final class StatCalculator {
         double healPower = Math.max(0, wis * 1.5 + bonus.get("heal_power"));
         double lifesteal = clamp(bonus.get("lifesteal"), 0, CAP_LIFESTEAL);
         double dr = clamp(bonus.get("damage_reduction"), 0, CAP_DR);
-        double evasion = clamp(bonus.get("evasion"), 0, CAP_EVASION);
+        double evasion = clamp(dex * CombatMath.DEX_EVASION + bonus.get("evasion"), 0, CAP_EVASION);
         double block = clamp(bonus.get("block_chance"), 0, CAP_BLOCK);
         double gold = Math.max(-0.9, luk * 0.005 + bonus.get("gold_bonus"));
         double xp = Math.max(-0.9, bonus.get("xp_bonus"));
@@ -98,10 +109,13 @@ public final class StatCalculator {
         double kb = clamp(str * 0.003, 0, 0.5);
         double dmgMult = Math.max(-0.9, bonus.get("damage_mult"));
         double dmgTaken = Math.max(-0.9, bonus.get("damage_taken"));
+        double magicDmg = Math.max(-0.9, bonus.get("magic_damage"));
+        double skillPower = CombatMath.skillPower(mid, wa, atkSpeed);
+        double cycle = CombatMath.cycle(wa, atkSpeed, Math.max(0.05, minInterval));
 
         return new DerivedStats(Collections.unmodifiableMap(s), weapon, attackPower, maxHp, maxMp, defense, crit,
                 critDmg, atkSpeed, moveSpeed, cdr, skillDmg, manaRegen, hpRegen, healPower, lifesteal, dr, evasion,
-                block, gold, xp, craft, debuff, kb, dmgMult, dmgTaken);
+                block, gold, xp, craft, debuff, kb, dmgMult, dmgTaken, physical, magic, wa, mid, skillPower, cycle, magicDmg);
     }
 
     static double clamp(double v, double min, double max) {

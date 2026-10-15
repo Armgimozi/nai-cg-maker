@@ -42,9 +42,9 @@ public final class StatsMenu extends LabMenu {
 
     static String effect(Stat s) {
         return switch (s) {
-            case STR -> "근접 공격력 · 방어 관통";
-            case DEX -> "원거리 공격력 · 공격 속도 · 회피";
-            case INT -> "마법 공격력 · 최대 MP · 스킬 피해";
+            case STR -> "물리 공격력 +1%/점 · 넉백 저항";
+            case DEX -> "공격 속도 +0.5% · 치명 +0.25%p · 회피 +0.1%p /점";
+            case INT -> "마법 공격력 +1%/점 · 최대 MP +3 · 재사용 −0.2% (최대 20%)";
             case VIT -> "최대 HP · 방어력 · HP 재생";
             case WIS -> "마나 재생 · 치유량 · 해로운 효과 지속 감소";
             case LUK -> "치명타 확률 · 드롭률 · 골드";
@@ -77,13 +77,16 @@ public final class StatsMenu extends LabMenu {
         }
         // 파생 능력치
         List<String> der = new ArrayList<>();
-        der.add("<gray>공격력 <white>" + Text.num(s.attackPower()) + "  <gray>무기 <white>" + Text.num(s.weaponDamage()));
+        der.add("<gray>공격력 <white>물리 " + Text.num(s.weaponDamage() * s.physicalPower()) + " · 마법 "
+                + Text.num(s.weaponDamage() * s.magicPower()) + " <dark_gray>(손에 든 무기 한 방)");
+        der.add("<gray>공격 속도 <white>초당 " + perSecond(s.attacksPerSecond()) + "회 <dark_gray>(+" + Text.pct(s.attackSpeed())
+                + ")  <gray>스킬 위력 <white>" + Text.num(s.skillPower()));
         der.add("<gray>최대 HP <#ff5f6d>" + Text.num(s.maxHp()) + "  <gray>최대 MP <#6fc3ff>" + Text.num(s.maxMp()));
         der.add("<gray>방어 <white>" + Text.num(s.defense()) + "  <gray>피해 감소 <white>" + Text.pct(s.damageReduction()));
         der.add("<gray>치명타 <white>" + Text.pct(s.critChance()) + " <gray>× <white>" + String.format("%.2f", s.critDamage()));
         der.add("<gray>회피 <white>" + Text.pct(s.evasion()) + "  <gray>재사용 감소 <white>" + Text.pct(s.cooldownReduction()));
         der.add("<gray>스킬 피해 <white>+" + Text.pct(s.skillDamage()) + "  <gray>치유량 <white>+" + Text.pct(s.healPower()));
-        der.add("<gray>공격 속도 <white>+" + Text.pct(s.attackSpeed()) + "  <gray>이동 속도 <white>+" + Text.pct(s.moveSpeed()));
+        der.add("<gray>이동 속도 <white>+" + Text.pct(s.moveSpeed()));
         der.add("<gray>경험치 <white>+" + Text.pct(s.xpBonus()) + "  <gray>골드 <white>+" + Text.pct(s.goldBonus()));
         deco(22, Button.icon(Material.BOOK, "<#7fd8ff><b>능력치 요약</b>", der));
 
@@ -97,6 +100,11 @@ public final class StatsMenu extends LabMenu {
         set(49, UiTheme.glint(model(RESET_ITEM, Material.PAPER, (armed ? "<#ff6b6b>" : "<#c79bff>") + "<b>스탯 초기화</b>", rl), armed),
                 ctx -> reset(ctx.player()));
         backButton(45, MainMenu::reopen);
+    }
+
+    /** 초당 횟수 — 소수 한 자리 ("1.5"). */
+    static String perSecond(double v) {
+        return String.format(java.util.Locale.ROOT, "%.1f", Math.max(0, v));
     }
 
     private ItemStack plus(Stat st, int amount, int pts) {

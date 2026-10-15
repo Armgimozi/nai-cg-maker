@@ -9,6 +9,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import kr.labyrinth.Services;
+import kr.labyrinth.combat.WeaponAttack;
 import kr.labyrinth.content.AchievementDef;
 import kr.labyrinth.content.ClassDef;
 import kr.labyrinth.content.ItemDef;
@@ -32,6 +33,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 
 /**
@@ -47,6 +49,8 @@ import org.bukkit.scheduler.BukkitTask;
 public final class StatService implements Module, Listener {
 
     public static final double VANILLA_MAX_HEALTH_CAP = 1024.0;
+    /** 서버 시계로 다스리는 손(미궁 무기·맨손)의 바닐라 공격 속도 — 게이지가 늘 꽉 차 화면에 보이지 않는다. */
+    public static final double CLOCKED_ATTACK_SPEED = 1024.0;
     private static final double BASE_MOVE_SPEED = 0.1;
     /** PlayerInventory 보조손 칸 번호. */
     private static final int OFFHAND_SLOT = 40;
@@ -133,7 +137,31 @@ public final class StatService implements Module, Listener {
             Log.error("바닐라 무기 피해 계산 오류", t);
         }
         Settings.Combat cc = services.settings().combat();
-        DerivedStats s = StatCalculator.compute(cls, d.level(), d.allocated(), bonus, cc.baseCritChance(), cc.baseCritDamage());
+        WeaponAttack attack = WeaponAttack.UNARMED;
+        double mid = Double.NaN;
+        try {
+            ItemStack main = p.getInventory().getItemInMainHand();
+            ItemDef held = services.items().heldWeapon(p);
+            if (held != null) {
+                // 요구 능력치를 못 맞춘 무기는 '든 무기 없음'(맨손) — 장비 스탯 기여(EquipmentListener)와 같은 기준
+                if (held.requirement().met(requirementStats(p))) {
+                    attack = WeaponAttack.of(held);
+                    mid = services.items().midDamage(main);
+                } else {
+                    attack = unarmed();
+                }
+            } else if (VanillaWeapon.isBow(main)) {
+                attack = WeaponAttack.vanilla(0, true);
+            } else if (VanillaWeapon.hasSpeed(main)) {
+                attack = WeaponAttack.vanilla(VanillaWeapon.attacksPerSecond(main), false);
+            } else {
+                attack = unarmed();
+            }
+        } catch (Throwable t) {
+            Log.error("손에 든 무기 공격 방식 계산 오류", t);
+        }
+        DerivedStats s = StatCalculator.compute(cls, d.level(), d.allocated(), bonus, cc.baseCritChance(), cc.baseCritDamage(),
+                attack, mid, cc.attackIntervalMin());
         DerivedStats old = cache.put(p.getUniqueId(), s);
         dirty.remove(p.getUniqueId());
         applyAttributes(p, s, old);
@@ -157,18 +185,33 @@ public final class StatService implements Module, Listener {
             p.setHealthScale(20.0);
         }
         setBase(p, Attribute.MOVEMENT_SPEED, BASE_MOVE_SPEED * (1.0 + s.moveSpeed()));
-        ItemDef weapon = services.items().heldWeapon(p);
-        boolean vanillaSpeed;
-        try {
-            vanillaSpeed = weapon == null && VanillaWeapon.hasSpeed(p.getInventory().getItemInMainHand());
-        } catch (Throwable t) {
-            vanillaSpeed = false;
-        }
-        double atkSpeed = vanillaSpeed
-                ? VanillaWeapon.PLAYER_BASE_SPEED
-                : services.settings().weaponAttackSpeed(weapon == null ? null : weapon.weaponType());
-        setBase(p, Attribute.ATTACK_SPEED, Math.max(0.2, atkSpeed * (1.0 + s.attackSpeed())));
+        // 미궁 무기·맨손: 바닐라 게이지를 늘 꽉 차게(1024) 두고 서버가 무기 간격을 지킨다 (combat.AttackClock).
+        // 바닐라 무기(칼·도끼 등)는 바닐라 속도·게이지 그대로.
+        double atkSpeed = attackClocked(p) ? CLOCKED_ATTACK_SPEED
+                : Math.max(0.2, VanillaWeapon.PLAYER_BASE_SPEED * (1.0 + s.attackSpeed()));
+        setBase(p, Attribute.ATTACK_SPEED, atkSpeed);
         setBase(p, Attribute.KNOCKBACK_RESISTANCE, s.knockbackResistance());
+    }
+
+    /** 맨손 방식 (config weapon_attack_speed.none — 초당 횟수의 역수). */
+    private WeaponAttack unarmed() {
+        double perSecond = services.settings().unarmedAttackSpeed();
+        return perSecond > 0 && Math.abs(1.0 / perSecond - WeaponAttack.UNARMED.interval()) > 1e-9
+                ? new WeaponAttack(WeaponAttack.Style.MELEE, 1.0 / perSecond, kr.labyrinth.combat.DamageKind.PHYSICAL, 1.0)
+                : WeaponAttack.UNARMED;
+    }
+
+    /**
+     * 기본 공격을 서버 시계(무기 간격)로 다스리는가 — 미궁 무기(요구 미달 포함)·맨손·미궁 아닌 아이템을 들었을 때. 바닐라 칼·도끼·삼지창처럼
+     * 아이템에 공격 속도 수치가 있으면 바닐라 게이지 그대로 (false).
+     */
+    public boolean attackClocked(Player p) {
+        try {
+            if (services.items().heldWeapon(p) != null) return true;
+            return !VanillaWeapon.hasSpeed(p.getInventory().getItemInMainHand());
+        } catch (Throwable t) {
+            return true;
+        }
     }
 
     private static void setBase(Player p, Attribute attr, double value) {
@@ -231,6 +274,7 @@ public final class StatService implements Module, Listener {
     public void onJoin(PlayerJoinEvent e) {
         services.levels().ensureStartPoints(e.getPlayer());
         services.levels().ensureRequirementReset(e.getPlayer());
+        services.levels().ensureRoleReset(e.getPlayer());
         recalc(e.getPlayer());
     }
 

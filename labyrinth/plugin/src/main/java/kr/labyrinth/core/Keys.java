@@ -22,6 +22,8 @@ public final class Keys {
     public static final NamespacedKey ITEM_VERSION = key("item_version");
     /** Integer: 강화 단계 0~10 (없으면 0, ITEM_VERSION 2 부터). 형식 소유 = items.enhance.Enhancement. */
     public static final NamespacedKey ITEM_ENHANCE = key("item_enhance");
+    /** Integer: 0.3.5 굴림 옮기기 깃발 (없으면 0 = 0.3.4 이전 굴림, 35 = 0.3.5 범위). 형식 소유 = items.ItemMigration035. */
+    public static final NamespacedKey ITEM_COMBAT_VER = key("item_combat_ver");
     /** String(UUID): 개인 루팅 소유자. */
     public static final NamespacedKey LOOT_OWNER = key("loot_owner");
 

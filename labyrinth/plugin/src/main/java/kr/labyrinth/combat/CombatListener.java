@@ -40,7 +40,11 @@ import org.bukkit.potion.PotionType;
 /**
  * 바닐라 전투 이벤트 → {@link DamageService} 연결.
  * <ul>
- *   <li>플레이어 근접 / 화살·삼지창 → 커스텀 몹·보스: 바닐라 피해 취소, 공격력 × 공격 쿨다운(또는 활 당김) 배율로 계산.
+ *   <li>0.3.5 게이지 없음: 미궁 무기·맨손은 {@link AttackClock} 이 무기 간격대로만 공격을 통과시키고, 통과한 공격은 언제나 온전한 피해
+ *       (떨어지며 친 점프 치명 ×1.2 만). 바닐라 무기(칼·도끼·삼지창 등)는 예전처럼 바닐라 게이지 배율.</li>
+ *   <li>활: 서버가 당긴 시간으로 세기를 잰다 (x = 당긴 시간 ÷ 끝까지 당기는 시간, 세기 = (x² + 2x) ÷ 3). 화살 속도도 그 세기로.
+ *       0.3.4 의 '치명 화살 ×1.25'는 무기 한 방 숫자 안에 들어갔다.</li>
+ *   <li>플레이어 근접 / 화살·삼지창 → 커스텀 몹·보스: 바닐라 피해 취소, 무기 한 방 × 스탯 배율 × (점프 치명 또는 활 세기)로 계산.
  *       눈덩이·알 같은 그 밖의 투사체는 피해 없음</li>
  *   <li>미궁 무기 근접 / 미궁 활 화살 → 미궁 밖 바닐라 적대 몹({@code services.targets().isEnemy}): 위와 같은 공식 (스킬과 같은 단위).
  *       바닐라 무기는 바닐라 피해 그대로</li>
@@ -63,13 +67,18 @@ final class CombatListener implements Listener {
     /** 던진 삼지창의 바닐라 피해. 손을 떠난 뒤라 지금 든 무기 대신 이 값 × 주스탯 배율로 친다. */
     static final double THROWN_TRIDENT_DAMAGE = 8.0;
 
+    /** 바닐라 활의 최대 화살 속도 (세기 1). */
+    static final double BOW_MAX_SPEED = 3.0;
+
     private final Services services;
     private final DamageService damage;
+    private final AttackClock clock;
     private final Map<UUID, Float> preAttackCooldown = new ConcurrentHashMap<>();
 
-    CombatListener(Services services, DamageService damage) {
+    CombatListener(Services services, DamageService damage, AttackClock clock) {
         this.services = services;
         this.damage = damage;
+        this.clock = clock;
     }
 
     /** 공격 직전의 쿨다운 (데미지 이벤트 시점엔 이미 0 으로 리셋되어 있음). */
@@ -81,13 +90,27 @@ final class CombatListener implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent e) { preAttackCooldown.remove(e.getPlayer().getUniqueId()); }
 
+    /**
+     * 화살: 서버가 잰 당김 세기를 남기고 화살 속도를 그 세기로 맞춘다. 끝까지 당겼으면 치명 화살 표시(피해 배율은 없음 — 한 방 숫자 안).
+     * 쇠뇌는 장전식이라 바닐라 세기 그대로.
+     */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onShoot(EntityShootBowEvent e) {
         if (!(e.getEntity() instanceof Player p) || !(e.getProjectile() instanceof Projectile proj)) return;
-        proj.getPersistentDataContainer().set(Keys.ARROW_FORCE, PersistentDataType.FLOAT, e.getForce());
+        boolean crossbow = e.getBow() != null && e.getBow().getType() == org.bukkit.Material.CROSSBOW;
+        float force = crossbow ? e.getForce() : (float) clock.bowForce(p, e.getForce());
+        proj.getPersistentDataContainer().set(Keys.ARROW_FORCE, PersistentDataType.FLOAT, force);
         ItemDef bow = services.items().heldWeapon(p);
         if (bow != null) proj.getPersistentDataContainer().set(Keys.ARROW_WEAPON, PersistentDataType.STRING, bow.id());
+        if (!crossbow && proj instanceof AbstractArrow arrow) {
+            org.bukkit.util.Vector v = arrow.getVelocity();
+            if (v.lengthSquared() > 1e-6) arrow.setVelocity(v.normalize().multiply(BOW_MAX_SPEED * Math.max(0.1, force)));
+            arrow.setCritical(force >= 0.999f);
+        }
     }
+
+    /** 서버가 잰 활 세기 (무기 스킬 '웅크리고 당겨 쏘기'의 위력도 같은 값). */
+    double bowForce(Player p, double vanillaForce) { return clock.bowForce(p, vanillaForce); }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onDamage(EntityDamageEvent e) {
@@ -180,42 +203,46 @@ final class CombatListener implements Listener {
 
     // ── 배율 (몹 상대·PvP 공통) ────────────────────────────────────────────
 
-    /** 미궁 활로 쏜 화살인가 (쏠 때 든 미궁 무기 id 가 붙고, 그 무기가 활). */
+    /** 미궁 활로 쏜 화살인가 (쏠 때 든 미궁 무기 id 가 붙고, 그 무기가 원거리 방식). */
     private boolean firedFromLabyrinthBow(AbstractArrow arrow) {
         String id = arrow.getPersistentDataContainer().get(Keys.ARROW_WEAPON, PersistentDataType.STRING);
         ItemDef def = id == null ? null : services.content().item(id);
-        return def != null && def.isWeapon() && "bow".equals(def.weaponType());
+        return def != null && def.isWeapon() && WeaponAttack.of(def).ranged();
     }
 
     private static boolean isMelee(EntityDamageByEntityEvent be, Entity damager, Player attacker) {
         return attacker.equals(damager) && (be.getCause() == DamageCause.ENTITY_ATTACK || be.getCause() == DamageCause.ENTITY_SWEEP_ATTACK);
     }
 
-    /** 근접: 공격 게이지(0.2 + 0.8 × 충전²) · 휩쓸기 ×0.35 · 점프 치명타 ×1.2. */
+    /**
+     * 근접: 미궁 무기·맨손(서버 시계) = 1 (게이지 없음 — 통과한 공격은 온전한 피해), 바닐라 무기 = 공격 게이지(0.2 + 0.8 × 충전²).
+     * 휩쓸기 ×0.35 (바닐라 칼) · 떨어지며 친 점프 치명 × combat.jump_crit(1.2).
+     */
     private double meleeMult(Player p, EntityDamageByEntityEvent be) {
-        float cd = preAttackCooldown.getOrDefault(p.getUniqueId(), 1f);
-        double mult = 0.2 + cd * cd * 0.8;
+        double mult = 1.0;
+        if (!services.stats().attackClocked(p)) {
+            float cd = preAttackCooldown.getOrDefault(p.getUniqueId(), 1f);
+            mult = 0.2 + cd * cd * 0.8;
+        }
         if (be.getCause() == DamageCause.ENTITY_SWEEP_ATTACK) mult *= 0.35;
-        if (be.isCritical()) mult *= 1.2;
+        if (be.isCritical()) mult *= services.settings().combat().jumpCrit();
         return mult;
     }
 
-    /** 화살: 활 당김 세기(없으면 0.6) · 치명 화살 ×1.25. 삼지창: 바닐라 던지기 피해 8 × 주스탯 배율. */
+    /** 화살: 서버가 잰 활 세기(없으면 0.6, 최소 0.1). 삼지창: 바닐라 던지기 피해 8 × 스탯 배율. */
     private double rangedMult(Player p, AbstractArrow arrow, boolean critical) {
         if (arrow instanceof Trident) {
             double weapon = services.stats().get(p).weaponDamage();
             return weapon > 0 ? THROWN_TRIDENT_DAMAGE / weapon : 1.0;
         }
         Float force = arrow.getPersistentDataContainer().get(Keys.ARROW_FORCE, PersistentDataType.FLOAT);
-        double mult = force == null ? 0.6 : Math.max(0.1, force);
-        if (critical) mult *= 1.25;
-        return mult;
+        return force == null ? 0.6 : Math.max(0.1, force);
     }
 
     // ── PvP: 몹 상대와 같은 공식 + 바닐라 부가 효과 ─────────────────────────
 
     private void pvpMelee(Player attacker, Player victim, EntityDamageByEntityEvent be) {
-        float cd = preAttackCooldown.getOrDefault(attacker.getUniqueId(), 1f);
+        float cd = services.stats().attackClocked(attacker) ? 1f : preAttackCooldown.getOrDefault(attacker.getUniqueId(), 1f);
         ItemStack weapon = attacker.getInventory().getItemInMainHand();
         boolean sweep = be.getCause() == DamageCause.ENTITY_SWEEP_ATTACK;
         // 바닐라 넉백: 맞으면 기본 0.4, 꽉 찬 공격의 달리기 +1·밀치기 레벨당 +1 (×0.5) → DamageService 단위(0.4 = 1)

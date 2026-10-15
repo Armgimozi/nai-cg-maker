@@ -21,7 +21,7 @@ class SetupTextTest {
         assertFalse(nm.rampsAtFloor1());
         assertEquals("HP ×1.8·피해 ×1.6", nm.hpDamageText());
         assertEquals("×0.85", nm.telegraphText());
-        assertEquals("HP ×1.4·피해 ×1.3", s.difficulty("hard").hpDamageText());
+        assertEquals("HP ×1.45·피해 ×1.3", s.difficulty("hard").hpDamageText());
         assertEquals("×0.9", s.difficulty("hard").telegraphText());
 
         Difficulty normal = s.difficulty("normal");
