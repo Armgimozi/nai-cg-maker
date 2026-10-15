@@ -37,8 +37,33 @@ class ScalingTest {
     }
 
     @Test
-    void difficultyFloorRampInterpolatesHpDamageTelegraphOnly() {
-        Difficulty nm = Difficulty.NIGHTMARE.withRamp(Difficulty.Ramp.NIGHTMARE);
+    void difficultiesAreOneSetForAllFloors() {
+        // 0.3.3: 난이도마다 배율 한 벌 — 1층부터 마지막 층까지 같은 값, 보스 기믹 진행도도 1
+        assertRamp(Difficulty.HARD, 1.4, 1.3, 0.9);
+        assertRamp(Difficulty.NIGHTMARE, 1.8, 1.6, 0.85);
+        assertEquals(1.3, Difficulty.HARD.drop(), 1e-9);
+        assertEquals(1.8, Difficulty.NIGHTMARE.drop(), 1e-9);
+        assertEquals(1.7, Difficulty.NIGHTMARE.xp(), 1e-9);
+        for (Difficulty d : List.of(Difficulty.EASY, Difficulty.NORMAL, Difficulty.HARD, Difficulty.NIGHTMARE)) {
+            assertNull(d.ramp(), d.id());
+            assertSame(d, d.atFloor(1));
+            assertSame(d, d.atFloor(10));
+            assertEquals(1.0, d.rampProgress(1), 1e-9);
+            assertFalse(d.rampsAtFloor1());
+            assertSame(d, Difficulty.defaultFor(d.id()));
+        }
+        assertNull(Difficulty.defaultFor("insane"));
+        assertNull(Difficulty.Ramp.legacy032("normal"));
+        // 보통 < 어려움 < 악몽 (HP·피해는 커지고 경고 시간은 짧아진다)
+        assertTrue(Difficulty.NORMAL.hp() < Difficulty.HARD.hp() && Difficulty.HARD.hp() < Difficulty.NIGHTMARE.hp());
+        assertTrue(Difficulty.NORMAL.damage() < Difficulty.HARD.damage() && Difficulty.HARD.damage() < Difficulty.NIGHTMARE.damage());
+        assertTrue(Difficulty.NORMAL.telegraph() > Difficulty.HARD.telegraph() && Difficulty.HARD.telegraph() > Difficulty.NIGHTMARE.telegraph());
+    }
+
+    @Test
+    void handWrittenFloorRampInterpolatesHpDamageTelegraphOnly() {
+        // 관리자가 직접 적은 층 램프는 계속 따른다 (예: 0.3.2 의 악몽 값 2.4/2.0/0.7 + 1→6층 램프)
+        Difficulty nm = Difficulty.LEGACY_NIGHTMARE_032.withRamp(Difficulty.Ramp.LEGACY_NIGHTMARE_032);
         // 1층 1.8/1.6/0.85 → 3층 2.04/1.76/0.79 → 6층부터 원래 2.4/2.0/0.7
         assertRamp(nm.atFloor(1), 1.8, 1.6, 0.85);
         assertRamp(nm.atFloor(2), 1.92, 1.68, 0.82);
@@ -61,14 +86,12 @@ class ScalingTest {
         assertNull(nm.atFloor(1).ramp());
         assertRamp(nm.atFloor(1).atFloor(6), 1.8, 1.6, 0.85);
         assertEquals(1.0, nm.atFloor(1).rampProgress(1), 1e-9);
-        // 어려움: 1층 1.2/1.15/0.95 → 4층부터 1.5/1.4/0.85
-        Difficulty hard = Difficulty.HARD.withRamp(Difficulty.Ramp.HARD);
-        assertRamp(hard.atFloor(1), 1.2, 1.15, 0.95);
-        assertRamp(hard.atFloor(2), 1.3, 1.15 + 0.25 / 3, 0.95 - 0.1 / 3);
-        assertRamp(hard.atFloor(4), 1.5, 1.4, 0.85);
-        // 램프 없는 난이도·상수는 모든 층 같은 값
-        assertSame(Difficulty.NORMAL, Difficulty.NORMAL.atFloor(1));
-        assertEquals(1.0, Difficulty.NIGHTMARE.rampProgress(1), 1e-9);
+        // 새 어려움 값 위에 직접 적은 1→4층 램프
+        Difficulty hard = Difficulty.HARD.withRamp(new Difficulty.Ramp(1, 4, 1.1, 1.0, 1.0));
+        assertRamp(hard.atFloor(1), 1.1, 1.0, 1.0);
+        assertRamp(hard.atFloor(2), 1.2, 1.1, 1.0 - 0.1 / 3);
+        assertRamp(hard.atFloor(4), 1.4, 1.3, 0.9);
+        assertTrue(hard.rampsAtFloor1());
         assertEquals(1.0, new Difficulty.Ramp(3, 3, 1, 1, 1).progress(1), 1e-9, "full ≤ from = 램프 없음");
     }
 
@@ -79,8 +102,27 @@ class ScalingTest {
     }
 
     @Test
-    void instanceContextAppliesFloorRampAndSoloOnce() {
-        Difficulty nm = Difficulty.NIGHTMARE.withRamp(Difficulty.Ramp.NIGHTMARE);
+    void instanceContextUsesOneSetOnEveryFloor() {
+        // 기본: 1층·6층·10층 모두 악몽 1.8/1.6 × 솔로 0.85, 보스 기믹 진행도 1
+        for (int floor : new int[] {1, 3, 6, 10}) {
+            InstanceContext solo = InstanceContext.adhoc(floor, 1, Difficulty.NIGHTMARE, PartyScaling.DEFAULT);
+            assertEquals(1.8 * 0.85, solo.hpMultiplier(), 1e-9, "층 " + floor);
+            assertEquals(1.6 * 0.85, solo.damageMultiplier(), 1e-9);
+            assertEquals(1.8, solo.dropMultiplier(), 1e-9);
+            assertEquals(1.7, solo.xpMultiplier(), 1e-9);
+            assertEquals(0.85, solo.windup(1.0), 1e-9);
+            assertEquals(1.0, solo.rampProgress(), 1e-9);
+            assertSame(Difficulty.NIGHTMARE, solo.difficulty());
+        }
+        InstanceContext party = InstanceContext.adhoc(6, 4, Difficulty.HARD, PartyScaling.DEFAULT);
+        assertEquals(1.4 * (1 + 0.6 * 3), party.hpMultiplier(), 1e-9);
+        assertEquals(1.3 * (1 + 0.08 * 3), party.damageMultiplier(), 1e-9);
+        assertEquals(1.0, party.rampProgress(), 1e-9);
+    }
+
+    @Test
+    void instanceContextAppliesHandWrittenRampAndSoloOnce() {
+        Difficulty nm = Difficulty.LEGACY_NIGHTMARE_032.withRamp(Difficulty.Ramp.LEGACY_NIGHTMARE_032);
         InstanceContext solo1 = InstanceContext.adhoc(1, 1, nm, PartyScaling.DEFAULT);
         assertEquals(1.8 * 0.85, solo1.hpMultiplier(), 1e-9);
         assertEquals(1.6 * 0.85, solo1.damageMultiplier(), 1e-9);
@@ -89,7 +131,7 @@ class ScalingTest {
         assertEquals(0.85, solo1.windup(1.0), 1e-9);
         assertEquals(0.0, solo1.rampProgress(), 1e-9);
         assertNull(solo1.difficulty().ramp());
-        // 6층 이상은 지금과 같은 값 (솔로 ×0.85 만)
+        // 6층 이상은 원래 값 (솔로 ×0.85 만)
         InstanceContext solo6 = InstanceContext.adhoc(6, 1, nm, PartyScaling.DEFAULT);
         assertEquals(2.4 * 0.85, solo6.hpMultiplier(), 1e-9);
         assertEquals(1.0, solo6.rampProgress(), 1e-9);
@@ -110,13 +152,13 @@ class ScalingTest {
     void instanceMultipliersCombineDifficultyAndParty() {
         InstanceContext ctx = InstanceContext.adhoc(3, 4, Difficulty.HARD, PartyScaling.DEFAULT);
         assertEquals(4, ctx.partySize());
-        assertEquals(1.5 * (1 + 0.6 * 3), ctx.hpMultiplier(), 1e-9);
-        assertEquals(1.4 * (1 + 0.08 * 3), ctx.damageMultiplier(), 1e-9);
+        assertEquals(1.4 * (1 + 0.6 * 3), ctx.hpMultiplier(), 1e-9);
+        assertEquals(1.3 * (1 + 0.08 * 3), ctx.damageMultiplier(), 1e-9);
         assertEquals(1.3 * (1 + 0.05 * 3), ctx.dropMultiplier(), 1e-9);
         assertEquals(1.3, ctx.xpMultiplier(), 1e-9);
-        assertEquals(0.85, ctx.windup(1.0), 1e-9);
+        assertEquals(0.9, ctx.windup(1.0), 1e-9);
         // 최소 0.5초 보장
-        assertEquals(0.5, InstanceContext.adhoc(1, 1, Difficulty.NIGHTMARE, PartyScaling.DEFAULT).windup(0.6), 1e-9);
+        assertEquals(0.5, InstanceContext.adhoc(1, 1, Difficulty.NIGHTMARE, PartyScaling.DEFAULT).windup(0.5), 1e-9);
     }
 
     @Test
@@ -138,36 +180,35 @@ class ScalingTest {
         y.loadFromString("""
                 difficulty: ""
                 difficulties:
-                  hard: {name: "어려움", hp: 1.6, damage: 1.4, drop: 1.3, xp: 1.3, telegraph: 0.85}
+                  hard: {name: "어려움", hp: 1.6, damage: 1.35, drop: 1.3, xp: 1.3, telegraph: 0.8}
                 party: {max_size: 10, hp_per_member: 0.5, dmg_per_member: 0.1}
                 """);
         Settings s = new Settings(y);
         assertFalse(s.isDifficultySet());
         assertEquals("normal", s.difficulty().id());
-        assertEquals(1.6, s.difficulty("hard").hp(), 1e-9);
+        assertEquals(new Difficulty("hard", "어려움", 1.6, 1.35, 1.3, 1.3, 0.8), s.difficulty("hard")); // 직접 고친 값 그대로
         assertEquals(0.6, s.difficulty("easy").damage(), 1e-9); // 기본 프리셋 유지
         assertEquals(10, s.party().maxSize());
         assertEquals(0.5, s.party().hpPerMember(), 1e-9);
-        // 예전 config.yml (ramp·solo 키 없음) 도 코드 기본값으로 켜진다
-        assertEquals(1.2, s.difficulty("hard").atFloor(1).hp(), 1e-9);
-        assertEquals(1.6, s.difficulty("hard").atFloor(4).hp(), 1e-9);
-        assertEquals(1.8, s.difficulty("nightmare").atFloor(1).hp(), 1e-9);
-        assertNull(s.difficulty("easy").ramp());
-        assertNull(s.difficulty("normal").ramp());
+        // 층 램프 없음 — 모든 층 같은 값, 적지 않은 악몽은 코드 기본값
+        assertEquals(1.6, s.difficulty("hard").atFloor(1).hp(), 1e-9);
+        assertEquals(1.6, s.difficulty("hard").atFloor(10).hp(), 1e-9);
+        assertEquals(Difficulty.NIGHTMARE, s.difficulty("nightmare"));
+        for (Difficulty d : s.difficulties().values()) assertNull(d.ramp(), d.id());
         assertEquals(0.85, s.party().hp(1), 1e-9);
         assertEquals(0.85, s.party().damage(1), 1e-9);
 
         y.set("difficulty", "nightmare");
         Settings s2 = new Settings(y);
         assertTrue(s2.isDifficultySet());
-        assertEquals(2.4, s2.difficulty().hp(), 1e-9);
+        assertEquals(1.8, s2.difficulty().hp(), 1e-9);
         y.set("difficulty", "bogus");
         assertFalse(new Settings(y).isDifficultySet());
     }
 
     @Test
-    void settingsRampKeysDefaultsAndDisable() throws Exception {
-        // 키가 없거나 비어 있으면 코드 기본값, 끄기는 enabled: false (또는 false), 일부만 쓰면 나머지는 기본값
+    void settingsRampKeysOnlyWhenHandWritten() throws Exception {
+        // 램프는 직접 적었을 때만: 비어 있으면 없음, 끄기는 enabled: false (또는 false), 일부만 쓰면 나머지는 0.3.2 기본 램프 값
         YamlConfiguration y = new YamlConfiguration();
         y.loadFromString("""
                 difficulties:
@@ -179,36 +220,111 @@ class ScalingTest {
                 party: {solo_hp: 1.0, solo_damage: 9}
                 """);
         Settings s = new Settings(y);
-        assertEquals(Difficulty.Ramp.HARD, s.difficulty("hard").ramp());
+        // 빈 ramp = 없음, 0.3.2 값(1.5/1.4)은 새 기본값으로
+        assertEquals(Difficulty.HARD, s.difficulty("hard"));
+        // ramp 를 직접 끈 난이도는 적힌 숫자를 1층부터 그대로 (예전 값 승격 없음)
         assertNull(s.difficulty("nightmare").ramp());
         assertEquals(2.4, s.difficulty("nightmare").atFloor(1).hp(), 1e-9);
+        assertEquals(0.7, s.difficulty("nightmare").atFloor(1).telegraph(), 1e-9);
         Difficulty insane = s.difficulty("insane");
         assertEquals(new Difficulty.Ramp(1, 5, 2.0, 2.5, 0.6), insane.ramp());
         assertEquals(2.5, insane.atFloor(3).hp(), 1e-9);
         assertEquals(2.5, insane.atFloor(1).damage(), 1e-9);
+        assertTrue(insane.rampsAtFloor1());
         assertNull(s.difficulty("brutal").ramp(), "full_floor ≤ from_floor = 램프 없음");
         assertEquals(1.0, s.party().hp(1), 1e-9);
         assertEquals(1.5, s.party().damage(1), 1e-9, "0.1~1.5 로 자름");
 
-        // 일부 키만: 빠진 값은 기본 램프 값. hp 를 기본보다 낮춘 서버는 시작 값이 원래 값을 넘지 않게
+        // 직접 고친 램프(full_floor 8)는 계속 따른다 — 빠진 시작 값은 0.3.2 기본 램프 값, 숫자는 적힌 그대로
         YamlConfiguration y2 = new YamlConfiguration();
         y2.loadFromString("""
                 difficulties:
                   nightmare: {hp: 2.4, damage: 2.0, telegraph: 0.7, ramp: {full_floor: 8}}
-                  hard: {hp: 1.1, damage: 1.4, telegraph: 0.85}
+                  hard: {hp: 1.1, damage: 1.4, telegraph: 0.85, ramp: {full_floor: 4, start: {hp: 1.0}}}
                 """);
         Settings s2 = new Settings(y2);
-        assertEquals(new Difficulty.Ramp(1, 8, 1.8, 1.6, 0.85), s2.difficulty("nightmare").ramp());
-        assertEquals(1.1, s2.difficulty("hard").atFloor(1).hp(), 1e-9);
-        assertEquals(1.15, s2.difficulty("hard").atFloor(1).damage(), 1e-9);
+        Difficulty nm = s2.difficulty("nightmare");
+        assertEquals(new Difficulty.Ramp(1, 8, 1.8, 1.6, 0.85), nm.ramp());
+        assertEquals(1.8, nm.atFloor(1).hp(), 1e-9);
+        assertEquals(2.4, nm.atFloor(8).hp(), 1e-9);
+        // hp 를 낮춘 서버: 빠진 시작 값이 원래 값보다 세지 않게 (damage 1.15 ≤ 1.4, telegraph 0.95 ≥ 0.85)
+        Difficulty hard = s2.difficulty("hard");
+        assertEquals(new Difficulty.Ramp(1, 4, 1.0, 1.15, 0.95), hard.ramp());
+        assertEquals(1.1, hard.atFloor(4).hp(), 1e-9);
+        assertEquals(1.4, hard.atFloor(4).damage(), 1e-9);
 
         assertNull(new Settings(yaml("difficulties: {nightmare: {ramp: false}}")).difficulty("nightmare").ramp());
 
-        // difficulties 섹션 자체가 없어도 어려움·악몽 램프는 켜진다
+        // difficulties 섹션 자체가 없으면 코드 기본값 (램프 없음)
         Settings bare = new Settings(new YamlConfiguration());
-        assertEquals(Difficulty.Ramp.NIGHTMARE, bare.difficulty("nightmare").ramp());
-        assertEquals(Difficulty.Ramp.HARD, bare.difficulty("hard").ramp());
+        assertEquals(Difficulty.NIGHTMARE, bare.difficulty("nightmare"));
+        assertEquals(Difficulty.HARD, bare.difficulty("hard"));
         assertEquals(0.85, bare.party().hp(1), 1e-9);
+    }
+
+    /** 0.3.2 jar 의 config.yml 이 그대로 적어 둔 난이도 묶음 (기존 서버 plugins/Labyrinth/config.yml). */
+    private static final String CONFIG_032 = """
+            difficulty: nightmare
+            difficulties:
+              easy:      {name: "쉬움",   hp: 0.7, damage: 0.6, drop: 0.8, xp: 0.8, telegraph: 1.3}
+              normal:    {name: "보통",   hp: 1.0, damage: 1.0, drop: 1.0, xp: 1.0, telegraph: 1.0}
+              hard:      {name: "어려움", hp: 1.5, damage: 1.4, drop: 1.3, xp: 1.3, telegraph: 0.85,
+                          ramp: {from_floor: 1, full_floor: 4, start: {hp: 1.2, damage: 1.15, telegraph: 0.95}}}
+              nightmare: {name: "악몽",   hp: 2.4, damage: 2.0, drop: 1.8, xp: 1.7, telegraph: 0.7,
+                          ramp: {from_floor: 1, full_floor: 6, start: {hp: 1.8, damage: 1.6, telegraph: 0.85}}}
+            """;
+
+    @Test
+    void legacy032DifficultyValuesUpgradeToUnifiedDefaults() throws Exception {
+        // 0.3.2 묶음을 그대로 둔 서버 = 손대지 않은 값 → 램프 없이 새 기본값 한 벌
+        Settings s = new Settings(yaml(CONFIG_032));
+        assertEquals(Difficulty.HARD, s.difficulty("hard"));
+        assertEquals(Difficulty.NIGHTMARE, s.difficulty());
+        assertEquals(Difficulty.EASY, s.difficulty("easy"));
+        assertEquals(Difficulty.NORMAL, s.difficulty("normal"));
+        for (int floor : new int[] {1, 6, 10}) {
+            InstanceContext ctx = InstanceContext.adhoc(floor, 1, s.difficulty(), s.party());
+            assertEquals(1.8 * 0.85, ctx.hpMultiplier(), 1e-9);
+            assertEquals(1.6 * 0.85, ctx.damageMultiplier(), 1e-9);
+            assertEquals(1.0, ctx.rampProgress(), 1e-9);
+        }
+        // 0.3.2 의 기본 램프를 하위 키 일부만 적었거나({} 포함) 빠진 키가 있어도 같은 램프면 통합
+        Settings partial = new Settings(yaml("""
+                difficulties:
+                  nightmare: {hp: 2.4, damage: 2.0, telegraph: 0.7, ramp: {from_floor: 1, full_floor: 6, start: {hp: 1.8, damage: 1.6}}}
+                  hard: {hp: 1.5, damage: 1.4, telegraph: 0.85, ramp: {}}
+                """));
+        assertEquals(Difficulty.NIGHTMARE, partial.difficulty("nightmare"));
+        assertEquals(Difficulty.HARD, partial.difficulty("hard"));
+        // 0.3.2 의 램프 이전 판(램프 키 없음)도 같은 값이면 새 기본값
+        assertEquals(Difficulty.NIGHTMARE, new Settings(yaml(
+                "difficulties: {nightmare: {name: \"악몽\", hp: 2.4, damage: 2.0, drop: 1.8, xp: 1.7, telegraph: 0.7}}"))
+                .difficulty("nightmare"));
+        // 키마다: 예전 값과 같은 키만 새 값 — hp 만 고친 악몽은 hp 그대로, damage·telegraph 는 새 기본값
+        Difficulty mixed = new Settings(yaml("""
+                difficulties:
+                  nightmare: {name: "지옥", hp: 3.0, damage: 2.0, drop: 2.5, xp: 1.7, telegraph: 0.7,
+                              ramp: {from_floor: 1, full_floor: 6, start: {hp: 1.8, damage: 1.6, telegraph: 0.85}}}
+                """)).difficulty("nightmare");
+        assertEquals(new Difficulty("nightmare", "지옥", 3.0, 1.6, 2.5, 1.7, 0.85), mixed);
+        // 직접 고친 램프(시작 hp 1.5)는 따르고 숫자도 적힌 그대로
+        Difficulty hand = new Settings(yaml("""
+                difficulties:
+                  nightmare: {hp: 2.4, damage: 2.0, telegraph: 0.7, ramp: {from_floor: 1, full_floor: 6, start: {hp: 1.5, damage: 1.6, telegraph: 0.85}}}
+                """)).difficulty("nightmare");
+        assertEquals(new Difficulty.Ramp(1, 6, 1.5, 1.6, 0.85), hand.ramp());
+        assertEquals(1.5, hand.atFloor(1).hp(), 1e-9);
+        assertEquals(2.4, hand.atFloor(6).hp(), 1e-9);
+        // 예전 값을 일부러 쓰려면 ramp: false
+        Difficulty kept = new Settings(yaml("difficulties: {nightmare: {hp: 2.4, damage: 2.0, telegraph: 0.7, ramp: false}}"))
+                .difficulty("nightmare");
+        assertEquals(2.4, kept.hp(), 1e-9);
+        assertEquals(2.0, kept.damage(), 1e-9);
+        assertEquals(0.7, kept.telegraph(), 1e-9);
+        assertNull(kept.ramp());
+        // 0.3.2 예전 값은 어려움·악몽만 — 쉬움·보통·사용자 난이도는 그대로
+        assertEquals(1.5, new Settings(yaml("difficulties: {normal: {hp: 1.5}}")).difficulty("normal").hp(), 1e-9);
+        assertEquals(2.4, new Settings(yaml("difficulties: {insane: {hp: 2.4, damage: 2.0}}")).difficulty("insane").hp(), 1e-9);
     }
 
     @Test
@@ -217,13 +333,7 @@ class ScalingTest {
         // (Bukkit 은 이때 빠진 섹션을 '빈 섹션'으로 돌려준다 → 코드 기본값으로 켜져야 한다).
         YamlConfiguration jar = new YamlConfiguration();
         jar.load(new java.io.File("src/main/resources/config.yml"));
-        YamlConfiguration old = yaml("""
-                difficulty: nightmare
-                difficulties:
-                  easy:      {name: "쉬움",   hp: 0.7, damage: 0.6, drop: 0.8, xp: 0.8, telegraph: 1.3}
-                  normal:    {name: "보통",   hp: 1.0, damage: 1.0, drop: 1.0, xp: 1.0, telegraph: 1.0}
-                  hard:      {name: "어려움", hp: 1.5, damage: 1.4, drop: 1.3, xp: 1.3, telegraph: 0.85}
-                  nightmare: {name: "악몽",   hp: 2.4, damage: 2.0, drop: 1.8, xp: 1.7, telegraph: 0.7}
+        YamlConfiguration old = yaml(CONFIG_032 + """
                 party:
                   max_size: 10
                   hp_per_member: 0.6
@@ -233,14 +343,20 @@ class ScalingTest {
                 """);
         old.setDefaults(jar);
         Settings s = new Settings(old);
-        assertEquals(Difficulty.Ramp.NIGHTMARE, s.difficulty().ramp());
-        assertEquals(Difficulty.Ramp.HARD, s.difficulty("hard").ramp());
+        assertEquals(Difficulty.NIGHTMARE, s.difficulty());
+        assertEquals(Difficulty.HARD, s.difficulty("hard"));
         assertEquals(0.85, s.party().hp(1), 1e-9);
         assertEquals(0.85, s.party().damage(1), 1e-9);
         assertEquals(Settings.DEFAULT_STARTER_KIT, s.starterKit());
         InstanceContext ctx = InstanceContext.adhoc(1, 1, s.difficulty(), s.party());
         assertEquals(1.8 * 0.85, ctx.hpMultiplier(), 1e-9);
         assertEquals(1.6 * 0.85, ctx.damageMultiplier(), 1e-9);
+        assertEquals(ctx.hpMultiplier(), InstanceContext.adhoc(6, 1, s.difficulty(), s.party()).hpMultiplier(), 1e-9);
+
+        // difficulties 를 아예 안 적은 서버도 jar 기본값 = 코드 기본값
+        YamlConfiguration none = yaml("difficulty: hard");
+        none.setDefaults(jar);
+        assertEquals(Difficulty.HARD, new Settings(none).difficulty());
 
         // 끄기는 명시적으로
         YamlConfiguration off = yaml("""
@@ -252,6 +368,7 @@ class ScalingTest {
         off.setDefaults(jar);
         Settings so = new Settings(off);
         assertNull(so.difficulty("nightmare").ramp());
+        assertEquals(2.4, so.difficulty("nightmare").hp(), 1e-9);
         assertEquals(1.0, so.party().hp(1), 1e-9);
         assertTrue(so.starterKit().isEmpty());
     }
@@ -297,10 +414,10 @@ class ScalingTest {
         Settings s = new Settings(y);
         assertEquals(4, s.difficulties().size());
         assertEquals(10, s.party().maxSize());
-        // jar 값 = 코드 기본값 (기존 서버에 키가 없을 때와 같은 동작)
-        assertEquals(Difficulty.Ramp.HARD, s.difficulty("hard").ramp());
-        assertEquals(Difficulty.Ramp.NIGHTMARE, s.difficulty("nightmare").ramp());
-        assertNull(s.difficulty("normal").ramp());
+        // jar 값 = 코드 기본값 (기존 서버에 키가 없을 때와 같은 동작), 층 램프 없음
+        for (String id : List.of("easy", "normal", "hard", "nightmare")) {
+            assertEquals(Difficulty.defaultFor(id), s.difficulty(id), id);
+        }
         assertEquals(PartyScaling.DEFAULT, s.party());
         assertEquals(Settings.DEFAULT_STARTER_KIT, s.starterKit());
         assertEquals(50, s.level().max());

@@ -9,16 +9,17 @@
 difficulty: ""
 
 # 난이도 프리셋 — hp/damage: 몹·보스 배율, drop: 드롭 확률, xp: 경험치, telegraph: 경고 시간(windup) 배율
-#   ramp: 층 램프 — from_floor 층에서 start 값으로 시작해 full_floor 층부터 위의 원래 값 (그 사이는 층마다 고르게).
-#         hp·damage·telegraph 와 보스 패턴 배율(쿨다운·추가 개수·속도·오브젝트 HP·제한 시간)만 램프한다.
-#         drop·xp(보상)는 1층부터 원래 값. ramp 키가 없으면 아래 기본값이 쓰이고, 끄려면 ramp: {enabled: false}
+#   난이도마다 배율 한 벌 — 1층부터 마지막 층까지 같은 값 (보스 패턴 배율도 난이도마다 하나).
+#   어려움·악몽은 밸런스 시뮬레이터로 고른 값: 악몽 1층 솔로(숙련) 클리어율 약 50%, 깊은 층일수록 여전히 가장 어렵다.
+#   0.3.2 에서 그대로 둔 값(어려움 1.5/1.4/0.85 · 악몽 2.4/2.0/0.7 과 그때의 ramp 묶음)은 자동으로 위 새 값으로 바뀐다
+#   (예전 값을 1층부터 그대로 쓰려면 그 줄에 ramp: false 를 함께 적는다).
+#   (선택) ramp: {from_floor: 1, full_floor: 5, start: {hp: 1.2, damage: 1.1, telegraph: 0.95}} 처럼 직접 적으면 층 램프를 쓸 수 있다
+#         — from_floor 층에서 start 값으로 시작해 full_floor 층부터 위의 값 (hp·damage·telegraph 와 보스 패턴 배율만, 보상은 1층부터).
 difficulties:
   easy:      {name: "쉬움",   hp: 0.7, damage: 0.6, drop: 0.8, xp: 0.8, telegraph: 1.3}
   normal:    {name: "보통",   hp: 1.0, damage: 1.0, drop: 1.0, xp: 1.0, telegraph: 1.0}
-  hard:      {name: "어려움", hp: 1.5, damage: 1.4, drop: 1.3, xp: 1.3, telegraph: 0.85,
-              ramp: {from_floor: 1, full_floor: 4, start: {hp: 1.2, damage: 1.15, telegraph: 0.95}}}
-  nightmare: {name: "악몽",   hp: 2.4, damage: 2.0, drop: 1.8, xp: 1.7, telegraph: 0.7,
-              ramp: {from_floor: 1, full_floor: 6, start: {hp: 1.8, damage: 1.6, telegraph: 0.85}}}
+  hard:      {name: "어려움", hp: 1.4, damage: 1.3, drop: 1.3, xp: 1.3, telegraph: 0.9}
+  nightmare: {name: "악몽",   hp: 1.8, damage: 1.6, drop: 1.8, xp: 1.7, telegraph: 0.85}
 
 # 파티 — 인원 n 명일 때 몹 HP ×(1 + hp_per_member×(n−1)), 피해 ×(1 + dmg_per_member×(n−1)),
 #         골드·드롭 ×(1 + reward_per_member×(n−1))

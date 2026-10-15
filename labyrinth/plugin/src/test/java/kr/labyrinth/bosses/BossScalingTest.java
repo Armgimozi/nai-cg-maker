@@ -12,6 +12,9 @@ import kr.labyrinth.content.BossDef;
 import kr.labyrinth.content.Content;
 import kr.labyrinth.content.Params;
 import kr.labyrinth.core.ContentLoader;
+import kr.labyrinth.core.Difficulty;
+import kr.labyrinth.core.PartyScaling;
+import kr.labyrinth.dungeon.InstanceContext;
 import org.junit.jupiter.api.Test;
 
 /** 기믹 배율(GDD §8.4 + 난이도)·도형 판정·아레나 배치 수학. */
@@ -69,15 +72,42 @@ class BossScalingTest {
     }
 
     @Test
-    void mechanicScalingFollowsFloorRamp() {
-        // 악몽 1층(ramp 0) = 보통과 같은 패턴: 쿨 ×1.0 · 추가 +0 · 속도·오브젝트 HP·제한 시간 ×1.0
+    void mechanicScalingIsOneSetPerDifficultyFromFloorOne() {
+        // 0.3.3: 층 램프 없음 → InstanceContext.rampProgress 는 모든 층 1 → 1층부터 난이도 값 그대로
+        double ramp = InstanceContext.adhoc(1, 1, Difficulty.NIGHTMARE, PartyScaling.DEFAULT).rampProgress();
+        assertEquals(1.0, ramp, 1e-9);
+        MechanicScaling f1 = new MechanicScaling(1, "nightmare", 1, false, ramp);
+        assertEquals(new MechanicScaling(1, "nightmare", 1, false), f1);
+        assertEquals(0.8, f1.cooldownMult(), 1e-9);
+        assertEquals(1, f1.extraCount());
+        assertEquals(1.2, f1.speedMult(), 1e-9);
+        assertEquals(1.6, f1.objectHpMult(), 1e-9);
+        assertEquals(0.8, f1.timerMult(), 1e-9);
+        MechanicScaling hard = new MechanicScaling(4, "hard", 1, false,
+                InstanceContext.adhoc(2, 4, Difficulty.HARD, PartyScaling.DEFAULT).rampProgress());
+        assertEquals(0.9, hard.cooldownMult(), 1e-9);
+        assertEquals(1.1, hard.speedMult(), 1e-9);
+        assertEquals(1.25, hard.objectHpMult(), 1e-9);
+        assertEquals(0.9, hard.timerMult(), 1e-9);
+        assertEquals(1, new MechanicScaling(6, "hard", 1, false, 1.0).extraCount());
+        // 보통 < 어려움 < 악몽 (쿨다운은 짧게, 속도·오브젝트 HP 는 크게, 제한 시간은 짧게)
+        MechanicScaling normal = new MechanicScaling(1, "normal", 1, false);
+        assertTrue(normal.cooldownMult() > hard.cooldownMult() && hard.cooldownMult() > f1.cooldownMult());
+        assertTrue(normal.speedMult() < hard.speedMult() && hard.speedMult() < f1.speedMult());
+        assertTrue(normal.objectHpMult() < hard.objectHpMult() && hard.objectHpMult() < f1.objectHpMult());
+        assertTrue(normal.timerMult() > hard.timerMult() && hard.timerMult() > f1.timerMult());
+    }
+
+    @Test
+    void mechanicScalingFollowsHandWrittenFloorRamp() {
+        // 관리자가 층 램프를 직접 적었을 때만: 진행도 0 = 보통과 같은 패턴 (쿨 ×1.0 · 추가 +0 · 속도·오브젝트 HP·제한 시간 ×1.0)
         MechanicScaling f1 = new MechanicScaling(1, "nightmare", 1, false, 0.0);
         assertEquals(1.0, f1.cooldownMult(), 1e-9);
         assertEquals(0, f1.extraCount());
         assertEquals(1.0, f1.speedMult(), 1e-9);
         assertEquals(1.0, f1.objectHpMult(), 1e-9);
         assertEquals(1.0, f1.timerMult(), 1e-9);
-        // 3층(0.4): 쿨 ×0.92, 추가는 아직 0 / 4층(0.6): ×0.88, +1 / 6층(1.0): ×0.8, +1
+        // 진행도 0.4: 쿨 ×0.92, 추가는 아직 0 / 0.6: ×0.88, +1 / 1.0: ×0.8, +1
         MechanicScaling f3 = new MechanicScaling(1, "nightmare", 1, false, 0.4);
         assertEquals(0.92, f3.cooldownMult(), 1e-9);
         assertEquals(0, f3.extraCount());
@@ -88,10 +118,10 @@ class BossScalingTest {
         assertEquals(0.88, f4.cooldownMult(), 1e-9);
         assertEquals(1, f4.extraCount());
         MechanicScaling full = new MechanicScaling(1, "nightmare", 1, false, 1.0);
-        assertEquals(new MechanicScaling(1, "nightmare", 1, false), full, "4인자 = 램프 다 오름");
+        assertEquals(new MechanicScaling(1, "nightmare", 1, false), full, "4인자 = 램프 없음");
         assertEquals(0.8, full.cooldownMult(), 1e-9);
         assertEquals(1, full.extraCount());
-        // 어려움 2층(1/3): 쿨 ×0.967, 6인 이상 추가 +1 은 ramp 0.5 부터
+        // 어려움 진행도 1/3: 쿨 ×0.967, 6인 이상 추가 +1 은 진행도 0.5 부터
         assertEquals(1 - 0.1 / 3, new MechanicScaling(4, "hard", 1, false, 1 / 3.0).cooldownMult(), 1e-9);
         assertEquals(0, new MechanicScaling(6, "hard", 1, false, 1 / 3.0).extraCount());
         assertEquals(1, new MechanicScaling(6, "hard", 1, false, 2 / 3.0).extraCount());
@@ -99,7 +129,7 @@ class BossScalingTest {
         assertEquals(0.92 * 0.9 * MechanicScaling.ENRAGE_COOLDOWN, f3.withPhase(3).withEnraged(true).cooldownMult(), 1e-9);
         assertEquals(0.4, f3.withPhase(2).withEnraged(true).ramp(), 1e-9);
         assertEquals(0.9, f1.withPhase(3).cooldownMult(), 1e-9);
-        // 개수: 악몽 1층은 보통과 같은 수
+        // 개수: 진행도 0 은 보통과 같은 수
         Params brand = p("count_base", 1, "count_per_member", 0.5, "max", 5);
         assertEquals(new MechanicScaling(5, "normal", 1, false).count(brand, "count", 1, 0),
                 new MechanicScaling(5, "nightmare", 1, false, 0.0).count(brand, "count", 1, 0));
