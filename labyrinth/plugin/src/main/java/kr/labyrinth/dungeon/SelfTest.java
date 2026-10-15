@@ -237,7 +237,7 @@ final class SelfTest {
         });
     }
 
-    /** 미로 구조 확인: 주 경로 길이, 계단·금 간 벽 블록이 실제로 놓였나, 금 간 벽 열기 → 공기, 탐험 지도 그리기. */
+    /** 미로 구조 확인: 주 경로 길이, 계단·금 간 벽 블록이 실제로 놓였나, 금 간 벽 열기 → 공기, 함정·상자·금고, 탐험 지도 그리기. */
     private void checkMaze(int f) {
         var l = fs.layout();
         var plan = l.plan();
@@ -285,6 +285,27 @@ final class SelfTest {
             }
         }
         if (dumpDir != null) blockDump(f, java.nio.file.Path.of(dumpDir), "after");
+        // 함정·미로 상자·금고·비밀방 (GDD §5.5·§5.6): 개수 + 사람 없이 한 번씩 발동·해제, 상자 블록·금고 문 열기·미믹 소환
+        count("traps", fs.traps().count());
+        count("chests", fs.treasures().chestCount());
+        count("vaults", fs.treasures().vaultCount());
+        count("secret_rooms", l.secretRooms().size());
+        count("mimics", fs.treasures().mimicCount());
+        if (fs.traps().count() == 0) {
+            bump(errors, "dungeon");
+            errorSamples.add("dungeon: 지하 " + f + "층 함정 0개");
+        }
+        step("dungeon", () -> {
+            var kinds = fs.traps().selfTest(1_000_000L + f * 10_000L);
+            count("trap_kinds", kinds.size());
+            count("traps_disarmed", fs.traps().disarmedCount());
+        });
+        step("dungeon", () -> {
+            int[] r = fs.treasures().selfTest();
+            count("chests_ok", r[0]);
+            count("vaults_opened", r[1]);
+            count("mimic_mobs", r[2]);
+        });
         fs.exploration().revealAll();
         count("map_lines", ExplorationMap.render(fs, null).size());
     }

@@ -384,6 +384,8 @@ public final class Run {
         manager.services().hud().hideBossBar(p, "dungeon_boss");
         manager.services().hud().hideBossBar(p, "dungeon_gimmick");
         p.setGameMode(modes.getOrDefault(u, GameMode.SURVIVAL));
+        // 층 전용 금고 열쇠는 미궁 밖으로 못 가져간다
+        kr.labyrinth.dungeon.treasure.VaultKeys.strip(p, id, 0);
         p.setFireTicks(0);
         p.setFallDistance(0);
         Location back = returnTo.get(u);
@@ -624,7 +626,17 @@ public final class Run {
         p.setFallDistance(0);
         lastSafe.put(p.getUniqueId(), spawn);
         p.playSound(spawn, Sound.BLOCK_PORTAL_TRAVEL, 0.25f, 1.6f);
+        stripOldKeys();
         manager.services().hud().actionBar(p, Text.mm("<gray>지하 " + current.floor() + "층 도착 — 파티원을 기다리는 중..."), 60);
+    }
+
+    /** 지난 층 금고 열쇠는 부서진다 (지금 층 것만 남김). */
+    private void stripOldKeys() {
+        for (Player o : onlineMembers()) {
+            if (kr.labyrinth.dungeon.treasure.VaultKeys.strip(o, id, current.floor()) > 0) {
+                Text.send(o, "<gray>지난 층의 금고 열쇠가 바스러져 사라졌습니다.");
+            }
+        }
     }
 
     /** 재접속한 파티원을 현재 층으로. */

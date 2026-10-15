@@ -44,7 +44,8 @@ class MazeRenderDump {
                 FloorLayout l = FloorGenerator.generate(gp, seed * 1_000_003L + f.number() * 7919L);
                 long us = (System.nanoTime() - t0) / 1000;
                 Path file = System.getenv("MAZE_NOTILES") != null ? null : out.resolve(String.format("floor%02d_s%d.txt", f.number(), seed));
-                String stats = write(file, l, us);
+                var hz = kr.labyrinth.dungeon.traps.HazardPlan.plan(l, f.raw().sub("traps"), f.raw().sub("chests"), seed * 1_000_003L + f.number() * 7919L);
+                String stats = write(file, l, us, hz);
                 summary.append(String.format("floor %2d seed %d: %s%n", f.number(), seed, stats));
             }
         }
@@ -75,7 +76,7 @@ class MazeRenderDump {
                 p.arenaHeight(), p.arenaCorridorLength(), p.arenaCorridorWidth(), ms);
     }
 
-    private static String write(Path file, FloorLayout l, long micros) throws IOException {
+    private static String write(Path file, FloorLayout l, long micros, kr.labyrinth.dungeon.traps.HazardPlan hz) throws IOException {
         MazePlan plan = l.plan();
         StringBuilder sb = new StringBuilder();
         sb.append(l.width()).append(' ').append(l.depth()).append(' ').append(plan.size()).append(' ')
@@ -94,6 +95,24 @@ class MazeRenderDump {
         for (FloorLayout.SecretRoom s : l.secretRooms()) {
             sb.append("SECRET ").append(s.minX()).append(' ').append(s.minZ()).append(' ').append(s.maxX()).append(' ').append(s.maxZ()).append('\n');
         }
+        // 함정·상자·금고 (GDD §5.5·§5.6)
+        for (var t : hz.traps()) {
+            sb.append("TRAP ").append(t.type().id());
+            for (int p : t.tiles()) sb.append(' ').append(FloorLayout.unpackX(p)).append(' ').append(FloorLayout.unpackZ(p));
+            sb.append('\n');
+        }
+        var tp = hz.treasure();
+        for (var c : tp.chests()) {
+            sb.append("CHEST ").append(c.x()).append(' ').append(c.z()).append(' ').append(c.tier().id()).append(' ')
+                    .append(c.mimic() ? 1 : 0).append(' ').append(c.source().name()).append(' ').append(c.index() == tp.keyChest() ? 1 : 0).append('\n');
+        }
+        if (tp.vault() != null) {
+            var v = tp.vault();
+            sb.append("VAULT ").append(v.minX()).append(' ').append(v.minZ()).append(' ').append(v.maxX()).append(' ').append(v.maxZ())
+                    .append(' ').append(tp.keyFromElite() ? 1 : 0);
+            for (int p : v.door()) sb.append(' ').append(FloorLayout.unpackX(p)).append(' ').append(FloorLayout.unpackZ(p));
+            sb.append('\n');
+        }
         long blocks = 0;
         for (int z = 0; z < l.depth(); z++) for (int x = 0; x < l.width(); x++) if (l.open(x, z)) blocks += 2 + l.elevation(x, z);
         Map<HallStyle, Integer> styles = new EnumMap<>(HallStyle.class);
@@ -101,7 +120,10 @@ class MazeRenderDump {
         String stats = "n=" + plan.size() + " used=" + plan.usedCount() + "/" + plan.cellCount() + " path=" + plan.mainPath().size()
                 + " need=" + (int) Math.ceil(2.2 * plan.size()) + " loops=" + plan.loopCount() + " dead=" + plan.deadEnds().size()
                 + "/" + plan.initialDeadEnds() + " secrets=" + l.secretRooms().size() + " hallTiles=" + l.hallTiles().length
-                + " attempt=" + plan.attempt() + " openTiles~blocks=" + blocks + " gen=" + micros + "us styles=" + styles;
+                + " attempt=" + plan.attempt() + " openTiles~blocks=" + blocks + " gen=" + micros + "us traps=" + hz.traps().size()
+                + " chests=" + tp.chests().size() + "(W" + tp.count(kr.labyrinth.dungeon.treasure.ChestTier.WOOD) + "/I"
+                + tp.count(kr.labyrinth.dungeon.treasure.ChestTier.IRON) + "/G" + tp.count(kr.labyrinth.dungeon.treasure.ChestTier.GOLD)
+                + ") mimics=" + tp.mimics() + " vault=" + (tp.vault() == null ? 0 : 1) + (tp.keyFromElite() ? "(elite key)" : "") + " styles=" + styles;
         sb.append("STAT ").append(stats).append('\n');
         sb.append("ASCII\n").append(plan.ascii());
         if (file != null) Files.writeString(file, sb.toString(), StandardCharsets.UTF_8);

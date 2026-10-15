@@ -14,7 +14,15 @@ public record DungeonConfig(
         int emptyTimeout, int startCountdown, int roomLockDelay, double mobCountPerMember, int maxMobsPerRoom,
         double restHeal, double fallbackHpMult, double fallbackDamageMult, int stairsWaitSeconds,
         int finalReturnSeconds, int wipeReturnSeconds, int treasureChests, double mimicChance, int mimicMobs,
-        double spectatorLeash, double fallDamage, boolean requireNearEntrance) {
+        double spectatorLeash, double fallDamage, boolean requireNearEntrance, TrapRules traps) {
+
+    /**
+     * 함정·미로 상자 공통 규칙 (dungeon.yml {@code traps.*}·{@code treasure.*}, GDD §5.5·§5.6).
+     * disarmSeconds = 함정 옆에서 웅크리고 있어야 하는 초, shadowDisarmSeconds = 그림자 직업, shadowSense = 그림자가 함정 윤곽을 보는 거리,
+     * disarmGold = 해제 골드 (× 층), disarmXp = 해제 경험치 (× 층 일반 몹 평균), mimicLockSeconds = 미믹 상자가 잠겨 있는 최대 초.
+     */
+    public record TrapRules(double disarmSeconds, double shadowDisarmSeconds, double shadowSense, int disarmGold, double disarmXp,
+                            int mimicLockSeconds) {}
 
     public static DungeonConfig load(JavaPlugin plugin) {
         File f = new File(plugin.getDataFolder(), "dungeon.yml");
@@ -55,7 +63,13 @@ public record DungeonConfig(
                 Math.max(1, c.getInt("treasure.mimic_mobs", 2)),
                 Math.max(8, c.getDouble("spectator_leash", 28)),
                 Math.max(0, c.getDouble("fall_damage", 0.10)),
-                c.getBoolean("require_near_entrance", true));
+                c.getBoolean("require_near_entrance", true),
+                new TrapRules(Math.max(0.5, c.getDouble("traps.disarm_seconds", 3.0)),
+                        Math.max(0.2, c.getDouble("traps.shadow_disarm_seconds", 1.0)),
+                        Math.max(0, c.getDouble("traps.shadow_sense_radius", 10)),
+                        Math.max(0, c.getInt("traps.disarm_gold", 6)),
+                        Math.max(0, c.getDouble("traps.disarm_xp", 0.5)),
+                        Math.max(5, c.getInt("treasure.mimic_lock_seconds", 30))));
     }
 
     public static DungeonConfig defaults() { return of(new YamlConfiguration()); }

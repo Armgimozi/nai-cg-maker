@@ -61,7 +61,8 @@ public final class ContentValidator {
     public static final Set<String> MOB_RANKS = Set.of("normal", "elite", "add");
     public static final Set<String> CONDITIONS = Set.of("FIRST_CLEAR", "CLEAR", "SOLO_CLEAR", "NO_DEATH_CLEAR",
             "DIFFICULTY_CLEAR", "SPEED_CLEAR", "KILL", "BOSS_KILL", "LEVEL", "OBTAIN_RARITY", "CRAFT", "PVP_WIN",
-            "PVP_STREAK", "PVP_RATING", "PVP_FIRST_WIN");
+            "PVP_STREAK", "PVP_RATING", "PVP_FIRST_WIN", "TREASURE");
+    public static final Set<String> TREASURE_KINDS = Set.of("chest", "gold_chest", "vault", "mimic");
     public static final Set<String> TITLE_BONUS_KEYS = Set.of("STR", "DEX", "INT", "VIT", "WIS", "LUK", "xp_bonus", "gold_bonus");
     public static final Set<String> NPC_ROLES = Set.of("entrance", "blacksmith", "class_master", "title_keeper", "merchant", "lore");
     public static final Set<String> DIFFICULTIES = Set.of("easy", "normal", "hard", "nightmare");
@@ -297,6 +298,14 @@ public final class ContentValidator {
                 if (f.palette(key).isEmpty()) err(w, "palette." + key + " 비어 있음");
             }
             requireTable(w + " 보물방", "treasure_floor_" + f.number());
+            // 미로 함정·상자 (GDD §5.5·§5.6)
+            for (String t : f.raw().sub("traps").strings("types")) {
+                if (kr.labyrinth.dungeon.traps.TrapType.byId(t) == null) err(w + ".traps.types", "알 수 없는 함정 '" + t + "'");
+            }
+            int bracket = kr.labyrinth.dungeon.treasure.ChestSettings.of(f.raw().sub("chests")).bracket();
+            for (kr.labyrinth.dungeon.treasure.ChestTier tier : kr.labyrinth.dungeon.treasure.ChestTier.values()) {
+                requireTable(w + " 미로 상자", tier.table(f.number(), bracket));
+            }
             requireTable(w + " 기믹방", "gimmick_floor_" + f.number());
             String failSpawn = f.gimmickParams().str("fail_spawn");
             if (failSpawn != null) requireMob(w + ".gimmick_params.fail_spawn", failSpawn);
@@ -372,6 +381,9 @@ public final class ContentValidator {
             if (cond.has("boss") && !c.bosses().containsKey(cond.str("boss"))) err(w, "없는 보스 '" + cond.str("boss") + "'");
             if (cond.has("rarity") && Rarity.byId(cond.str("rarity")) == null) err(w, "rarity 가 올바르지 않음: " + cond.str("rarity"));
             if (cond.has("difficulty") && !DIFFICULTIES.contains(cond.str("difficulty"))) err(w, "difficulty 가 올바르지 않음");
+            if ("TREASURE".equals(a.conditionType()) && !TREASURE_KINDS.contains(cond.str("kind", "chest"))) {
+                err(w, "TREASURE kind 가 올바르지 않음: " + cond.str("kind"));
+            }
             for (String k : a.bonus().keySet()) if (!TITLE_BONUS_KEYS.contains(k)) err(w, "bonus 키가 올바르지 않음: " + k);
             for (String id : a.rewardItems().keySet()) requireItem(w + ".reward.items", id);
         }

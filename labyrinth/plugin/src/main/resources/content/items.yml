@@ -3811,6 +3811,16 @@ items:
     model: {shape: icon}
     texture: {style: scroll, palette: ["#2a2418", "#6a5a40", "#c8b48a", "#7fa043", "#efe4c8"]}
     lore: "읽는 즉시 미궁 입구로 돌아간다. 전투 중에는 5초, 평소에는 1초 동안 읽어야 하며 피해를 받으면 끊긴다."
+  vault_key:
+    name: "미궁 금고 열쇠"
+    type: key
+    rarity: rare
+    level_req: 1
+    pool: false
+    sources: [elite, chest]
+    model: {shape: icon}
+    texture: {style: key, palette: ["#2a1a06", "#6a4a12", "#c89a2a", "#ffd36b", "#fff6c8"]}
+    lore: "이 층 어딘가의 잠긴 금고 문을 여는 무거운 열쇠. 금고 문에 대고 우클릭. 미궁을 나가거나 다음 층으로 내려가면 바스러진다."
   stat_reset_scroll:
     name: "망각의 주문서"
     type: consumable

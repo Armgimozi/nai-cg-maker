@@ -510,6 +510,11 @@ public final class DungeonManager implements DungeonService, Listener {
             e.setCancelled(true);
             return;
         }
+        // 미로 보물 상자·금고 문 (개인 루팅·열쇠)
+        if (offHand ? fs.treasures().owns(b) : fs.treasures().onInteract(p, b, e.getAction())) {
+            e.setCancelled(true);
+            return;
+        }
         for (Room room : fs.rooms()) {
             if (offHand) {
                 // 보조손 이벤트는 처리하지 않고 막기만 (주 손에서 이미 처리 — 두 번 눌림 방지)

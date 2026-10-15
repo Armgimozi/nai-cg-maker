@@ -65,6 +65,148 @@ tables:
       - {item: elixir_of_renewal, chance: 0.7}
       - {item: phoenix_feather, chance: 0.12}
 
+
+
+  # ═════════ 미로 보물 상자 (GDD §5.6 — 막다른 길·비밀방·금고, 개인 루팅, 층 구간별 등급 표) ═════════
+  # maze_chest_<wood|iron|gold>_<구간>: 구간 1 = 1~3층 · 2 = 4~6층 · 3 = 7~9층 · 4 = 10층 (floors.yml chests.bracket 으로 강제 가능)
+  # 나무(흔함) 소모품·재료 위주 · 철(가끔) 장비 확률 · 금(드묾 — 비밀방·금고·함정 뒤) 희귀 이상 장비 확률
+  maze_chest_wood_1:   # 나무 상자 (1~3층)
+    rolls: 1
+    gold: [12, 35]
+    entries:
+      - {table: potions_t1, chance: 0.5}
+      - {one_of: [moss_fiber, beetle_shell, spider_silk, rusted_iron, spore_cap, hypha_thread], chance: 0.55, amount: [1, 3]}
+      - {item: dim_essence, chance: 0.08}
+      - {table: scrolls, chance: 0.05}
+      - {rarity_pool: common, floor: 1, chance: 0.12}
+      - {rarity_pool: uncommon, floor: 2, chance: 0.03}
+  maze_chest_iron_1:   # 철 상자 (1~3층)
+    rolls: 2
+    gold: [30, 70]
+    entries:
+      - {table: potions_t1, chance: 0.55}
+      - {one_of: [moss_fiber, beetle_shell, spider_silk, rusted_iron, spore_cap, hypha_thread], chance: 0.6, amount: [2, 4]}
+      - {item: dim_essence, chance: 0.2}
+      - {table: scrolls, chance: 0.1}
+      - {table: tonics, chance: 0.06}
+      - {rarity_pool: uncommon, floor: 2, chance: 0.2}
+      - {rarity_pool: rare, floor: 3, chance: 0.05}
+  maze_chest_gold_1:   # 금 상자 (1~3층) — 희귀 이상 장비 확률
+    rolls: 2
+    gold: [70, 150]
+    guaranteed:
+      - {item: dim_essence, amount: 1}
+    entries:
+      - {table: potions_t1, chance: 0.6}
+      - {one_of: [moss_fiber, beetle_shell, spider_silk, rusted_iron, spore_cap, hypha_thread], chance: 0.6, amount: [3, 5]}
+      - {item: labyrinth_essence, chance: 0.06}
+      - {table: tonics, chance: 0.15}
+      - {table: rare_consumables, chance: 0.05}
+      - {rarity_pool: rare, floor: 3, chance: 0.35}
+      - {rarity_pool: epic, floor: 4, chance: 0.05}
+  maze_chest_wood_2:   # 나무 상자 (4~6층)
+    rolls: 1
+    gold: [50, 110]
+    entries:
+      - {table: potions_t1, chance: 0.5}
+      - {one_of: [brine_pearl, eel_scale, slag_ingot, ember_shard, rime_crystal, grave_bone], chance: 0.55, amount: [1, 3]}
+      - {item: labyrinth_essence, chance: 0.08}
+      - {table: scrolls, chance: 0.05}
+      - {rarity_pool: rare, floor: 4, chance: 0.12}
+      - {rarity_pool: rare, floor: 6, chance: 0.03}
+  maze_chest_iron_2:   # 철 상자 (4~6층)
+    rolls: 2
+    gold: [110, 220]
+    entries:
+      - {table: potions_t2, chance: 0.55}
+      - {one_of: [brine_pearl, eel_scale, slag_ingot, ember_shard, rime_crystal, grave_bone], chance: 0.6, amount: [2, 4]}
+      - {item: labyrinth_essence, chance: 0.2}
+      - {table: scrolls, chance: 0.1}
+      - {table: tonics, chance: 0.06}
+      - {rarity_pool: rare, floor: 6, chance: 0.2}
+      - {rarity_pool: epic, floor: 4, chance: 0.05}
+  maze_chest_gold_2:   # 금 상자 (4~6층) — 희귀 이상 장비 확률
+    rolls: 2
+    gold: [220, 420]
+    guaranteed:
+      - {item: labyrinth_essence, amount: 1}
+    entries:
+      - {table: potions_t2, chance: 0.6}
+      - {one_of: [brine_pearl, eel_scale, slag_ingot, ember_shard, rime_crystal, grave_bone], chance: 0.6, amount: [3, 5]}
+      - {item: radiant_essence, chance: 0.06}
+      - {table: tonics, chance: 0.15}
+      - {table: rare_consumables, chance: 0.05}
+      - {rarity_pool: epic, floor: 4, chance: 0.35}
+      - {rarity_pool: epic, floor: 6, chance: 0.05}
+  maze_chest_wood_3:   # 나무 상자 (7~9층)
+    rolls: 1
+    gold: [150, 300]
+    entries:
+      - {table: potions_t2, chance: 0.5}
+      - {one_of: [amethyst_shard, prism_dust, ink_essence, old_page, brass_gear, mainspring], chance: 0.55, amount: [1, 3]}
+      - {item: radiant_essence, chance: 0.08}
+      - {table: scrolls, chance: 0.05}
+      - {rarity_pool: rare, floor: 7, chance: 0.12}
+      - {rarity_pool: epic, floor: 8, chance: 0.03}
+  maze_chest_iron_3:   # 철 상자 (7~9층)
+    rolls: 2
+    gold: [300, 550]
+    entries:
+      - {table: potions_t3, chance: 0.55}
+      - {one_of: [amethyst_shard, prism_dust, ink_essence, old_page, brass_gear, mainspring], chance: 0.6, amount: [2, 4]}
+      - {item: radiant_essence, chance: 0.2}
+      - {table: scrolls, chance: 0.1}
+      - {table: tonics, chance: 0.06}
+      - {rarity_pool: epic, floor: 8, chance: 0.2}
+      - {rarity_pool: epic, floor: 9, chance: 0.05}
+  maze_chest_gold_3:   # 금 상자 (7~9층) — 희귀 이상 장비 확률
+    rolls: 2
+    gold: [550, 950]
+    guaranteed:
+      - {item: radiant_essence, amount: 1}
+    entries:
+      - {table: potions_t3, chance: 0.6}
+      - {one_of: [amethyst_shard, prism_dust, ink_essence, old_page, brass_gear, mainspring], chance: 0.6, amount: [3, 5]}
+      - {item: primordial_essence, chance: 0.06}
+      - {table: tonics, chance: 0.15}
+      - {table: rare_consumables, chance: 0.05}
+      - {rarity_pool: epic, floor: 9, chance: 0.35}
+      - {rarity_pool: legendary, floor: 9, chance: 0.012}
+  maze_chest_wood_4:   # 나무 상자 (10층)
+    rolls: 1
+    gold: [300, 550]
+    entries:
+      - {table: potions_t3, chance: 0.5}
+      - {one_of: [abyss_ichor, sculk_tendril], chance: 0.55, amount: [1, 3]}
+      - {item: primordial_essence, chance: 0.08}
+      - {table: scrolls, chance: 0.05}
+      - {rarity_pool: epic, floor: 9, chance: 0.12}
+      - {rarity_pool: epic, floor: 9, chance: 0.03}
+  maze_chest_iron_4:   # 철 상자 (10층)
+    rolls: 2
+    gold: [550, 900]
+    entries:
+      - {table: potions_t3, chance: 0.55}
+      - {one_of: [abyss_ichor, sculk_tendril], chance: 0.6, amount: [2, 4]}
+      - {item: primordial_essence, chance: 0.2}
+      - {table: scrolls, chance: 0.1}
+      - {table: tonics, chance: 0.06}
+      - {rarity_pool: epic, floor: 9, chance: 0.2}
+      - {rarity_pool: epic, floor: 9, chance: 0.05}
+  maze_chest_gold_4:   # 금 상자 (10층) — 희귀 이상 장비 확률
+    rolls: 2
+    gold: [900, 1500]
+    guaranteed:
+      - {item: primordial_essence, amount: 1}
+    entries:
+      - {table: potions_t3, chance: 0.6}
+      - {one_of: [abyss_ichor, sculk_tendril], chance: 0.6, amount: [3, 5]}
+      - {item: primordial_essence, chance: 0.06}
+      - {table: tonics, chance: 0.15}
+      - {table: rare_consumables, chance: 0.05}
+      - {rarity_pool: epic, floor: 9, chance: 0.35}
+      - {rarity_pool: legendary, floor: 10, chance: 0.012}
+
   # ═════════ 지하 1층 — 이끼 낀 회랑 ═════════
   moss_crawler:   # 1층 일반 — 이끼 기어다니는 자
     rolls: 1

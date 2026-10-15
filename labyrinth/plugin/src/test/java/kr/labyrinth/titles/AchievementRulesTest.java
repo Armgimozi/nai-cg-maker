@@ -217,7 +217,7 @@ class AchievementRulesTest {
     void everyBundledAchievementTypeIsKnown() {
         Content c = ContentLoader.load(Path.of("src/main/resources/content")).content();
         Set<String> known = Set.of("FIRST_CLEAR", "CLEAR", "SOLO_CLEAR", "NO_DEATH_CLEAR", "DIFFICULTY_CLEAR", "SPEED_CLEAR",
-                "KILL", "BOSS_KILL", "LEVEL", "OBTAIN_RARITY", "CRAFT", "PVP_FIRST_WIN", "PVP_WIN", "PVP_STREAK", "PVP_RATING");
+                "KILL", "BOSS_KILL", "LEVEL", "OBTAIN_RARITY", "CRAFT", "PVP_FIRST_WIN", "PVP_WIN", "PVP_STREAK", "PVP_RATING", "TREASURE");
         assertFalse(c.achievements().isEmpty());
         for (AchievementDef a : c.achievements().values()) {
             assertTrue(known.contains(a.conditionType()), () -> a.id() + ": 알 수 없는 조건 " + a.conditionType());

@@ -25,6 +25,7 @@ import kr.labyrinth.core.Difficulty;
  *   <li>{@code titles.crafts} · {@code titles.craft_min.<희귀도>} 그 희귀도 이상 제작 수</li>
  *   <li>{@code titles.pvp_wins} · {@code titles.pvp_streak}(현재) · {@code titles.pvp_best_streak} ·
  *       {@code titles.pvp_rating}(현재) · {@code titles.pvp_best_rating}</li>
+ *   <li>{@code titles.treasure.<chest|gold_chest|vault|mimic>} 미로 보물 (상자에서 내 몫·금 상자·금고를 열쇠로 염·미믹 길들임)</li>
  *   <li>{@code titles.server_first.<업적 id>} {@code server_first: true} 업적의 서버 최초 기록 보유자면 1</li>
  *   <li>{@code level} 현재 레벨 (카운터가 아니라 조회 함수가 PlayerData.level 로 답한다)</li>
  * </ul>
@@ -101,6 +102,8 @@ public final class AchievementRules {
                 return v.applyAsLong(P + "pvp_best_streak") >= Math.max(1, c.integer("count", 1));
             case "PVP_RATING":
                 return v.applyAsLong(P + "pvp_best_rating") >= c.integer("min", Integer.MAX_VALUE);
+            case "TREASURE":
+                return v.applyAsLong(P + "treasure." + treasureKind(c)) >= Math.max(1, c.integer("count", 1));
             default:
                 return false;
         }
@@ -144,6 +147,7 @@ public final class AchievementRules {
             case "PVP_WIN" -> { cur = v.applyAsLong(P + "pvp_wins"); goal = Math.max(1, c.integer("count", 1)); }
             case "PVP_STREAK" -> { cur = v.applyAsLong(P + "pvp_best_streak"); goal = Math.max(1, c.integer("count", 1)); }
             case "PVP_RATING" -> { cur = v.applyAsLong(P + "pvp_best_rating"); goal = c.integer("min", 1); }
+            case "TREASURE" -> { cur = v.applyAsLong(P + "treasure." + treasureKind(c)); goal = Math.max(1, c.integer("count", 1)); }
             default -> { cur = met(def, v) ? 1 : 0; goal = 1; }
         }
         return new long[] {Math.min(cur, goal), goal};
@@ -180,8 +184,23 @@ public final class AchievementRules {
             case "PVP_WIN" -> "파티 대전 " + c.integer("count", 1) + "승";
             case "PVP_STREAK" -> "파티 대전 " + c.integer("count", 1) + "연승";
             case "PVP_RATING" -> "대전 레이팅 " + c.integer("min", 0) + " 달성" + sf;
+            case "TREASURE" -> {
+                int n = Math.max(1, c.integer("count", 1));
+                yield switch (treasureKind(c)) {
+                    case "gold_chest" -> "미로의 금 상자 " + n + "개 열기";
+                    case "vault" -> n == 1 ? "열쇠 금고 열기" : "열쇠 금고 " + n + "번 열기";
+                    case "mimic" -> "미믹 " + n + "마리 길들이기";
+                    default -> "미로의 보물 상자 " + n + "개 열기";
+                } + sf;
+            }
             default -> "";
         };
+    }
+
+    /** TREASURE 조건의 kind (chest | gold_chest | vault | mimic, 기본 chest). */
+    public static String treasureKind(Params c) {
+        String k = c.str("kind", "chest");
+        return k == null ? "chest" : k.toLowerCase(Locale.ROOT);
     }
 
     static String difficultyName(String id) {
