@@ -14,6 +14,15 @@ set's chest piece (GDD §14.7).  The head region stays empty: helmets are 3D ite
   · 색은 세트 팔레트의 중간 구간(≈0.3~0.6)이 주색이다. 위쪽(≥0.75)은 1px 테·수놓은 단에만 쓴다.
   · 어깨 윗면·견갑 윗줄은 3D 어깨 장식이 덮는 자리라 돔 밝기를 낮춰 둔다 (겹쳐 보이지 않게).
   · 같은 평면에 겹치는 띠(어깨·가랑이·엉덩이)는 _seams 가 같은 색으로 맞춘다 (z-fighting 깜빡임 방지).
+
+몸과 따로 노는 껍데기로 읽히게 (갑옷 상자는 몸에서 1px 뿐이라, 빈 텍셀 하나로도 피부가 비쳐 "몸에 그린 그림"이 된다):
+  · `_cover` — 각 층이 맡은 면은 모두 불투명하게 채운다. 흉갑 = 몸통·두 팔 6면 전부(소매·아랫단 밑면까지),
+    레깅스 = 허리띠 줄 + 두 다리 전부(밑면까지), 장화 = 종아리 아래 5줄 + 밑창.  디자인이 비워 둔 자리
+    (경갑의 드러난 윗팔, 열린 아랫단·손목 속)는 세트 팔레트의 밑받침(사슬·누빔 갬비슨·안감)으로 메운다.
+  · `_shell_rims` — 면마다 바깥 테두리 1px 를 살짝 어둡게 해 두꺼운 껍데기의 모서리처럼 보이게 한다 (발광 텍셀 제외).
+  · `_seams` — 서 있을 때 같은 평면에서 겹치는 상자 면(어깨의 팔·몸통 2px, 장화 가랑이, 레깅스 엉덩이 줄)을
+    실제 기하로 찾아 겹치는 텍셀을 한 색으로 맞춘다 → z-fighting 깜빡임이 없다.  그 색은 묶음의 어두운 쪽이라
+    팔과 몸통 사이에 주름(그늘)이 생겨 팔이 따로 붙은 껍데기로 읽힌다 (발광 텍셀이 끼면 그 빛을 따른다).
 """
 from __future__ import annotations
 
@@ -107,6 +116,8 @@ def paint_set(look, look_kind: str, seed: int):
     {'heavy': _heavy, 'light': _light, 'cloth': _cloth}[kind](hum, leg, look)
     _style_touches(hum, leg, look, kind)
     _trims(hum, leg, look, kind, look.level)
+    _cover(hum, leg, look, kind)
+    _shell_rims(hum, leg)
     _seams(hum, leg)
     return hum.img, leg.img
 
@@ -770,37 +781,205 @@ def _trims(hum: Painter, leg: Painter, lk, kind, lvl):
             glow_px(hum, x0 + dx, y0 + dy, glow_core)
 
 
-def _seams(hum: Painter, leg: Painter):
-    """바닐라 갑옷 상자끼리 같은 평면에서 겹치는 띠를 같은 색으로 맞춘다 (가만히 서 있을 때 z-fighting 깜빡임 방지).
+# ───────────────────────────── 껍데기: 빈틈 채우기 · 테두리 · 겹치는 면 ─────────────────────────────
 
-    · 어깨: 팔 상자(x 3~9)와 몸통 상자(−5~5)가 2px 겹치고 앞·뒤·윗면이 같은 평면 (서 있을 때 팔은 z축으로만 흔들림)
-      → 몸통 앞/뒤/윗면의 바깥 두 열(0·1, 6·7) = 팔의 몸쪽 열(앞·윗면 3열, 뒷면 0열).  팔이 비어 있는 행은 그대로.
-    · 가랑이: 장화 두 상자(1px 부풀림)가 2px 겹침 → 장화 앞 3열 = 2열, 뒤 0열 = 1열.
-    · 엉덩이: 레깅스 몸통 11행과 다리 0행이 같은 높이·같은 평면 → 다리 앞·뒤·바깥 0행 = 몸통 앞·뒤·옆 11행."""
-    hp, lp = hum.px, leg.px
-    for face, arm_col in (('front', 3), ('back', 0), ('top', 3)):
-        bx, by, bw, bh = BODY[face]
-        ax, ay, _, _ = ARM[face]
-        for j in range(bh):
-            a = hp[ax + arm_col, ay + j]
-            if not a[3]:
-                continue
-            for i in (0, 1, bw - 2, bw - 1):
-                if hp[bx + i, by + j][3]:
-                    hp[bx + i, by + j] = a
-    for face, src, dst in (('front', 2, 3), ('back', 1, 0)):
-        x0, y0, _, h = LEG[face]
-        for j in range(h):
-            c = hp[x0 + src, y0 + j]
-            if c[3] and hp[x0 + dst, y0 + j][3]:
-                hp[x0 + dst, y0 + j] = c
-    for bfaces, lface in ((('front',), 'front'), (('back',), 'back'), (('right', 'left'), 'outer')):
-        cells = [(BODY[b][0] + i, BODY[b][1] + BODY[b][3] - 1) for b in bfaces for i in range(BODY[b][2])]
-        cols = [lp[xy] for xy in cells if lp[xy][3]]
-        if not cols:
+BOOT_ROW = 7                                        # 장화는 다리 상자의 7~11행 (위는 레깅스가 보이게 비워 둠)
+BAND_ROW = {'heavy': 9, 'light': 9, 'cloth': 7}     # 레깅스 몸통의 허리띠 줄 (그 위는 흉갑 자리라 비움)
+
+
+def coverage_regions(kind):
+    """{(layer, part, face): first_row} — 이 층이 불투명하게 덮어야 하는 면 (layer 'hum' | 'leg')."""
+    out = {}
+    for f in BODY:
+        out[('hum', 'body', f)] = 0
+    for f in ARM:
+        out[('hum', 'arm', f)] = 0
+    for f in ('outer', 'front', 'inner', 'back'):
+        out[('hum', 'boot', f)] = BOOT_ROW
+    out[('hum', 'boot', 'bottom')] = 0
+    for f in ('front', 'back', 'left', 'right'):
+        out[('leg', 'body', f)] = BAND_ROW[kind]
+    out[('leg', 'body', 'bottom')] = 0
+    for f in LEG:
+        out[('leg', 'leg', f)] = 0
+    return out
+
+
+def _rect(part, face):
+    return {'body': BODY, 'arm': ARM, 'boot': LEG, 'leg': LEG}[part][face]
+
+
+def _mail_under(lk, i, j, base):
+    """사슬 밑받침: 엇갈린 고리 무늬 (판 아래·장갑 속에서만 보이는 어두운 층)."""
+    return lk.main, base + (0.08 if (i + j % 2) % 2 == 0 else -0.04)
+
+
+def _pad_ramp(lk):
+    """경갑 누빔 천 (가죽 색을 팔레트 밝은 색 쪽으로) — `_light` 의 패딩과 같은 계열."""
+    M, L = lk.main, lk.pal.light
+    return [shade(M, 0.12), mix(shade(M, 0.3), L, 0.1), mix(shade(M, 0.48), L, 0.12), mix(shade(M, 0.66), L, 0.15),
+            mix(shade(M, 0.84), L, 0.18)]
+
+
+def _underlayer(lk, kind, layer, part, face, i, j, w, h):
+    """디자인이 비워 둔 텍셀을 메우는 밑받침 (세트 팔레트) → (ramp, v)."""
+    M, G = lk.main, lk.grip
+    n = _noise(lk, i, j, 7 + len(face), 0.05)
+    rim = _ring(i, j, w, h)
+    if face in ('bottom', 'top'):
+        if part == 'arm':                                                    # 손목 속: 장갑 / 소매 안감
+            return (G, 0.34 if rim else 0.22) if kind != 'cloth' else (M, 0.16 if rim else 0.1)
+        if part == 'body' and layer == 'hum':                                # 흉갑 아랫단 속: 갬비슨 치마 / 안감
+            if kind == 'heavy':
+                return _mail_under(lk, i, j, 0.18)
+            if kind == 'light':
+                return _pad_ramp(lk), 0.26 + _channel(i)
+            return M, 0.12
+        if part == 'body':                                                   # 레깅스 가랑이 밑
+            return G, 0.26 if rim else 0.16
+        return (G, 0.3) if rim else (G, 0.14)                                # 바짓단 / 밑창 속
+    if kind == 'heavy':
+        return _mail_under(lk, i, j, 0.26)
+    if kind == 'light':
+        x0 = _rect(part, face)[0]
+        u = x0 - (ARM_X0 if part == 'arm' else LEG_X0 if part in ('leg', 'boot') else BODY_X0) + i
+        ff = (LIMB_FF if part != 'body' else BODY_FF).get(face, 0.0)
+        top = 0.1 if (part == 'arm' and j == 3 and face != 'outer') else 0     # 어깨 패드 바로 밑은 그늘
+        return _pad_ramp(lk), 0.32 + ff + _channel(u) + n - top              # 누빔 갬비슨 소매 (가죽보다 한 단 어둡게)
+    return M, 0.46 + _fold(i) - 0.04 * (j % 4)                               # 로브 천
+
+
+def _cover(hum: Painter, leg: Painter, lk, kind):
+    """맡은 면의 빈 텍셀을 모두 밑받침으로 채운다 (피부가 어느 각도에서도 비치지 않게)."""
+    for (layer, part, face), row0 in coverage_regions(kind).items():
+        pt = hum if layer == 'hum' else leg
+        x0, y0, w, h = _rect(part, face)
+        for j in range(row0, h):
+            for i in range(w):
+                if pt.px[x0 + i, y0 + j][3]:
+                    continue
+                ramp, v = _underlayer(lk, kind, layer, part, face, i, j, w, h)
+                pt.put(x0 + i, y0 + j, shade(ramp, v))
+
+
+def _dim(c, k):
+    return (int(c[0] * k), int(c[1] * k), int(c[2] * k), c[3])
+
+
+def _shell_rims(hum: Painter, leg: Painter):
+    """면 바깥 테두리 1px 를 살짝 어둡게 — 옆면은 좌우·아랫단, 윗단은 조금만 (판의 밝은 테는 살린다)."""
+    for (layer, part, face), row0 in coverage_regions('heavy').items():
+        if layer == 'leg' and part == 'body' and face != 'bottom':
+            continue                                                         # 허리띠 줄은 흉갑 속 — 손대지 않음
+        pt = hum if layer == 'hum' else leg
+        x0, y0, w, h = _rect(part, face)
+        flat = face in ('top', 'bottom')
+        for j in range(row0, h):
+            for i in range(w):
+                c = pt.px[x0 + i, y0 + j]
+                if c[3] != 255:
+                    continue                                                 # 빈칸·발광(252) 텍셀은 그대로
+                if flat:
+                    k = 0.86 if _ring(i, j, w, h) else 1.0
+                else:
+                    k = 1.0
+                    if i in (0, w - 1):
+                        k = 0.86
+                    if j == h - 1:
+                        k = min(k, 0.82)
+                    elif j == 0 and row0 == 0:
+                        k = min(k, 0.93)
+                if k < 1.0:
+                    pt.px[x0 + i, y0 + j] = _dim(c, k)
+
+
+# 서 있을 때의 바닐라 갑옷 상자 (월드 px, +X = 왼쪽, +Z = 앞): (layer, part, lo, hi, mirror)
+_BOXES = (
+    ('hum', 'body', (-5, 11, -3), (5, 25, 3), False),
+    ('hum', 'arm', (-9, 11, -3), (-3, 25, 3), False),
+    ('hum', 'arm', (3, 11, -3), (9, 25, 3), True),
+    ('hum', 'boot', (-4.9, -1, -3), (1.1, 13, 3), False),
+    ('hum', 'boot', (-1.1, -1, -3), (4.9, 13, 3), True),
+    ('leg', 'body', (-4.5, 11.5, -2.5), (4.5, 24.5, 2.5), False),
+    ('leg', 'leg', (-4.4, -0.5, -2.5), (0.6, 12.5, 2.5), False),
+    ('leg', 'leg', (-0.6, -0.5, -2.5), (4.4, 12.5, 2.5), True),
+)
+# 월드 면 → (축, +쪽?, 몸통 면 이름, 팔다리 면 이름(오른쪽 기준))
+_WFACE = {'west': (0, False, 'right', 'outer'), 'east': (0, True, 'left', 'inner'),
+          'down': (1, False, 'bottom', 'bottom'), 'up': (1, True, 'top', 'top'),
+          'north': (2, False, 'back', 'back'), 'south': (2, True, 'front', 'front')}
+_SEAM_PRIO = {('hum', 'arm'): 0, ('hum', 'boot'): 1, ('leg', 'leg'): 2, ('hum', 'body'): 3, ('leg', 'body'): 4}
+
+
+def _texel(box, wface, p):
+    """월드 점 p 가 box 의 wface 면에서 찍는 텍셀 (layer, x, y) — 바닐라 UV 방향 (왼쪽 팔다리는 좌우 반전)."""
+    layer, part, lo, hi, mirror = box
+    ax, side, bname, lname = _WFACE[wface]
+    if mirror and wface in ('west', 'east'):
+        lname = 'inner' if wface == 'west' else 'outer'
+    face = bname if part == 'body' else lname
+    x0, y0, w, h = _rect(part, face)
+    fx = (p[0] - lo[0]) / (hi[0] - lo[0])
+    fy = (hi[1] - p[1]) / (hi[1] - lo[1])
+    fz = (p[2] - lo[2]) / (hi[2] - lo[2])
+    s, t = {'south': (fx, fy), 'north': (1 - fx, fy), 'west': (fz, fy), 'east': (1 - fz, fy), 'up': (fx, fz),
+            'down': (fx, 1 - fz)}[wface]
+    if mirror:
+        s = 1 - s
+    return layer, x0 + min(w - 1, int(s * w)), y0 + min(h - 1, int(t * h)), (abs(s - 0.5) + abs(t - 0.5))
+
+
+def _seams(hum: Painter, leg: Painter):
+    """서 있을 때 같은 평면·같은 방향으로 겹치는 상자 면을 찾아, 겹치는 텍셀 묶음을 한 색으로 맞춘다."""
+    px = {'hum': hum.px, 'leg': leg.px}
+    parent = {}
+
+    def find(a):
+        while parent.setdefault(a, a) != a:
+            parent[a] = parent[parent[a]]
+            a = parent[a]
+        return a
+
+    info = {}
+    for ia in range(len(_BOXES)):
+        for ib in range(ia + 1, len(_BOXES)):
+            A, B = _BOXES[ia], _BOXES[ib]
+            for wf, (ax, side, _b, _l) in _WFACE.items():
+                pa = A[3][ax] if side else A[2][ax]
+                pb = B[3][ax] if side else B[2][ax]
+                if abs(pa - pb) > 1e-6:
+                    continue
+                o = [a for a in range(3) if a != ax]
+                r = [(max(A[2][a], B[2][a]), min(A[3][a], B[3][a])) for a in o]
+                if any(hi - lo <= 1e-6 for lo, hi in r):
+                    continue
+                n0 = max(1, int((r[0][1] - r[0][0]) / 0.2))
+                n1 = max(1, int((r[1][1] - r[1][0]) / 0.2))
+                for u in range(n0):
+                    for v in range(n1):
+                        p = [0.0, 0.0, 0.0]
+                        p[ax] = pa
+                        p[o[0]] = r[0][0] + (u + 0.5) * (r[0][1] - r[0][0]) / n0
+                        p[o[1]] = r[1][0] + (v + 0.5) * (r[1][1] - r[1][0]) / n1
+                        ta, tb = _texel(A, wf, p), _texel(B, wf, p)
+                        ka, kb = ta[:3], tb[:3]
+                        if not px[ka[0]][ka[1], ka[2]][3] or not px[kb[0]][kb[1], kb[2]][3]:
+                            continue                                         # 한쪽이 비면 겹쳐 싸우지 않는다
+                        info[ka] = min(info.get(ka, (9, 9)), (_SEAM_PRIO[(A[0], A[1])], ta[3]))
+                        info[kb] = min(info.get(kb, (9, 9)), (_SEAM_PRIO[(B[0], B[1])], tb[3]))
+                        parent[find(ka)] = find(kb)
+    groups = {}
+    for k in info:
+        groups.setdefault(find(k), []).append(k)
+    for members in groups.values():
+        if len(members) < 2:
             continue
-        c = max(set(cols), key=cols.count)                                   # 녹·결정 얼룩은 이 줄에서 걷어 낸다
-        x0, y0, w, _ = LEG[lface]
-        for xy in cells + [(x0 + i, y0) for i in range(w)]:
-            if lp[xy][3]:
-                lp[xy] = c
+        glow = [k for k in members if px[k[0]][k[1], k[2]][3] == GLOW_ALPHA]
+        if glow:
+            pick = min(glow, key=lambda k: info[k])                          # 발광 텍셀이 끼면 그 빛을 따른다
+        else:                                                                # 아니면 어두운 쪽(30%) 색 = 팔·몸통 사이 주름
+            order = sorted(members, key=lambda k: (_lum(px[k[0]][k[1], k[2]]), info[k]))
+            pick = order[int(0.3 * (len(order) - 1))]
+        c = px[pick[0]][pick[1], pick[2]]
+        for k in members:
+            px[k[0]][k[1], k[2]] = c
