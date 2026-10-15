@@ -39,8 +39,9 @@ public record ItemDef(
     public boolean usableBy(String classId) { return true; }
 
     /**
-     * 그 직업에 어울리는 장비인가 ({@code classes} = 추천 직업, 비우면 모두). 착용 제한이 아니라
-     * 드롭 직업 편향(loot.yml settings.own_class_bias)에만 쓴다 (툴팁·대장간에는 표시하지 않음).
+     * 그 직업에 어울리는 장비인가 ({@code classes} = 추천 직업, 비우면 모두). 착용 제한이 아니고 대장간 필터도 없다(없어짐) —
+     * 드롭 직업 편향(loot.yml settings.own_class_bias)에만 쓴다 (+ 처음 전직할 때 줄 시작 무기 고르기 {@link WeaponTypes#starterWeapon}).
+     * 툴팁·대장간에는 표시하지 않는다.
      */
     public boolean suitedFor(String classId) {
         return classes.isEmpty() || (classId != null && classes.contains(classId));

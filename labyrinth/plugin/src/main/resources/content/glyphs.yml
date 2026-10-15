@@ -417,7 +417,6 @@ menus:
       enhance: 13
       recipes: "18..44 (27칸)"
       prev: 45
-      filter: 47
       close: 51
       next: 53
   enhance:

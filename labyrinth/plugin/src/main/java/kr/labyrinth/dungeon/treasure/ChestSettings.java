@@ -9,7 +9,9 @@ import kr.labyrinth.content.Params;
  *   <li>iron / gold — 막다른 길 상자가 철 / 금 상자일 확률 · gold_behind_trap — 앞 복도에 함정이 있는 상자가 금으로 바뀔 확률</li>
  *   <li>mimic — 막다른 길 상자(금 제외)가 미믹일 확률 (깊은 층일수록 높게)</li>
  *   <li>vault — 열쇠 금고(잠긴 문 뒤 금 상자 2~3개)를 둘지 · key_from_elite — 열쇠가 정예 처치에서 나올 확률(나머지는 철 상자 하나에서)</li>
- *   <li>bracket — 루팅 구간 강제 (0 = 층 번호로 자동: 1~3·4~6·7~9·10)</li>
+ *   <li>bracket — 루팅 표 고르기 ({@link ChestTier#table(int, int, java.util.function.Predicate)}):
+ *       0 = 층별 표({@code maze_chest_<등급>_f<층>}) 우선, 없으면 구간 표({@code maze_chest_<등급>_<구간>}, 층 번호로 1~3·4~6·7~9·10) ·
+ *       1~4 = 층별 표를 건너뛰고 그 구간 표를 강제</li>
  * </ul>
  */
 public record ChestSettings(double deadEnd, double minor, double iron, double gold, double goldBehindTrap, double mimic,

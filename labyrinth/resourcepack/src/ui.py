@@ -640,7 +640,7 @@ def gui_blacksmith(seed):
     g.sock(list(range(18, 45)), 'plain')
     g.sock([1, 3, 5, 7], 'tab', '#f07828')
     g.sock([45, 53], 'button')
-    g.sock([47, 51], 'button', '#c8c8d0')
+    g.sock(51, 'button', '#c8c8d0')  # close (slot 47 = old class filter button, removed)
     # bottom centre forge emblem (decor only)
     _emblem(cv, 83, _row_y(5) + 3, 'blacksmith', g.accent)
     # [강화] button on the anvil in the forge banner (slot 13, menus.blacksmith.slots.enhance)

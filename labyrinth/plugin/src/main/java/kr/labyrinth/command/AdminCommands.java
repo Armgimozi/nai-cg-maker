@@ -38,6 +38,7 @@ final class AdminCommands {
         s.sendMessage(Text.mm("<gray>/labadmin difficulty <난이도> <dark_gray>— 서버 난이도 변경"));
         s.sendMessage(Text.mm("<gray>/labadmin give <아이템> [개수] [플레이어]"));
         s.sendMessage(Text.mm("<gray>/labadmin level|xp|gold|points <플레이어> <값>"));
+        s.sendMessage(Text.mm("<gray>/labadmin setclass <플레이어> <직업|none> <dark_gray>— 직업 바로 바꾸기 (두루마리·대기 시간 없이)"));
         s.sendMessage(Text.mm("<gray>/labadmin info [플레이어] <dark_gray>— 능력치 확인"));
         s.sendMessage(Text.mm("<gray>/labadmin pack <dark_gray>— 리소스팩 상태·재전송"));
     }

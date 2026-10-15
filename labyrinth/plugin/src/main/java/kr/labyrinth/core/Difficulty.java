@@ -70,6 +70,35 @@ public record Difficulty(String id, String name, double hp, double damage, doubl
 
     private static double lerp(double a, double b, double t) { return a + (b - a) * t; }
 
+    /** 1층 값이 원래 값과 다른가 (램프가 실제로 숫자를 바꾸는가 — 표시용). */
+    public boolean rampsAtFloor1() {
+        Difficulty f = atFloor(1);
+        return ramp != null && (Math.abs(f.hp - hp) > 1e-9 || Math.abs(f.damage - damage) > 1e-9 || Math.abs(f.telegraph - telegraph) > 1e-9);
+    }
+
+    /**
+     * 몹 HP·피해 배율 안내 (초기 설정 창·난이도 변경 메시지). 램프가 있으면 1층 값과 원래 값을 함께:
+     * "1층 HP ×1.8·피해 ×1.6 → 6층부터 ×2.4·×2.0", 없으면 "HP ×1.5·피해 ×1.4".
+     */
+    public String hpDamageText() {
+        if (!rampsAtFloor1()) return "HP ×" + mult(hp) + "·피해 ×" + mult(damage);
+        Difficulty f = atFloor(1);
+        return "1층 HP ×" + mult(f.hp) + "·피해 ×" + mult(f.damage) + " → " + ramp.fullFloor() + "층부터 ×" + mult(hp) + "·×" + mult(damage);
+    }
+
+    /** 경고 시간 배율 안내 — "×0.85 → 6층부터 ×0.7" (램프가 없거나 같으면 "×0.7"). */
+    public String telegraphText() {
+        Difficulty f = atFloor(1);
+        if (ramp == null || Math.abs(f.telegraph - telegraph) <= 1e-9) return "×" + mult(telegraph);
+        return "×" + mult(f.telegraph) + " → " + ramp.fullFloor() + "층부터 ×" + mult(telegraph);
+    }
+
+    /** 배율 표기 — 소수 둘째 자리까지, 정수도 한 자리 (2.0, 1.15, 0.7). */
+    public static String mult(double v) {
+        String s = java.math.BigDecimal.valueOf(Math.round(v * 100) / 100.0).stripTrailingZeros().toPlainString();
+        return s.contains(".") ? s : s + ".0";
+    }
+
     /** 경고 시간(windup) 에 배율을 적용하되 최소 0.5초 보장 (공정성). */
     public double windup(double seconds) {
         return Math.max(0.5, seconds * telegraph);

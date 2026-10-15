@@ -5614,6 +5614,17 @@ items:
     model: {shape: icon}
     texture: {style: scroll, palette: ["#14101e", "#2a2a5a", "#6a5aa0", "#c8a060", "#fff0b0"]}
     lore: "투자한 스탯 포인트를 모두 돌려받는다. 사용 전에 확인 창이 뜬다."
+  # 소모품처럼 1장씩 사라지지만 우클릭으로 쓰는 물건이 아니다 (use 없음 → type: material). 직업을 바꿀 때
+  # classes.ClassChangeGate 가 가방에서 1장을 가져간다 (config class_change.item). 첫 직업 선택에는 필요 없다.
+  class_change_scroll:
+    name: "전직의 두루마리"
+    type: material
+    rarity: epic
+    level_req: 1
+    sources: [shop]
+    model: {shape: icon}
+    texture: {style: scroll, palette: ["#0e1226", "#26366a", "#7fb2ff", "#d9b25a", "#cfe0ff"]}
+    lore: "전직관 세라핀의 인장이 찍힌 두루마리. 직업 메뉴에서 다른 직업을 고르면 1장이 사라진다. 우클릭으로 읽는 물건이 아니다. 첫 직업은 두루마리 없이 고를 수 있다. 직업을 정한 뒤 한동안은 다시 바꿀 수 없다 (남은 시간은 직업 메뉴에)."
   cleansing_draught:
     name: "정화의 물약"
     type: consumable

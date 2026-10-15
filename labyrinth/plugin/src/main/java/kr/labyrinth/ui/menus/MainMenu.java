@@ -128,6 +128,10 @@ public final class MainMenu extends LabMenu {
             lore.add("<gray>플레이어끼리 피해 <white>×" + decimal(pc.damageMultiplier()) + "</white>"
                     + (pc.maxHitRatio() < 1 ? " · 한 번에 최대 HP <white>" + Text.pct(pc.maxHitRatio()) + "</white>까지" : ""));
             if (pc.partyNameColor()) lore.add("<gray>내 파티원 이름은 <#7fe07f>초록색</#7fe07f>으로 보입니다.");
+            var death = services.settings().death();
+            if (death.keepInventory()) {
+                lore.add("<gray>어디서 쓰러져도 소지품" + (death.keepLevel() ? "·경험치 레벨" : "") + "은 잃지 않습니다.");
+            }
         } else {
             lore.add("<gray>이 서버는 PvP 가 꺼져 있어");
             lore.add("<gray>플레이어끼리는 서로 다치지 않습니다.");

@@ -437,10 +437,8 @@ public final class DungeonManager implements DungeonService, Listener {
         if (!isLabyrinthWorld(p.getWorld())) return;
         Run r = byPlayer.get(p.getUniqueId());
         if (r == null || !r.isAlive(p) || r.ending()) {
-            e.setKeepInventory(true);
-            e.getDrops().clear();
-            e.setKeepLevel(true);
-            e.setDroppedExp(0);
+            // 미궁 월드에서 공략 밖(관전·종료 중)의 죽음: config death 와 상관없이 언제나 보존 (core.DeathKeep 과 같은 함수)
+            kr.labyrinth.core.DeathKeep.apply(e, true, true);
             return;
         }
         e.setCancelled(true);

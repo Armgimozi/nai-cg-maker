@@ -137,6 +137,24 @@ starter_kit:
     - {item: novice_boots, amount: 1}
     - {item: minor_healing_potion, amount: 5}
 
+# 직업 변경 (최상위 키) — 첫 직업 선택은 무료. 그 뒤로 바꿀 때마다:
+#   require_item: true 면 item(전직의 두루마리, 떠돌이 상인 핀이 판다) 1장이 사라진다.
+#   cooldown_hours: 직업을 정한(바꾼) 뒤 이 시간 동안은 다시 바꿀 수 없다 (실제 시간 기준, 0 = 대기 없음). 첫 선택부터 센다.
+#   미궁 공략 중에는 언제나 바꿀 수 없다. 관리자 /labadmin setclass <플레이어> <직업|none> 은 이 제한을 받지 않는다.
+#   키가 없으면 아래 기본값이 쓰이고, 끄려면 class_change: false
+class_change:
+  require_item: true
+  item: class_change_scroll
+  cooldown_hours: 24
+
+# 죽을 때 (인벤세이브) — 야생·마을·네더·엔드 어디서 죽든 (PvP 포함)
+#   keep_inventory: 소지품을 그대로 지니고 아무것도 떨구지 않는다. keep_level: 바닐라 경험치 레벨 유지 (경험치 구슬도 안 떨굼).
+#   false 면 그 부분만 바닐라(게임 규칙 keepInventory)대로. 미궁 안에서 죽으면 이 값과 상관없이 언제나 잃지 않는다.
+#   키가 없으면 둘 다 true.
+death:
+  keep_inventory: true
+  keep_level: true
+
 # 무기 타입별 기본 공격 속도(초당 공격 횟수). attack_speed 스탯이 % 로 곱해진다.
 weapon_attack_speed:
   none: 1.6

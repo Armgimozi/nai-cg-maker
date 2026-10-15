@@ -35,8 +35,9 @@ public final class ServerSetup {
         }
         boolean first = !services.settings().isDifficultySet();
         services.updateConfig(c -> c.set("difficulty", d.id()));
-        Text.send(s, "<green>서버 난이도: <white>" + d.name() + "</white></green> <gray>(몹 HP ×" + d.hp() + ", 피해 ×"
-                + d.damage() + ", 드롭 ×" + d.drop() + ", 경험치 ×" + d.xp() + ")");
+        // 층 램프: 1층 값 → 원래 값 (예: "1층 HP ×1.8·피해 ×1.6 → 6층부터 ×2.4·×2.0"). 드롭·경험치는 1층부터 그대로
+        Text.send(s, "<green>서버 난이도: <white>" + d.name() + "</white></green> <gray>(몹 " + d.hpDamageText() + ", 드롭 ×"
+                + Difficulty.mult(d.drop()) + ", 경험치 ×" + Difficulty.mult(d.xp()) + ")");
         if (first) {
             Bukkit.getServer().sendMessage(Text.mm(Text.PREFIX + "<gold>미궁이 열렸습니다!</gold> <gray>난이도 <white>"
                     + d.name() + "</white> · <white>/미궁</white> 으로 시작하세요."));

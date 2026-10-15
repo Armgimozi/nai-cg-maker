@@ -27,7 +27,8 @@
 #                     ink_burst saw_blade void_rift), mark 함정 칸 바닥에 까는 '살짝 다른' 블록(눈치 빠르면 보임), spacing 함정 간 최소 거리(기본 7)
 #  chests           : 미로 보물 상자 (GDD §5.6) — dead_end/minor 막다른 길(미로 굴 안) 상자 확률, iron/gold 등급 확률,
 #                     gold_behind_trap 앞 복도에 함정이 있으면 금 상자로, mimic 미믹 확률, vault 열쇠 금고(기본 true),
-#                     key_from_elite 열쇠가 정예 처치에서 나올 확률(나머지는 막다른 길 철 상자), bracket 루팅 구간 강제(0 = 자동)
+#                     key_from_elite 열쇠가 정예 처치에서 나올 확률(나머지는 막다른 길 철 상자),
+#                     bracket 루팅 표 — 0 = 층별 표(maze_chest_<등급>_f<층>) 우선, 없으면 구간 표(1~3·4~6·7~9·10층) · 1~4 = 그 구간 표 강제
 # 모든 블록 배치는 labyrinth_world 의 인스턴스 슬롯 안에서만 이루어진다.
 # ─────────────────────────────────────────────────────────────────────────────
 version: 1

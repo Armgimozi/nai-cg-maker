@@ -67,6 +67,10 @@ public class ChatMenuService implements MenuService {
             p.sendMessage(Text.mm("<" + c.color() + ">● " + c.name() + "</" + c.color() + "> <dark_gray>(" + c.role() + ")</dark_gray> ")
                     .append(Text.mm(c.description())));
         }
+        var rule = services.settings().classChange();
+        p.sendMessage(Text.mm("<gray>/직업 선택 <직업> — 첫 직업은 무료"
+                + (rule.requireItem() ? ", 그 뒤로는 바꿀 때마다 두루마리 1장" : "")
+                + (rule.cooldownHours() > 0 ? ", 바꾼 뒤 " + kr.labyrinth.classes.ClassChangeRule.hours(rule.cooldownHours()) + " 대기" : "")));
     }
 
     @Override

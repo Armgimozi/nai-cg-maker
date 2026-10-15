@@ -69,6 +69,7 @@ npcs:
       - "<gray>수호기사, 광전사, 사냥꾼, 비전술사, 사제, 그림자. 서로를 채워 주는 파티가 가장 강하다네.</gray>"
       - "<gray>직업 스킬은 <yellow><key:key.swapOffhand></yellow>, <yellow><key:key.sneak>+<key:key.swapOffhand></yellow>, <yellow><key:key.drop></yellow>, <yellow><key:key.sneak>+<key:key.drop></yellow>로 쓴다네. 레벨이 오르면 하나씩 깨어나지.</gray>"
       - "<gray>무기는 마음 가는 대로 들게. 미궁의 무기라면 무엇으로든 직업 스킬이 나간다네. 다만 그 길에 어울리는 무기를 쥐면 스킬이 조금 더 빨리 돌아오지.</gray>"
+      - "<gray>첫 길은 그냥 골라도 좋네. 하지만 길을 바꾸려면 <yellow>전직의 두루마리</yellow>가 필요하지. 떠돌이 상인 핀이 가지고 다닌다네. 그리고 한 번 길을 정했으면 한동안은 그 길을 걸어 보게.</gray>"
 
   title_keeper:
     name: "기록관 노아"
@@ -109,6 +110,7 @@ npcs:
       - {item: greater_mana_potion, price: 150, level_req: 30}
       - {item: return_scroll, price: 100}
       - {item: stat_reset_scroll, price: 2000}
+      - {item: class_change_scroll, price: 3000}
       - {item: lesser_enhance_stone, price: 60}
 
   # ═══════════════════════════ 층 안 이야기 NPC (휴식방) ═══════════════════════════

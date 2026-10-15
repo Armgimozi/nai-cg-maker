@@ -30,6 +30,8 @@ public final class Settings {
     private final Level level;
     private final Map<String, Double> weaponAttackSpeed;
     private final List<KitItem> starterKit;
+    private final Death death;
+    private final ClassChange classChange;
 
     public record Entrance(String mode, String world, double x, double y, double z, float yaw, float pitch, double radius) {
         public boolean isSet() { return world != null && !world.isBlank(); }
@@ -61,6 +63,37 @@ public final class Settings {
 
     /** 시작 꾸러미 한 줄 (config.yml starter_kit.items). */
     public record KitItem(String item, int amount) {}
+
+    /**
+     * 죽을 때 (config.yml death) — 인벤세이브. keepInventory = 소지품을 그대로 지니고 아무것도 떨구지 않음,
+     * keepLevel = 바닐라 경험치 레벨 유지(경험치 구슬도 안 떨굼). 미궁 월드 안의 죽음은 이 값과 상관없이 언제나 보존한다
+     * (dungeon 담당 — 공략 중이면 쓰러짐·관전). false 면 그 부분만 바닐라(게임 규칙 keepInventory)대로.
+     */
+    public record Death(boolean keepInventory, boolean keepLevel) {
+        /** 코드 기본값 (= jar 의 config.yml). 기존 서버 config.yml 에 death 키가 없어도 켜진다. */
+        public static final Death DEFAULT = new Death(true, true);
+    }
+
+    /**
+     * 직업 변경 제한 (config.yml class_change, 최상위 키) — 첫 직업 선택은 무료. 그 뒤로 바꿀 때는
+     * requireItem 이면 item 1장이 사라지고, 직업을 정한 뒤 cooldownHours 시간 동안은 다시 바꿀 수 없다 (0 = 대기 없음).
+     * 판정은 {@code classes.ClassChangeRule}. 관리자 {@code /labadmin setclass} 는 이 제한을 받지 않는다.
+     */
+    public record ClassChange(boolean requireItem, String item, double cooldownHours) {
+        public static final String DEFAULT_ITEM = "class_change_scroll";
+        /** 코드 기본값 (= jar 의 config.yml): 전직의 두루마리 1장 + 24시간. */
+        public static final ClassChange DEFAULT = new ClassChange(true, DEFAULT_ITEM, 24);
+        /** {@code class_change: false} — 제한 없음 (예전처럼 언제든 무료로). */
+        public static final ClassChange NONE = new ClassChange(false, DEFAULT_ITEM, 0);
+
+        public ClassChange {
+            item = item == null || item.isBlank() ? DEFAULT_ITEM : item.trim();
+            cooldownHours = Double.isNaN(cooldownHours) ? 0 : Math.max(0, cooldownHours);
+        }
+
+        /** 대기 시간(ms). */
+        public long cooldownMs() { return Math.round(cooldownHours * 3_600_000d); }
+    }
 
     /** 시작 꾸러미 코드 기본값 (= jar 의 config.yml) — 수련생 방어구 4종 + 하급 치유 물약 5. */
     public static final List<KitItem> DEFAULT_STARTER_KIT = List.of(new KitItem("novice_cap", 1),
@@ -123,6 +156,21 @@ public final class Settings {
         this.weaponAttackSpeed = Collections.unmodifiableMap(was);
         this.starterKit = Boolean.FALSE.equals(c.get("starter_kit")) ? List.of()
                 : starterKit(c.getConfigurationSection("starter_kit"));
+        this.death = new Death(c.getBoolean("death.keep_inventory", Death.DEFAULT.keepInventory()),
+                c.getBoolean("death.keep_level", Death.DEFAULT.keepLevel()));
+        this.classChange = Boolean.FALSE.equals(c.get("class_change")) ? ClassChange.NONE
+                : classChange(c.getConfigurationSection("class_change"));
+    }
+
+    /**
+     * class_change — 섹션이 없으면 코드 기본값({@link ClassChange#DEFAULT}). 빠진 키도 기본값.
+     * 끄기 = {@code class_change: false} (또는 require_item: false + cooldown_hours: 0).
+     */
+    static ClassChange classChange(ConfigurationSection k) {
+        ClassChange d = ClassChange.DEFAULT;
+        if (k == null) return d;
+        return new ClassChange(k.getBoolean("require_item", d.requireItem()), k.getString("item", d.item()),
+                k.getDouble("cooldown_hours", d.cooldownHours()));
     }
 
     /**
@@ -188,6 +236,12 @@ public final class Settings {
 
     /** 시작 꾸러미 (직업을 처음 고를 때 한 번). 빈 목록 = 꺼짐. */
     public List<KitItem> starterKit() { return starterKit; }
+
+    /** 죽을 때 소지품·레벨 보존 (인벤세이브). */
+    public Death death() { return death; }
+
+    /** 직업 변경 제한 (전직의 두루마리·대기 시간). */
+    public ClassChange classChange() { return classChange; }
 
     public double weaponAttackSpeed(String weaponType) {
         if (weaponType == null) return weaponAttackSpeed.get("none");

@@ -288,7 +288,12 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   `removeBuff/hasBuff`, `clearAll`. 이동 제한은 속성 수정치로 자동. **mobs/bosses 는 AI·스킬·패턴 전에 `isStunned` 확인**, 은신 대상 제외,
   밀쳐내기는 `isKnockbackImmune` 확인. 몹·보스의 weaken/vulnerable/mark 는 훅이 직접 곱하므로 `HealthPool.damageTaken()` 에 더하지 말 것.
   보스는 stun/root/빙결 면역(스킬은 boss_* 값 사용). 지속 피해 sourceId = `effect:<id>` (적중 효과에서 제외용).
-- **ClassService** 확장: `changeClass(p, id)`(전직관 NPC·직업 메뉴가 부를 것 — 검사·안내·연출 포함), `skillBar(p)`(HUD 용 스킬 한 줄), `isChanneling(p)`.
+- **ClassService** 확장: `changeClass(p, id)`(전직관 NPC·직업 메뉴·`/직업 선택` 이 부를 것 — 검사·안내·연출 포함), `skillBar(p)`(HUD 용 스킬 한 줄), `isChanneling(p)`.
+  **직업 변경 제한**(GDD §4.5): 모든 `changeClass` 구현은 `classes.ClassChangeGate` 하나를 거친다 — 순수 판정 `ClassChangeRule`
+  (첫 선택 무료 · 그 뒤 `class_change_scroll` 1장 · 정하거나 바꾼 뒤 `cooldown_hours` · 미궁 공략 중 금지 · 같은 직업), 통과하면 두루마리 1장 소모 →
+  적용 → PlayerData ext `class.changed_at`(epoch ms) 기록. 직업 메뉴·`/직업 정보` 도 같은 판정으로 규칙·남은 시간·가진 두루마리를 보여 준다.
+  config.yml 최상위 `class_change: {require_item, item, cooldown_hours}`(키 없으면 true · class_change_scroll · 24, `class_change: false` = 제한 없음).
+  관리자 강제 변경 `/labadmin setclass <플레이어> <직업|none>` 은 관문·기록을 건드리지 않는다. 다른 모듈은 `setClass` 를 직접 부르지 말 것.
   무기 스킬(items)은 `services.effects().isSilenced(p)` 와 `cooldownRate(p)` 를 확인할 것.
 - **DungeonService** 기본 메서드: `isDowned(p)`, `revive(p, at, hpRatio)`(사제 부활의 성가) — dungeon 구현은 자기 사망 상태와 맞게 재정의.
 - 직업 스킬은 **아무 미궁 무기**(type: weapon, 종류 무관)를 들었을 때 발동 — 바닐라 무기는 해당 없음(F/Q 바닐라 그대로).
@@ -296,7 +301,7 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   (`SkillContext.damage`·`dotRatio` 가 자동 적용 — 새 직업 스킬은 피해를 `c.damage(...)`, 지속 피해 potency 를 `c.dotRatio(...)` 로 낼 것).
   규칙 원본 = `content.WeaponTypes`(순수, GDD §4.4). 명령: `/직업 선택|choose <직업>`, `/직업 정보|info`, `/직업 스킬|skills`.
 - **장비 직업 제한 없음**: `ItemDef.usableBy` 는 항상 true, `EquipRules` 는 레벨만 본다. items.yml `classes` = 추천 직업 →
-  `ItemDef.suitedFor(직업)` (드롭 직업 편향·대장간 "추천 장비만" 필터·툴팁 "추천 직업"). 다른 모듈도 착용 가능 여부를 직업으로 막지 말 것.
+  `ItemDef.suitedFor(직업)` (드롭 직업 편향·시작 무기 고르기에만 — 대장간 필터·툴팁 표시는 없어짐). 다른 모듈도 착용 가능 여부를 직업으로 막지 말 것.
 
 ### 4.2 ui+titles 단계에서 추가된 계약 (다른 모듈이 쓰는 것)
 - **MenuService** 실제 구현 `ui.LabMenuService`(상자 GUI, `ui/menus/*`; 열다가 오류 나면 채팅 메뉴로 대체). 기본 메서드 추가:
@@ -462,6 +467,8 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
     (진행 중인 인스턴스에는 다음 입장부터 적용). 콘솔에서도 `/labadmin setup <난이도>` 가능.
     (층 해금은 그대로 유지: 처음엔 1층, 깬 층의 다음 층까지 입장 가능.)
   - 사망: 파티원이 있으면 관전 모드 → 휴식방 도달/보스 처치 시 부활. 전멸 시 인스턴스 실패·귀환. 아이템 손실 없음.
+  - 미궁 밖 사망(야생·마을·네더·엔드, PvP 포함) = 인벤세이브 `core.DeathKeep`(config.yml `death: {keep_inventory, keep_level}`, 키 없으면 둘 다 true):
+    소지품·바닐라 경험치 레벨 유지, 드롭·경험치 구슬 0. false 면 그 부분만 바닐라. 미궁 월드는 DungeonManager 가 같은 `DeathKeep.apply` 로 언제나 보존.
 - **PvP = 파티 규칙 하나** (대전·투기장·매치·레이팅 없음, GDD §18): 같은 파티원끼리는 야생·마을·미궁 어디서든 서로 피해를 줄 수 없고,
   그 밖의 플레이어끼리는 피해를 줄 수 있다. 근접·화살·스킬·무기 스킬·장판·물약·불·TNT·늑대·낚싯대 모두 같은 규칙. 플레이어끼리
   피해 ×`pvp.damage_multiplier`(0.7), 한 번에 최대 HP ×`pvp.max_hit_ratio`(0.35)까지. 마을 안전지대 안은 금지. 플러그인이 모든

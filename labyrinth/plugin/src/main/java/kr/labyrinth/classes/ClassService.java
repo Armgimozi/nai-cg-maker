@@ -35,13 +35,15 @@ public interface ClassService {
     // ── 확장 (classes 담당 추가) ──────────────────────────────────────────
 
     /**
-     * 플레이어가 고른 전직/직업 변경 (전직관 NPC·직업 메뉴·/직업 선택). 검사(존재·미궁 진행 중 금지·같은 직업) + 안내 메시지
-     * + 연출까지 하고 {@link #setClass} 를 부른다. @return 바뀌었으면 true
+     * 플레이어가 고른 전직/직업 변경 (전직관 NPC·직업 메뉴·/직업 선택). 존재 확인 + {@link ClassChangeGate}
+     * (첫 선택 무료 · 그 뒤 전직의 두루마리 1장 · 바꾼 뒤 대기 시간 · 미궁 공략 중 금지 · 같은 직업) 를 거쳐 안내 메시지와 함께
+     * {@link #setClass} 를 부른다. 관리자용 강제 변경은 {@link #setClass} (또는 /labadmin setclass). @return 바뀌었으면 true
      */
     default boolean changeClass(Player player, String classId) {
-        if (classId == null || classId.equals(classOf(player) == null ? null : classOf(player).id())) return false;
-        setClass(player, classId);
-        return true;
+        kr.labyrinth.Services s = kr.labyrinth.Services.get();
+        ClassDef def = classId == null ? null : s.content().classDef(classId);
+        if (def == null) return false;
+        return new ClassChangeGate(s).run(player, classOf(player), def, () -> setClass(player, def.id()));
     }
 
     /** HUD 용 직업 스킬 한 줄 (키·이름·쿨다운). 직업이 없으면 빈 컴포넌트. */

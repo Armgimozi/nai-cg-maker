@@ -26,7 +26,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
 /**
- * 직업 서비스 실제 구현: 전직/변경(시작 무기·시작 꾸러미), 마나(WIS 재생, {@link ManaPool}), 쿨다운({@link CooldownTracker}, cooldown_slow 반영),
+ * 직업 서비스 실제 구현: 전직/변경({@link ClassChangeGate} 관문 · 시작 무기·시작 꾸러미), 마나(WIS 재생, {@link ManaPool}), 쿨다운({@link CooldownTracker}, cooldown_slow 반영),
  * 직업 스킬 입력(F/웅크리기+F/Q/웅크리기+Q → {@link SkillRegistry} 의 {@link Skill}), 액션바 피드백.
  */
 public final class LabyrinthClassService implements ClassService, SkillContext.Host {
@@ -47,9 +47,13 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
     private final Services services;
     private final SkillRegistry registry = new SkillRegistry();
     private final Map<UUID, PlayerState> states = new ConcurrentHashMap<>();
+    private final ClassChangeGate gate;
     private BukkitTask task;
 
-    public LabyrinthClassService(Services services) { this.services = services; }
+    public LabyrinthClassService(Services services) {
+        this.services = services;
+        this.gate = new ClassChangeGate(services);
+    }
 
     public SkillRegistry registry() { return registry; }
 
@@ -93,6 +97,9 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
         services.hud().refresh(player);
     }
 
+    /** 직업 변경 관문 (첫 선택 무료 · 전직의 두루마리 · 대기 시간 · 미궁 공략 중 금지). 직업 메뉴도 같은 판정을 쓴다. */
+    public ClassChangeGate gate() { return gate; }
+
     @Override
     public boolean changeClass(Player player, String classId) {
         ClassDef def = services.content().classDef(classId);
@@ -101,14 +108,29 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
             return false;
         }
         ClassDef cur = classOf(player);
-        if (cur != null && cur.id().equals(def.id())) {
-            Text.error(player, "이미 <" + def.color() + ">" + def.name() + "</" + def.color() + "> 입니다.");
-            return false;
+        return gate.run(player, cur, def, () -> applyClass(player, def, cur));
+    }
+
+    /**
+     * 관리자 강제 변경 (/labadmin setclass): 관문(두루마리·대기 시간·미궁 공략 중)을 거치지 않고 변경 시각 기록도 건드리지 않는다.
+     * classId null = 직업 없음 (다음 선택은 첫 선택처럼 무료). @return 바뀌었으면 true
+     */
+    public boolean adminSetClass(Player player, String classId) {
+        ClassDef cur = classOf(player);
+        if (classId == null) {
+            if (cur == null) return false;
+            setClass(player, null);
+            Text.send(player, "<gray>관리자가 직업을 비웠습니다. <white>/직업</white> 으로 새 직업을 고르세요 (무료).");
+            return true;
         }
-        if (services.dungeon().currentInstance(player).isPresent()) {
-            Text.error(player, "미궁 공략 중에는 직업을 바꿀 수 없습니다. 입구로 돌아간 뒤 다시 시도하세요.");
-            return false;
-        }
+        ClassDef def = services.content().classDef(classId);
+        if (def == null || (cur != null && cur.id().equals(def.id()))) return false;
+        applyClass(player, def, cur);
+        return true;
+    }
+
+    /** 직업 적용 + 안내(제목·스킬 목록·패시브) + 연출 + 시작 무기·꾸러미. 검사는 부르는 쪽(관문·관리자). */
+    private void applyClass(Player player, ClassDef def, ClassDef cur) {
         setClass(player, def.id());
         String col = def.color();
         player.showTitle(Title.title(Text.mm("<" + col + "><b>" + def.name() + "</b>"),
@@ -127,7 +149,6 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
         giveStarterWeapon(player, def);
         if (cur == null) giveStarterKit(player); // 처음 전직: 조건 없이 한 번
         else ensureStarterKit(player);           // 직업 변경: 기존 플레이어 규칙 (보통은 이미 받았거나 기록됨)
-        return true;
     }
 
     /** 접속할 때: 직업은 있는데 시작 무기를 받은 적도 가진 것도 없으면(예전 판에서 전직한 사람) 한 번 지급 + 시작 꾸러미 규칙. */

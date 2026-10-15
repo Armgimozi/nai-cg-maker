@@ -83,7 +83,8 @@ final class BlacksmithMenu extends Menu {
                     : enh.rules().config().stones().get(0).item(), Material.ANVIL,
                     "<gradient:#ffd36b:#ff8a3d><b>⚒ 장비 강화</b></gradient>",
                     List.of("<gray>무기·방어구·방패를 +1 ~ +" + enh.rules().maxLevel() + " 까지 강화합니다.",
-                            "<gray>골드 + 강화석 · +" + enh.rules().config().downgradeFrom() + " 이상 실패하면 한 단계 하락",
+                            "<gray>골드 + 강화석 + 장비마다 다른 재료",
+                            "<gray>+" + enh.rules().config().downgradeFrom() + " 이상에서 실패하면 한 단계 하락",
                             "", "<#ffd27a>▶ 클릭하여 강화 창 열기"));
             kr.labyrinth.ui.UiTheme.glint(anvil, true);
             set(ENHANCE_SLOT, anvil, ctx -> {
@@ -120,14 +121,14 @@ final class BlacksmithMenu extends Menu {
             click(viewer);
             refresh();
         });
-        // 47 = 제작 안내 (텍스처에 그려진 버튼 자리 — 예전 직업 필터 자리라 비워 두지 않는다)
-        deco(47, Button.icon(Material.BOOK, "<#f3e3bd>제작 안내",
-                List.of("<gray>레시피를 클릭하면 바로 제작합니다.",
-                        "<gray>모자란 재료·골드·레벨은 <#ff6b6b>빨강</#ff6b6b>으로 표시됩니다.")));
+        // 아래 줄 = 45 이전 · 49 골드·제작 안내 · 51 닫기 · 53 다음 (47 은 예전 직업 필터 자리 — 텍스처에서도 버튼을 지웠다)
         double disc = services.stats().get(viewer).craftDiscount();
         deco(49, Button.icon(Material.GOLD_NUGGET, "<#ffd27a>보유 골드 " + Text.num(d.gold()),
                 List.of("<gray>레벨 " + d.level() + (disc > 0 ? " · 제작 할인 " + Text.pct(Math.min(RecipeCheck.MAX_DISCOUNT, disc)) : ""),
-                        "<dark_gray>재료는 미궁의 몬스터·정예·보스에게서 얻습니다.")));
+                        "<dark_gray>재료는 미궁의 몬스터·정예·보스에게서 얻습니다.",
+                        "",
+                        "<gray>레시피를 클릭하면 바로 제작합니다.",
+                        "<gray>모자란 재료·골드·레벨은 <#ff6b6b>빨강</#ff6b6b>으로 표시됩니다.")));
         set(51, Button.icon(Material.OAK_DOOR, "<gray>닫기", List.of()), ctx -> viewer.closeInventory());
     }
 
