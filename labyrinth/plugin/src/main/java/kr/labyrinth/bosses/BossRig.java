@@ -43,7 +43,8 @@ public final class BossRig {
     private long animStart;
     private int animTicks = 1;
     private double animWindup = 0.7;
-    private final BossAnim.Pose scratch = new BossAnim.Pose();
+    private final RigMath.Skeleton skeleton;
+    private final RigMath.Gait gait = new RigMath.Gait();
 
     private record PartView(ModelDef.Part def, ItemDisplay display, ItemStack item) {}
 
@@ -52,6 +53,7 @@ public final class BossRig {
         this.model = model == null ? ModelDef.EMPTY : model;
         this.scale = (float) scale;
         this.yawOffset = (float) yawOffsetDeg;
+        this.skeleton = new RigMath.Skeleton(this.model.parts(), scale);
     }
 
     public void spawn(Location loc, String tag) {
@@ -134,28 +136,29 @@ public final class BossRig {
         lastAnchor = at;
     }
 
-    /** 한 프레임 적용. state 는 RigMath 기본 anim 입력, interp = 다음 갱신까지 틱. */
+    /** 지금 시전 애니메이션의 진행도 (0~1). */
+    private double progress(BossAnim a, long tick) {
+        return a == BossAnim.STUN ? 0.5 : Math.min(1.0, (tick - animStart) / (double) animTicks);
+    }
+
+    /**
+     * 한 프레임 적용. state 는 RigMath 기본 anim 입력, interp = 다음 갱신까지 틱. 몹 리그와 같은 {@link RigMath.Skeleton}
+     * (관절·다리 걸음·머리 무리)에 시전 오버레이({@link BossAnim#rig})를 끼워 푼다 — 왕관·안경·독니도 머리를 따라 돈다.
+     */
     public void animate(float yawDeg, RigMath.AnimState state, int interp) {
         BossAnim a = current(state.tick());
-        double p = a == BossAnim.STUN ? 0.5 : Math.min(1.0, (state.tick() - animStart) / (double) animTicks);
-        Quaternionf yaw = new Quaternionf().rotationY((float) Math.toRadians(-yawDeg));
-        for (PartView pv : parts) {
-            ItemDisplay d = pv.display();
+        RigMath.Overlay ov = BossAnim.rig(a, progress(a, state.tick()), animWindup, state.tick());
+        gait.advance(skeleton, state, interp);
+        RigMath.Solved[] solved = skeleton.solve(state, gait, ov);
+        Vector3f tr = new Vector3f();
+        Quaternionf left = new Quaternionf();
+        for (int i = 0; i < parts.size() && i < solved.length; i++) {
+            ItemDisplay d = parts.get(i).display();
             if (!d.isValid()) continue;
-            ModelDef.Part part = pv.def();
-            RigMath.Pose base = RigMath.pose(part.anim(), part.form(), state);
-            BossAnim.Pose ov = BossAnim.overlay(a, part.anim(), part.name(), p, animWindup, state.tick(), scratch);
-            float bw = ov.baseWeight;
-            Quaternionf baseRot = new Quaternionf().slerp(base.rotation(), bw);
-            Vector3f local = new Vector3f((float) part.pivotX(), (float) part.pivotY(), (float) part.pivotZ())
-                    .add(new Vector3f(base.offset()).mul(bw)).add(ov.offset);
-            ov.globalRotation.transform(local);
-            local.add(ov.globalOffset).mul(scale);
-            Vector3f tr = yaw.transform(local, new Vector3f());
-            Quaternionf left = new Quaternionf(yaw).mul(ov.globalRotation).mul(ov.rotation).mul(baseRot);
-            if (yawOffset != 0) left.rotateY((float) Math.toRadians(yawOffset));
-            float s = scale * base.scale() * ov.scale;
-            Transformation next = new Transformation(tr, left, new Vector3f(s, s, s), new Quaternionf());
+            RigMath.Solved sp = solved[i];
+            float s = RigMath.compose(yawDeg, scale, sp.pivot().x, sp.pivot().y, sp.pivot().z,
+                    new RigMath.Pose(sp.offset(), sp.rotation(), sp.scale()), yawOffset, tr, left);
+            Transformation next = new Transformation(new Vector3f(tr), new Quaternionf(left), new Vector3f(s, s, s), new Quaternionf());
             if (next.equals(d.getTransformation())) continue;
             d.setInterpolationDelay(0);
             d.setInterpolationDuration(Math.max(1, interp));

@@ -99,10 +99,14 @@ labyrinth/
       (`leg_pair` + `legs_walk`)는 pivot 에서 **아래로 매달린** 모양, `tail` 은 pivot 에서 뒤(몹 −Z)로 뻗거나(길이>높이) 아래로 매달린다.
       관절형 form(새 몸 형태 단계): `segment`(몸 마디) = pivot 에서 뒤로, `wing`(날개 한 장) = pivot(어깨)에서 몸 바깥(pivot X 부호 쪽)으로,
       `neck` = pivot(목 뿌리)에서 앞·위로 — ModelRig 가 이 pivot 을 축으로 날개를 퍼덕이고 목·꼬리 사슬을 휘므로 지오메트리가 거기서 시작해야 한다.
-    - **파트 붙음(ModelRig = `RigMath.Skeleton`)**: anim `neck`·`tail_chain` 파트는 YAML 순서대로 사슬(마디 k 피벗 = 마디 k−1 피벗 + 누적
-      회전·(원래 피벗 차)), 머리(이름 `head` + anim head)는 목 사슬 끝에, anim `head` 인 다른 파트는 머리와 같은 회전·`jaw` 는 머리 회전 + 벌림으로
-      머리 pivot 을 중심으로 돈다(목이 없어도). 몸 전체 앞숙임(급강하)·솟구침(burrow)은 모든 파트에 곱한다. BossRig 는 이 규칙을 쓰지 않는다
-      (보스 파트는 지금처럼 각자 pivot 에서 회전).
+    - **파트 붙음(ModelRig·BossRig = `RigMath.Skeleton`, GDD §14.3/§14.6)**: 회전 중심 = 파트 `joint`(없으면 pivot), 원점 위치 = J′ + R·(pivot − joint).
+      anim `neck`·`tail_chain` 파트는 YAML 순서대로 사슬(마디 k 관절 = 마디 k−1 관절 + 누적 회전·(원래 관절 차)), 머리(이름 `head` + anim head,
+      없으면 가장 큰 anim head 파트)는 목 사슬 끝에, anim `head` 인 다른 파트는 머리와 같은 회전·`jaw` 는 머리 회전 + 벌림으로 머리 관절을 따라 돈다.
+      다리(`set` 으로 자른 다리 하나 = 파트 하나)는 관절 위치로 정한 위상으로 걷고(`RigMath.Gait` 가 갱신마다 이동 거리 ÷ 한 주기 거리만큼 위상을
+      쌓음 — LabMob·Boss 는 그대로 moveSpeed 만 넘긴다), 디딘 발 높이로 몸 전체를 보정한다. 다리 아닌 파트 = 윗몸 무리(숨쉬기·기울기 한 중심).
+      몸 전체(땅 보정·몸급 부유·보스 오버레이·피격·앞숙임·솟구침·사망)는 모든 파트에 같은 강체 변환 + 크기로 곱한다. 보스 시전 오버레이는
+      `BossAnim.rig` → `RigMath.Overlay`(파트 로컬은 사슬 전에, 전체는 마지막) — 그래서 왕관·안경·독니도 머리를 따라간다.
+      틱 비용은 그대로(파트 수만큼 사원수 몇 번 · 서 있으면 Transformation 이 같아 안 보냄). 미리보기: `RigPreviewDump`(RIG_DUMP) + `tools/rig_preview.py`.
     - **손에 쥔 파트**(팔과 pivot·anim 이 같은 blade/claw/slab/lantern/book…)는 생성기가 그 팔의 손 위치(pivot − (0, 팔 길이, 0))에
       붙여 만들었다 → Java 는 그 파트에 **팔과 똑같은 Transformation 회전**을 주면 손에 붙어 함께 휘두른다. blade 는 손에서 앞(−Z)으로,
       slab(방패)은 바깥쪽(±X)을 향한다.

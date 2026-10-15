@@ -351,14 +351,21 @@ class VoxelMesh:
         self.elements_json = []
 
 
-def mesh(name, shaded: dict, ramps: dict, vs=0.5, origin=(8, 8, 8), glow_cell=2, emission=12, overlap=False):
+def mesh(name, shaded: dict, ramps: dict, vs=0.5, origin=(8, 8, 8), glow_cell=2, emission=12, overlap=False,
+         solid=None):
     """overlap=True (mobs): boxes may share exposed voxels of the *same* palette key — their coplanar faces
-    then carry identical colours, so nothing visible fights — which lets every box grow maximal."""
+    then carry identical colours, so nothing visible fights — which lets every box grow maximal.
+    solid (optional set of keys outside `shaded`): neighbours that hide faces like filled voxels but never become part
+    of a box — one piece of a cut design (a leg of a leg set) is meshed without faces on the cut."""
     vox = shaded
+    if solid:
+        occ = vox.keys() | solid
+    else:
+        occ = vox
     exposed = {}
     for key in vox:
         i, j, k = key
-        if any((i + d[0], j + d[1], k + d[2]) not in vox for d in DIRS):
+        if any((i + d[0], j + d[1], k + d[2]) not in occ for d in DIRS):
             exposed[key] = True
     # palette keys
     pal = {}
@@ -469,7 +476,7 @@ def mesh(name, shaded: dict, ramps: dict, vs=0.5, origin=(8, 8, 8), glow_cell=2,
                     p[ax] = plane
                     p[o[0]] = a
                     p[o[1]] = b
-                    if tuple(p) not in vox:
+                    if tuple(p) not in occ:
                         touch = True
                         break
                 if touch:

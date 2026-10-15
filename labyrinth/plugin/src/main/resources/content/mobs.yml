@@ -50,8 +50,13 @@ mobs:
       texture_size: [64, 64]
       parts:
         - {name: body, form: shell, size: [14, 8, 16], pivot: [0, 0.4, 0], anim: body}
-        - {name: head, form: rounded, size: [8, 6, 7], pivot: [0, 0.6, 0.4], anim: head}
-        - {name: legs, form: leg_six, size: [24, 8, 16], pivot: [0, 0.2, 0], anim: legs_walk}
+        - {name: head, form: rounded, size: [8, 6, 7], pivot: [0, 0.6, 0.4], joint: [0, 0.6, 0.18], anim: head}
+        - {name: leg_l1, set: legs, form: leg_six, size: [24, 8, 16], pivot: [0, 0.2, 0], joint: [0.29, 0.34, 0.32], foot: [0.35, -0.37, 0.37, 0], anim: legs_walk}
+        - {name: leg_l2, set: legs, form: leg_six, size: [24, 8, 16], pivot: [0, 0.2, 0], joint: [0.33, 0.33, 0.04], foot: [0.42, -0.35, 0, 0], anim: legs_walk}
+        - {name: leg_l3, set: legs, form: leg_six, size: [24, 8, 16], pivot: [0, 0.2, 0], joint: [0.25, 0.37, -0.28], foot: [0.28, -0.35, -0.11, 0], anim: legs_walk}
+        - {name: leg_r1, set: legs, form: leg_six, size: [24, 8, 16], pivot: [0, 0.2, 0], joint: [-0.29, 0.34, 0.32], foot: [-0.35, -0.37, 0.37, 0], anim: legs_walk}
+        - {name: leg_r2, set: legs, form: leg_six, size: [24, 8, 16], pivot: [0, 0.2, 0], joint: [-0.33, 0.33, 0.04], foot: [-0.42, -0.35, 0, 0], anim: legs_walk}
+        - {name: leg_r3, set: legs, form: leg_six, size: [24, 8, 16], pivot: [0, 0.2, 0], joint: [-0.25, 0.37, -0.28], foot: [-0.28, -0.35, -0.11, 0], anim: legs_walk}
       style: {shape: crawler, palette: ["#1d2b14", "#3f5a23", "#7fa043", "#c9d98a"], features: [moss_tufts, glowing_eyes]}
 
   root_shambler:
@@ -78,10 +83,11 @@ mobs:
       texture_size: [64, 64]
       parts:
         - {name: torso, form: box, size: [10, 12, 6], pivot: [0, 1.15, 0], anim: body}
-        - {name: head, form: rounded, size: [8, 8, 8], pivot: [0, 1.6, 0], anim: head}
+        - {name: head, form: rounded, size: [8, 8, 8], pivot: [0, 1.6, 0], joint: [0, 1.35, 0], anim: head}
         - {name: arm_left, form: arm, size: [4, 14, 4], pivot: [0.38, 1.45, 0], anim: arm_left}
         - {name: arm_right, form: arm, size: [4, 14, 4], pivot: [-0.38, 1.45, 0], anim: arm_right}
-        - {name: legs, form: leg_pair, size: [8, 12, 4], pivot: [0, 0.75, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [8, 12, 4], pivot: [0, 0.75, 0], joint: [0.13, 0.71, 0.01], foot: [0.04, -0.69, -0.01, 0.16], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [8, 12, 4], pivot: [0, 0.75, 0], joint: [-0.14, 0.71, 0.01], foot: [-0.04, -0.69, -0.01, 0.16], anim: legs_walk}
       style: {shape: humanoid, palette: ["#2a1b10", "#4e3520", "#7a5a34", "#5f7d2e", "#a8c46a"], features: [root_tendrils, moss_tufts, hollow_eyes]}
 
   lantern_wisp:
@@ -137,9 +143,14 @@ mobs:
       texture_size: [64, 64]
       parts:
         - {name: shell, form: shell, size: [14, 9, 16], pivot: [0, 0.45, 0], anim: body}
-        - {name: head, form: box, size: [7, 5, 5], pivot: [0, 0.35, 0.5], anim: head}
+        - {name: head, form: box, size: [7, 5, 5], pivot: [0, 0.35, 0.5], joint: [0, 0.35, 0.34], anim: head}
         - {name: horn, form: spike, size: [2, 3, 6], pivot: [0, 0.45, 0.7], anim: head}
-        - {name: legs, form: leg_six, size: [20, 6, 14], pivot: [0, 0.18, 0], anim: legs_walk}
+        - {name: leg_l1, set: legs, form: leg_six, size: [20, 6, 14], pivot: [0, 0.18, 0], joint: [0.29, 0.24, 0.29], foot: [0.2, -0.25, 0.07, 0], anim: legs_walk}
+        - {name: leg_l2, set: legs, form: leg_six, size: [20, 6, 14], pivot: [0, 0.18, 0], joint: [0.29, 0.25, 0.04], foot: [0.19, -0.26, 0.01, 0], anim: legs_walk}
+        - {name: leg_l3, set: legs, form: leg_six, size: [20, 6, 14], pivot: [0, 0.18, 0], joint: [0.29, 0.25, -0.23], foot: [0.2, -0.26, -0.05, 0], anim: legs_walk}
+        - {name: leg_r1, set: legs, form: leg_six, size: [20, 6, 14], pivot: [0, 0.18, 0], joint: [-0.29, 0.24, 0.29], foot: [-0.2, -0.25, 0.07, 0], anim: legs_walk}
+        - {name: leg_r2, set: legs, form: leg_six, size: [20, 6, 14], pivot: [0, 0.18, 0], joint: [-0.29, 0.25, 0.04], foot: [-0.19, -0.26, 0.01, 0], anim: legs_walk}
+        - {name: leg_r3, set: legs, form: leg_six, size: [20, 6, 14], pivot: [0, 0.18, 0], joint: [-0.29, 0.25, -0.23], foot: [-0.2, -0.26, -0.05, 0], anim: legs_walk}
       style: {shape: insect, palette: ["#2b2b2e", "#55565a", "#8a8b8f", "#6d8a3a", "#b9c8a0"], features: [cracked_stone, moss_tufts]}
 
   # ── 새 몸 형태 (드래곤 · 용인족) ──
@@ -169,14 +180,17 @@ mobs:
       parts:
         - {name: body, form: rounded, size: [8, 7, 12], pivot: [0, 0.5, 0], anim: body}
         - {name: neck, form: neck, size: [4, 5, 5], pivot: [0, 0.62, 0.3], anim: neck}
-        - {name: head, form: rounded, size: [6, 5, 7], pivot: [0, 0.92, 0.78], anim: head}
-        - {name: jaw, form: claw, size: [5, 2, 4], pivot: [0, 0.8, 0.9], anim: jaw}
+        - {name: head, form: rounded, size: [6, 5, 7], pivot: [0, 0.92, 0.78], joint: [0, 0.92, 0.56], anim: head}
+        - {name: jaw, form: claw, size: [5, 2, 4], pivot: [0, 0.8, 0.9], joint: [0, 0.88, 0.68], anim: jaw}
         - {name: horns, form: horn_pair, size: [5, 3, 2], pivot: [0, 1.06, 0.66], anim: head}
         - {name: wing_left, form: wing, size: [11, 1, 7], pivot: [0.2, 0.7, 0.05], anim: wings_flap}
         - {name: wing_right, form: wing, size: [11, 1, 7], pivot: [-0.2, 0.7, 0.05], anim: wings_flap}
         - {name: tail_1, form: tail, size: [4, 4, 6], pivot: [0, 0.52, -0.35], anim: tail_chain}
         - {name: tail_2, form: tail, size: [3, 3, 6], pivot: [0, 0.5, -0.72], anim: tail_chain}
-        - {name: legs, form: leg_quad, size: [9, 8, 10], pivot: [0, 0.25, 0], anim: legs_walk}
+        - {name: leg_fl, set: legs, form: leg_quad, size: [9, 8, 10], pivot: [0, 0.25, 0], joint: [0.16, 0.47, 0.18], foot: [0.04, -0.44, 0.04, 0.04], anim: legs_walk}
+        - {name: leg_bl, set: legs, form: leg_quad, size: [9, 8, 10], pivot: [0, 0.25, 0], joint: [0.16, 0.47, -0.17], foot: [0.05, -0.49, 0.06, 0.07], anim: legs_walk}
+        - {name: leg_fr, set: legs, form: leg_quad, size: [9, 8, 10], pivot: [0, 0.25, 0], joint: [-0.16, 0.47, 0.18], foot: [-0.04, -0.44, 0.04, 0.04], anim: legs_walk}
+        - {name: leg_br, set: legs, form: leg_quad, size: [9, 8, 10], pivot: [0, 0.25, 0], joint: [-0.16, 0.47, -0.17], foot: [-0.05, -0.49, 0.06, 0.07], anim: legs_walk}
       style: {shape: drake, palette: ["#16220f", "#2f4a1e", "#5f8a33", "#a6c96a", "#ffc24a"], features: [moss_tufts, glowing_eyes]}
 
   thorn_kobold:
@@ -203,14 +217,15 @@ mobs:
       texture_size: [64, 64]
       parts:
         - {name: torso, form: box, size: [8, 10, 5], pivot: [0, 1.1, 0], anim: body}
-        - {name: head, form: rounded, size: [7, 6, 9], pivot: [0, 1.62, 0.08], anim: head}
-        - {name: jaw, form: claw, size: [5, 2, 4], pivot: [0, 1.48, 0.32], anim: jaw}
+        - {name: head, form: rounded, size: [7, 6, 9], pivot: [0, 1.62, 0.08], joint: [0, 1.43, 0.08], anim: head}
+        - {name: jaw, form: claw, size: [5, 2, 4], pivot: [0, 1.48, 0.32], joint: [0, 1.53, 0.18], anim: jaw}
         - {name: horns, form: horn_pair, size: [6, 4, 2], pivot: [0, 1.86, -0.05], anim: head}
         - {name: arm_left, form: arm, size: [3, 11, 3], pivot: [0.32, 1.42, 0], anim: arm_left}
         - {name: arm_right, form: arm, size: [3, 11, 3], pivot: [-0.32, 1.42, 0], anim: arm_right}
         - {name: spear, form: blade, size: [3, 26, 3], pivot: [-0.32, 1.42, 0], anim: arm_right}
         - {name: tail, form: tail, size: [3, 3, 9], pivot: [0, 0.85, -0.15], anim: tail}
-        - {name: legs, form: leg_pair, size: [7, 11, 4], pivot: [0, 0.72, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [7, 11, 4], pivot: [0, 0.72, 0], joint: [0.12, 0.62, 0.07], foot: [0, -0.59, 0.01, 0.16], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [7, 11, 4], pivot: [0, 0.72, 0], joint: [-0.12, 0.62, 0.07], foot: [0, -0.59, 0.01, 0.16], anim: legs_walk}
       style: {shape: dragonkin, palette: ["#1a2410", "#3a4f1e", "#6b8a34", "#b5c97a", "#e8a23a"], features: [root_tendrils, moss_tufts, glowing_eyes, leather_straps]}
 
   moss_crawler_alpha:
@@ -240,9 +255,14 @@ mobs:
       parts:
         - {name: body, form: shell, size: [16, 9, 18], pivot: [0, 0.42, 0], anim: body}
         - {name: crest, form: leaf_cluster, size: [12, 8, 12], pivot: [0, 0.75, -0.05], anim: body}
-        - {name: head, form: rounded, size: [9, 7, 8], pivot: [0, 0.6, 0.45], anim: head}
-        - {name: jaw, form: claw, size: [8, 3, 4], pivot: [0, 0.5, 0.65], anim: jaw}
-        - {name: legs, form: leg_six, size: [28, 9, 18], pivot: [0, 0.2, 0], anim: legs_walk}
+        - {name: head, form: rounded, size: [9, 7, 8], pivot: [0, 0.6, 0.45], joint: [0, 0.6, 0.2], anim: head}
+        - {name: jaw, form: claw, size: [8, 3, 4], pivot: [0, 0.5, 0.65], joint: [0, 0.55, 0.57], anim: jaw}
+        - {name: leg_l1, set: legs, form: leg_six, size: [28, 9, 18], pivot: [0, 0.2, 0], joint: [0.31, 0.35, 0.37], foot: [0.41, -0.35, 0.39, 0], anim: legs_walk}
+        - {name: leg_l2, set: legs, form: leg_six, size: [28, 9, 18], pivot: [0, 0.2, 0], joint: [0.39, 0.35, 0.04], foot: [0.47, -0.35, -0.02, 0], anim: legs_walk}
+        - {name: leg_l3, set: legs, form: leg_six, size: [28, 9, 18], pivot: [0, 0.2, 0], joint: [0.27, 0.38, -0.32], foot: [0.34, -0.39, -0.11, 0], anim: legs_walk}
+        - {name: leg_r1, set: legs, form: leg_six, size: [28, 9, 18], pivot: [0, 0.2, 0], joint: [-0.31, 0.35, 0.37], foot: [-0.41, -0.35, 0.39, 0], anim: legs_walk}
+        - {name: leg_r2, set: legs, form: leg_six, size: [28, 9, 18], pivot: [0, 0.2, 0], joint: [-0.39, 0.35, 0.04], foot: [-0.47, -0.35, -0.02, 0], anim: legs_walk}
+        - {name: leg_r3, set: legs, form: leg_six, size: [28, 9, 18], pivot: [0, 0.2, 0], joint: [-0.27, 0.38, -0.32], foot: [-0.34, -0.39, -0.11, 0], anim: legs_walk}
       style: {shape: crawler, palette: ["#142010", "#2f4a1c", "#5f8a2c", "#a8d055", "#e8f5a0"], features: [moss_tufts, glowing_eyes, spore_glow, elite_trim]}
 
   # ════════════════════════════ 지하 2층 · 거미줄 갱도 ════════════════════════════
@@ -271,8 +291,15 @@ mobs:
       texture_size: [32, 32]
       parts:
         - {name: body, form: rounded, size: [8, 5, 10], pivot: [0, 0.25, 0], anim: body}
-        - {name: head, form: rounded, size: [5, 4, 4], pivot: [0, 0.25, 0.3], anim: head}
-        - {name: legs, form: leg_eight, size: [16, 5, 10], pivot: [0, 0.12, 0], anim: legs_walk}
+        - {name: head, form: rounded, size: [5, 4, 4], pivot: [0, 0.25, 0.3], joint: [0, 0.25, 0.17], anim: head}
+        - {name: leg_l1, set: legs, form: leg_eight, size: [16, 5, 10], pivot: [0, 0.12, 0], joint: [0.25, 0.43, 0.27], foot: [0.33, -0.42, 0.37, 0], anim: legs_walk}
+        - {name: leg_l2, set: legs, form: leg_eight, size: [16, 5, 10], pivot: [0, 0.12, 0], joint: [0.14, 0.28, 0.14], foot: [0.56, -0.28, 0.12, 0], anim: legs_walk}
+        - {name: leg_l3, set: legs, form: leg_eight, size: [16, 5, 10], pivot: [0, 0.12, 0], joint: [0.14, 0.28, -0.04], foot: [0.54, -0.27, -0.15, 0], anim: legs_walk}
+        - {name: leg_l4, set: legs, form: leg_eight, size: [16, 5, 10], pivot: [0, 0.12, 0], joint: [0.25, 0.45, -0.22], foot: [0.31, -0.44, -0.36, 0], anim: legs_walk}
+        - {name: leg_r1, set: legs, form: leg_eight, size: [16, 5, 10], pivot: [0, 0.12, 0], joint: [-0.25, 0.43, 0.27], foot: [-0.33, -0.42, 0.37, 0], anim: legs_walk}
+        - {name: leg_r2, set: legs, form: leg_eight, size: [16, 5, 10], pivot: [0, 0.12, 0], joint: [-0.14, 0.28, 0.14], foot: [-0.56, -0.28, 0.12, 0], anim: legs_walk}
+        - {name: leg_r3, set: legs, form: leg_eight, size: [16, 5, 10], pivot: [0, 0.12, 0], joint: [-0.14, 0.28, -0.04], foot: [-0.54, -0.27, -0.15, 0], anim: legs_walk}
+        - {name: leg_r4, set: legs, form: leg_eight, size: [16, 5, 10], pivot: [0, 0.12, 0], joint: [-0.25, 0.45, -0.22], foot: [-0.31, -0.44, -0.36, 0], anim: legs_walk}
       style: {shape: crawler, palette: ["#1a1c22", "#3b404c", "#8d95a8", "#dfe6f2"], features: [silk_strands, glowing_eyes]}
 
   rusted_miner:
@@ -299,12 +326,13 @@ mobs:
       texture_size: [64, 64]
       parts:
         - {name: torso, form: box, size: [9, 12, 5], pivot: [0, 1.15, 0], anim: body}
-        - {name: head, form: box, size: [8, 8, 8], pivot: [0, 1.6, 0], anim: head}
+        - {name: head, form: box, size: [8, 8, 8], pivot: [0, 1.6, 0], joint: [0, 1.35, 0], anim: head}
         - {name: lamp, form: lantern, size: [3, 3, 3], pivot: [0, 1.95, 0.25], anim: head}
         - {name: arm_left, form: arm, size: [4, 12, 4], pivot: [0.36, 1.45, 0], anim: arm_left}
         - {name: arm_right, form: arm, size: [4, 12, 4], pivot: [-0.36, 1.45, 0], anim: arm_right}
         - {name: pickaxe, form: blade, size: [12, 14, 2], pivot: [-0.36, 1.45, 0], anim: arm_right}
-        - {name: legs, form: leg_pair, size: [8, 12, 4], pivot: [0, 0.75, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [8, 12, 4], pivot: [0, 0.75, 0], joint: [0.12, 0.69, 0.01], foot: [0, -0.69, 0.03, 0.15], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [8, 12, 4], pivot: [0, 0.75, 0], joint: [-0.12, 0.69, 0.01], foot: [0, -0.69, 0.03, 0.15], anim: legs_walk}
       style: {shape: humanoid, palette: ["#2a1d16", "#5a3a26", "#8c5a34", "#b8743c", "#d9b07a"], features: [rust_streaks, helmet_lamp]}
 
   ore_mimic:
@@ -333,7 +361,10 @@ mobs:
         - {name: rock, form: box, size: [14, 10, 14], pivot: [0, 0.5, 0], anim: body}
         - {name: lid, form: slab, size: [14, 5, 14], pivot: [0, 0.85, -0.4], anim: jaw}
         - {name: tongue, form: tail, size: [4, 2, 8], pivot: [0, 0.55, 0.2], anim: jaw}
-        - {name: legs, form: leg_quad, size: [14, 4, 14], pivot: [0, 0.12, 0], anim: legs_walk}
+        - {name: leg_fl, set: legs, form: leg_quad, size: [14, 4, 14], pivot: [0, 0.12, 0], joint: [0.39, 0.23, 0.36], foot: [0.1, -0.23, 0.09, 0.04], anim: legs_walk}
+        - {name: leg_bl, set: legs, form: leg_quad, size: [14, 4, 14], pivot: [0, 0.12, 0], joint: [0.39, 0.23, -0.36], foot: [0.1, -0.23, -0.09, 0.04], anim: legs_walk}
+        - {name: leg_fr, set: legs, form: leg_quad, size: [14, 4, 14], pivot: [0, 0.12, 0], joint: [-0.39, 0.23, 0.36], foot: [-0.1, -0.23, 0.09, 0.04], anim: legs_walk}
+        - {name: leg_br, set: legs, form: leg_quad, size: [14, 4, 14], pivot: [0, 0.12, 0], joint: [-0.39, 0.23, -0.36], foot: [-0.1, -0.23, -0.09, 0.04], anim: legs_walk}
       style: {shape: blob, palette: ["#2a2a2c", "#5c5d60", "#8e9094", "#c9ced6", "#f1f4fa"], features: [ore_flecks, teeth_ring]}
 
   echo_bat:
@@ -361,7 +392,8 @@ mobs:
       parts:
         - {name: body, form: rounded, size: [5, 6, 5], pivot: [0, 0.5, 0], anim: float}
         - {name: ears, form: horn_pair, size: [6, 4, 2], pivot: [0, 0.75, 0], anim: head}
-        - {name: wings, form: wing_pair, size: [22, 8, 2], pivot: [0, 0.55, 0], anim: wings}
+        - {name: wing_l, set: wings, form: wing_pair, size: [22, 8, 2], pivot: [0, 0.55, 0], joint: [0.06, 0.58, -0.04], anim: wings_flap}
+        - {name: wing_r, set: wings, form: wing_pair, size: [22, 8, 2], pivot: [0, 0.55, 0], joint: [-0.06, 0.58, -0.04], anim: wings_flap}
       style: {shape: floating, palette: ["#1b1416", "#3e2a2e", "#6e4a4f", "#c48a8a"], features: [big_ears, glowing_eyes]}
 
   # ── 새 몸 형태 (용인족 · 땅굴웜) ──
@@ -390,15 +422,16 @@ mobs:
       texture_size: [64, 64]
       parts:
         - {name: torso, form: box, size: [8, 9, 5], pivot: [0, 1.08, 0], anim: body}
-        - {name: head, form: rounded, size: [7, 6, 9], pivot: [0, 1.56, 0.08], anim: head}
-        - {name: jaw, form: claw, size: [5, 2, 4], pivot: [0, 1.42, 0.32], anim: jaw}
+        - {name: head, form: rounded, size: [7, 6, 9], pivot: [0, 1.56, 0.08], joint: [0, 1.37, 0.08], anim: head}
+        - {name: jaw, form: claw, size: [5, 2, 4], pivot: [0, 1.42, 0.32], joint: [0, 1.47, 0.17], anim: jaw}
         - {name: goggles, form: slab, size: [7, 2, 1], pivot: [0, 1.66, 0.48], anim: head}
         - {name: satchel, form: cylinder, size: [6, 7, 4], pivot: [0, 1.12, -0.3], anim: body}
         - {name: arm_left, form: arm, size: [3, 10, 3], pivot: [0.31, 1.36, 0], anim: arm_left}
         - {name: bomb, form: sphere, size: [5, 5, 5], pivot: [0.31, 1.36, 0], anim: arm_left}
         - {name: arm_right, form: arm, size: [3, 10, 3], pivot: [-0.31, 1.36, 0], anim: arm_right}
         - {name: tail, form: tail, size: [3, 3, 8], pivot: [0, 0.8, -0.15], anim: tail}
-        - {name: legs, form: leg_pair, size: [7, 10, 4], pivot: [0, 0.66, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [7, 10, 4], pivot: [0, 0.66, 0], joint: [0.12, 0.57, 0.06], foot: [-0.01, -0.51, 0, 0.15], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [7, 10, 4], pivot: [0, 0.66, 0], joint: [-0.12, 0.57, 0.06], foot: [0.01, -0.51, 0, 0.15], anim: legs_walk}
       style: {shape: dragonkin, palette: ["#24160e", "#4f3220", "#8a5a34", "#c9925a", "#ff7a2a"], features: [leather_straps, glowing_eyes, rust_streaks]}
 
   tunnel_wyrm:
@@ -425,7 +458,7 @@ mobs:
       texture_size: [64, 64]
       parts:
         - {name: head, form: rounded, size: [10, 10, 8], pivot: [0, 0.52, 0.5], anim: head}
-        - {name: jaw, form: claw, size: [9, 4, 5], pivot: [0, 0.46, 0.82], anim: jaw}
+        - {name: jaw, form: claw, size: [9, 4, 5], pivot: [0, 0.46, 0.82], joint: [0, 0.52, 0.69], anim: jaw}
         - {name: seg_1, form: segment, size: [10, 9, 8], pivot: [0, 0.5, 0.25], anim: tail_chain}
         - {name: seg_2, form: segment, size: [9, 8, 8], pivot: [0, 0.47, -0.25], anim: tail_chain}
         - {name: seg_3, form: segment, size: [8, 7, 8], pivot: [0, 0.44, -0.75], anim: tail_chain}
@@ -458,11 +491,12 @@ mobs:
       texture_size: [64, 64]
       parts:
         - {name: torso, form: box, size: [12, 13, 7], pivot: [0, 1.2, 0], anim: body}
-        - {name: head, form: box, size: [8, 9, 8], pivot: [0, 1.7, 0], anim: head}
+        - {name: head, form: box, size: [8, 9, 8], pivot: [0, 1.7, 0], joint: [0, 1.42, 0], anim: head}
         - {name: arm_left, form: arm, size: [5, 13, 5], pivot: [0.45, 1.5, 0], anim: arm_left}
         - {name: arm_right, form: arm, size: [5, 13, 5], pivot: [-0.45, 1.5, 0], anim: arm_right}
         - {name: maul, form: blade, size: [14, 18, 6], pivot: [-0.45, 1.5, 0], anim: arm_right}
-        - {name: legs, form: leg_pair, size: [10, 12, 5], pivot: [0, 0.75, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [10, 12, 5], pivot: [0, 0.75, 0], joint: [0.17, 0.67, 0.02], foot: [-0.01, -0.65, 0.04, 0.18], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [10, 12, 5], pivot: [0, 0.75, 0], joint: [-0.17, 0.67, 0.02], foot: [0.01, -0.65, 0.04, 0.18], anim: legs_walk}
       style: {shape: humanoid, palette: ["#1f1611", "#4a3121", "#7b4f2c", "#b27a3a", "#e8c27a"], features: [rust_streaks, leather_straps, elite_trim]}
 
   # ════════════════════════════ 지하 3층 · 균사 동굴 ════════════════════════════
@@ -491,7 +525,8 @@ mobs:
       parts:
         - {name: cap, form: cap, size: [12, 6, 12], pivot: [0, 0.75, 0], anim: body}
         - {name: stem, form: cylinder, size: [6, 8, 6], pivot: [0, 0.4, 0], anim: body}
-        - {name: legs, form: leg_pair, size: [6, 4, 3], pivot: [0, 0.12, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [6, 4, 3], pivot: [0, 0.12, 0], joint: [0.08, 0.06, 0], foot: [0.01, -0.19, -0.02, 0.11], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [6, 4, 3], pivot: [0, 0.12, 0], joint: [-0.08, 0.06, 0], foot: [-0.01, -0.19, -0.02, 0.11], anim: legs_walk}
       style: {shape: blob, palette: ["#3a1410", "#8c2a1c", "#d9563a", "#f5d6a8", "#fff4e0"], features: [cap_spots, glowing_eyes]}
 
   mycelid_shambler:
@@ -517,10 +552,11 @@ mobs:
       texture_size: [64, 64]
       parts:
         - {name: torso, form: box, size: [10, 12, 6], pivot: [0, 1.15, 0], anim: body}
-        - {name: head, form: cap, size: [10, 6, 10], pivot: [0, 1.65, 0], anim: head}
+        - {name: head, form: cap, size: [10, 6, 10], pivot: [0, 1.65, 0], joint: [0, 1.46, 0], anim: head}
         - {name: arm_left, form: tentacle_cluster, size: [4, 14, 4], pivot: [0.38, 1.45, 0], anim: arm_left}
         - {name: arm_right, form: tentacle_cluster, size: [4, 14, 4], pivot: [-0.38, 1.45, 0], anim: arm_right}
-        - {name: legs, form: leg_pair, size: [8, 12, 4], pivot: [0, 0.75, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [8, 12, 4], pivot: [0, 0.75, 0], joint: [0.12, 0.69, 0.01], foot: [0.02, -0.69, 0.01, 0.21], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [8, 12, 4], pivot: [0, 0.75, 0], joint: [-0.13, 0.69, 0.01], foot: [-0.02, -0.69, -0.04, 0.19], anim: legs_walk}
       style: {shape: humanoid, palette: ["#231a14", "#4a3a2c", "#8a7458", "#d8c8a0", "#f2ead2"], features: [hyphae_web, hollow_eyes]}
 
   spore_turret:
@@ -575,7 +611,8 @@ mobs:
       parts:
         - {name: body, form: rounded, size: [5, 5, 10], pivot: [0, 0.5, 0], anim: float}
         - {name: antennae, form: horn_pair, size: [8, 6, 2], pivot: [0, 0.65, 0.3], anim: head}
-        - {name: wings, form: wing_pair, size: [28, 2, 14], pivot: [0, 0.58, 0], anim: wings}
+        - {name: wing_l, set: wings, form: wing_pair, size: [28, 2, 14], pivot: [0, 0.58, 0], joint: [0.06, 0.56, -0.04], anim: wings_flap}
+        - {name: wing_r, set: wings, form: wing_pair, size: [28, 2, 14], pivot: [0, 0.58, 0], joint: [-0.06, 0.56, -0.04], anim: wings_flap}
       style: {shape: floating, palette: ["#2a2414", "#6e5a24", "#d8b440", "#fff2a0", "#ffffff"], features: [wing_eyespots, emissive_core]}
 
   # ── 새 몸 형태 (하피 · 켄타우로스) ──
@@ -604,12 +641,13 @@ mobs:
       texture_size: [64, 64]
       parts:
         - {name: torso, form: rounded, size: [7, 9, 5], pivot: [0, 1.15, 0], anim: body}
-        - {name: head, form: rounded, size: [6, 6, 6], pivot: [0, 1.6, 0.02], anim: head}
+        - {name: head, form: rounded, size: [6, 6, 6], pivot: [0, 1.6, 0.02], joint: [0, 1.41, 0.02], anim: head}
         - {name: crest, form: cap, size: [8, 3, 8], pivot: [0, 1.88, -0.02], anim: head}
         - {name: wing_left, form: wing, size: [14, 1, 8], pivot: [0.22, 1.4, -0.02], anim: wings_flap}
         - {name: wing_right, form: wing, size: [14, 1, 8], pivot: [-0.22, 1.4, -0.02], anim: wings_flap}
         - {name: tail_feathers, form: fin, size: [6, 2, 7], pivot: [0, 0.82, -0.2], anim: tail}
-        - {name: legs, form: leg_pair, size: [6, 10, 4], pivot: [0, 0.86, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [6, 10, 4], pivot: [0, 0.86, 0], joint: [0.09, 0.77, 0], foot: [0, -0.56, 0, 0.12], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [6, 10, 4], pivot: [0, 0.86, 0], joint: [-0.09, 0.77, 0], foot: [0, -0.56, 0, 0.12], anim: legs_walk}
       style: {shape: harpy, palette: ["#1e1420", "#432a46", "#7a5276", "#c49ab8", "#5ee0c0"], features: [cap_spots, spore_glow, wing_eyespots]}
 
   myconid_centaur:
@@ -635,9 +673,12 @@ mobs:
       texture_size: [128, 64]
       parts:
         - {name: horse_body, form: rounded, size: [10, 9, 18], pivot: [0, 0.95, -0.15], anim: body}
-        - {name: legs, form: leg_quad, size: [10, 13, 16], pivot: [0, 0.41, -0.15], anim: legs_walk}
+        - {name: leg_fl, set: legs, form: leg_quad, size: [10, 13, 16], pivot: [0, 0.41, -0.15], joint: [0.19, 0.75, 0.24], foot: [0.01, -0.72, 0, 0.05], anim: legs_walk}
+        - {name: leg_bl, set: legs, form: leg_quad, size: [10, 13, 16], pivot: [0, 0.41, -0.15], joint: [0.2, 0.75, -0.56], foot: [0, -0.72, 0.03, 0.05], anim: legs_walk}
+        - {name: leg_fr, set: legs, form: leg_quad, size: [10, 13, 16], pivot: [0, 0.41, -0.15], joint: [-0.19, 0.75, 0.24], foot: [0, -0.72, 0, 0.05], anim: legs_walk}
+        - {name: leg_br, set: legs, form: leg_quad, size: [10, 13, 16], pivot: [0, 0.41, -0.15], joint: [-0.2, 0.75, -0.56], foot: [0, -0.72, 0.03, 0.05], anim: legs_walk}
         - {name: torso, form: box, size: [9, 11, 5], pivot: [0, 1.62, 0.32], anim: body}
-        - {name: head, form: rounded, size: [6, 6, 6], pivot: [0, 2.15, 0.34], anim: head}
+        - {name: head, form: rounded, size: [6, 6, 6], pivot: [0, 2.15, 0.34], joint: [0, 1.96, 0.34], anim: head}
         - {name: cap, form: cap, size: [13, 5, 13], pivot: [0, 2.44, 0.34], anim: head}
         - {name: arm_left, form: arm, size: [4, 11, 4], pivot: [0.34, 1.98, 0.32], anim: arm_left}
         - {name: arm_right, form: arm, size: [4, 11, 4], pivot: [-0.34, 1.98, 0.32], anim: arm_right}
@@ -700,11 +741,12 @@ mobs:
       texture_size: [64, 64]
       parts:
         - {name: torso, form: rounded, size: [11, 12, 7], pivot: [0, 1.15, 0], anim: body}
-        - {name: head, form: rounded, size: [8, 8, 8], pivot: [0, 1.62, 0], anim: head}
+        - {name: head, form: rounded, size: [8, 8, 8], pivot: [0, 1.62, 0], joint: [0, 1.37, 0], anim: head}
         - {name: arm_left, form: arm, size: [4, 13, 4], pivot: [0.4, 1.45, 0], anim: arm_left}
         - {name: arm_right, form: arm, size: [4, 13, 4], pivot: [-0.4, 1.45, 0], anim: arm_right}
         - {name: hook, form: claw, size: [6, 10, 2], pivot: [-0.4, 1.45, 0], anim: arm_right}
-        - {name: legs, form: leg_pair, size: [8, 12, 4], pivot: [0, 0.75, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [8, 12, 4], pivot: [0, 0.75, 0], joint: [0.13, 0.68, 0.01], foot: [0.01, -0.65, 0.08, 0.15], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [8, 12, 4], pivot: [0, 0.75, 0], joint: [-0.13, 0.68, 0.01], foot: [0.01, -0.65, 0.08, 0.15], anim: legs_walk}
       style: {shape: humanoid, palette: ["#13211f", "#24413c", "#3f6e62", "#7aa899", "#cfe6dc"], features: [barnacles, dripping, hollow_eyes]}
 
   brine_spitter:
@@ -756,8 +798,8 @@ mobs:
     model:
       texture_size: [64, 32]
       parts:
-        - {name: head, form: rounded, size: [6, 6, 8], pivot: [0, 0.35, 0.55], anim: head}
-        - {name: jaw, form: claw, size: [5, 2, 5], pivot: [0, 0.25, 0.75], anim: jaw}
+        - {name: head, form: rounded, size: [6, 6, 8], pivot: [0, 0.35, 0.55], joint: [0, 0.35, 0.3], anim: head}
+        - {name: jaw, form: claw, size: [5, 2, 5], pivot: [0, 0.25, 0.75], joint: [0, 0.39, 0.52], anim: jaw}
         - {name: body_front, form: cylinder, size: [6, 6, 14], pivot: [0, 0.3, 0.1], anim: body}
         - {name: body_back, form: tail, size: [5, 5, 18], pivot: [0, 0.28, -0.4], anim: tail}
         - {name: fin, form: fin, size: [2, 6, 20], pivot: [0, 0.55, -0.1], anim: tail}
@@ -818,15 +860,18 @@ mobs:
       parts:
         - {name: body, form: rounded, size: [12, 10, 18], pivot: [0, 0.62, 0], anim: body}
         - {name: neck, form: neck, size: [6, 6, 7], pivot: [0, 0.8, 0.48], anim: neck}
-        - {name: head, form: rounded, size: [8, 7, 10], pivot: [0, 1.17, 1.2], anim: head}
-        - {name: jaw, form: claw, size: [7, 3, 6], pivot: [0, 1.0, 1.36], anim: jaw}
+        - {name: head, form: rounded, size: [8, 7, 10], pivot: [0, 1.17, 1.2], joint: [0, 1.17, 0.89], anim: head}
+        - {name: jaw, form: claw, size: [7, 3, 6], pivot: [0, 1.0, 1.36], joint: [0, 1.17, 1.1], anim: jaw}
         - {name: horns, form: horn_pair, size: [8, 4, 2], pivot: [0, 1.38, 1.02], anim: head}
         - {name: wing_left, form: wing, size: [14, 1, 9], pivot: [0.3, 0.9, 0.1], anim: wings_flap}
         - {name: wing_right, form: wing, size: [14, 1, 9], pivot: [-0.3, 0.9, 0.1], anim: wings_flap}
         - {name: tail_1, form: tail, size: [6, 6, 9], pivot: [0, 0.66, -0.55], anim: tail_chain}
         - {name: tail_2, form: tail, size: [5, 5, 9], pivot: [0, 0.62, -1.1], anim: tail_chain}
         - {name: tail_3, form: tail, size: [3, 3, 8], pivot: [0, 0.58, -1.66], anim: tail_chain}
-        - {name: legs, form: leg_quad, size: [13, 10, 15], pivot: [0, 0.31, 0], anim: legs_walk}
+        - {name: leg_fl, set: legs, form: leg_quad, size: [13, 10, 15], pivot: [0, 0.31, 0], joint: [0.23, 0.62, 0.27], foot: [0.14, -0.58, 0.06, 0.07], anim: legs_walk}
+        - {name: leg_bl, set: legs, form: leg_quad, size: [13, 10, 15], pivot: [0, 0.31, 0], joint: [0.23, 0.62, -0.26], foot: [0.14, -0.58, 0.06, 0.07], anim: legs_walk}
+        - {name: leg_fr, set: legs, form: leg_quad, size: [13, 10, 15], pivot: [0, 0.31, 0], joint: [-0.23, 0.62, 0.27], foot: [-0.14, -0.58, 0.06, 0.07], anim: legs_walk}
+        - {name: leg_br, set: legs, form: leg_quad, size: [13, 10, 15], pivot: [0, 0.31, 0], joint: [-0.23, 0.62, -0.26], foot: [-0.14, -0.58, 0.06, 0.07], anim: legs_walk}
       style: {shape: drake, palette: ["#0e1a14", "#1f3a2c", "#3f6a4a", "#86a86a", "#b6e04a"], features: [barnacles, dripping, glowing_eyes]}
 
   tide_naga:
@@ -855,7 +900,7 @@ mobs:
         - {name: coil, form: rounded, size: [12, 7, 12], pivot: [0, 0.24, 0.05], anim: body}
         - {name: waist, form: cylinder, size: [7, 9, 6], pivot: [0, 0.74, 0.1], anim: body}
         - {name: torso, form: box, size: [9, 11, 5], pivot: [0, 1.36, 0.1], anim: body}
-        - {name: head, form: rounded, size: [7, 7, 7], pivot: [0, 1.92, 0.12], anim: head}
+        - {name: head, form: rounded, size: [7, 7, 7], pivot: [0, 1.92, 0.12], joint: [0, 1.7, 0.12], anim: head}
         - {name: hood, form: slab, size: [12, 10, 1], pivot: [0, 1.95, -0.12], anim: head}
         - {name: arm_left, form: arm, size: [3, 11, 3], pivot: [0.33, 1.7, 0.1], anim: arm_left}
         - {name: arm_right, form: arm, size: [3, 11, 3], pivot: [-0.33, 1.7, 0.1], anim: arm_right}
@@ -894,7 +939,14 @@ mobs:
         - {name: eyes, form: horn_pair, size: [8, 8, 2], pivot: [0, 1.35, 0.6], anim: head}
         - {name: claw_left, form: claw, size: [10, 10, 14], pivot: [0.85, 0.9, 0.7], anim: arm_left}
         - {name: claw_right, form: claw, size: [12, 12, 16], pivot: [-0.85, 0.9, 0.7], anim: arm_right}
-        - {name: legs, form: leg_eight, size: [36, 12, 22], pivot: [0, 0.45, 0], anim: legs_walk}
+        - {name: leg_l1, set: legs, form: leg_eight, size: [36, 12, 22], pivot: [0, 0.45, 0], joint: [0.58, 0.65, 0.36], foot: [0.48, -0.62, 0.25, 0], anim: legs_walk}
+        - {name: leg_l2, set: legs, form: leg_eight, size: [36, 12, 22], pivot: [0, 0.45, 0], joint: [0.58, 0.65, 0.12], foot: [0.5, -0.62, 0.11, 0], anim: legs_walk}
+        - {name: leg_l3, set: legs, form: leg_eight, size: [36, 12, 22], pivot: [0, 0.45, 0], joint: [0.58, 0.65, -0.12], foot: [0.5, -0.62, -0.11, 0], anim: legs_walk}
+        - {name: leg_l4, set: legs, form: leg_eight, size: [36, 12, 22], pivot: [0, 0.45, 0], joint: [0.58, 0.65, -0.36], foot: [0.48, -0.62, -0.25, 0], anim: legs_walk}
+        - {name: leg_r1, set: legs, form: leg_eight, size: [36, 12, 22], pivot: [0, 0.45, 0], joint: [-0.58, 0.65, 0.36], foot: [-0.48, -0.62, 0.25, 0], anim: legs_walk}
+        - {name: leg_r2, set: legs, form: leg_eight, size: [36, 12, 22], pivot: [0, 0.45, 0], joint: [-0.58, 0.65, 0.12], foot: [-0.5, -0.62, 0.11, 0], anim: legs_walk}
+        - {name: leg_r3, set: legs, form: leg_eight, size: [36, 12, 22], pivot: [0, 0.45, 0], joint: [-0.58, 0.65, -0.12], foot: [-0.5, -0.62, -0.11, 0], anim: legs_walk}
+        - {name: leg_r4, set: legs, form: leg_eight, size: [36, 12, 22], pivot: [0, 0.45, 0], joint: [-0.58, 0.65, -0.36], foot: [-0.48, -0.62, -0.25, 0], anim: legs_walk}
       style: {shape: crawler, palette: ["#10241e", "#1f4a3c", "#3f8a6e", "#7fd0a8", "#c8f0dc"], features: [verdigris_patina, rivets, elite_trim]}
 
   # ════════════════════════════ 지하 5층 · 용광로 심장부 ════════════════════════════
@@ -922,10 +974,11 @@ mobs:
       texture_size: [128, 64]
       parts:
         - {name: torso, form: rounded, size: [18, 16, 12], pivot: [0, 1.6, 0], anim: body}
-        - {name: head, form: box, size: [8, 7, 8], pivot: [0, 2.15, 0.1], anim: head}
+        - {name: head, form: box, size: [8, 7, 8], pivot: [0, 2.15, 0.1], joint: [0, 1.93, 0.1], anim: head}
         - {name: arm_left, form: arm, size: [7, 22, 7], pivot: [0.75, 2.0, 0], anim: arm_left}
         - {name: arm_right, form: arm, size: [7, 22, 7], pivot: [-0.75, 2.0, 0], anim: arm_right}
-        - {name: legs, form: leg_pair, size: [12, 14, 6], pivot: [0, 0.9, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [12, 14, 6], pivot: [0, 0.9, 0], joint: [0.25, 0.78, 0.01], foot: [0.01, -0.77, 0.05, 0.18], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [12, 14, 6], pivot: [0, 0.9, 0], joint: [-0.25, 0.78, 0.01], foot: [0, -0.77, 0.02, 0.21], anim: legs_walk}
       style: {shape: golem, palette: ["#141010", "#2e2422", "#5a3a2e", "#d9541c", "#ffb04a"], features: [molten_cracks, emissive_core]}
 
   cinder_imp:
@@ -954,7 +1007,8 @@ mobs:
         - {name: body, form: rounded, size: [7, 8, 6], pivot: [0, 0.8, 0], anim: float}
         - {name: head, form: rounded, size: [7, 6, 6], pivot: [0, 1.15, 0], anim: head}
         - {name: horns, form: horn_pair, size: [9, 5, 2], pivot: [0, 1.35, 0], anim: head}
-        - {name: wings, form: wing_pair, size: [16, 8, 2], pivot: [0, 0.95, -0.15], anim: wings}
+        - {name: wing_l, set: wings, form: wing_pair, size: [16, 8, 2], pivot: [0, 0.95, -0.15], joint: [0.03, 0.94, -0.15], anim: wings_flap}
+        - {name: wing_r, set: wings, form: wing_pair, size: [16, 8, 2], pivot: [0, 0.95, -0.15], joint: [-0.03, 0.94, -0.15], anim: wings_flap}
         - {name: tail, form: tail, size: [2, 2, 10], pivot: [0, 0.65, -0.2], anim: tail}
       style: {shape: floating, palette: ["#1a0a06", "#5a1a0a", "#c43c12", "#ff9a2a", "#fff0a0"], features: [flame_tips, glowing_eyes]}
 
@@ -982,9 +1036,12 @@ mobs:
       parts:
         - {name: body, form: box, size: [8, 8, 16], pivot: [0, 0.6, 0], anim: body}
         - {name: bellows, form: box, size: [8, 5, 8], pivot: [0, 0.95, -0.1], anim: pulse}
-        - {name: head, form: box, size: [7, 7, 8], pivot: [0, 0.75, 0.55], anim: head}
-        - {name: jaw, form: claw, size: [6, 2, 6], pivot: [0, 0.6, 0.75], anim: jaw}
-        - {name: legs, form: leg_quad, size: [10, 9, 14], pivot: [0, 0.3, 0], anim: legs_walk}
+        - {name: head, form: box, size: [7, 7, 8], pivot: [0, 0.75, 0.55], joint: [0, 0.75, 0.3], anim: head}
+        - {name: jaw, form: claw, size: [6, 2, 6], pivot: [0, 0.6, 0.75], joint: [0, 0.68, 0.58], anim: jaw}
+        - {name: leg_fl, set: legs, form: leg_quad, size: [10, 9, 14], pivot: [0, 0.3, 0], joint: [0.19, 0.45, 0.33], foot: [0, -0.42, 0.07, 0.09], anim: legs_walk}
+        - {name: leg_bl, set: legs, form: leg_quad, size: [10, 9, 14], pivot: [0, 0.3, 0], joint: [0.19, 0.45, -0.34], foot: [0.01, -0.42, 0.12, 0.09], anim: legs_walk}
+        - {name: leg_fr, set: legs, form: leg_quad, size: [10, 9, 14], pivot: [0, 0.3, 0], joint: [-0.19, 0.45, 0.33], foot: [0, -0.42, 0.07, 0.09], anim: legs_walk}
+        - {name: leg_br, set: legs, form: leg_quad, size: [10, 9, 14], pivot: [0, 0.3, 0], joint: [-0.19, 0.45, -0.34], foot: [-0.01, -0.42, 0.12, 0.09], anim: legs_walk}
         - {name: tail, form: tail, size: [2, 2, 8], pivot: [0, 0.75, -0.5], anim: tail}
       style: {shape: beast, palette: ["#16110f", "#3a2a24", "#6e5a4e", "#c45a22", "#ffc06a"], features: [rivets, molten_cracks, glowing_eyes]}
 
@@ -1012,7 +1069,7 @@ mobs:
       texture_size: [64, 64]
       parts:
         - {name: robe, form: cloak, size: [10, 18, 7], pivot: [0, 0.95, 0], anim: body}
-        - {name: head, form: box, size: [8, 8, 8], pivot: [0, 1.6, 0], anim: head}
+        - {name: head, form: box, size: [8, 8, 8], pivot: [0, 1.6, 0], joint: [0, 1.35, 0], anim: head}
         - {name: mask, form: slab, size: [7, 7, 2], pivot: [0, 1.6, 0.27], anim: head}
         - {name: arm_left, form: arm, size: [4, 12, 4], pivot: [0.38, 1.45, 0], anim: arm_left}
         - {name: arm_right, form: arm, size: [4, 12, 4], pivot: [-0.38, 1.45, 0], anim: arm_right}
@@ -1045,15 +1102,18 @@ mobs:
       parts:
         - {name: body, form: rounded, size: [16, 13, 24], pivot: [0, 0.85, 0], anim: body}
         - {name: neck, form: neck, size: [8, 8, 9], pivot: [0, 1.12, 0.66], anim: neck}
-        - {name: head, form: rounded, size: [10, 9, 13], pivot: [0, 1.64, 1.58], anim: head}
-        - {name: jaw, form: claw, size: [9, 4, 8], pivot: [0, 1.4, 1.78], anim: jaw}
+        - {name: head, form: rounded, size: [10, 9, 13], pivot: [0, 1.64, 1.58], joint: [0, 1.64, 1.17], anim: head}
+        - {name: jaw, form: claw, size: [9, 4, 8], pivot: [0, 1.4, 1.78], joint: [0, 1.56, 1.5], anim: jaw}
         - {name: horns, form: horn_pair, size: [12, 6, 3], pivot: [0, 1.94, 1.34], anim: head}
         - {name: wing_left, form: wing, size: [20, 2, 12], pivot: [0.38, 1.25, 0.15], anim: wings_flap}
         - {name: wing_right, form: wing, size: [20, 2, 12], pivot: [-0.38, 1.25, 0.15], anim: wings_flap}
         - {name: tail_1, form: tail, size: [8, 8, 12], pivot: [0, 0.9, -0.72], anim: tail_chain}
         - {name: tail_2, form: tail, size: [6, 6, 12], pivot: [0, 0.85, -1.47], anim: tail_chain}
         - {name: tail_3, form: tail, size: [4, 4, 10], pivot: [0, 0.8, -2.22], anim: tail_chain}
-        - {name: legs, form: leg_quad, size: [17, 14, 20], pivot: [0, 0.44, 0], anim: legs_walk}
+        - {name: leg_fl, set: legs, form: leg_quad, size: [17, 14, 20], pivot: [0, 0.44, 0], joint: [0.3, 0.85, 0.37], foot: [0.1, -0.81, 0.13, 0.1], anim: legs_walk}
+        - {name: leg_bl, set: legs, form: leg_quad, size: [17, 14, 20], pivot: [0, 0.44, 0], joint: [0.32, 0.85, -0.35], foot: [0.09, -0.81, 0.1, 0.15], anim: legs_walk}
+        - {name: leg_fr, set: legs, form: leg_quad, size: [17, 14, 20], pivot: [0, 0.44, 0], joint: [-0.3, 0.85, 0.37], foot: [-0.1, -0.81, 0.13, 0.1], anim: legs_walk}
+        - {name: leg_br, set: legs, form: leg_quad, size: [17, 14, 20], pivot: [0, 0.44, 0], joint: [-0.32, 0.85, -0.35], foot: [-0.09, -0.81, 0.1, 0.15], anim: legs_walk}
       style: {shape: drake, palette: ["#120806", "#2e1410", "#5a2a1a", "#a0522a", "#ff8a2a"], features: [molten_cracks, ember_glow, glowing_eyes]}
 
   forge_dragonkin:
@@ -1080,15 +1140,16 @@ mobs:
       parts:
         - {name: torso, form: box, size: [12, 13, 7], pivot: [0, 1.25, 0], anim: body}
         - {name: apron, form: slab, size: [10, 11, 1], pivot: [0, 1.0, 0.26], anim: body}
-        - {name: head, form: rounded, size: [8, 8, 11], pivot: [0, 1.9, 0.1], anim: head}
-        - {name: jaw, form: claw, size: [6, 3, 5], pivot: [0, 1.72, 0.42], anim: jaw}
+        - {name: head, form: rounded, size: [8, 8, 11], pivot: [0, 1.9, 0.1], joint: [0, 1.65, 0.1], anim: head}
+        - {name: jaw, form: claw, size: [6, 3, 5], pivot: [0, 1.72, 0.42], joint: [0, 1.83, 0.23], anim: jaw}
         - {name: horns, form: horn_pair, size: [10, 6, 3], pivot: [0, 2.16, -0.05], anim: head}
         - {name: arm_left, form: arm, size: [5, 13, 5], pivot: [0.47, 1.62, 0], anim: arm_left}
         - {name: arm_right, form: arm, size: [5, 13, 5], pivot: [-0.47, 1.62, 0], anim: arm_right}
         - {name: hammer, form: blade, size: [12, 20, 8], pivot: [-0.47, 1.62, 0], anim: arm_right}
         - {name: tail_1, form: tail, size: [5, 5, 10], pivot: [0, 0.92, -0.24], anim: tail_chain}
         - {name: tail_2, form: tail, size: [3, 3, 9], pivot: [0, 0.86, -0.86], anim: tail_chain}
-        - {name: legs, form: leg_pair, size: [10, 13, 5], pivot: [0, 0.82, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [10, 13, 5], pivot: [0, 0.82, 0], joint: [0.18, 0.71, 0.07], foot: [-0.01, -0.71, 0.01, 0.19], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [10, 13, 5], pivot: [0, 0.82, 0], joint: [-0.18, 0.71, 0.07], foot: [0.01, -0.71, 0.01, 0.19], anim: legs_walk}
       style: {shape: dragonkin, palette: ["#160a08", "#3a1612", "#6e2a1c", "#b0583a", "#ff9a3a"], features: [ember_glow, leather_straps, molten_cracks, glowing_eyes]}
 
   forge_executioner:
@@ -1116,12 +1177,13 @@ mobs:
       texture_size: [128, 64]
       parts:
         - {name: torso, form: box, size: [12, 13, 7], pivot: [0, 1.2, 0], anim: body}
-        - {name: head, form: box, size: [8, 9, 8], pivot: [0, 1.7, 0], anim: head}
+        - {name: head, form: box, size: [8, 9, 8], pivot: [0, 1.7, 0], joint: [0, 1.42, 0], anim: head}
         - {name: hood, form: cone, size: [9, 8, 9], pivot: [0, 1.95, 0], anim: head}
         - {name: arm_left, form: arm, size: [5, 13, 5], pivot: [0.45, 1.5, 0], anim: arm_left}
         - {name: arm_right, form: arm, size: [5, 13, 5], pivot: [-0.45, 1.5, 0], anim: arm_right}
         - {name: axe, form: blade, size: [16, 24, 3], pivot: [-0.45, 1.5, 0], anim: arm_right}
-        - {name: legs, form: leg_pair, size: [10, 12, 5], pivot: [0, 0.75, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [10, 12, 5], pivot: [0, 0.75, 0], joint: [0.16, 0.67, 0.01], foot: [-0.01, -0.65, 0.05, 0.18], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [10, 12, 5], pivot: [0, 0.75, 0], joint: [-0.16, 0.67, 0.01], foot: [0.01, -0.65, 0.05, 0.18], anim: legs_walk}
       style: {shape: humanoid, palette: ["#0e0a0a", "#2e1414", "#5a1e1a", "#9a9aa2", "#ff8a2a"], features: [executioner_hood, molten_cracks, elite_trim]}
 
   # ════════════════════════════ 지하 6층 · 서리 묘역 ════════════════════════════
@@ -1178,9 +1240,12 @@ mobs:
       parts:
         - {name: body, form: box, size: [7, 7, 16], pivot: [0, 0.6, 0], anim: body}
         - {name: spines, form: crystal_cluster, size: [6, 6, 14], pivot: [0, 0.95, 0], anim: body}
-        - {name: head, form: skull, size: [7, 7, 9], pivot: [0, 0.75, 0.55], anim: head}
-        - {name: jaw, form: claw, size: [6, 2, 6], pivot: [0, 0.6, 0.75], anim: jaw}
-        - {name: legs, form: leg_quad, size: [10, 9, 14], pivot: [0, 0.3, 0], anim: legs_walk}
+        - {name: head, form: skull, size: [7, 7, 9], pivot: [0, 0.75, 0.55], joint: [0, 0.75, 0.27], anim: head}
+        - {name: jaw, form: claw, size: [6, 2, 6], pivot: [0, 0.6, 0.75], joint: [0, 0.7, 0.57], anim: jaw}
+        - {name: leg_fl, set: legs, form: leg_quad, size: [10, 9, 14], pivot: [0, 0.3, 0], joint: [0.17, 0.46, 0.33], foot: [0.01, -0.44, 0.05, 0.06], anim: legs_walk}
+        - {name: leg_bl, set: legs, form: leg_quad, size: [10, 9, 14], pivot: [0, 0.3, 0], joint: [0.17, 0.46, -0.34], foot: [0.01, -0.44, 0.06, 0.06], anim: legs_walk}
+        - {name: leg_fr, set: legs, form: leg_quad, size: [10, 9, 14], pivot: [0, 0.3, 0], joint: [-0.17, 0.46, 0.33], foot: [-0.01, -0.44, 0.05, 0.06], anim: legs_walk}
+        - {name: leg_br, set: legs, form: leg_quad, size: [10, 9, 14], pivot: [0, 0.3, 0], joint: [-0.17, 0.46, -0.34], foot: [-0.01, -0.44, 0.06, 0.06], anim: legs_walk}
         - {name: tail, form: tail, size: [2, 2, 9], pivot: [0, 0.7, -0.5], anim: tail}
       style: {shape: beast, palette: ["#1c2230", "#4a5268", "#c8ccd6", "#9ad0ff", "#f0faff"], features: [bone_ribs, frost_rime, glowing_eyes]}
 
@@ -1208,13 +1273,14 @@ mobs:
       texture_size: [64, 64]
       parts:
         - {name: torso, form: box, size: [10, 12, 6], pivot: [0, 1.15, 0], anim: body}
-        - {name: head, form: box, size: [8, 9, 8], pivot: [0, 1.62, 0], anim: head}
+        - {name: head, form: box, size: [8, 9, 8], pivot: [0, 1.62, 0], joint: [0, 1.34, 0], anim: head}
         - {name: crown, form: crystal_cluster, size: [8, 4, 8], pivot: [0, 1.95, 0], anim: head}
         - {name: arm_left, form: arm, size: [4, 12, 4], pivot: [0.4, 1.45, 0], anim: arm_left}
         - {name: shield, form: slab, size: [2, 14, 10], pivot: [0.4, 1.45, 0], anim: arm_left}
         - {name: arm_right, form: arm, size: [4, 12, 4], pivot: [-0.4, 1.45, 0], anim: arm_right}
         - {name: sword, form: blade, size: [3, 20, 2], pivot: [-0.4, 1.45, 0], anim: arm_right}
-        - {name: legs, form: leg_pair, size: [8, 12, 4], pivot: [0, 0.75, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [8, 12, 4], pivot: [0, 0.75, 0], joint: [0.11, 0.66, 0.01], foot: [0.01, -0.66, 0.04, 0.13], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [8, 12, 4], pivot: [0, 0.75, 0], joint: [-0.11, 0.66, 0.01], foot: [-0.01, -0.66, 0.04, 0.13], anim: legs_walk}
       style: {shape: humanoid, palette: ["#1a1e2a", "#3e4a5e", "#7a8aa8", "#bfe4ff", "#ffffff"], features: [plate_armor, frost_rime, hollow_eyes]}
 
   icicle_wraith:
@@ -1272,15 +1338,16 @@ mobs:
       parts:
         - {name: body, form: rounded, size: [7, 6, 10], pivot: [0, 0.62, 0], anim: body}
         - {name: neck, form: neck, size: [3, 4, 5], pivot: [0, 0.7, 0.28], anim: neck}
-        - {name: head, form: rounded, size: [5, 4, 6], pivot: [0, 0.95, 0.76], anim: head}
-        - {name: jaw, form: claw, size: [4, 2, 3], pivot: [0, 0.86, 0.86], anim: jaw}
+        - {name: head, form: rounded, size: [5, 4, 6], pivot: [0, 0.95, 0.76], joint: [0, 0.95, 0.57], anim: head}
+        - {name: jaw, form: claw, size: [4, 2, 3], pivot: [0, 0.86, 0.86], joint: [0, 0.96, 0.67], anim: jaw}
         - {name: horns, form: horn_pair, size: [5, 3, 2], pivot: [0, 1.06, 0.66], anim: head}
         - {name: wing_left, form: wing, size: [16, 1, 9], pivot: [0.18, 0.76, 0.05], anim: wings_flap}
         - {name: wing_right, form: wing, size: [16, 1, 9], pivot: [-0.18, 0.76, 0.05], anim: wings_flap}
         - {name: tail_1, form: tail, size: [3, 3, 6], pivot: [0, 0.62, -0.3], anim: tail_chain}
         - {name: tail_2, form: tail, size: [2, 2, 6], pivot: [0, 0.6, -0.67], anim: tail_chain}
         - {name: tail_3, form: tail, size: [2, 2, 5], pivot: [0, 0.58, -1.04], anim: tail_chain}
-        - {name: legs, form: leg_pair, size: [5, 6, 3], pivot: [0, 0.4, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [5, 6, 3], pivot: [0, 0.4, 0], joint: [0.1, 0.31, 0.01], foot: [-0.01, -0.31, 0.01, 0.08], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [5, 6, 3], pivot: [0, 0.4, 0], joint: [-0.1, 0.31, 0.01], foot: [0.01, -0.31, 0.01, 0.08], anim: legs_walk}
       style: {shape: wyvern, palette: ["#16202e", "#2e4a66", "#6a9ac0", "#cfe8f8", "#8af0ff"], features: [frost_rime, glowing_eyes]}
 
   barrow_lich:
@@ -1308,7 +1375,7 @@ mobs:
       parts:
         - {name: robe, form: cloak, size: [10, 14, 7], pivot: [0, 1.05, 0], anim: body}
         - {name: ribcage, form: box, size: [8, 8, 5], pivot: [0, 1.62, 0], anim: body}
-        - {name: head, form: skull, size: [7, 7, 7], pivot: [0, 2.08, 0.02], anim: head}
+        - {name: head, form: skull, size: [7, 7, 7], pivot: [0, 2.08, 0.02], joint: [0, 1.86, 0.02], anim: head}
         - {name: crown, form: crystal_cluster, size: [7, 4, 7], pivot: [0, 2.42, 0.02], anim: head}
         - {name: arm_left, form: arm, size: [3, 12, 3], pivot: [0.34, 1.9, 0], anim: arm_left}
         - {name: arm_right, form: arm, size: [3, 12, 3], pivot: [-0.34, 1.9, 0], anim: arm_right}
@@ -1342,11 +1409,12 @@ mobs:
       texture_size: [128, 64]
       parts:
         - {name: torso, form: box, size: [11, 12, 8], pivot: [0, 1.1, -0.05], anim: body}
-        - {name: head, form: rounded, size: [8, 8, 8], pivot: [0, 1.55, 0.15], anim: head}
+        - {name: head, form: rounded, size: [8, 8, 8], pivot: [0, 1.55, 0.15], joint: [0, 1.3, 0.15], anim: head}
         - {name: bell, form: cap, size: [16, 16, 16], pivot: [0, 1.7, -0.35], anim: pulse}
         - {name: arm_left, form: arm, size: [4, 14, 4], pivot: [0.42, 1.4, 0], anim: arm_left}
         - {name: arm_right, form: arm, size: [4, 14, 4], pivot: [-0.42, 1.4, 0], anim: arm_right}
-        - {name: legs, form: leg_pair, size: [8, 12, 5], pivot: [0, 0.75, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [8, 12, 5], pivot: [0, 0.75, 0], joint: [0.12, 0.68, 0.01], foot: [0, -0.64, 0.05, 0.09], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [8, 12, 5], pivot: [0, 0.75, 0], joint: [-0.12, 0.68, 0.01], foot: [0, -0.64, 0.05, 0.09], anim: legs_walk}
       style: {shape: humanoid, palette: ["#14161e", "#34384a", "#6a6e86", "#c8b070", "#e8f4ff"], features: [funeral_bell, tattered_cloth, frost_rime, elite_trim]}
 
   # ════════════════════════════ 지하 7층 · 수정 공명동 ════════════════════════════
@@ -1375,8 +1443,13 @@ mobs:
       parts:
         - {name: body, form: shell, size: [12, 7, 14], pivot: [0, 0.4, 0], anim: body}
         - {name: crystals, form: crystal_cluster, size: [10, 8, 10], pivot: [0, 0.7, -0.05], anim: body}
-        - {name: head, form: rounded, size: [6, 5, 5], pivot: [0, 0.38, 0.45], anim: head}
-        - {name: legs, form: leg_six, size: [20, 6, 14], pivot: [0, 0.18, 0], anim: legs_walk}
+        - {name: head, form: rounded, size: [6, 5, 5], pivot: [0, 0.38, 0.45], joint: [0, 0.38, 0.29], anim: head}
+        - {name: leg_l1, set: legs, form: leg_six, size: [20, 6, 14], pivot: [0, 0.18, 0], joint: [0.23, 0.26, 0.26], foot: [0.35, -0.26, 0.33, 0], anim: legs_walk}
+        - {name: leg_l2, set: legs, form: leg_six, size: [20, 6, 14], pivot: [0, 0.18, 0], joint: [0.27, 0.25, 0.01], foot: [0.38, -0.17, 0.04, 0], anim: legs_walk}
+        - {name: leg_l3, set: legs, form: leg_six, size: [20, 6, 14], pivot: [0, 0.18, 0], joint: [0.23, 0.26, -0.23], foot: [0.38, -0.26, -0.33, 0], anim: legs_walk}
+        - {name: leg_r1, set: legs, form: leg_six, size: [20, 6, 14], pivot: [0, 0.18, 0], joint: [-0.23, 0.26, 0.26], foot: [-0.35, -0.26, 0.33, 0], anim: legs_walk}
+        - {name: leg_r2, set: legs, form: leg_six, size: [20, 6, 14], pivot: [0, 0.18, 0], joint: [-0.27, 0.25, 0.01], foot: [-0.38, -0.17, 0.04, 0], anim: legs_walk}
+        - {name: leg_r3, set: legs, form: leg_six, size: [20, 6, 14], pivot: [0, 0.18, 0], joint: [-0.23, 0.26, -0.23], foot: [-0.38, -0.26, -0.33, 0], anim: legs_walk}
       style: {shape: insect, palette: ["#1a1426", "#3a2a5a", "#7a52b8", "#c8a0ff", "#f4ecff"], features: [crystal_growth, emissive_core]}
 
   prism_sentinel:
@@ -1460,10 +1533,11 @@ mobs:
       parts:
         - {name: torso, form: rounded, size: [18, 16, 12], pivot: [0, 1.6, 0], anim: body}
         - {name: geode, form: crystal_cluster, size: [10, 10, 6], pivot: [0, 1.6, 0.3], anim: pulse}
-        - {name: head, form: box, size: [8, 7, 8], pivot: [0, 2.15, 0.1], anim: head}
+        - {name: head, form: box, size: [8, 7, 8], pivot: [0, 2.15, 0.1], joint: [0, 1.93, 0.1], anim: head}
         - {name: arm_left, form: arm, size: [7, 20, 7], pivot: [0.75, 2.0, 0], anim: arm_left}
         - {name: arm_right, form: arm, size: [7, 20, 7], pivot: [-0.75, 2.0, 0], anim: arm_right}
-        - {name: legs, form: leg_pair, size: [12, 14, 6], pivot: [0, 0.9, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [12, 14, 6], pivot: [0, 0.9, 0], joint: [0.21, 0.79, 0.01], foot: [0.01, -0.79, 0.05, 0.23], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [12, 14, 6], pivot: [0, 0.9, 0], joint: [-0.21, 0.79, 0.01], foot: [-0.01, -0.79, 0.05, 0.23], anim: legs_walk}
       style: {shape: golem, palette: ["#16141a", "#34303c", "#5a5468", "#9a62e0", "#efd8ff"], features: [crystal_growth, cracked_stone, emissive_core]}
 
   # ── 새 몸 형태 (용인족 · 켄타우로스) ──
@@ -1492,8 +1566,8 @@ mobs:
       texture_size: [128, 64]
       parts:
         - {name: torso, form: box, size: [11, 13, 6], pivot: [0, 1.28, 0], anim: body}
-        - {name: head, form: rounded, size: [7, 8, 10], pivot: [0, 1.9, 0.08], anim: head}
-        - {name: jaw, form: claw, size: [5, 3, 4], pivot: [0, 1.72, 0.38], anim: jaw}
+        - {name: head, form: rounded, size: [7, 8, 10], pivot: [0, 1.9, 0.08], joint: [0, 1.65, 0.08], anim: head}
+        - {name: jaw, form: claw, size: [5, 3, 4], pivot: [0, 1.72, 0.38], joint: [0, 1.82, 0.24], anim: jaw}
         - {name: crest, form: crystal_cluster, size: [8, 6, 5], pivot: [0, 2.2, -0.05], anim: head}
         - {name: arm_left, form: arm, size: [4, 13, 4], pivot: [0.43, 1.64, 0], anim: arm_left}
         - {name: shield, form: slab, size: [12, 16, 2], pivot: [0.43, 1.64, 0], anim: arm_left}
@@ -1501,7 +1575,8 @@ mobs:
         - {name: lance, form: blade, size: [4, 34, 4], pivot: [-0.43, 1.64, 0], anim: arm_right}
         - {name: tail_1, form: tail, size: [5, 5, 9], pivot: [0, 0.95, -0.2], anim: tail_chain}
         - {name: tail_2, form: tail, size: [3, 3, 9], pivot: [0, 0.89, -0.76], anim: tail_chain}
-        - {name: legs, form: leg_pair, size: [9, 13, 5], pivot: [0, 0.84, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [9, 13, 5], pivot: [0, 0.84, 0], joint: [0.16, 0.74, 0.08], foot: [-0.01, -0.73, 0, 0.18], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [9, 13, 5], pivot: [0, 0.84, 0], joint: [-0.16, 0.74, 0.08], foot: [0.01, -0.73, 0, 0.18], anim: legs_walk}
       style: {shape: dragonkin, palette: ["#160e24", "#34205a", "#6a4aa8", "#c8a8ff", "#f4ecff"], features: [crystal_growth, prism_glint, plate_armor, glowing_eyes]}
 
   prism_centaur:
@@ -1528,9 +1603,12 @@ mobs:
       texture_size: [128, 64]
       parts:
         - {name: horse_body, form: rounded, size: [10, 9, 18], pivot: [0, 0.95, -0.15], anim: body}
-        - {name: legs, form: leg_quad, size: [10, 13, 16], pivot: [0, 0.41, -0.15], anim: legs_walk}
+        - {name: leg_fl, set: legs, form: leg_quad, size: [10, 13, 16], pivot: [0, 0.41, -0.15], joint: [0.2, 0.73, 0.24], foot: [-0.01, -0.69, 0.03, 0.05], anim: legs_walk}
+        - {name: leg_bl, set: legs, form: leg_quad, size: [10, 13, 16], pivot: [0, 0.41, -0.15], joint: [0.2, 0.73, -0.52], foot: [-0.01, -0.69, -0.05, 0.05], anim: legs_walk}
+        - {name: leg_fr, set: legs, form: leg_quad, size: [10, 13, 16], pivot: [0, 0.41, -0.15], joint: [-0.2, 0.73, 0.24], foot: [0.01, -0.69, 0.03, 0.05], anim: legs_walk}
+        - {name: leg_br, set: legs, form: leg_quad, size: [10, 13, 16], pivot: [0, 0.41, -0.15], joint: [-0.2, 0.73, -0.52], foot: [0.01, -0.69, -0.05, 0.05], anim: legs_walk}
         - {name: torso, form: box, size: [9, 11, 5], pivot: [0, 1.62, 0.32], anim: body}
-        - {name: head, form: rounded, size: [7, 7, 7], pivot: [0, 2.17, 0.34], anim: head}
+        - {name: head, form: rounded, size: [7, 7, 7], pivot: [0, 2.17, 0.34], joint: [0, 1.95, 0.34], anim: head}
         - {name: crest, form: crystal_cluster, size: [6, 5, 5], pivot: [0, 2.48, 0.3], anim: head}
         - {name: arm_left, form: arm, size: [3, 11, 3], pivot: [0.34, 1.98, 0.32], anim: arm_left}
         - {name: bow, form: blade, size: [3, 22, 8], pivot: [0.34, 1.98, 0.32], anim: arm_left}
@@ -1658,7 +1736,10 @@ mobs:
         - {name: cover_bottom, form: book, size: [12, 3, 14], pivot: [0, 0.2, 0], anim: body}
         - {name: cover_top, form: book, size: [12, 3, 14], pivot: [0, 0.4, -0.4], anim: jaw}
         - {name: teeth, form: spike, size: [10, 3, 12], pivot: [0, 0.3, 0], anim: jaw}
-        - {name: legs, form: leg_quad, size: [12, 4, 12], pivot: [0, 0.1, 0], anim: legs_walk}
+        - {name: leg_fl, set: legs, form: leg_quad, size: [12, 4, 12], pivot: [0, 0.1, 0], joint: [0.37, 0.16, 0.35], foot: [0.12, -0.19, 0.09, 0.03], anim: legs_walk}
+        - {name: leg_bl, set: legs, form: leg_quad, size: [12, 4, 12], pivot: [0, 0.1, 0], joint: [0.37, 0.16, -0.35], foot: [0.12, -0.19, -0.09, 0.03], anim: legs_walk}
+        - {name: leg_fr, set: legs, form: leg_quad, size: [12, 4, 12], pivot: [0, 0.1, 0], joint: [-0.37, 0.16, 0.35], foot: [-0.12, -0.19, 0.09, 0.03], anim: legs_walk}
+        - {name: leg_br, set: legs, form: leg_quad, size: [12, 4, 12], pivot: [0, 0.1, 0], joint: [-0.37, 0.16, -0.35], foot: [-0.12, -0.19, -0.09, 0.03], anim: legs_walk}
       style: {shape: blob, palette: ["#1e0e0a", "#4a1e14", "#8a3a22", "#d8b070", "#f4ead0"], features: [gilded_corners, teeth_ring, glowing_eyes]}
 
   archive_sentinel:
@@ -1685,11 +1766,12 @@ mobs:
       texture_size: [64, 64]
       parts:
         - {name: torso, form: box, size: [12, 13, 8], pivot: [0, 1.15, 0], anim: body}
-        - {name: head, form: lantern, size: [8, 9, 8], pivot: [0, 1.65, 0], anim: head}
+        - {name: head, form: lantern, size: [8, 9, 8], pivot: [0, 1.65, 0], joint: [0, 1.37, 0], anim: head}
         - {name: arm_left, form: arm, size: [5, 13, 5], pivot: [0.45, 1.45, 0], anim: arm_left}
         - {name: arm_right, form: arm, size: [5, 13, 5], pivot: [-0.45, 1.45, 0], anim: arm_right}
         - {name: chain, form: tail, size: [3, 3, 14], pivot: [-0.45, 1.45, 0], anim: arm_right}
-        - {name: legs, form: leg_pair, size: [10, 12, 5], pivot: [0, 0.75, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [10, 12, 5], pivot: [0, 0.75, 0], joint: [0.17, 0.7, 0], foot: [0, -0.67, 0.03, 0.07], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [10, 12, 5], pivot: [0, 0.75, 0], joint: [-0.17, 0.7, 0], foot: [0, -0.67, 0.03, 0.07], anim: legs_walk}
       style: {shape: construct, palette: ["#140e0a", "#3a2618", "#6a4a2a", "#c8a060", "#fff0b0"], features: [bookshelf_chest, rivets, ember_glow]}
 
   # ── 새 몸 형태 (나가 · 하피) ──
@@ -1720,7 +1802,7 @@ mobs:
         - {name: coil, form: rounded, size: [12, 7, 12], pivot: [0, 0.24, 0.05], anim: body}
         - {name: waist, form: cylinder, size: [7, 9, 6], pivot: [0, 0.74, 0.1], anim: body}
         - {name: torso, form: box, size: [9, 11, 5], pivot: [0, 1.36, 0.1], anim: body}
-        - {name: head, form: rounded, size: [7, 7, 7], pivot: [0, 1.92, 0.12], anim: head}
+        - {name: head, form: rounded, size: [7, 7, 7], pivot: [0, 1.92, 0.12], joint: [0, 1.7, 0.12], anim: head}
         - {name: hood, form: slab, size: [12, 10, 1], pivot: [0, 1.95, -0.12], anim: head}
         - {name: arm_left, form: arm, size: [3, 11, 3], pivot: [0.33, 1.7, 0.1], anim: arm_left}
         - {name: book, form: book, size: [6, 7, 2], pivot: [0.33, 1.7, 0.1], anim: arm_left}
@@ -1756,12 +1838,13 @@ mobs:
       texture_size: [64, 64]
       parts:
         - {name: torso, form: rounded, size: [7, 9, 5], pivot: [0, 1.15, 0], anim: body}
-        - {name: head, form: rounded, size: [6, 6, 6], pivot: [0, 1.6, 0.02], anim: head}
+        - {name: head, form: rounded, size: [6, 6, 6], pivot: [0, 1.6, 0.02], joint: [0, 1.41, 0.02], anim: head}
         - {name: crest, form: fin, size: [2, 5, 7], pivot: [0, 1.9, -0.06], anim: head}
         - {name: wing_left, form: wing, size: [15, 1, 9], pivot: [0.22, 1.4, -0.02], anim: wings_flap}
         - {name: wing_right, form: wing, size: [15, 1, 9], pivot: [-0.22, 1.4, -0.02], anim: wings_flap}
         - {name: tail_feathers, form: fin, size: [6, 2, 8], pivot: [0, 0.82, -0.2], anim: tail}
-        - {name: legs, form: leg_pair, size: [6, 10, 4], pivot: [0, 0.86, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [6, 10, 4], pivot: [0, 0.86, 0], joint: [0.09, 0.77, 0], foot: [0, -0.56, 0, 0.12], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [6, 10, 4], pivot: [0, 0.86, 0], joint: [-0.09, 0.77, 0], foot: [0, -0.56, 0, 0.12], anim: legs_walk}
       style: {shape: harpy, palette: ["#0a0a12", "#1e2236", "#3a4468", "#e8e0c8", "#5a7ab0"], features: [paper_scraps, ink_drips, wing_eyespots]}
 
   forbidden_keeper:
@@ -1789,7 +1872,7 @@ mobs:
       texture_size: [128, 64]
       parts:
         - {name: robe, form: cloak, size: [12, 20, 9], pivot: [0, 1.0, 0], anim: body}
-        - {name: head, form: rounded, size: [8, 9, 8], pivot: [0, 1.7, 0], anim: head}
+        - {name: head, form: rounded, size: [8, 9, 8], pivot: [0, 1.7, 0], joint: [0, 1.42, 0], anim: head}
         - {name: arm_left, form: arm, size: [4, 13, 4], pivot: [0.42, 1.5, 0], anim: arm_left}
         - {name: arm_right, form: arm, size: [4, 13, 4], pivot: [-0.42, 1.5, 0], anim: arm_right}
         - {name: tome, form: book, size: [10, 4, 12], pivot: [0.0, 1.4, 0.6], anim: orbit}
@@ -1822,9 +1905,12 @@ mobs:
       parts:
         - {name: body, form: box, size: [8, 8, 16], pivot: [0, 0.6, 0], anim: body}
         - {name: gear, form: gear, size: [10, 10, 2], pivot: [0, 1.0, -0.05], anim: spin}
-        - {name: head, form: box, size: [7, 7, 8], pivot: [0, 0.75, 0.55], anim: head}
-        - {name: jaw, form: claw, size: [6, 2, 6], pivot: [0, 0.6, 0.75], anim: jaw}
-        - {name: legs, form: leg_quad, size: [10, 9, 14], pivot: [0, 0.3, 0], anim: legs_walk}
+        - {name: head, form: box, size: [7, 7, 8], pivot: [0, 0.75, 0.55], joint: [0, 0.75, 0.3], anim: head}
+        - {name: jaw, form: claw, size: [6, 2, 6], pivot: [0, 0.6, 0.75], joint: [0, 0.68, 0.52], anim: jaw}
+        - {name: leg_fl, set: legs, form: leg_quad, size: [10, 9, 14], pivot: [0, 0.3, 0], joint: [0.23, 0.58, 0.27], foot: [-0.02, -0.56, 0.07, 0.07], anim: legs_walk}
+        - {name: leg_bl, set: legs, form: leg_quad, size: [10, 9, 14], pivot: [0, 0.3, 0], joint: [0.21, 0.58, -0.3], foot: [-0.01, -0.56, -0.01, 0.07], anim: legs_walk}
+        - {name: leg_fr, set: legs, form: leg_quad, size: [10, 9, 14], pivot: [0, 0.3, 0], joint: [-0.23, 0.58, 0.27], foot: [0.02, -0.56, 0.07, 0.07], anim: legs_walk}
+        - {name: leg_br, set: legs, form: leg_quad, size: [10, 9, 14], pivot: [0, 0.3, 0], joint: [-0.21, 0.58, -0.3], foot: [0.01, -0.56, -0.01, 0.07], anim: legs_walk}
         - {name: tail, form: tail, size: [2, 2, 8], pivot: [0, 0.75, -0.5], anim: tail}
       style: {shape: beast, palette: ["#1e120a", "#5a3218", "#b0642e", "#e8a050", "#6ad0b0"], features: [rivets, verdigris_patina, glowing_eyes]}
 
@@ -1879,7 +1965,7 @@ mobs:
       texture_size: [64, 64]
       parts:
         - {name: torso, form: box, size: [10, 11, 6], pivot: [0, 1.2, 0], anim: body}
-        - {name: head, form: sphere, size: [8, 8, 8], pivot: [0, 1.65, 0], anim: head}
+        - {name: head, form: sphere, size: [8, 8, 8], pivot: [0, 1.65, 0], joint: [0, 1.4, 0], anim: head}
         - {name: arm_left, form: arm, size: [4, 12, 4], pivot: [0.4, 1.5, 0], anim: arm_left}
         - {name: arm_right, form: arm, size: [4, 12, 4], pivot: [-0.4, 1.5, 0], anim: arm_right}
         - {name: spring, form: cylinder, size: [8, 14, 8], pivot: [0, 0.5, 0], anim: pulse}
@@ -1911,7 +1997,8 @@ mobs:
       parts:
         - {name: body, form: rounded, size: [5, 5, 10], pivot: [0, 0.5, 0], anim: float}
         - {name: antennae, form: horn_pair, size: [8, 6, 2], pivot: [0, 0.65, 0.3], anim: head}
-        - {name: wings, form: wing_pair, size: [30, 2, 16], pivot: [0, 0.58, 0], anim: wings}
+        - {name: wing_l, set: wings, form: wing_pair, size: [30, 2, 16], pivot: [0, 0.58, 0], joint: [0.07, 0.57, 0], anim: wings_flap}
+        - {name: wing_r, set: wings, form: wing_pair, size: [30, 2, 16], pivot: [0, 0.58, 0], joint: [-0.07, 0.57, 0], anim: wings_flap}
       style: {shape: floating, palette: ["#1a140c", "#4a3a20", "#b08a40", "#f0d890", "#6ad0b0"], features: [clockface_wings, emissive_core]}
 
   # ── 새 몸 형태 (와이번 · 미노타우로스) ──
@@ -1942,15 +2029,16 @@ mobs:
         - {name: body, form: box, size: [7, 6, 10], pivot: [0, 0.62, 0], anim: body}
         - {name: mainspring, form: gear, size: [6, 1, 6], pivot: [0, 0.83, -0.05], anim: spin}
         - {name: neck, form: neck, size: [3, 4, 5], pivot: [0, 0.7, 0.28], anim: neck}
-        - {name: head, form: box, size: [5, 4, 6], pivot: [0, 0.95, 0.76], anim: head}
-        - {name: jaw, form: claw, size: [4, 2, 3], pivot: [0, 0.86, 0.86], anim: jaw}
+        - {name: head, form: box, size: [5, 4, 6], pivot: [0, 0.95, 0.76], joint: [0, 0.95, 0.57], anim: head}
+        - {name: jaw, form: claw, size: [4, 2, 3], pivot: [0, 0.86, 0.86], joint: [0, 0.95, 0.77], anim: jaw}
         - {name: lens, form: eye, size: [3, 3, 2], pivot: [0, 0.98, 1.06], anim: head}
         - {name: wing_left, form: wing, size: [17, 1, 9], pivot: [0.18, 0.76, 0.05], anim: wings_flap}
         - {name: wing_right, form: wing, size: [17, 1, 9], pivot: [-0.18, 0.76, 0.05], anim: wings_flap}
         - {name: tail_1, form: tail, size: [3, 3, 6], pivot: [0, 0.62, -0.3], anim: tail_chain}
         - {name: tail_2, form: tail, size: [2, 2, 6], pivot: [0, 0.6, -0.67], anim: tail_chain}
         - {name: tail_3, form: tail, size: [2, 2, 5], pivot: [0, 0.58, -1.04], anim: tail_chain}
-        - {name: legs, form: leg_pair, size: [5, 6, 3], pivot: [0, 0.4, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [5, 6, 3], pivot: [0, 0.4, 0], joint: [0.11, 0.31, 0.01], foot: [-0.01, -0.28, 0, 0.09], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [5, 6, 3], pivot: [0, 0.4, 0], joint: [-0.11, 0.31, 0.01], foot: [0.01, -0.28, 0, 0.09], anim: legs_walk}
       style: {shape: wyvern, palette: ["#1a120a", "#4a3018", "#8a5a2a", "#d8a85a", "#5ae0d0"], features: [brass_trim, rivets, clockface_wings, electric_veins]}
 
   brass_minotaur:
@@ -1977,14 +2065,15 @@ mobs:
       texture_size: [128, 128]
       parts:
         - {name: torso, form: box, size: [14, 14, 8], pivot: [0, 1.62, 0], anim: body}
-        - {name: head, form: box, size: [9, 9, 10], pivot: [0, 2.32, 0.14], anim: head}
+        - {name: head, form: box, size: [9, 9, 10], pivot: [0, 2.32, 0.14], joint: [0, 2.04, 0.14], anim: head}
         - {name: horns, form: horn_pair, size: [18, 6, 4], pivot: [0, 2.62, 0.06], anim: head}
         - {name: nose_ring, form: ring, size: [4, 4, 1], pivot: [0, 2.16, 0.46], anim: head}
         - {name: arm_left, form: arm, size: [6, 15, 6], pivot: [0.56, 2.0, 0], anim: arm_left}
         - {name: arm_right, form: arm, size: [6, 15, 6], pivot: [-0.56, 2.0, 0], anim: arm_right}
         - {name: axe, form: blade, size: [14, 30, 4], pivot: [-0.56, 2.0, 0], anim: arm_right}
         - {name: tail, form: tail, size: [3, 12, 3], pivot: [0, 1.25, -0.28], anim: tail}
-        - {name: legs, form: leg_pair, size: [12, 18, 6], pivot: [0, 1.18, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [12, 18, 6], pivot: [0, 1.18, 0], joint: [0.21, 0.99, 0.08], foot: [-0.01, -0.89, -0.08, 0.05], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [12, 18, 6], pivot: [0, 1.18, 0], joint: [-0.21, 0.99, 0.08], foot: [0.01, -0.89, -0.08, 0.05], anim: legs_walk}
       style: {shape: minotaur, palette: ["#140c06", "#3a2410", "#7a5020", "#d8a048", "#ff6a2a"], features: [brass_trim, rivets, coil_spring, glowing_eyes]}
 
   grand_regulator:
@@ -2013,11 +2102,12 @@ mobs:
       parts:
         - {name: torso, form: box, size: [18, 16, 10], pivot: [0, 1.6, 0], anim: body}
         - {name: clockface, form: gear, size: [12, 12, 2], pivot: [0, 1.6, 0.35], anim: spin}
-        - {name: head, form: box, size: [8, 8, 8], pivot: [0, 2.2, 0.05], anim: head}
+        - {name: head, form: box, size: [8, 8, 8], pivot: [0, 2.2, 0.05], joint: [0, 1.95, 0.05], anim: head}
         - {name: arm_left, form: arm, size: [7, 20, 7], pivot: [0.75, 2.0, 0], anim: arm_left}
         - {name: arm_right, form: arm, size: [7, 20, 7], pivot: [-0.75, 2.0, 0], anim: arm_right}
         - {name: pendulum, form: tail, size: [4, 18, 4], pivot: [0, 1.9, -0.35], anim: tail}
-        - {name: legs, form: leg_pair, size: [12, 14, 6], pivot: [0, 0.9, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [12, 14, 6], pivot: [0, 0.9, 0], joint: [0.21, 0.9, 0], foot: [0, -0.9, 0.04, 0.18], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [12, 14, 6], pivot: [0, 0.9, 0], joint: [-0.21, 0.9, 0], foot: [0, -0.9, 0.04, 0.18], anim: legs_walk}
       style: {shape: golem, palette: ["#140e08", "#4a2e16", "#a0622a", "#f0c070", "#7ae0c0"], features: [clockface_chest, rivets, brass_trim, elite_trim]}
 
   # ════════════════════════════ 지하 10층 · 심연의 핵 ════════════════════════════
@@ -2045,10 +2135,11 @@ mobs:
       texture_size: [64, 64]
       parts:
         - {name: torso, form: box, size: [8, 13, 5], pivot: [0, 1.2, 0], anim: body}
-        - {name: head, form: rounded, size: [7, 9, 7], pivot: [0, 1.7, 0.05], anim: head}
+        - {name: head, form: rounded, size: [7, 9, 7], pivot: [0, 1.7, 0.05], joint: [0, 1.42, 0.05], anim: head}
         - {name: arm_left, form: blade, size: [3, 18, 2], pivot: [0.36, 1.5, 0], anim: arm_left}
         - {name: arm_right, form: blade, size: [3, 18, 2], pivot: [-0.36, 1.5, 0], anim: arm_right}
-        - {name: legs, form: leg_pair, size: [7, 13, 4], pivot: [0, 0.78, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [7, 13, 4], pivot: [0, 0.78, 0], joint: [0.13, 0.73, 0.07], foot: [-0.01, -0.7, -0.01, 0.07], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [7, 13, 4], pivot: [0, 0.78, 0], joint: [-0.13, 0.73, 0.07], foot: [0.01, -0.7, -0.01, 0.07], anim: legs_walk}
       style: {shape: humanoid, palette: ["#04080a", "#0c1e24", "#134a52", "#29dfd0", "#c8fff8"], features: [eyeless, sculk_veins, translucent]}
 
   echo_colossus:
@@ -2075,11 +2166,12 @@ mobs:
       parts:
         - {name: torso, form: box, size: [18, 16, 12], pivot: [0, 1.6, 0], anim: body}
         - {name: resonator, form: sphere, size: [10, 10, 4], pivot: [0, 1.6, 0.35], anim: pulse}
-        - {name: head, form: box, size: [8, 8, 8], pivot: [0, 2.2, 0.05], anim: head}
+        - {name: head, form: box, size: [8, 8, 8], pivot: [0, 2.2, 0.05], joint: [0, 1.95, 0.05], anim: head}
         - {name: antlers, form: horn_pair, size: [18, 10, 2], pivot: [0, 2.5, 0.05], anim: head}
         - {name: arm_left, form: arm, size: [7, 22, 7], pivot: [0.75, 2.0, 0], anim: arm_left}
         - {name: arm_right, form: arm, size: [7, 22, 7], pivot: [-0.75, 2.0, 0], anim: arm_right}
-        - {name: legs, form: leg_pair, size: [12, 14, 6], pivot: [0, 0.9, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [12, 14, 6], pivot: [0, 0.9, 0], joint: [0.21, 0.79, 0], foot: [0, -0.74, 0.05, 0.21], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [12, 14, 6], pivot: [0, 0.9, 0], joint: [-0.21, 0.79, 0], foot: [0, -0.74, 0.05, 0.21], anim: legs_walk}
       style: {shape: golem, palette: ["#05090c", "#0e2228", "#1a4a52", "#2fe0d0", "#d8fff8"], features: [sculk_veins, emissive_core, cracked_stone]}
 
   abyss_eye:
@@ -2134,7 +2226,7 @@ mobs:
       texture_size: [64, 64]
       parts:
         - {name: robe, form: cloak, size: [10, 18, 7], pivot: [0, 0.95, 0], anim: body}
-        - {name: head, form: rounded, size: [8, 9, 8], pivot: [0, 1.62, 0], anim: head}
+        - {name: head, form: rounded, size: [8, 9, 8], pivot: [0, 1.62, 0], joint: [0, 1.34, 0], anim: head}
         - {name: mask, form: slab, size: [7, 8, 2], pivot: [0, 1.62, 0.27], anim: head}
         - {name: arm_left, form: arm, size: [3, 12, 3], pivot: [0.36, 1.45, 0], anim: arm_left}
         - {name: arm_right, form: arm, size: [3, 12, 3], pivot: [-0.36, 1.45, 0], anim: arm_right}
@@ -2169,8 +2261,8 @@ mobs:
         - {name: body, form: rounded, size: [20, 16, 26], pivot: [0, 1.1, 0], anim: body}
         - {name: neck_1, form: neck, size: [10, 9, 10], pivot: [0, 1.42, 0.74], anim: neck}
         - {name: neck_2, form: neck, size: [8, 8, 9], pivot: [0, 1.98, 1.36], anim: neck}
-        - {name: head, form: rounded, size: [12, 10, 16], pivot: [0, 2.5, 2.38], anim: head}
-        - {name: jaw, form: claw, size: [11, 4, 10], pivot: [0, 2.24, 2.62], anim: jaw}
+        - {name: head, form: rounded, size: [12, 10, 16], pivot: [0, 2.5, 2.38], joint: [0, 2.5, 1.88], anim: head}
+        - {name: jaw, form: claw, size: [11, 4, 10], pivot: [0, 2.24, 2.62], joint: [0, 2.46, 2.23], anim: jaw}
         - {name: horns, form: horn_pair, size: [16, 8, 4], pivot: [0, 2.86, 2.0], anim: head}
         - {name: wing_left, form: wing, size: [30, 2, 18], pivot: [0.5, 1.62, 0.2], anim: wings_flap}
         - {name: wing_right, form: wing, size: [30, 2, 18], pivot: [-0.5, 1.62, 0.2], anim: wings_flap}
@@ -2178,7 +2270,10 @@ mobs:
         - {name: tail_2, form: tail, size: [8, 8, 12], pivot: [0, 1.08, -1.55], anim: tail_chain}
         - {name: tail_3, form: tail, size: [6, 6, 10], pivot: [0, 1.0, -2.3], anim: tail_chain}
         - {name: tail_4, form: tail, size: [4, 4, 10], pivot: [0, 0.94, -2.92], anim: tail_chain}
-        - {name: legs, form: leg_quad, size: [22, 18, 22], pivot: [0, 0.56, 0], anim: legs_walk}
+        - {name: leg_fl, set: legs, form: leg_quad, size: [22, 18, 22], pivot: [0, 0.56, 0], joint: [0.37, 1.15, 0.41], foot: [0.15, -1.17, 0.28, 0], anim: legs_walk}
+        - {name: leg_bl, set: legs, form: leg_quad, size: [22, 18, 22], pivot: [0, 0.56, 0], joint: [0.38, 1.15, -0.4], foot: [0.14, -1.05, 0.06, 0.12], anim: legs_walk}
+        - {name: leg_fr, set: legs, form: leg_quad, size: [22, 18, 22], pivot: [0, 0.56, 0], joint: [-0.37, 1.15, 0.41], foot: [-0.15, -1.17, 0.28, 0], anim: legs_walk}
+        - {name: leg_br, set: legs, form: leg_quad, size: [22, 18, 22], pivot: [0, 0.56, 0], joint: [-0.38, 1.15, -0.4], foot: [-0.14, -1.05, 0.06, 0.12], anim: legs_walk}
       style: {shape: drake, palette: ["#020306", "#08121a", "#123842", "#2a6a72", "#2fe0d0"], features: [sculk_veins, glowing_eyes]}
 
   abyss_dragonkin:
@@ -2206,8 +2301,8 @@ mobs:
       parts:
         - {name: torso, form: box, size: [12, 14, 7], pivot: [0, 1.32, 0], anim: body}
         - {name: cape, form: cloak, size: [12, 16, 3], pivot: [0, 1.15, -0.26], anim: body}
-        - {name: head, form: rounded, size: [8, 8, 11], pivot: [0, 1.98, 0.1], anim: head}
-        - {name: jaw, form: claw, size: [6, 3, 5], pivot: [0, 1.8, 0.42], anim: jaw}
+        - {name: head, form: rounded, size: [8, 8, 11], pivot: [0, 1.98, 0.1], joint: [0, 1.73, 0.1], anim: head}
+        - {name: jaw, form: claw, size: [6, 3, 5], pivot: [0, 1.8, 0.42], joint: [0, 1.87, 0.26], anim: jaw}
         - {name: horns, form: horn_pair, size: [12, 7, 3], pivot: [0, 2.26, -0.05], anim: head}
         - {name: wing_left, form: wing, size: [16, 1, 9], pivot: [0.3, 1.78, -0.22], anim: wings_flap}
         - {name: wing_right, form: wing, size: [16, 1, 9], pivot: [-0.3, 1.78, -0.22], anim: wings_flap}
@@ -2216,7 +2311,8 @@ mobs:
         - {name: greatsword, form: blade, size: [5, 30, 3], pivot: [-0.47, 1.72, 0], anim: arm_right}
         - {name: tail_1, form: tail, size: [5, 5, 10], pivot: [0, 0.98, -0.26], anim: tail_chain}
         - {name: tail_2, form: tail, size: [3, 3, 9], pivot: [0, 0.92, -0.88], anim: tail_chain}
-        - {name: legs, form: leg_pair, size: [10, 14, 5], pivot: [0, 0.88, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [10, 14, 5], pivot: [0, 0.88, 0], joint: [0.18, 0.76, 0.06], foot: [-0.01, -0.73, 0.03, 0.15], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [10, 14, 5], pivot: [0, 0.88, 0], joint: [-0.18, 0.76, 0.06], foot: [0.01, -0.73, 0.03, 0.15], anim: legs_walk}
       style: {shape: dragonkin, palette: ["#030308", "#0e1020", "#1e2a44", "#3a5a7a", "#2fe0d0"], features: [sculk_veins, plate_armor, glowing_eyes, tattered_cloth]}
 
   abyss_gatekeeper:
@@ -2246,11 +2342,12 @@ mobs:
       parts:
         - {name: torso, form: box, size: [20, 18, 12], pivot: [0, 1.65, 0], anim: body}
         - {name: gate, form: slab, size: [12, 14, 2], pivot: [0, 1.6, 0.38], anim: pulse}
-        - {name: head, form: box, size: [9, 9, 9], pivot: [0, 2.3, 0.05], anim: head}
+        - {name: head, form: box, size: [9, 9, 9], pivot: [0, 2.3, 0.05], joint: [0, 2.02, 0.05], anim: head}
         - {name: horns, form: horn_pair, size: [20, 12, 3], pivot: [0, 2.65, 0], anim: head}
         - {name: arm_left, form: arm, size: [8, 22, 8], pivot: [0.82, 2.05, 0], anim: arm_left}
         - {name: arm_right, form: arm, size: [8, 22, 8], pivot: [-0.82, 2.05, 0], anim: arm_right}
-        - {name: legs, form: leg_pair, size: [14, 14, 7], pivot: [0, 0.9, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [14, 14, 7], pivot: [0, 0.9, 0], joint: [0.23, 0.81, 0], foot: [-0.01, -0.8, 0.07, 0.21], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [14, 14, 7], pivot: [0, 0.9, 0], joint: [-0.23, 0.81, 0], foot: [0.01, -0.8, 0.07, 0.21], anim: legs_walk}
       style: {shape: golem, palette: ["#030507", "#0a1a20", "#1a3c46", "#2fe0d0", "#ffe9a8"], features: [sculk_veins, gate_runes, emissive_core, elite_trim]}
 
   # ════════════════════════════ 보스·엘리트 소환물 (rank: add) ════════════════════════════
@@ -2279,7 +2376,8 @@ mobs:
       parts:
         - {name: bulb, form: sphere, size: [8, 8, 8], pivot: [0, 0.35, 0], anim: body}
         - {name: leaves, form: leaf_cluster, size: [10, 6, 10], pivot: [0, 0.75, 0], anim: pulse}
-        - {name: legs, form: leg_pair, size: [6, 4, 3], pivot: [0, 0.1, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [6, 4, 3], pivot: [0, 0.1, 0], joint: [0.09, 0.04, 0], foot: [0.02, -0.16, 0.01, 0.08], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [6, 4, 3], pivot: [0, 0.1, 0], joint: [-0.09, 0.04, 0], foot: [-0.02, -0.16, 0.01, 0.08], anim: legs_walk}
       style: {shape: blob, palette: ["#1a2a10", "#3f6a22", "#7fbf3a", "#d8f5a0"], features: [moss_tufts, glowing_eyes]}
 
   silk_hatchling:
@@ -2304,7 +2402,14 @@ mobs:
       texture_size: [32, 32]
       parts:
         - {name: body, form: rounded, size: [6, 4, 7], pivot: [0, 0.2, 0], anim: body}
-        - {name: legs, form: leg_eight, size: [12, 4, 8], pivot: [0, 0.1, 0], anim: legs_walk}
+        - {name: leg_l1, set: legs, form: leg_eight, size: [12, 4, 8], pivot: [0, 0.1, 0], joint: [0.12, 0.25, 0.19], foot: [0.19, -0.24, 0.14, 0], anim: legs_walk}
+        - {name: leg_l2, set: legs, form: leg_eight, size: [12, 4, 8], pivot: [0, 0.1, 0], joint: [0.12, 0.21, 0.1], foot: [0.25, -0.21, 0.05, 0], anim: legs_walk}
+        - {name: leg_l3, set: legs, form: leg_eight, size: [12, 4, 8], pivot: [0, 0.1, 0], joint: [0.12, 0.22, 0.01], foot: [0.26, -0.21, -0.07, 0], anim: legs_walk}
+        - {name: leg_l4, set: legs, form: leg_eight, size: [12, 4, 8], pivot: [0, 0.1, 0], joint: [0.16, 0.26, -0.12], foot: [0.15, -0.25, -0.13, 0], anim: legs_walk}
+        - {name: leg_r1, set: legs, form: leg_eight, size: [12, 4, 8], pivot: [0, 0.1, 0], joint: [-0.12, 0.25, 0.19], foot: [-0.19, -0.24, 0.14, 0], anim: legs_walk}
+        - {name: leg_r2, set: legs, form: leg_eight, size: [12, 4, 8], pivot: [0, 0.1, 0], joint: [-0.12, 0.21, 0.1], foot: [-0.25, -0.21, 0.05, 0], anim: legs_walk}
+        - {name: leg_r3, set: legs, form: leg_eight, size: [12, 4, 8], pivot: [0, 0.1, 0], joint: [-0.12, 0.22, 0.01], foot: [-0.26, -0.21, -0.07, 0], anim: legs_walk}
+        - {name: leg_r4, set: legs, form: leg_eight, size: [12, 4, 8], pivot: [0, 0.1, 0], joint: [-0.16, 0.26, -0.12], foot: [-0.15, -0.25, -0.13, 0], anim: legs_walk}
       style: {shape: crawler, palette: ["#20222a", "#5a6070", "#b8c0d0", "#f4f8ff"], features: [silk_strands, glowing_eyes]}
 
   floodling:
@@ -2405,9 +2510,10 @@ mobs:
       texture_size: [64, 64]
       parts:
         - {name: torso, form: box, size: [8, 11, 4], pivot: [0, 1.15, 0], anim: body}
-        - {name: head, form: skull, size: [7, 7, 7], pivot: [0, 1.62, 0], anim: head}
+        - {name: head, form: skull, size: [7, 7, 7], pivot: [0, 1.62, 0], joint: [0, 1.4, 0], anim: head}
         - {name: arm_left, form: arm, size: [3, 12, 3], pivot: [0.34, 1.45, 0], anim: arm_left}
         - {name: arm_right, form: arm, size: [3, 12, 3], pivot: [-0.34, 1.45, 0], anim: arm_right}
         - {name: sword, form: blade, size: [3, 16, 2], pivot: [-0.34, 1.45, 0], anim: arm_right}
-        - {name: legs, form: leg_pair, size: [7, 12, 3], pivot: [0, 0.75, 0], anim: legs_walk}
+        - {name: leg_l, set: legs, form: leg_pair, size: [7, 12, 3], pivot: [0, 0.75, 0], joint: [0.11, 0.7, 0], foot: [0, -0.7, -0.01, 0.1], anim: legs_walk}
+        - {name: leg_r, set: legs, form: leg_pair, size: [7, 12, 3], pivot: [0, 0.75, 0], joint: [-0.11, 0.7, 0], foot: [0, -0.7, -0.01, 0.1], anim: legs_walk}
       style: {shape: humanoid, palette: ["#2a2620", "#5a5244", "#a89c84", "#e8e0cc", "#7ad8ff"], features: [bone_ribs, hollow_eyes, frost_rime]}

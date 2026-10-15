@@ -30,8 +30,9 @@ import org.joml.Vector3f;
  * <p>
  * 모든 파트는 보이지 않는 앵커 디스플레이(아이템 없음)에 탑승한다 → 몹이 움직일 때 앵커 하나만 텔레포트하면 파트가 한 덩어리로
  * 따라온다(패킷 절약). 파트의 피벗 위치·몹 yaw·애니메이션 회전은 전부 Display Transformation(보간)으로 표현한다:
- * translation = R(yaw)·(pivot + 애니메이션 이동)·scale, left rotation = R(yaw)·애니메이션 회전 → 회전 중심 = 피벗.
- * 목·머리·턱·꼬리 사슬처럼 서로 붙은 파트는 {@link RigMath.Skeleton} 이 부모 회전을 이어 붙인 피벗·회전을 준다.
+ * translation = R(yaw)·(모델 원점 위치)·scale, left rotation = R(yaw)·애니메이션 회전. 원점 위치는 {@link RigMath.Skeleton} 이
+ * 관절(joint) 기준 회전·다리 걸음·목·머리·턱·꼬리 사슬·몸 전체 변환을 이어 붙여 준다(회전 중심 = 관절).
+ * 걸음 위상은 {@link RigMath.Gait} 가 갱신마다 이동 거리만큼 진행한다.
  */
 public final class ModelRig {
 
@@ -47,6 +48,7 @@ public final class ModelRig {
     private ItemDisplay anchor;
     private final List<PartView> parts = new ArrayList<>();
     private final RigMath.Skeleton skeleton;
+    private final RigMath.Gait gait = new RigMath.Gait();
     private TextDisplay nameplate;
     private float nameplateHeight;
     private boolean hidden;
@@ -59,7 +61,7 @@ public final class ModelRig {
     public ModelRig(String mobId, ModelDef model, double scale, double yawOffsetDeg) {
         this.mobId = mobId;
         this.model = model == null ? ModelDef.EMPTY : model;
-        this.skeleton = new RigMath.Skeleton(this.model.parts());
+        this.skeleton = new RigMath.Skeleton(this.model.parts(), scale);
         this.scale = (float) scale;
         this.yawOffset = (float) yawOffsetDeg;
     }
@@ -149,7 +151,8 @@ public final class ModelRig {
     public void animate(float yawDeg, RigMath.AnimState state, int interpolationTicks) {
         Vector3f tr = new Vector3f();
         Quaternionf left = new Quaternionf();
-        RigMath.Solved[] solved = skeleton.solve(state);
+        gait.advance(skeleton, state, interpolationTicks);
+        RigMath.Solved[] solved = skeleton.solve(state, gait);
         for (int i = 0; i < parts.size() && i < solved.length; i++) {
             PartView pv = parts.get(i);
             ItemDisplay d = pv.display();

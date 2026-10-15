@@ -13,6 +13,10 @@ Contract (ARCHITECTURE §2, GDD §14.3/§14.6):
     from the body (out); `neck` = base at the pivot, rising forward (model −Z) and up; `segment` = body
     segment (worm · naga) whose front face is the pivot, extending backwards — the plugin chains
     neck/tail_chain parts and flaps wings about these pivots, so the geometry must start there.
+  * part sets: parts with `set: <name>` (leg_l / leg_r …, GDD §14.6) are cut from the ONE design part <name> — the
+    design runs for that part exactly as before, then mob_build.SetMesh splits its voxels per member (mid-plane for a
+    left/right pair, else geodesic from each foot + nearest joint at the shared root) and each member gets its own
+    model with the same origin (= the set pivot), so the standing mob looks the same and every leg turns at its joint.
 All shapes, textures and colours are generated here from the YAML style hints (no copied assets).
 """
 from __future__ import annotations
@@ -1110,6 +1114,81 @@ def _try_design(fn, look, p, vctx, res):
     return g
 
 
+SET_KEYS = ('set', 'joint', 'foot')
+
+
+def group_sets(yparts):
+    """YAML parts → (design parts, {set name: [member parts]}).
+
+    Members of one set (`set: legs` on leg_l / leg_r …) collapse back into the original part (name = set, the
+    members' form / size / pivot / anim) at the place of the first member, so designs, seeds and budgets see exactly
+    the part they were written for.  Parts without `set` pass through unchanged."""
+    parts, sets = [], {}
+    for p in yparts:
+        sname = p.get('set')
+        if not sname:
+            parts.append(p)
+            continue
+        if sname not in sets:
+            sets[sname] = []
+            v = {k: val for k, val in p.items() if k not in SET_KEYS}
+            v['name'] = sname
+            parts.append(v)
+        sets[sname].append(p)
+    return parts, sets
+
+
+def joint_px(p, at_foot=False):
+    """A part's `joint` (entity-local blocks, like the pivot) → part px in model axes (pivot = 0; model −X = mob
+    left, model −Z = front — the 180° ItemDisplay turn).  No joint → the pivot.  at_foot: the sole point
+    joint + foot[0:3] instead (the split seed — feet lie far apart even where the leg roots crowd together)."""
+    piv = [float(v) for v in (p.get('pivot') or [0, 0, 0])]
+    j = [float(v) for v in (p.get('joint') or piv)]
+    if at_foot and p.get('foot'):
+        j = [j[a] + float(p['foot'][a]) for a in range(3)]
+    return (-(j[0] - piv[0]) * 16, (j[1] - piv[1]) * 16, -(j[2] - piv[2]) * 16)
+
+
+def _cut_el_x(e, uv, xm):
+    """Cut an unrotated element at the model plane x = xm → [(El, uv)] (1 or 2 pieces; the cut faces are dropped)."""
+    x1, x2 = e.frm[0], e.to[0]
+    if e.rot or not (x1 + 1e-6 < xm < x2 - 1e-6):
+        return [(e, uv)]
+    out = []
+    for a, b, drop in ((x1, xm, 'east'), (xm, x2, 'west')):
+        faces = tuple(f for f in e.faces if f != drop)
+        nuv = {}
+        for f in faces:
+            u0, v0, u1, v1 = uv[f]
+            if f in ('south', 'up', 'down'):
+                nuv[f] = (u0 + (a - x1) / (x2 - x1) * (u1 - u0), v0, u0 + (b - x1) / (x2 - x1) * (u1 - u0), v1)
+            elif f == 'north':
+                nuv[f] = (u0 + (x2 - b) / (x2 - x1) * (u1 - u0), v0, u0 + (x2 - a) / (x2 - x1) * (u1 - u0), v1)
+            else:
+                nuv[f] = uv[f]
+        n = El((a, e.frm[1], e.frm[2]), (b, e.to[1], e.to[2]), e.role, e.mat, None, faces, e.glow, e.emission, e.shade,
+               e.tag, dict(e.data))
+        out.append((n, nuv))
+    return out
+
+
+def split_old_elements(els, uvs, members):
+    """Old box-model set (no voxel design): every element goes to the member whose joint is nearest to its centre;
+    with two members side by side, elements spanning the plane between their joints (a hip band) are cut there.
+    members = [(name, joint px)] → {name: (elements, uvs)}."""
+    out = {name: ([], []) for name, _ in members}
+    pieces = list(zip(els, uvs))
+    if len(members) == 2 and abs(members[0][1][0] - members[1][1][0]) > 1e-3:
+        xm = (members[0][1][0] + members[1][1][0]) / 2
+        pieces = [q for e, uv in pieces for q in _cut_el_x(e, uv, xm)]
+    for e, uv in pieces:
+        c = [(e.frm[a] + e.to[a]) / 2 for a in range(3)]
+        name = min(members, key=lambda m: sum((c[a] - m[1][a]) ** 2 for a in range(3)))[0]
+        out[name][0].append(e)
+        out[name][1].append(uv)
+    return out
+
+
 def build_mob(mid, d, boss=False, jdump=None, png_bytes=None, strip=None, mode='auto'):
     """mode: 'auto' = voxel design (src/mobvox) where one exists, old box model elsewhere; 'old' = box only."""
     from . import mobvox
@@ -1119,12 +1198,15 @@ def build_mob(mid, d, boss=False, jdump=None, png_bytes=None, strip=None, mode='
     res = MobResult(mid)
     m = d.get('model') or {}
     style = m.get('style') or {}
-    parts = m.get('parts') or []
+    yparts = m.get('parts') or []
     rank = d.get('rank') or ('boss' if boss else 'normal')
     look = MobLook(mid, style, boss, rank)
-    if not parts:
+    if not yparts:
         res.warnings.append(f'mob {mid}: no model parts')
         return res
+    # part sets (GDD §14.6): YAML parts with `set: <name>` are cut from ONE design part named <name> (same form /
+    # size / pivot / anim) — the designs and the budget see that original part, the pack writes one model per member
+    parts, sets = group_sets(yparts)
     floor = int(d.get('floor') or 1)
     design = mobvox.design_for(mid) if mode != 'old' else None
     if mode != 'old' and mobvox.ERRORS and not getattr(build_mob, '_reported', False):
@@ -1237,15 +1319,41 @@ def build_mob(mid, d, boss=False, jdump=None, png_bytes=None, strip=None, mode='
         for name, g in vgrids.items():
             rp = dict(base)
             rp.update(g.ramp_over)
-            pm = MB.PartMesh(name, g, rp)
+            if name in sets:
+                pm = MB.SetMesh(name, g, rp, [(q.get('name'), joint_px(q, at_foot=True))
+                                               + ((joint_px(q),) if q.get('foot') else ()) for q in sets[name]])
+            else:
+                pm = MB.PartMesh(name, g, rp)
             pms[name] = pm
             plist.append(pm)
         budget = MB.budget_for(rank, boss)
         warns = MB.fit_budget(plist, budget, fixed=len(cm.els))
+        over = MB.fit_sets(plist, budget, fixed=len(cm.els))
+        # a cut set that still does not fit: re-run its own design on coarser voxels before any other part pays more
+        for _ in range(5):
+            cut = [q for q in plist if isinstance(q, MB.SetMesh) and vctxs[q.name].vs_mul < 1.6]
+            if not over or not cut:
+                break
+            pm = max(cut, key=lambda q: q.count)
+            vctx = vctxs[pm.name]
+            vctx.vs_mul *= 1.1          # small steps: the legs stay as close to the design as the budget allows
+            g = _try_design(design, look, vctx.part, vctx, res)
+            if g is None:
+                break
+            res.warnings.append(f'mob {mid}/{pm.name}: cut set over budget ({pm.count} el) — rebuilt at voxel size '
+                                f'{g.vs:.2f} px')
+            pm.grid = g
+            pm.base_ramps = dict(base, **g.ramp_over)
+            pm.level = 0
+            pm.seal = True
+            pm.remesh()
+            over = MB.fit_sets(plist, budget, fixed=len(cm.els))
+        if over:
+            warns = MB.fit_budget(plist, budget, fixed=len(cm.els))
         # safety net: still over budget → re-run the largest part's design on coarser voxels (≤ 3 times each)
         for _ in range(8):
             over_total = sum(pm.count for pm in plist) + len(cm.els) > budget
-            over_part = [pm for pm in plist if pm.count > MB.PER_PART]
+            over_part = [pm for pm in plist if pm.max_part > MB.PER_PART]
             if not (over_total or over_part):
                 break
             pm = max(over_part or plist, key=lambda q: q.count)
@@ -1265,6 +1373,14 @@ def build_mob(mid, d, boss=False, jdump=None, png_bytes=None, strip=None, mode='
             warns = MB.fit_budget(plist, budget, fixed=len(cm.els))
         for wmsg in warns:
             res.warnings.append(f'mob {mid}: {wmsg}')
+        outs = {}
+        for name, pm in pms.items():
+            if isinstance(pm, MB.SetMesh):
+                for pc in pm.pieces:
+                    outs[pc.name] = pc
+            else:
+                outs[name] = pm
+        pms = outs
         for pi, (name, pm) in enumerate(pms.items()):
             pal_map[name] = vpal.add_part(pi, pm)
     S, cells = MB.compose(baked.size if baked else 0, len(vpal.entries))
@@ -1299,9 +1415,19 @@ def build_mob(mid, d, boss=False, jdump=None, png_bytes=None, strip=None, mode='
     # per-part model JSON (pivot → 8,8,8; shrink to the legal box when needed)
     prev_els = []
     prev_uv = {}
-    for p in parts:
+    old_split = {}
+    for sname, members in sets.items():
+        if sname in ranges and sname not in vgrids:
+            start, end = ranges[sname]
+            uvs = [{f: baked.faces_uv[(start + k, f)] for f in e.faces} for k, e in enumerate(cm.els[start:end])]
+            old_split.update(split_old_elements(cm.els[start:end], uvs, [(q.get('name'), joint_px(q)) for q in members]))
+    for p in yparts:
         name = p.get('name', 'part')
-        if name in pms:
+        if name in old_split:
+            els, uvs_list = old_split[name]
+            prev_uv_list = uvs_list
+            res.part_elements[name] = len(els)
+        elif name in pms:
             pm = pms[name]
             gmap = pal_map[name]
             els, uvs_list = [], []

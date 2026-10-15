@@ -143,10 +143,11 @@ class MobLogicTest {
         assertEquals(0, RigMath_attack(0), 1e-9);
         assertEquals(-110, RigMath_attack(2), 6);
         assertEquals(0, RigMath_attack(RigMath.ATTACK_TICKS), 1e-9);
+        // 사망: 몸 전체가 한 덩어리로 가라앉으며 작아진다 (Skeleton 전체 변환)
         RigMath.AnimState dying = new RigMath.AnimState(10, 0, -1, 0, -1, -1, 0, 0, RigMath.DEATH_TICKS, false, 7);
-        RigMath.Pose dead = RigMath.pose("static", "box", dying);
+        RigMath.Solved dead = new RigMath.Skeleton(List.of(part("box", "box", 0, 0.5, 0, "static"))).solve(dying)[0];
         assertTrue(dead.scale() < 0.2f);
-        assertTrue(dead.offset().y < -0.5f);
+        assertTrue(dead.pivot().y < -0.5f);
         RigMath.AnimState t1 = new RigMath.AnimState(0, 0, -1, 0, -1, -1, 0, 0, -1, false, 7);
         RigMath.AnimState t2 = new RigMath.AnimState(20, 0, -1, 0, -1, -1, 0, 0, -1, false, 7);
         assertNotEquals(RigMath.pose("spin", "ring", t1).rotation(), RigMath.pose("spin", "ring", t2).rotation());
