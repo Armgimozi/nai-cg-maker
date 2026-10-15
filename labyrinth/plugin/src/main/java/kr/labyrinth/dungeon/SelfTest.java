@@ -371,8 +371,9 @@ final class SelfTest {
         for (int k = 1; k <= 2; k++) {
             later(40L * k, () -> step("combat", () -> {
                 if (!pool.isAlive()) return;
-                DamageContext dc = services.damage().deal(DamageContext.raw(null, pool.entity(), pool.maxHealth() * 0.45, DamageType.TRUE));
-                if (dc.dealt() > 0) count("boss_hits", 1);
+                double amount = pool.maxHealth() * 0.45;
+                DamageContext dc = services.damage().deal(DamageContext.raw(null, pool.entity(), amount, DamageType.TRUE));
+                if (dc.dealt() > 0 || forceThroughInvulnerable(pool, amount)) count("boss_hits", 1);
             }));
         }
         later(140, () -> killBoss(b, pool, list, idx, 0));
@@ -380,18 +381,21 @@ final class SelfTest {
 
     /**
      * 처치 피해 → 2초 뒤 확인. 보스가 기믹으로 무적(빙결 껍질 등)이면 아레나의 기믹 오브젝트(인장·알주머니…)부터 깨고 1초 뒤
-     * 다시 시도한다 (최대 40회 — 오브젝트로 안 풀리는 기믹은 제한 시간이 끝나 풀릴 때까지 기다린다).
+     * 다시 시도한다 (최대 10회). 그래도 무적(금서 색인 공중 부양·추격 회랑 등 오브젝트로 안 풀리는 기믹)이면
+     * {@link #forceThroughInvulnerable} 로 HP 풀에 직접 넣어 처치 경로까지 진단한다.
      */
     private void killBoss(int b, kr.labyrinth.combat.HealthPool pool, List<Integer> list, int idx, int tries) {
         boolean[] retry = {false};
         step("combat", () -> {
             if (!pool.isAlive()) return;
-            if (pool.invulnerable() && tries < 40) {
+            if (pool.invulnerable() && tries < 10) {
                 breakBossObjects(pool);
                 retry[0] = true;
                 return;
             }
-            services.damage().deal(DamageContext.raw(null, pool.entity(), pool.health() * 4 + 10_000, DamageType.TRUE));
+            double amount = pool.health() * 4 + 10_000;
+            DamageContext dc = services.damage().deal(DamageContext.raw(null, pool.entity(), amount, DamageType.TRUE));
+            if (dc.dealt() <= 0) forceThroughInvulnerable(pool, amount);
         });
         if (retry[0]) {
             later(20, () -> killBoss(b, pool, list, idx, tries + 1));
@@ -421,6 +425,15 @@ final class SelfTest {
             DamageContext dc = services.damage().deal(DamageContext.raw(null, le, h.maxHealth() * 2 + 1000, DamageType.TRUE));
             if (dc.dealt() > 0) count("boss_objects_broken", 1);
         }
+    }
+
+    /**
+     * 보스가 무적 기믹 중(금서 색인 공중 부양·빙결 껍질·추격 등)이라 피해가 막혔으면 HP 풀에 직접 넣어
+     * 다음 페이즈·처치 경로까지 진단한다. @return 실제로 깎였는가
+     */
+    private static boolean forceThroughInvulnerable(kr.labyrinth.combat.HealthPool pool, double amount) {
+        if (!pool.isAlive() || !pool.invulnerable()) return false;
+        return pool.applyDamage(amount, DamageContext.raw(null, pool.entity(), amount, DamageType.TRUE)) > 0;
     }
 
     // ── 정리·요약 ─────────────────────────────────────────────────────────

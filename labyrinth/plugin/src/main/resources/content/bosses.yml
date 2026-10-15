@@ -390,21 +390,27 @@ bosses:
     gold: [560, 820]
     drops: floor08_boss
     bossbar: YELLOW
-    arena: {radius: 15, theme: archive, shape: circle, height: 14, rune_shelves: 8, rune_ring_radius: 13}
+    arena: {radius: 15, theme: archive, shape: circle, height: 14, rune_shelves: 8, rune_ring_radius: 13, shelf_block: BOOKSHELF, shelf_top_block: CHISELED_BOOKSHELF}
     lines:
       intro: "<yellow>오르벨</yellow><gray>: 정숙. 이곳은 서고다. 떠드는 자의 이름은 지워질 것이다.</gray>"
       phase2: "<yellow>오르벨</yellow><gray>: 색인을 외워라. 틀리면 먹물에 잠긴다.</gray>"
       phase3: "<yellow>오르벨</yellow><gray>: 너희의 기록을... 지금 지운다!</gray>"
       death: "<yellow>오르벨</yellow><gray>: 이 마지막 장은... 너희가 써라...</gray>"
+      index_wrong: "<yellow>오르벨</yellow><gray>: 틀렸다. 처음부터 다시 읽어라.</gray>"
+      index_success: "<yellow>오르벨</yellow><gray>: 색인이... 맞았다고...? 내 서가가...!</gray>"
+      index_fail: "<yellow>오르벨</yellow><gray>: 시간 초과. 너희의 페이지는 먹물로 덮인다.</gray>"
+      doubles: "<yellow>오르벨</yellow><gray>: 어느 것이 원본이고 어느 것이 사본이지?</gray>"
+      doubles_gone: "<yellow>오르벨</yellow><gray>: 원본을 알아보다니... 제법이군.</gray>"
     rotation:
       1: [ink_lash, quill_barrage]
       2: [ink_lash, quill_barrage, ink_doubles]
       3: [ink_lash, quill_barrage, ink_doubles, erasure]
     patterns:
+      # 금서 색인(forbidden_index)은 rotation 에 없다 — trigger_phases 페이즈에 들어갈 때 발동 (GDD §8.3)
       ink_lash: {damage: 1.4, angle: 90, length: 6, windup: 1.0, cooldown: 6}
-      quill_barrage: {damage: 0.7, count: 5, spread: 40, speed: 1.3, windup: 0.8, targets_base: 1, targets_per_member: 0.34, fx: proj_quill, cooldown: 9}
-      forbidden_index: {trigger_phases: [2, 3], runes: 8, sequence_base: 4, sequence_per_members: 3, sequence_max: 7, show_interval: 1.0, time_limit: 20, solo_time_limit: 25, wrong_damage: 1.5, wrong_time_penalty: 5, fail_damage: 4.0, fail_heal: 0.05, success_stun: 10, success_vulnerable: 0.5, ink_drop_interval: 2.5, ink_drop_radius: 2, ink_drop_damage: 0.8, fx_rune_prefix: rune_}
-      ink_doubles: {count_base: 2, count_per_member: 0.34, max: 5, duration: 20, reveal_damage_ratio: 0.05, burst_damage: 0.5, burst_blind: 2.0, double_damage_mult: 0.5, tell_particle: SQUID_INK, cooldown: 32}
+      quill_barrage: {damage: 0.7, count: 5, spread: 40, speed: 1.3, range: 18, width: 0.9, windup: 0.8, targets_base: 1, targets_per_member: 0.34, fx: proj_quill, cooldown: 9}
+      forbidden_index: {trigger_phases: [2, 3], runes: 8, sequence_base: 4, sequence_per_members: 3, sequence_max: 7, reveal_lead: 2.5, show_interval: 1.0, lit_ratio: 0.75, time_limit: 20, solo_time_limit: 25, wrong_damage: 1.5, wrong_time_penalty: 5, fail_damage: 4.0, fail_heal: 0.05, success_stun: 10, success_vulnerable: 0.5, hover_height: 4, ink_drop_interval: 2.5, ink_drop_radius: 2, ink_drop_damage: 0.8, ink_drop_windup: 1.2, fx_rune_prefix: rune_, fx_glyph: index_glyph, fx_drop: proj_ink}
+      ink_doubles: {count_base: 2, count_per_member: 0.34, max: 5, duration: 20, windup: 1.0, split_radius: 7, reveal_damage_ratio: 0.05, burst_damage: 0.5, burst_blind: 2.0, double_damage_mult: 0.5, double_speed: 0.11, double_attack_min: 3.5, double_attack_max: 6.0, double_quills: 3, double_spread: 30, tell_particle: SQUID_INK, fx_shadow: ink_shadow, cooldown: 32}
       erasure: {damage: 2.5, angle: 90, radius: 16, windup: 2.0, fx: telegraph_cone, cooldown: 14}
     sounds: {ambient: "minecraft:item.book.page_turn", hurt: "minecraft:entity.squid.hurt", death: "minecraft:entity.squid.death", pitch: 0.5}
     model:
@@ -516,3 +522,11 @@ bosses:
         - {name: crown, form: horn_pair, size: [34, 18, 6], pivot: [0, 3.3, 0], anim: body}
         - {name: ring, form: ring, size: [48, 4, 48], pivot: [0, 2.2, 0], anim: orbit}
       style: {shape: colossus, palette: ["#020306", "#08141a", "#123842", "#2fe0d0", "#c8fff8", "#b01a3a"], features: [sculk_veins, veined_eye, emissive_core, heartbeat_glow, boss_trim]}
+
+# 보스 공략 점진 힌트 (힌트 API 가 읽는다): 1 = 흐릿한 단서, 2 = 조금 더 분명한 단서, 3 = 거의 정답.
+# 보스 대사·보스바는 분위기·단서만 — 조작법은 여기 3단계로만 풀어 준다.
+hints:
+  floor08_ink_librarian:
+    - "서가는 같은 이야기를 두 번 들려주지 않는다. 책장이 깨어날 때 그 차례에 귀와 눈을 기울여라. 원본만이 땅에 그림자를 드리운다."
+    - "책장은 빛난 차례를 기억하는 자에게만 답한다 — 그 차례 그대로 두드려라. 사본은 잉크를 흘리고, 표식을 오래 품지 못한다."
+    - "금서 색인: 룬 책장이 빛난 순서대로 책장을 공격(누구든, 틀리면 처음부터·시간 감소). 성공하면 오르벨이 떨어져 기절한다. 먹물 분신: 발밑에 그림자가 있는 쪽이 진짜 — 분신을 치면 먹물이 터져 눈이 멀고, 진짜를 계속 때리면 분신이 사라진다."

@@ -17,6 +17,7 @@ import kr.labyrinth.bosses.impl.Floor04Boss;
 import kr.labyrinth.bosses.impl.Floor05Boss;
 import kr.labyrinth.bosses.impl.Floor06Boss;
 import kr.labyrinth.bosses.impl.Floor07Boss;
+import kr.labyrinth.bosses.impl.Floor08Boss;
 import kr.labyrinth.content.BossDef;
 import kr.labyrinth.core.Log;
 import kr.labyrinth.dungeon.InstanceContext;
@@ -66,6 +67,7 @@ public final class LabBossService implements BossService, Listener {
         register(5, Floor05Boss::new);
         register(6, Floor06Boss::new);
         register(7, Floor07Boss::new);
+        register(8, Floor08Boss::new);
     }
 
     public void register(int floor, BossFactory factory) { factories.put(floor, factory); }
