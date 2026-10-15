@@ -23,6 +23,15 @@ public interface HudService {
     void actionBar(Player player, Component text, int ticks);
 
     /**
+     * 스킬 사용·효과 알림 글(시전 성공, 보호막 +N, 표식, 도발 수 …)을 화면에 띄울지 — config hud.skill_messages (기본 false).
+     * 쿨다운·MP 부족·기절·침묵 같은 실패·위험 알림은 이 값과 상관없이 늘 보인다.
+     */
+    default boolean skillMessages() { return false; }
+
+    /** 미궁 무기로 바꿔 들 때마다 스킬 키 줄을 띄울지 — config hud.skill_bar_on_swap (기본 false, /스킬 로는 언제든). */
+    default boolean skillBarOnSwap() { return false; }
+
+    /**
      * 시전 막대 (귀환 주문서·부활의 성가처럼 시간이 걸리는 행동): label 은 HUD 위 글줄, 막대는 그 아래 HUD 안 작은 막대.
      * 진행될 때마다(2~4틱) 다시 부른다. 기본 구현은 글 + ▮ 텍스트 막대.
      * @param progress 0~1

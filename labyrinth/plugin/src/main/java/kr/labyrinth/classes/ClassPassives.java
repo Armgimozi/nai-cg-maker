@@ -173,7 +173,7 @@ public final class ClassPassives implements DamageService.Hook, StatContributor 
                         pp.dbl("emergency_duration", 5), "iron_will_emergency");
                 SkillFx.helix(victim.getLocation(), 0.8, 2.2, 24, Particle.DUST, SkillFx.dust(0x7fb2ff, 1.4f));
                 SkillFx.sound(victim.getLocation(), Sound.ITEM_ARMOR_EQUIP_NETHERITE, 1f, 0.8f);
-                services.hud().actionBar(victim, Text.mm("<#7fb2ff><b>강철 의지!</b> <gray>— 피해 감소 +"
+                if (services.hud().skillMessages()) services.hud().actionBar(victim, Text.mm("<#7fb2ff><b>강철 의지!</b> <gray>— 피해 감소 +"
                         + Text.pct(pp.dbl("emergency_dr", 0.20)) + " (" + (int) pp.dbl("emergency_duration", 5) + "초)"), 40);
             }
         }

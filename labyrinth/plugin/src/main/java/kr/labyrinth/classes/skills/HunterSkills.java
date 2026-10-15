@@ -59,7 +59,7 @@ public final class HunterSkills {
             SkillFx.sound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.7f, 0.6f);
             SkillFx.sound(t.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.8f, 0.5f);
             String name = c.mob(t).map(m -> m.displayName()).orElse(t instanceof Player tp ? Text.escape(tp.getName()) : "대상");
-            for (Player a : c.targets().alliesIn(p.getLocation(), 48)) {
+            if (c.services().hud().skillMessages()) for (Player a : c.targets().alliesIn(p.getLocation(), 48)) {
                 c.services().hud().actionBar(a, Text.mm("<#ffb060>◎ 표식: </#ffb060>" + name + " <gray>— 받는 피해 +"
                         + Text.pct(c.p("damage_taken", 0.20)) + " (" + (int) duration + "초)"), 40);
             }

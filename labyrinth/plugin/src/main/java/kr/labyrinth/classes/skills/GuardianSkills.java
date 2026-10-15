@@ -84,7 +84,7 @@ public final class GuardianSkills {
             if (ring == null) SkillFx.circle(p.getLocation().add(0, 0.2, 0), radius, 48, Particle.DUST, SkillFx.dust(0x7fb2ff, 1.6f));
             SkillFx.burst(p.getLocation().add(0, 1.6, 0), Particle.SONIC_BOOM, 1, 0, 0, null);
             SkillFx.sound(p.getLocation(), Sound.ENTITY_RAVAGER_ROAR, 1f, 1.1f);
-            if (taunted > 0) c.services().hud().actionBar(p, Text.mm("<#7fb2ff>도발! <white>" + taunted + "</white><gray>명이 당신을 노립니다"), 30);
+            if (taunted > 0 && c.services().hud().skillMessages()) c.services().hud().actionBar(p, Text.mm("<#7fb2ff>도발! <white>" + taunted + "</white><gray>명이 당신을 노립니다"), 30);
             return true;
         }
     }

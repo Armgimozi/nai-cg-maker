@@ -64,6 +64,11 @@ setup:
 ui:
   use_glyphs: true
 
+# 화면 글 — 스킬을 쓸 때 화면 아래에 뜨는 알림 줄
+hud:
+  skill_messages: false     # true 면 시전 성공·보호막·표식·도발 수 같은 알림도 띄움 (쿨다운·MP 부족·기절·침묵 같은 경고는 늘 보임)
+  skill_bar_on_swap: false  # true 면 미궁 무기로 바꿔 들 때마다 스킬 키 줄을 띄움 (꺼도 /직업 스킬 로 언제든 볼 수 있음)
+
 # 서버 목록 화면 아이콘 (jar 안 미궁 석문 아이콘). 설명 글은 server.properties 의 motd 를 그대로 쓴다.
 server_list:
   icon: true

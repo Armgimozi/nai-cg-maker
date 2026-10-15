@@ -37,7 +37,7 @@ public final class PriestSkills {
             SkillFx.burst(feet.clone().add(0, 1.2, 0), Particle.HAPPY_VILLAGER, 10, 0.4, 0, null);
             if (!target.equals(p)) SkillFx.line(p.getEyeLocation(), feet.clone().add(0, 1.2, 0), 0.5, Particle.END_ROD, null);
             SkillFx.sound(feet, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 1.4f);
-            if (!target.equals(p) && healed >= 1) {
+            if (!target.equals(p) && healed >= 1 && c.services().hud().skillMessages()) {
                 c.services().hud().actionBar(target, Text.mm("<#ffe58a>✚ " + Text.escape(p.getName()) + "</#ffe58a><gray> 님이 <green>"
                         + Text.num(healed) + "</green> 회복시켰습니다"), 30);
             }
@@ -86,7 +86,7 @@ public final class PriestSkills {
                 c.services().effects().addShield(a, amount, duration, "sacred_ward");
                 c.services().effects().applyBuff(a, Map.of("damage", c.p("damage_buff", 0.10)), duration, "sacred_ward");
                 SkillFx.helix(a.getLocation(), 0.7, 2.4, 28, Particle.DUST, SkillFx.dust(0xffe58a, 1.2f));
-                if (!a.equals(p)) {
+                if (!a.equals(p) && c.services().hud().skillMessages()) {
                     c.services().hud().actionBar(a, Text.mm("<#ffe58a>✦ 성스러운 가호 <gray>— 보호막 <white>" + Text.num(amount)
                             + "</white> · 피해 +" + Text.pct(c.p("damage_buff", 0.10))), 40);
                 }

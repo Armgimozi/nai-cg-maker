@@ -87,7 +87,7 @@ final class SkillInputListener implements Listener {
     public void onHeld(PlayerItemHeldEvent e) {
         Player p = e.getPlayer();
         ItemStack next = p.getInventory().getItem(e.getNewSlot());
-        if (next != null && services.items().isLabyrinthWeapon(next)) {
+        if (next != null && services.hud().skillBarOnSwap() && services.items().isLabyrinthWeapon(next)) {
             Bukkit.getScheduler().runTask(services.plugin(), () -> {
                 if (p.isOnline() && hasClass(p)) classes.showSkillBar(p);
             });

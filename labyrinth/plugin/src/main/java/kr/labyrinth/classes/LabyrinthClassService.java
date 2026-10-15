@@ -371,7 +371,7 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
             double base = WeaponTypes.classSkillCooldown(cls, WeaponTypes.effective(weapon, services.stats().requirementStats(player)), sk.cooldown());
             st.cooldowns.start(sk.id(), CooldownTracker.effective(base, services.stats().get(player).cooldownReduction()));
         }
-        bar(player, "<" + col + "><b>✦ " + sk.name() + "</b></" + col + ">  <#6fc3ff>MP " + Text.num(mana(player)) + "<gray>/"
+        if (services.hud().skillMessages()) bar(player, "<" + col + "><b>✦ " + sk.name() + "</b></" + col + ">  <#6fc3ff>MP " + Text.num(mana(player)) + "<gray>/"
                 + Text.num(maxMana(player)), 30);
         return true;
     }

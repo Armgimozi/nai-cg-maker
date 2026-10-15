@@ -318,8 +318,10 @@ class AchievementRulesTest {
             assertTrue(a.broadcast(), a.id() + " 방송");
             assertTrue(names.add(a.name()), "이름 중복 " + a.name());
             assertFalse(a.description().isBlank(), a.id() + " lore");
-            assertTrue(a.bonus().size() == 1, a.id() + " 보너스는 하나만 (한 명만 가지니 작게)");
-            a.bonus().forEach((k, v) -> assertTrue(k.endsWith("_bonus") ? v <= 0.05 + 1e-9 : v <= 3, a.id() + " 보너스가 큼"));
+            // 칭호 보너스는 체감되게 (0.3.5: 주 능력치 +8~20 · 골드/경험치 +15~20%), 그래도 한 칭호가 판을 깨지 않게 위 한계
+            assertTrue(a.bonus().size() >= 1 && a.bonus().size() <= 2, a.id() + " 보너스 1~2개");
+            a.bonus().forEach((k, v) -> assertTrue(k.endsWith("_bonus") ? v >= 0.10 - 1e-9 && v <= 0.25 + 1e-9 : v >= 4 && v <= 20,
+                    a.id() + " 보너스 범위 밖: " + k + "=" + v));
             assertTrue(a.rewardGold() <= 5000, a.id() + " 골드 보상");
             // 아무 일도 안 한 새 플레이어는 어떤 사건으로도 받지 못한다 (돌파 조건은 돌파해야만)
             MapStore fresh = new MapStore();

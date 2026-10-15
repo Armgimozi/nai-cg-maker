@@ -100,7 +100,7 @@ public final class SkillContext {
             refunded = true;
             host.refundMana(caster, manaCost * pp.dbl("refund", 0.5));
             SkillFx.burst(caster.getLocation().add(0, 1.2, 0), org.bukkit.Particle.ENCHANT, 18, 0.4, 0.6, null);
-            services.hud().actionBar(caster, kr.labyrinth.core.Text.mm("<#b07cff>✦ 비전 공명 <gray>— MP "
+            if (services.hud().skillMessages()) services.hud().actionBar(caster, kr.labyrinth.core.Text.mm("<#b07cff>✦ 비전 공명 <gray>— MP "
                     + kr.labyrinth.core.Text.num(manaCost * pp.dbl("refund", 0.5)) + " 환급"), 30);
         }
     }

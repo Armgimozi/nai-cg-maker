@@ -204,7 +204,7 @@ public final class LabWeaponSkillService implements WeaponSkillService, Listener
             Log.error("무기 스킬 실행 오류: " + s.id() + " (" + def.id() + ")", t);
         }
         if (s.cooldown() >= 2.0) {
-            bar(player, "<#ffd27a>◆ " + Text.escape(s.name()) + " <dark_gray>· " + ItemTooltip.inputName(def, input.name())
+            if (services.hud().skillMessages()) bar(player, "<#ffd27a>◆ " + Text.escape(s.name()) + " <dark_gray>· " + ItemTooltip.inputName(def, input.name())
                     + " · 재사용 " + String.format("%.1f", cd) + "초", 30);
             pendingReady.add(new Ready(player.getUniqueId(), def.id(), input.name(), s.name(), end));
         }
@@ -237,7 +237,7 @@ public final class LabWeaponSkillService implements WeaponSkillService, Listener
             if (p == null || !p.isOnline()) continue;
             ItemDef held = services.items().heldWeapon(p);
             if (held == null || !held.id().equals(r.itemId())) continue;
-            bar(p, "<#9be89b>✔ " + Text.escape(r.name()) + " <gray>준비 완료 <dark_gray>(" + ItemTooltip.inputName(r.input()) + ")", 25);
+            if (services.hud().skillMessages()) bar(p, "<#9be89b>✔ " + Text.escape(r.name()) + " <gray>준비 완료 <dark_gray>(" + ItemTooltip.inputName(r.input()) + ")", 25);
             p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 0.35f, 1.8f);
         }
     }
@@ -375,7 +375,7 @@ public final class LabWeaponSkillService implements WeaponSkillService, Listener
         shields.compute(p.getUniqueId(), (u, old) -> old == null || old.until < now() || old.amount < amount
                 ? new Shield(amount, until) : old);
         p.getWorld().spawnParticle(Particle.END_ROD, p.getLocation().add(0, 1, 0), 10, 0.4, 0.6, 0.4, 0.02);
-        bar(p, "<#c8f0ff>◈ 보호막 +" + Math.round(amount), 25);
+        if (services.hud().skillMessages()) bar(p, "<#c8f0ff>◈ 보호막 +" + Math.round(amount), 25);
     }
 
     void riposte(Player p, double seconds, double reduction, double angle, double reflect) {

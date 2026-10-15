@@ -78,6 +78,12 @@ public final class LabHudService implements HudService, Listener {
 
     public LabHudService(Services services) { this.services = services; }
 
+    @Override
+    public boolean skillMessages() { return services.plugin().getConfig().getBoolean("hud.skill_messages", false); }
+
+    @Override
+    public boolean skillBarOnSwap() { return services.plugin().getConfig().getBoolean("hud.skill_bar_on_swap", false); }
+
     public void start() {
         stop();
         Bukkit.getPluginManager().registerEvents(this, services.plugin());
