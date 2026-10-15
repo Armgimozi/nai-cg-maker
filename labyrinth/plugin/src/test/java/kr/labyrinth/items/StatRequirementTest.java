@@ -24,6 +24,7 @@ import kr.labyrinth.core.ContentValidator;
 import kr.labyrinth.items.enhance.EnhanceRules;
 import kr.labyrinth.items.enhance.Enhancement;
 import kr.labyrinth.stats.Stat;
+import org.bukkit.inventory.EquipmentSlot;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -294,5 +295,40 @@ class StatRequirementTest {
                 if (d.isGear() && d.sources().contains("starter")) assertTrue(d.requirement().isEmpty(), d.id() + " " + d.requirement().text());
             }
         }
+    }
+
+    // ── 착용 막기: 칸 대응 (EquipmentListener) ──────────────────────────────
+
+    /** 막기는 그 장비의 제 칸에서만 — 투구를 장화 칸에 대는 것처럼 바닐라가 넣지 않는 동작에는 "착용할 수 없습니다" 가 없다. */
+    @Test
+    void denyOnlyOnOwnSlot() {
+        assertEquals(EquipmentSlot.FEET, EquipmentListener.equipSlotOf(36));
+        assertEquals(EquipmentSlot.LEGS, EquipmentListener.equipSlotOf(37));
+        assertEquals(EquipmentSlot.CHEST, EquipmentListener.equipSlotOf(38));
+        assertEquals(EquipmentSlot.HEAD, EquipmentListener.equipSlotOf(39));
+        assertEquals(EquipmentSlot.OFF_HAND, EquipmentListener.equipSlotOf(40));
+        assertNull(EquipmentListener.equipSlotOf(0));
+        assertNull(EquipmentListener.equipSlotOf(35));
+        assertNull(EquipmentListener.equipSlotOf(41));
+
+        Map<String, EquipmentSlot> bySlot = Map.of("head", EquipmentSlot.HEAD, "chest", EquipmentSlot.CHEST,
+                "legs", EquipmentSlot.LEGS, "feet", EquipmentSlot.FEET, "offhand", EquipmentSlot.OFF_HAND);
+        for (ItemDef d : content.items().values()) {
+            EquipmentSlot own = EquipmentListener.ownSlot(d);
+            if (d.type() == ItemType.ARMOR) assertEquals(bySlot.get(d.armorSlot()), own, d.id());
+            else assertNull(own, d.id() + " — 방어구가 아니면 막지 않음 (무기는 들 수 있음, 장신구는 조건 없음)");
+        }
+        assertNull(EquipmentListener.ownSlot(null));
+    }
+
+    /** 예전 시그니처(requires 없음) 생성자 = 요구 없음 — 같은 기준에서 갈라진 코드가 그대로 컴파일·동작. */
+    @Test
+    void legacyConstructorHasNoRequirement() {
+        ItemDef d = content.items().values().stream().filter(x -> x.type() == ItemType.ARMOR).findFirst().orElseThrow();
+        ItemDef old = new ItemDef(d.id(), d.name(), d.type(), d.weaponType(), d.armorSlot(), d.armorSet(), d.rarity(), d.levelReq(),
+                d.classes(), d.stats(), d.setBonus(), d.aura(), d.weaponSkills(), d.floor(), d.pool(), d.sources(), d.use(),
+                d.model(), d.texture(), d.lore(), d.raw());
+        assertTrue(old.requirement().isEmpty());
+        assertEquals(d.withRequires(StatRequirement.NONE), old);
     }
 }

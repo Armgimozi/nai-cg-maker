@@ -37,6 +37,18 @@ public record ItemDef(
     public record WeaponSkillDef(String id, String name, String input, double cooldown, double mana, Params params,
                                  String description) {}
 
+    /**
+     * 예전(0.3.2) 시그니처 — 요구 능력치 없이 만든다 ({@link StatRequirement#NONE}). 같은 기준에서 갈라진 코드·시험이
+     * {@code new ItemDef(...)} 를 직접 쓰더라도 합칠 때 그대로 컴파일되게 남겨 둔다. 요구치가 필요하면 {@link #withRequires}.
+     */
+    public ItemDef(String id, String name, ItemType type, String weaponType, String armorSlot, String armorSet,
+                   Rarity rarity, int levelReq, List<String> classes, Map<String, Range> stats, String setBonus,
+                   String aura, List<WeaponSkillDef> weaponSkills, int floor, boolean pool, List<String> sources,
+                   Params use, Params model, Params texture, String lore, Params raw) {
+        this(id, name, type, weaponType, armorSlot, armorSet, rarity, levelReq, StatRequirement.NONE, classes, stats,
+                setBonus, aura, weaponSkills, floor, pool, sources, use, model, texture, lore, raw);
+    }
+
     public boolean isWeapon() { return type == ItemType.WEAPON; }
     public boolean isGear() { return type.isGear(); }
     public boolean isShield() { return "offhand".equals(armorSlot); }
