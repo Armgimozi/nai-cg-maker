@@ -142,6 +142,7 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
         }
         ItemDef best = WeaponTypes.starterWeapon(services.content().items().values(), def);
         if (best == null || services.items().give(player, best.id(), 1, "starter") <= 0) return;
+        services.stats().markDirty(player); // 빈 손 칸에 들어갔을 수 있다 — setClass 의 재계산은 지급 전에 끝났다
         d.ext().put(flag, true);
         d.markDirty();
         Text.send(player, "<gray>추천 무기를 받았습니다: <white>" + best.name() + "</white> <gray>— 스킬은 무엇을 들었든 <white>"

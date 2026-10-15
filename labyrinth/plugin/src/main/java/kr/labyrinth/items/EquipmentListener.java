@@ -172,8 +172,8 @@ final class EquipmentListener implements Listener, StatContributor {
     }
 
     /**
-     * 가방 속 미궁 아이템 설명을 지금 규칙으로 다시 쓴다 (굴린 스탯은 그대로). 예전 판에서 받은 장비의 "직업 ○○"(옛 착용 제한)
-     * 문구가 "추천 직업" 으로 바뀌는 식 — 설명이 같으면 건드리지 않는다.
+     * 가방 속 미궁 아이템 이름·설명을 지금 규칙으로 다시 쓴다 (굴린 스탯·강화 단계는 그대로). 예전 판에서 받은 장비의 "직업 ○○"(옛 착용 제한)
+     * 문구가 "추천 직업" 으로 바뀌는 식 — 생성·강화 때와 같은 렌더러(ItemService.refresh)로 그리고, 결과가 같으면 건드리지 않는다.
      */
     private void refreshLore(Player p) {
         if (!p.isOnline()) return;
@@ -182,11 +182,10 @@ final class EquipmentListener implements Listener, StatContributor {
             ItemStack it = inv.getItem(i);
             ItemDef def = services.items().defOf(it).orElse(null);
             if (def == null) continue;
-            var lines = Text.itemLines(ItemTooltip.lines(services.content(), def, def.isGear() ? services.items().rolledStats(it) : null));
-            var old = it.getData(DataComponentTypes.LORE);
-            if (old != null && old.lines().equals(lines)) continue;
-            it.setData(DataComponentTypes.LORE, io.papermc.paper.datacomponent.item.ItemLore.lore(lines));
-            inv.setItem(i, it);
+            ItemStack copy = it.clone();
+            services.items().refresh(copy);
+            if (copy.equals(it)) continue;
+            inv.setItem(i, copy);
         }
     }
 

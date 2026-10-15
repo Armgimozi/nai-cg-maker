@@ -1,6 +1,7 @@
 package kr.labyrinth.stats;
 
 import com.destroystokyo.paper.event.player.PlayerArmorChangeEvent;
+import io.papermc.paper.event.player.PlayerInventorySlotChangeEvent;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -45,6 +46,8 @@ public final class StatService implements Module, Listener {
 
     public static final double VANILLA_MAX_HEALTH_CAP = 1024.0;
     private static final double BASE_MOVE_SPEED = 0.1;
+    /** PlayerInventory 보조손 칸 번호. */
+    private static final int OFFHAND_SLOT = 40;
 
     private final Services services;
     private final List<StatContributor> contributors = new CopyOnWriteArrayList<>();
@@ -219,6 +222,13 @@ public final class StatService implements Module, Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onSwap(PlayerSwapHandItemsEvent e) { markDirty(e.getPlayer()); }
+
+    /** 칸을 바꾸지 않고 손(든 칸·보조손 40번)의 아이템이 바뀐 경우 — 삼지창 던지기·줍기·부서짐·명령 지급 등. */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onSlot(PlayerInventorySlotChangeEvent e) {
+        int slot = e.getSlot();
+        if (slot == e.getPlayer().getInventory().getHeldItemSlot() || slot == OFFHAND_SLOT) markDirty(e.getPlayer());
+    }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onArmor(PlayerArmorChangeEvent e) { markDirty(e.getPlayer()); }
