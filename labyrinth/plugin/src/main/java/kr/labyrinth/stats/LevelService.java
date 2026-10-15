@@ -103,6 +103,31 @@ public final class LevelService implements Module {
         Text.send(p, "<gray>스탯 포인트 <green>+" + owed + "</green> 를 받았습니다. <white>/스탯</white> <gray>으로 분배하세요.");
     }
 
+    /** PlayerData ext: 0.3.4 착용 조건 변경(레벨 → 능력치) 무료 초기화를 이미 받았는지. */
+    static final String REQ_RESET_FLAG = "stats.req_reset_034";
+
+    /**
+     * 0.3.4 에서 장비 착용 조건이 레벨에서 요구 능력치로 바뀌었다. 예전 판에서 포인트를 이미 나눈 플레이어는
+     * 새 조건에 맞게 다시 나눌 수 있도록 무료 초기화를 한 번 되돌려 준다 (접속할 때 한 번만).
+     */
+    public void ensureRequirementReset(Player p) {
+        if (grantRequirementReset(services.data().get(p))) {
+            Text.send(p, "<#c79bff>장비 착용 조건이 레벨에서 능력치로 바뀌었습니다.</#c79bff> <gray>/스탯</gray> <white>에서 스탯 초기화를 한 번 무료로 할 수 있습니다.");
+        }
+    }
+
+    /** 순수 판정: 아직 안 받았으면 표시하고, 나눈 포인트가 있으면 무료 초기화를 되돌려 true. */
+    static boolean grantRequirementReset(PlayerData d) {
+        if (Boolean.TRUE.equals(d.ext().get(REQ_RESET_FLAG))) return false;
+        d.ext().put(REQ_RESET_FLAG, true);
+        d.markDirty();
+        int spent = 0;
+        for (int v : d.allocated().values()) spent += v;
+        if (spent <= 0) return false;
+        d.counter(kr.labyrinth.ui.menus.StatsMenu.FREE_RESET_KEY, 0);
+        return true;
+    }
+
     private void applyLevel(Player p, PlayerData d, int old, int lv) {
         d.level(lv);
         d.statPoints(d.statPoints() + (lv - old) * services.settings().level().pointsPerLevel());

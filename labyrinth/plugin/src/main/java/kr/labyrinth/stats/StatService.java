@@ -230,6 +230,7 @@ public final class StatService implements Module, Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onJoin(PlayerJoinEvent e) {
         services.levels().ensureStartPoints(e.getPlayer());
+        services.levels().ensureRequirementReset(e.getPlayer());
         recalc(e.getPlayer());
     }
 

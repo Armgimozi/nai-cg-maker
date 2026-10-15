@@ -20,7 +20,7 @@ public final class StatsMenu extends LabMenu {
 
     private static final Stat[] ORDER = {Stat.STR, Stat.DEX, Stat.INT, Stat.VIT, Stat.WIS, Stat.LUK};
     private static final int[] COLS = {1, 2, 3, 5, 6, 7};
-    static final String FREE_RESET_KEY = "ui.free_stat_reset_used";
+    public static final String FREE_RESET_KEY = "ui.free_stat_reset_used";
     static final String RESET_ITEM = "stat_reset_scroll";
 
     private long resetArmedUntil;
