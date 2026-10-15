@@ -59,7 +59,9 @@ public final class ShopMenu extends Menu {
 
     private ItemStack sellIcon(Player viewer) {
         SellService sell = SellService.get();
-        if (sell == null) return Button.icon(Material.GRAY_DYE, "<gray>물건 팔기", List.of("<dark_gray>지금은 물건을 사지 않습니다."));
+        if (sell == null || !sell.enabled()) {
+            return Button.icon(Material.GRAY_DYE, "<gray>물건 팔기", List.of("<dark_gray>지금은 물건을 사지 않습니다."));
+        }
         if (sell.blocked(viewer)) {
             return Button.icon(Material.GRAY_DYE, "<gray>물건 팔기", List.of("<#ff8a8a>미궁 안에서는 팔 수 없습니다.",
                     "<dark_gray>마을로 돌아온 뒤 /미궁 판매"));

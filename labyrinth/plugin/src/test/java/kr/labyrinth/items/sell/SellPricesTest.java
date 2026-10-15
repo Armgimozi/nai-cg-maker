@@ -58,6 +58,34 @@ class SellPricesTest {
         assertNotNull(y.getConfigurationSection("sell"), "config.yml 에 sell: 이 있어야 함");
         assertEquals(Config.DEFAULT, Config.from(y.getConfigurationSection("sell")));
         assertEquals(Config.DEFAULT, Config.from(null));
+        assertEquals(Config.DEFAULT, Config.of(y.get("sell")), "서비스가 읽는 길(getConfig().get(\"sell\"))도 같음");
+    }
+
+    /** 다른 섹션처럼 최상위 false 로 끄면 꺼진다 (기본값으로 켜지면 안 됨). */
+    @Test
+    void sellFalseDisables() throws Exception {
+        YamlConfiguration y = new YamlConfiguration();
+        y.loadFromString("sell: false\n");
+        Config off = Config.of(y.get("sell"));
+        assertEquals(Config.DISABLED, off);
+        assertFalse(off.enabled());
+        assertEquals(Config.DEFAULT.materials(), off.materials(), "값 표는 기본값 그대로");
+        SellPrices p = new SellPrices(off, SellPrices.buyPrices(content.npcs().values()), List.of());
+        assertEquals(Block.DISABLED, p.quote(item("class_change_scroll"), 0).block());
+        for (ItemDef d : content.items().values()) assertFalse(p.quote(d, 0).sellable(), d.id());
+
+        y.loadFromString("sell: \"false\"\n");
+        assertFalse(Config.of(y.get("sell")).enabled(), "따옴표 친 false 도 끔");
+        y.loadFromString("sell:\n  enabled: false\n  gear: {epic: 99}\n");
+        Config off2 = Config.of(y.get("sell"));
+        assertFalse(off2.enabled());
+        assertEquals(99, off2.gear().get(Rarity.EPIC));
+        // 켜짐: true · 키 없음 · 빈 섹션
+        y.loadFromString("sell: true\n");
+        assertEquals(Config.DEFAULT, Config.of(y.get("sell")));
+        assertEquals(Config.DEFAULT, Config.of(null));
+        y.loadFromString("sell: {}\n");
+        assertTrue(Config.of(y.get("sell")).enabled());
     }
 
     @Test

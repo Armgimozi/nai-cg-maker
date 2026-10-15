@@ -12,6 +12,7 @@ import java.util.List;
  * 물건을 삼키거나 골드를 두 번 주는 일이 없다.
  * <p>
  * 영웅 이상·강화 장비(risky)가 섞여 있으면 [판매] 를 {@link #press} 로 두 번 눌러야 하고, 칸이 바뀌면 다시 처음부터.
+ * 두 번째 누름은 첫 누름 뒤 confirmMinMs 가 지나야 센다 — 빠르게 두 번 누르기(더블클릭)로 확인을 건너뛰지 못하게.
  */
 public final class SellBasket<T> {
 
@@ -37,15 +38,21 @@ public final class SellBasket<T> {
 
     private final Stacks<T> stacks;
     private final int capacity;
+    private final long confirmMinMs;
     private final long confirmWindowMs;
     private final List<Entry<T>> entries = new ArrayList<>();
     private boolean closed;
     private long armedAt = -1;
 
-    public SellBasket(Stacks<T> stacks, int capacity, long confirmWindowMs) {
+    /**
+     * @param confirmMinMs    첫 [판매] 뒤 이 시간이 지나기 전의 누름은 확인으로 세지 않는다
+     * @param confirmWindowMs 첫 [판매] 뒤 이 시간 안에 한 번 더 눌러야 판다 (confirmMinMs 보다 짧으면 confirmMinMs)
+     */
+    public SellBasket(Stacks<T> stacks, int capacity, long confirmMinMs, long confirmWindowMs) {
         this.stacks = stacks;
         this.capacity = Math.max(1, capacity);
-        this.confirmWindowMs = Math.max(0, confirmWindowMs);
+        this.confirmMinMs = Math.max(0, confirmMinMs);
+        this.confirmWindowMs = Math.max(this.confirmMinMs, confirmWindowMs);
     }
 
     public int capacity() { return capacity; }
@@ -138,13 +145,16 @@ public final class SellBasket<T> {
 
     /**
      * [판매] 누름. 비었으면 EMPTY, 확인이 필요한데 아직이면 ARMED(다음 누름부터 판매), 아니면 SELL — SELL 이면 바로 {@link #sell} 할 것.
+     * 확인 대기 중이라도 첫 누름 뒤 confirmMinMs 가 지나지 않았으면 ARMED 그대로 (대기 시작 시각도 그대로 — 연타로 늘리지 않음).
      */
     public Press press(long now) {
         if (closed || entries.isEmpty()) return Press.EMPTY;
-        if (needsConfirm() && !armed(now)) {
+        if (!needsConfirm()) return Press.SELL;
+        if (!armed(now)) {
             armedAt = now;
             return Press.ARMED;
         }
+        if (now - armedAt < confirmMinMs) return Press.ARMED; // 너무 빠른 두 번째 누름 — 확인으로 치지 않는다
         return Press.SELL;
     }
 

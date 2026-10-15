@@ -29,8 +29,9 @@ import org.bukkit.inventory.PlayerInventory;
  * [판매] 로 한꺼번에 팔고 골드를 한 번 받는다. 영웅 이상·강화 장비가 섞여 있으면 [판매] 를 한 번 더 눌러야 한다.
  * <p>
  * 아이템 안전: 올린 진짜 묶음은 {@link SellBasket} 만 들고 있고, 위 칸에는 PDC 를 지운 그림용 사본만 놓는다(모든 클릭은
- * MenuListener 가 취소). 창이 닫히면(다른 창 열기·접속 종료·추방·죽음·월드 이동·서버 종료 포함) {@link SellService} 가
- * 바구니를 비워 가방으로 돌려준다 — 자리가 없으면 발밑에 주인만 줍게 떨군다.
+ * MenuListener 가 취소). 창이 닫히면(다른 창 열기·접속 종료·추방·텔레포트·죽음·월드 이동·서버 종료 포함) {@link SellService} 가
+ * 바구니를 비워 가방으로 돌려준다 — 가방이 꽉 차 못 넣은 것은 발밑에 떨구지 않고 상인이 맡아 두었다가 나중에 돌려준다.
+ * [판매] 는 좌·우클릭만 누름으로 치고, 두 번째 누름은 첫 누름 뒤 {@link #CONFIRM_MIN_MS} 가 지나야 센다.
  * <ul>
  *   <li>가방 클릭: 좌클릭·쉬프트+클릭 = 묶음째, 우클릭 = 1개. 숫자 키·버리기·더블클릭·드래그는 아무 일도 하지 않는다.</li>
  *   <li>가방 쪽은 보관함 0~35칸만 (입고 있는 방어구·보조손은 보이지 않으니 올릴 수 없다).</li>
@@ -42,6 +43,8 @@ public final class SellMenu extends LabMenu {
     static final int[] STAGE = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34,
             37, 38, 39, 40, 41, 42, 43};
     static final int S_INFO = 4, S_BUY = 45, S_TABLE = 46, S_BULK = 48, S_SELL = 49, S_RETURN = 50, S_CLOSE = 53;
+    /** 첫 [판매] 뒤 이 시간이 지나야 두 번째 누름을 확인으로 센다 (빠른 연타·더블클릭으로 건너뛰기 방지). */
+    static final long CONFIRM_MIN_MS = 600;
     /** 첫 [판매] 뒤 이 시간 안에 한 번 더 눌러야 판다. */
     static final long CONFIRM_MS = 8_000;
 
@@ -63,7 +66,7 @@ public final class SellMenu extends LabMenu {
     private final SellService service;
     private final NpcDef npc;
     private final SellPrices prices;
-    private final SellBasket<ItemStack> basket = new SellBasket<>(STACKS, STAGE.length, CONFIRM_MS);
+    private final SellBasket<ItemStack> basket = new SellBasket<>(STACKS, STAGE.length, CONFIRM_MIN_MS, CONFIRM_MS);
 
     SellMenu(Services services, SellService service, NpcDef npc, SellPrices prices) {
         super(services, "merchant", 6, "<dark_gray>" + (npc == null ? "떠돌이 상인" : Text.strip(npc.name())) + " · 판매");
@@ -117,8 +120,10 @@ public final class SellMenu extends LabMenu {
         set(S_SELL, sellButton(now), this::sell);
         set(S_RETURN, Button.icon(Material.CHEST, "<gray>모두 돌려받기",
                 List.of("<dark_gray>올린 물건을 전부 가방으로")), ctx -> {
-            returnAll(ctx.player());
-            click(ctx.player());
+            Player p = ctx.player();
+            if (!live(p)) return;
+            if (!returnAll(p)) services.hud().actionBar(p, Text.mm("<#ffd36b>가방에 자리가 없어 일부는 판매 칸에 남겨 두었습니다."), 40);
+            click(p);
             refresh();
         });
         set(S_CLOSE, kr.labyrinth.ui.UiTheme.close(), ctx -> ctx.player().closeInventory());
@@ -234,8 +239,8 @@ public final class SellMenu extends LabMenu {
         inv.setItem(slot, left > 0 ? cur.asQuantity(left) : null);
         int got = basket.add(taken, q.unit(), prices.risky(def, enh));
         if (got != n) {
-            // 일어나면 안 되지만(자리를 미리 셈) 혹시라도 — 뺀 것을 그대로 되돌린다
-            service.give(p, taken);
+            // 일어나면 안 되지만(자리를 미리 셈) 혹시라도 — 뺀 것을 그대로 되돌린다 (방금 비운 칸이라 들어감, 넘치면 맡김)
+            service.giveOrKeep(p, List.of(taken), true);
             return 0;
         }
         if (feedback) p.playSound(p.getLocation(), Sound.ITEM_BUNDLE_INSERT, 0.7f, 1.2f);
@@ -249,11 +254,35 @@ public final class SellMenu extends LabMenu {
             default -> { return; } // 숫자 키·더블클릭·버리기 등은 무시 (더블클릭이 다음 칸까지 빼지 않게)
         }
         if (!live(p)) return;
-        ItemStack s = basket.remove(index);
-        if (s == null) return;
-        service.give(p, s);
-        p.playSound(p.getLocation(), Sound.ITEM_BUNDLE_REMOVE_ONE, 0.7f, 1.1f);
+        List<SellBasket.Entry<ItemStack>> all = basket.entries();
+        if (index < 0 || index >= all.size()) return;
+        SellBasket.Entry<ItemStack> e = all.get(index);
+        if (basket.remove(index) == null) return;
+        int back = toBag(p, e);
+        if (back <= 0) {
+            deny(p);
+            services.hud().actionBar(p, Text.mm("<#ff6b6b>가방에 자리가 없습니다."), 40);
+        } else {
+            p.playSound(p.getLocation(), Sound.ITEM_BUNDLE_REMOVE_ONE, 0.7f, 1.1f);
+        }
         refresh();
+    }
+
+    /**
+     * 바구니에서 막 꺼낸 칸을 가방에 들어가는 만큼 넣고, 남은 것은 같은 값으로 판매 칸에 되돌린다 (발밑에 떨구지 않음).
+     * @return 가방에 넣은 개수
+     */
+    private int toBag(Player p, SellBasket.Entry<ItemStack> e) {
+        ItemStack s = e.stack();
+        int want = s.getAmount();
+        int left = 0;
+        for (ItemStack rest : p.getInventory().addItem(s).values()) {
+            int n = rest.getAmount();
+            left += n;
+            // 방금 비운 칸이라 언제나 들어간다 — 혹시라도 안 되면 맡김
+            if (basket.add(rest.clone(), e.unitPrice(), e.risky()) != n) service.giveOrKeep(p, List.of(rest), true);
+        }
+        return want - left;
     }
 
     /** 재료(확인 등급 아래)를 가방 0~35칸에서 전부 올린다. */
@@ -289,6 +318,10 @@ public final class SellMenu extends LabMenu {
 
     private void sell(ClickContext ctx) {
         Player p = ctx.player();
+        switch (ctx.click()) {
+            case LEFT, RIGHT -> { }
+            default -> { return; } // 더블클릭·쉬프트·숫자 키 등은 누름으로 치지 않는다 (두 번 확인을 한 동작으로 넘기지 않게)
+        }
         if (!live(p)) return;
         if (service.blocked(p)) {
             Text.error(p, "미궁 안에서는 물건을 팔 수 없습니다.");
@@ -303,7 +336,7 @@ public final class SellMenu extends LabMenu {
             }
             case ARMED -> {
                 p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 0.7f, 0.8f);
-                services.hud().actionBar(p, Text.mm("<#ff8a8a>귀한 물건이 있습니다 — [판매] 를 한 번 더 누르면 팝니다."), 60);
+                services.hud().actionBar(p, Text.mm("<#ff8a8a>귀한 물건이 있습니다 — 확인했으면 잠시 뒤 [판매] 를 한 번 더 누르세요."), 60);
                 refresh();
                 return;
             }
@@ -336,9 +369,16 @@ public final class SellMenu extends LabMenu {
 
     // ── 닫기 · 돌려받기 ───────────────────────────────────────────────────
 
-    /** 올린 물건을 전부 가방으로 (창은 그대로). */
-    void returnAll(Player p) {
-        for (ItemStack s : basket.takeAll()) service.give(p, s);
+    /** 올린 물건을 가방에 들어가는 만큼 전부 돌려준다 (창은 그대로, 못 넣은 것은 칸에 남김). @return 전부 돌려줬나 */
+    boolean returnAll(Player p) {
+        List<SellBasket.Entry<ItemStack>> all = basket.entries();
+        basket.takeAll();
+        boolean every = true;
+        for (SellBasket.Entry<ItemStack> e : all) {
+            int amount = e.stack().getAmount();
+            if (toBag(p, e) < amount) every = false;
+        }
+        return every;
     }
 
     /** 창이 닫혔다 (어떤 까닭이든): 바구니를 닫고 꺼낸 것을 돌려준다. 두 번째부터는 빈 목록. */

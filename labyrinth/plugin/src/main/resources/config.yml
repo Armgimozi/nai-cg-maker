@@ -214,7 +214,7 @@ enhance:
 #   핀이 파는 물건은 무엇이든 산 값 × shop_item_cap 이하이고, 언제나 산 값보다 싸다 (사서 되팔아 골드를 불릴 수 없음).
 #   팔 수 없음: 시작 지급품 · 열쇠·직업 문장(type: key) · 전직의 두루마리(class_change.item) · unsellable 목록.
 #   confirm_rarity 이상이거나 강화 confirm_enhance 이상인 물건이 섞이면 [판매] 를 두 번 눌러야 판다 (0 = 강화로는 묻지 않음).
-#   키가 없으면 아래 기본값이 쓰이고, 끄려면 enabled: false
+#   키가 없으면 아래 기본값이 쓰이고, 끄려면 enabled: false (또는 다른 섹션처럼 sell: false)
 sell:
   enabled: true
   materials: {common: 2, uncommon: 5, rare: 15, epic: 40, legendary: 120, mythic: 300}

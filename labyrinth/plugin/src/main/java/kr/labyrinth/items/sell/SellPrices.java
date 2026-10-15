@@ -73,6 +73,9 @@ public final class SellPrices {
         public static final Config DEFAULT = new Config(true, DEFAULT_MATERIALS, 0.15, DEFAULT_GEAR, 0.10, 0.25, 0.25, 0.5,
                 Rarity.EPIC, 1, ALWAYS_UNSELLABLE);
 
+        /** {@code sell: false} — 판매 끔 (값은 기본값 그대로). */
+        public static final Config DISABLED = DEFAULT.withEnabled(false);
+
         public Config {
             materials = Collections.unmodifiableMap(new EnumMap<>(materials));
             gear = Collections.unmodifiableMap(new EnumMap<>(gear));
@@ -90,6 +93,23 @@ public final class SellPrices {
             Map<Rarity, Integer> m = new EnumMap<>(Rarity.class);
             for (Rarity r : Rarity.values()) m.put(r, v[r.ordinal()]);
             return m;
+        }
+
+        /** 같은 값에 켜기만 바꾼 것. */
+        public Config withEnabled(boolean on) {
+            return new Config(on, materials, materialFloorBonus, gear, gearFloorBonus, enhanceBonus, consumableShopRatio,
+                    shopItemCap, confirmRarity, confirmEnhance, unsellable);
+        }
+
+        /**
+         * config.yml 의 {@code sell} 값 그대로 (getConfig().get("sell")). 다른 섹션처럼 {@code sell: false} 는 끔,
+         * {@code sell: true}·키 없음 = 기본값, 섹션이면 {@link #from}.
+         */
+        public static Config of(Object raw) {
+            if (raw instanceof ConfigurationSection s) return from(s);
+            if (Boolean.FALSE.equals(raw)) return DISABLED;
+            if (raw instanceof String str && "false".equalsIgnoreCase(str.trim())) return DISABLED;
+            return DEFAULT;
         }
 
         /** 섹션이 없으면(null) 기본값. */

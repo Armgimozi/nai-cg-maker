@@ -32,7 +32,8 @@ class SellBasketTest {
         public int maxStack(Stack s) { return s.id().startsWith("gear") ? 1 : 64; }
     };
 
-    private static SellBasket<Stack> basket(int capacity) { return new SellBasket<>(STACKS, capacity, 5_000); }
+    /** 두 번째 누름은 600ms 뒤부터, 5초 안에 (실제 창은 600ms · 8초). */
+    private static SellBasket<Stack> basket(int capacity) { return new SellBasket<>(STACKS, capacity, 600, 5_000); }
 
     @Test
     void mergesSimilarStacksUpToMaxStack() {
@@ -123,7 +124,7 @@ class SellBasketTest {
         assertEquals(Press.ARMED, b.press(16_002));
         b.remove(0);
         assertEquals(Press.ARMED, b.press(16_003));
-        assertEquals(Press.SELL, b.press(16_004));
+        assertEquals(Press.SELL, b.press(16_700));
         // 귀한 물건을 빼면 바로 판다
         SellBasket<Stack> c = basket(5);
         c.add(new Stack("gear_epic", 1), 150, true);
@@ -131,6 +132,41 @@ class SellBasketTest {
         assertEquals(Press.ARMED, c.press(0));
         c.remove(0);
         assertEquals(Press.SELL, c.press(1));
+    }
+
+    /** 빠른 두 번째 누름(연타·더블클릭)은 확인이 아니다 — 대기 시작 시각도 늘리지 않는다. */
+    @Test
+    void fastSecondPressDoesNotSell() {
+        SellBasket<Stack> b = basket(5);
+        b.add(new Stack("gear_epic", 1), 150, true);
+        assertEquals(Press.ARMED, b.press(1_000));
+        assertEquals(Press.ARMED, b.press(1_001), "1ms 뒤 누름 → 팔지 않음");
+        assertEquals(Press.ARMED, b.press(1_250), "더블클릭 간격(120~250ms)도 팔지 않음");
+        assertEquals(Press.ARMED, b.press(1_599));
+        assertFalse(b.isEmpty());
+        assertEquals(Press.SELL, b.press(1_600), "첫 누름 뒤 600ms — 연타가 대기 시작을 미루지 않음");
+        assertEquals(1, b.sell().count());
+
+        // 연타가 확인 창(5초)을 늘리지도 않는다
+        SellBasket<Stack> c = basket(5);
+        c.add(new Stack("gear_epic", 1), 150, true);
+        assertEquals(Press.ARMED, c.press(0));
+        for (long t = 100; t < 600; t += 100) assertEquals(Press.ARMED, c.press(t));
+        assertEquals(Press.ARMED, c.press(5_001), "첫 누름 기준 5초가 지나면 다시 처음부터");
+        assertEquals(Press.ARMED, c.press(5_002));
+        assertEquals(Press.SELL, c.press(5_601));
+
+        // 확인 창이 최소 간격보다 짧게 잡혀도 최소 간격까지는 기다릴 수 있다
+        SellBasket<Stack> d = new SellBasket<>(STACKS, 5, 600, 100);
+        d.add(new Stack("gear_epic", 1), 150, true);
+        assertEquals(Press.ARMED, d.press(0));
+        assertEquals(Press.ARMED, d.press(300));
+        assertEquals(Press.SELL, d.press(600));
+
+        // 확인이 필요 없으면 바로 판다 (최소 간격과 무관)
+        SellBasket<Stack> e = basket(5);
+        e.add(new Stack("silk", 3), 2, false);
+        assertEquals(Press.SELL, e.press(0));
     }
 
     /** 무작위로 올리기·빼기·전부 돌려받기·판매를 섞어도 (가방 + 바구니 + 판 것) 개수가 그대로이고 골드 = 판 값 합. */
@@ -165,8 +201,12 @@ class SellBasketTest {
                     for (Stack s : b.takeAll()) bag.merge(s.id(), s.amount(), Integer::sum);
                 } else {
                     long expect = b.total();
-                    Press p = b.press(step * 1_000L);
-                    if (p == Press.ARMED) p = b.press(step * 1_000L + 1);
+                    long t = step * 10_000L; // 걸음마다 확인 창(5초)보다 멀리
+                    Press p = b.press(t);
+                    if (p == Press.ARMED) {
+                        assertEquals(Press.ARMED, b.press(t + 1), "1ms 뒤 누름은 확인이 아니다");
+                        p = b.press(t + 700);
+                    }
                     if (p != Press.SELL) continue;
                     SellBasket.Sale<Stack> sale = b.sell();
                     assertEquals(expect, sale.total());

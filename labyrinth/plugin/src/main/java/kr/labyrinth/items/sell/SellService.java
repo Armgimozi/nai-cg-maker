@@ -36,13 +36,17 @@ import org.bukkit.inventory.PlayerInventory;
  * <p>
  * 명령: {@code /미궁 판매} ({@code /lab sell}) — 미궁 공략 중(미궁 월드 포함)에는 열리지 않는다. 상점 창의 [물건 팔기] 도 같은 창.
  * <p>
- * 올려 둔 물건이 사라지거나 늘어나지 않게:
+ * 올려 둔 물건이 사라지거나 늘어나지 않게 — 돌려줄 때는 언제나 {@link #giveOrKeep}: 가방에 넣고, 넘친 것은 발밑에 떨구지 않고
+ * PlayerData ext {@value #PENDING} 에 맡긴다 (닫힌 까닭이 무엇이든 — 텔레포트·다른 플러그인의 창 닫기 뒤 이동처럼 그 자리를 떠나도
+ * 두고 간 물건이 5분 뒤 사라지거나 남이 줍는 일이 없게).
  * <ul>
- *   <li>창 닫힘(다른 창 열기 포함) → {@link SellMenu#onClose} → 바구니를 닫고 전부 가방으로 (자리가 없으면 발밑, 주인만 줍게)</li>
- *   <li>접속 종료·추방 → 닫힘(DISCONNECT)·종료 이벤트에서 먼저 돌려준다 (플레이어 저장 전). 가방이 꽉 차 못 넣은 것은
- *       발밑에 버리지 않고 PlayerData ext {@value #PENDING} 에 맡겨 두었다가 다음 접속 때 돌려준다</li>
- *   <li>죽음 → 최종 keepInventory 를 본 뒤(MONITOR): 지니면 가방으로, 아니면 다른 소지품처럼 그 자리에 떨군다</li>
- *   <li>월드 이동 → 창을 닫는다 (미궁 입장 등). 서버 종료·플러그인 끄기 → {@link #stop} 이 모두 돌려주고(넘치면 맡김) 창을 닫는다</li>
+ *   <li>창 닫힘(직접 닫기·다른 창 열기·플러그인 닫기·사용 불가 등) → {@link SellMenu#onClose} → 바구니를 닫고 돌려준다</li>
+ *   <li>접속 종료·추방 → 닫힘(DISCONNECT)·종료 이벤트에서 먼저(LOWEST, 플레이어 저장 전) 돌려준다</li>
+ *   <li>죽음 → 최종 keepInventory 를 본 뒤(MONITOR): 지니면 가방으로(넘치면 맡김), 아니면 다른 소지품처럼 그 자리에 떨군다</li>
+ *   <li>월드 이동 → 아직 열려 있으면 닫고 돌려준다 (Paper 26.3 은 텔레포트로 창을 닫지 않는다 — Reason.TELEPORT 는 더 쓰이지 않음).
+ *       서버 종료·플러그인 끄기 → {@link #stop} 이 모두 돌려주고 창을 닫는다</li>
+ *   <li>맡긴 물건은 접속할 때 · 미궁 밖 월드로 돌아왔을 때 · 판매 창을 열 때 가방에 들어가는 만큼 돌려준다 (넘치는 것은 계속 맡김)</li>
+ *   <li>창이 열린 동안 위 칸 돌려받기도 가방에 들어가는 만큼만 (나머지는 칸에 그대로)</li>
  *   <li>드래그는 위·아래 모두 취소, 쉬프트+클릭은 여기서 받아 '묶음째 올리기' 로만 처리</li>
  * </ul>
  * 바구니는 닫힌 뒤 아무것도 받지 않고, 판매는 바구니를 먼저 비운 다음 합계를 한 번만 더한다 ({@link SellBasket}).
@@ -51,7 +55,7 @@ public final class SellService implements Listener {
 
     private static volatile SellService active;
 
-    /** 접속 종료·서버 종료 때 가방이 꽉 차 못 돌려준 물건 (PlayerData ext — Base64 직렬화 목록). 다음 접속 때 돌려준다. */
+    /** 돌려줄 때 가방이 꽉 차 못 넣은 물건 (PlayerData ext — Base64 직렬화 목록). 나중에 들어가는 만큼 돌려준다. */
     static final String PENDING = "sell.pending";
 
     /** 켜져 있는 판매 서비스 (mobs 모듈이 켜기 전·끈 뒤에는 null). */
@@ -76,7 +80,7 @@ public final class SellService implements Listener {
             SellMenu m = e.getValue();
             List<ItemStack> items = m.closeBasket();
             if (p != null) {
-                giveOrKeep(p, items); // 서버가 곧 꺼진다 — 발밑에 떨구지 않고 넘치면 맡김
+                giveOrKeep(p, items, false); // 서버가 곧 꺼진다 — 발밑에 떨구지 않고 넘치면 맡김
                 if (p.getOpenInventory().getTopInventory().getHolder(false) == m) p.closeInventory();
             } else if (!items.isEmpty()) {
                 Log.warn("[판매] 오프라인 플레이어 " + e.getKey() + " 의 판매 대기 물건 " + items.size() + "묶음을 돌려주지 못했습니다.");
@@ -119,10 +123,15 @@ public final class SellService implements Listener {
 
     /** 판매 창 열기 (npc = [사러 가기] 가 돌아갈 상인, null 이면 그 버튼 없음). */
     public void open(Player p, NpcDef npc) {
+        if (active != this) { // 켜다 실패했거나 꺼진 서비스 (안전장치 리스너가 없음) — 남은 명령이 불러도 열지 않는다
+            Text.error(p, SellPrices.Block.DISABLED.message());
+            return;
+        }
         if (blocked(p)) {
             Text.error(p, "미궁 안에서는 물건을 팔 수 없습니다. 마을로 돌아온 뒤 <white>/미궁 판매</white>");
             return;
         }
+        deliverPending(p, true); // 맡아 둔 물건이 있으면 먼저 (판매를 꺼 두었어도 돌려준다)
         SellPrices prices = prices();
         if (!prices.config().enabled()) {
             Text.error(p, SellPrices.Block.DISABLED.message());
@@ -131,9 +140,17 @@ public final class SellService implements Listener {
         new SellMenu(services, this, npc, prices).open(p);
     }
 
+    /** config.yml {@code sell:} ({@code sell: false} = 끔 — 다른 섹션과 같은 관례). */
+    public SellPrices.Config config() {
+        return SellPrices.Config.of(services.plugin().getConfig().get("sell"));
+    }
+
+    /** 판매가 켜져 있나 (상점 창 [물건 팔기] 버튼 모양). */
+    public boolean enabled() { return config().enabled(); }
+
     /** 지금 설정·콘텐츠로 값 계산기 (창을 열 때마다 새로 — /labadmin reload 반영). */
     public SellPrices prices() {
-        SellPrices.Config c = SellPrices.Config.from(services.plugin().getConfig().getConfigurationSection("sell"));
+        SellPrices.Config c = config();
         List<String> extra = new ArrayList<>();
         try {
             extra.add(services.settings().classChange().item());
@@ -147,32 +164,34 @@ public final class SellService implements Listener {
 
     void track(Player p, SellMenu m) {
         SellMenu prev = open.put(p.getUniqueId(), m);
-        if (prev != null && prev != m) for (ItemStack s : prev.closeBasket()) give(p, s);
+        if (prev != null && prev != m) giveOrKeep(p, prev.closeBasket(), true);
     }
 
-    /** 창이 닫혔다 → 돌려주고 세션 정리. */
+    /** 창이 닫혔다 (어떤 까닭이든) → 돌려주고(넘치면 맡김) 세션 정리. 두 번째부터는 바구니가 비어 아무 일 없음. */
     void closed(Player p, SellMenu m) {
-        for (ItemStack s : m.closeBasket()) give(p, s);
+        giveOrKeep(p, m.closeBasket(), true);
         open.remove(p.getUniqueId(), m);
     }
 
-    /** 가방으로 (넘치면 발밑에 — 주인만 줍게). 플레이어가 그 자리에 있을 때만. */
-    void give(Player p, ItemStack s) {
-        if (s == null || s.isEmpty()) return;
-        PlayerInventory inv = p.getInventory();
-        for (ItemStack left : inv.addItem(s).values()) {
-            p.getWorld().dropItem(p.getLocation(), left, it -> {
-                it.setOwner(p.getUniqueId());
-                it.setPickupDelay(10);
-            });
+    /**
+     * 돌려주기: 가방으로, 넘치면 발밑 대신 PlayerData 에 맡긴다 (떠나는 자리에 떨군 물건은 5분 뒤 사라지고 남이 주울 수 있으므로).
+     * @param notify 접속해 있는 플레이어에게 맡겼다고 알릴까 (접속 종료·서버 종료는 false)
+     */
+    void giveOrKeep(Player p, List<ItemStack> items, boolean notify) {
+        List<String> keep = addOrEncode(p, items);
+        if (keep.isEmpty()) return;
+        PlayerData d = services.data().get(p);
+        pushPending(d.ext(), keep);
+        d.markDirty();
+        Log.info("[판매] " + p.getName() + " 의 가방이 꽉 차 판매 대기 물건 " + keep.size() + "묶음을 맡아 둡니다.");
+        if (notify && p.isOnline()) {
+            Text.send(p, "<gray>가방이 꽉 차 판매 창에 올려 두었던 물건 <white>" + keep.size() + "묶음</white>을 상인이 맡아 둡니다. "
+                    + "가방을 비운 뒤 마을에서 <white>/미궁 판매</white> 를 열면 돌려받습니다.");
         }
     }
 
-    /**
-     * 떠나는 플레이어(접속 종료·추방·서버 종료)에게: 가방으로, 넘치면 발밑 대신 PlayerData 에 맡긴다
-     * (아무도 없는 자리에 떨군 물건은 5분 뒤 사라지므로).
-     */
-    void giveOrKeep(Player p, List<ItemStack> items) {
+    /** 가방에 넣고, 들어가지 않은 것은 직렬화해 돌려준다 (직렬화가 안 되는 물건만 어쩔 수 없이 발밑에 — 주인만 줍게). */
+    private List<String> addOrEncode(Player p, List<ItemStack> items) {
         List<String> keep = new ArrayList<>();
         for (ItemStack s : items) {
             if (s == null || s.isEmpty()) continue;
@@ -180,42 +199,51 @@ public final class SellService implements Listener {
                 try {
                     keep.add(Base64.getEncoder().encodeToString(left.serializeAsBytes()));
                 } catch (Throwable t) {
-                    // 직렬화가 안 되는 물건은 어쩔 수 없이 발밑에 (주인만 줍게)
                     Log.error("[판매] 돌려줄 물건을 저장하지 못해 발밑에 떨굽니다: " + p.getName(), t);
                     p.getWorld().dropItem(p.getLocation(), left, it -> it.setOwner(p.getUniqueId()));
                 }
             }
         }
-        if (keep.isEmpty()) return;
-        PlayerData d = services.data().get(p);
-        pushPending(d.ext(), keep);
-        d.markDirty();
-        Log.info("[판매] " + p.getName() + " 의 가방이 꽉 차 판매 대기 물건 " + keep.size() + "묶음을 맡아 둡니다 (다음 접속 때 돌려줌).");
+        return keep;
     }
 
-    /** 맡아 둔 물건 돌려주기 (접속 1초 뒤). 풀지 못한 줄은 지우지 않고 남긴다. */
-    void deliverPending(Player p) {
-        if (!p.isOnline()) return;
+    /**
+     * 맡아 둔 물건 돌려주기 — 미궁 밖에서만, 가방에 들어가는 만큼만 (넘치는 것과 풀지 못한 줄은 계속 맡아 둔다. 떨구지 않음).
+     * @param announceKept 아직 남은 것이 있으면 알릴까 (조용한 재시도는 false)
+     */
+    void deliverPending(Player p, boolean announceKept) {
+        if (p == null || !p.isOnline() || blocked(p)) return;
         PlayerData d = services.data().get(p);
+        if (!d.ext().containsKey(PENDING)) return;
         List<String> list = takePending(d.ext());
-        if (list.isEmpty()) return;
-        List<String> broken = new ArrayList<>();
-        int n = 0;
+        List<String> keep = new ArrayList<>();
+        List<ItemStack> items = new ArrayList<>();
         for (String b64 : list) {
-            ItemStack s;
             try {
-                s = ItemStack.deserializeBytes(Base64.getDecoder().decode(b64));
+                items.add(ItemStack.deserializeBytes(Base64.getDecoder().decode(b64)));
             } catch (Throwable t) {
                 Log.error("[판매] 맡아 둔 물건을 풀지 못했습니다 (" + p.getName() + ") — ext " + PENDING + " 에 남겨 둡니다", t);
-                broken.add(b64);
-                continue;
+                keep.add(b64);
             }
-            give(p, s);
-            n++;
         }
-        if (!broken.isEmpty()) pushPending(d.ext(), broken);
+        List<String> left = addOrEncode(p, items);
+        keep.addAll(left);
+        pushPending(d.ext(), keep);
         d.markDirty();
-        if (n > 0) Text.send(p, "<gray>판매 창에 올려 두었던 물건 <white>" + n + "묶음</white>을 돌려받았습니다.");
+        int back = items.size() - left.size();
+        if (back > 0) Text.send(p, "<gray>판매 창에 올려 두었던 물건 <white>" + back + "묶음</white>을 돌려받았습니다.");
+        if (!keep.isEmpty() && (announceKept || back > 0)) {
+            Text.send(p, "<gray>가방에 자리가 없어 <white>" + keep.size() + "묶음</white>은 상인이 계속 맡아 둡니다. "
+                    + "가방을 비운 뒤 <white>/미궁 판매</white>");
+        }
+    }
+
+    /** 잠시 뒤 맡긴 물건 돌려주기 (접속·월드 이동 직후 — 데이터·공략 상태가 자리 잡은 뒤). */
+    private void deliverLater(Player p, long ticks, boolean announceKept) {
+        if (!services.data().get(p).ext().containsKey(PENDING)) return;
+        Bukkit.getScheduler().runTaskLater(services.plugin(), () -> {
+            if (active == this) deliverPending(p, announceKept);
+        }, ticks);
     }
 
     /** ext 의 맡긴 물건 목록에 덧붙인다 (순수). */
@@ -243,12 +271,12 @@ public final class SellService implements Listener {
 
     // ── 안전장치 ─────────────────────────────────────────────────────────
 
-    /** 접속이 끊겨 창이 닫힘 (종료 이벤트보다 먼저 온다) — MenuListener 의 일반 닫기보다 먼저, 넘치면 맡김. */
+    /** 접속이 끊겨 창이 닫힘 (종료 이벤트보다 먼저 온다) — MenuListener 의 일반 닫기보다 먼저, 알림 없이. */
     @EventHandler(priority = EventPriority.LOWEST)
     public void onDisconnectClose(InventoryCloseEvent e) {
         if (e.getReason() != InventoryCloseEvent.Reason.DISCONNECT) return;
         if (!(e.getInventory().getHolder(false) instanceof SellMenu m) || !(e.getPlayer() instanceof Player p)) return;
-        giveOrKeep(p, m.closeBasket());
+        giveOrKeep(p, m.closeBasket(), false);
         open.remove(p.getUniqueId(), m);
     }
 
@@ -256,17 +284,13 @@ public final class SellService implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onQuit(PlayerQuitEvent e) {
         SellMenu m = open.remove(e.getPlayer().getUniqueId());
-        if (m != null) giveOrKeep(e.getPlayer(), m.closeBasket());
+        if (m != null) giveOrKeep(e.getPlayer(), m.closeBasket(), false);
     }
 
     /** 지난번에 맡아 둔 물건 돌려주기 (데이터는 LOWEST 에서 읽힘 — 1초 뒤 안전하게). */
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
-        Player p = e.getPlayer();
-        if (!services.data().get(p).ext().containsKey(PENDING)) return;
-        Bukkit.getScheduler().runTaskLater(services.plugin(), () -> {
-            if (active == this) deliverPending(p);
-        }, 20L);
+        deliverLater(e.getPlayer(), 20L, true);
     }
 
     /** 최종 keepInventory 를 본다 (DeathKeep 은 HIGHEST). 드롭 목록은 모든 처리기가 끝난 뒤에 떨어진다. */
@@ -278,19 +302,22 @@ public final class SellService implements Listener {
         List<ItemStack> items = m.closeBasket();
         if (items.isEmpty()) return;
         if (e.getKeepInventory()) {
-            for (ItemStack s : items) e.getDrops().addAll(p.getInventory().addItem(s).values());
+            giveOrKeep(p, items, true); // 소지품을 지니는 죽음 — 넘친 것도 남이 줍는 드롭으로 만들지 않고 맡김
         } else {
-            e.getDrops().addAll(items);
+            e.getDrops().addAll(items); // 다른 소지품과 똑같이 그 자리에
         }
     }
 
+    /** 월드 이동: 아직 열려 있으면(가방 유지 텔레포트 등) 닫고 돌려준다(넘치면 맡김). 미궁 밖으로 돌아왔으면 맡긴 물건도. */
     @EventHandler
     public void onWorldChange(PlayerChangedWorldEvent e) {
         Player p = e.getPlayer();
-        SellMenu m = open.get(p.getUniqueId());
-        if (m == null) return;
-        if (p.getOpenInventory().getTopInventory().getHolder(false) == m) p.closeInventory();
-        else closed(p, m);
+        SellMenu m = open.remove(p.getUniqueId());
+        if (m != null) {
+            giveOrKeep(p, m.closeBasket(), true);
+            if (p.getOpenInventory().getTopInventory().getHolder(false) == m) p.closeInventory();
+        }
+        deliverLater(p, 20L, true); // 공략이 끝나 마을로 돌아온 경우 — 돌려줄 때 미궁 밖인지 다시 본다
     }
 
     /** 쉬프트+클릭(가방 → 위)은 MenuListener 가 취소만 하고 넘기지 않는다 → 여기서 '묶음째 올리기' 로. */

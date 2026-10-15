@@ -13,6 +13,7 @@ import kr.labyrinth.Services;
 import kr.labyrinth.command.CommandService;
 import kr.labyrinth.content.MobDef;
 import kr.labyrinth.content.NpcDef;
+import kr.labyrinth.core.Log;
 import kr.labyrinth.core.Module;
 import kr.labyrinth.core.Text;
 import kr.labyrinth.dungeon.InstanceContext;
@@ -52,9 +53,24 @@ public final class MobsModule implements Module {
         services.setNpcs(npcs);
         mobs.start();
         npcs.start();
-        sell = new SellService(services);
-        sell.start();
+        startSell();
         registerCommands(services.commands());
+    }
+
+    /** 판매는 부가 기능 — 켜다 실패해도 mobs·npc 와 관리 명령은 그대로 켠다 (상점 창 [물건 팔기] 는 회색으로). */
+    private void startSell() {
+        try {
+            sell = new SellService(services);
+            sell.start();
+        } catch (Throwable t) {
+            Log.error("[판매] 켜기 실패 — 판매 없이 계속", t);
+            try {
+                if (sell != null) sell.stop(); // 반쯤 붙은 리스너 떼기
+            } catch (Throwable ignored) {
+                // 이미 실패한 판매 — 더 할 일 없음
+            }
+            sell = null;
+        }
     }
 
     @Override
