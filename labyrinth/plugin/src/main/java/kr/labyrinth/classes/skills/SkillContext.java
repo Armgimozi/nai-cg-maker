@@ -124,9 +124,9 @@ public final class SkillContext {
      */
     public double weaponScale() { return weaponScale(services, caster, classDef); }
 
-    /** {@link #weaponScale()} 의 정적 판 — 스킬 문맥 밖(독날 적중 등)에서 쓴다. 레벨이 모자란 무기는 '든 무기 없음'(1). */
+    /** {@link #weaponScale()} 의 정적 판 — 스킬 문맥 밖(독날 적중 등)에서 쓴다. 요구 능력치를 못 맞춘 무기는 '든 무기 없음'(1). */
     public static double weaponScale(Services services, Player player, ClassDef cls) {
-        ItemDef held = WeaponTypes.effective(services.items().heldWeapon(player), services.data().get(player).level());
+        ItemDef held = WeaponTypes.effective(services.items().heldWeapon(player), services.stats().requirementStats(player));
         return WeaponTypes.classSkillScale(cls, held);
     }
 

@@ -45,7 +45,9 @@ public class BasicItemService implements ItemService {
         stack.setData(DataComponentTypes.ITEM_NAME, Text.mm("<" + def.rarity().color() + ">" + def.name()));
         stack.setData(DataComponentTypes.TOOLTIP_STYLE, Key.key(Keys.NS, def.rarity().id()));
         List<String> lore = new ArrayList<>();
-        lore.add("<" + def.rarity().color() + ">" + def.rarity().displayName() + " <gray>· Lv." + def.levelReq());
+        // 장비는 레벨 제한 없이 요구 능력치만, 소모품은 사용 레벨
+        String req = def.isGear() ? def.requirement().text() : def.levelReq() > 1 ? "사용 레벨 " + def.levelReq() : "";
+        lore.add("<" + def.rarity().color() + ">" + def.rarity().displayName() + (req.isEmpty() ? "" : " <gray>· " + req));
         if (def.lore() != null && !def.lore().isBlank()) lore.add("<dark_gray>" + Text.escape(def.lore()));
         stack.setData(DataComponentTypes.LORE, ItemLore.lore(Text.itemLines(lore)));
         stack.editPersistentDataContainer(pdc -> pdc.set(Keys.ITEM_ID, PersistentDataType.STRING, id));

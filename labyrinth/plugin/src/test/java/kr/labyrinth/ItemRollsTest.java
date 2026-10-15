@@ -8,13 +8,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import kr.labyrinth.content.ClassDef;
 import kr.labyrinth.content.Content;
 import kr.labyrinth.content.ItemDef;
+import kr.labyrinth.content.ItemType;
 import kr.labyrinth.content.Range;
+import kr.labyrinth.content.StatRequirement;
 import kr.labyrinth.core.ContentLoader;
 import kr.labyrinth.items.EquipRules;
 import kr.labyrinth.items.ItemRolls;
 import kr.labyrinth.items.ItemTooltip;
+import kr.labyrinth.stats.Stat;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -99,10 +103,11 @@ class ItemRollsTest {
 
     @Test
     void tooltipHasRequirementsStatsAndSkills() {
-        ItemDef def = content.item("ember_greatsword");
+        ItemDef def = content.item("ember_greatsword").withRequires(StatRequirement.of(Map.of(Stat.STR, 60), Map.of()));
         List<String> lines = ItemTooltip.lines(content, def, ItemRolls.roll(def, 1L));
         String all = String.join("\n", lines);
-        assertTrue(all.contains("요구 레벨"), all);
+        assertTrue(all.contains("요구 힘 <white>60"), all);
+        assertFalse(all.contains("요구 레벨"), all);
         assertTrue(all.contains("피해"), all);
         assertTrue(all.contains("잿불 검기"), all);
         assertTrue(all.contains("굴림 품질"), all);
@@ -113,13 +118,21 @@ class ItemRollsTest {
 
     @Test
     void equipRules() {
-        ItemDef def = content.item("ember_greatsword");
-        assertEquals(EquipRules.Problem.LEVEL, EquipRules.check(def, def.levelReq() - 1, "berserker"));
-        // 직업 제한 없음: 광전사 추천 대검도 사제·직업 없음이 그대로 쓴다
-        assertEquals(EquipRules.Problem.NONE, EquipRules.check(def, 50, "priest"));
-        assertEquals(EquipRules.Problem.NONE, EquipRules.check(def, 50, null));
-        assertEquals(EquipRules.Problem.NONE, EquipRules.check(def, def.levelReq(), "berserker"));
+        ItemDef def = content.item("ember_greatsword").withRequires(StatRequirement.of(Map.of(Stat.STR, 60), Map.of()));
+        ClassDef berserker = content.classDef("berserker"), priest = content.classDef("priest");
+        Map<Stat, Integer> low = StatRequirement.playerStats(berserker, Map.of(Stat.STR, 40), Map.of());
+        assertEquals(EquipRules.Problem.STATS, EquipRules.check(def, low));
+        assertEquals("요구 힘 60 (현재 " + low.get(Stat.STR) + ")", EquipRules.problemText(def, low));
+        // 직업 제한 없음: 광전사 추천 대검도 사제·직업 없음이 힘만 맞추면 그대로 쓴다
+        assertEquals(EquipRules.Problem.NONE, EquipRules.check(def, StatRequirement.playerStats(priest, Map.of(Stat.STR, 60), Map.of())));
+        assertEquals(EquipRules.Problem.NONE, EquipRules.check(def, StatRequirement.playerStats(null, Map.of(Stat.STR, 60), Map.of())));
+        assertEquals("", EquipRules.problemText(def, StatRequirement.playerStats(null, Map.of(Stat.STR, 60), Map.of())));
+        // 재료·장신구는 조건 없음 (장신구는 requires 가 적혀 있어도 무시)
         ItemDef mat = content.item("moss_fiber");
-        assertEquals(EquipRules.Problem.NONE, EquipRules.check(mat, 1, null));
+        assertEquals(EquipRules.Problem.NONE, EquipRules.check(mat, Map.of()));
+        ItemDef acc = content.items().values().stream().filter(d -> d.type() == ItemType.ACCESSORY).findFirst().orElseThrow()
+                .withRequires(StatRequirement.of(Map.of(Stat.LUK, 99), Map.of()));
+        assertTrue(acc.requirement().isEmpty());
+        assertEquals(EquipRules.Problem.NONE, EquipRules.check(acc, Map.of()));
     }
 }

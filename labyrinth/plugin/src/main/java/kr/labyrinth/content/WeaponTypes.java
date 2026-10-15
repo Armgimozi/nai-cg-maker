@@ -2,6 +2,7 @@ package kr.labyrinth.content;
 
 import java.util.Collection;
 import java.util.Map;
+import kr.labyrinth.stats.Stat;
 
 /**
  * 무기 종류(items.yml weapon_type) 공통 규칙 — 순수 로직, 단위 테스트 대상 (GDD §4.4, §11.2).
@@ -40,9 +41,12 @@ public final class WeaponTypes {
         return type == null ? 1.0 : DAMAGE_SCALE.getOrDefault(type, 1.0);
     }
 
-    /** 레벨이 모자라 능력치가 안 붙는 무기는 '든 무기 없음'으로 본다 (EquipRules 와 같은 기준). */
-    public static ItemDef effective(ItemDef held, int level) {
-        return held != null && held.isWeapon() && level >= held.levelReq() ? held : null;
+    /**
+     * 요구 능력치를 못 맞춰 능력치가 안 붙는 무기는 '든 무기 없음'으로 본다 (EquipRules 와 같은 기준).
+     * @param stats 판정 능력치 = 직업 기본 + 분배 + 칭호 ({@link StatRequirement#playerStats}, StatService.requirementStats)
+     */
+    public static ItemDef effective(ItemDef held, Map<Stat, Integer> stats) {
+        return held != null && held.isWeapon() && held.requirement().met(stats) ? held : null;
     }
 
     /** 직업 스킬을 쓸 수 있는가 — 직업만 있으면 무엇을 들었든 (사용자 결정 "언제나"). 무기가 없으면 환산 배율 1. */
@@ -67,7 +71,7 @@ public final class WeaponTypes {
         return damageScale(cls.weaponTypes().get(0)) / damageScale(held.weaponType());
     }
 
-    /** 처음 전직할 때 줄 무기: 추천 무기 중 가장 낮은 등급(희귀도 → 층 → 레벨 순). 없으면 null. */
+    /** 처음 전직할 때 줄 무기: 추천 무기 중 가장 낮은 등급(희귀도 → 층 → 내부 레벨 순). 없으면 null. */
     public static ItemDef starterWeapon(Collection<ItemDef> items, ClassDef cls) {
         if (cls == null) return null;
         ItemDef best = null;

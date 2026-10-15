@@ -16,7 +16,6 @@ import kr.labyrinth.combat.DamageType;
 import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.core.Log;
 import kr.labyrinth.core.Text;
-import kr.labyrinth.data.PlayerData;
 import kr.labyrinth.items.EquipRules;
 import kr.labyrinth.items.ItemTooltip;
 import kr.labyrinth.items.WeaponSkillService;
@@ -172,9 +171,10 @@ public final class LabWeaponSkillService implements WeaponSkillService, Listener
             Log.warnOnce("ws-missing-" + s.id(), "[무기 스킬] 구현이 없는 id: " + s.id() + " (" + def.id() + ")");
             return false;
         }
-        PlayerData d = services.data().get(player);
-        if (!EquipRules.usable(def, d.level(), d.classId())) {
-            if (s.cooldown() > 1.0) bar(player, "<#ff6b6b>⚠ 착용 조건이 맞지 않아 무기 스킬을 쓸 수 없습니다.", 30);
+        var reqStats = services.stats().requirementStats(player);
+        if (!EquipRules.usable(def, reqStats)) {
+            // 요구 능력치 미달 무기: 들 수는 있지만 무기 스킬이 없다 (기본 공격 입력은 조용히 넘긴다)
+            if (s.cooldown() > 1.0) bar(player, "<#ff6b6b>⚠ " + EquipRules.problemText(def, reqStats) + " <gray>— 무기 스킬을 쓸 수 없습니다.", 30);
             return false;
         }
         if (services.effects().isSilenced(player)) {

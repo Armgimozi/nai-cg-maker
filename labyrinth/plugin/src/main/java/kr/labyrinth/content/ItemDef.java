@@ -3,7 +3,12 @@ package kr.labyrinth.content;
 import java.util.List;
 import java.util.Map;
 
-/** items.yml 의 아이템 하나. stats 는 [최소, 최대] 굴림 범위(GDD §11.7 키). */
+/**
+ * items.yml 의 아이템 하나. stats 는 [최소, 최대] 굴림 범위(GDD §11.7 키).
+ * <p>
+ * {@code levelReq} (items.yml level_req): 장비는 <b>숨은 내부 레벨</b> — 정렬·강화 골드·드롭 단계에만 쓰고 표시·착용 제한은 없다.
+ * 소모품은 그대로 사용 레벨. 장비 착용 조건은 {@code requires}(요구 능력치, {@link #requirement()}).
+ */
 public record ItemDef(
         String id,
         String name,
@@ -13,6 +18,7 @@ public record ItemDef(
         String armorSet,
         Rarity rarity,
         int levelReq,
+        StatRequirement requires,
         List<String> classes,
         Map<String, Range> stats,
         String setBonus,
@@ -34,6 +40,20 @@ public record ItemDef(
     public boolean isWeapon() { return type == ItemType.WEAPON; }
     public boolean isGear() { return type.isGear(); }
     public boolean isShield() { return "offhand".equals(armorSlot); }
+
+    /**
+     * 착용 요구 능력치 — 무기·방어구(방패 포함)만. 장신구·재료·소모품은 언제나 요구 없음
+     * (items.yml 에 적혀 있어도 무시 — ContentValidator 가 경고).
+     */
+    public StatRequirement requirement() {
+        return (type == ItemType.WEAPON || type == ItemType.ARMOR) && requires != null ? requires : StatRequirement.NONE;
+    }
+
+    /** 요구 능력치만 바꾼 사본 (시험·도구용). */
+    public ItemDef withRequires(StatRequirement r) {
+        return new ItemDef(id, name, type, weaponType, armorSlot, armorSet, rarity, levelReq, r == null ? StatRequirement.NONE : r,
+                classes, stats, setBonus, aura, weaponSkills, floor, pool, sources, use, model, texture, lore, raw);
+    }
 
     /** 직업 제한 없음 — 어느 직업이든(직업 없음 포함) 모든 장비를 쓴다 (GDD §4.4). */
     public boolean usableBy(String classId) { return true; }

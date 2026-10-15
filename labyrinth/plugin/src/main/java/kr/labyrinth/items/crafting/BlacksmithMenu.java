@@ -11,6 +11,7 @@ import kr.labyrinth.core.Text;
 import kr.labyrinth.data.PlayerData;
 import kr.labyrinth.items.CraftingService;
 import kr.labyrinth.items.ItemTooltip;
+import kr.labyrinth.stats.Stat;
 import kr.labyrinth.ui.Button;
 import kr.labyrinth.ui.Glyphs;
 import kr.labyrinth.ui.Menu;
@@ -21,7 +22,8 @@ import org.bukkit.inventory.ItemStack;
 
 /**
  * 대장장이 두르간 GUI (GDD §11.11). 탭 = recipes.yml category(무기 · 방어구·방패 · 장신구 · 정수 정제),
- * 레시피마다 재료 보유/필요 · 골드 · 레벨 표시(부족하면 빨강), 클릭 = 제작. 직업 필터는 없다(장비는 어느 직업이든 쓸 수 있다).
+ * 레시피마다 재료 보유/필요 · 골드 표시(부족하면 빨강), 클릭 = 제작. 제작 레벨 제한·직업 필터는 없다 — 장비의 요구 능력치는
+ * 툴팁에 보는 사람 기준(맞춤 초록 / 모자람 빨강 "(현재 22)")으로 보여 주기만 하고 제작은 막지 않는다(입을 때 가린다).
  * 배너 가운데(13) = [장비 강화] → 강화 창 (GDD §11.13).
  */
 final class BlacksmithMenu extends Menu {
@@ -53,7 +55,8 @@ final class BlacksmithMenu extends Menu {
             if (def == null) continue;
             out.add(r);
         }
-        out.sort(Comparator.comparingInt(RecipeDef::levelReq)
+        // 결과 장비의 숨은 내부 레벨(items.yml level_req) → 희귀도 순 — 제작 레벨 제한은 없다
+        out.sort(Comparator.comparingInt((RecipeDef r) -> services.content().item(r.result()).levelReq())
                 .thenComparing(r -> services.content().item(r.result()).rarity().ordinal())
                 .thenComparing(RecipeDef::id));
         return out;
@@ -62,6 +65,7 @@ final class BlacksmithMenu extends Menu {
     @Override
     protected void build(Player viewer) {
         PlayerData d = services.data().get(viewer);
+        Map<Stat, Integer> reqStats = services.stats().requirementStats(viewer);
         for (int i = 0; i < TABS.length; i++) {
             final int idx = i;
             boolean sel = i == tab;
@@ -100,7 +104,7 @@ final class BlacksmithMenu extends Menu {
         int slot = 18; // 레시피 칸 = 18..44 (27칸)
         for (int i = start; i < list.size() && slot < 45; i++) {
             RecipeDef r = list.get(i);
-            set(slot++, recipeIcon(viewer, d, r), ctx -> {
+            set(slot++, recipeIcon(viewer, d, reqStats, r), ctx -> {
                 CraftingService.Result res = crafting.craft(viewer, r.id());
                 if (res != CraftingService.Result.OK) {
                     Text.error(viewer, LabCraftingService.message(res));
@@ -124,11 +128,12 @@ final class BlacksmithMenu extends Menu {
         // 아래 줄 = 45 이전 · 49 골드·제작 안내 · 51 닫기 · 53 다음 (47 은 예전 직업 필터 자리 — 텍스처에서도 버튼을 지웠다)
         double disc = services.stats().get(viewer).craftDiscount();
         deco(49, Button.icon(Material.GOLD_NUGGET, "<#ffd27a>보유 골드 " + Text.num(d.gold()),
-                List.of("<gray>레벨 " + d.level() + (disc > 0 ? " · 제작 할인 " + Text.pct(Math.min(RecipeCheck.MAX_DISCOUNT, disc)) : ""),
+                List.of(disc > 0 ? "<gray>제작 할인 " + Text.pct(Math.min(RecipeCheck.MAX_DISCOUNT, disc)) : "<gray>제작 레벨 제한 없음",
                         "<dark_gray>재료는 미궁의 몬스터·정예·보스에게서 얻습니다.",
                         "",
                         "<gray>레시피를 클릭하면 바로 제작합니다.",
-                        "<gray>모자란 재료·골드·레벨은 <#ff6b6b>빨강</#ff6b6b>으로 표시됩니다.")));
+                        "<gray>모자란 재료·골드는 <#ff6b6b>빨강</#ff6b6b>으로 표시됩니다.",
+                        "<gray>요구 능력치는 입을 때 필요합니다 (제작은 언제나 가능).")));
         set(51, Button.icon(Material.OAK_DOOR, "<gray>닫기", List.of()), ctx -> viewer.closeInventory());
     }
 
@@ -141,7 +146,7 @@ final class BlacksmithMenu extends Menu {
         return null;
     }
 
-    private ItemStack recipeIcon(Player p, PlayerData d, RecipeDef r) {
+    private ItemStack recipeIcon(Player p, PlayerData d, Map<Stat, Integer> reqStats, RecipeDef r) {
         ItemDef def = services.content().item(r.result());
         List<String> tail = new ArrayList<>();
         tail.add("");
@@ -157,14 +162,13 @@ final class BlacksmithMenu extends Menu {
         }
         long gold = crafting.goldCost(p, r);
         boolean goldOk = d.gold() >= gold;
-        boolean lvOk = d.level() >= r.levelReq();
-        ok &= goldOk && lvOk;
-        tail.add((goldOk ? "<#ffd27a>" : "<#ff6b6b>") + "골드 " + Text.num(gold) + (gold < r.gold() ? " <dark_gray>(원가 " + Text.num(r.gold()) + ")" : "")
-                + " <dark_gray>·</dark_gray> " + (lvOk ? "<gray>" : "<#ff6b6b>") + "제작 레벨 " + r.levelReq());
+        ok &= goldOk;
+        tail.add((goldOk ? "<#ffd27a>" : "<#ff6b6b>") + "골드 " + Text.num(gold) + (gold < r.gold() ? " <dark_gray>(원가 " + Text.num(r.gold()) + ")" : ""));
         tail.add(ok ? "<#ffd27a>▶ 클릭하여 제작" + (r.amount() > 1 ? " (×" + r.amount() + ")" : "")
                 : "<#ff6b6b>조건이 부족합니다");
         // 재료 줄만큼 자리를 비워 툴팁이 화면 안에 들어가게 (ItemTooltip.MAX_LINES)
-        List<String> lore = new ArrayList<>(ItemTooltip.lines(services.content(), def, null, Map.of(), List.of(), tail.size()));
+        // 요구 능력치는 보는 사람 기준으로 (맞춤 초록 / 모자람 빨강) — 제작은 막지 않는다
+        List<String> lore = new ArrayList<>(ItemTooltip.lines(services.content(), def, null, Map.of(), List.of(), tail.size(), true, reqStats));
         lore.addAll(tail);
         String name = "<" + def.rarity().color() + ">" + def.name() + (r.amount() > 1 ? " <gray>×" + r.amount() : "");
         Material base = "bow".equals(def.weaponType()) ? Material.BOW : Material.PAPER;

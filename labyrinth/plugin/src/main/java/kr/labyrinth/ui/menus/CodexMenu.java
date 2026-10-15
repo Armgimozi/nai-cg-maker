@@ -27,6 +27,7 @@ import kr.labyrinth.core.Text;
 import kr.labyrinth.dungeon.treasure.ChestSettings;
 import kr.labyrinth.dungeon.treasure.ChestTier;
 import kr.labyrinth.items.ItemTooltip;
+import kr.labyrinth.stats.Stat;
 import kr.labyrinth.ui.Button;
 import kr.labyrinth.ui.UiTheme;
 import net.kyori.adventure.key.Key;
@@ -90,7 +91,7 @@ public final class CodexMenu extends LabMenu {
             });
         }
 
-        List<ItemStack> entries = itemTab ? itemEntries() : tab == Tab.MOB ? mobEntries() : bossEntries();
+        List<ItemStack> entries = itemTab ? itemEntries(services.stats().requirementStats(viewer)) : tab == Tab.MOB ? mobEntries() : bossEntries();
         int pages = Math.max(1, (entries.size() + PER_PAGE - 1) / PER_PAGE);
         page = Math.max(0, Math.min(page, pages - 1));
         for (int i = 0; i < PER_PAGE; i++) {
@@ -119,23 +120,25 @@ public final class CodexMenu extends LabMenu {
         };
     }
 
-    private List<ItemStack> itemEntries() {
+    /** @param viewer 보는 사람의 요구치 판정 능력치 — 장비 요구 능력치를 맞춤 초록 / 모자람 빨강 "(현재 22)" 로 보여 준다 */
+    private List<ItemStack> itemEntries(Map<Stat, Integer> viewer) {
         List<ItemDef> list = new ArrayList<>();
         for (ItemDef d : services.content().items().values()) {
             if (inTab(d) && (rarity == null || d.rarity() == rarity)) list.add(d);
         }
+        // 희귀도 → 층 → 숨은 내부 레벨(level_req, 표시 안 함) 순
         list.sort(Comparator.comparing((ItemDef d) -> d.rarity() == null ? 0 : d.rarity().ordinal())
                 .thenComparingInt(ItemDef::floor).thenComparingInt(ItemDef::levelReq).thenComparing(ItemDef::id));
         List<ItemStack> out = new ArrayList<>();
         int from = page * PER_PAGE;
         for (int i = 0; i < list.size(); i++) {
             // 보이는 쪽만 실제 아이템(툴팁 계산)으로 만든다
-            out.add(i >= from && i < from + PER_PAGE ? itemIcon(list.get(i)) : null);
+            out.add(i >= from && i < from + PER_PAGE ? itemIcon(list.get(i), viewer) : null);
         }
         return out;
     }
 
-    private ItemStack itemIcon(ItemDef d) {
+    private ItemStack itemIcon(ItemDef d, Map<Stat, Integer> viewer) {
         ItemStack s;
         try {
             s = services.items().create(d.id());
@@ -148,7 +151,7 @@ public final class CodexMenu extends LabMenu {
         if (src.isEmpty()) src = List.of("<dark_gray>알려진 획득처 없음 (관리자 지급)");
         // 툴팁의 획득처 한 줄 요약은 아래 목록과 겹치므로 넣지 않는다
         List<String> lines = new ArrayList<>(ItemTooltip.lines(services.content(), d, null, Map.of(), List.of(),
-                1 + Math.min(src.size(), SOURCE_LINES), false));
+                1 + Math.min(src.size(), SOURCE_LINES), false, viewer));
         lines.add("<#ffd36b>◆ 획득처");
         int room = Math.max(1, ItemTooltip.MAX_LINES - lines.size());
         if (src.size() <= room) {
