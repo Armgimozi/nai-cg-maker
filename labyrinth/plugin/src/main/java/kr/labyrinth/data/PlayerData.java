@@ -135,6 +135,29 @@ public final class PlayerData {
     /** 모듈 확장 데이터. 수정 후 markDirty() 호출. */
     public Map<String, Object> ext() { return ext; }
 
+    // ── 특별 시련 확정 카운터 (층별, ext special_miss.f<층>) ───────────────
+    /** 이 층을 연속으로 특별 시련 없이 돈 횟수 (dungeon.yml special_trial.pity_visits). */
+    public int specialMiss(int floor) {
+        Object v = ext.get(specialMissKey(floor));
+        if (v instanceof Number num) return Math.max(0, num.intValue());
+        if (v instanceof String str) {
+            try {
+                return Math.max(0, Integer.parseInt(str.trim()));
+            } catch (NumberFormatException ignored) {
+                return 0;
+            }
+        }
+        return 0;
+    }
+
+    /** 특별 시련을 보면 0, 못 보면 +1. */
+    public void specialMiss(int floor, int v) {
+        ext.put(specialMissKey(floor), Math.max(0, v));
+        dirty = true;
+    }
+
+    public static String specialMissKey(int floor) { return "special_miss.f" + floor; }
+
     public long firstJoin() { return firstJoin; }
     public long lastSeen() { return lastSeen; }
     public void touch() { lastSeen = System.currentTimeMillis(); dirty = true; }

@@ -38,6 +38,7 @@ import org.bukkit.scheduler.BukkitTask;
  *   <li>DamageService 로 피해 → 처치 (경험치·골드·루팅·MobKillEvent 경로, 플레이어 없음)</li>
  *   <li>1~5층 보스(+ 구현 없는 6층은 대체 보스 = 층 정예 × 보스 배율)를 차례로 보스방에 소환 → 페이즈가 넘어가게 피해 → 처치</li>
  *   <li>층마다 난이도 층 램프·솔로 보정이 인스턴스 배율에 걸렸는지 확인 (+ 시작 꾸러미 아이템 id)</li>
+ *   <li>층마다 시련방을 특별 시련으로 확정 → 조건 4종 판정 · special_trial_fNN 굴림 확인</li>
  *   <li>층 정리(블록·엔티티)·슬롯 반납 후 요약 출력: 개수 + 하위 시스템별 예외 수 (서버 로그에 남은 SEVERE/스택 포함)</li>
  * </ol>
  * 기존 지형은 건드리지 않는다 — 공허 월드의 빈 슬롯만 쓴다.
@@ -226,6 +227,7 @@ final class SelfTest {
         Difficulty d = services.settings().difficulty();
         String id = "selftest" + manager.nextRunSeq() + "s" + slot;
         run = new Run(manager, id, slot, d, services.settings().party(), List.of(new UUID(0x5E1F7E57L, f)));
+        run.forceSpecialTrial(true);
         long t0 = System.currentTimeMillis();
         step("dungeon", () -> {
             fs = run.createFloor(f);
@@ -238,6 +240,7 @@ final class SelfTest {
                 step("hints", this::checkHints);
                 step("dungeon", () -> checkScaling(f));
                 step("dungeon", () -> checkMaze(f));
+                step("dungeon", () -> checkSpecialTrial(f));
                 step("selftest", this::spawnMobs);
             });
         });
@@ -272,6 +275,67 @@ final class SelfTest {
         var clues = kr.labyrinth.core.Hints.bossClues(boss);
         for (String l : clues) Text.mm(kr.labyrinth.core.Hints.format(l));
         if (!clues.isEmpty()) count("hint_bosses", 1);
+    }
+
+    /**
+     * 특별 시련 (GDD §10.1): 이 층 시련방이 특별 시련으로 확정됐는지, 조건이 그 기믹이 쓸 수 있는 것인지,
+     * 조건 4종이 "지킴 → 어김" 으로 판정되는지(방의 판정 재료 그대로), special_trial_fNN 이 사람 없이 굴려도 무언가를 주는지.
+     */
+    private void checkSpecialTrial(int f) {
+        var cfg = manager.config().specialTrial();
+        String table = kr.labyrinth.dungeon.rooms.SpecialTrial.table(f);
+        if (services.content().lootTable(table) == null) {
+            bump(errors, "content");
+            errorSamples.add("content: 루팅 표 " + table + " 없음 (특별 시련 상자)");
+            return;
+        }
+        for (Room r : fs.rooms()) {
+            if (!(r instanceof kr.labyrinth.dungeon.rooms.GimmickRoom g)) continue;
+            String gimmick = fs.def().gimmick();
+            var rule = kr.labyrinth.dungeon.rooms.SpecialTrial.rule(gimmick, fs.def().specialTrial(), g.limitSeconds(), cfg);
+            var st = g.special();
+            if (st == null) {
+                if (!rule.isEmpty()) {
+                    bump(errors, "dungeon");
+                    errorSamples.add("dungeon: 지하 " + f + "층 특별 시련이 확정되지 않음");
+                }
+                continue;
+            }
+            if (!kr.labyrinth.dungeon.rooms.SpecialTrial.supports(gimmick, st.condition())) {
+                bump(errors, "dungeon");
+                errorSamples.add("dungeon: 지하 " + f + "층 기믹 " + gimmick + " 이 못 쓰는 조건 " + st.condition().id());
+            }
+            Text.mm(st.line(fs.ctx().partySize()));
+            count("special_trials", 1);
+            for (var c : kr.labyrinth.dungeon.rooms.SpecialTrial.Condition.values()) {
+                var t = kr.labyrinth.dungeon.rooms.SpecialTrial.of(c, rule, cfg);
+                var k = new kr.labyrinth.dungeon.rooms.SpecialTrial.Counters();
+                boolean before = t.kept(k, 1);
+                switch (c) {
+                    case SWIFT -> k.elapsed(t.seconds() + 1);
+                    case UNSCATHED -> { for (int i = 0; i <= t.allowedHits(1); i++) k.hurt(Math.max(t.minDamage(), 0.01), t.minDamage()); }
+                    case ABSTAIN -> k.consume(t.potions());
+                    case FLAWLESS -> k.mistake();
+                }
+                var broken = kr.labyrinth.dungeon.rooms.SpecialTrial.reward(f, t, false, k, 1, cfg.xpBonus());
+                var keptReward = kr.labyrinth.dungeon.rooms.SpecialTrial.reward(f, t, false, new kr.labyrinth.dungeon.rooms.SpecialTrial.Counters(), 1, cfg.xpBonus());
+                if (!before || t.kept(k, 1) || broken.special() || !keptReward.tables().contains(table)
+                        || !broken.tables().contains("gimmick_floor_" + f)) {
+                    bump(errors, "dungeon");
+                    errorSamples.add("dungeon: 특별 시련 조건 판정 이상 " + c.id() + " (지하 " + f + "층)");
+                } else {
+                    count("special_conditions_checked", 1);
+                }
+            }
+            int items = 0;
+            for (var s : services.loot().roll(table, null, fs.ctx())) items += s.getAmount();
+            if (items <= 0) {
+                bump(errors, "content");
+                errorSamples.add("content: " + table + " 을 굴렸는데 아무것도 안 나옴");
+            } else {
+                count("special_loot_items", items);
+            }
+        }
     }
 
     /**

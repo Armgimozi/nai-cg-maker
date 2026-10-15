@@ -312,6 +312,15 @@ public final class ContentParser {
         Map<String, Integer> rooms = new LinkedHashMap<>();
         Params r = p.sub("rooms");
         for (String k : r.keys()) rooms.put(k, r.integer(k, 0));
+        // 특별 시련 덮어쓰기: 모르는 조건·그 기믹이 못 쓰는 조건은 문제로 알리고 무시한다 (SpecialTrial.rule)
+        for (String c : p.sub("special_trial").strings("conditions")) {
+            var cond = kr.labyrinth.dungeon.rooms.SpecialTrial.Condition.parse(c);
+            if (cond == null) {
+                problem("floors.yml", String.valueOf(n), "special_trial.conditions 에 모르는 조건 '" + c + "' (swift·unscathed·abstain·flawless)");
+            } else if (!kr.labyrinth.dungeon.rooms.SpecialTrial.supports(p.str("gimmick"), cond)) {
+                problem("floors.yml", String.valueOf(n), "기믹 '" + p.str("gimmick") + "' 은(는) 특별 시련 조건 '" + c + "' 을(를) 쓸 수 없음");
+            }
+        }
         return new FloorDef(n, p.str("name", "지하 " + n + "층"), p.str("subtitle", "지하 " + n + "층"),
                 p.str("theme", "default"), p.intRange("level_range", new IntRange(1, 50)), p.str("description", ""),
                 palette(p.sub("palette")), p.maps("decor"), p.str("liquid"), p.integer("room_height", 5),

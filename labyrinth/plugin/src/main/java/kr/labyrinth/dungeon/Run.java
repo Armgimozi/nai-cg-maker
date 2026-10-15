@@ -68,6 +68,8 @@ public final class Run {
     private long firstArrival = -1;
     private BossBar genBar;
     private long lastTick;
+    /** 자가 진단: 층마다 시련방을 특별 시련으로 확정 (FloorState). */
+    private boolean forceSpecialTrial;
 
     Run(DungeonManager manager, String id, int slot, Difficulty difficulty, PartyScaling scaling, List<UUID> members) {
         this(manager, id, slot, difficulty, scaling, members, false);
@@ -95,6 +97,8 @@ public final class Run {
     public boolean ending() { return ending; }
     public long createdAt() { return createdAt; }
     public boolean adminTest() { return adminTest; }
+    boolean forceSpecialTrial() { return forceSpecialTrial; }
+    void forceSpecialTrial(boolean on) { forceSpecialTrial = on; }
 
     public MemberState state(UUID u) { return states.getOrDefault(u, MemberState.LEFT); }
 

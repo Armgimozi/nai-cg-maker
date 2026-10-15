@@ -1746,3 +1746,57 @@ tables:
       - {item: primordial_essence, chance: 0.06}
       - {table: tonics, chance: 0.15}
       - {table: rare_consumables, chance: 0.05}
+
+  # ═════════ 특별 시련 상자 (GDD §10.1 — 특별 시련 성공 + 조건 지킴 때 gimmick_floor_N 에 더해 하나 더, 개인 루팅) ═════════
+  # P3 가 교체: 아래 10개는 0.3.5 P4 의 자리표다 — 그 층 기믹방 상자를 한 번 더 굴리고 골드 0.5~1배.
+  # 0.3.5 데이터(P3 생성기)가 특별 시련 무기 PICK(band_tNN_special) · 정수 · 방어구(단계 6·9) 표로 바꾼다.
+  special_trial_f01:   # 1층 특별 시련 상자 — 자리표 (P3 가 교체)
+    rolls: 1
+    gold: [16, 64]
+    entries:
+      - {table: gimmick_floor_1, chance: 1.0}
+  special_trial_f02:   # 2층 특별 시련 상자 — 자리표 (P3 가 교체)
+    rolls: 1
+    gold: [28, 104]
+    entries:
+      - {table: gimmick_floor_2, chance: 1.0}
+  special_trial_f03:   # 3층 특별 시련 상자 — 자리표 (P3 가 교체)
+    rolls: 1
+    gold: [44, 160]
+    entries:
+      - {table: gimmick_floor_3, chance: 1.0}
+  special_trial_f04:   # 4층 특별 시련 상자 — 자리표 (P3 가 교체)
+    rolls: 1
+    gold: [68, 240]
+    entries:
+      - {table: gimmick_floor_4, chance: 1.0}
+  special_trial_f05:   # 5층 특별 시련 상자 — 자리표 (P3 가 교체)
+    rolls: 1
+    gold: [104, 368]
+    entries:
+      - {table: gimmick_floor_5, chance: 1.0}
+  special_trial_f06:   # 6층 특별 시련 상자 — 자리표 (P3 가 교체)
+    rolls: 1
+    gold: [152, 528]
+    entries:
+      - {table: gimmick_floor_6, chance: 1.0}
+  special_trial_f07:   # 7층 특별 시련 상자 — 자리표 (P3 가 교체)
+    rolls: 1
+    gold: [216, 752]
+    entries:
+      - {table: gimmick_floor_7, chance: 1.0}
+  special_trial_f08:   # 8층 특별 시련 상자 — 자리표 (P3 가 교체)
+    rolls: 1
+    gold: [304, 1040]
+    entries:
+      - {table: gimmick_floor_8, chance: 1.0}
+  special_trial_f09:   # 9층 특별 시련 상자 — 자리표 (P3 가 교체)
+    rolls: 1
+    gold: [416, 1440]
+    entries:
+      - {table: gimmick_floor_9, chance: 1.0}
+  special_trial_f10:   # 10층 특별 시련 상자 — 자리표 (P3 가 교체)
+    rolls: 1
+    gold: [560, 1920]
+    entries:
+      - {table: gimmick_floor_10, chance: 1.0}

@@ -29,6 +29,10 @@
 #                     gold_behind_trap 앞 복도에 함정이 있으면 금 상자로, mimic 미믹 확률, vault 열쇠 금고(기본 true),
 #                     key_from_elite 열쇠가 정예 처치에서 나올 확률(나머지는 막다른 길 철 상자),
 #                     bracket 루팅 표 — 0 = 층별 표(maze_chest_<등급>_f<층>) 우선, 없으면 구간 표(1~3·4~6·7~9·10층) · 1~4 = 그 구간 표 강제
+#  special_trial    : (선택) 특별 시련 조건 덮어쓰기 (GDD §10.1, 확률·조건 수치는 dungeon.yml special_trial) — 생략하면 기믹마다 기본표
+#                     conditions 후보 [swift, unscathed, abstain, flawless] 중 시드로 하나 (빈 목록 또는 enabled: false = 이 층 끔),
+#                     seconds 서두름 초. flawless 는 lever_sequence·resonance_tune·book_cipher·gear_timing 만,
+#                     swift 는 torch_relay·void_trial 제외, unscathed 는 spore_purge 제외.  예: special_trial: {conditions: [flawless, swift], seconds: 60}
 # 모든 블록 배치는 labyrinth_world 의 인스턴스 슬롯 안에서만 이루어진다.
 # ─────────────────────────────────────────────────────────────────────────────
 version: 1

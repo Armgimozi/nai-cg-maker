@@ -400,6 +400,7 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 - **설정 파일**: 미궁 진행 수치는 `plugins/Labyrinth/dungeon.yml` (jar 기본값 `src/main/resources/dungeon.yml`: 틱당 블록 수, 동시 인스턴스,
   층 높이·간격, 문 닫힘 지연, 몹 수 인원 보정, 휴식방 회복, 대체 보스 배율, 보물방 미믹 확률 …). 난이도·파티 배율은 그대로 config.yml.
   0.3.2: 솔로·2인 몹 수 `party_mob_count` + 보상 보정 `party_mob_reward` · 방 정리 회복 `room_clear_heal` · 층 첫 돌파 보너스 `first_clear_bonus` (§6.7).
+  0.3.5: 특별 시련 `special_trial` (§6.9) — 다른 모듈이 부르는 것은 `DungeonService.onConsume(p, def)`(미궁 소모품을 썼을 때) 하나.
 - **공허 월드 좌표**: 미궁 인스턴스는 `InstanceAllocator` 슬롯(간격 2048, **z ≥ 2048** 영역)만 쓴다. **다른 모듈이 공허 월드에 무언가 지어야 하면 z < 0 영역을 쓸 것.**
   층 n 의 바닥 y = `top_floor_y − (n−1) × floor_spacing` (기본 280, 30 → B1 y280 … B10 y10). 같은 슬롯에서 아래층일수록 실제로 낮다.
 - **인스턴스 id**: `InstanceContext.id()` = `r<번호>s<슬롯>-<세션>-b<층>` (세션 = 플러그인 활성 시각 36진수 — 재시작 뒤 run id 가 다시 나오지 않음. 층마다 새 컨텍스트, 같은 Run 의 배율·난이도 유지). 몹·보스 정리는 이 id 로.
@@ -930,6 +931,33 @@ cosmetics:
 - SelfTest 1층: `ArmorCosmetics.selfCheck` — 첫 세트 장식 3개를 시작방에 띄웠다 지우고(모델 키·배율 확인), 배포 팩 zip(`plugins/Labyrinth/pack/labyrinth-pack.zip`
   또는 jar 안 `pack/`)이 있으면 모든 세트 × 부위의 아이템 정의가 있는지 본다.
 
+### 6.9 0.3.5 특별 시련 (dungeon.yml · floors.yml · loot.yml — 키가 없어도 코드 기본값)
+```yaml
+# dungeon.yml  (DungeonConfig.Special — 키 없음 = Special.DEFAULT, 끄기 = enabled: false 또는 special_trial: false)
+special_trial:
+  enabled: true
+  chance: 0.3            # 층 방문마다 시련방이 특별 시련일 확률 (SpecialTrial.seed(층 시드, 방 번호) 로 고정)
+  pity_visits: 3         # 이만큼 연속 못 보면 다음은 확정 (PlayerData.specialMiss(층) = ext special_miss.f<층>, 파티원 최댓값, 0 = 끔)
+  xp_bonus: 0.5          # 조건까지 지키면 시련 경험치 × 1.5
+  conditions:
+    swift:     {time_factor: 0.7, min_seconds: 40, default_seconds: 75}
+    unscathed: {hits: 2, per_member: 1, min_damage: 0.03}
+    abstain:   {potions: true, scrolls: true}
+    flawless:  {}
+# floors.yml 층마다 (선택, 없으면 SpecialTrial.DEFAULT_CONDITIONS/DEFAULT_SECONDS — 기믹 키 기준)
+#  special_trial: {conditions: [flawless, swift], seconds: 60}   # 모르는 조건·그 기믹이 못 쓰는 조건 = 파싱 문제(무시)
+# loot.yml
+#  special_trial_f01 … special_trial_f10   # 특별 상자. 표가 없으면 그 층은 특별 시련을 끈다(경고 한 번)
+```
+- **흐름**: `FloorState.createRoom`(GIMMICK) → `SpecialTrial.rule(기믹, floors 덮어쓰기, 제한 시간, 설정)` → `pick(시드, 규칙, 설정, 파티 카운터)` →
+  `GimmickRoom.special(..)` + 파티원 카운터 0/+1. 자가 진단 Run 은 `forceSpecialTrial` 로 층마다 확정.
+- **판정 재료**: 서두름 = `GimmickRoom.elapsed()` (보스바 남은 초) · 무상 = `DungeonManager` 의 `DamageService.Hook.after` → `GimmickRoom.onPlayerHurt(p, 받은 피해 ÷ 최대 HP)`
+  (`SpecialTrial.countsAsHit` — `effect:<id>` 지속 피해 틱 제외) · 절제 = `ConsumableListener`(마심·귀환·망각·자동 부활) → `DungeonService.onConsume(p, def)` →
+  그 자리 시련방 · 무결 = 기믹이 기회를 잃는 자리에서 `noteMistake()` 한 줄 (LeverSequence·ResonanceTune·BookCipher·GearTiming).
+  **새 기믹이 무결을 지원하려면 `noteMistake()` 를 부르고 `SpecialTrial.FLAWLESS_GIMMICKS` 에 키를 더한다** (SpecialTrialTest 가 둘을 맞춰 본다).
+- **보상**: `SpecialTrial.reward(층, 조건, 깨짐, 센 값, 인원, xp_bonus)` → 표 목록(`gimmick_floor_N` 언제나 + 지켰으면 `special_trial_fNN`) · 경험치 배율.
+- **자가 진단**: 층마다 `special_trials`(확정된 특별 시련) · `special_conditions_checked`(조건 4종 × 지킴→어김) · `special_loot_items`(특별 상자를 사람 없이 굴린 개수).
+
 ## 7. 성능·안정성 규칙
 
 - 블록 대량 배치는 틱당 상한(예: 4,000 블록)으로 나눠서. 층 생성 중엔 입장자에게 진행 표시.
@@ -947,6 +975,8 @@ cosmetics:
   요구 레벨 ≤ 층 구간), `EnhanceMaterialsTest`·`EnhanceRulesTest`·`EnhanceLayoutTest`(재료 규칙·곡선·비용 줄 배치), `ScalingTest`(램프·솔로 보정·예전 설정 기본값),
   `RoomRewardTest`(솔로·2인 몹 수·보상 보정·방 정리 회복·첫 돌파), `EarlySoloDataTest`(1·2층 공격 간격·소환 솔로 값·직업 HP), `StarterKitTest`, `ClassChangeRuleTest`.
   콘텐츠를 고치면 이 테스트와 `tools/gen_enhance.py --check` 를 같이 돌릴 것.
+- 0.3.5 특별 시련: `SpecialTrialTest`(굴림 시드·확률·확정 카운터, 층마다 그 기믹이 쓸 수 있는 조건만, 조건 4종 판정, 깨져도 평소 상자는 그대로,
+  dungeon.yml 기본값, special_trial_fNN 표, floors.yml 덮어쓰기 오타, 무결 기믹 = noteMistake 를 부르는 기믹).
 - `labadmin selftest` 는 층마다 기믹방 단서 3단계·보스 단서의 MiniMessage 읽기를 확인한다(`hints` 단계, `hint_gimmicks`/`hint_bosses` 개수).
 - `./gradlew build` 가 테스트 포함 통과해야 함.
 - `ContentValidator`: 모든 YAML 교차참조(아이템·몹·루팅·레시피·층·보스 id)가 유효한지 시작 시 + 테스트에서 검사.

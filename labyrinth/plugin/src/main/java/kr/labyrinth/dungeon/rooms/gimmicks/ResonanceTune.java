@@ -155,6 +155,7 @@ public final class ResonanceTune extends GimmickRoom {
             return true;
         }
         attempts--;
+        noteMistake();
         hurt(p, params.dbl("fail_damage", 0.08), "resonance_discord");
         fs.sound(block.getLocation(), Sound.BLOCK_GLASS_BREAK, 1.0f, 0.6f);
         if (attempts <= 0) {

@@ -112,10 +112,51 @@ public final class FloorState {
             case ELITE -> new BattleRoom(this, r, true);
             case TREASURE -> new TreasureRoom(this, r);
             case REST -> new RestRoom(this, r);
-            case GIMMICK -> GimmickRoom.create(this, r, def.gimmick());
+            case GIMMICK -> {
+                Room room = GimmickRoom.create(this, r, def.gimmick());
+                if (room instanceof GimmickRoom g) setupSpecialTrial(g, r);
+                yield room;
+            }
             case BOSS -> new BossRoom(this, r);
             case HALL -> throw new IllegalStateException("복도는 방이 아님");
         };
+    }
+
+    /** 이 층 루팅 표가 없어 특별 시련을 끈 층 (경고는 한 번만). */
+    private static final Set<Integer> NO_SPECIAL_TABLE = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /**
+     * 특별 시련 굴림 (GDD §10.1): 방 시드 + 파티 확정 카운터(층별 special_miss, 파티원 중 가장 큰 값).
+     * 이 방문에 특별 시련이 나오면 그 층 카운터를 0, 아니면 +1 (그 층에서 특별 시련이 가능할 때만 센다).
+     */
+    private void setupSpecialTrial(GimmickRoom g, FloorLayout.RoomInfo r) {
+        try {
+            DungeonConfig.Special cfg = config().specialTrial();
+            boolean force = run.forceSpecialTrial();
+            if (!cfg.enabled() && !force) return;
+            String table = kr.labyrinth.dungeon.rooms.SpecialTrial.table(floor);
+            if (services().content().lootTable(table) == null) {
+                if (NO_SPECIAL_TABLE.add(floor)) Log.warn("[미궁] 루팅 표 " + table + " 이 없어 지하 " + floor + "층 특별 시련을 끕니다 (loot.yml)");
+                return;
+            }
+            var rule = kr.labyrinth.dungeon.rooms.SpecialTrial.rule(def.gimmick(), def.specialTrial(), g.limitSeconds(), cfg);
+            if (rule.isEmpty()) return;
+            List<Player> members = run.onlineMembers();
+            List<Integer> misses = new ArrayList<>();
+            for (Player p : members) misses.add(services().data().get(p).specialMiss(floor));
+            long s = kr.labyrinth.dungeon.rooms.SpecialTrial.seed(seed, r.index());
+            var trial = force ? kr.labyrinth.dungeon.rooms.SpecialTrial.forced(s, rule, cfg)
+                    : kr.labyrinth.dungeon.rooms.SpecialTrial.pick(s, rule, cfg, kr.labyrinth.dungeon.rooms.SpecialTrial.partyMiss(misses));
+            g.special(trial);
+            if (force) return;
+            for (Player p : members) {
+                var d = services().data().get(p);
+                d.specialMiss(floor, trial != null ? 0 : d.specialMiss(floor) + 1);
+            }
+        } catch (Throwable t) {
+            Log.error("특별 시련 준비 실패 (지하 " + floor + "층) — 평소 시련으로 진행", t);
+            g.special(null);
+        }
     }
 
     // ── 생성 ──────────────────────────────────────────────────────────────

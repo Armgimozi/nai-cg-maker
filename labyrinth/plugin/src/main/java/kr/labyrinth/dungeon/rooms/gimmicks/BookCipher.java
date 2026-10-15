@@ -181,6 +181,7 @@ public final class BookCipher extends GimmickRoom {
                 return true;
             }
             attempts--;
+            noteMistake();
             labels.get(i).text(Text.mm("<dark_gray>" + SYMBOLS[symbolOf.get(i)][0] + " ✘"));
             fs.sound(at, Sound.ENTITY_GHAST_SCREAM, 0.5f, 1.4f);
             failSpawn();
