@@ -107,6 +107,7 @@ npcs:
       - {item: greater_mana_potion, price: 150, level_req: 30}
       - {item: return_scroll, price: 100}
       - {item: stat_reset_scroll, price: 2000}
+      - {item: lesser_enhance_stone, price: 60}
 
   # ═══════════════════════════ 층 안 이야기 NPC (휴식방) ═══════════════════════════
 

@@ -89,7 +89,7 @@ final class SelfTest {
         t.nextFloor();
     }
 
-    /** 모든 아이템 ItemStack 생성(툴팁·모델·컴포넌트) + 도감 획득처 계산. */
+    /** 모든 아이템 ItemStack 생성(툴팁·모델·컴포넌트) + 강화 단계 확인 + 도감 획득처 계산. */
     private void checkItemsAndCodex() {
         for (String id : services.content().items().keySet()) {
             step("items", () -> {
@@ -100,6 +100,8 @@ final class SelfTest {
                 count("items_created", 1);
             });
         }
+        // 강화: 강화할 수 있는 장비 전부 +1~+10 기록·다시 그리기·스탯 배율 (GDD §11.13)
+        step("items", () -> count("enhance_checked", kr.labyrinth.items.enhance.EnhanceService.selfCheck(services)));
         step("ui", () -> {
             var src = kr.labyrinth.ui.menus.CodexMenu.buildSources(services.content());
             int gear = 0, known = 0;

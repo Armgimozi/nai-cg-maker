@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# titles.yml — 업적 64종 → 칭호
+# titles.yml — 업적 66종 → 칭호
 #
 # 스키마: ARCHITECTURE.md §6 titles.yml (+ 추가 필드는 §6 에 기록됨)
 #  condition.type (닫힌 목록) 과 파라미터:
@@ -18,7 +18,8 @@
 #    PVP_WIN          {count}                         매치 승리 누적
 #    PVP_STREAK       {count}                         매치 연승
 #    PVP_RATING       {min}                           대전 레이팅(개인, 팀 평균으로 기대 승률 계산) min 이상 도달
-#    server_first     : (PVP_FIRST_WIN·PVP_RATING 선택 키) true 면 서버에서 처음 달성한 1팀/1명만 받음 (records.yml)
+#    ENHANCE          {level}                         대장장이 강화 성공으로 장비를 +level 까지 올림 (GDD §11.13)
+#    server_first     : (PVP_FIRST_WIN·PVP_RATING·ENHANCE 선택 키) true 면 서버에서 처음 달성한 1팀/1명만 받음 (records.yml)
 #  title     : 장착 시 채팅·탭·이름표 접두어 (MiniMessage)
 #  bonus     : 장착 중에만 적용. 키 = STR|DEX|INT|VIT|WIS|LUK 또는 xp_bonus|gold_bonus (비율)
 #  broadcast : 달성 시 서버 전체 방송
@@ -537,6 +538,27 @@ achievements:
     bonus: {LUK: 1}
     broadcast: true
     reward: {gold: 3000}
+
+  # 강화 (GDD §11.13) — ENHANCE {level} = 강화 성공으로 그 단계에 처음 도달 (하락해도 기록은 남음)
+  enhance_7:
+    name: "빛나는 칼날"
+    description: "장비를 처음으로 +7 까지 강화"
+    category: craft
+    condition: {type: ENHANCE, level: 7}
+    title: "<gradient:#ffd36b:#fff4d6>빛나는 칼날</gradient>"
+    bonus: {}
+    broadcast: false
+    reward: {gold: 1000, items: {enhance_protection_scroll: 1}}
+
+  first_enhance_10:
+    name: "모루의 전설"
+    description: "서버 최초로 장비를 +10 까지 강화"
+    category: craft
+    condition: {type: ENHANCE, level: 10, server_first: true}
+    title: "<gradient:#ff8a3d:#ffd36b:#fff4d6><b>모루의 전설</b></gradient>"
+    bonus: {STR: 1, DEX: 1, INT: 1}
+    broadcast: true
+    reward: {gold: 10000}
 
   # ═══════════════════════ 대전 (파티 대 파티 PvP) ═══════════════════════
   # 대전 칭호는 명예 전용: 스탯 보너스·골드·아이템 보상 없음 (arenas.yml pvp.rewards.titles_only, GDD §18).

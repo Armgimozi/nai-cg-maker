@@ -22,6 +22,8 @@ import kr.labyrinth.content.Params;
 import kr.labyrinth.core.Keys;
 import kr.labyrinth.core.Text;
 import kr.labyrinth.event.ItemObtainEvent;
+import kr.labyrinth.items.enhance.EnhanceRules;
+import kr.labyrinth.items.enhance.Enhancement;
 import net.kyori.adventure.key.Key;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -36,6 +38,7 @@ import org.bukkit.persistence.PersistentDataType;
  * <ul>
  *   <li>ITEM_MODEL = labyrinth:&lt;id&gt; (CustomModelData 안 씀), 이름 = 희귀도 색, 툴팁 = {@link ItemTooltip}</li>
  *   <li>굴림 스탯 PDC({@code Keys.ITEM_SEED/ITEM_ROLLS/ITEM_VERSION}) — 드롭·제작·보상 순간 굴린다</li>
+ *   <li>강화 단계 PDC({@code Keys.ITEM_ENHANCE}, {@link Enhancement}) — 이름 "+7"·툴팁·광택은 {@link #render}, 스탯 배율은 {@link #rolledStats}</li>
  *   <li>방어구: EQUIPPABLE(slot) + assetId labyrinth:&lt;set&gt;. <b>투구는 assetId 없이</b> → 3D 아이템 모델이 머리에 렌더링</li>
  *   <li>바닐라 속성 수정치 비움(공격력·공속은 StatService), 활은 BOW + 무한(숨김) + 파괴 불가</li>
  *   <li>물약류: CONSUMABLE(마시기 0.8초) + USE_COOLDOWN(cooldown_group 공유, 클라이언트 쿨다운 표시)</li>
@@ -44,7 +47,8 @@ import org.bukkit.persistence.PersistentDataType;
  */
 public final class GearItemService implements ItemService {
 
-    public static final int ITEM_VERSION = 1;
+    /** 아이템 데이터 버전: 1 = 굴림, 2 = 강화 단계(Keys.ITEM_ENHANCE) 추가. 1 이하 아이템은 강화 0 으로 읽는다. */
+    public static final int ITEM_VERSION = Enhancement.ITEM_VERSION;
     /** 소모품 중 바닐라 '마시기' 로 처리하는 action. 나머지(return/stat_reset/revive)는 우클릭으로 직접 처리. */
     public static final Set<String> DRINK_ACTIONS = Set.of("heal", "mana", "restore", "cleanse", "buff");
 
@@ -86,11 +90,7 @@ public final class GearItemService implements ItemService {
         ItemStack s = ItemStack.of(isBow(def) ? Material.BOW : Material.PAPER, Math.max(1, Math.min(max, amount)));
         s.setData(DataComponentTypes.MAX_STACK_SIZE, max);
         s.setData(DataComponentTypes.ITEM_MODEL, Key.key(Keys.NS, def.id()));
-        s.setData(DataComponentTypes.ITEM_NAME, Text.item("<" + def.rarity().color() + ">" + def.name()));
-
         Map<String, Double> rolls = def.isGear() ? ItemRolls.roll(def, seed) : null;
-        List<String> lore = ItemTooltip.lines(services.content(), def, rolls);
-        s.setData(DataComponentTypes.LORE, ItemLore.lore(Text.itemLines(lore)));
 
         TooltipDisplay.Builder tip = TooltipDisplay.tooltipDisplay();
         if (def.isGear()) {
@@ -115,7 +115,32 @@ public final class GearItemService implements ItemService {
                 pdc.set(Keys.ITEM_VERSION, PersistentDataType.INTEGER, ITEM_VERSION);
             }
         });
+        render(s, def);
         return s;
+    }
+
+    /**
+     * 이름·툴팁·광택을 PDC(굴림값·강화 단계)에서 다시 그린다 — 생성 직후, 강화 직후, 설정이 바뀐 뒤 강화 창에서 고를 때.
+     * 이름 = 강화 접두어("+7 ") + 희귀도 색(+7 부터 금빛 그라데이션), +7 부터 인챈트 광택.
+     */
+    public void render(ItemStack s, ItemDef def) {
+        int lv = def.isGear() ? Enhancement.level(s) : 0;
+        EnhanceRules er = Enhancement.rules();
+        boolean enh = lv > 0 && EnhanceRules.enhanceable(def);
+        if (enh) {
+            String[] col = er.nameColor(def.rarity(), lv);
+            s.setData(DataComponentTypes.ITEM_NAME, Text.item(er.namePrefix(lv) + col[0] + def.name() + col[1]));
+        } else {
+            s.setData(DataComponentTypes.ITEM_NAME, Text.item("<" + def.rarity().color() + ">" + def.name()));
+        }
+        Map<String, Double> base = def.isGear() ? baseRolls(s, def) : null;
+        Map<String, Double> bonus = enh ? er.bonus(def, base, lv) : Map.of();
+        List<String> enhLines = def.isGear() ? Enhancement.tooltip(services.content(), def, lv) : List.of();
+        List<String> lore = ItemTooltip.lines(services.content(), def, base, bonus, enhLines);
+        s.setData(DataComponentTypes.LORE, ItemLore.lore(Text.itemLines(lore)));
+        if (enh && er.shines(lv)) s.setData(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
+        else if (isBow(def)) s.setData(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, false);
+        else s.resetData(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE);
     }
 
     private void applyEquippable(ItemStack s, ItemDef def) {
@@ -178,9 +203,22 @@ public final class GearItemService implements ItemService {
     }
 
     @Override
+    public void refresh(ItemStack stack) {
+        defOf(stack).ifPresent(def -> render(stack, def));
+    }
+
+    /** 굴림값 × 강화 배율 (GDD §11.13 — 무기 피해, 방어구·방패 방어·HP). */
+    @Override
     public Map<String, Double> rolledStats(ItemStack stack) {
         Optional<ItemDef> def = defOf(stack);
         if (def.isEmpty() || !def.get().isGear()) return Map.of();
+        Map<String, Double> base = baseRolls(stack, def.get());
+        int lv = Enhancement.level(stack);
+        return lv > 0 ? Enhancement.rules().apply(def.get(), base, lv) : base;
+    }
+
+    /** 강화 전 굴림값 (PDC 굴림 → 시드 재현 → 범위 중간값 순). */
+    public static Map<String, Double> baseRolls(ItemStack stack, ItemDef def) {
         var pdc = stack.getPersistentDataContainer();
         String enc = pdc.get(Keys.ITEM_ROLLS, PersistentDataType.STRING);
         if (enc != null) {
@@ -188,7 +226,7 @@ public final class GearItemService implements ItemService {
             if (!m.isEmpty()) return m;
         }
         Long seed = pdc.get(Keys.ITEM_SEED, PersistentDataType.LONG);
-        return seed != null ? ItemRolls.roll(def.get(), seed) : ItemRolls.midpoint(def.get());
+        return seed != null ? ItemRolls.roll(def, seed) : ItemRolls.midpoint(def);
     }
 
     @Override

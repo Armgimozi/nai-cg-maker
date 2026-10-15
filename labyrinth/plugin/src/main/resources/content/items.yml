@@ -3740,6 +3740,44 @@ items:
     texture: {style: essence, palette: ["#100a06", "#5a3a10", "#ffb627", "#fff4d6", "#ffffff"]}
     lore: "미궁이 처음 쌓이던 때의 마력. 심장 넬카르의 박동과 같은 박자로 깜빡인다. (지하 9~10층)"
 
+  # ═════════ 강화 재료 (대장장이 두르간의 [강화] — GDD §11.13, 수치는 config.yml enhance) ═════════
+  # 강화석은 장비가 속한 층 구간별로 한 종류만 쓴다: 지하 1~3층 장비 = 하급 · 4~7층 = 상급 · 8~10층 = 최상급.
+  lesser_enhance_stone:
+    name: "하급 강화석"
+    type: material
+    rarity: uncommon
+    floor: 1
+    sources: [drop, elite, boss, chest, shop]
+    model: {shape: icon}
+    texture: {style: rune_stone, palette: ["#16181e", "#3a4250", "#7a8aa0", "#b8c8d8", "#e8f4ff"]}
+    lore: "희미한 룬이 새겨진 회색 돌. 망치로 두드리면 장비의 결이 단단해진다. 지하 1~3층 장비를 강화한다."
+  greater_enhance_stone:
+    name: "상급 강화석"
+    type: material
+    rarity: rare
+    floor: 4
+    sources: [drop, elite, boss, chest]
+    model: {shape: icon}
+    texture: {style: rune_stone, palette: ["#120c22", "#2e2058", "#6a4ab0", "#b090ff", "#f0e4ff"]}
+    lore: "보랏빛 룬이 맥박치는 돌. 깊은 층의 마력을 머금어 무겁다. 지하 4~7층 장비를 강화한다."
+  supreme_enhance_stone:
+    name: "최상급 강화석"
+    type: material
+    rarity: epic
+    floor: 8
+    sources: [drop, elite, boss, chest]
+    model: {shape: icon}
+    texture: {style: rune_stone, palette: ["#1a0c04", "#5a2a08", "#e07020", "#ffd36b", "#fff8e0"]}
+    lore: "속에서 불꽃이 타오르는 금빛 돌. 두르간도 평생 몇 개 못 만져 봤다고 한다. 지하 8~10층 장비를 강화한다."
+  enhance_protection_scroll:
+    name: "강화 보호 주문서"
+    type: material
+    rarity: epic
+    sources: [elite, boss, reward]
+    model: {shape: icon}
+    texture: {style: scroll, palette: ["#0c1a24", "#1e4a66", "#5ab0e0", "#c8f0ff", "#fff4d6"]}
+    lore: "강화 창에서 켜 두면, 실패해 단계가 내려갈 때 대신 찢어져 단계를 지켜 준다. 정예·보스가 드물게 떨어뜨린다."
+
   # ═════════ 소모품 (use.action 닫힌 목록 — GDD §11.9) ═════════
   minor_healing_potion:
     name: "하급 치유 물약"

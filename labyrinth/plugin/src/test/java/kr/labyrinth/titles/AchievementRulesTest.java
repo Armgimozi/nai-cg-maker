@@ -200,6 +200,28 @@ class AchievementRulesTest {
     }
 
     @Test
+    void enhanceRecordsBestSuccessOnly() {
+        AchievementDef e7 = def("e7", "ENHANCE", Map.of("level", 7));
+        TitleCounters.onEnhance(s, true, 6);
+        TitleCounters.onEnhance(s, false, 7);           // 실패는 세지 않는다
+        assertFalse(met(e7));
+        TitleCounters.onEnhance(s, true, 7);
+        assertTrue(met(e7));
+        TitleCounters.onEnhance(s, true, 5);            // 하락 뒤 다시 올려도 최고 기록은 유지
+        assertEquals(7, s.get(AchievementRules.P + "enhance_best"));
+        assertEquals(3, s.get(AchievementRules.P + "enhance_success"));
+        assertArrayEquals(new long[] {7, 7}, AchievementRules.progress(e7, s::get));
+        assertEquals("장비 +7 강화 성공", AchievementRules.conditionText(e7));
+        // server_first: 기본 조건만으로는 받지 못하고, 서버 최초 기록을 가진 사람만
+        AchievementDef f10 = def("f10", "ENHANCE", Map.of("level", 10, "server_first", true));
+        TitleCounters.onEnhance(s, true, 10);
+        assertTrue(AchievementRules.baseMet("ENHANCE", f10.condition(), s::get));
+        assertFalse(met(f10));
+        s.set(AchievementRules.P + "server_first.f10", 1);
+        assertTrue(met(f10));
+    }
+
+    @Test
     void unknownTypeIsNeverMet() {
         assertFalse(met(def("x", "SOMETHING_NEW", Map.of())));
     }
@@ -217,7 +239,8 @@ class AchievementRulesTest {
     void everyBundledAchievementTypeIsKnown() {
         Content c = ContentLoader.load(Path.of("src/main/resources/content")).content();
         Set<String> known = Set.of("FIRST_CLEAR", "CLEAR", "SOLO_CLEAR", "NO_DEATH_CLEAR", "DIFFICULTY_CLEAR", "SPEED_CLEAR",
-                "KILL", "BOSS_KILL", "LEVEL", "OBTAIN_RARITY", "CRAFT", "PVP_FIRST_WIN", "PVP_WIN", "PVP_STREAK", "PVP_RATING");
+                "KILL", "BOSS_KILL", "LEVEL", "OBTAIN_RARITY", "CRAFT", "PVP_FIRST_WIN", "PVP_WIN", "PVP_STREAK", "PVP_RATING",
+                "ENHANCE");
         assertFalse(c.achievements().isEmpty());
         for (AchievementDef a : c.achievements().values()) {
             assertTrue(known.contains(a.conditionType()), () -> a.id() + ": 알 수 없는 조건 " + a.conditionType());

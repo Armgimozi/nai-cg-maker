@@ -64,6 +64,13 @@ public final class TitleCounters {
         }
     }
 
+    /** 강화 (EnhanceEvent). 성공했을 때만 최고 단계·성공 횟수를 올린다(하락으로 내려가도 기록은 남는다). */
+    public static void onEnhance(Store s, boolean success, int level) {
+        if (!success) return;
+        s.add(P + "enhance_success", 1);
+        s.max(P + "enhance_best", Math.max(0, level));
+    }
+
     /** 대전 종료 (PvpMatchEndEvent 참가자 각자). streak/rating 이 null 이면 이벤트가 안 준 값 → 자체 계산. */
     public static void onPvp(Store s, boolean win, Integer streak, Integer rating) {
         if (win) s.add(P + "pvp_wins", 1);
