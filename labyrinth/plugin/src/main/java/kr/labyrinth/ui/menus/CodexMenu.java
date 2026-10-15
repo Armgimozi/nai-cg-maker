@@ -24,6 +24,7 @@ import kr.labyrinth.content.Rarity;
 import kr.labyrinth.content.RecipeDef;
 import kr.labyrinth.core.Keys;
 import kr.labyrinth.core.Text;
+import kr.labyrinth.items.ItemTooltip;
 import kr.labyrinth.ui.Button;
 import kr.labyrinth.ui.UiTheme;
 import net.kyori.adventure.key.Key;
@@ -140,20 +141,20 @@ public final class CodexMenu extends LabMenu {
             s = null;
         }
         if (s == null || s.getType().isAir()) s = UiTheme.item(d.id(), Material.PAPER, d.name(), List.of());
-        List<Component> lore = new ArrayList<>(s.lore() == null ? List.of() : s.lore());
-        lore.add(Component.empty());
-        lore.add(Text.mm("<!italic><#ffd36b>◆ 획득처"));
+        // 도감은 굴림값·강화 대신 범위로 보여 주고, 획득처 목록이 들어갈 자리를 비운다 (화면 안에 — ItemTooltip.MAX_LINES)
         List<String> src = sources.getOrDefault(d.id(), List.of());
-        if (src.isEmpty()) lore.add(Text.mm("<!italic><dark_gray>  알려진 획득처 없음 (관리자 지급)"));
-        int n = 0;
-        for (String line : src) {
-            if (n++ >= 7) {
-                lore.add(Text.mm("<!italic><dark_gray>  … 외 " + (src.size() - 7) + "곳"));
-                break;
-            }
-            lore.add(Text.mm("<!italic><gray>  " + line));
+        if (src.isEmpty()) src = List.of("<dark_gray>알려진 획득처 없음 (관리자 지급)");
+        List<String> lines = new ArrayList<>(ItemTooltip.lines(services.content(), d, null, Map.of(), List.of(), 1 + Math.min(src.size(), SOURCE_LINES)));
+        lines.removeIf(l -> l.startsWith(ItemTooltip.SOURCE_PREFIX)); // 아래 목록과 겹치는 한 줄 요약
+        lines.add("<#ffd36b>◆ 획득처");
+        int room = Math.max(1, ItemTooltip.MAX_LINES - lines.size());
+        if (src.size() <= room) {
+            lines.addAll(src);
+        } else {
+            lines.addAll(src.subList(0, room - 1));
+            lines.add("<dark_gray>  … 외 더 있음");
         }
-        s.lore(lore);
+        s.lore(Text.itemLines(lines));
         s.setAmount(1);
         return s;
     }
@@ -256,33 +257,51 @@ public final class CodexMenu extends LabMenu {
         visiting.remove(t.id());
     }
 
+    /** 획득처 종류 (표시 순서). */
+    private static final List<String> SOURCE_GROUPS = List.of("보스", "정예", "보물 상자", "기믹 방", "제작", "상점", "칭호 보상", "몬스터");
+    // 제작 = 대장장이 (재료 ×개수 · … · 골드)
+    private static final Map<String, String> SOURCE_COLORS = Map.of("보스", "#ff6b6b", "정예", "#ffb52e", "제작", "#7fd8ff",
+            "상점", "#7fe07f", "칭호 보상", "#c9a2ff");
+    /** 도감 툴팁에서 획득처에 비워 두는 최대 줄 수 (넘치면 장비 설명 쪽이 빈 줄·스킬 설명을 줄인다). */
+    public static final int SOURCE_LINES = 6;
+    /** 획득처 줄바꿈 글자 수 (툴팁 폭). */
+    private static final int SOURCE_WRAP = 34;
+
+    private record Src(String group, String label) {}
+
+    /**
+     * 아이템 id → 획득처 표시 줄. 종류별로 한 줄에 묶는다 ("정예 대시계 집행관(9층) · 심연의 문지기(10층)",
+     * "보물 상자 지하 9·10층") — 길면 다음 줄로 이어 쓴다.
+     */
     public static Map<String, List<String>> buildSources(Content c) {
-        Map<String, Set<String>> src = new LinkedHashMap<>();
-        Map<String, List<String>> tableLabels = new LinkedHashMap<>();
+        Map<String, Map<String, Set<String>>> src = new LinkedHashMap<>();
+        Map<String, List<Src>> tableLabels = new LinkedHashMap<>();
         for (MobDef m : c.mobs().values()) {
             if (m.drops() == null) continue;
             tableLabels.computeIfAbsent(m.drops(), k -> new ArrayList<>())
-                    .add((m.isElite() ? "정예 " : "") + Text.strip(m.name()) + " <dark_gray>(지하 " + m.floor() + "층)");
+                    .add(new Src(m.isElite() ? "정예" : "몬스터", Text.strip(m.name()) + "(" + m.floor() + "층)"));
         }
         for (BossDef b : c.bosses().values()) {
             if (b.drops() == null) continue;
-            tableLabels.computeIfAbsent(b.drops(), k -> new ArrayList<>())
-                    .add("<#ff6b6b>보스</#ff6b6b> " + Text.strip(b.name()) + " <dark_gray>(지하 " + b.floor() + "층)");
+            // 보스는 짧은 이름 ("시계탑의 간수 테오라" → "테오라") — 몇 층인지와 함께면 충분하고 한 줄에 여럿 들어간다
+            String full = Text.strip(b.name()).trim();
+            String shortName = full.contains(" ") ? full.substring(full.lastIndexOf(' ') + 1) : full;
+            tableLabels.computeIfAbsent(b.drops(), k -> new ArrayList<>()).add(new Src("보스", shortName + "(" + b.floor() + "층)"));
         }
         for (String tid : c.lootTables().keySet()) {
             if (tid.startsWith("treasure_floor_")) {
-                tableLabels.computeIfAbsent(tid, k -> new ArrayList<>()).add("보물 상자 <dark_gray>(지하 " + tid.substring(15) + "층)");
+                tableLabels.computeIfAbsent(tid, k -> new ArrayList<>()).add(new Src("보물 상자", tid.substring(15)));
             } else if (tid.startsWith("gimmick_floor_")) {
-                tableLabels.computeIfAbsent(tid, k -> new ArrayList<>()).add("기믹 방 보상 <dark_gray>(지하 " + tid.substring(14) + "층)");
+                tableLabels.computeIfAbsent(tid, k -> new ArrayList<>()).add(new Src("기믹 방", tid.substring(14)));
             }
         }
         for (var e : tableLabels.entrySet()) {
             Set<String> items = new LinkedHashSet<>();
             collectItems(c, c.lootTable(e.getKey()), items, new HashSet<>());
-            for (String id : items) src.computeIfAbsent(id, k -> new LinkedHashSet<>()).addAll(e.getValue());
+            for (String id : items) for (Src s : e.getValue()) add(src, id, s);
         }
         for (RecipeDef r : c.recipes().values()) {
-            StringBuilder sb = new StringBuilder("<#7fd8ff>대장장이 제작</#7fd8ff> <dark_gray>(");
+            StringBuilder sb = new StringBuilder();
             int n = 0;
             for (var m : r.materials().entrySet()) {
                 ItemDef md = c.item(m.getKey());
@@ -290,25 +309,66 @@ public final class CodexMenu extends LabMenu {
                 sb.append(md == null ? m.getKey() : Text.strip(md.name())).append(" ×").append(m.getValue());
             }
             if (r.gold() > 0) sb.append(n > 0 ? ", " : "").append(r.gold()).append("G");
-            sb.append(")");
-            src.computeIfAbsent(r.result(), k -> new LinkedHashSet<>()).add(sb.toString());
+            add(src, r.result(), new Src("제작", sb.toString()));
         }
         for (NpcDef npc : c.npcs().values()) {
             if (npc.shop() == null) continue;
-            for (NpcDef.ShopEntry s : npc.shop()) {
-                src.computeIfAbsent(s.item(), k -> new LinkedHashSet<>())
-                        .add("<#7fe07f>상점</#7fe07f> " + Text.strip(npc.name()) + " <dark_gray>(" + s.price() + "G)");
-            }
+            for (NpcDef.ShopEntry s : npc.shop()) add(src, s.item(), new Src("상점", Text.strip(npc.name()) + " " + s.price() + "G"));
         }
         for (AchievementDef a : c.achievements().values()) {
             if (a.rewardItems() == null) continue;
-            for (String id : a.rewardItems().keySet()) {
-                src.computeIfAbsent(id, k -> new LinkedHashSet<>()).add("<#c9a2ff>칭호 보상</#c9a2ff> " + Text.strip(a.name()));
-            }
+            for (String id : a.rewardItems().keySet()) add(src, id, new Src("칭호 보상", Text.strip(a.name())));
         }
         Map<String, List<String>> out = new LinkedHashMap<>();
         // 원문 이름에 든 MiniMessage 기호는 strip 으로 걷었으므로 그대로 써도 안전
-        src.forEach((k, v) -> out.put(k, List.copyOf(v)));
+        src.forEach((id, groups) -> out.put(id, List.copyOf(formatSources(groups))));
         return out;
+    }
+
+    private static void add(Map<String, Map<String, Set<String>>> src, String id, Src s) {
+        src.computeIfAbsent(id, k -> new LinkedHashMap<>()).computeIfAbsent(s.group(), k -> new LinkedHashSet<>()).add(s.label());
+    }
+
+    /** 종류별 한 줄 (넘치면 들여 써서 이어 감). 보물 상자·기믹 방은 층만 모아 "지하 9·10층". */
+    static List<String> formatSources(Map<String, Set<String>> groups) {
+        List<String> lines = new ArrayList<>();
+        for (String g : SOURCE_GROUPS) {
+            Set<String> labels = groups.get(g);
+            if (labels == null || labels.isEmpty()) continue;
+            List<String> parts = new ArrayList<>();
+            if (g.equals("보물 상자") || g.equals("기믹 방")) {
+                List<Integer> floors = new ArrayList<>();
+                for (String l : labels) {
+                    try { floors.add(Integer.parseInt(l)); } catch (NumberFormatException ignored) { }
+                }
+                floors.sort(Integer::compare);
+                List<String> fs = new ArrayList<>();
+                for (int f : floors) fs.add(String.valueOf(f));
+                parts.add("지하 " + String.join("·", fs) + "층");
+            } else if (g.equals("제작")) {
+                for (String l : labels) parts.addAll(List.of(l.split(", "))); // 재료마다 끊어 줄바꿈
+            } else {
+                parts.addAll(labels);
+            }
+            String color = SOURCE_COLORS.getOrDefault(g, "#d0d0d0");
+            StringBuilder cur = new StringBuilder();
+            int curLen = g.length() + 1;
+            boolean firstLine = true;
+            for (String p : parts) {
+                int add = (cur.length() == 0 ? 0 : 3) + p.length();
+                if (cur.length() > 0 && curLen + add > SOURCE_WRAP) {
+                    lines.add((firstLine ? "<" + color + ">" + g + "</" + color + "> " : "   ") + "<gray>" + cur);
+                    firstLine = false;
+                    cur.setLength(0);
+                    curLen = 3;
+                    add = p.length();
+                }
+                if (cur.length() > 0) cur.append(" <dark_gray>·</dark_gray> <gray>");
+                cur.append(p);
+                curLen += add;
+            }
+            if (cur.length() > 0) lines.add((firstLine ? "<" + color + ">" + g + "</" + color + "> " : "   ") + "<gray>" + cur);
+        }
+        return lines;
     }
 }

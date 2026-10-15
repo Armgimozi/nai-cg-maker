@@ -16,8 +16,8 @@ import kr.labyrinth.core.Text;
 
 /**
  * 아이템 툴팁(lore) 생성 — MiniMessage 문자열 목록. Bukkit 무관(단위 테스트 가능).
- * 구성: 희귀도·분류 / 요구 레벨·추천 직업 / 스탯(굴림값 + 강화 몫 + 범위) / 굴림 품질 / 강화 / 무기 스킬 / 세트 효과 / 아우라 /
- * 사용 효과 / 설명 / 획득처.
+ * 구성: 희귀도·분류·아우라 / 요구 레벨·추천 직업 / 스탯(첫 스탯은 범위·굴림 품질과 한 줄, 나머지 두 개씩) / 강화 / 무기 스킬 /
+ * 세트 효과·사용 효과 / 설명 / 획득처. 화면에 다 들어가도록 {@link #MAX_LINES} 를 넘으면 덜 중요한 줄부터 뺀다.
  */
 public final class ItemTooltip {
 
@@ -124,128 +124,182 @@ public final class ItemTooltip {
     }
 
     /**
+     * 이름 줄을 뺀 툴팁 최대 줄 수. GUI 크기를 크게 쓴 1080p 화면에 툴팁이 약 23줄 들어가므로 이름 포함 21줄로 맞춘다.
+     * 넘치면 덜 중요한 것부터 뺀다: 설명(이야기) → 획득처 한 줄 → 빈 줄 → 무기 스킬 설명을 첫 줄만.
+     */
+    public static final int MAX_LINES = 20;
+    /** 획득처 한 줄 요약의 앞부분 (도감은 자세한 목록을 따로 붙이므로 이 줄을 뺀다). */
+    public static final String SOURCE_PREFIX = "<dark_gray>획득처: ";
+    /** 설명·스킬 설명 줄바꿈 글자 수 (툴팁 폭이 화면 절반을 넘지 않게). */
+    static final int WRAP = 34;
+
+    /**
      * @param rolls   굴린 스탯 (null 이면 범위만 보여 주는 미리보기)
      */
     public static List<String> lines(Content content, ItemDef def, Map<String, Double> rolls) {
-        return lines(content, def, rolls, Map.of(), List.of());
+        return lines(content, def, rolls, Map.of(), List.of(), 0);
+    }
+
+    public static List<String> lines(Content content, ItemDef def, Map<String, Double> rolls,
+                                     Map<String, Double> enhanceBonus, List<String> enhanceLines) {
+        return lines(content, def, rolls, enhanceBonus, enhanceLines, 0);
     }
 
     /**
      * @param rolls        기본 굴림값 (null 이면 범위만 보여 주는 미리보기)
      * @param enhanceBonus 강화로 늘어난 몫 (키 → 증가량) — 값에 더해 보여 주고 금색 "(+n)" 을 붙인다
      * @param enhanceLines 강화 단계·다음 확률·비용 줄 (스탯 바로 아래, 비어 있으면 생략)
+     * @param reserve      호출자가 아래에 덧붙일 줄 수 (도감 획득처·대장간 재료) — 그만큼 {@link #MAX_LINES} 에서 비운다
      */
     public static List<String> lines(Content content, ItemDef def, Map<String, Double> rolls,
-                                     Map<String, Double> enhanceBonus, List<String> enhanceLines) {
-        List<String> out = new ArrayList<>();
+                                     Map<String, Double> enhanceBonus, List<String> enhanceLines, int reserve) {
         Rarity r = def.rarity();
         String c = "<" + r.color() + ">";
-        out.add(c + r.displayName() + " " + category(def) + "</" + r.color() + ">"
-                + (def.floor() > 0 && def.isGear() ? " <dark_gray>· 지하 " + def.floor() + "층" : ""));
 
+        // 머리: 희귀도·분류·층·아우라 / 요구 레벨·추천 직업
+        List<String> head = new ArrayList<>();
+        StringBuilder top = new StringBuilder(c + r.displayName() + " " + category(def) + "</" + r.color() + ">");
+        if (def.floor() > 0 && def.isGear()) top.append(" <dark_gray>· 지하 ").append(def.floor()).append("층</dark_gray>");
+        if (def.aura() != null && content.auras().containsKey(def.aura())) {
+            boolean mythic = "mythic".equals(content.auras().get(def.aura()).tier());
+            top.append(" <dark_gray>·</dark_gray> ").append(c).append("✦ ").append(mythic ? "2겹 아우라" : "아우라").append("</").append(r.color()).append(">");
+        }
+        head.add(top.toString());
         if (def.isGear()) {
             StringBuilder req = new StringBuilder("<gray>요구 레벨 <white>" + def.levelReq() + "</white>");
             List<String> names = suitedClassNames(content, def);
             if (!names.isEmpty()) {
                 req.append(" <dark_gray>·</dark_gray> 추천 직업 <white>").append(String.join(", ", names)).append("</white>");
+                // 착용 제한 없음 — 추천 직업이 들면 직업 스킬 재사용 대기만 줄어든다
+                if (def.isWeapon()) req.append(" <dark_gray>(스킬 대기 −").append(Text.pct(WeaponTypes.RECOMMENDED_COOLDOWN_CUT)).append(")");
             }
-            out.add(req.toString());
-            if (def.isWeapon() && !names.isEmpty()) {
-                out.add("<dark_gray>모든 직업 사용 가능 · 추천 직업이 들면 직업 스킬 재사용 대기 −"
-                        + Text.pct(WeaponTypes.RECOMMENDED_COOLDOWN_CUT));
-            }
+            head.add(req.toString());
         } else if (def.levelReq() > 1) {
-            out.add("<gray>사용 레벨 <white>" + def.levelReq());
+            head.add("<gray>사용 레벨 <white>" + def.levelReq());
         }
 
-        // 스탯
-        if (!def.stats().isEmpty()) {
-            out.add("");
-            for (Map.Entry<String, Range> e : def.stats().entrySet()) {
-                String key = e.getKey();
-                Range range = e.getValue();
-                if (range == null) continue;
-                String rangeTxt = range.max() - range.min() > 1e-9 ? " <dark_gray>(" + rangeText(key, range) + ")" : "";
-                if (rolls == null) {
-                    out.add(statLine(key, rangeText(key, range), true) + "");
-                } else {
-                    double v = rolls.getOrDefault(key, ItemRolls.round(key, range.lerp(0.5)));
-                    Double plus = enhanceBonus.get(key);
-                    if (plus != null && plus != 0) {
-                        out.add(statLine(key, formatStat(key, ItemRolls.round(key, v + plus)), false)
-                                + " <#ffd36b>(" + formatStat(key, plus) + ")</#ffd36b>" + rangeTxt);
-                    } else {
-                        out.add(statLine(key, formatStat(key, v), false) + rangeTxt);
+        // 스탯: 첫 스탯(무기 피해·방어구 방어 등)은 범위·굴림 품질과 한 줄, 나머지는 두 개씩 한 줄
+        List<String> stats = new ArrayList<>();
+        List<String> cells = new ArrayList<>();
+        boolean first = true;
+        for (Map.Entry<String, Range> e : def.stats().entrySet()) {
+            String key = e.getKey();
+            Range range = e.getValue();
+            if (range == null) continue;
+            String cell;
+            if (rolls == null) {
+                cell = statLine(key, rangeText(key, range), true);
+            } else {
+                double v = rolls.getOrDefault(key, ItemRolls.round(key, range.lerp(0.5)));
+                Double plus = enhanceBonus.get(key);
+                cell = plus != null && plus != 0
+                        ? statLine(key, formatStat(key, ItemRolls.round(key, v + plus)), false) + " <#ffd36b>(" + formatStat(key, plus) + ")</#ffd36b>"
+                        : statLine(key, formatStat(key, v), false);
+            }
+            if (first) {
+                first = false;
+                StringBuilder line = new StringBuilder(cell);
+                if (rolls != null && range.max() - range.min() > 1e-9) line.append(" <dark_gray>(").append(rangeText(key, range)).append(")");
+                if (rolls != null) {
+                    double q = ItemRolls.quality(def, rolls);
+                    if (q >= 0) {
+                        String qc = q >= 0.9 ? "#ffd27a" : q >= 0.6 ? "#9be89b" : q >= 0.3 ? "#cfcfcf" : "#9a9a9a";
+                        line.append(" <dark_gray>· 굴림 품질 <").append(qc).append(">").append(Math.round(q * 100)).append("%");
                     }
                 }
-            }
-            if (rolls != null) {
-                double q = ItemRolls.quality(def, rolls);
-                if (q >= 0) {
-                    String qc = q >= 0.9 ? "#ffd27a" : q >= 0.6 ? "#9be89b" : q >= 0.3 ? "#cfcfcf" : "#9a9a9a";
-                    out.add("<dark_gray>굴림 품질 <" + qc + ">" + Math.round(q * 100) + "%");
-                }
+                stats.add(line.toString());
+            } else {
+                cells.add(cell);
             }
         }
-        if (!enhanceLines.isEmpty()) {
-            out.add("");
-            out.addAll(enhanceLines);
+        for (int i = 0; i < cells.size(); i += 2) {
+            stats.add(i + 1 < cells.size() ? cells.get(i) + " <dark_gray>·</dark_gray> " + cells.get(i + 1) : cells.get(i));
         }
 
-        // 무기 스킬
-        if (!def.weaponSkills().isEmpty()) {
-            out.add("");
-            for (ItemDef.WeaponSkillDef s : def.weaponSkills()) {
-                StringBuilder head = new StringBuilder("<#ffd27a>◆ " + inputName(def, s.input()) + "</#ffd27a> <white>"
-                        + Text.escape(s.name()) + "</white> <dark_gray>(");
-                head.append("재사용 ").append(trim(s.cooldown())).append("초");
-                if (s.mana() > 0) head.append(" · MP ").append(trim(s.mana()));
-                head.append(")");
-                out.add(head.toString());
-                if (s.description() != null && !s.description().isBlank()) {
-                    for (String l : wrap(s.description(), 30)) out.add("  <gray>" + Text.escape(l));
-                }
+        // 무기 스킬 (머리 줄 + 설명)
+        List<String> skillHeads = new ArrayList<>();
+        List<List<String>> skillDescs = new ArrayList<>();
+        for (ItemDef.WeaponSkillDef s : def.weaponSkills()) {
+            StringBuilder h = new StringBuilder("<#ffd27a>◆ " + inputName(def, s.input()) + "</#ffd27a> <white>"
+                    + Text.escape(s.name()) + "</white> <dark_gray>(");
+            h.append("재사용 ").append(trim(s.cooldown())).append("초");
+            if (s.mana() > 0) h.append(" · MP ").append(trim(s.mana()));
+            h.append(")");
+            skillHeads.add(h.toString());
+            List<String> d = new ArrayList<>();
+            if (s.description() != null && !s.description().isBlank()) {
+                for (String l : wrap(s.description(), WRAP)) d.add("  <gray>" + Text.escape(l));
             }
+            skillDescs.add(d);
         }
 
-        // 세트
+        // 세트·사용 효과
+        List<String> extra = new ArrayList<>();
         ItemSetDef set = content.setOf(def);
         if (set != null) {
-            out.add("");
-            out.add("<#7fd8ff>세트: " + Text.escape(set.name()) + " <dark_gray>(" + set.pieces().size() + "부위)");
+            extra.add("<#7fd8ff>세트: " + Text.escape(set.name()) + " <dark_gray>(" + set.pieces().size() + "부위)");
             set.bonuses().forEach((count, bonus) -> {
                 List<String> parts = new ArrayList<>();
                 bonus.forEach((k, v) -> parts.add(statName(k) + " " + formatStat(k, v)));
-                out.add("  <gray>(" + count + ") " + String.join(", ", parts));
+                extra.add("  <gray>(" + count + ") " + String.join(", ", parts));
             });
         }
-
-        // 아우라
-        if (def.aura() != null && content.auras().containsKey(def.aura())) {
-            out.add("");
-            boolean mythic = "mythic".equals(content.auras().get(def.aura()).tier());
-            out.add(c + "✦ " + (mythic ? "2겹 아우라" : "아우라") + "</" + r.color() + "> <gray>— 손에 들면 빛난다");
-        }
-
-        // 사용 효과
         if (def.use() != null && !def.use().isEmpty()) {
-            out.add("");
-            out.add("<#9be89b>사용: " + useText(def.use()));
             double cd = def.use().dbl("cooldown", 0);
-            if (cd > 0) out.add("<dark_gray>재사용 대기 " + trim(cd) + "초");
+            extra.add("<#9be89b>사용: " + useText(def.use()) + (cd > 0 ? " <dark_gray>(재사용 " + trim(cd) + "초)" : ""));
         }
 
-        // 설명
+        // 설명(이야기)·획득처 — 자리가 남을 때만
+        List<String> flavor = new ArrayList<>();
         if (def.lore() != null && !def.lore().isBlank()) {
-            out.add("");
-            for (String l : wrap(def.lore(), 30)) out.add("<#8a8a9a><i>" + Text.escape(l));
+            for (String l : wrap(def.lore(), WRAP)) flavor.add("<#8a8a9a><i>" + Text.escape(l));
         }
-
+        String source = null;
         if (!def.sources().isEmpty()) {
             List<String> names = new ArrayList<>();
             for (String s : def.sources()) names.add(SOURCES.getOrDefault(s, s));
-            out.add("<dark_gray>획득처: " + String.join(" · ", names));
+            source = SOURCE_PREFIX + String.join(" · ", names);
         }
+
+        int budget = Math.max(6, MAX_LINES - Math.max(0, reserve));
+        List<String> out = null;
+        // 0: 전부 · 1: 설명 뺌 · 2: 획득처도 뺌 · 3: 빈 줄 뺌 · 4: 스킬 설명 첫 줄만
+        for (int tier = 0; tier <= 4; tier++) {
+            out = assemble(head, stats, enhanceLines, skillHeads, skillDescs, extra,
+                    tier == 0 ? flavor : List.of(), tier <= 1 ? source : null, tier <= 2, tier >= 4);
+            if (out.size() <= budget) break;
+        }
+        return out;
+    }
+
+    private static List<String> assemble(List<String> head, List<String> stats, List<String> enhance, List<String> skillHeads,
+                                         List<List<String>> skillDescs, List<String> extra, List<String> flavor, String source,
+                                         boolean blanks, boolean shortDescs) {
+        List<String> out = new ArrayList<>(head);
+        if (!stats.isEmpty() || !enhance.isEmpty()) {
+            if (blanks) out.add("");
+            out.addAll(stats);
+            out.addAll(enhance);
+        }
+        if (!skillHeads.isEmpty()) {
+            if (blanks) out.add("");
+            for (int i = 0; i < skillHeads.size(); i++) {
+                out.add(skillHeads.get(i));
+                List<String> d = skillDescs.get(i);
+                if (d.isEmpty()) continue;
+                if (shortDescs && d.size() > 1) out.add(d.get(0) + "…");
+                else out.addAll(d);
+            }
+        }
+        if (!extra.isEmpty()) {
+            if (blanks) out.add("");
+            out.addAll(extra);
+        }
+        if (!flavor.isEmpty()) {
+            out.add("");
+            out.addAll(flavor);
+        }
+        if (source != null) out.add(source);
         return out;
     }
 

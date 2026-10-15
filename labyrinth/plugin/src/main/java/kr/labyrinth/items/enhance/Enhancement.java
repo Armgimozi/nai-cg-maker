@@ -69,6 +69,8 @@ public final class Enhancement {
                 ? (r.shines(level) ? "<#ffd36b>⚒ 강화 +" + level + "</#ffd36b>" : "<#e8d9b0>⚒ 강화 +" + level + "</#e8d9b0>")
                         + " <dark_gray>/ +" + max + " · " + scaledText(def) + " ×" + ItemTooltip.trim(r.multiplier(level))
                 : "<#c8b48a>⚒ 강화 +0</#c8b48a> <dark_gray>/ +" + max + " — 대장장이 두르간";
+        // 두 줄로 (툴팁 줄 수 — ItemTooltip.MAX_LINES): 하락 경고는 첫 줄 끝에, 보호 주문서 안내는 강화 창에
+        if (r.downgradesOnFail(level)) head += " <#ff8a8a>⚠ 실패하면 +" + (level - 1) + " 으로 내려감";
         out.add(head);
         int target = level + 1;
         String stone = r.stoneFor(def);
@@ -76,9 +78,6 @@ public final class Enhancement {
         out.add("<dark_gray>다음 +" + target + ": <gray>" + EnhanceRules.pct(r.chance(target)) + "</gray> · 골드 <gray>"
                 + kr.labyrinth.core.Text.num(r.baseGold(def, target)) + "</gray> · " + (sd == null ? stone : sd.name())
                 + " <gray>×" + r.stoneCount(target));
-        if (r.downgradesOnFail(level)) {
-            out.add("<#ff8a8a>⚠ 실패하면 +" + (level - 1) + " 으로 내려감 <dark_gray>(보호 주문서로 막기)");
-        }
         return out;
     }
 

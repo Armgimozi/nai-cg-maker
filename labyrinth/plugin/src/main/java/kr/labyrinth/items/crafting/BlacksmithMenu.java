@@ -152,27 +152,29 @@ final class BlacksmithMenu extends Menu {
 
     private ItemStack recipeIcon(Player p, PlayerData d, RecipeDef r) {
         ItemDef def = services.content().item(r.result());
-        List<String> lore = new ArrayList<>(ItemTooltip.lines(services.content(), def, null));
-        lore.add("");
-        lore.add("<#e0a050>━━ 제작 재료 ━━");
+        List<String> tail = new ArrayList<>();
+        tail.add("");
+        tail.add("<#e0a050>━━ 제작 재료 ━━");
         boolean ok = true;
         for (Map.Entry<String, Integer> m : r.materials().entrySet()) {
             ItemDef md = services.content().item(m.getKey());
             int have = crafting.count(p, m.getKey());
             boolean enough = have >= m.getValue();
             ok &= enough;
-            lore.add((enough ? "<#9be89b>✔ " : "<#ff6b6b>✘ ") + (md == null ? m.getKey() : md.name()) + " <gray>"
+            tail.add((enough ? "<#9be89b>✔ " : "<#ff6b6b>✘ ") + (md == null ? m.getKey() : md.name()) + " <gray>"
                     + have + "/" + m.getValue());
         }
         long gold = crafting.goldCost(p, r);
         boolean goldOk = d.gold() >= gold;
         boolean lvOk = d.level() >= r.levelReq();
         ok &= goldOk && lvOk;
-        lore.add((goldOk ? "<#ffd27a>" : "<#ff6b6b>") + "골드 " + Text.num(gold) + (gold < r.gold() ? " <dark_gray>(원가 " + Text.num(r.gold()) + ")" : ""));
-        lore.add((lvOk ? "<gray>" : "<#ff6b6b>") + "제작 레벨 " + r.levelReq());
-        lore.add("");
-        lore.add(ok ? "<#ffd27a>▶ 클릭하여 제작" + (r.amount() > 1 ? " (×" + r.amount() + ")" : "")
+        tail.add((goldOk ? "<#ffd27a>" : "<#ff6b6b>") + "골드 " + Text.num(gold) + (gold < r.gold() ? " <dark_gray>(원가 " + Text.num(r.gold()) + ")" : "")
+                + " <dark_gray>·</dark_gray> " + (lvOk ? "<gray>" : "<#ff6b6b>") + "제작 레벨 " + r.levelReq());
+        tail.add(ok ? "<#ffd27a>▶ 클릭하여 제작" + (r.amount() > 1 ? " (×" + r.amount() + ")" : "")
                 : "<#ff6b6b>조건이 부족합니다");
+        // 재료 줄만큼 자리를 비워 툴팁이 화면 안에 들어가게 (ItemTooltip.MAX_LINES)
+        List<String> lore = new ArrayList<>(ItemTooltip.lines(services.content(), def, null, Map.of(), List.of(), tail.size()));
+        lore.addAll(tail);
         String name = "<" + def.rarity().color() + ">" + def.name() + (r.amount() > 1 ? " <gray>×" + r.amount() : "");
         Material base = "bow".equals(def.weaponType()) ? Material.BOW : Material.PAPER;
         return Button.icon(base, def.id(), name, lore);

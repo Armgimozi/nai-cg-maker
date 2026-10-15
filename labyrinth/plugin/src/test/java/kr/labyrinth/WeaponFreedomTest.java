@@ -157,7 +157,7 @@ class WeaponFreedomTest {
     void tooltipShowsRecommendationNotRestriction() {
         String weapon = String.join("\n", ItemTooltip.lines(content, content.item("ember_greatsword"), null));
         assertTrue(weapon.contains("추천 직업 <white>광전사"), weapon);
-        assertTrue(weapon.contains("모든 직업 사용 가능"), weapon);
+        assertTrue(weapon.contains("스킬 대기 −"), weapon); // 추천 직업은 재사용 대기 보너스일 뿐 (착용 제한 아님)
         assertFalse(weapon.contains("전용"), weapon);
         for (ItemDef def : content.items().values()) {
             if (!def.isGear()) continue;
