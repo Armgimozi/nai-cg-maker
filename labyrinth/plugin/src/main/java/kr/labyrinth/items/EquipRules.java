@@ -30,6 +30,14 @@ public final class EquipRules {
         return check(def, stats) == Problem.NONE;
     }
 
+    /**
+     * 요구 능력치를 못 맞춰 능력치가 안 붙는 무기는 '든 무기 없음'으로 본다 (스탯 계산·스킬 위력과 같은 기준).
+     * @return 든 무기(맞춤) 또는 null (무기가 아니거나 못 맞춤)
+     */
+    public static ItemDef effective(ItemDef held, Map<Stat, Integer> stats) {
+        return held != null && held.isWeapon() && held.requirement().met(stats) ? held : null;
+    }
+
     /** 못 맞춘 조건 문구 "요구 힘 30 (현재 22)" (맞췄거나 요구 없음 = 빈 문자열). */
     public static String problemText(ItemDef def, Map<Stat, Integer> stats) {
         return def == null ? "" : def.requirement().shortfall(stats);

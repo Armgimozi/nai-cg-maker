@@ -98,7 +98,7 @@ final class ProjectileSkills {
         Missile m = new Missile(Math.max(0.2, c.num("speed", 1.5)), c.num("gravity", 0), c.num("homing", 0), c.pierce(),
                 c.num("range", 20), c.num("explode_radius", 0), c.damage(), c.num("knockback", 0),
                 c.amountOrFlag("pull", 0.8), c.amountOrFlag("boss_pull", 0.8), c.fx(null));
-        boolean bow = "bow".equals(c.weapon.weaponType());
+        boolean bow = c.weapon.isRanged();
         for (int i = 0; i < count; i++) {
             final int idx = i;
             Runnable fire = () -> {

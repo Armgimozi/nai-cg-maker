@@ -18,7 +18,6 @@ import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.ItemSetDef;
 import kr.labyrinth.content.ItemType;
 import kr.labyrinth.content.StatRequirement;
-import kr.labyrinth.content.WeaponTypes;
 import kr.labyrinth.core.ContentLoader;
 import kr.labyrinth.core.ContentValidator;
 import kr.labyrinth.items.enhance.EnhanceRules;
@@ -193,17 +192,13 @@ class StatRequirementTest {
         assertTrue(checked > 100, "장비 " + checked);
     }
 
-    /** 결정 1 의 무기 종류·외형 → 능력치 규칙 (데이터 담당과 같은 표 — 시험용 재현). */
+    /** 결정 1 의 능력치 규칙 (시험용 재현): 무기 = 지금 요구 능력치(없으면 물리 힘 · 마법 지능), 방어구 = 겉모습. */
     static StatRequirement ruleShaped(Content c, ItemDef d) {
         int r = (int) Math.ceil(2.5 * (d.levelReq() - 1));
         if (r <= 2 || d.type() == ItemType.ACCESSORY) return StatRequirement.NONE;
         if (d.isWeapon()) {
-            Stat s = switch (d.weaponType()) {
-                case "greatsword", "sword_shield" -> Stat.STR;
-                case "bow", "dagger" -> Stat.DEX;
-                case "staff" -> Stat.INT;
-                default -> Stat.WIS;
-            };
+            Stat s = d.requirement().all().keySet().stream().findFirst()
+                    .orElse(d.attack().kind() == kr.labyrinth.combat.DamageKind.MAGIC ? Stat.INT : Stat.STR);
             return StatRequirement.of(Map.of(s, r), Map.of());
         }
         ItemSetDef set = c.setOf(d);
@@ -221,7 +216,7 @@ class StatRequirementTest {
     void parserReadsRequiresAndRequiresAny() {
         Map<String, Object> blade = new LinkedHashMap<>();
         blade.put("type", "weapon");
-        blade.put("weapon_type", "greatsword");
+        blade.put("attack", Map.of("style", "melee", "interval", 1.0, "kind", "physical"));
         blade.put("level_req", 13);
         blade.put("requires", Map.of("STR", 30));
         Map<String, Object> robe = new LinkedHashMap<>();
@@ -236,7 +231,7 @@ class StatRequirementTest {
         items.put("t_blade", blade);
         items.put("t_robe", robe);
         items.put("t_bad", bad);
-        items.put("t_plain", Map.of("type", "weapon", "weapon_type", "bow"));
+        items.put("t_plain", Map.of("type", "weapon", "attack", Map.of("style", "ranged", "interval", 1.15, "kind", "physical")));
         ContentParser parser = new ContentParser();
         Map<String, Map<String, Object>> files = new HashMap<>();
         files.put("items.yml", Map.of("items", items));
@@ -267,7 +262,7 @@ class StatRequirementTest {
         ItemDef acc = content.items().values().stream().filter(d -> d.type() == ItemType.ACCESSORY).findFirst().orElseThrow();
         items.put(acc.id(), acc.withRequires(STR30));
         ClassDef arcanist = content.classDef("arcanist");
-        ItemDef staff = WeaponTypes.starterWeapon(content.items().values(), arcanist);
+        ItemDef staff = content.item(arcanist.starterWeapon());
         int base = arcanist.baseStat(Stat.INT);
         items.put(staff.id(), staff.withRequires(StatRequirement.of(Map.of(Stat.INT, base + ContentValidator.START_POINTS + 1), Map.of())));
         Content c = content;
@@ -289,7 +284,7 @@ class StatRequirementTest {
     void everyClassCanUseItsStarterGearAtLevelOne() {
         for (ClassDef cls : content.classes().values()) {
             Map<Stat, Integer> lv1 = StatRequirement.playerStats(cls, Map.of(), Map.of());
-            ItemDef w = WeaponTypes.starterWeapon(content.items().values(), cls);
+            ItemDef w = content.item(cls.starterWeapon());
             assertTrue(w.requirement().pointsNeeded(lv1) <= ContentValidator.START_POINTS, cls.id() + " → " + w.id() + " " + w.requirement().text());
             for (ItemDef d : content.items().values()) {
                 if (d.isGear() && d.sources().contains("starter")) assertTrue(d.requirement().isEmpty(), d.id() + " " + d.requirement().text());
@@ -325,7 +320,7 @@ class StatRequirementTest {
     @Test
     void legacyConstructorHasNoRequirement() {
         ItemDef d = content.items().values().stream().filter(x -> x.type() == ItemType.ARMOR).findFirst().orElseThrow();
-        ItemDef old = new ItemDef(d.id(), d.name(), d.type(), d.weaponType(), d.armorSlot(), d.armorSet(), d.rarity(), d.levelReq(),
+        ItemDef old = new ItemDef(d.id(), d.name(), d.type(), d.attack(), d.armorSlot(), d.armorSet(), d.rarity(), d.levelReq(),
                 d.classes(), d.stats(), d.setBonus(), d.aura(), d.weaponSkills(), d.floor(), d.pool(), d.sources(), d.use(),
                 d.model(), d.texture(), d.lore(), d.raw());
         assertTrue(old.requirement().isEmpty());

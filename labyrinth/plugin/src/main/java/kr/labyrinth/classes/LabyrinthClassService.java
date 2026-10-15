@@ -12,7 +12,6 @@ import kr.labyrinth.classes.skills.SkillFx;
 import kr.labyrinth.classes.skills.SkillRegistry;
 import kr.labyrinth.content.ClassDef;
 import kr.labyrinth.content.ItemDef;
-import kr.labyrinth.content.WeaponTypes;
 import kr.labyrinth.core.Log;
 import kr.labyrinth.core.Settings;
 import kr.labyrinth.core.Text;
@@ -233,20 +232,22 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
     }
 
     /**
-     * 직업 스킬은 아무 미궁 무기로나 나가지만 처음엔 손에 쥔 게 없으므로, 직업을 처음 골랐을 때 가방에 그 직업의 추천 무기가 없으면
-     * 가장 낮은 등급 추천 무기를 하나 준다 ({@link WeaponTypes#starterWeapon}). 직업마다 한 번만 (PlayerData ext {@code class.starter.<직업>}).
+     * 직업 스킬은 아무 미궁 무기로나 나가지만 처음엔 손에 쥔 게 없으므로, 직업을 처음 골랐을 때 그 직업의 시작 무기
+     * (classes.yml {@code starter_weapon})를 하나 준다. 가방에 같은 방식(근접·원거리·시전)의 미궁 무기가 이미 있으면 주지 않는다.
+     * 직업마다 한 번만 (PlayerData ext {@code class.starter.<직업>}).
      */
     private void giveStarterWeapon(Player player, ClassDef def) {
         PlayerData d = services.data().get(player);
         String flag = "class.starter." + def.id();
         if (Boolean.TRUE.equals(d.ext().get(flag))) return;
+        ItemDef best = def.starterWeapon() == null ? null : services.content().item(def.starterWeapon());
+        if (best == null || !best.isWeapon()) return;
         for (org.bukkit.inventory.ItemStack it : player.getInventory().getContents()) {
             if (it == null || it.getType().isAir()) continue;
             ItemDef have = services.items().defOf(it).orElse(null);
-            if (have != null && have.isWeapon() && def.recommendsWeapon(have.weaponType())) return;
+            if (have != null && have.isWeapon() && have.attack().style() == best.attack().style()) return;
         }
-        ItemDef best = WeaponTypes.starterWeapon(services.content().items().values(), def);
-        if (best == null || services.items().give(player, best.id(), 1, "starter") <= 0) return;
+        if (services.items().give(player, best.id(), 1, "starter") <= 0) return;
         services.stats().markDirty(player); // 빈 손 칸에 들어갔을 수 있다 — setClass 의 재계산은 지급 전에 끝났다
         d.ext().put(flag, true);
         d.markDirty();
@@ -313,7 +314,6 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
         ClassDef.SkillDef sk = cls.skillByInput(input);
         if (sk == null) return false;
         String col = cls.color();
-        ItemDef weapon = services.items().heldWeapon(player); // 추천 무기 재사용 대기 판정용 (스킬 자체는 무엇을 들었든 나간다)
         int level = services.data().get(player).level();
         if (level < sk.unlockLevel()) {
             bar(player, "<" + col + ">" + sk.name() + "</" + col + "> <#ff8080>— Lv." + sk.unlockLevel() + " 에 해금", 40);
@@ -365,11 +365,10 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
             return true;
         }
         useMana(player, cost);
-        // 채널링 스킬이 cancelCast 로 쿨다운을 이미 정했으면 덮어쓰지 않는다
-        // 추천 무기면 기본 재사용 대기 −10% (요구 능력치를 못 맞춰 능력치가 안 붙는 무기는 제외), 그다음 재사용 감소 스탯
+        // 채널링 스킬이 cancelCast 로 쿨다운을 이미 정했으면 덮어쓰지 않는다. 재사용 대기 = classes.yml 값 → 재사용 감소 스탯
+        // (0.3.5: 든 무기와 상관없음 — 예전 '추천 무기 −10%' 는 모든 스킬의 값에 녹였다)
         if (st.cooldowns.ready(sk.id())) {
-            double base = WeaponTypes.classSkillCooldown(cls, WeaponTypes.effective(weapon, services.stats().requirementStats(player)), sk.cooldown());
-            st.cooldowns.start(sk.id(), CooldownTracker.effective(base, services.stats().get(player).cooldownReduction()));
+            st.cooldowns.start(sk.id(), CooldownTracker.effective(sk.cooldown(), services.stats().get(player).cooldownReduction()));
         }
         if (services.hud().skillMessages()) bar(player, "<" + col + "><b>✦ " + sk.name() + "</b></" + col + ">  <#6fc3ff>MP " + Text.num(mana(player)) + "<gray>/"
                 + Text.num(maxMana(player)), 30);
@@ -441,11 +440,9 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
         return kr.labyrinth.core.InputKeys.bracket(input);
     }
 
-    public static String weaponName(String type) { return WeaponTypes.name(type); }
-
-    /** 추천 무기 이름 목록 ("활", "검과 방패" …). */
-    public static String weaponNames(ClassDef cls) {
-        return String.join(", ", cls.weaponTypes().stream().map(LabyrinthClassService::weaponName).toList());
+    /** 주로 쓰는 능력치 ("민첩 · 힘") — 직업 메뉴·/직업 정보 안내 한 줄. */
+    public static String mainStatsText(ClassDef cls) {
+        return String.join(" · ", cls.mainStats().stream().map(s -> "<" + s.color() + ">" + s.displayName() + "</" + s.color() + ">").toList());
     }
 
     static String fmt(double s) { return s >= 10 ? String.valueOf(Math.round(s)) : String.format("%.1f", s); }

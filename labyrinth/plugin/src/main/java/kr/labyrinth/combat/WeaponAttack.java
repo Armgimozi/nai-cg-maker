@@ -6,7 +6,7 @@ import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.Params;
 
 /**
- * 무기 한 자루의 공격 방식 (0.3.5, 순수) — 무기 종류(대검·활 …) 대신 무기마다 공격 간격·방식·피해 종류를 가진다.
+ * 무기 한 자루의 공격 방식 (0.3.5, 순수) — 무기 종류(분류) 없이 무기마다 공격 간격·방식·피해 종류를 가진다.
  * <ul>
  *   <li>{@code style}: MELEE(근접 휘두르기) · RANGED(활 — 당겨 쏘기) · CASTER(시전 — 지금은 근접 휘두르기, 피해는 마법)</li>
  *   <li>{@code interval}: 툴팁 간격(초, 민첩 전). 활은 한 발 주기 = 끝까지 당기는 시간 + 0.15초</li>
@@ -14,7 +14,8 @@ import kr.labyrinth.content.Params;
  *   <li>{@code skillPowerMult}: 스킬 위력 배율 (시전 1.05, 그 밖 1.0)</li>
  * </ul>
  * items.yml 의 {@code attack: {style, interval, kind, skill_power_mult}} 를 읽는다 ({@code speed} 만 있으면 1 ÷ speed).
- * 블록이 없는 무기는 예전 weapon_type 의 0.3.4 주기로 대신한다 (데이터를 옮기는 동안만).
+ * 콘텐츠를 읽을 때 한 번 만들어 {@link ItemDef#attack()} 에 둔다 ({@link #parse}).
+ * 블록이 없는 무기(0.3.4 때 손대 jar 의 새 items.yml 로 바뀌지 않은 파일)는 예전 키의 0.3.4 주기로 대신하고, 검사기가 경고한다.
  */
 public record WeaponAttack(Style style, double interval, DamageKind kind, double skillPowerMult) {
 
@@ -37,14 +38,19 @@ public record WeaponAttack(Style style, double interval, DamageKind kind, double
     /** 맨손 = 한 방 3 · 간격 0.625초 (config weapon_attack_speed.none 1.6 의 역수) · 근접 · 물리. */
     public static final WeaponAttack UNARMED = new WeaponAttack(Style.MELEE, 0.625, DamageKind.PHYSICAL, 1.0);
 
-    /** attack 블록이 없을 때 쓰는 0.3.4 종류 주기 (초). 데이터 옮기기가 끝나면 쓰이지 않는다. */
-    private static final Map<String, WeaponAttack> LEGACY_TYPE = Map.of(
+    /**
+     * attack 블록이 없는 예전(0.3.4) items.yml 을 읽을 때만 쓰는 옛 키 → 그때의 주기 (초). 0.3.5 jar 의 items.yml 은 무기마다
+     * attack 블록이 있어 쓰이지 않는다. 화면에는 어떤 분류 이름도 나오지 않는다.
+     */
+    private static final Map<String, WeaponAttack> LEGACY_034 = Map.of(
             "sword_shield", new WeaponAttack(Style.MELEE, 0.67, DamageKind.PHYSICAL, 1.0),
             "greatsword", new WeaponAttack(Style.MELEE, 1.05, DamageKind.PHYSICAL, 1.0),
             "dagger", new WeaponAttack(Style.MELEE, 0.45, DamageKind.PHYSICAL, 1.0),
             "bow", new WeaponAttack(Style.RANGED, 1.15, DamageKind.PHYSICAL, 1.0),
             "staff", new WeaponAttack(Style.CASTER, 0.91, DamageKind.MAGIC, CASTER_SKILL_POWER_MULT),
             "scepter", new WeaponAttack(Style.CASTER, 0.77, DamageKind.MAGIC, CASTER_SKILL_POWER_MULT));
+    /** attack 블록도 옛 키도 없는 무기 = 근접 0.67초 물리. */
+    public static final WeaponAttack DEFAULT = new WeaponAttack(Style.MELEE, 0.67, DamageKind.PHYSICAL, 1.0);
 
     public WeaponAttack {
         if (style == null) style = Style.MELEE;
@@ -54,24 +60,35 @@ public record WeaponAttack(Style style, double interval, DamageKind kind, double
         if (!(skillPowerMult > 0)) skillPowerMult = 1.0;
     }
 
-    /** 무기 정의의 공격 방식. 무기가 아니면 맨손. */
+    /** 무기 정의의 공격 방식 (읽을 때 정한 {@link ItemDef#attack()}). 무기가 아니면 맨손. */
     public static WeaponAttack of(ItemDef def) {
         if (def == null || !def.isWeapon()) return UNARMED;
-        WeaponAttack legacy = LEGACY_TYPE.getOrDefault(def.weaponType() == null ? "" : def.weaponType(),
-                new WeaponAttack(Style.MELEE, 0.67, DamageKind.PHYSICAL, 1.0));
-        Params a = def.raw() == null ? Params.EMPTY : def.raw().sub("attack");
-        if (a.isEmpty()) return legacy;
-        Style style = Style.byId(a.str("style"), legacy.style());
+        return def.attack() != null ? def.attack() : DEFAULT;
+    }
+
+    /** items.yml 무기 항목(raw) 의 attack 블록 → 공격 방식. 블록이 없으면 {@link #legacy}. */
+    public static WeaponAttack parse(Params raw) {
+        Params item = raw == null ? Params.EMPTY : raw;
+        WeaponAttack fallback = legacy(item);
+        Params a = item.sub("attack");
+        if (a.isEmpty()) return fallback;
+        Style style = Style.byId(a.str("style"), fallback.style());
         double interval = a.dbl("interval", Double.NaN);
         if (Double.isNaN(interval) && a.has("speed")) {
             double speed = a.dbl("speed", 0);
             interval = speed > 0 ? 1.0 / speed : Double.NaN;
         }
-        if (Double.isNaN(interval)) interval = legacy.interval();
+        if (Double.isNaN(interval)) interval = style == fallback.style() ? fallback.interval() : DEFAULT.interval();
         DamageKind defKind = style == Style.CASTER ? DamageKind.MAGIC : DamageKind.PHYSICAL;
         DamageKind kind = DamageKind.byId(a.str("kind"), defKind);
         double sp = a.dbl("skill_power_mult", style == Style.CASTER ? CASTER_SKILL_POWER_MULT : 1.0);
         return new WeaponAttack(style, interval, kind, sp);
+    }
+
+    /** attack 블록이 없을 때: 예전 키(weapon_type)가 남아 있으면 그때의 주기, 없으면 {@link #DEFAULT}. */
+    public static WeaponAttack legacy(Params raw) {
+        String old = raw == null ? null : raw.str("weapon_type");
+        return old == null ? DEFAULT : LEGACY_034.getOrDefault(old.trim(), DEFAULT);
     }
 
     /** 바닐라 무기 (칼·도끼·삼지창 …): 초당 횟수 그대로 근접 물리. 바닐라 활·쇠뇌는 원거리 1.15초. */

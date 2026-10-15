@@ -279,7 +279,7 @@ public final class DamageService implements Module {
      * 플레이어 공격의 원피해 (방어·치명 전) = 기준 × 피해 종류의 배율 × 배율 × (마법이면 1 + 마법 피해 가산).
      * 공격자 능력치가 없으면 배율 그대로 (예전과 같음).
      */
-    static double rawAmount(DerivedStats atk, DamageContext.Base base, DamageKind kind, double multiplier) {
+    public static double rawAmount(DerivedStats atk, DamageContext.Base base, DamageKind kind, double multiplier) {
         if (atk == null) return multiplier;
         double b = base == DamageContext.Base.SKILL ? atk.skillPower() : atk.weaponDamage();
         double magic = kind == DamageKind.MAGIC ? atk.magicDamage() : kind == DamageKind.HYBRID ? 0.5 * atk.magicDamage() : 0;

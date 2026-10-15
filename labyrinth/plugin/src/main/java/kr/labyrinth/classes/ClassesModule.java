@@ -211,6 +211,7 @@ public final class ClassesModule implements Module, Listener {
         p.sendMessage(Text.mm("<" + col + "><b>━━━━ " + c.name() + " ━━━━</b></" + col + ">  <gray>MP <#6fc3ff>"
                 + Text.num(services.classes().mana(p)) + "</#6fc3ff>/" + Text.num(services.classes().maxMana(p))));
         p.sendMessage(Text.mm(c.description()));
+        p.sendMessage(Text.mm("<gray>주로 쓰는 능력치 " + LabyrinthClassService.mainStatsText(c)));
         if (c.passive() != null) {
             p.sendMessage(Text.mm("<gold>패시브</gold> <" + col + ">" + c.passive().name() + "</" + col + "> <gray>— "
                     + Text.escape(c.passive().description())));
@@ -225,8 +226,7 @@ public final class ClassesModule implements Module, Listener {
             p.sendMessage(Text.mm("   <gray>").append(Text.mm("<gray>" + s.description())));
         }
         p.sendMessage(Text.mm("<dark_gray>무엇을 들었든 " + kr.labyrinth.core.InputKeys.CLASS_KEYS
-                + " · 추천 무기(" + LabyrinthClassService.weaponNames(c) + ")면 재사용 대기 −"
-                + Text.pct(kr.labyrinth.content.WeaponTypes.RECOMMENDED_COOLDOWN_CUT) + " · 버리기·손 바꾸기는 인벤토리 창에서"));
+                + " · 버리기·손 바꾸기는 인벤토리 창에서"));
         p.sendMessage(Text.mm("<gray>직업 변경: " + changeStatus(p, c)));
     }
 

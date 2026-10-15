@@ -4,19 +4,28 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import kr.labyrinth.combat.WeaponAttack;
 import kr.labyrinth.content.ClassDef;
 import kr.labyrinth.content.Content;
+import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.MobDef;
 import kr.labyrinth.content.Params;
+import kr.labyrinth.content.Range;
 import kr.labyrinth.core.ContentLoader;
+import kr.labyrinth.items.ItemMigration035;
 import kr.labyrinth.stats.StatBlock;
 import kr.labyrinth.stats.StatCalculator;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-/** 초반 솔로 완화 데이터: 1·2층 몹 기본 공격 간격, 정예 소환 수 솔로 값, 그림자·비전술사 기본 체력. */
+/** 초반 솔로 완화 데이터: 1·2층 몹 기본 공격 간격, 정예 소환 수 솔로 값, 그림자·비전술사 기본 체력, 1·2층 무기 초당 피해. */
 class EarlySoloDataTest {
 
     private static final double EPS = 1e-9;
@@ -106,6 +115,35 @@ class EarlySoloDataTest {
         // 탱커보다는 낮다
         double guardian = lv1Hp(content.classDef("guardian"));
         assertTrue(lv1Hp(shadow) < guardian && lv1Hp(arcanist) < guardian);
+    }
+
+    /**
+     * 0.3.5 P0b: 1·2층 무기(직업마다 받는 시작 무기 포함)는 무기마다 간격이 생긴 뒤에도 초당 피해 등가(한 방 ÷ 간격)가
+     * 0.3.4 숙련(게이지 꽉 차게 친) 초당 피해보다 낮지 않다 — 초반 솔로가 약해지지 않게 (c(L) ≈ 1.18~1.3 배).
+     */
+    @Test
+    void earlyWeaponsHitAtLeastAsHardPerSecondAsBefore() throws IOException {
+        JsonObject spec = JsonParser.parseString(Files.readString(Path.of("../tools/data/035/combat_spec.json"), StandardCharsets.UTF_8))
+                .getAsJsonObject().getAsJsonObject("weapons");
+        int n = 0;
+        for (Map.Entry<String, Range> e : ItemMigration035.OLD_DAMAGE.entrySet()) {
+            ItemDef d = content.item(e.getKey());
+            if (d == null || d.floor() > 2) continue;
+            // 0.3.4 의 주기 = 그때 파일의 옛 키 (명세 old_type) — 활은 끝까지 당긴 화살 ×1.25 였다
+            String old = spec.getAsJsonObject(d.id()).get("old_type").getAsString();
+            WeaponAttack then = WeaponAttack.legacy(Params.of(Map.of("weapon_type", old)));
+            double oldDps = (e.getValue().min() + e.getValue().max()) / 2 / then.interval() * (then.ranged() ? 1.25 : 1.0);
+            Range now = d.stats().get("damage");
+            double newDps = (now.min() + now.max()) / 2 / d.attack().interval();
+            assertTrue(newDps >= oldDps * 1.05, d.id() + " 초당 " + newDps + " < 0.3.4 " + oldDps);
+            n++;
+        }
+        assertTrue(n >= 24, "1·2층 무기 " + n);
+        for (ClassDef c : content.classes().values()) {
+            ItemDef w = content.item(c.starterWeapon());
+            assertNotNull(w, c.id());
+            assertTrue(w.floor() == 1, c.id() + " 시작 무기 " + w.id());
+        }
     }
 
     private static double lv1Hp(ClassDef c) {

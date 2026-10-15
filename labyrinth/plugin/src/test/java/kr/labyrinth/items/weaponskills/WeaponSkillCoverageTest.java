@@ -46,7 +46,7 @@ class WeaponSkillCoverageTest {
             for (ItemDef.WeaponSkillDef s : d.weaponSkills()) {
                 assertTrue(r.containsKey(s.id()), d.id() + " → " + s.id());
                 assertTrue(Set.of("LEFT", "RIGHT", "SNEAK_LEFT", "SNEAK_RIGHT").contains(s.input()), d.id() + " input " + s.input());
-                if ("bow".equals(d.weaponType())) assertTrue(!s.input().equals("RIGHT"), "활은 RIGHT 스킬 금지: " + d.id());
+                if (d.isRanged()) assertTrue(!s.input().equals("RIGHT"), "활(당겨 쏘기)은 RIGHT 스킬 금지: " + d.id());
                 n++;
             }
         }

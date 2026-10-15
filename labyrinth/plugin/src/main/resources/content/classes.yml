@@ -12,9 +12,11 @@
 #  - 추가 필드: color, description, primary_stat, base_hp, base_mp, mana_regen, passive
 #  - skill_scale      : 직업 스킬 배율 (0.3.5). 직업 스킬 피해 = 스킬 위력 × skill_scale × damage — 든 무기와 상관없음
 #  - primary_stat     : 추천 분배 안내에만 쓴다 (공격력은 힘 = 물리 · 지능 = 마법, 0.3.5)
-#  - weapon_types     : 추천 무기 (제한 아님 — 직업 스킬은 아무 미궁 무기로나 나간다). 추천 무기를 들면 직업 스킬
-#                       재사용 대기 −10%, 처음 전직할 때 이 종류의 가장 낮은 등급 무기를 준다. 직업 스킬 피해는 무기 종류
-#                       피해 배율을 첫 추천 무기 기준으로 환산한다 (GDD §4.4, content.WeaponTypes)
+#  - starter_weapon   : 처음 이 직업을 골랐을 때 한 번 주는 무기 (items.yml id). 무기 종류·추천 무기는 없다 (0.3.5) —
+#                       직업 스킬은 아무 미궁 무기로나 나가고, 위력·재사용 대기는 든 무기와 상관없다
+#  - main_stats       : 주로 쓰는 능력치 (직업 메뉴 안내 한 줄에만)
+#  - skills[].kind    : 피해 종류 physical(힘이 키움) | magic(지능이 키움) | hybrid | none(피해 없음)
+#  - skills[].cooldown: 재사용 대기(초). 0.3.5 에 예전 '추천 무기 −10%' 를 모든 스킬 값에 녹였다 (×0.9)
 # 해금 레벨: 스킬1=1, 스킬2=8, 스킬3=18, 궁극기=30 (전 직업 공통, 1~40 구간 안)
 # ─────────────────────────────────────────────────────────────────────────────
 version: 1
@@ -28,7 +30,8 @@ classes:
     color: "#7fb2ff"
     description: "<gray>방패로 적의 시선을 붙잡고 동료가 받을 피해를 대신 짊어지는 미궁의 성벽.</gray>"
     icon_item: guardian_emblem
-    weapon_types: [sword_shield]
+    starter_weapon: corridor_longsword       # 처음 이 직업을 고르면 한 번 주는 무기
+    main_stats: [VIT, STR]
     primary_stat: VIT
     skill_scale: 1.00
     base_stats: {STR: 5, DEX: 2, INT: 1, VIT: 7, WIS: 2, LUK: 1}
@@ -43,35 +46,39 @@ classes:
       params: {damage_reduction: 0.10, threat_mult: 2.0, low_hp: 0.30, emergency_dr: 0.20, emergency_duration: 5, emergency_cooldown: 60}
     skills:
       - id: shield_bash
+        kind: physical
         name: "방패 강타"
         input: SWAP
         unlock_level: 1
         mana: 10
-        cooldown: 6.0
+        cooldown: 5.4
         params: {damage: 1.2, stun: 1.0, boss_stun: 0.0, range: 3.5, angle: 70, threat: 3.0, interrupt: true}
         description: "전방 부채꼴의 적을 방패로 쳐서 <yellow>1초 기절</yellow>시키고 위협 수준을 크게 올린다. 보스의 시전을 끊을 수 있는 패턴이 있다."
       - id: taunting_roar
+        kind: none
         name: "도발의 함성"
         input: SNEAK_SWAP
         unlock_level: 8
         mana: 20
-        cooldown: 16.0
+        cooldown: 14.4
         params: {radius: 8, duration: 4, boss_duration: 3, damage_reduction: 0.25, dr_duration: 5}
         description: "주변 8칸의 모든 적이 4초간 나만 노린다(보스 3초). 5초간 받는 피해 25% 감소."
       - id: guardian_oath
+        kind: none
         name: "수호의 맹세"
         input: DROP
         unlock_level: 18
         mana: 25
-        cooldown: 20.0
+        cooldown: 18.0
         params: {range: 15, redirect: 0.40, duration: 8, self_shield: 0.15, prefer_lowest_hp: true}
         description: "바라보는 아군(없으면 HP가 가장 낮은 아군)과 맹세로 연결. 8초간 그 아군이 받는 피해의 40%를 대신 받고, 내 최대 HP 15%의 보호막을 얻는다."
       - id: bulwark_citadel
+        kind: none
         name: "불굴의 성채"
         input: SNEAK_DROP
         unlock_level: 30
         mana: 50
-        cooldown: 90.0
+        cooldown: 81.0
         params: {radius: 6, duration: 6, damage_reduction: 0.40, knockback_immune: true, enemy_slow: 0.30, fx_banner: citadel_banner, fx_dome: citadel_dome}
         description: "성채의 깃발을 꽂아 반경 6칸 방벽을 6초간 세운다. 안의 아군은 받는 피해 40% 감소·<gold>밀려나지 않음</gold>, 안으로 들어온 적은 30% 둔화."
 
@@ -80,9 +87,10 @@ classes:
     name: "광전사"
     role: melee
     color: "#ff5a3c"
-    description: "<gray>피를 흘릴수록 강해지는 대검의 광인. 적을 무르게 만들어 파티 전체의 화력을 끌어올린다.</gray>"
+    description: "<gray>피를 흘릴수록 강해지는 광인. 적을 무르게 만들어 파티 전체의 화력을 끌어올린다.</gray>"
     icon_item: berserker_emblem
-    weapon_types: [greatsword]
+    starter_weapon: rootcutter_greatsword       # 처음 이 직업을 고르면 한 번 주는 무기
+    main_stats: [STR, VIT]
     primary_stat: STR
     skill_scale: 1.55
     base_stats: {STR: 8, DEX: 3, INT: 1, VIT: 4, WIS: 1, LUK: 1}
@@ -97,35 +105,39 @@ classes:
       params: {threshold: 0.50, max_bonus: 0.25, mana_on_hit: 3}
     skills:
       - id: spin_slash
+        kind: physical
         name: "회전 베기"
         input: SWAP
         unlock_level: 1
         mana: 12
-        cooldown: 5.0
+        cooldown: 4.5
         params: {radius: 3.5, damage: 1.4, bleed_ratio: 0.15, bleed_duration: 4, bleed_tick: 1.0, fx: slash_arc}
-        description: "대검을 크게 돌려 주위 3.5칸을 벤다. 맞은 적은 4초간 <red>출혈</red>(초당 공격력 15%)."
+        description: "무기를 크게 돌려 주위 3.5칸을 벤다. 맞은 적은 4초간 <red>출혈</red>(초당 공격력 15%)."
       - id: ground_cleaver
+        kind: physical
         name: "대지 가르기"
         input: SNEAK_SWAP
         unlock_level: 8
         mana: 18
-        cooldown: 10.0
+        cooldown: 9.0
         params: {length: 9, width: 2.0, damage: 1.8, launch: 0.6, boss_launch: 0.0, fx: shockwave}
-        description: "대검을 내리꽂아 전방 9칸 직선으로 균열을 일으킨다. 적을 공중으로 띄운다(보스 제외)."
+        description: "무기를 내리꽂아 전방 9칸 직선으로 균열을 일으킨다. 적을 공중으로 띄운다(보스 제외)."
       - id: blood_frenzy
+        kind: none
         name: "피의 갈망"
         input: DROP
         unlock_level: 18
         mana: 0
-        cooldown: 24.0
+        cooldown: 21.6
         params: {hp_cost: 0.10, attack_speed: 0.30, damage: 0.20, lifesteal: 0.10, duration: 8}
         description: "현재 HP 10%를 바쳐 8초간 공격 속도 +30%, 피해 +20%, 흡혈 10%."
       - id: ruinous_leap
+        kind: physical
         name: "파멸의 도약"
         input: SNEAK_DROP
         unlock_level: 30
         mana: 45
-        cooldown: 75.0
+        cooldown: 67.5
         params: {range: 12, radius: 5, damage: 3.5, vulnerability: 0.15, vuln_duration: 6, fx: shockwave}
         description: "바라보는 지점(최대 12칸)으로 뛰어올라 내려찍는다. 반경 5칸에 큰 피해, 맞은 적은 6초간 <light_purple>모든 피해를 15% 더 받는다</light_purple>(파티 전체 혜택)."
 
@@ -134,9 +146,10 @@ classes:
     name: "사냥꾼"
     role: ranged
     color: "#8fd16a"
-    description: "<gray>먼 거리에서 약점을 꿰뚫는 활잡이. 표식으로 파티의 집중 공격을 지휘한다.</gray>"
+    description: "<gray>먼 거리에서 약점을 꿰뚫는 사수. 표식으로 파티의 집중 공격을 지휘한다.</gray>"
     icon_item: hunter_emblem
-    weapon_types: [bow]
+    starter_weapon: corridor_longbow       # 처음 이 직업을 고르면 한 번 주는 무기
+    main_stats: [DEX, STR]
     primary_stat: DEX
     skill_scale: 1.55
     base_stats: {STR: 2, DEX: 8, INT: 2, VIT: 3, WIS: 2, LUK: 3}
@@ -151,35 +164,39 @@ classes:
       params: {full_draw_bonus: 0.30, mana_on_full_draw: 3, far_distance: 12, far_crit: 0.08}
     skills:
       - id: piercing_arrow
+        kind: physical
         name: "관통 화살"
         input: SWAP
         unlock_level: 1
         mana: 12
-        cooldown: 5.0
+        cooldown: 4.5
         params: {damage: 2.0, pierce: 4, falloff: 0.20, speed: 3.0, range: 40, fx: proj_piercing_arrow}
         description: "일직선으로 적을 최대 4명까지 꿰뚫는 화살. 관통할 때마다 피해 20% 감소."
       - id: hunters_mark
+        kind: none
         name: "사냥꾼의 표식"
         input: SNEAK_SWAP
         unlock_level: 8
         mana: 15
-        cooldown: 14.0
+        cooldown: 12.6
         params: {range: 32, damage_taken: 0.20, duration: 10, reveal: true, fx: mark_hunter}
         description: "바라보는 적에게 10초간 표식. 표식 대상은 <yellow>파티 전체에게 20% 더 피해</yellow>를 받고, 은신·분신이 드러난다."
       - id: evasive_trap
+        kind: physical
         name: "회피 덫"
         input: DROP
         unlock_level: 18
         mana: 20
-        cooldown: 15.0
+        cooldown: 13.5
         params: {leap: 1.3, trap_radius: 2.0, trap_root: 2.5, trap_duration: 15, trap_damage: 1.0, fx: snare_trap}
         description: "뒤로 크게 공중제비를 돌며 제자리에 덫을 남긴다. 덫을 밟은 적은 2.5초 속박(15초 유지)."
       - id: arrow_storm
+        kind: physical
         name: "화살비"
         input: SNEAK_DROP
         unlock_level: 30
         mana: 45
-        cooldown: 70.0
+        cooldown: 63.0
         params: {range: 28, radius: 6, duration: 4, tick: 0.5, damage: 0.6, slow: 0.25}
         description: "바라보는 지점(최대 28칸) 반경 6칸에 4초간 화살비. 0.5초마다 피해, 안의 적 25% 둔화."
 
@@ -190,7 +207,8 @@ classes:
     color: "#b07cff"
     description: "<gray>미궁의 마력을 다루는 학자. 광역 제어와 폭발적인 마법으로 전장을 정리한다.</gray>"
     icon_item: arcanist_emblem
-    weapon_types: [staff]
+    starter_weapon: lantern_staff       # 처음 이 직업을 고르면 한 번 주는 무기
+    main_stats: [INT, VIT]
     primary_stat: INT
     skill_scale: 1.05
     base_stats: {STR: 1, DEX: 2, INT: 9, VIT: 4, WIS: 4, LUK: 1}
@@ -205,35 +223,39 @@ classes:
       params: {multi_hit: 3, refund: 0.50, combo_window: 4, combo_bonus: 0.10}
     skills:
       - id: arcane_bolt
+        kind: magic
         name: "마력탄"
         input: SWAP
         unlock_level: 1
         mana: 10
-        cooldown: 2.5
+        cooldown: 2.25
         params: {damage: 2.0, speed: 1.2, homing: 0.15, range: 24, fx: proj_arcane_bolt}
         description: "가장 가까운 시선 방향의 적을 약하게 추적하는 마력탄을 쏜다."
       - id: frost_nova
+        kind: magic
         name: "서리 고리"
         input: SNEAK_SWAP
         unlock_level: 8
         mana: 25
-        cooldown: 14.0
+        cooldown: 12.6
         params: {radius: 5, damage: 1.2, root: 2.0, boss_slow: 0.30, boss_slow_duration: 3, fx: frost_nova_ring}
         description: "주위 5칸에 서리 고리를 터뜨려 피해를 주고 2초간 얼린다(보스는 3초간 30% 둔화)."
       - id: phase_blink
+        kind: magic
         name: "위상 도약"
         input: DROP
         unlock_level: 18
         mana: 20
-        cooldown: 12.0
+        cooldown: 10.8
         params: {distance: 8, echo_damage: 1.0, echo_delay: 1.5, echo_radius: 3, fx: blink_echo}
         description: "바라보는 방향으로 최대 8칸 순간이동. 떠난 자리에 잔상이 남아 1.5초 뒤 폭발한다."
       - id: meteor_fall
+        kind: magic
         name: "운석 낙하"
         input: SNEAK_DROP
         unlock_level: 30
         mana: 70
-        cooldown: 80.0
+        cooldown: 72.0
         params: {range: 30, delay: 1.5, radius: 6, damage: 5.0, burn_duration: 4, burn_dps: 0.30, fx: meteor}
         description: "바라보는 지점에 1.5초 뒤 운석을 떨어뜨린다. 반경 6칸 막대한 피해 후 4초간 불타는 대지."
 
@@ -244,7 +266,8 @@ classes:
     color: "#ffe58a"
     description: "<gray>빛으로 상처를 메우고 저주를 걷어내는 파티의 생명줄. 쓰러진 동료도 다시 일으킨다.</gray>"
     icon_item: priest_emblem
-    weapon_types: [scepter]
+    starter_weapon: acolyte_scepter       # 처음 이 직업을 고르면 한 번 주는 무기
+    main_stats: [WIS, INT]
     primary_stat: WIS            # 치유력 = WIS 기반 (피해는 지능 = 마법)
     skill_scale: 0.90
     base_stats: {STR: 1, DEX: 2, INT: 4, VIT: 4, WIS: 8, LUK: 1}
@@ -260,35 +283,39 @@ classes:
       params: {magic_damage: 0.02, magic_damage_per_level: 0.0036, magic_damage_max: 0.20, overheal_shield_cap: 0.10, overheal_duration: 5, mana_on_heal: 2}
     skills:
       - id: healing_light
+        kind: none
         name: "치유의 빛"
         input: SWAP
         unlock_level: 1
         mana: 15
-        cooldown: 3.0
+        cooldown: 2.7
         params: {range: 20, heal: 0.18, heal_power_scale: 1.0, self_if_no_target: true, fx: heal_glyph}
         description: "바라보는 아군(없으면 자신)을 최대 HP 18% + 치유력만큼 회복."
       - id: purifying_wave
+        kind: magic
         name: "정화의 파동"
         input: SNEAK_SWAP
         unlock_level: 8
         mana: 25
-        cooldown: 12.0
+        cooldown: 10.8
         params: {radius: 8, heal: 0.08, damage: 0.8, cleanse: true, cleanse_stacks: true, fx: holy_wave}
         description: "주위 8칸에 빛의 파동. 아군의 해로운 효과(중독·둔화·서리·감염 중첩 등)를 <aqua>정화</aqua>하고 8% 회복, 적에게는 피해."
       - id: sacred_ward
+        kind: none
         name: "성스러운 가호"
         input: DROP
         unlock_level: 18
         mana: 35
-        cooldown: 22.0
+        cooldown: 19.8
         params: {radius: 12, shield: 0.15, duration: 6, damage_buff: 0.10}
         description: "주위 12칸 아군 모두에게 6초간 최대 HP 15% 보호막과 피해 +10%."
       - id: resurrection_hymn
+        kind: none
         name: "부활의 성가"
         input: SNEAK_DROP
         unlock_level: 30
         mana: 80
-        cooldown: 150.0
+        cooldown: 135.0
         params: {channel: 3.0, revive_hp: 0.40, heal: 0.30, radius: 20, interrupt_on_damage: false, move_slow: 0.6, fx: hymn_pillar}
         description: "3초간 성가를 부른다. 끝나면 <gold>관전 중인 쓰러진 파티원을 모두 내 곁에 부활</gold>(HP 40%)시키고 주위 20칸 아군을 30% 회복."
 
@@ -297,9 +324,10 @@ classes:
     name: "그림자"
     role: assassin
     color: "#9a8cff"
-    description: "<gray>등 뒤에서 급소를 노리는 단검술사. 독과 처형으로 약해진 적을 순식간에 끝낸다.</gray>"
+    description: "<gray>등 뒤에서 급소를 노리는 암살자. 독과 처형으로 약해진 적을 순식간에 끝낸다.</gray>"
     icon_item: shadow_emblem
-    weapon_types: [dagger]
+    starter_weapon: moss_dirk       # 처음 이 직업을 고르면 한 번 주는 무기
+    main_stats: [DEX, STR]
     primary_stat: DEX
     skill_scale: 0.70            # 0.62 → 0.70 (깊은 층 솔로 회복, review2 G1)
     base_stats: {STR: 3, DEX: 8, INT: 1, VIT: 5, WIS: 1, LUK: 4}
@@ -314,34 +342,38 @@ classes:
       params: {crit_damage: 0.50, back_angle: 100, back_crit: 0.20, refresh_venom: true}
     skills:
       - id: shadow_strike
+        kind: physical
         name: "그림자 일격"
         input: SWAP
         unlock_level: 1
         mana: 12
-        cooldown: 6.0
+        cooldown: 5.4
         params: {dash: 6, damage: 1.8, back_damage: 3.0, back_angle: 100, back_guaranteed_crit: true, fx: shadow_dash}
         description: "바라보는 적에게 최대 6칸 돌진해 찌른다. 등 뒤에서 맞히면 <red>피해 3배·확정 치명타</red>."
       - id: smoke_veil
+        kind: none
         name: "연막"
         input: SNEAK_SWAP
         unlock_level: 8
         mana: 20
-        cooldown: 18.0
+        cooldown: 16.2
         params: {radius: 4, duration: 5, evasion: 0.50, stealth: 3.0, stealth_bonus: 0.50, drop_aggro: true, fx: smoke_cloud}
         description: "반경 4칸 연막을 5초간 펼친다. 안의 아군은 회피 +50%. 나는 3초 은신(적이 나를 놓침), 은신 중 첫 공격 피해 +50%."
       - id: venom_blades
+        kind: physical
         name: "독날"
         input: DROP
         unlock_level: 18
         mana: 20
-        cooldown: 20.0
+        cooldown: 18.0
         params: {duration: 8, max_stacks: 5, dps_per_stack: 0.10, stack_duration: 6, weaken_at_max: 0.10}
         description: "8초간 공격마다 독 중첩(최대 5). 중첩당 초당 공격력 10% 피해, 5중첩 적은 주는 피해 10% 감소."
       - id: shadow_execution
+        kind: physical
         name: "그림자 처형"
         input: SNEAK_DROP
         unlock_level: 30
         mana: 50
-        cooldown: 70.0
+        cooldown: 63.0
         params: {radius: 10, max_targets: 6, damage: 2.2, execute_threshold: 0.30, execute_bonus: 1.0, boss_hits: 3, interval: 0.25, fx: shadow_dash}
         description: "주위 10칸의 적 최대 6명 사이를 순간이동하며 벤다(적이 하나면 3연타). HP 30% 이하인 적에게 <dark_red>피해 2배</dark_red>."

@@ -3,7 +3,9 @@
 #
 # 스키마: ARCHITECTURE.md §6 items.yml (+ 추가 필드는 §6.2). 생략한 필드는 null / 기본값.
 #  type        : weapon | armor | accessory | material | consumable | key
-#  weapon_type : sword_shield | greatsword | bow | staff | scepter | dagger  (classes.yml weapon_types 와 같은 값)
+#  attack      : 무기만 {style, interval, kind} (0.3.5 — 무기 종류 없음, 무기마다 공격 방식)
+#                style = melee(근접) | ranged(활 — 당겨 쏘기) | caster(시전)   interval = 기본 공격 간격(초, 민첩 전 · 활은 당김 + 0.15초)
+#                kind = physical(힘이 키움) | magic(지능이 키움)   (선택) skill_power_mult = 스킬 위력 배율 (시전 기본 1.05)
 #  armor_slot  : head | chest | legs | feet | offhand(방패 — 보조손)
 #  armor_set   : 장비 에셋 id(labyrinth:<set>). 투구는 플러그인이 assetId 를 넣지 않고 3D 모델을 머리에 씌운다
 #  rarity      : common < uncommon < rare < epic < legendary < mythic (GDD §11.1)
@@ -14,13 +16,13 @@
 #                STAT = STR DEX INT VIT WIS LUK. 없거나 비우면 요구 없음. 무기·방어구·방패만 (장신구·재료·소모품은 없음)
 #                내 능력치 = 직업 기본(classes.yml base_stats) + 분배한 포인트 + 장착 칭호 보너스 (장비 스탯은 세지 않는다)
 #                값 = ceil(2.5 × (level_req − 1)), 2 이하면 요구 없음 (수련생 · Lv1 장비)
-#                능력치: 대검·검방 STR · 활·단검 DEX · 지팡이 INT · 홀 WIS · 방패 VIT
+#                능력치: 무기마다 정함 (물리 무기 STR·DEX, 마법 무기 INT·WIS 가 주) · 방패 VIT
 #                        방어구는 겉모습 — 판금(흉갑 chestplate 세트 · helm_* 단품 투구) VIT · 가죽(leather_vest 세트 · 두건·가면 단품) DEX ·
 #                        천(robe_top 세트 · 관 단품) INT 또는 WIS (requires_any) · 모든 직업용(classes 비움)은 STR·DEX·INT·VIT·WIS 중 하나 (requires_any)
 #  classes     : 어울리는 직업 (비우면 모두) — 착용 제한이 아니다. 드롭 직업 편향(loot.yml own_class_bias)에만 쓴다 (툴팁·대장간에 표시 안 함)
 #                (요구 능력치는 겉모습으로 정하지만, 비운 장비는 어느 직업이든 주 능력치 하나로 낄 수 있게 requires_any)
 #  stats       : 키 = GDD §11.7 닫힌 목록. 값 [최소, 최대] 를 드롭·제작 순간 굴려 PDC 에 저장
-#                damage = 무기 피해(공격력의 기반) · 백분율 키는 0~1 (0.05 = 5%)
+#                damage = 무기 한 방 피해(공격력의 기반 — 간격마다 온전히 들어감) · 백분율 키는 0~1 (0.05 = 5%)
 #  set_bonus   : sets: 의 세트 id.   aura : fx.yml auras id (전설·신화 무기)
 #  pool        : false 면 rarity_pool 이 뽑지 않음. 생략 = true. loot.yml 은 rarity_pool 을 쓰지 않으므로 장비는 전부 false (실수로 풀을 다시 써도 안전)
 #  sources     : 획득처 (툴팁·도감 표시용, loot/recipes/titles/npcs 에서 계산해 적음). 장비 하나 = 한 층, 집은 최대 2곳
@@ -30,7 +32,8 @@
 #  use         : 소모품 효과 (action 닫힌 목록 = GDD §11.9)
 #  weapon_skills : 일부 상위 무기의 무기 스킬. id = 구현 키(GDD §17 Weapon skill catalog 닫힌 목록, 공용 구현 재사용)
 #                input = LEFT | RIGHT | SNEAK_LEFT | SNEAK_RIGHT (활은 RIGHT 가 바닐라 당기기라 금지 → SNEAK_LEFT · SNEAK_RIGHT(웅크리고 당겨 쏘기), 일부 신화 활만 LEFT)
-#                params.damage = 공격력 배율, params.fx = fx.yml models 이름, params.damage_type = melee|ranged|magic
+#                params.damage = 스킬 위력 배율 (스킬 위력 = 무기 초당 피해 기준, 0.3.5 — 무거운 무기가 스킬을 독차지하지 않음),
+#                params.fx = fx.yml models 이름, params.damage_type = melee|ranged|magic (없으면 무기 attack.kind)
 #  model       : 3D 템플릿 {shape, length} (GDD §14.1). 재료·소모품만 shape: icon (2D)
 #  texture     : 생성기 지시 {style, palette(4~6색, 어두움→밝음), animated, frames, frametime, effect} (GDD §14.2)
 #                전설·신화 무기는 animated: true (프레임 애니메이션 = GIF 처럼 움직임) + aura
@@ -100,12 +103,12 @@ items:
   corridor_longsword:
     name: "회랑 수비대 장검"
     type: weapon
-    weapon_type: sword_shield
+    attack: {style: melee, interval: 0.67, kind: physical}
     rarity: common
     level_req: 1
     floor: 1
     classes: [guardian]
-    stats: {damage: [7, 8], STR: [1, 2], VIT: [1, 2]}
+    stats: {damage: [8, 10], STR: [1, 2], VIT: [1, 2]}
     pool: false
     sources: [drop, chest]
     model: {shape: longsword, length: 1.0}
@@ -114,13 +117,13 @@ items:
   mossback_warhammer:
     name: "이끼등 전투망치"
     type: weapon
-    weapon_type: sword_shield
+    attack: {style: melee, interval: 0.75, kind: physical}
     rarity: common
     level_req: 3
     requires: {STR: 5}
     floor: 1
     classes: [guardian]
-    stats: {damage: [7, 8], STR: [1, 2], crit_damage: [0.02, 0.027]}
+    stats: {damage: [10, 11], STR: [1, 2], crit_damage: [0.02, 0.027]}
     pool: false
     sources: [drop, chest, craft]
     model: {shape: warhammer, length: 1.0}
@@ -129,13 +132,13 @@ items:
   grove_warden_maul:
     name: "파수꾼의 이끼바위 망치"
     type: weapon
-    weapon_type: sword_shield
+    attack: {style: melee, interval: 0.75, kind: physical}
     rarity: rare
     level_req: 5
     requires: {STR: 10}
     floor: 1
     classes: [guardian]
-    stats: {damage: [9, 10], STR: [2, 3], VIT: [1, 2], hp: [16, 22]}
+    stats: {damage: [13, 14], STR: [2, 3], VIT: [1, 2], hp: [16, 22]}
     pool: false
     sources: [boss, craft]
     model: {shape: warhammer, length: 1.05}
@@ -144,13 +147,13 @@ items:
   minewarden_mace:
     name: "갱도 감시자의 철퇴"
     type: weapon
-    weapon_type: sword_shield
+    attack: {style: melee, interval: 0.72, kind: physical}
     rarity: uncommon
     level_req: 5
     requires: {STR: 10}
     floor: 2
     classes: [guardian]
-    stats: {damage: [8, 10], STR: [1, 2], VIT: [1, 2]}
+    stats: {damage: [11, 14], STR: [1, 2], VIT: [1, 2]}
     pool: false
     sources: [drop, chest]
     model: {shape: mace, length: 1.0}
@@ -159,13 +162,13 @@ items:
   silkguard_falchion:
     name: "은실 손잡이 팔시온"
     type: weapon
-    weapon_type: sword_shield
+    attack: {style: melee, interval: 0.58, kind: physical}
     rarity: uncommon
     level_req: 8
     requires: {STR: 18}
     floor: 2
     classes: [guardian]
-    stats: {damage: [10, 11], STR: [2, 3], attack_speed: [0.018, 0.025]}
+    stats: {damage: [11, 13], STR: [2, 3], attack_speed: [0.018, 0.025]}
     pool: false
     sources: [craft]
     model: {shape: falchion, length: 1.0}
@@ -174,13 +177,13 @@ items:
   sporeward_broadsword:
     name: "포자막이 넓은검"
     type: weapon
-    weapon_type: sword_shield
+    attack: {style: melee, interval: 0.7, kind: physical}
     rarity: rare
     level_req: 11
     requires: {STR: 25}
     floor: 3
     classes: [guardian]
-    stats: {damage: [12, 14], STR: [3, 4], VIT: [2, 3], hp: [32, 44]}
+    stats: {damage: [17, 20], STR: [3, 4], VIT: [2, 3], hp: [32, 44]}
     pool: false
     sources: [drop, chest]
     model: {shape: broadsword, length: 1.0}
@@ -189,13 +192,13 @@ items:
   sporecap_warhammer:
     name: "포자갓 망치"
     type: weapon
-    weapon_type: sword_shield
+    attack: {style: melee, interval: 0.75, kind: physical}
     rarity: rare
     level_req: 14
     requires: {STR: 33}
     floor: 3
     classes: [guardian]
-    stats: {damage: [14, 16], STR: [3, 5], defense: [5, 7], hp_regen: [0.8, 1.0]}
+    stats: {damage: [22, 25], STR: [3, 5], defense: [5, 7], hp_regen: [0.8, 1.0]}
     pool: false
     sources: [craft]
     model: {shape: warhammer, length: 1.0}
@@ -204,13 +207,13 @@ items:
   mycelking_guard_blade:
     name: "균사왕 근위 넓은검"
     type: weapon
-    weapon_type: sword_shield
+    attack: {style: melee, interval: 0.7, kind: physical}
     rarity: epic
     level_req: 15
     requires: {STR: 35}
     floor: 3
     classes: [guardian]
-    stats: {damage: [16, 19], STR: [4, 6], VIT: [3, 4], hp: [52, 70], hp_regen: [1.0, 1.3]}
+    stats: {damage: [24, 28], STR: [4, 6], VIT: [3, 4], hp: [52, 70], hp_regen: [1.0, 1.3]}
     pool: false
     sources: [boss]
     weapon_skills:
@@ -221,7 +224,7 @@ items:
         mana: 16
         description: "검을 땅에 꽂아 포자를 터뜨린다. 주변 적을 2초 도발하고 자신은 잠시 보호막을 얻는다."
         mechanics:
-          - {"type": "nova", "radius": 4, "display": "shockwave", "particle": "SPORE_BLOSSOM_AIR", "effects": [{"damage": 1.4}, {"taunt": 2}]}
+          - {"type": "nova", "radius": 4, "display": "shockwave", "particle": "SPORE_BLOSSOM_AIR", "effects": [{"damage": 1.372}, {"taunt": 2}]}
           - {"type": "self", "effects": [{"absorption": {"amount": 0.1, "seconds": 4}}]}
           - {"type": "sound", "sound": "block.moss.break", "pitch": 0.6, "volume": 1.2}
     model: {shape: broadsword, length: 1.0}
@@ -230,13 +233,13 @@ items:
   sluice_breaker_mace:
     name: "수문 부수개"
     type: weapon
-    weapon_type: sword_shield
+    attack: {style: melee, interval: 0.72, kind: physical}
     rarity: epic
     level_req: 17
     requires: {STR: 40}
     floor: 4
     classes: [guardian]
-    stats: {damage: [18, 21], STR: [5, 7], VIT: [3, 4], hp: [59, 79], damage_reduction: [0.021, 0.028]}
+    stats: {damage: [28, 33], STR: [5, 7], VIT: [3, 4], hp: [59, 79], damage_reduction: [0.021, 0.028]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -245,7 +248,7 @@ items:
         input: RIGHT
         cooldown: 14.0
         mana: 15
-        params: {"duration": 2.0, "reduction": 0.5, "angle": 120, "counter_radius": 3.5, "counter_damage": 1.2, "per_block": 0.2, "reflect": 0.15, "taunt": 2.0, "fx": "tide_burst", "damage_type": "melee"}
+        params: {"duration": 2.0, "reduction": 0.5, "angle": 120, "counter_radius": 3.5, "counter_damage": 1.176, "per_block": 0.196, "reflect": 0.15, "taunt": 2.0, "fx": "tide_burst", "damage_type": "melee"}
         description: "2초간 정면 피해를 50% 막는다. 끝나면 막아 낸 횟수만큼 강해지는 물보라 반격(반경 3.5칸)을 터뜨리고 주변 적을 2초 도발한다."
       - id: mechanics
         name: "수문 해일"
@@ -254,7 +257,7 @@ items:
         mana: 20
         description: "방패로 땅을 쳐 세 갈래 물결을 밀어 보낸다. 맞은 적은 밀려나고 느려진다."
         mechanics:
-          - {"type": "projectile", "ground": true, "count": 3, "spread": 30, "speed": 0.8, "range": 12, "pierce": true, "hit_radius": 1.4, "particle": "SPLASH", "particle_count": 10, "particle_spread": 0.5, "effects": [{"damage": 1.1}, {"knockback": 1.0}, {"slow": 2}, {"taunt": 2}]}
+          - {"type": "projectile", "ground": true, "count": 3, "spread": 30, "speed": 0.8, "range": 12, "pierce": true, "hit_radius": 1.4, "particle": "SPLASH", "particle_count": 10, "particle_spread": 0.5, "effects": [{"damage": 1.078}, {"knockback": 1.0}, {"slow": 2}, {"taunt": 2}]}
           - {"type": "sound", "sound": "entity.generic.splash", "pitch": 0.7, "volume": 1.5}
     model: {shape: mace, length: 1.0}
     texture: {style: copper, palette: ["#10241e", "#1f4a3c", "#3f8a6e", "#a8743c", "#c8f0dc"]}
@@ -262,13 +265,13 @@ items:
   brine_falchion:
     name: "소금물 팔시온"
     type: weapon
-    weapon_type: sword_shield
+    attack: {style: melee, interval: 0.6, kind: physical}
     rarity: rare
     level_req: 19
     requires: {STR: 45}
     floor: 4
     classes: [guardian]
-    stats: {damage: [19, 21], STR: [4, 6], lifesteal: [0.018, 0.025], attack_speed: [0.032, 0.043]}
+    stats: {damage: [25, 28], STR: [4, 6], lifesteal: [0.018, 0.025], attack_speed: [0.032, 0.043]}
     pool: false
     sources: [drop, chest]
     model: {shape: falchion, length: 1.05}
@@ -277,13 +280,13 @@ items:
   emberforge_warhammer:
     name: "잿불 단조 망치"
     type: weapon
-    weapon_type: sword_shield
+    attack: {style: melee, interval: 0.75, kind: physical}
     rarity: epic
     level_req: 22
     requires: {STR: 53}
     floor: 5
     classes: [guardian]
-    stats: {damage: [24, 27], STR: [6, 8], VIT: [4, 5], crit_damage: [0.098, 0.132], defense: [9, 12]}
+    stats: {damage: [40, 46], STR: [6, 8], VIT: [4, 5], crit_damage: [0.098, 0.132], defense: [9, 12]}
     pool: false
     sources: [drop, chest]
     weapon_skills:
@@ -294,8 +297,8 @@ items:
         mana: 18
         description: "망치를 앞쪽 바닥에 내려쳐 불똥을 터뜨리고 주변 적을 2초 도발한다. 맞은 자리에 쇳물이 고여 4초간 적을 태우고 느리게 한다."
         mechanics:
-          - {"type": "nova", "at": "aim", "range": 3, "radius": 3.5, "display": "ember_burst", "particle": "LAVA", "effects": [{"damage": 1.7}, {"ignite": 3}, {"taunt": 2}]}
-          - {"type": "zone", "at": "aim", "range": 3, "radius": 2.5, "duration": 4, "interval": 10, "display": "molten_puddle", "particle": "FLAME", "effects": [{"damage": 0.3}, {"slow": 1}]}
+          - {"type": "nova", "at": "aim", "range": 3, "radius": 3.5, "display": "ember_burst", "particle": "LAVA", "effects": [{"damage": 1.666}, {"ignite": 3}, {"taunt": 2}]}
+          - {"type": "zone", "at": "aim", "range": 3, "radius": 2.5, "duration": 4, "interval": 10, "display": "molten_puddle", "particle": "FLAME", "effects": [{"damage": 0.294}, {"slow": 1}]}
           - {"type": "sound", "sound": "block.anvil.land", "pitch": 0.8, "volume": 1.0}
     model: {shape: warhammer, length: 1.1}
     texture: {style: dark_iron, palette: ["#1a0e0a", "#3e1e12", "#7a3a1e", "#c86a32", "#ffb060"]}
@@ -303,13 +306,13 @@ items:
   anvil_oath_broadsword:
     name: "모루 서약 넓은검"
     type: weapon
-    weapon_type: sword_shield
+    attack: {style: melee, interval: 0.7, kind: physical}
     rarity: epic
     level_req: 24
     requires: {STR: 58}
     floor: 5
     classes: [guardian]
-    stats: {damage: [26, 30], STR: [6, 9], VIT: [4, 5], hp: [81, 110], defense: [10, 13]}
+    stats: {damage: [41, 48], STR: [6, 9], VIT: [4, 5], hp: [81, 110], defense: [10, 13]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -320,7 +323,7 @@ items:
         mana: 18
         description: "검으로 바닥을 내려쳐 모루 충격파를 일으킨다. 주변 적을 도발하고 3초간 보호막을 얻는다."
         mechanics:
-          - {"type": "nova", "radius": 4, "expand_ticks": 6, "display": "shockwave", "particle": "LAVA", "effects": [{"damage": 1.2}, {"taunt": 3}]}
+          - {"type": "nova", "radius": 4, "expand_ticks": 6, "display": "shockwave", "particle": "LAVA", "effects": [{"damage": 1.176}, {"taunt": 3}]}
           - {"type": "self", "effects": [{"absorption": {"amount": 0.12, "seconds": 4}}]}
           - {"type": "sound", "sound": "block.anvil.land", "pitch": 0.8, "volume": 0.9}
       - id: mechanics
@@ -330,7 +333,7 @@ items:
         mana: 25
         description: "6초간 몸에 불씨를 두른다. 곁의 적은 계속 불타고, 받는 피해가 줄어든다."
         mechanics:
-          - {"type": "zone", "at": "self", "follow": true, "radius": 3.2, "duration": 6, "interval": 15, "particle": "FLAME", "ring": "DUST:#ff7a2a:1.1", "effects": [{"damage": 0.35}, {"ignite": 3}]}
+          - {"type": "zone", "at": "self", "follow": true, "radius": 3.2, "duration": 6, "interval": 15, "particle": "FLAME", "ring": "DUST:#ff7a2a:1.1", "effects": [{"damage": 0.343}, {"ignite": 3}]}
           - {"type": "self", "effects": [{"buff": {"stats": {"damage_reduction": 0.15}, "seconds": 6}}]}
           - {"type": "sound", "sound": "item.firecharge.use", "pitch": 0.8, "volume": 1.0}
     model: {shape: broadsword, length: 1.0}
@@ -339,13 +342,13 @@ items:
   dawnbringer:
     name: "여명을 맹세한 검"
     type: weapon
-    weapon_type: sword_shield
+    attack: {style: melee, interval: 0.67, kind: physical}
     rarity: legendary
     level_req: 25
     requires: {STR: 60}
     floor: 5
     classes: [guardian]
-    stats: {damage: [30, 34], STR: [8, 11], VIT: [5, 7], hp: [110, 149], damage_reduction: [0.032, 0.044], skill_damage: [0.075, 0.101]}
+    stats: {damage: [46, 52], STR: [8, 11], VIT: [5, 7], hp: [110, 149], damage_reduction: [0.032, 0.044], skill_damage: [0.075, 0.101]}
     aura: dawn
     pool: false
     sources: [boss]
@@ -355,7 +358,7 @@ items:
         input: RIGHT
         cooldown: 16.0
         mana: 20
-        params: {"duration": 2.5, "reduction": 0.6, "angle": 140, "counter_radius": 4.5, "counter_damage": 1.6, "per_block": 0.25, "reflect": 0.2, "taunt": 3.0, "fx": "dawn_burst", "damage_type": "melee"}
+        params: {"duration": 2.5, "reduction": 0.6, "angle": 140, "counter_radius": 4.5, "counter_damage": 1.568, "per_block": 0.245, "reflect": 0.2, "taunt": 3.0, "fx": "dawn_burst", "damage_type": "melee"}
         description: "2.5초간 정면 피해를 60% 막는다. 끝나면 새벽빛 반격으로 주변을 휩쓸고 막은 피해 20%를 공격자에게 돌려준다."
       - id: mechanics
         name: "새벽 파쇄"
@@ -364,7 +367,7 @@ items:
         mana: 22
         description: "뛰어올라 여명을 내려찍는다. 착지 지점에 빛의 고리가 퍼지며 적을 띄우고 아군을 치유한다."
         mechanics:
-          - {"type": "leap", "forward": 0.5, "upward": 0.85, "particle": "END_ROD", "land": [{"type": "nova", "radius": 4.5, "expand_ticks": 6, "display": "dawn_burst", "particle": "END_ROD", "effects": [{"damage": 1.8}, {"launch": 0.5}, {"taunt": 3}]}, {"type": "party", "radius": 6, "effects": [{"heal": 0.06}]}, {"type": "sound", "sound": "item.mace.smash_ground", "pitch": 1.2, "volume": 1.0}]}
+          - {"type": "leap", "forward": 0.5, "upward": 0.85, "particle": "END_ROD", "land": [{"type": "nova", "radius": 4.5, "expand_ticks": 6, "display": "dawn_burst", "particle": "END_ROD", "effects": [{"damage": 1.764}, {"launch": 0.5}, {"taunt": 3}]}, {"type": "party", "radius": 6, "effects": [{"heal": 0.06}]}, {"type": "sound", "sound": "item.mace.smash_ground", "pitch": 1.2, "volume": 1.0}]}
       - id: sanctuary
         name: "새벽 성역"
         input: SNEAK_RIGHT
@@ -378,13 +381,13 @@ items:
   frostgrave_mace:
     name: "서리 묘지기의 철퇴"
     type: weapon
-    weapon_type: sword_shield
+    attack: {style: melee, interval: 0.72, kind: physical}
     rarity: epic
     level_req: 27
     requires: {STR: 65}
     floor: 6
     classes: [guardian]
-    stats: {damage: [30, 35], STR: [7, 10], VIT: [4, 6], hp: [91, 123], damage_reduction: [0.027, 0.036]}
+    stats: {damage: [50, 58], STR: [7, 10], VIT: [4, 6], hp: [91, 123], damage_reduction: [0.027, 0.036]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -395,7 +398,7 @@ items:
         mana: 18
         description: "철퇴로 땅을 울려 서리 파동을 일으킨다. 주변 적은 느려지고 2초 도발된다."
         mechanics:
-          - {"type": "nova", "radius": 4, "display": "frost_nova_ring", "particle": "SNOWFLAKE", "effects": [{"damage": 1.6}, {"slow": 2}, {"taunt": 2}]}
+          - {"type": "nova", "radius": 4, "display": "frost_nova_ring", "particle": "SNOWFLAKE", "effects": [{"damage": 1.568}, {"slow": 2}, {"taunt": 2}]}
           - {"type": "sound", "sound": "block.bell.use", "pitch": 0.5, "volume": 1.2}
     model: {shape: mace, length: 1.0}
     texture: {style: frost, palette: ["#16283a", "#3a4a6a", "#8aa0c8", "#d8e6ff", "#ffffff"]}
@@ -403,13 +406,13 @@ items:
   resonant_longsword:
     name: "공명 수정 장검"
     type: weapon
-    weapon_type: sword_shield
+    attack: {style: melee, interval: 0.67, kind: physical}
     rarity: rare
     level_req: 32
     requires: {STR: 78}
     floor: 7
     classes: [guardian]
-    stats: {damage: [35, 41], STR: [7, 9], VIT: [4, 6], hp: [90, 121]}
+    stats: {damage: [55, 65], STR: [7, 9], VIT: [4, 6], hp: [90, 121]}
     pool: false
     sources: [drop, chest]
     model: {shape: longsword, length: 1.0}
@@ -418,13 +421,13 @@ items:
   amethyst_falchion:
     name: "자수정 팔시온"
     type: weapon
-    weapon_type: sword_shield
+    attack: {style: melee, interval: 0.62, kind: physical}
     rarity: rare
     level_req: 34
     requires: {STR: 83}
     floor: 7
     classes: [guardian]
-    stats: {damage: [39, 44], STR: [7, 10], crit_chance: [0.035, 0.047], attack_speed: [0.043, 0.058]}
+    stats: {damage: [57, 65], STR: [7, 10], crit_chance: [0.035, 0.047], attack_speed: [0.043, 0.058]}
     pool: false
     sources: [craft]
     model: {shape: falchion, length: 1.05}
@@ -433,13 +436,13 @@ items:
   inkseal_warhammer:
     name: "금서 봉인 망치"
     type: weapon
-    weapon_type: sword_shield
+    attack: {style: melee, interval: 0.75, kind: physical}
     rarity: epic
     level_req: 38
     requires: {STR: 93}
     floor: 8
     classes: [guardian]
-    stats: {damage: [49, 55], STR: [10, 13], cooldown_reduction: [0.045, 0.061], skill_damage: [0.079, 0.106], VIT: [6, 8]}
+    stats: {damage: [89, 99], STR: [10, 13], cooldown_reduction: [0.045, 0.061], skill_damage: [0.079, 0.106], VIT: [6, 8]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -450,7 +453,7 @@ items:
         mana: 20
         description: "인장 망치를 앞쪽 바닥에 내려찍는다. 맞은 적은 2초간 침묵하고 1초간 묶인다."
         mechanics:
-          - {"type": "nova", "at": "aim", "range": 3, "radius": 3.0, "display": "seal_glyph", "particle": "SQUID_INK", "effects": [{"damage": 1.6}, {"effect": {"id": "silence", "seconds": 2, "potency": 1.0}}, {"root": 1}]}
+          - {"type": "nova", "at": "aim", "range": 3, "radius": 3.0, "display": "seal_glyph", "particle": "SQUID_INK", "effects": [{"damage": 1.568}, {"effect": {"id": "silence", "seconds": 2, "potency": 1.0}}, {"root": 1}]}
           - {"type": "sound", "sound": "block.anvil.place", "pitch": 0.6, "volume": 0.9}
     model: {shape: warhammer, length: 1.1}
     texture: {style: ink, palette: ["#0e0c14", "#221e30", "#4a4060", "#a098c0", "#c8a0ff"]}
@@ -458,13 +461,13 @@ items:
   index_keeper_sword:
     name: "색인 수호자의 넓은검"
     type: weapon
-    weapon_type: sword_shield
+    attack: {style: melee, interval: 0.73, kind: physical}
     rarity: legendary
     level_req: 39
     requires: {STR: 95}
     floor: 8
     classes: [guardian]
-    stats: {damage: [55, 62], STR: [12, 16], VIT: [7, 9], hp: [146, 197], defense: [17, 23], cooldown_reduction: [0.052, 0.071]}
+    stats: {damage: [97, 110], STR: [12, 16], VIT: [7, 9], hp: [146, 197], defense: [17, 23], cooldown_reduction: [0.052, 0.071]}
     aura: codex
     pool: false
     sources: [boss]
@@ -478,7 +481,7 @@ items:
         mechanics:
           - {"type": "particle", "at": "aim", "particle": "ENCHANT", "count": 40, "spread": 1.5}
           - {"type": "delay", "ticks": 18}
-          - {"type": "nova", "at": "aim", "radius": 4, "display": "seal_glyph", "particle": "ENCHANT", "effects": [{"damage": 1.6, "magic": true}, {"root": 1.5}, {"effect": {"id": "weaken", "seconds": 5, "potency": 0.2}}, {"taunt": 2}]}
+          - {"type": "nova", "at": "aim", "radius": 4, "display": "seal_glyph", "particle": "ENCHANT", "effects": [{"damage": 1.568, "magic": true}, {"root": 1.5}, {"effect": {"id": "weaken", "seconds": 5, "potency": 0.2}}, {"taunt": 2}]}
           - {"type": "sound", "sound": "block.enchantment_table.use", "pitch": 0.7, "volume": 1.2}
       - id: mechanics
         name: "떠도는 책장"
@@ -487,7 +490,7 @@ items:
         mana: 30
         description: "찢긴 책장 다섯 장이 6초간 주위를 돈다. 닿은 적은 베이고 표식이 남는다."
         mechanics:
-          - {"type": "orbit", "count": 5, "radius": 2.4, "duration": 6, "speed": 14, "display": "codex_orb", "hit_cooldown": 10, "effects": [{"damage": 0.5}, {"glow": 3}]}
+          - {"type": "orbit", "count": 5, "radius": 2.4, "duration": 6, "speed": 14, "display": "codex_orb", "hit_cooldown": 10, "effects": [{"damage": 0.49}, {"glow": 3}]}
           - {"type": "sound", "sound": "item.book.page_turn", "pitch": 0.8, "volume": 1.2}
     model: {shape: broadsword, length: 1.0}
     texture: {style: ink, palette: ["#0c0a10", "#22182e", "#2a3a6a", "#c8a060", "#fff0b0"], animated: true, frames: 8, frametime: 2, effect: rune_flow}
@@ -495,13 +498,13 @@ items:
   clockguard_mace:
     name: "태엽 수비 철퇴"
     type: weapon
-    weapon_type: sword_shield
+    attack: {style: melee, interval: 0.68, kind: physical}
     rarity: epic
     level_req: 41
     requires: {STR: 100}
     floor: 9
     classes: [guardian]
-    stats: {damage: [54, 62], STR: [10, 14], VIT: [6, 8], hp: [137, 185], attack_speed: [0.058, 0.079]}
+    stats: {damage: [89, 103], STR: [10, 14], VIT: [6, 8], hp: [137, 185], attack_speed: [0.058, 0.079]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -512,7 +515,7 @@ items:
         mana: 16
         description: "철퇴를 시계추처럼 크게 휘둘러 앞쪽 반원을 쓸어 낸다. 맞은 적의 재사용 시간이 느려진다."
         mechanics:
-          - {"type": "cone", "range": 4.5, "angle": 180, "display": "slash_arc", "particle": "CRIT", "effects": [{"damage": 1.5}, {"knockback": 0.7}, {"effect": {"id": "cooldown_slow", "seconds": 4, "potency": 0.3}}, {"taunt": 2}]}
+          - {"type": "cone", "range": 4.5, "angle": 180, "display": "slash_arc", "particle": "CRIT", "effects": [{"damage": 1.47}, {"knockback": 0.7}, {"effect": {"id": "cooldown_slow", "seconds": 4, "potency": 0.3}}, {"taunt": 2}]}
           - {"type": "sound", "sound": "block.bell.use", "pitch": 0.6, "volume": 1.0}
       - id: empower
         name: "태엽 감기"
@@ -527,13 +530,13 @@ items:
   void_falchion:
     name: "공허 팔시온"
     type: weapon
-    weapon_type: sword_shield
+    attack: {style: melee, interval: 0.62, kind: physical}
     rarity: epic
     level_req: 46
     requires: {STR: 113}
     floor: 10
     classes: [guardian]
-    stats: {damage: [65, 74], STR: [11, 15], lifesteal: [0.038, 0.052], crit_damage: [0.171, 0.232], move_speed: [0.034, 0.046]}
+    stats: {damage: [100, 113], STR: [11, 15], lifesteal: [0.038, 0.052], crit_damage: [0.171, 0.232], move_speed: [0.034, 0.046]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -544,9 +547,9 @@ items:
         mana: 16
         description: "앞을 크게 벤다. 0.5초 뒤 같은 자리를 공허의 메아리가 한 번 더 베고, 맞은 적은 4초간 받는 피해가 늘어난다."
         mechanics:
-          - {"type": "cone", "range": 4.5, "angle": 100, "display": "void_slash", "particle": "REVERSE_PORTAL", "effects": [{"damage": 1.6}]}
+          - {"type": "cone", "range": 4.5, "angle": 100, "display": "void_slash", "particle": "REVERSE_PORTAL", "effects": [{"damage": 1.55}]}
           - {"type": "delay", "ticks": 10}
-          - {"type": "cone", "range": 4.5, "angle": 100, "display": "void_slash", "display_scale": 1.2, "particle": "REVERSE_PORTAL", "effects": [{"damage": 0.8}, {"effect": {"id": "vulnerable", "seconds": 4, "potency": 0.1}}]}
+          - {"type": "cone", "range": 4.5, "angle": 100, "display": "void_slash", "display_scale": 1.2, "particle": "REVERSE_PORTAL", "effects": [{"damage": 0.775}, {"effect": {"id": "vulnerable", "seconds": 4, "potency": 0.1}}]}
           - {"type": "sound", "sound": "entity.enderman.teleport", "pitch": 0.6, "volume": 1.0}
     model: {shape: falchion, length: 1.15}
     texture: {style: void, palette: ["#06060e", "#14142a", "#2a2a56", "#6a5ab0", "#2ae0c8"]}
@@ -554,13 +557,13 @@ items:
   abyss_sentinel_longsword:
     name: "심연 파수검"
     type: weapon
-    weapon_type: sword_shield
+    attack: {style: melee, interval: 0.7, kind: physical}
     rarity: legendary
     level_req: 48
     requires: {STR: 118}
     floor: 10
     classes: [guardian]
-    stats: {damage: [76, 86], STR: [14, 19], VIT: [8, 11], hp: [177, 240], damage_reduction: [0.045, 0.061], defense: [20, 27]}
+    stats: {damage: [132, 150], STR: [14, 19], VIT: [8, 11], hp: [177, 240], damage_reduction: [0.045, 0.061], defense: [20, 27]}
     aura: abyssal
     pool: false
     sources: [boss]
@@ -572,7 +575,7 @@ items:
         mana: 25
         description: "발밑에 심연을 열어 주변 적을 끌어모은 뒤 닫아 버린다."
         mechanics:
-          - {"type": "vortex", "at": "self", "radius": 6, "duration": 1.5, "strength": 0.35, "display": "abyssal_ring", "particle": "SQUID_INK", "effects": [{"damage": 0.3}, {"taunt": 2}], "end": [{"type": "nova", "radius": 3.5, "display": "abyssal_burst", "particle": "SQUID_INK", "effects": [{"damage": 1.6}, {"slow": 2}]}, {"type": "sound", "sound": "entity.elder_guardian.curse", "pitch": 1.4, "volume": 0.6}]}
+          - {"type": "vortex", "at": "self", "radius": 6, "duration": 1.5, "strength": 0.35, "display": "abyssal_ring", "particle": "SQUID_INK", "effects": [{"damage": 0.294}, {"taunt": 2}], "end": [{"type": "nova", "radius": 3.5, "display": "abyssal_burst", "particle": "SQUID_INK", "effects": [{"damage": 1.568}, {"slow": 2}]}, {"type": "sound", "sound": "entity.elder_guardian.curse", "pitch": 1.4, "volume": 0.6}]}
       - id: mechanics
         name: "해일 검기"
         input: SNEAK_LEFT
@@ -580,14 +583,14 @@ items:
         mana: 20
         description: "검을 크게 그어 바닥을 기는 검은 해일 세 줄기를 보낸다."
         mechanics:
-          - {"type": "projectile", "ground": true, "count": 3, "spread": 26, "speed": 1.0, "range": 14, "pierce": true, "hit_radius": 1.3, "particle": "DUST:#1a3a6a:1.6", "particle_count": 6, "particle_spread": 0.4, "effects": [{"damage": 1.4}, {"knockback": 0.6}]}
+          - {"type": "projectile", "ground": true, "count": 3, "spread": 26, "speed": 1.0, "range": 14, "pierce": true, "hit_radius": 1.3, "particle": "DUST:#1a3a6a:1.6", "particle_count": 6, "particle_spread": 0.4, "effects": [{"damage": 1.372}, {"knockback": 0.6}]}
           - {"type": "sound", "sound": "entity.player.splash.high_speed", "pitch": 0.6, "volume": 1.0}
       - id: riposte
         name: "심연의 문"
         input: SNEAK_RIGHT
         cooldown: 30.0
         mana: 35
-        params: {"duration": 3.0, "reduction": 0.65, "angle": 160, "counter_radius": 5, "counter_damage": 2.2, "per_block": 0.3, "reflect": 0.25, "taunt": 3.0, "fx": "abyssal_burst", "damage_type": "melee"}
+        params: {"duration": 3.0, "reduction": 0.65, "angle": 160, "counter_radius": 5, "counter_damage": 2.156, "per_block": 0.294, "reflect": 0.25, "taunt": 3.0, "fx": "abyssal_burst", "damage_type": "melee"}
         description: "3초간 정면 피해를 65% 막고, 끝나면 심연의 문이 열리며 반경 5칸을 강타한다."
     model: {shape: longsword, length: 1.0}
     texture: {style: abyss, palette: ["#020406", "#0a1a20", "#134a52", "#2fe0d0", "#c8fff8"], animated: true, frames: 8, frametime: 2, effect: sculk_pulse}
@@ -595,13 +598,13 @@ items:
   celestial_oathkeeper:
     name: "천궁의 맹세수호검"
     type: weapon
-    weapon_type: sword_shield
+    attack: {style: melee, interval: 0.67, kind: physical}
     rarity: mythic
     level_req: 48
     requires: {STR: 118}
     floor: 10
     classes: [guardian]
-    stats: {damage: [85, 94], STR: [17, 23], VIT: [10, 14], hp: [233, 315], damage_reduction: [0.058, 0.078], skill_damage: [0.137, 0.185], defense: [26, 36]}
+    stats: {damage: [142, 156], STR: [17, 23], VIT: [10, 14], hp: [233, 315], damage_reduction: [0.058, 0.078], skill_damage: [0.137, 0.185], defense: [26, 36]}
     aura: celestial
     pool: false
     sources: [boss]
@@ -611,14 +614,14 @@ items:
         input: LEFT
         cooldown: 0.9
         mana: 0
-        params: {"damage": 0.7, "range": 12, "width": 2.0, "speed": 1.6, "pierce": true, "fx": "celestial_slash", "damage_type": "ranged"}
+        params: {"damage": 0.686, "range": 12, "width": 2.0, "speed": 1.6, "pierce": true, "fx": "celestial_slash", "damage_type": "ranged"}
         description: "휘두를 때마다 별빛 검기가 날아간다(0.9초 간격)."
       - id: riposte
         name: "천궁 방벽"
         input: RIGHT
         cooldown: 18.0
         mana: 25
-        params: {"duration": 3.0, "reduction": 0.7, "angle": 180, "counter_radius": 5, "counter_damage": 2.4, "per_block": 0.3, "reflect": 0.3, "taunt": 3.0, "fx": "celestial_burst", "damage_type": "melee"}
+        params: {"duration": 3.0, "reduction": 0.7, "angle": 180, "counter_radius": 5, "counter_damage": 2.352, "per_block": 0.294, "reflect": 0.3, "taunt": 3.0, "fx": "celestial_burst", "damage_type": "melee"}
         description: "3초간 앞쪽 반원의 피해를 70% 막고 30%를 되돌려준다. 끝나면 별빛 반격."
       - id: mechanics
         name: "유성 낙하"
@@ -627,7 +630,7 @@ items:
         mana: 30
         description: "하늘로 솟구친 뒤 별처럼 떨어진다. 착지 순간 주변에 별 여섯 개가 쏟아진다."
         mechanics:
-          - {"type": "leap", "forward": 0.6, "upward": 1.1, "particle": "END_ROD", "land": [{"type": "nova", "radius": 5, "expand_ticks": 8, "display": "celestial_burst", "particle": "END_ROD", "effects": [{"damage": 2.6}, {"launch": 0.6}, {"taunt": 3}]}, {"type": "rain", "at": "origin", "count": 6, "radius": 5, "interval": 3, "height": 14, "speed": 1.4, "display": "celestial_orb", "impact_radius": 2, "effects": [{"damage": 0.9, "magic": true}]}, {"type": "sound", "sound": "entity.generic.explode", "pitch": 0.7, "volume": 1.0}]}
+          - {"type": "leap", "forward": 0.6, "upward": 1.1, "particle": "END_ROD", "land": [{"type": "nova", "radius": 5, "expand_ticks": 8, "display": "celestial_burst", "particle": "END_ROD", "effects": [{"damage": 2.548}, {"launch": 0.6}, {"taunt": 3}]}, {"type": "rain", "at": "origin", "count": 6, "radius": 5, "interval": 3, "height": 14, "speed": 1.4, "display": "celestial_orb", "impact_radius": 2, "effects": [{"damage": 0.882, "magic": true}]}, {"type": "sound", "sound": "entity.generic.explode", "pitch": 0.7, "volume": 1.0}]}
       - id: sanctuary
         name: "별자리 성역"
         input: SNEAK_RIGHT
@@ -643,12 +646,12 @@ items:
   rootcutter_greatsword:
     name: "뿌리 베는 대검"
     type: weapon
-    weapon_type: greatsword
+    attack: {style: melee, interval: 1.0, kind: physical}
     rarity: common
     level_req: 1
     floor: 1
     classes: [berserker]
-    stats: {damage: [10, 12], STR: [1, 2], hp: [3, 4]}
+    stats: {damage: [11, 14], STR: [1, 2], hp: [3, 4]}
     pool: false
     sources: [drop, chest]
     model: {shape: greatsword, length: 1.0}
@@ -657,13 +660,13 @@ items:
   rootbound_scythe:
     name: "뿌리 감긴 큰낫"
     type: weapon
-    weapon_type: greatsword
+    attack: {style: melee, interval: 1.0, kind: physical}
     rarity: common
     level_req: 3
     requires: {STR: 5}
     floor: 1
     classes: [berserker]
-    stats: {damage: [11, 13], STR: [1, 2], lifesteal: [0.006, 0.008]}
+    stats: {damage: [13, 15], STR: [1, 2], lifesteal: [0.006, 0.008]}
     pool: false
     sources: [drop, chest, craft]
     model: {shape: war_scythe, length: 1.0}
@@ -672,13 +675,13 @@ items:
   ore_splitter_axe:
     name: "광맥 쪼개개"
     type: weapon
-    weapon_type: greatsword
+    attack: {style: melee, interval: 1.15, kind: physical}
     rarity: uncommon
     level_req: 5
     requires: {STR: 10}
     floor: 2
     classes: [berserker]
-    stats: {damage: [12, 15], STR: [1, 2], crit_damage: [0.031, 0.041]}
+    stats: {damage: [17, 21], STR: [1, 2], crit_damage: [0.031, 0.041]}
     pool: false
     sources: [drop, chest]
     model: {shape: great_axe, length: 1.0}
@@ -687,13 +690,13 @@ items:
   silkspan_glaive:
     name: "은실 언월도"
     type: weapon
-    weapon_type: greatsword
+    attack: {style: melee, interval: 0.9, kind: physical}
     rarity: uncommon
     level_req: 8
     requires: {STR: 18}
     floor: 2
     classes: [berserker]
-    stats: {damage: [15, 17], STR: [2, 3], damage_reduction: [0.01, 0.014]}
+    stats: {damage: [17, 19], STR: [2, 3], damage_reduction: [0.01, 0.014]}
     pool: false
     sources: [craft]
     model: {shape: glaive, length: 1.0}
@@ -702,13 +705,13 @@ items:
   silkqueen_reaper:
     name: "베셀라의 거미다리 큰낫"
     type: weapon
-    weapon_type: greatsword
+    attack: {style: melee, interval: 1.0, kind: physical}
     rarity: epic
     level_req: 10
     requires: {STR: 23}
     floor: 2
     classes: [berserker]
-    stats: {damage: [19, 22], STR: [3, 4], lifesteal: [0.016, 0.022], crit_damage: [0.061, 0.083], hp: [36, 48]}
+    stats: {damage: [25, 28], STR: [3, 4], lifesteal: [0.016, 0.022], crit_damage: [0.061, 0.083], hp: [36, 48]}
     pool: false
     sources: [boss]
     weapon_skills:
@@ -719,7 +722,7 @@ items:
         mana: 14
         description: "큰낫을 크게 휘둘러 앞쪽 반원을 벤다. 맞은 적은 은실에 감겨 잠시 느려진다."
         mechanics:
-          - {"type": "cone", "range": 4.5, "angle": 180, "display": "slash_arc", "particle": "SWEEP_ATTACK", "effects": [{"damage": 1.6}, {"slow": 2}]}
+          - {"type": "cone", "range": 4.5, "angle": 180, "display": "slash_arc", "particle": "SWEEP_ATTACK", "effects": [{"damage": 2.475}, {"slow": 2}]}
           - {"type": "sound", "sound": "entity.spider.ambient", "pitch": 0.7, "volume": 1.0}
     model: {shape: war_scythe, length: 1.05}
     texture: {style: silk, palette: ["#14161c", "#2e3240", "#6a7088", "#c0c8dc", "#a070f0"]}
@@ -727,13 +730,13 @@ items:
   capsplitter_cleaver:
     name: "갓 가르는 참마도"
     type: weapon
-    weapon_type: greatsword
+    attack: {style: melee, interval: 0.9, kind: physical}
     rarity: rare
     level_req: 11
     requires: {STR: 25}
     floor: 3
     classes: [berserker]
-    stats: {damage: [18, 22], STR: [3, 4], crit_damage: [0.054, 0.072], attack_speed: [0.025, 0.034]}
+    stats: {damage: [21, 26], STR: [3, 4], crit_damage: [0.054, 0.072], attack_speed: [0.025, 0.034]}
     pool: false
     sources: [drop, chest]
     model: {shape: cleaver, length: 1.0}
@@ -742,13 +745,13 @@ items:
   mycel_scythe:
     name: "균사 큰낫"
     type: weapon
-    weapon_type: greatsword
+    attack: {style: melee, interval: 1.0, kind: physical}
     rarity: rare
     level_req: 14
     requires: {STR: 33}
     floor: 3
     classes: [berserker]
-    stats: {damage: [22, 25], STR: [3, 5], lifesteal: [0.016, 0.021], crit_chance: [0.019, 0.026]}
+    stats: {damage: [29, 34], STR: [3, 5], lifesteal: [0.016, 0.021], crit_chance: [0.019, 0.026]}
     pool: false
     sources: [craft]
     model: {shape: war_scythe, length: 1.05}
@@ -757,13 +760,13 @@ items:
   drowned_anchor_cleaver:
     name: "익사한 닻날"
     type: weapon
-    weapon_type: greatsword
+    attack: {style: melee, interval: 1.0, kind: physical}
     rarity: epic
     level_req: 17
     requires: {STR: 40}
     floor: 4
     classes: [berserker]
-    stats: {damage: [28, 32], STR: [5, 7], hp: [59, 79], crit_damage: [0.083, 0.112], lifesteal: [0.021, 0.028]}
+    stats: {damage: [38, 44], STR: [5, 7], hp: [59, 79], crit_damage: [0.083, 0.112], lifesteal: [0.021, 0.028]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -774,7 +777,7 @@ items:
         mana: 15
         description: "닻을 던져 처음 맞은 적을 내 앞으로 끌어온다. 닻은 바닥에 떨어지며 물보라를 일으킨다."
         mechanics:
-          - {"type": "projectile", "speed": 1.3, "range": 14, "gravity": 0.01, "display": "proj_anchor", "spin": 25, "effects": [{"damage": 1.6}, {"pull": 1.1}], "explode": {"radius": 2.5, "particle": "SPLASH", "effects": [{"damage": 0.6}, {"slow": 2}]}}
+          - {"type": "projectile", "speed": 1.3, "range": 14, "gravity": 0.01, "display": "proj_anchor", "spin": 25, "effects": [{"damage": 2.475}, {"pull": 1.1}], "explode": {"radius": 2.5, "particle": "SPLASH", "effects": [{"damage": 0.928}, {"slow": 2}]}}
           - {"type": "sound", "sound": "item.trident.throw", "pitch": 0.6, "volume": 1.0}
       - id: mechanics
         name: "침몰"
@@ -783,7 +786,7 @@ items:
         mana: 22
         description: "닻 사슬을 휘감아 한 바퀴 돈 뒤 내리꽂는다. 주변 적이 물속처럼 느려진다."
         mechanics:
-          - {"type": "nova", "radius": 4, "particle": "BUBBLE_POP", "display": "shockwave", "effects": [{"damage": 2.2}, {"slow": {"amount": 3, "potency": 0.5}}, {"launch": 0.3}]}
+          - {"type": "nova", "radius": 4, "particle": "BUBBLE_POP", "display": "shockwave", "effects": [{"damage": 3.403}, {"slow": {"amount": 3, "potency": 0.5}}, {"launch": 0.3}]}
           - {"type": "sound", "sound": "entity.player.splash", "pitch": 0.5, "volume": 1.5}
     model: {shape: cleaver, length: 1.0}
     texture: {style: rusted_iron, palette: ["#0a1416", "#183034", "#2e5a5e", "#a0522a", "#c0d0d0"]}
@@ -791,13 +794,13 @@ items:
   drowned_glaive:
     name: "익사자의 언월도"
     type: weapon
-    weapon_type: greatsword
+    attack: {style: melee, interval: 0.95, kind: physical}
     rarity: rare
     level_req: 19
     requires: {STR: 45}
     floor: 4
     classes: [berserker]
-    stats: {damage: [29, 33], STR: [4, 6], defense: [7, 9], hp: [54, 73]}
+    stats: {damage: [38, 44], STR: [4, 6], defense: [7, 9], hp: [54, 73]}
     pool: false
     sources: [drop, chest]
     model: {shape: glaive, length: 1.05}
@@ -806,13 +809,13 @@ items:
   osric_drowned_axe:
     name: "오스릭의 익사 닻도끼"
     type: weapon
-    weapon_type: greatsword
+    attack: {style: melee, interval: 1.15, kind: physical}
     rarity: epic
     level_req: 20
     requires: {STR: 48}
     floor: 4
     classes: [berserker]
-    stats: {damage: [33, 38], STR: [6, 7], hp: [68, 92], damage_reduction: [0.022, 0.03], crit_damage: [0.092, 0.124]}
+    stats: {damage: [53, 61], STR: [6, 7], hp: [68, 92], damage_reduction: [0.022, 0.03], crit_damage: [0.092, 0.124]}
     pool: false
     sources: [boss]
     weapon_skills:
@@ -823,7 +826,7 @@ items:
         mana: 18
         description: "닻도끼를 내리찍어 주변에 물보라를 일으킨다. 맞은 적은 밀려나고 느려진다."
         mechanics:
-          - {"type": "nova", "radius": 4.5, "display": "shockwave", "particle": "SPLASH", "effects": [{"damage": 2.0}, {"slow": 2}, {"knockback": 0.6}]}
+          - {"type": "nova", "radius": 4.5, "display": "shockwave", "particle": "SPLASH", "effects": [{"damage": 3.094}, {"slow": 2}, {"knockback": 0.6}]}
           - {"type": "sound", "sound": "entity.generic.splash", "pitch": 0.6, "volume": 1.5}
     model: {shape: great_axe, length: 1.05}
     texture: {style: rusted_iron, palette: ["#0a1416", "#183034", "#2e5a5e", "#a8743c", "#c0f0e8"]}
@@ -831,13 +834,13 @@ items:
   cinderdrake_glaive:
     name: "잿불 용 언월도"
     type: weapon
-    weapon_type: greatsword
+    attack: {style: melee, interval: 0.95, kind: physical}
     rarity: epic
     level_req: 22
     requires: {STR: 53}
     floor: 5
     classes: [berserker]
-    stats: {damage: [37, 42], STR: [6, 8], crit_chance: [0.03, 0.041], crit_damage: [0.098, 0.132], move_speed: [0.021, 0.029]}
+    stats: {damage: [50, 57], STR: [6, 8], crit_chance: [0.03, 0.041], crit_damage: [0.098, 0.132], move_speed: [0.021, 0.029]}
     pool: false
     sources: [drop, chest]
     weapon_skills:
@@ -848,7 +851,7 @@ items:
         mana: 22
         description: "언월도를 앞으로 겨눠 용의 숨결을 세 번 뿜는다. 부채꼴 안의 적이 불탄다."
         mechanics:
-          - {"type": "repeat", "times": 3, "interval": 6, "mechanics": [{"type": "cone", "range": 6, "angle": 60, "display": "ember_slash", "particle": "FLAME", "effects": [{"damage": 0.8}, {"ignite": 2}]}]}
+          - {"type": "repeat", "times": 3, "interval": 6, "mechanics": [{"type": "cone", "range": 6, "angle": 60, "display": "ember_slash", "particle": "FLAME", "effects": [{"damage": 1.238}, {"ignite": 2}]}]}
           - {"type": "sound", "sound": "entity.ender_dragon.shoot", "pitch": 1.4, "volume": 1.0}
     model: {shape: glaive, length: 1.1}
     texture: {style: ember, palette: ["#1e0a06", "#4a160c", "#8a2e14", "#e06a28", "#ffd27a"]}
@@ -856,13 +859,13 @@ items:
   slagforged_greatsword:
     name: "슬래그 단조 대검"
     type: weapon
-    weapon_type: greatsword
+    attack: {style: melee, interval: 1.0, kind: physical}
     rarity: epic
     level_req: 24
     requires: {STR: 58}
     floor: 5
     classes: [berserker]
-    stats: {damage: [40, 46], STR: [6, 9], crit_damage: [0.104, 0.141], hp: [81, 110], attack_speed: [0.042, 0.057]}
+    stats: {damage: [58, 66], STR: [6, 9], crit_damage: [0.104, 0.141], hp: [81, 110], attack_speed: [0.042, 0.057]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -873,8 +876,8 @@ items:
         mana: 18
         description: "대검으로 앞을 내려쳐 쇳물 웅덩이를 남긴다. 웅덩이 위의 적은 4초간 불탄다."
         mechanics:
-          - {"type": "cone", "range": 4, "angle": 80, "display": "slash_arc", "particle": "LAVA", "effects": [{"damage": 1.8}]}
-          - {"type": "zone", "at": "aim", "range": 5, "radius": 2.8, "duration": 4, "interval": 10, "display": "molten_puddle", "particle": "FLAME", "effects": [{"damage": 0.35}, {"ignite": 2}]}
+          - {"type": "cone", "range": 4, "angle": 80, "display": "slash_arc", "particle": "LAVA", "effects": [{"damage": 2.785}]}
+          - {"type": "zone", "at": "aim", "range": 5, "radius": 2.8, "duration": 4, "interval": 10, "display": "molten_puddle", "particle": "FLAME", "effects": [{"damage": 0.541}, {"ignite": 2}]}
           - {"type": "sound", "sound": "block.lava.extinguish", "pitch": 0.8, "volume": 1.0}
       - id: mechanics
         name: "용광로 폭발"
@@ -886,7 +889,7 @@ items:
           - {"type": "particle", "particle": "FLAME", "count": 40, "spread": 1.0, "y": 1}
           - {"type": "sound", "sound": "block.furnace.fire_crackle", "pitch": 0.6, "volume": 2.0}
           - {"type": "delay", "ticks": 20}
-          - {"type": "nova", "radius": 4.5, "expand_ticks": 6, "display": "ember_burst", "particle": "FLAME", "effects": [{"damage": 2.6}, {"ignite": 4}, {"execute": {"amount": 1.6, "threshold": 0.2}}]}
+          - {"type": "nova", "radius": 4.5, "expand_ticks": 6, "display": "ember_burst", "particle": "FLAME", "effects": [{"damage": 4.022}, {"ignite": 4}, {"execute": {"amount": 2.475, "threshold": 0.2}}]}
           - {"type": "sound", "sound": "entity.generic.explode", "pitch": 0.8, "volume": 1.0}
     model: {shape: greatsword, length: 1.0}
     texture: {style: dark_iron, palette: ["#141010", "#2e2422", "#5a3a2e", "#d9541c", "#ffb04a"]}
@@ -894,13 +897,13 @@ items:
   ember_greatsword:
     name: "잿불 대검"
     type: weapon
-    weapon_type: greatsword
+    attack: {style: melee, interval: 1.0, kind: physical}
     rarity: legendary
     level_req: 25
     requires: {STR: 60}
     floor: 5
     classes: [berserker]
-    stats: {damage: [46, 52], STR: [8, 11], crit_damage: [0.137, 0.185], attack_speed: [0.055, 0.074], lifesteal: [0.032, 0.044], hp: [110, 149]}
+    stats: {damage: [67, 75], STR: [8, 11], crit_damage: [0.137, 0.185], attack_speed: [0.055, 0.074], lifesteal: [0.032, 0.044], hp: [110, 149]}
     aura: ember
     pool: false
     sources: [boss]
@@ -910,7 +913,7 @@ items:
         input: LEFT
         cooldown: 0.8
         mana: 0
-        params: {"damage": 0.8, "range": 12, "width": 2.5, "speed": 1.5, "pierce": true, "effect": "burn", "effect_duration": 2.0, "fx": "ember_slash", "damage_type": "ranged"}
+        params: {"damage": 1.238, "range": 12, "width": 2.5, "speed": 1.5, "pierce": true, "effect": "burn", "effect_duration": 2.0, "fx": "ember_slash", "damage_type": "ranged"}
         description: "휘두를 때마다 불꽃 검기를 날린다(0.8초 간격). 맞은 적은 2초간 불탄다."
       - id: mechanics
         name: "잿불 돌진"
@@ -919,7 +922,7 @@ items:
         mana: 15
         description: "불꽃을 끌며 돌진해 지나간 적을 태운다."
         mechanics:
-          - {"type": "dash", "distance": 7, "ticks": 5, "particle": "FLAME", "display": "ember_slash", "effects": [{"damage": 1.5}, {"ignite": 3}]}
+          - {"type": "dash", "distance": 7, "ticks": 5, "particle": "FLAME", "display": "ember_slash", "effects": [{"damage": 2.321}, {"ignite": 3}]}
           - {"type": "sound", "sound": "entity.blaze.shoot", "pitch": 0.7, "volume": 1.0}
       - id: mechanics
         name: "용암 균열"
@@ -928,7 +931,7 @@ items:
         mana: 25
         description: "대검을 꽂아 앞으로 용암 균열을 찢어 낸다. 균열 끝에서 불기둥이 솟는다."
         mechanics:
-          - {"type": "projectile", "ground": true, "speed": 1.1, "range": 13, "pierce": true, "hit_radius": 1.4, "particle": "LAVA", "particle_count": 3, "effects": [{"damage": 2.0}, {"launch": 0.5}, {"ignite": 3}], "on_impact": [{"type": "strike", "at": "origin", "visual": "pillar", "display": "hymn_pillar", "particle": "FLAME", "impact_radius": 2.5, "effects": [{"damage": 1.2}, {"ignite": 4}]}]}
+          - {"type": "projectile", "ground": true, "speed": 1.1, "range": 13, "pierce": true, "hit_radius": 1.4, "particle": "LAVA", "particle_count": 3, "effects": [{"damage": 3.094}, {"launch": 0.5}, {"ignite": 3}], "on_impact": [{"type": "strike", "at": "origin", "visual": "pillar", "display": "hymn_pillar", "particle": "FLAME", "impact_radius": 2.5, "effects": [{"damage": 1.856}, {"ignite": 4}]}]}
           - {"type": "sound", "sound": "item.firecharge.use", "pitch": 0.5, "volume": 1.0}
     model: {shape: greatsword, length: 1.0}
     texture: {style: ember, palette: ["#2b0d05", "#7a2410", "#e0571d", "#ffc46b", "#fff4d6"], animated: true, frames: 8, frametime: 2, effect: ember_flicker}
@@ -936,13 +939,13 @@ items:
   rime_reaper_scythe:
     name: "서리 수확자의 큰낫"
     type: weapon
-    weapon_type: greatsword
+    attack: {style: melee, interval: 1.0, kind: physical}
     rarity: epic
     level_req: 27
     requires: {STR: 65}
     floor: 6
     classes: [berserker]
-    stats: {damage: [47, 54], STR: [7, 10], crit_damage: [0.113, 0.153], lifesteal: [0.027, 0.036], hp: [91, 123]}
+    stats: {damage: [69, 79], STR: [7, 10], crit_damage: [0.113, 0.153], lifesteal: [0.027, 0.036], hp: [91, 123]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -953,7 +956,7 @@ items:
         mana: 20
         description: "큰낫을 한 바퀴 크게 돌려 주위를 벤다. 맞은 적에게 서리가 한 겹 쌓인다(다섯 겹이면 얼어붙는다)."
         mechanics:
-          - {"type": "cone", "range": 5, "angle": 360, "display": "rime_slash", "particle": "SNOWFLAKE", "effects": [{"damage": 1.8}, {"freeze": 2}]}
+          - {"type": "cone", "range": 5, "angle": 360, "display": "rime_slash", "particle": "SNOWFLAKE", "effects": [{"damage": 2.785}, {"freeze": 2}]}
           - {"type": "sound", "sound": "entity.player.attack.sweep", "pitch": 0.6, "volume": 1.2}
     model: {shape: war_scythe, length: 1.1}
     texture: {style: frost, palette: ["#16283a", "#3a4a6a", "#8aa0c8", "#d8e6ff", "#ffffff"]}
@@ -961,13 +964,13 @@ items:
   amethyst_cleaver:
     name: "자수정 참마도"
     type: weapon
-    weapon_type: greatsword
+    attack: {style: melee, interval: 0.9, kind: physical}
     rarity: rare
     level_req: 32
     requires: {STR: 78}
     floor: 7
     classes: [berserker]
-    stats: {damage: [54, 63], STR: [7, 9], crit_damage: [0.107, 0.145], hp: [90, 121]}
+    stats: {damage: [72, 85], STR: [7, 9], crit_damage: [0.107, 0.145], hp: [90, 121]}
     pool: false
     sources: [drop, chest]
     model: {shape: cleaver, length: 1.0}
@@ -976,13 +979,13 @@ items:
   geode_scythe:
     name: "정동 큰낫"
     type: weapon
-    weapon_type: greatsword
+    attack: {style: melee, interval: 1.0, kind: physical}
     rarity: rare
     level_req: 34
     requires: {STR: 83}
     floor: 7
     classes: [berserker]
-    stats: {damage: [60, 68], STR: [7, 10], lifesteal: [0.026, 0.035], hp_regen: [1.6, 2.2]}
+    stats: {damage: [90, 103], STR: [7, 10], lifesteal: [0.026, 0.035], hp_regen: [1.6, 2.2]}
     pool: false
     sources: [craft]
     model: {shape: war_scythe, length: 1.05}
@@ -991,13 +994,13 @@ items:
   lore_glaive:
     name: "금서 언월도"
     type: weapon
-    weapon_type: greatsword
+    attack: {style: melee, interval: 0.95, kind: physical}
     rarity: epic
     level_req: 38
     requires: {STR: 93}
     floor: 8
     classes: [berserker]
-    stats: {damage: [75, 86], STR: [10, 13], skill_damage: [0.079, 0.106], cooldown_reduction: [0.045, 0.061], hp: [127, 172]}
+    stats: {damage: [109, 125], STR: [10, 13], skill_damage: [0.079, 0.106], cooldown_reduction: [0.045, 0.061], hp: [127, 172]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -1008,7 +1011,7 @@ items:
         mana: 20
         description: "언월도를 앞세워 돌진하며 지나간 적을 1.5초 침묵시키고, 끝에서 크게 베어 낸다."
         mechanics:
-          - {"type": "dash", "distance": 6, "ticks": 5, "width": 2, "particle": "SQUID_INK", "effects": [{"damage": 1.4}, {"effect": {"id": "silence", "seconds": 1.5, "potency": 1.0}}], "on_end": [{"type": "cone", "range": 4, "angle": 140, "display": "inkblot_slash", "particle": "SQUID_INK", "effects": [{"damage": 1.0}]}]}
+          - {"type": "dash", "distance": 6, "ticks": 5, "width": 2, "particle": "SQUID_INK", "effects": [{"damage": 2.166}, {"effect": {"id": "silence", "seconds": 1.5, "potency": 1.0}}], "on_end": [{"type": "cone", "range": 4, "angle": 140, "display": "inkblot_slash", "particle": "SQUID_INK", "effects": [{"damage": 1.547}]}]}
           - {"type": "sound", "sound": "item.book.put", "pitch": 0.6, "volume": 1.0}
     model: {shape: glaive, length: 1.1}
     texture: {style: ink, palette: ["#100c10", "#2a2028", "#56404e", "#b0a0a8", "#ff6a8a"]}
@@ -1016,13 +1019,13 @@ items:
   geode_sunderer:
     name: "정동 파쇄 도끼"
     type: weapon
-    weapon_type: greatsword
+    attack: {style: melee, interval: 1.15, kind: physical}
     rarity: legendary
     level_req: 35
     requires: {STR: 85}
     floor: 7
     classes: [berserker]
-    stats: {damage: [73, 82], STR: [11, 15], crit_damage: [0.17, 0.23], attack_speed: [0.065, 0.087], hp: [146, 197], crit_chance: [0.052, 0.071]}
+    stats: {damage: [127, 143], STR: [11, 15], crit_damage: [0.17, 0.23], attack_speed: [0.065, 0.087], hp: [146, 197], crit_chance: [0.052, 0.071]}
     aura: geode
     pool: false
     sources: [boss]
@@ -1034,7 +1037,7 @@ items:
         mana: 25
         description: "도약해 내려찍으면 주변에 수정 가시가 솟는다."
         mechanics:
-          - {"type": "leap", "forward": 0.7, "upward": 0.9, "particle": "DUST:#c8a0ff:1.2", "land": [{"type": "nova", "radius": 4.5, "display": "geode_burst", "particle": "BLOCK:amethyst_block", "effects": [{"damage": 2.0}, {"launch": 0.5}]}, {"type": "strike", "at": "origin", "count": 5, "radius": 4, "interval": 2, "visual": "none", "particle": "DUST:#c8a0ff:1.4", "impact_radius": 1.5, "effects": [{"damage": 0.6}, {"stun": 0.5}]}, {"type": "sound", "sound": "block.amethyst_cluster.break", "pitch": 0.6, "volume": 1.0}]}
+          - {"type": "leap", "forward": 0.7, "upward": 0.9, "particle": "DUST:#c8a0ff:1.2", "land": [{"type": "nova", "radius": 4.5, "display": "geode_burst", "particle": "BLOCK:amethyst_block", "effects": [{"damage": 3.094}, {"launch": 0.5}]}, {"type": "strike", "at": "origin", "count": 5, "radius": 4, "interval": 2, "visual": "none", "particle": "DUST:#c8a0ff:1.4", "impact_radius": 1.5, "effects": [{"damage": 0.928}, {"stun": 0.5}]}, {"type": "sound", "sound": "block.amethyst_cluster.break", "pitch": 0.6, "volume": 1.0}]}
       - id: mechanics
         name: "공명 파열"
         input: SNEAK_LEFT
@@ -1042,7 +1045,7 @@ items:
         mana: 18
         description: "대검을 울려 앞쪽 부채꼴로 공명파를 보낸다. 맞은 적은 받는 피해가 늘어난다."
         mechanics:
-          - {"type": "cone", "range": 6, "angle": 70, "display": "geode_slash", "particle": "DUST:#e0c8ff:1.2", "effects": [{"damage": 1.6}, {"effect": {"id": "vulnerable", "seconds": 4, "potency": 0.12}}]}
+          - {"type": "cone", "range": 6, "angle": 70, "display": "geode_slash", "particle": "DUST:#e0c8ff:1.2", "effects": [{"damage": 2.475}, {"effect": {"id": "vulnerable", "seconds": 4, "potency": 0.12}}]}
           - {"type": "sound", "sound": "block.amethyst_block.resonate", "pitch": 0.6, "volume": 1.5}
       - id: mechanics
         name: "수정 폭쇄"
@@ -1051,7 +1054,7 @@ items:
         mana: 30
         description: "모든 수정을 한꺼번에 터뜨려 주변을 산산조각 낸다."
         mechanics:
-          - {"type": "nova", "radius": 5.5, "expand_ticks": 8, "display": "geode_burst", "particle": "BLOCK:amethyst_cluster", "effects": [{"damage": 2.8}, {"knockback": 1.0}, {"execute": {"amount": 1.5, "threshold": 0.25}}]}
+          - {"type": "nova", "radius": 5.5, "expand_ticks": 8, "display": "geode_burst", "particle": "BLOCK:amethyst_cluster", "effects": [{"damage": 4.332}, {"knockback": 1.0}, {"execute": {"amount": 2.321, "threshold": 0.25}}]}
           - {"type": "sound", "sound": "block.glass.break", "pitch": 0.5, "volume": 1.4}
     model: {shape: great_axe, length: 1.0}
     texture: {style: crystal, palette: ["#160f24", "#4a2a7a", "#9a62e0", "#efd8ff", "#ffffff"], animated: true, frames: 8, frametime: 2, effect: crystal_glint}
@@ -1059,13 +1062,13 @@ items:
   regulator_greatsword:
     name: "조율기 대검"
     type: weapon
-    weapon_type: greatsword
+    attack: {style: melee, interval: 0.95, kind: physical}
     rarity: epic
     level_req: 41
     requires: {STR: 100}
     floor: 9
     classes: [berserker]
-    stats: {damage: [84, 97], STR: [10, 14], attack_speed: [0.058, 0.079], crit_damage: [0.156, 0.211], hp: [137, 185]}
+    stats: {damage: [123, 142], STR: [10, 14], attack_speed: [0.058, 0.079], crit_damage: [0.156, 0.211], hp: [137, 185]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -1076,7 +1079,7 @@ items:
         mana: 20
         description: "태엽을 풀어 단숨에 돌진한다. 끝에서 톱니가 회전하며 주변을 벤다."
         mechanics:
-          - {"type": "dash", "distance": 8, "ticks": 5, "particle": "CRIT", "effects": [{"damage": 1.6}], "on_end": [{"type": "nova", "radius": 3, "display": "chrono_burst", "particle": "CRIT", "effects": [{"damage": 1.0}]}, {"type": "sound", "sound": "block.chain.break", "pitch": 0.7, "volume": 1.0}]}
+          - {"type": "dash", "distance": 8, "ticks": 5, "particle": "CRIT", "effects": [{"damage": 2.475}], "on_end": [{"type": "nova", "radius": 3, "display": "chrono_burst", "particle": "CRIT", "effects": [{"damage": 1.547}]}, {"type": "sound", "sound": "block.chain.break", "pitch": 0.7, "volume": 1.0}]}
       - id: mechanics
         name: "톱니 투척"
         input: SNEAK_RIGHT
@@ -1084,7 +1087,7 @@ items:
         mana: 22
         description: "거대한 톱니를 던진다. 톱니는 적을 꿰뚫고 날아갔다가 사라진다."
         mechanics:
-          - {"type": "projectile", "speed": 0.9, "range": 16, "pierce": true, "hit_radius": 1.2, "display": "proj_gear_large", "spin": 30, "effects": [{"damage": 1.5}, {"bleed": 3}]}
+          - {"type": "projectile", "speed": 0.9, "range": 16, "pierce": true, "hit_radius": 1.2, "display": "proj_gear_large", "spin": 30, "effects": [{"damage": 2.321}, {"bleed": 3}]}
           - {"type": "sound", "sound": "block.grindstone.use", "pitch": 0.8, "volume": 1.0}
     model: {shape: greatsword, length: 1.0}
     texture: {style: clockwork, palette: ["#140e08", "#4a2e16", "#a0622a", "#f0c070", "#7ae0c0"]}
@@ -1092,13 +1095,13 @@ items:
   void_scythe:
     name: "공허의 큰낫"
     type: weapon
-    weapon_type: greatsword
+    attack: {style: melee, interval: 1.03, kind: physical}
     rarity: epic
     level_req: 46
     requires: {STR: 113}
     floor: 10
     classes: [berserker]
-    stats: {damage: [101, 115], STR: [11, 15], lifesteal: [0.038, 0.052], crit_chance: [0.052, 0.071], crit_damage: [0.171, 0.232]}
+    stats: {damage: [163, 185], STR: [11, 15], lifesteal: [0.038, 0.052], crit_chance: [0.052, 0.071], crit_damage: [0.171, 0.232]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -1109,9 +1112,9 @@ items:
         mana: 24
         description: "주변 적을 1초간 끌어모은 뒤 크게 휘둘러 거둔다. 베인 적은 시들어 피를 흘리고 약해진다."
         mechanics:
-          - {"type": "vortex", "at": "self", "radius": 6, "duration": 1, "strength": 0.35, "display": "void_orb", "particle": "REVERSE_PORTAL", "effects": [{"damage": 0.3}]}
+          - {"type": "vortex", "at": "self", "radius": 6, "duration": 1, "strength": 0.35, "display": "void_orb", "particle": "REVERSE_PORTAL", "effects": [{"damage": 0.464}]}
           - {"type": "delay", "ticks": 20}
-          - {"type": "cone", "range": 5.5, "angle": 160, "display": "void_slash", "display_scale": 1.2, "particle": "REVERSE_PORTAL", "effects": [{"damage": 2.1}, {"wither": 3}]}
+          - {"type": "cone", "range": 5.5, "angle": 160, "display": "void_slash", "display_scale": 1.2, "particle": "REVERSE_PORTAL", "effects": [{"damage": 3.249}, {"wither": 3}]}
           - {"type": "sound", "sound": "entity.warden.attack_impact", "pitch": 0.8, "volume": 1.0}
     model: {shape: war_scythe, length: 1.15}
     texture: {style: void, palette: ["#08060e", "#1a1226", "#36244e", "#7a5ab0", "#c08aff"]}
@@ -1119,13 +1122,13 @@ items:
   doomclock_executioner:
     name: "종말시계 단두도끼"
     type: weapon
-    weapon_type: greatsword
+    attack: {style: melee, interval: 1.15, kind: physical}
     rarity: legendary
     level_req: 44
     requires: {STR: 108}
     floor: 9
     classes: [berserker]
-    stats: {damage: [103, 116], STR: [13, 18], crit_damage: [0.2, 0.27], attack_speed: [0.073, 0.099], hp: [177, 240], lifesteal: [0.045, 0.061]}
+    stats: {damage: [184, 208], STR: [13, 18], crit_damage: [0.2, 0.27], attack_speed: [0.073, 0.099], hp: [177, 240], lifesteal: [0.045, 0.061]}
     aura: chrono
     pool: false
     sources: [boss]
@@ -1137,7 +1140,7 @@ items:
         mana: 25
         description: "대검을 돌려 세 번 휘몰아친다."
         mechanics:
-          - {"type": "repeat", "times": 4, "interval": 6, "mechanics": [{"type": "nova", "radius": 3.6, "display": "chrono_slash", "particle": "SWEEP_ATTACK", "effects": [{"damage": 0.8}, {"knockback": 0.3}]}, {"type": "sound", "sound": "entity.player.attack.sweep", "pitch": 0.8, "volume": 1.0}]}
+          - {"type": "repeat", "times": 4, "interval": 6, "mechanics": [{"type": "nova", "radius": 3.6, "display": "chrono_slash", "particle": "SWEEP_ATTACK", "effects": [{"damage": 1.238}, {"knockback": 0.3}]}, {"type": "sound", "sound": "entity.player.attack.sweep", "pitch": 0.8, "volume": 1.0}]}
       - id: empower
         name: "시간 가속"
         input: SNEAK_LEFT
@@ -1155,7 +1158,7 @@ items:
           - {"type": "particle", "particle": "DUST:#ffd27a:1.4", "count": 30, "spread": 1.2}
           - {"type": "sound", "sound": "block.bell.resonate", "pitch": 0.5, "volume": 1.2}
           - {"type": "delay", "ticks": 14}
-          - {"type": "cone", "range": 6, "angle": 120, "display": "chrono_slash", "display_scale": 1.4, "particle": "CRIT", "effects": [{"damage": 3.4}, {"execute": {"amount": 3.0, "threshold": 0.3}}]}
+          - {"type": "cone", "range": 6, "angle": 120, "display": "chrono_slash", "display_scale": 1.4, "particle": "CRIT", "effects": [{"damage": 5.26}, {"execute": {"amount": 4.641, "threshold": 0.3}}]}
           - {"type": "sound", "sound": "entity.wither.break_block", "pitch": 0.6, "volume": 0.8}
     model: {shape: great_axe, length: 1.0}
     texture: {style: clockwork, palette: ["#100a06", "#3a2412", "#8a5a26", "#e8b060", "#fff4d0"], animated: true, frames: 8, frametime: 2, effect: gear_tick}
@@ -1163,13 +1166,13 @@ items:
   bloodmoon_reaver:
     name: "혈월의 수확자"
     type: weapon
-    weapon_type: greatsword
+    attack: {style: melee, interval: 1.15, kind: physical}
     rarity: mythic
     level_req: 48
     requires: {STR: 118}
     floor: 10
     classes: [berserker]
-    stats: {damage: [132, 146], STR: [17, 23], crit_damage: [0.259, 0.35], lifesteal: [0.058, 0.078], attack_speed: [0.094, 0.127], hp: [233, 315], crit_chance: [0.079, 0.107]}
+    stats: {damage: [239, 264], STR: [17, 23], crit_damage: [0.259, 0.35], lifesteal: [0.058, 0.078], attack_speed: [0.094, 0.127], hp: [233, 315], crit_chance: [0.079, 0.107]}
     aura: bloodmoon
     pool: false
     sources: [boss]
@@ -1181,7 +1184,7 @@ items:
         mana: 0
         description: "휘두를 때마다 붉은 초승달 검기가 날아간다 (짧은 재사용)."
         mechanics:
-          - {"type": "projectile", "speed": 1.4, "range": 10, "pierce": 2, "hit_radius": 1.0, "display": "bloodmoon_slash", "display_scale": 0.7, "impact_at_end": false, "effects": [{"damage": 0.6}, {"lifesteal": 0.1}]}
+          - {"type": "projectile", "speed": 1.4, "range": 10, "pierce": 2, "hit_radius": 1.0, "display": "bloodmoon_slash", "display_scale": 0.7, "impact_at_end": false, "effects": [{"damage": 0.928}, {"lifesteal": 0.1}]}
       - id: mechanics
         name: "혈월 참"
         input: RIGHT
@@ -1189,7 +1192,7 @@ items:
         mana: 25
         description: "붉은 달 같은 거대한 반원 참격. 벤 피해의 일부를 흡혈한다."
         mechanics:
-          - {"type": "cone", "range": 6.5, "angle": 200, "display": "bloodmoon_slash", "display_scale": 1.3, "particle": "DUST:#c4002f:2.0", "effects": [{"damage": 2.2}, {"bleed": 4}, {"lifesteal": 0.3}]}
+          - {"type": "cone", "range": 6.5, "angle": 200, "display": "bloodmoon_slash", "display_scale": 1.3, "particle": "DUST:#c4002f:2.0", "effects": [{"damage": 3.403}, {"bleed": 4}, {"lifesteal": 0.3}]}
           - {"type": "sound", "sound": "entity.player.attack.sweep", "pitch": 0.5, "volume": 1.0}
       - id: empower
         name: "만월의 갈증"
@@ -1205,7 +1208,7 @@ items:
         mana: 30
         description: "핏빛 잔상을 남기며 멀리 돌진하고, 끝에서 초승달 균열을 찢는다."
         mechanics:
-          - {"type": "dash", "distance": 10, "ticks": 5, "particle": "DUST:#c4002f:1.5", "effects": [{"damage": 1.8}, {"lifesteal": 0.2}], "on_end": [{"type": "projectile", "ground": true, "speed": 1.2, "range": 12, "pierce": true, "hit_radius": 1.5, "particle": "DUST:#8a0020:1.8", "particle_count": 4, "effects": [{"damage": 2.4}, {"launch": 0.6}, {"bleed": 5}]}, {"type": "sound", "sound": "entity.ravager.roar", "pitch": 1.4, "volume": 0.7}]}
+          - {"type": "dash", "distance": 10, "ticks": 5, "particle": "DUST:#c4002f:1.5", "effects": [{"damage": 2.785}, {"lifesteal": 0.2}], "on_end": [{"type": "projectile", "ground": true, "speed": 1.2, "range": 12, "pierce": true, "hit_radius": 1.5, "particle": "DUST:#8a0020:1.8", "particle_count": 4, "effects": [{"damage": 3.713}, {"launch": 0.6}, {"bleed": 5}]}, {"type": "sound", "sound": "entity.ravager.roar", "pitch": 1.4, "volume": 0.7}]}
     model: {shape: great_axe, length: 1.2}
     texture: {style: shadow, palette: ["#1a0006", "#5a0a18", "#b01a3a", "#ff6a6a", "#ffc0a0"], animated: true, frames: 16, frametime: 2, effect: blood_pulse}
     lore: "붉은 달이 뜬 밤에만 미궁 밖으로 나온다는 수확자의 도끼. 피를 마실수록 달이 차오른다."
@@ -1214,12 +1217,12 @@ items:
   corridor_longbow:
     name: "회랑 사냥 장궁"
     type: weapon
-    weapon_type: bow
+    attack: {style: ranged, interval: 1.25, kind: physical}
     rarity: common
     level_req: 1
     floor: 1
     classes: [hunter]
-    stats: {damage: [9, 10], DEX: [1, 2], crit_chance: [0.009, 0.011]}
+    stats: {damage: [15, 16], DEX: [1, 2], crit_chance: [0.009, 0.011]}
     pool: false
     sources: [drop, chest]
     model: {shape: longbow, length: 1.0}
@@ -1228,13 +1231,13 @@ items:
   mossvine_hornbow:
     name: "이끼 덩굴 각궁"
     type: weapon
-    weapon_type: bow
+    attack: {style: ranged, interval: 0.95, kind: physical}
     rarity: common
     level_req: 3
     requires: {DEX: 5}
     floor: 1
     classes: [hunter]
-    stats: {damage: [9, 10], DEX: [1, 2], attack_speed: [0.012, 0.016]}
+    stats: {damage: [11, 13], DEX: [1, 2], attack_speed: [0.012, 0.016]}
     pool: false
     sources: [drop, chest, craft]
     model: {shape: horn_bow, length: 1.0}
@@ -1243,13 +1246,13 @@ items:
   grove_rootstring_bow:
     name: "뿌리시위 파수궁"
     type: weapon
-    weapon_type: bow
+    attack: {style: ranged, interval: 1.0, kind: physical}
     rarity: rare
     level_req: 5
     requires: {DEX: 10}
     floor: 1
     classes: [hunter]
-    stats: {damage: [11, 13], DEX: [2, 3], crit_chance: [0.012, 0.017], hp_regen: [0.4, 0.5]}
+    stats: {damage: [15, 18], DEX: [2, 3], crit_chance: [0.012, 0.017], hp_regen: [0.4, 0.5]}
     pool: false
     sources: [boss, craft]
     model: {shape: horn_bow, length: 1.0}
@@ -1258,13 +1261,13 @@ items:
   silkstring_recurve:
     name: "은실 시위 만곡궁"
     type: weapon
-    weapon_type: bow
+    attack: {style: ranged, interval: 1.1, kind: physical}
     rarity: uncommon
     level_req: 5
     requires: {DEX: 10}
     floor: 2
     classes: [hunter]
-    stats: {damage: [10, 12], DEX: [1, 2], crit_chance: [0.01, 0.013]}
+    stats: {damage: [15, 18], DEX: [1, 2], crit_chance: [0.01, 0.013]}
     pool: false
     sources: [drop, chest]
     model: {shape: recurve_bow, length: 1.0}
@@ -1273,13 +1276,13 @@ items:
   skitter_bladebow:
     name: "갱도 거미 날활"
     type: weapon
-    weapon_type: bow
+    attack: {style: ranged, interval: 1.15, kind: physical}
     rarity: uncommon
     level_req: 8
     requires: {DEX: 18}
     floor: 2
     classes: [hunter]
-    stats: {damage: [13, 14], DEX: [2, 3], crit_damage: [0.037, 0.05]}
+    stats: {damage: [22, 23], DEX: [2, 3], crit_damage: [0.037, 0.05]}
     pool: false
     sources: [craft]
     model: {shape: blade_bow, length: 1.0}
@@ -1288,13 +1291,13 @@ items:
   glowcap_longbow:
     name: "빛갓 장궁"
     type: weapon
-    weapon_type: bow
+    attack: {style: ranged, interval: 1.25, kind: physical}
     rarity: rare
     level_req: 11
     requires: {DEX: 25}
     floor: 3
     classes: [hunter]
-    stats: {damage: [15, 18], DEX: [3, 4], crit_chance: [0.017, 0.023], crit_damage: [0.054, 0.072]}
+    stats: {damage: [28, 33], DEX: [3, 4], crit_chance: [0.017, 0.023], crit_damage: [0.054, 0.072]}
     pool: false
     sources: [drop, chest]
     model: {shape: longbow, length: 1.0}
@@ -1303,13 +1306,13 @@ items:
   mycel_hornbow:
     name: "균사 각궁"
     type: weapon
-    weapon_type: bow
+    attack: {style: ranged, interval: 1.0, kind: physical}
     rarity: rare
     level_req: 14
     requires: {DEX: 33}
     floor: 3
     classes: [hunter]
-    stats: {damage: [19, 21], DEX: [3, 5], move_speed: [0.014, 0.02], evasion: [0.016, 0.021]}
+    stats: {damage: [29, 32], DEX: [3, 5], move_speed: [0.014, 0.02], evasion: [0.016, 0.021]}
     pool: false
     sources: [craft]
     model: {shape: horn_bow, length: 1.0}
@@ -1318,13 +1321,13 @@ items:
   eelbone_recurve:
     name: "장어뼈 만곡궁"
     type: weapon
-    weapon_type: bow
+    attack: {style: ranged, interval: 1.1, kind: physical}
     rarity: epic
     level_req: 17
     requires: {DEX: 40}
     floor: 4
     classes: [hunter]
-    stats: {damage: [23, 27], DEX: [5, 7], crit_chance: [0.026, 0.035], crit_damage: [0.083, 0.112], attack_speed: [0.036, 0.049]}
+    stats: {damage: [40, 46], DEX: [5, 7], crit_chance: [0.026, 0.035], crit_damage: [0.083, 0.112], attack_speed: [0.036, 0.049]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -1335,7 +1338,7 @@ items:
         mana: 12
         description: "웅크리고 당겨 쏘면 전기를 품은 화살이 날아가 근처 적에게 튄다."
         mechanics:
-          - {"type": "projectile", "speed": 2.4, "range": 30, "display": "proj_piercing_arrow", "particle": "ELECTRIC_SPARK", "effects": [{"damage": 1.6, "damage_type": "ranged"}], "on_impact": [{"type": "chain", "jumps": 3, "range": 5, "first_range": 4, "particle": "ELECTRIC_SPARK", "effects": [{"damage": 0.6, "magic": true}, {"slow": 1}]}]}
+          - {"type": "projectile", "speed": 2.4, "range": 30, "display": "proj_piercing_arrow", "particle": "ELECTRIC_SPARK", "effects": [{"damage": 2.08, "damage_type": "ranged"}], "on_impact": [{"type": "chain", "jumps": 3, "range": 5, "first_range": 4, "particle": "ELECTRIC_SPARK", "effects": [{"damage": 0.78, "magic": true}, {"slow": 1}]}]}
           - {"type": "sound", "sound": "entity.arrow.shoot", "pitch": 1.4, "volume": 1.0}
     model: {shape: recurve_bow, length: 1.0}
     texture: {style: bone, palette: ["#1e1410", "#5a2e1a", "#a0522a", "#d98a46", "#7fd0c0"]}
@@ -1343,13 +1346,13 @@ items:
   brine_bladebow:
     name: "소금물 날활"
     type: weapon
-    weapon_type: bow
+    attack: {style: ranged, interval: 1.15, kind: physical}
     rarity: rare
     level_req: 19
     requires: {DEX: 45}
     floor: 4
     classes: [hunter]
-    stats: {damage: [24, 28], DEX: [4, 6], lifesteal: [0.018, 0.025], crit_damage: [0.074, 0.1]}
+    stats: {damage: [44, 51], DEX: [4, 6], lifesteal: [0.018, 0.025], crit_damage: [0.074, 0.1]}
     pool: false
     sources: [drop, chest]
     model: {shape: blade_bow, length: 1.0}
@@ -1358,13 +1361,13 @@ items:
   slagedge_bladebow:
     name: "슬래그 날활"
     type: weapon
-    weapon_type: bow
+    attack: {style: ranged, interval: 1.25, kind: physical}
     rarity: epic
     level_req: 22
     requires: {DEX: 53}
     floor: 5
     classes: [hunter]
-    stats: {damage: [31, 35], DEX: [6, 8], skill_damage: [0.054, 0.073], cooldown_reduction: [0.03, 0.041], crit_chance: [0.03, 0.041]}
+    stats: {damage: [63, 71], DEX: [6, 8], skill_damage: [0.054, 0.073], cooldown_reduction: [0.03, 0.041], crit_chance: [0.03, 0.041]}
     pool: false
     sources: [drop, chest]
     weapon_skills:
@@ -1375,7 +1378,7 @@ items:
         mana: 16
         description: "웅크리고 당겨 쏘면 화살 대신 달군 쇳물 덩이를 쏜다. 적을 셋까지 꿰뚫고, 멈춘 자리에서 터진다."
         mechanics:
-          - {"type": "projectile", "speed": 2.0, "range": 24, "pierce": 3, "display": "proj_molten_orb", "particle": "LAVA", "effects": [{"damage": 1.5, "damage_type": "ranged"}, {"ignite": 2}], "explode": {"radius": 2.0, "display": "ember_burst", "effects": [{"damage": 0.5, "damage_type": "ranged"}]}}
+          - {"type": "projectile", "speed": 2.0, "range": 24, "pierce": 3, "display": "proj_molten_orb", "particle": "LAVA", "effects": [{"damage": 1.95, "damage_type": "ranged"}, {"ignite": 2}], "explode": {"radius": 2.0, "display": "ember_burst", "effects": [{"damage": 0.65, "damage_type": "ranged"}]}}
           - {"type": "sound", "sound": "entity.blaze.shoot", "pitch": 0.7, "volume": 1.0}
     model: {shape: blade_bow, length: 1.05}
     texture: {style: dark_iron, palette: ["#160e0a", "#38221a", "#6e4430", "#b07a50", "#ff8a3c"]}
@@ -1383,13 +1386,13 @@ items:
   bellows_composite_bow:
     name: "풀무 복합궁"
     type: weapon
-    weapon_type: bow
+    attack: {style: ranged, interval: 1.2, kind: physical}
     rarity: epic
     level_req: 24
     requires: {DEX: 58}
     floor: 5
     classes: [hunter]
-    stats: {damage: [34, 39], DEX: [6, 9], crit_damage: [0.104, 0.141], crit_chance: [0.032, 0.044], attack_speed: [0.042, 0.057]}
+    stats: {damage: [67, 77], DEX: [6, 9], crit_damage: [0.104, 0.141], crit_chance: [0.032, 0.044], attack_speed: [0.042, 0.057]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -1400,7 +1403,7 @@ items:
         mana: 22
         description: "하늘로 불씨를 쏘아 올려 노린 곳에 잿더미를 쏟는다."
         mechanics:
-          - {"type": "rain", "count": 9, "radius": 4, "interval": 2, "height": 12, "speed": 1.3, "display": "proj_ember", "particle": "FLAME", "impact_particle": "LAVA", "impact_radius": 1.8, "effects": [{"damage": 0.8, "damage_type": "ranged"}, {"ignite": 2}]}
+          - {"type": "rain", "count": 9, "radius": 4, "interval": 2, "height": 12, "speed": 1.3, "display": "proj_ember", "particle": "FLAME", "impact_particle": "LAVA", "impact_radius": 1.8, "effects": [{"damage": 1.04, "damage_type": "ranged"}, {"ignite": 2}]}
           - {"type": "sound", "sound": "entity.firework_rocket.launch", "pitch": 0.6, "volume": 1.0}
       - id: mechanics
         name: "풀무 화살"
@@ -1409,7 +1412,7 @@ items:
         mana: 14
         description: "당겨 쏘면 불붙은 화살 세 발이 부채꼴로 퍼진다."
         mechanics:
-          - {"type": "projectile", "count": 3, "spread": 18, "speed": 2.2, "range": 26, "display": "proj_ember", "particle": "FLAME", "effects": [{"damage": 1.0, "damage_type": "ranged"}, {"ignite": 3}]}
+          - {"type": "projectile", "count": 3, "spread": 18, "speed": 2.2, "range": 26, "display": "proj_ember", "particle": "FLAME", "effects": [{"damage": 1.3, "damage_type": "ranged"}, {"ignite": 3}]}
           - {"type": "sound", "sound": "entity.blaze.shoot", "pitch": 1.3, "volume": 0.6}
     model: {shape: composite_bow, length: 1.0}
     texture: {style: copper, palette: ["#16110f", "#3a2a24", "#6e5a4e", "#c45a22", "#ffc06a"]}
@@ -1417,13 +1420,13 @@ items:
   tidecaller_bow:
     name: "조수 부르는 활"
     type: weapon
-    weapon_type: bow
+    attack: {style: ranged, interval: 1.1, kind: physical}
     rarity: legendary
     level_req: 20
     requires: {DEX: 48}
     floor: 4
     classes: [hunter]
-    stats: {damage: [30, 34], DEX: [7, 9], crit_chance: [0.039, 0.053], crit_damage: [0.126, 0.17], attack_speed: [0.051, 0.069], LUK: [5, 6]}
+    stats: {damage: [53, 60], DEX: [7, 9], crit_chance: [0.039, 0.053], crit_damage: [0.126, 0.17], attack_speed: [0.051, 0.069], LUK: [5, 6]}
     aura: tide
     pool: false
     sources: [boss]
@@ -1435,7 +1438,7 @@ items:
         mana: 26
         description: "노린 곳에 밀물 결계를 펼친다. 안의 적은 느려지고 아군은 회복한다."
         mechanics:
-          - {"type": "zone", "at": "aim", "radius": 4.5, "duration": 6, "interval": 20, "display": "tide_ring", "particle": "DRIPPING_WATER", "effects": [{"damage": 0.4, "damage_type": "ranged"}, {"slow": 1.5}], "ally_effects": [{"heal": 0.04}]}
+          - {"type": "zone", "at": "aim", "radius": 4.5, "duration": 6, "interval": 20, "display": "tide_ring", "particle": "DRIPPING_WATER", "effects": [{"damage": 0.52, "damage_type": "ranged"}, {"slow": 1.5}], "ally_effects": [{"heal": 0.04}]}
           - {"type": "sound", "sound": "ambient.underwater.enter", "pitch": 1.0, "volume": 1.2}
       - id: mechanics
         name: "물보라 화살"
@@ -1444,7 +1447,7 @@ items:
         mana: 12
         description: "당겨 쏘면 물보라 화살 세 발이 퍼지며 적을 밀어낸다."
         mechanics:
-          - {"type": "projectile", "count": 3, "spread": 14, "speed": 2.3, "range": 28, "display": "tide_arrow", "particle": "SPLASH", "effects": [{"damage": 1.1, "damage_type": "ranged"}, {"knockback": 0.5}]}
+          - {"type": "projectile", "count": 3, "spread": 14, "speed": 2.3, "range": 28, "display": "tide_arrow", "particle": "SPLASH", "effects": [{"damage": 1.43, "damage_type": "ranged"}, {"knockback": 0.5}]}
           - {"type": "sound", "sound": "entity.arrow.shoot", "pitch": 1.1, "volume": 1.0}
     model: {shape: recurve_bow, length: 1.0}
     texture: {style: coral, palette: ["#0e2230", "#1e4a6a", "#3a8ab0", "#5ab0d0", "#d8f8ff"], animated: true, frames: 8, frametime: 2, effect: tide_ripple}
@@ -1452,13 +1455,13 @@ items:
   frostbone_longbow:
     name: "얼음뼈 장궁"
     type: weapon
-    weapon_type: bow
+    attack: {style: ranged, interval: 1.3, kind: physical}
     rarity: epic
     level_req: 27
     requires: {DEX: 65}
     floor: 6
     classes: [hunter]
-    stats: {damage: [39, 45], DEX: [7, 10], crit_chance: [0.035, 0.047], crit_damage: [0.113, 0.153], attack_speed: [0.045, 0.061]}
+    stats: {damage: [85, 98], DEX: [7, 10], crit_chance: [0.035, 0.047], crit_damage: [0.113, 0.153], attack_speed: [0.045, 0.061]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -1469,7 +1472,7 @@ items:
         mana: 14
         description: "웅크리고 당겨 쏘면 고드름 화살이 날아가 맞은 자리에서 터지며 주변을 느리게 한다."
         mechanics:
-          - {"type": "projectile", "speed": 2.4, "range": 30, "display": "proj_frost_shard", "particle": "SNOWFLAKE", "effects": [{"damage": 1.7, "damage_type": "ranged"}], "explode": {"radius": 2, "particle": "SNOWFLAKE", "effects": [{"damage": 0.5}, {"slow": 2}]}}
+          - {"type": "projectile", "speed": 2.4, "range": 30, "display": "proj_frost_shard", "particle": "SNOWFLAKE", "effects": [{"damage": 2.21, "damage_type": "ranged"}], "explode": {"radius": 2, "particle": "SNOWFLAKE", "effects": [{"damage": 0.65}, {"slow": 2}]}}
           - {"type": "sound", "sound": "entity.arrow.shoot", "pitch": 1.2, "volume": 1.0}
     model: {shape: longbow, length: 1.0}
     texture: {style: bone, palette: ["#1c2230", "#4a5268", "#c8ccd6", "#9ad0ff", "#f0faff"]}
@@ -1477,13 +1480,13 @@ items:
   prismstring_longbow:
     name: "프리즘 시위 장궁"
     type: weapon
-    weapon_type: bow
+    attack: {style: ranged, interval: 1.25, kind: physical}
     rarity: rare
     level_req: 32
     requires: {DEX: 78}
     floor: 7
     classes: [hunter]
-    stats: {damage: [45, 53], DEX: [7, 9], crit_chance: [0.033, 0.045], crit_damage: [0.107, 0.145]}
+    stats: {damage: [96, 113], DEX: [7, 9], crit_chance: [0.033, 0.045], crit_damage: [0.107, 0.145]}
     pool: false
     sources: [drop, chest]
     model: {shape: longbow, length: 1.0}
@@ -1492,13 +1495,13 @@ items:
   prism_hornbow:
     name: "프리즘 각궁"
     type: weapon
-    weapon_type: bow
+    attack: {style: ranged, interval: 1.0, kind: physical}
     rarity: rare
     level_req: 34
     requires: {DEX: 83}
     floor: 7
     classes: [hunter]
-    stats: {damage: [50, 57], DEX: [7, 10], attack_speed: [0.043, 0.058], move_speed: [0.023, 0.031]}
+    stats: {damage: [86, 98], DEX: [7, 10], attack_speed: [0.043, 0.058], move_speed: [0.023, 0.031]}
     pool: false
     sources: [craft]
     model: {shape: horn_bow, length: 1.05}
@@ -1507,13 +1510,13 @@ items:
   inkquill_hornbow:
     name: "깃펜 각궁"
     type: weapon
-    weapon_type: bow
+    attack: {style: ranged, interval: 1.0, kind: physical}
     rarity: epic
     level_req: 38
     requires: {DEX: 93}
     floor: 8
     classes: [hunter]
-    stats: {damage: [63, 72], DEX: [10, 13], LUK: [6, 8], crit_chance: [0.045, 0.061], evasion: [0.033, 0.045]}
+    stats: {damage: [110, 126], DEX: [10, 13], LUK: [6, 8], crit_chance: [0.045, 0.061], evasion: [0.033, 0.045]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -1524,7 +1527,7 @@ items:
         mana: 18
         description: "웅크리고 당겨 쏘면 화살 대신 깃펜 다섯 자루를 부채꼴로 날린다. 맞은 적은 잠깐 앞이 보이지 않는다."
         mechanics:
-          - {"type": "projectile", "count": 5, "spread": 24, "speed": 1.6, "range": 22, "display": "proj_quill", "particle": "SQUID_INK", "effects": [{"damage": 0.55, "damage_type": "ranged"}, {"effect": {"id": "blind", "seconds": 1.5, "potency": 1.0}}]}
+          - {"type": "projectile", "count": 5, "spread": 24, "speed": 1.6, "range": 22, "display": "proj_quill", "particle": "SQUID_INK", "effects": [{"damage": 0.715, "damage_type": "ranged"}, {"effect": {"id": "blind", "seconds": 1.5, "potency": 1.0}}]}
           - {"type": "sound", "sound": "item.book.page_turn", "pitch": 1.4, "volume": 1.0}
     model: {shape: horn_bow, length: 1.1}
     texture: {style: ink, palette: ["#0c0c12", "#1e1e2e", "#3e3e5e", "#9a9ac8", "#e8e0ff"]}
@@ -1532,13 +1535,13 @@ items:
   galewing_bow:
     name: "질풍 날개 활"
     type: weapon
-    weapon_type: bow
+    attack: {style: ranged, interval: 1.15, kind: physical}
     rarity: legendary
     level_req: 35
     requires: {DEX: 85}
     floor: 7
     classes: [hunter]
-    stats: {damage: [60, 69], DEX: [11, 15], attack_speed: [0.065, 0.087], crit_chance: [0.052, 0.071], crit_damage: [0.17, 0.23], move_speed: [0.035, 0.047]}
+    stats: {damage: [120, 137], DEX: [11, 15], attack_speed: [0.065, 0.087], crit_chance: [0.052, 0.071], crit_damage: [0.17, 0.23], move_speed: [0.035, 0.047]}
     aura: gale
     pool: false
     sources: [boss]
@@ -1550,7 +1553,7 @@ items:
         mana: 26
         description: "회오리를 묶은 화살을 쏜다. 꽂힌 곳에 회오리가 일어 적을 빨아들인다."
         mechanics:
-          - {"type": "projectile", "speed": 2.0, "range": 26, "display": "gale_arrow", "particle": "CLOUD", "effects": [{"damage": 1.0, "damage_type": "ranged"}], "on_impact": [{"type": "vortex", "at": "origin", "radius": 5, "duration": 2.5, "strength": 0.3, "display": "gale_ring", "particle": "CLOUD", "effects": [{"damage": 0.4, "damage_type": "ranged"}], "end": [{"type": "nova", "radius": 3, "display": "gale_burst", "particle": "GUST", "effects": [{"damage": 1.2, "damage_type": "ranged"}, {"launch": 0.7}]}]}]}
+          - {"type": "projectile", "speed": 2.0, "range": 26, "display": "gale_arrow", "particle": "CLOUD", "effects": [{"damage": 1.3, "damage_type": "ranged"}], "on_impact": [{"type": "vortex", "at": "origin", "radius": 5, "duration": 2.5, "strength": 0.3, "display": "gale_ring", "particle": "CLOUD", "effects": [{"damage": 0.52, "damage_type": "ranged"}], "end": [{"type": "nova", "radius": 3, "display": "gale_burst", "particle": "GUST", "effects": [{"damage": 1.56, "damage_type": "ranged"}, {"launch": 0.7}]}]}]}
           - {"type": "sound", "sound": "entity.breeze.wind_burst", "pitch": 0.8, "volume": 1.0}
       - id: mechanics
         name: "돌풍 화살"
@@ -1559,7 +1562,7 @@ items:
         mana: 12
         description: "당겨 쏘면 돌풍 화살이 적을 꿰뚫고 날아간다."
         mechanics:
-          - {"type": "projectile", "speed": 2.8, "range": 34, "pierce": true, "display": "gale_arrow", "particle": "CLOUD", "particle_count": 1, "effects": [{"damage": 2.0, "damage_type": "ranged"}, {"knockback": 0.4}]}
+          - {"type": "projectile", "speed": 2.8, "range": 34, "pierce": true, "display": "gale_arrow", "particle": "CLOUD", "particle_count": 1, "effects": [{"damage": 2.6, "damage_type": "ranged"}, {"knockback": 0.4}]}
           - {"type": "sound", "sound": "entity.breeze.shoot", "pitch": 1.2, "volume": 1.0}
     model: {shape: composite_bow, length: 1.0}
     texture: {style: silver, palette: ["#1e3a2e", "#4f9a7a", "#9aa8b0", "#c8f0dc", "#ffffff"], animated: true, frames: 8, frametime: 2, effect: wind_streak}
@@ -1567,13 +1570,13 @@ items:
   springloaded_bow:
     name: "용수철 연발궁"
     type: weapon
-    weapon_type: bow
+    attack: {style: ranged, interval: 1.1, kind: physical}
     rarity: epic
     level_req: 41
     requires: {DEX: 100}
     floor: 9
     classes: [hunter]
-    stats: {damage: [71, 81], DEX: [10, 14], attack_speed: [0.058, 0.079], crit_chance: [0.048, 0.065], crit_damage: [0.156, 0.211]}
+    stats: {damage: [138, 157], DEX: [10, 14], attack_speed: [0.058, 0.079], crit_chance: [0.048, 0.065], crit_damage: [0.156, 0.211]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -1584,7 +1587,7 @@ items:
         mana: 10
         description: "뒤로 크게 튀어 오르며 발밑에 톱니 덫을 남긴다."
         mechanics:
-          - {"type": "zone", "at": "self", "radius": 2.5, "duration": 4, "interval": 10, "display": "snare_trap", "effects": [{"damage": 0.5, "damage_type": "ranged"}, {"root": 1.5}]}
+          - {"type": "zone", "at": "self", "radius": 2.5, "duration": 4, "interval": 10, "display": "snare_trap", "effects": [{"damage": 0.65, "damage_type": "ranged"}, {"root": 1.5}]}
           - {"type": "velocity", "forward": -1.3, "upward": 0.6}
           - {"type": "sound", "sound": "block.piston.extend", "pitch": 1.5, "volume": 1.0}
       - id: mechanics
@@ -1594,7 +1597,7 @@ items:
         mana: 15
         description: "당겨 쏘면 용수철이 풀리며 화살 다섯 발이 연달아 나간다."
         mechanics:
-          - {"type": "projectile", "count": 5, "interval": 3, "spread": 6, "speed": 2.4, "range": 28, "display": "proj_piercing_arrow", "effects": [{"damage": 0.7, "damage_type": "ranged"}]}
+          - {"type": "projectile", "count": 5, "interval": 3, "spread": 6, "speed": 2.4, "range": 28, "display": "proj_piercing_arrow", "effects": [{"damage": 0.91, "damage_type": "ranged"}]}
           - {"type": "sound", "sound": "block.dispenser.launch", "pitch": 1.4, "volume": 1.0}
     model: {shape: composite_bow, length: 1.0}
     texture: {style: clockwork, palette: ["#16100a", "#4a3020", "#a06a34", "#e0b070", "#c8d8e0"]}
@@ -1602,13 +1605,13 @@ items:
   abyss_bladebow:
     name: "심연 날활"
     type: weapon
-    weapon_type: bow
+    attack: {style: ranged, interval: 1.15, kind: physical}
     rarity: epic
     level_req: 46
     requires: {DEX: 113}
     floor: 10
     classes: [hunter]
-    stats: {damage: [85, 97], DEX: [11, 15], crit_damage: [0.171, 0.232], lifesteal: [0.038, 0.052], attack_speed: [0.063, 0.085]}
+    stats: {damage: [175, 200], DEX: [11, 15], crit_damage: [0.171, 0.232], lifesteal: [0.038, 0.052], attack_speed: [0.063, 0.085]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -1619,7 +1622,7 @@ items:
         mana: 14
         description: "날활을 휘둘러 주변을 베고 뒤로 훌쩍 물러난다. 맞은 적은 밀려나고 느려진다."
         mechanics:
-          - {"type": "nova", "radius": 3.5, "display": "abyssal_burst", "particle": "SCULK_SOUL", "effects": [{"damage": 1.3, "damage_type": "melee"}, {"knockback": 0.8}, {"slow": 1.5}]}
+          - {"type": "nova", "radius": 3.5, "display": "abyssal_burst", "particle": "SCULK_SOUL", "effects": [{"damage": 1.69, "damage_type": "melee"}, {"knockback": 0.8}, {"slow": 1.5}]}
           - {"type": "velocity", "forward": -0.9, "upward": 0.35}
           - {"type": "sound", "sound": "entity.player.attack.sweep", "pitch": 0.7, "volume": 1.0}
     model: {shape: blade_bow, length: 1.15}
@@ -1628,13 +1631,13 @@ items:
   quicksilver_longbow:
     name: "수은 장궁"
     type: weapon
-    weapon_type: bow
+    attack: {style: ranged, interval: 1.15, kind: physical}
     rarity: legendary
     level_req: 44
     requires: {DEX: 108}
     floor: 9
     classes: [hunter]
-    stats: {damage: [86, 97], DEX: [13, 18], crit_chance: [0.061, 0.083], crit_damage: [0.2, 0.27], attack_speed: [0.073, 0.099], LUK: [8, 11]}
+    stats: {damage: [176, 199], DEX: [13, 18], crit_chance: [0.061, 0.083], crit_damage: [0.2, 0.27], attack_speed: [0.073, 0.099], LUK: [8, 11]}
     aura: quicksilver
     pool: false
     sources: [boss]
@@ -1646,7 +1649,7 @@ items:
         mana: 32
         description: "노린 곳에 수은비를 5초간 내린다. 맞은 적은 중독된다."
         mechanics:
-          - {"type": "zone", "at": "aim", "radius": 5, "duration": 5, "interval": 10, "display": "quicksilver_ring", "particle": "FALLING_DUST:iron_block", "effects": [{"damage": 0.45, "damage_type": "ranged"}, {"poison": 3}]}
+          - {"type": "zone", "at": "aim", "radius": 5, "duration": 5, "interval": 10, "display": "quicksilver_ring", "particle": "FALLING_DUST:iron_block", "effects": [{"damage": 0.585, "damage_type": "ranged"}, {"poison": 3}]}
           - {"type": "sound", "sound": "weather.rain", "pitch": 1.4, "volume": 1.2}
       - id: mechanics
         name: "분열 수은탄"
@@ -1655,7 +1658,7 @@ items:
         mana: 14
         description: "당겨 쏜 수은탄이 맞으면 다섯 방울로 갈라져 주변을 친다."
         mechanics:
-          - {"type": "projectile", "speed": 2.4, "range": 30, "display": "quicksilver_arrow", "particle": "DUST:#c8d0dc:1.0", "effects": [{"damage": 1.4, "damage_type": "ranged"}], "on_impact": [{"type": "rain", "at": "origin", "count": 5, "radius": 3, "interval": 1, "height": 3, "speed": 0.6, "display": "quicksilver_orb", "impact_radius": 1.5, "effects": [{"damage": 0.5, "damage_type": "ranged"}, {"poison": 3}]}]}
+          - {"type": "projectile", "speed": 2.4, "range": 30, "display": "quicksilver_arrow", "particle": "DUST:#c8d0dc:1.0", "effects": [{"damage": 1.82, "damage_type": "ranged"}], "on_impact": [{"type": "rain", "at": "origin", "count": 5, "radius": 3, "interval": 1, "height": 3, "speed": 0.6, "display": "quicksilver_orb", "impact_radius": 1.5, "effects": [{"damage": 0.65, "damage_type": "ranged"}, {"poison": 3}]}]}
           - {"type": "sound", "sound": "entity.arrow.shoot", "pitch": 1.5, "volume": 1.0}
     model: {shape: longbow, length: 1.0}
     texture: {style: silver, palette: ["#1a1e26", "#4a5462", "#a8b4c4", "#e8eef8", "#ffffff"], animated: true, frames: 8, frametime: 2, effect: mercury_flow}
@@ -1663,13 +1666,13 @@ items:
   tempest_bow:
     name: "폭풍의 눈"
     type: weapon
-    weapon_type: bow
+    attack: {style: ranged, interval: 1.15, kind: physical}
     rarity: mythic
     level_req: 48
     requires: {DEX: 118}
     floor: 10
     classes: [hunter]
-    stats: {damage: [111, 122], DEX: [17, 23], crit_chance: [0.079, 0.107], crit_damage: [0.259, 0.35], attack_speed: [0.094, 0.127], move_speed: [0.051, 0.068], LUK: [10, 14]}
+    stats: {damage: [230, 253], DEX: [17, 23], crit_chance: [0.079, 0.107], crit_damage: [0.259, 0.35], attack_speed: [0.094, 0.127], move_speed: [0.051, 0.068], LUK: [10, 14]}
     aura: tempest
     pool: false
     sources: [boss]
@@ -1679,7 +1682,7 @@ items:
         input: LEFT
         cooldown: 0.7
         mana: 0
-        params: {"fx": "tempest_arrow", "count": 1, "speed": 3.4, "range": 36, "damage": 0.55, "pierce": 2, "effect": "slow", "amount": 0.15, "effect_duration": 1.0, "damage_type": "ranged"}
+        params: {"fx": "tempest_arrow", "count": 1, "speed": 3.4, "range": 36, "damage": 0.715, "pierce": 2, "effect": "slow", "amount": 0.15, "effect_duration": 1.0, "damage_type": "ranged"}
         description: "좌클릭마다 활을 당기지 않고 번개 화살을 쏜다(0.7초 간격, 2명 관통)."
       - id: mechanics
         name: "폭풍의 눈"
@@ -1688,8 +1691,8 @@ items:
         mana: 45
         description: "노린 곳에 폭풍의 눈을 연다. 6초간 적을 끌어당기며 번개가 여덟 번 내리친다."
         mechanics:
-          - {"type": "vortex", "at": "aim", "radius": 7, "duration": 6, "strength": 0.22, "interval": 20, "display": "tempest_ring", "particle": "CLOUD", "effects": [{"damage": 0.4, "damage_type": "ranged"}]}
-          - {"type": "strike", "at": "aim", "targets": true, "count": 8, "radius": 7, "interval": 12, "visual": "lightning", "impact_radius": 2.2, "effects": [{"damage": 1.2, "magic": true}]}
+          - {"type": "vortex", "at": "aim", "radius": 7, "duration": 6, "strength": 0.22, "interval": 20, "display": "tempest_ring", "particle": "CLOUD", "effects": [{"damage": 0.52, "damage_type": "ranged"}]}
+          - {"type": "strike", "at": "aim", "targets": true, "count": 8, "radius": 7, "interval": 12, "visual": "lightning", "impact_radius": 2.2, "effects": [{"damage": 1.56, "magic": true}]}
           - {"type": "sound", "sound": "item.trident.thunder", "pitch": 0.9, "volume": 1.0}
       - id: mechanics
         name: "천둥 화살"
@@ -1698,7 +1701,7 @@ items:
         mana: 18
         description: "당겨 쏜 화살이 꽂힌 자리에 벼락이 떨어진다."
         mechanics:
-          - {"type": "projectile", "speed": 3.0, "range": 36, "display": "tempest_arrow", "particle": "ELECTRIC_SPARK", "effects": [{"damage": 1.8, "damage_type": "ranged"}], "on_impact": [{"type": "strike", "at": "origin", "visual": "lightning", "impact_radius": 3, "effects": [{"damage": 1.6, "magic": true}, {"stun": 0.6}]}]}
+          - {"type": "projectile", "speed": 3.0, "range": 36, "display": "tempest_arrow", "particle": "ELECTRIC_SPARK", "effects": [{"damage": 2.34, "damage_type": "ranged"}], "on_impact": [{"type": "strike", "at": "origin", "visual": "lightning", "impact_radius": 3, "effects": [{"damage": 2.08, "magic": true}, {"stun": 0.6}]}]}
     model: {shape: composite_bow, length: 1.15}
     texture: {style: silver, palette: ["#10183a", "#3a5ab0", "#a8d0ff", "#e0f0ff", "#ffffff"], animated: true, frames: 16, frametime: 1, effect: lightning_arc}
     lore: "미궁의 바닥에서 천둥이 울린 날, 떨어진 번개가 활대에 갇혔다. 지금도 시위 위를 번개가 달린다."
@@ -1707,12 +1710,12 @@ items:
   lantern_staff:
     name: "등불 지팡이"
     type: weapon
-    weapon_type: staff
+    attack: {style: caster, interval: 0.95, kind: magic}
     rarity: common
     level_req: 1
     floor: 1
     classes: [arcanist]
-    stats: {damage: [7, 8], INT: [1, 2], mp: [2, 3]}
+    stats: {damage: [9, 10], INT: [1, 2], mp: [2, 3]}
     pool: false
     sources: [drop, chest]
     model: {shape: staff_orb, length: 1.0}
@@ -1721,13 +1724,13 @@ items:
   wayfarer_spiral_staff:
     name: "길잡이의 소용돌이 지팡이"
     type: weapon
-    weapon_type: staff
+    attack: {style: caster, interval: 0.9, kind: magic}
     rarity: common
     level_req: 3
     requires: {INT: 5}
     floor: 1
     classes: [arcanist]
-    stats: {damage: [8, 9], INT: [1, 2], cooldown_reduction: [0.006, 0.009]}
+    stats: {damage: [10, 11], INT: [1, 2], cooldown_reduction: [0.006, 0.009]}
     pool: false
     sources: [drop, chest, craft]
     model: {shape: staff_spiral, length: 1.0}
@@ -1736,13 +1739,13 @@ items:
   grove_heartwood_staff:
     name: "심재 반딧불 지팡이"
     type: weapon
-    weapon_type: staff
+    attack: {style: caster, interval: 0.9, kind: magic}
     rarity: rare
     level_req: 5
     requires: {INT: 10}
     floor: 1
     classes: [arcanist]
-    stats: {damage: [10, 11], INT: [2, 3], mp: [8, 12], cooldown_reduction: [0.012, 0.017]}
+    stats: {damage: [12, 14], INT: [2, 3], mp: [8, 12], cooldown_reduction: [0.012, 0.017]}
     pool: false
     sources: [boss, craft]
     model: {shape: staff_spiral, length: 1.0}
@@ -1751,13 +1754,13 @@ items:
   ore_crystal_staff:
     name: "광석 수정 지팡이"
     type: weapon
-    weapon_type: staff
+    attack: {style: caster, interval: 0.9, kind: magic}
     rarity: uncommon
     level_req: 5
     requires: {INT: 10}
     floor: 2
     classes: [arcanist]
-    stats: {damage: [9, 11], INT: [1, 2], mp: [7, 9]}
+    stats: {damage: [11, 14], INT: [1, 2], mp: [7, 9]}
     pool: false
     sources: [drop, chest]
     model: {shape: staff_crystal, length: 1.0}
@@ -1766,13 +1769,13 @@ items:
   miners_fork_staff:
     name: "광부의 갈래 지팡이"
     type: weapon
-    weapon_type: staff
+    attack: {style: caster, interval: 0.9, kind: magic}
     rarity: uncommon
     level_req: 8
     requires: {INT: 18}
     floor: 2
     classes: [arcanist]
-    stats: {damage: [11, 12], INT: [2, 3], crit_chance: [0.012, 0.016]}
+    stats: {damage: [14, 16], INT: [2, 3], crit_chance: [0.012, 0.016]}
     pool: false
     sources: [craft]
     model: {shape: staff_fork, length: 1.0}
@@ -1781,13 +1784,13 @@ items:
   mycelium_staff:
     name: "균사 고리 지팡이"
     type: weapon
-    weapon_type: staff
+    attack: {style: caster, interval: 0.9, kind: magic}
     rarity: rare
     level_req: 11
     requires: {INT: 25}
     floor: 3
     classes: [arcanist]
-    stats: {damage: [13, 15], INT: [3, 4], mp: [17, 23], skill_damage: [0.031, 0.042]}
+    stats: {damage: [18, 20], INT: [3, 4], mp: [17, 23], skill_damage: [0.031, 0.042]}
     pool: false
     sources: [drop, chest]
     model: {shape: staff_ring, length: 1.0}
@@ -1796,13 +1799,13 @@ items:
   glowcap_spiral_staff:
     name: "빛갓 소용돌이 지팡이"
     type: weapon
-    weapon_type: staff
+    attack: {style: caster, interval: 0.9, kind: magic}
     rarity: rare
     level_req: 14
     requires: {INT: 33}
     floor: 3
     classes: [arcanist]
-    stats: {damage: [16, 18], INT: [3, 5], mana_regen: [0.3, 0.4], cooldown_reduction: [0.019, 0.026]}
+    stats: {damage: [22, 25], INT: [3, 5], mana_regen: [0.3, 0.4], cooldown_reduction: [0.019, 0.026]}
     pool: false
     sources: [craft]
     model: {shape: staff_spiral, length: 1.0}
@@ -1811,13 +1814,13 @@ items:
   brine_orb_staff:
     name: "소금물 구슬 지팡이"
     type: weapon
-    weapon_type: staff
+    attack: {style: caster, interval: 0.95, kind: magic}
     rarity: epic
     level_req: 17
     requires: {INT: 40}
     floor: 4
     classes: [arcanist]
-    stats: {damage: [20, 23], INT: [5, 7], mp: [30, 40], skill_damage: [0.046, 0.063], mana_regen: [0.4, 0.5]}
+    stats: {damage: [30, 35], INT: [5, 7], mp: [30, 40], skill_damage: [0.046, 0.063], mana_regen: [0.4, 0.5]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -1828,7 +1831,7 @@ items:
         mana: 16
         description: "적을 따라가는 소금물 거품 세 개를 쏜다. 터지면 주변이 느려진다."
         mechanics:
-          - {"type": "projectile", "count": 3, "spread": 24, "speed": 0.9, "homing": 0.12, "range": 18, "display": "proj_brine", "effects": [{"damage": 0.9, "magic": true}], "explode": {"radius": 1.8, "particle": "BUBBLE_POP", "effects": [{"slow": 1.5}]}}
+          - {"type": "projectile", "count": 3, "spread": 24, "speed": 0.9, "homing": 0.12, "range": 18, "display": "proj_brine", "effects": [{"damage": 0.95, "magic": true}], "explode": {"radius": 1.8, "particle": "BUBBLE_POP", "effects": [{"slow": 1.5}]}}
           - {"type": "sound", "sound": "entity.player.splash", "pitch": 1.6, "volume": 0.6}
       - id: mechanics
         name: "물감옥"
@@ -1837,7 +1840,7 @@ items:
         mana: 24
         description: "노린 곳의 적을 물방울 감옥에 가둔다."
         mechanics:
-          - {"type": "nova", "at": "aim", "radius": 3, "display": "water_plane", "particle": "BUBBLE_COLUMN_UP", "effects": [{"damage": 1.4, "magic": true}, {"root": 2.5}, {"slow": 4}]}
+          - {"type": "nova", "at": "aim", "radius": 3, "display": "water_plane", "particle": "BUBBLE_COLUMN_UP", "effects": [{"damage": 1.478, "magic": true}, {"root": 2.5}, {"slow": 4}]}
           - {"type": "sound", "sound": "block.bubble_column.upwards_inside", "pitch": 0.8, "volume": 1.5}
     model: {shape: staff_orb, length: 1.0}
     texture: {style: coral, palette: ["#14263a", "#2a5a7a", "#5ab0d0", "#b0f0ff", "#ffffff"]}
@@ -1845,13 +1848,13 @@ items:
   tide_fork_staff:
     name: "조류의 삼지창 지팡이"
     type: weapon
-    weapon_type: staff
+    attack: {style: caster, interval: 0.9, kind: magic}
     rarity: rare
     level_req: 19
     requires: {INT: 45}
     floor: 4
     classes: [arcanist]
-    stats: {damage: [21, 24], INT: [4, 6], crit_chance: [0.023, 0.031], crit_damage: [0.074, 0.1]}
+    stats: {damage: [30, 35], INT: [4, 6], crit_chance: [0.023, 0.031], crit_damage: [0.074, 0.1]}
     pool: false
     sources: [drop, chest]
     model: {shape: staff_fork, length: 1.0}
@@ -1860,13 +1863,13 @@ items:
   osric_tide_trident:
     name: "오스릭의 조수 삼지창"
     type: weapon
-    weapon_type: staff
+    attack: {style: caster, interval: 0.9, kind: magic}
     rarity: epic
     level_req: 20
     requires: {INT: 48}
     floor: 4
     classes: [arcanist]
-    stats: {damage: [23, 27], INT: [6, 7], mp: [35, 47], skill_damage: [0.051, 0.069], crit_chance: [0.029, 0.039]}
+    stats: {damage: [34, 39], INT: [6, 7], mp: [35, 47], skill_damage: [0.051, 0.069], crit_chance: [0.029, 0.039]}
     pool: false
     sources: [boss]
     weapon_skills:
@@ -1877,20 +1880,20 @@ items:
         mana: 22
         description: "노린 곳에 소용돌이를 만들어 적을 끌어모은 뒤 물기둥으로 터뜨린다."
         mechanics:
-          - {"type": "vortex", "at": "aim", "radius": 4, "duration": 1.5, "strength": 0.3, "display": "tide_ring", "particle": "BUBBLE_POP", "effects": [{"damage": 0.3, "magic": true}], "end": [{"type": "nova", "radius": 3, "display": "water_plane", "particle": "SPLASH", "effects": [{"damage": 1.6, "magic": true}, {"slow": 2}]}, {"type": "sound", "sound": "entity.player.splash", "pitch": 0.6, "volume": 1.2}]}
+          - {"type": "vortex", "at": "aim", "radius": 4, "duration": 1.5, "strength": 0.3, "display": "tide_ring", "particle": "BUBBLE_POP", "effects": [{"damage": 0.317, "magic": true}], "end": [{"type": "nova", "radius": 3, "display": "water_plane", "particle": "SPLASH", "effects": [{"damage": 1.69, "magic": true}, {"slow": 2}]}, {"type": "sound", "sound": "entity.player.splash", "pitch": 0.6, "volume": 1.2}]}
     model: {shape: staff_fork, length: 1.0}
     texture: {style: coral, palette: ["#0a1416", "#183034", "#2e5a5e", "#5ab0d0", "#c0f0e8"]}
     lore: "수문지기들이 수위를 재던 삼지창. 끝을 겨누면 물길이 그쪽으로 휘어 든다."
   cinder_spiral_staff:
     name: "불씨 소용돌이 지팡이"
     type: weapon
-    weapon_type: staff
+    attack: {style: caster, interval: 0.9, kind: magic}
     rarity: epic
     level_req: 22
     requires: {INT: 53}
     floor: 5
     classes: [arcanist]
-    stats: {damage: [26, 30], INT: [6, 8], crit_chance: [0.03, 0.041], crit_damage: [0.098, 0.132], skill_damage: [0.054, 0.073]}
+    stats: {damage: [39, 44], INT: [6, 8], crit_chance: [0.03, 0.041], crit_damage: [0.098, 0.132], skill_damage: [0.054, 0.073]}
     pool: false
     sources: [drop, chest]
     weapon_skills:
@@ -1901,7 +1904,7 @@ items:
         mana: 22
         description: "바라보는 곳에 불기둥 세 개가 차례로 솟는다. 맞은 적은 불탄다."
         mechanics:
-          - {"type": "strike", "at": "aim", "range": 12, "count": 3, "radius": 3, "interval": 6, "visual": "pillar", "particle": "FLAME", "impact_radius": 2.2, "effects": [{"damage": 0.9, "magic": true}, {"ignite": 2}]}
+          - {"type": "strike", "at": "aim", "range": 12, "count": 3, "radius": 3, "interval": 6, "visual": "pillar", "particle": "FLAME", "impact_radius": 2.2, "effects": [{"damage": 0.95, "magic": true}, {"ignite": 2}]}
           - {"type": "sound", "sound": "item.firecharge.use", "pitch": 0.8, "volume": 1.0}
     model: {shape: staff_spiral, length: 1.05}
     texture: {style: ember, palette: ["#1a0806", "#44140a", "#8a2a12", "#e8642a", "#ffe08a"]}
@@ -1909,13 +1912,13 @@ items:
   cinder_crystal_staff:
     name: "불씨 수정 지팡이"
     type: weapon
-    weapon_type: staff
+    attack: {style: caster, interval: 0.9, kind: magic}
     rarity: epic
     level_req: 24
     requires: {INT: 58}
     floor: 5
     classes: [arcanist]
-    stats: {damage: [29, 33], INT: [6, 9], skill_damage: [0.057, 0.077], mp: [41, 56], cooldown_reduction: [0.032, 0.044]}
+    stats: {damage: [44, 49], INT: [6, 9], skill_damage: [0.057, 0.077], mp: [41, 56], cooldown_reduction: [0.032, 0.044]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -1926,7 +1929,7 @@ items:
         mana: 15
         description: "폭발하는 불덩이를 쏜다."
         mechanics:
-          - {"type": "projectile", "speed": 1.2, "range": 22, "display": "proj_molten_orb", "particle": "FLAME", "effects": [{"damage": 1.0, "magic": true}], "explode": {"radius": 2.8, "display": "ember_burst", "particle": "FLAME", "effects": [{"damage": 1.0, "magic": true}, {"ignite": 3}]}}
+          - {"type": "projectile", "speed": 1.2, "range": 22, "display": "proj_molten_orb", "particle": "FLAME", "effects": [{"damage": 1.056, "magic": true}], "explode": {"radius": 2.8, "display": "ember_burst", "particle": "FLAME", "effects": [{"damage": 1.056, "magic": true}, {"ignite": 3}]}}
           - {"type": "sound", "sound": "entity.blaze.shoot", "pitch": 1.0, "volume": 1.0}
       - id: mechanics
         name: "불씨 폭발"
@@ -1935,7 +1938,7 @@ items:
         mana: 22
         description: "몸 주위의 불씨를 한꺼번에 터뜨린다."
         mechanics:
-          - {"type": "nova", "radius": 4.5, "expand_ticks": 5, "display": "ember_burst", "particle": "FLAME", "effects": [{"damage": 1.8, "magic": true}, {"knockback": 0.8}, {"ignite": 3}]}
+          - {"type": "nova", "radius": 4.5, "expand_ticks": 5, "display": "ember_burst", "particle": "FLAME", "effects": [{"damage": 1.901, "magic": true}, {"knockback": 0.8}, {"ignite": 3}]}
           - {"type": "sound", "sound": "entity.generic.explode", "pitch": 1.2, "volume": 1.0}
     model: {shape: staff_crystal, length: 1.0}
     texture: {style: ember, palette: ["#1a0a06", "#5a1a0a", "#c43c12", "#ff9a2a", "#fff0a0"]}
@@ -1943,13 +1946,13 @@ items:
   rimeheart_staff:
     name: "서리심장 지팡이"
     type: weapon
-    weapon_type: staff
+    attack: {style: caster, interval: 0.9, kind: magic}
     rarity: legendary
     level_req: 27
     requires: {INT: 65}
     floor: 6
     classes: [arcanist]
-    stats: {damage: [36, 41], INT: [9, 12], skill_damage: [0.075, 0.101], cooldown_reduction: [0.042, 0.057], mp: [56, 75], mana_regen: [0.6, 0.8]}
+    stats: {damage: [55, 62], INT: [9, 12], skill_damage: [0.075, 0.101], cooldown_reduction: [0.042, 0.057], mp: [56, 75], mana_regen: [0.6, 0.8]}
     aura: rime
     pool: false
     sources: [boss]
@@ -1959,7 +1962,7 @@ items:
         input: LEFT
         cooldown: 0.8
         mana: 2
-        params: {"fx": "proj_frost_shard", "count": 1, "speed": 2.0, "range": 22, "damage": 0.5, "effect": "slow", "amount": 0.15, "effect_duration": 1.5, "damage_type": "magic"}
+        params: {"fx": "proj_frost_shard", "count": 1, "speed": 2.0, "range": 22, "damage": 0.528, "effect": "slow", "amount": 0.15, "effect_duration": 1.5, "damage_type": "magic"}
         description: "좌클릭마다 서리 파편을 쏜다(0.8초 간격, MP 2). 맞은 적은 잠시 둔화."
       - id: mechanics
         name: "빙하 광선"
@@ -1968,7 +1971,7 @@ items:
         mana: 30
         description: "2초간 얼음 광선을 내뿜는다. 맞은 적에게 서리가 쌓인다."
         mechanics:
-          - {"type": "beam", "length": 16, "width": 1.2, "duration": 2, "interval": 5, "display": "rime_beam", "particle": "SNOWFLAKE", "core": "DUST:#bfe6ff:1.4", "effects": [{"damage": 0.45, "magic": true}, {"freeze": 2}]}
+          - {"type": "beam", "length": 16, "width": 1.2, "duration": 2, "interval": 5, "display": "rime_beam", "particle": "SNOWFLAKE", "core": "DUST:#bfe6ff:1.4", "effects": [{"damage": 0.475, "magic": true}, {"freeze": 2}]}
           - {"type": "sound", "sound": "block.glass.break", "pitch": 1.6, "volume": 0.6}
       - id: mechanics
         name: "서리 별"
@@ -1977,7 +1980,7 @@ items:
         mana: 30
         description: "주변에 서리 별을 터뜨려 얼리고, 남은 냉기가 4초간 바닥에 머문다."
         mechanics:
-          - {"type": "nova", "radius": 5, "expand_ticks": 8, "display": "frost_nova_ring", "particle": "SNOWFLAKE", "effects": [{"damage": 1.8, "magic": true}, {"freeze": {"amount": 3, "stacks": 2}}]}
+          - {"type": "nova", "radius": 5, "expand_ticks": 8, "display": "frost_nova_ring", "particle": "SNOWFLAKE", "effects": [{"damage": 1.901, "magic": true}, {"freeze": {"amount": 3, "stacks": 2}}]}
           - {"type": "zone", "at": "self", "radius": 5, "duration": 4, "interval": 20, "particle": "SNOWFLAKE", "ring": "DUST:#bfe6ff:1.0", "effects": [{"slow": 1.5}]}
           - {"type": "sound", "sound": "entity.player.hurt_freeze", "pitch": 0.6, "volume": 1.0}
     model: {shape: staff_crystal, length: 1.0}
@@ -1986,13 +1989,13 @@ items:
   rimebell_staff:
     name: "서리방울 고리 지팡이"
     type: weapon
-    weapon_type: staff
+    attack: {style: caster, interval: 0.9, kind: magic}
     rarity: epic
     level_req: 27
     requires: {INT: 65}
     floor: 6
     classes: [arcanist]
-    stats: {damage: [33, 38], INT: [7, 10], mp: [46, 62], skill_damage: [0.062, 0.083], cooldown_reduction: [0.035, 0.047]}
+    stats: {damage: [50, 58], INT: [7, 10], mp: [46, 62], skill_damage: [0.062, 0.083], cooldown_reduction: [0.035, 0.047]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -2003,7 +2006,7 @@ items:
         mana: 16
         description: "적을 따라가는 얼음 방울 세 개를 쏜다. 터지면 주변이 느려진다."
         mechanics:
-          - {"type": "projectile", "count": 3, "spread": 20, "speed": 1.0, "homing": 0.1, "range": 18, "display": "proj_frost_shard", "effects": [{"damage": 0.9, "magic": true}], "explode": {"radius": 1.8, "particle": "SNOWFLAKE", "effects": [{"slow": 1.5}]}}
+          - {"type": "projectile", "count": 3, "spread": 20, "speed": 1.0, "homing": 0.1, "range": 18, "display": "proj_frost_shard", "effects": [{"damage": 0.95, "magic": true}], "explode": {"radius": 1.8, "particle": "SNOWFLAKE", "effects": [{"slow": 1.5}]}}
           - {"type": "sound", "sound": "block.amethyst_block.chime", "pitch": 1.6, "volume": 0.8}
     model: {shape: staff_ring, length: 1.0}
     texture: {style: frost, palette: ["#16283a", "#3a4a6a", "#8aa0c8", "#d8e6ff", "#ffffff"]}
@@ -2011,13 +2014,13 @@ items:
   resonance_staff:
     name: "공명 고리 지팡이"
     type: weapon
-    weapon_type: staff
+    attack: {style: caster, interval: 0.9, kind: magic}
     rarity: rare
     level_req: 32
     requires: {INT: 78}
     floor: 7
     classes: [arcanist]
-    stats: {damage: [38, 45], INT: [7, 9], mp: [45, 61], skill_damage: [0.058, 0.078]}
+    stats: {damage: [59, 70], INT: [7, 9], mp: [45, 61], skill_damage: [0.058, 0.078]}
     pool: false
     sources: [drop, chest]
     model: {shape: staff_ring, length: 1.0}
@@ -2026,13 +2029,13 @@ items:
   resonant_fork_staff:
     name: "공명 소리굽쇠 지팡이"
     type: weapon
-    weapon_type: staff
+    attack: {style: caster, interval: 0.9, kind: magic}
     rarity: rare
     level_req: 34
     requires: {INT: 83}
     floor: 7
     classes: [arcanist]
-    stats: {damage: [42, 48], INT: [7, 10], cooldown_reduction: [0.035, 0.047], crit_chance: [0.035, 0.047]}
+    stats: {damage: [66, 75], INT: [7, 10], cooldown_reduction: [0.035, 0.047], crit_chance: [0.035, 0.047]}
     pool: false
     sources: [craft]
     model: {shape: staff_fork, length: 1.05}
@@ -2041,13 +2044,13 @@ items:
   ink_spiral_staff:
     name: "먹물 소용돌이 지팡이"
     type: weapon
-    weapon_type: staff
+    attack: {style: caster, interval: 0.9, kind: magic}
     rarity: epic
     level_req: 38
     requires: {INT: 93}
     floor: 8
     classes: [arcanist]
-    stats: {damage: [53, 61], INT: [10, 13], cooldown_reduction: [0.045, 0.061], mana_regen: [0.7, 0.9], hp: [127, 172]}
+    stats: {damage: [84, 97], INT: [10, 13], cooldown_reduction: [0.045, 0.061], mana_regen: [0.7, 0.9], hp: [127, 172]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -2058,7 +2061,7 @@ items:
         mana: 24
         description: "바라보는 곳에 5초간 먹구름을 드리운다. 안의 적은 앞이 보이지 않고 느려지며 조금씩 피해를 입는다."
         mechanics:
-          - {"type": "zone", "at": "aim", "range": 10, "radius": 4, "duration": 5, "interval": 10, "particle": "SQUID_INK", "ring": "DUST:#3a3a6a:1.2", "effects": [{"damage": 0.3, "magic": true}, {"effect": {"id": "blind", "seconds": 1, "potency": 1.0}}, {"slow": 1}]}
+          - {"type": "zone", "at": "aim", "range": 10, "radius": 4, "duration": 5, "interval": 10, "particle": "SQUID_INK", "ring": "DUST:#3a3a6a:1.2", "effects": [{"damage": 0.317, "magic": true}, {"effect": {"id": "blind", "seconds": 1, "potency": 1.0}}, {"slow": 1}]}
           - {"type": "sound", "sound": "entity.squid.squirt", "pitch": 0.7, "volume": 1.0}
     model: {shape: staff_spiral, length: 1.1}
     texture: {style: ink, palette: ["#0a0a10", "#1a1a2a", "#36365a", "#8a8ac0", "#60e0ff"]}
@@ -2066,13 +2069,13 @@ items:
   inkwell_staff:
     name: "먹물 서고 지팡이"
     type: weapon
-    weapon_type: staff
+    attack: {style: caster, interval: 0.95, kind: magic}
     rarity: legendary
     level_req: 39
     requires: {INT: 95}
     floor: 8
     classes: [arcanist]
-    stats: {damage: [61, 69], INT: [12, 16], skill_damage: [0.091, 0.123], cooldown_reduction: [0.052, 0.071], mp: [73, 99], mana_regen: [0.8, 1.1]}
+    stats: {damage: [103, 116], INT: [12, 16], skill_damage: [0.091, 0.123], cooldown_reduction: [0.052, 0.071], mp: [73, 99], mana_regen: [0.8, 1.1]}
     aura: inkblot
     pool: false
     sources: [boss]
@@ -2084,7 +2087,7 @@ items:
         mana: 16
         description: "튀어 오르는 먹물 덩이를 쏜다. 터진 자리의 적은 눈이 먼다."
         mechanics:
-          - {"type": "projectile", "speed": 1.1, "range": 20, "gravity": 0.02, "display": "proj_ink", "particle": "SQUID_INK", "effects": [{"damage": 1.6, "magic": true}], "explode": {"radius": 2.5, "display": "inkblot_burst", "particle": "SQUID_INK", "effects": [{"damage": 0.6, "magic": true}, {"effect": {"id": "blind", "seconds": 3}}]}}
+          - {"type": "projectile", "speed": 1.1, "range": 20, "gravity": 0.02, "display": "proj_ink", "particle": "SQUID_INK", "effects": [{"damage": 1.69, "magic": true}], "explode": {"radius": 2.5, "display": "inkblot_burst", "particle": "SQUID_INK", "effects": [{"damage": 0.634, "magic": true}, {"effect": {"id": "blind", "seconds": 3}}]}}
           - {"type": "sound", "sound": "entity.squid.squirt", "pitch": 1.0, "volume": 1.0}
       - id: mechanics
         name: "필사 정령"
@@ -2093,7 +2096,7 @@ items:
         mana: 30
         description: "깃펜 정령 셋을 불러 10초간 가까운 적에게 먹물을 쏘게 한다."
         mechanics:
-          - {"type": "summon", "count": 3, "duration": 10, "interval": 20, "range": 12, "display": "proj_quill", "effects": [{"damage": 0.5, "magic": true}, {"slow": 1}]}
+          - {"type": "summon", "count": 3, "duration": 10, "interval": 20, "range": 12, "display": "proj_quill", "effects": [{"damage": 0.528, "magic": true}, {"slow": 1}]}
           - {"type": "sound", "sound": "entity.evoker.prepare_summon", "pitch": 1.4, "volume": 1.0}
       - id: mechanics
         name: "잉크 소용돌이"
@@ -2102,20 +2105,20 @@ items:
         mana: 34
         description: "노린 곳에 먹물 소용돌이를 열어 적을 모은 뒤 글자로 봉해 터뜨린다."
         mechanics:
-          - {"type": "vortex", "at": "aim", "radius": 5.5, "duration": 3, "strength": 0.3, "display": "inkblot_ring", "particle": "SQUID_INK", "effects": [{"damage": 0.45, "magic": true}], "end": [{"type": "nova", "radius": 4, "display": "inkblot_burst", "particle": "ENCHANT", "effects": [{"damage": 2.2, "magic": true}, {"effect": {"id": "silence", "seconds": 2}}]}, {"type": "sound", "sound": "item.book.put", "pitch": 0.6, "volume": 1.0}]}
+          - {"type": "vortex", "at": "aim", "radius": 5.5, "duration": 3, "strength": 0.3, "display": "inkblot_ring", "particle": "SQUID_INK", "effects": [{"damage": 0.475, "magic": true}], "end": [{"type": "nova", "radius": 4, "display": "inkblot_burst", "particle": "ENCHANT", "effects": [{"damage": 2.323, "magic": true}, {"effect": {"id": "silence", "seconds": 2}}]}, {"type": "sound", "sound": "item.book.put", "pitch": 0.6, "volume": 1.0}]}
     model: {shape: staff_orb, length: 1.0}
     texture: {style: ink, palette: ["#05050a", "#141a2e", "#2a3a6a", "#5a7ab0", "#e8e0c8"], animated: true, frames: 8, frametime: 2, effect: ink_bleed}
     lore: "망각의 서고에서 단 한 번도 마르지 않은 잉크병. 지팡이로 허공에 쓴 글자가 곧 주문이 된다."
   orrery_staff:
     name: "태엽 천구 지팡이"
     type: weapon
-    weapon_type: staff
+    attack: {style: caster, interval: 0.95, kind: magic}
     rarity: epic
     level_req: 41
     requires: {INT: 100}
     floor: 9
     classes: [arcanist]
-    stats: {damage: [60, 69], INT: [10, 14], skill_damage: [0.083, 0.112], cooldown_reduction: [0.048, 0.065], mp: [69, 93]}
+    stats: {damage: [102, 117], INT: [10, 14], skill_damage: [0.083, 0.112], cooldown_reduction: [0.048, 0.065], mp: [69, 93]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -2126,7 +2129,7 @@ items:
         mana: 25
         description: "행성처럼 도는 톱니 셋을 6초간 두른다."
         mechanics:
-          - {"type": "orbit", "count": 3, "radius": 2.6, "duration": 6, "speed": 12, "display": "proj_gear", "hit_cooldown": 10, "effects": [{"damage": 0.55, "magic": true}]}
+          - {"type": "orbit", "count": 3, "radius": 2.6, "duration": 6, "speed": 12, "display": "proj_gear", "hit_cooldown": 10, "effects": [{"damage": 0.581, "magic": true}]}
           - {"type": "sound", "sound": "block.grindstone.use", "pitch": 1.4, "volume": 1.0}
       - id: mechanics
         name: "천체 정렬"
@@ -2135,22 +2138,22 @@ items:
         mana: 30
         description: "노린 곳에 별 세 개를 차례로 떨어뜨린다. 마지막 별은 더 크다."
         mechanics:
-          - {"type": "rain", "count": 2, "radius": 2.5, "interval": 8, "height": 16, "speed": 1.2, "display": "proj_arcane_bolt", "impact_radius": 2.2, "particle": "END_ROD", "effects": [{"damage": 1.2, "magic": true}]}
+          - {"type": "rain", "count": 2, "radius": 2.5, "interval": 8, "height": 16, "speed": 1.2, "display": "proj_arcane_bolt", "impact_radius": 2.2, "particle": "END_ROD", "effects": [{"damage": 1.267, "magic": true}]}
           - {"type": "delay", "ticks": 24}
-          - {"type": "rain", "at": "aim", "count": 1, "radius": 0, "height": 18, "speed": 1.0, "display": "meteor", "display_scale": 0.7, "impact_radius": 3.5, "impact_particle": "EXPLOSION_EMITTER", "effects": [{"damage": 2.6, "magic": true}, {"launch": 0.5}]}
+          - {"type": "rain", "at": "aim", "count": 1, "radius": 0, "height": 18, "speed": 1.0, "display": "meteor", "display_scale": 0.7, "impact_radius": 3.5, "impact_particle": "EXPLOSION_EMITTER", "effects": [{"damage": 2.746, "magic": true}, {"launch": 0.5}]}
     model: {shape: staff_orb, length: 1.0}
     texture: {style: clockwork, palette: ["#1a140c", "#4a3a20", "#b08a40", "#f0d890", "#6ad0b0"]}
     lore: "작은 천구의가 지팡이 끝에서 돈다. 행성 하나하나가 정해진 박자로 마력을 뿜는다."
   void_fork_staff:
     name: "공허 갈래 지팡이"
     type: weapon
-    weapon_type: staff
+    attack: {style: caster, interval: 0.9, kind: magic}
     rarity: epic
     level_req: 46
     requires: {INT: 113}
     floor: 10
     classes: [arcanist]
-    stats: {damage: [72, 82], INT: [11, 15], skill_damage: [0.091, 0.123], crit_damage: [0.171, 0.232], move_speed: [0.034, 0.046]}
+    stats: {damage: [117, 134], INT: [11, 15], skill_damage: [0.091, 0.123], crit_damage: [0.171, 0.232], move_speed: [0.034, 0.046]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -2161,7 +2164,7 @@ items:
         mana: 20
         description: "두 갈래에서 공허탄 두 발을 쏜다. 공허탄은 적을 살짝 쫓아가 터지며 주변을 느리게 한다."
         mechanics:
-          - {"type": "projectile", "count": 2, "spread": 18, "speed": 1.1, "range": 20, "homing": 0.35, "display": "void_orb", "particle": "REVERSE_PORTAL", "effects": [{"damage": 1.2, "magic": true}], "explode": {"radius": 2.5, "display": "void_burst", "effects": [{"damage": 0.8, "magic": true}, {"slow": 2}]}}
+          - {"type": "projectile", "count": 2, "spread": 18, "speed": 1.1, "range": 20, "homing": 0.35, "display": "void_orb", "particle": "REVERSE_PORTAL", "effects": [{"damage": 1.267, "magic": true}], "explode": {"radius": 2.5, "display": "void_burst", "effects": [{"damage": 0.845, "magic": true}, {"slow": 2}]}}
           - {"type": "sound", "sound": "entity.illusioner.cast_spell", "pitch": 0.7, "volume": 1.0}
     model: {shape: staff_fork, length: 1.15}
     texture: {style: void, palette: ["#06040c", "#160e24", "#30204a", "#7050b0", "#e0a0ff"]}
@@ -2169,13 +2172,13 @@ items:
   tesla_coil_staff:
     name: "전격 코일 지팡이"
     type: weapon
-    weapon_type: staff
+    attack: {style: caster, interval: 0.9, kind: magic}
     rarity: legendary
     level_req: 44
     requires: {INT: 108}
     floor: 9
     classes: [arcanist]
-    stats: {damage: [73, 82], INT: [13, 18], skill_damage: [0.106, 0.143], cooldown_reduction: [0.061, 0.083], mp: [89, 121], crit_chance: [0.061, 0.083]}
+    stats: {damage: [119, 133], INT: [13, 18], skill_damage: [0.106, 0.143], cooldown_reduction: [0.061, 0.083], mp: [89, 121], crit_chance: [0.061, 0.083]}
     aura: voltaic
     pool: false
     sources: [boss]
@@ -2187,7 +2190,7 @@ items:
         mana: 18
         description: "적에게 전격을 쏘아 다섯 번 튀게 한다."
         mechanics:
-          - {"type": "chain", "jumps": 5, "range": 6, "first_range": 16, "particle": "ELECTRIC_SPARK", "effects": [{"damage": 1.5, "magic": true}, {"slow": 0.8}]}
+          - {"type": "chain", "jumps": 5, "range": 6, "first_range": 16, "particle": "ELECTRIC_SPARK", "effects": [{"damage": 1.584, "magic": true}, {"slow": 0.8}]}
           - {"type": "sound", "sound": "entity.lightning_bolt.impact", "pitch": 1.8, "volume": 0.6}
       - id: mechanics
         name: "과부하"
@@ -2196,7 +2199,7 @@ items:
         mana: 35
         description: "노린 곳 주변 적들에게 낙뢰 여섯 줄기를 내리꽂는다."
         mechanics:
-          - {"type": "strike", "at": "aim", "targets": true, "count": 6, "radius": 6, "interval": 4, "visual": "lightning", "impact_radius": 2, "effects": [{"damage": 1.5, "magic": true}, {"stun": 0.5}]}
+          - {"type": "strike", "at": "aim", "targets": true, "count": 6, "radius": 6, "interval": 4, "visual": "lightning", "impact_radius": 2, "effects": [{"damage": 1.584, "magic": true}, {"stun": 0.5}]}
       - id: mechanics
         name: "전자기장"
         input: SNEAK_RIGHT
@@ -2204,7 +2207,7 @@ items:
         mana: 34
         description: "6초간 몸 주위에 전자기장을 두른다. 안의 적은 감전되고 느려진다."
         mechanics:
-          - {"type": "zone", "at": "self", "follow": true, "radius": 5, "duration": 6, "interval": 10, "display": "voltaic_ring", "particle": "ELECTRIC_SPARK", "effects": [{"damage": 0.45, "magic": true}, {"slow": 1}]}
+          - {"type": "zone", "at": "self", "follow": true, "radius": 5, "duration": 6, "interval": 10, "display": "voltaic_ring", "particle": "ELECTRIC_SPARK", "effects": [{"damage": 0.475, "magic": true}, {"slow": 1}]}
           - {"type": "sound", "sound": "block.beacon.ambient", "pitch": 1.8, "volume": 1.0}
     model: {shape: staff_ring, length: 1.0}
     texture: {style: copper, palette: ["#1a0e06", "#6a3a1a", "#c87a3a", "#7ae0c0", "#e8fff8"], animated: true, frames: 8, frametime: 2, effect: spark_crackle}
@@ -2212,13 +2215,13 @@ items:
   voidheart_staff:
     name: "공허의 심장 지팡이"
     type: weapon
-    weapon_type: staff
+    attack: {style: caster, interval: 0.95, kind: magic}
     rarity: mythic
     level_req: 48
     requires: {INT: 118}
     floor: 10
     classes: [arcanist]
-    stats: {damage: [94, 104], INT: [17, 23], skill_damage: [0.137, 0.185], cooldown_reduction: [0.079, 0.107], mp: [117, 159], mana_regen: [1.2, 1.7], crit_chance: [0.079, 0.107]}
+    stats: {damage: [163, 180], INT: [17, 23], skill_damage: [0.137, 0.185], cooldown_reduction: [0.079, 0.107], mp: [117, 159], mana_regen: [1.2, 1.7], crit_chance: [0.079, 0.107]}
     aura: void
     pool: false
     sources: [boss]
@@ -2228,7 +2231,7 @@ items:
         input: LEFT
         cooldown: 0.7
         mana: 2
-        params: {"fx": "void_orb", "count": 1, "speed": 1.6, "homing": 0.08, "range": 24, "damage": 0.55, "damage_type": "magic"}
+        params: {"fx": "void_orb", "count": 1, "speed": 1.6, "homing": 0.08, "range": 24, "damage": 0.581, "damage_type": "magic"}
         description: "좌클릭마다 약하게 추적하는 공허탄을 쏜다(0.7초 간격, MP 2)."
       - id: mechanics
         name: "사건의 지평선"
@@ -2237,7 +2240,7 @@ items:
         mana: 35
         description: "모든 것을 빨아들이는 블랙홀을 열고 붕괴시킨다."
         mechanics:
-          - {"type": "vortex", "at": "aim", "radius": 7, "duration": 3.5, "strength": 0.4, "display": "void_ring", "particle": "REVERSE_PORTAL", "effects": [{"damage": 0.5, "magic": true}], "end": [{"type": "nova", "radius": 5, "expand_ticks": 6, "display": "void_burst", "particle": "REVERSE_PORTAL", "effects": [{"damage": 3.0, "magic": true}, {"effect": {"id": "vulnerable", "seconds": 5, "potency": 0.15}}]}, {"type": "sound", "sound": "entity.generic.explode", "pitch": 0.5, "volume": 1.0}]}
+          - {"type": "vortex", "at": "aim", "radius": 7, "duration": 3.5, "strength": 0.4, "display": "void_ring", "particle": "REVERSE_PORTAL", "effects": [{"damage": 0.528, "magic": true}], "end": [{"type": "nova", "radius": 5, "expand_ticks": 6, "display": "void_burst", "particle": "REVERSE_PORTAL", "effects": [{"damage": 3.168, "magic": true}, {"effect": {"id": "vulnerable", "seconds": 5, "potency": 0.15}}]}, {"type": "sound", "sound": "entity.generic.explode", "pitch": 0.5, "volume": 1.0}]}
           - {"type": "sound", "sound": "block.portal.trigger", "pitch": 1.6, "volume": 0.5}
       - id: mechanics
         name: "차원 베기"
@@ -2246,7 +2249,7 @@ items:
         mana: 30
         description: "벽마저 꿰뚫는 차원의 참격 광선을 쏜다."
         mechanics:
-          - {"type": "beam", "length": 22, "width": 1.8, "through_walls": true, "display": "void_beam", "particle": "REVERSE_PORTAL", "core": "DUST:#3a0066:2.0", "effects": [{"damage": 2.8, "magic": true}, {"wither": 4}]}
+          - {"type": "beam", "length": 22, "width": 1.8, "through_walls": true, "display": "void_beam", "particle": "REVERSE_PORTAL", "core": "DUST:#3a0066:2.0", "effects": [{"damage": 2.957, "magic": true}, {"wither": 4}]}
           - {"type": "sound", "sound": "entity.warden.sonic_boom", "pitch": 1.0, "volume": 0.6}
       - id: mechanics
         name: "별 붕괴"
@@ -2255,9 +2258,9 @@ items:
         mana: 55
         description: "노린 곳에 별 열두 개를 쏟아 내리고, 마지막에 별의 핵이 떨어진다."
         mechanics:
-          - {"type": "rain", "at": "aim", "count": 12, "radius": 6, "interval": 3, "height": 18, "speed": 1.5, "display": "void_orb", "impact_radius": 2.2, "effects": [{"damage": 1.0, "magic": true}]}
+          - {"type": "rain", "at": "aim", "count": 12, "radius": 6, "interval": 3, "height": 18, "speed": 1.5, "display": "void_orb", "impact_radius": 2.2, "effects": [{"damage": 1.056, "magic": true}]}
           - {"type": "delay", "ticks": 40}
-          - {"type": "rain", "at": "aim", "count": 1, "radius": 0, "height": 22, "speed": 1.2, "display": "meteor", "impact_radius": 5, "impact_particle": "EXPLOSION_EMITTER", "effects": [{"damage": 4.0, "magic": true}, {"launch": 0.8}]}
+          - {"type": "rain", "at": "aim", "count": 1, "radius": 0, "height": 22, "speed": 1.2, "display": "meteor", "impact_radius": 5, "impact_particle": "EXPLOSION_EMITTER", "effects": [{"damage": 4.224, "magic": true}, {"launch": 0.8}]}
     model: {shape: staff_orb, length: 1.15}
     texture: {style: void, palette: ["#020104", "#1a0a2e", "#5a1a8a", "#c080ff", "#e8c8ff"], animated: true, frames: 16, frametime: 2, effect: void_swirl}
     lore: "미궁이 쌓이기 전, 아무것도 없던 자리의 '없음'을 구슬에 담았다. 들여다보면 구슬이 마주 본다."
@@ -2266,12 +2269,12 @@ items:
   acolyte_scepter:
     name: "수련 사제의 홀"
     type: weapon
-    weapon_type: scepter
+    attack: {style: caster, interval: 0.77, kind: magic}
     rarity: common
     level_req: 1
     floor: 1
     classes: [priest]
-    stats: {damage: [6, 7], WIS: [1, 2], heal_power: [1, 2]}
+    stats: {damage: [7, 8], WIS: [1, 2], heal_power: [1, 2]}
     pool: false
     sources: [drop, chest]
     model: {shape: scepter, length: 1.0}
@@ -2280,13 +2283,13 @@ items:
   grove_chalice:
     name: "숲지기의 성배"
     type: weapon
-    weapon_type: scepter
+    attack: {style: caster, interval: 0.75, kind: magic}
     rarity: common
     level_req: 3
     requires: {WIS: 5}
     floor: 1
     classes: [priest]
-    stats: {damage: [7, 8], WIS: [1, 2], mp: [3, 5]}
+    stats: {damage: [8, 10], WIS: [1, 2], mp: [3, 5]}
     pool: false
     sources: [drop, chest, craft]
     model: {shape: chalice_scepter, length: 1.0}
@@ -2295,13 +2298,13 @@ items:
   miners_lamp_censer:
     name: "광부의 등불 향로"
     type: weapon
-    weapon_type: scepter
+    attack: {style: caster, interval: 0.85, kind: magic}
     rarity: uncommon
     level_req: 5
     requires: {WIS: 10}
     floor: 2
     classes: [priest]
-    stats: {damage: [8, 9], WIS: [1, 2], heal_power: [3, 5]}
+    stats: {damage: [11, 13], WIS: [1, 2], heal_power: [3, 5]}
     pool: false
     sources: [drop, chest]
     model: {shape: censer_staff, length: 1.0}
@@ -2310,13 +2313,13 @@ items:
   miners_bell_scepter:
     name: "갱도 경보종 홀"
     type: weapon
-    weapon_type: scepter
+    attack: {style: caster, interval: 0.8, kind: magic}
     rarity: uncommon
     level_req: 8
     requires: {WIS: 18}
     floor: 2
     classes: [priest]
-    stats: {damage: [9, 10], WIS: [2, 3], cooldown_reduction: [0.012, 0.016]}
+    stats: {damage: [12, 14], WIS: [2, 3], cooldown_reduction: [0.012, 0.016]}
     pool: false
     sources: [craft]
     model: {shape: bell_scepter, length: 1.0}
@@ -2325,13 +2328,13 @@ items:
   silkqueen_spindle_censer:
     name: "실잣는 물렛가락 향로"
     type: weapon
-    weapon_type: scepter
+    attack: {style: caster, interval: 0.85, kind: magic}
     rarity: epic
     level_req: 10
     requires: {WIS: 23}
     floor: 2
     classes: [priest]
-    stats: {damage: [12, 13], WIS: [3, 4], heal_power: [9, 12], mp: [18, 25], evasion: [0.016, 0.022]}
+    stats: {damage: [18, 19], WIS: [3, 4], heal_power: [9, 12], mp: [18, 25], evasion: [0.016, 0.022]}
     pool: false
     sources: [boss]
     weapon_skills:
@@ -2357,13 +2360,13 @@ items:
   bloom_scepter:
     name: "공생꽃 홀"
     type: weapon
-    weapon_type: scepter
+    attack: {style: caster, interval: 0.8, kind: magic}
     rarity: rare
     level_req: 11
     requires: {WIS: 25}
     floor: 3
     classes: [priest]
-    stats: {damage: [11, 13], WIS: [3, 4], heal_power: [8, 11], mana_regen: [0.2, 0.3]}
+    stats: {damage: [16, 18], WIS: [3, 4], heal_power: [8, 11], mana_regen: [0.2, 0.3]}
     pool: false
     sources: [drop, chest]
     model: {shape: sun_scepter, length: 1.0}
@@ -2372,13 +2375,13 @@ items:
   bloom_chalice:
     name: "공생꽃 성배"
     type: weapon
-    weapon_type: scepter
+    attack: {style: caster, interval: 0.75, kind: magic}
     rarity: rare
     level_req: 14
     requires: {WIS: 33}
     floor: 3
     classes: [priest]
-    stats: {damage: [14, 15], WIS: [3, 5], hp: [41, 55], hp_regen: [0.8, 1.0]}
+    stats: {damage: [19, 21], WIS: [3, 5], hp: [41, 55], hp_regen: [0.8, 1.0]}
     pool: false
     sources: [craft]
     model: {shape: chalice_scepter, length: 1.0}
@@ -2387,13 +2390,13 @@ items:
   mycelking_scepter:
     name: "균사왕의 왕홀"
     type: weapon
-    weapon_type: scepter
+    attack: {style: caster, interval: 0.8, kind: magic}
     rarity: epic
     level_req: 15
     requires: {WIS: 35}
     floor: 3
     classes: [priest]
-    stats: {damage: [15, 18], WIS: [4, 6], heal_power: [13, 18], hp_regen: [1.0, 1.3], mp: [27, 36]}
+    stats: {damage: [22, 27], WIS: [4, 6], heal_power: [13, 18], hp_regen: [1.0, 1.3], mp: [27, 36]}
     pool: false
     sources: [boss]
     weapon_skills:
@@ -2412,13 +2415,13 @@ items:
   tidebell_censer:
     name: "조수종 향로"
     type: weapon
-    weapon_type: scepter
+    attack: {style: caster, interval: 0.85, kind: magic}
     rarity: epic
     level_req: 17
     requires: {WIS: 40}
     floor: 4
     classes: [priest]
-    stats: {damage: [17, 20], WIS: [5, 7], heal_power: [15, 20], mana_regen: [0.4, 0.5], mp: [30, 40]}
+    stats: {damage: [27, 32], WIS: [5, 7], heal_power: [15, 20], mana_regen: [0.4, 0.5], mp: [30, 40]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -2444,13 +2447,13 @@ items:
   brine_bell_scepter:
     name: "소금물 종 홀"
     type: weapon
-    weapon_type: scepter
+    attack: {style: caster, interval: 0.8, kind: magic}
     rarity: rare
     level_req: 19
     requires: {WIS: 45}
     floor: 4
     classes: [priest]
-    stats: {damage: [18, 20], WIS: [4, 6], defense: [7, 9], damage_reduction: [0.018, 0.025]}
+    stats: {damage: [27, 31], WIS: [4, 6], defense: [7, 9], damage_reduction: [0.018, 0.025]}
     pool: false
     sources: [drop, chest]
     model: {shape: bell_scepter, length: 1.0}
@@ -2459,13 +2462,13 @@ items:
   crucible_chalice:
     name: "도가니 성배"
     type: weapon
-    weapon_type: scepter
+    attack: {style: caster, interval: 0.75, kind: magic}
     rarity: epic
     level_req: 22
     requires: {WIS: 53}
     floor: 5
     classes: [priest]
-    stats: {damage: [22, 26], WIS: [6, 8], skill_damage: [0.054, 0.073], heal_power: [19, 26], crit_chance: [0.03, 0.041]}
+    stats: {damage: [32, 38], WIS: [6, 8], skill_damage: [0.054, 0.073], heal_power: [19, 26], crit_chance: [0.03, 0.041]}
     pool: false
     sources: [drop, chest]
     weapon_skills:
@@ -2477,7 +2480,7 @@ items:
         description: "성배의 쇳물을 쏟아 주변 적을 태우고, 근처 아군을 조금 회복시키며 6초간 주는 피해·스킬 피해를 높인다."
         mechanics:
           - {"type": "party", "radius": 8, "particle": "FLAME", "effects": [{"heal": 0.05}, {"buff": {"stats": {"skill_damage": 0.1, "damage": 0.06}, "seconds": 6}}]}
-          - {"type": "nova", "radius": 4, "display": "ember_burst", "particle": "LAVA", "effects": [{"damage": 0.6}, {"ignite": 3}]}
+          - {"type": "nova", "radius": 4, "display": "ember_burst", "particle": "LAVA", "effects": [{"damage": 0.536}, {"ignite": 3}]}
           - {"type": "sound", "sound": "item.bucket.empty_lava", "pitch": 0.9, "volume": 1.0}
     model: {shape: chalice_scepter, length: 1.05}
     texture: {style: gold, palette: ["#2a1406", "#6a3410", "#c06a1e", "#ffb04a", "#fff0b0"]}
@@ -2485,13 +2488,13 @@ items:
   embersong_scepter:
     name: "불씨노래 홀"
     type: weapon
-    weapon_type: scepter
+    attack: {style: caster, interval: 0.77, kind: magic}
     rarity: epic
     level_req: 24
     requires: {WIS: 58}
     floor: 5
     classes: [priest]
-    stats: {damage: [25, 28], WIS: [6, 9], heal_power: [21, 28], cooldown_reduction: [0.032, 0.044], mp: [41, 56]}
+    stats: {damage: [38, 42], WIS: [6, 9], heal_power: [21, 28], cooldown_reduction: [0.032, 0.044], mp: [41, 56]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -2511,7 +2514,7 @@ items:
         mana: 24
         description: "앞에 정화의 불꽃 기둥 셋을 세운다. 적은 불타고 아군은 해로운 효과가 씻긴다."
         mechanics:
-          - {"type": "strike", "at": "aim", "count": 3, "radius": 3, "interval": 5, "visual": "pillar", "display": "hymn_pillar", "particle": "FLAME", "impact_radius": 2, "effects": [{"damage": 1.0, "magic": true}, {"ignite": 3}]}
+          - {"type": "strike", "at": "aim", "count": 3, "radius": 3, "interval": 5, "visual": "pillar", "display": "hymn_pillar", "particle": "FLAME", "impact_radius": 2, "effects": [{"damage": 0.894, "magic": true}, {"ignite": 3}]}
           - {"type": "party", "radius": 8, "effects": [{"cleanse": true}]}
     model: {shape: scepter, length: 1.0}
     texture: {style: gold, palette: ["#1a0a06", "#5a3a10", "#c8902a", "#ffb04a", "#fff0a0"]}
@@ -2519,13 +2522,13 @@ items:
   sanctum_scepter:
     name: "성역의 홀"
     type: weapon
-    weapon_type: scepter
+    attack: {style: caster, interval: 0.8, kind: magic}
     rarity: legendary
     level_req: 27
     requires: {WIS: 65}
     floor: 6
     classes: [priest]
-    stats: {damage: [31, 35], WIS: [9, 12], heal_power: [28, 38], mana_regen: [0.6, 0.8], cooldown_reduction: [0.042, 0.057], mp: [56, 75]}
+    stats: {damage: [50, 56], WIS: [9, 12], heal_power: [28, 38], mana_regen: [0.6, 0.8], cooldown_reduction: [0.042, 0.057], mp: [56, 75]}
     aura: sanctum
     pool: false
     sources: [boss]
@@ -2544,7 +2547,7 @@ items:
         mana: 24
         description: "노린 곳에 빛의 기둥 다섯 개를 내린다."
         mechanics:
-          - {"type": "strike", "at": "aim", "count": 5, "radius": 4, "interval": 4, "visual": "pillar", "display": "hymn_pillar", "particle": "END_ROD", "impact_radius": 2.2, "effects": [{"damage": 1.2, "magic": true}]}
+          - {"type": "strike", "at": "aim", "count": 5, "radius": 4, "interval": 4, "visual": "pillar", "display": "hymn_pillar", "particle": "END_ROD", "impact_radius": 2.2, "effects": [{"damage": 1.073, "magic": true}]}
           - {"type": "sound", "sound": "block.beacon.activate", "pitch": 1.2, "volume": 1.0}
       - id: sanctuary
         name: "성역 전개"
@@ -2559,13 +2562,13 @@ items:
   frost_vigil_censer:
     name: "서리 철야 향로"
     type: weapon
-    weapon_type: scepter
+    attack: {style: caster, interval: 0.85, kind: magic}
     rarity: epic
     level_req: 27
     requires: {WIS: 65}
     floor: 6
     classes: [priest]
-    stats: {damage: [29, 33], WIS: [7, 10], heal_power: [23, 31], mana_regen: [0.5, 0.7], damage_reduction: [0.027, 0.036]}
+    stats: {damage: [49, 56], WIS: [7, 10], heal_power: [23, 31], mana_regen: [0.5, 0.7], damage_reduction: [0.027, 0.036]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -2584,13 +2587,13 @@ items:
   prism_censer:
     name: "프리즘 향로"
     type: weapon
-    weapon_type: scepter
+    attack: {style: caster, interval: 0.85, kind: magic}
     rarity: rare
     level_req: 32
     requires: {WIS: 78}
     floor: 7
     classes: [priest]
-    stats: {damage: [33, 39], WIS: [7, 9], heal_power: [23, 31], mp: [45, 61]}
+    stats: {damage: [57, 68], WIS: [7, 9], heal_power: [23, 31], mp: [45, 61]}
     pool: false
     sources: [drop, chest]
     model: {shape: censer_staff, length: 1.0}
@@ -2599,13 +2602,13 @@ items:
   crystal_bell_scepter:
     name: "수정 종 홀"
     type: weapon
-    weapon_type: scepter
+    attack: {style: caster, interval: 0.8, kind: magic}
     rarity: rare
     level_req: 34
     requires: {WIS: 83}
     floor: 7
     classes: [priest]
-    stats: {damage: [37, 42], WIS: [7, 10], cooldown_reduction: [0.035, 0.047], mana_regen: [0.5, 0.7]}
+    stats: {damage: [61, 69], WIS: [7, 10], cooldown_reduction: [0.035, 0.047], mana_regen: [0.5, 0.7]}
     pool: false
     sources: [craft]
     model: {shape: bell_scepter, length: 1.05}
@@ -2614,13 +2617,13 @@ items:
   ink_chalice:
     name: "먹물 잔 홀"
     type: weapon
-    weapon_type: scepter
+    attack: {style: caster, interval: 0.75, kind: magic}
     rarity: epic
     level_req: 38
     requires: {WIS: 93}
     floor: 8
     classes: [priest]
-    stats: {damage: [46, 53], WIS: [10, 13], mp: [64, 87], mana_regen: [0.7, 0.9], hp: [127, 172]}
+    stats: {damage: [72, 83], WIS: [10, 13], mp: [64, 87], mana_regen: [0.7, 0.9], hp: [127, 172]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -2639,13 +2642,13 @@ items:
   twin_light_scepter:
     name: "양극광 홀"
     type: weapon
-    weapon_type: scepter
+    attack: {style: caster, interval: 0.77, kind: magic}
     rarity: legendary
     level_req: 35
     requires: {WIS: 85}
     floor: 7
     classes: [priest]
-    stats: {damage: [44, 50], WIS: [11, 15], heal_power: [37, 50], skill_damage: [0.091, 0.123], cooldown_reduction: [0.052, 0.071], mana_regen: [0.8, 1.1]}
+    stats: {damage: [70, 80], WIS: [11, 15], heal_power: [37, 50], skill_damage: [0.091, 0.123], cooldown_reduction: [0.052, 0.071], mana_regen: [0.8, 1.1]}
     aura: prism
     pool: false
     sources: [boss]
@@ -2657,7 +2660,7 @@ items:
         mana: 22
         description: "빛을 두 갈래로 갈라 쏜다. 적은 타고, 광선이 지나간 아군은 치유된다."
         mechanics:
-          - {"type": "beam", "length": 18, "width": 1.0, "display": "prism_beam", "particle": "DUST:#ffd0ff:1.2", "core": "END_ROD", "effects": [{"damage": 1.4, "magic": true}]}
+          - {"type": "beam", "length": 18, "width": 1.0, "display": "prism_beam", "particle": "DUST:#ffd0ff:1.2", "core": "END_ROD", "effects": [{"damage": 1.252, "magic": true}]}
           - {"type": "party", "radius": 6, "effects": [{"heal": 0.05}]}
           - {"type": "sound", "sound": "block.amethyst_block.chime", "pitch": 1.6, "volume": 1.0}
       - id: mechanics
@@ -2682,13 +2685,13 @@ items:
   pendulum_censer:
     name: "진자 향로"
     type: weapon
-    weapon_type: scepter
+    attack: {style: caster, interval: 0.8, kind: magic}
     rarity: epic
     level_req: 41
     requires: {WIS: 100}
     floor: 9
     classes: [priest]
-    stats: {damage: [52, 59], WIS: [10, 14], heal_power: [34, 47], cooldown_reduction: [0.048, 0.065], mana_regen: [0.7, 1.0]}
+    stats: {damage: [88, 100], WIS: [10, 14], heal_power: [34, 47], cooldown_reduction: [0.048, 0.065], mana_regen: [0.7, 1.0]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -2714,13 +2717,13 @@ items:
   abyss_bell_scepter:
     name: "심연 울림종 홀"
     type: weapon
-    weapon_type: scepter
+    attack: {style: caster, interval: 0.8, kind: magic}
     rarity: epic
     level_req: 46
     requires: {WIS: 113}
     floor: 10
     classes: [priest]
-    stats: {damage: [62, 71], WIS: [11, 15], heal_power: [39, 52], damage_reduction: [0.038, 0.052], hp: [153, 207]}
+    stats: {damage: [106, 122], WIS: [11, 15], heal_power: [39, 52], damage_reduction: [0.038, 0.052], hp: [153, 207]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -2732,7 +2735,7 @@ items:
         description: "종을 울려 근처 아군에게 6초간 보호막을 씌우고 해로운 효과를 걷어 낸다. 퍼지는 울림이 주변 적을 느리게 한다."
         mechanics:
           - {"type": "party", "radius": 9, "particle": "SCULK_SOUL", "effects": [{"absorption": {"amount": 0.15, "seconds": 6}}, {"cleanse": true}]}
-          - {"type": "nova", "radius": 6, "expand_ticks": 8, "display": "abyssal_burst", "particle": "SCULK_SOUL", "effects": [{"damage": 0.6, "magic": true}, {"slow": 2}]}
+          - {"type": "nova", "radius": 6, "expand_ticks": 8, "display": "abyssal_burst", "particle": "SCULK_SOUL", "effects": [{"damage": 0.536, "magic": true}, {"slow": 2}]}
           - {"type": "sound", "sound": "block.bell.use", "pitch": 0.6, "volume": 1.2}
     model: {shape: bell_scepter, length: 1.1}
     texture: {style: abyss, palette: ["#04100e", "#0c2a28", "#1a5a54", "#40b8a8", "#c0fff4"]}
@@ -2740,13 +2743,13 @@ items:
   aurora_scepter:
     name: "오로라 성광 홀"
     type: weapon
-    weapon_type: scepter
+    attack: {style: caster, interval: 0.8, kind: magic}
     rarity: legendary
     level_req: 48
     requires: {WIS: 118}
     floor: 10
     classes: [priest]
-    stats: {damage: [72, 82], WIS: [14, 19], heal_power: [45, 60], mana_regen: [0.9, 1.3], cooldown_reduction: [0.061, 0.083], mp: [89, 121]}
+    stats: {damage: [124, 141], WIS: [14, 19], heal_power: [45, 60], mana_regen: [0.9, 1.3], cooldown_reduction: [0.061, 0.083], mp: [89, 121]}
     aura: aurora
     pool: false
     sources: [boss]
@@ -2765,7 +2768,7 @@ items:
         mana: 30
         description: "2초간 극광의 띠를 내뿜어 적을 태우고 아군을 감싼다."
         mechanics:
-          - {"type": "beam", "length": 18, "width": 1.4, "duration": 2, "interval": 5, "display": "aurora_beam", "particle": "DUST:#5affb0:1.3", "effects": [{"damage": 0.4, "magic": true}]}
+          - {"type": "beam", "length": 18, "width": 1.4, "duration": 2, "interval": 5, "display": "aurora_beam", "particle": "DUST:#5affb0:1.3", "effects": [{"damage": 0.358, "magic": true}]}
           - {"type": "party", "radius": 8, "effects": [{"heal": 0.08}]}
           - {"type": "sound", "sound": "block.beacon.power_select", "pitch": 1.8, "volume": 1.0}
       - id: sanctuary
@@ -2781,13 +2784,13 @@ items:
   seraph_scepter:
     name: "치천사의 홀"
     type: weapon
-    weapon_type: scepter
+    attack: {style: caster, interval: 0.8, kind: magic}
     rarity: mythic
     level_req: 48
     requires: {WIS: 118}
     floor: 10
     classes: [priest]
-    stats: {damage: [81, 89], WIS: [17, 23], heal_power: [59, 79], mana_regen: [1.2, 1.7], cooldown_reduction: [0.079, 0.107], mp: [117, 159], skill_damage: [0.137, 0.185]}
+    stats: {damage: [140, 153], WIS: [17, 23], heal_power: [59, 79], mana_regen: [1.2, 1.7], cooldown_reduction: [0.079, 0.107], mp: [117, 159], skill_damage: [0.137, 0.185]}
     aura: seraph
     pool: false
     sources: [boss]
@@ -2806,7 +2809,7 @@ items:
         mana: 28
         description: "하늘에서 빛의 창을 내리꽂고, 창이 박힌 자리에 성스러운 파동이 퍼진다."
         mechanics:
-          - {"type": "strike", "at": "aim", "visual": "pillar", "display": "seraph_beam", "particle": "END_ROD", "impact_radius": 2.5, "effects": [{"damage": 3.0, "magic": true}], "on_impact": [{"type": "nova", "radius": 4.5, "expand_ticks": 6, "display": "holy_wave", "particle": "END_ROD", "effects": [{"damage": 1.0, "magic": true}, {"knockback": 0.6}]}, {"type": "party", "radius": 6, "effects": [{"heal": 0.06}]}]}
+          - {"type": "strike", "at": "aim", "visual": "pillar", "display": "seraph_beam", "particle": "END_ROD", "impact_radius": 2.5, "effects": [{"damage": 2.682, "magic": true}], "on_impact": [{"type": "nova", "radius": 4.5, "expand_ticks": 6, "display": "holy_wave", "particle": "END_ROD", "effects": [{"damage": 0.894, "magic": true}, {"knockback": 0.6}]}, {"type": "party", "radius": 6, "effects": [{"heal": 0.06}]}]}
           - {"type": "sound", "sound": "item.trident.thunder", "pitch": 1.6, "volume": 0.6}
       - id: sanctuary
         name: "여섯 날개의 성역"
@@ -2823,12 +2826,12 @@ items:
   moss_dirk:
     name: "이끼 단도"
     type: weapon
-    weapon_type: dagger
+    attack: {style: melee, interval: 0.45, kind: physical}
     rarity: common
     level_req: 1
     floor: 1
     classes: [shadow]
-    stats: {damage: [4, 5], DEX: [1, 2], crit_chance: [0.009, 0.011]}
+    stats: {damage: [5, 6], DEX: [1, 2], crit_chance: [0.009, 0.011]}
     pool: false
     sources: [drop, chest]
     model: {shape: dagger, length: 1.0}
@@ -2837,13 +2840,13 @@ items:
   corridor_katar:
     name: "회랑 주먹칼"
     type: weapon
-    weapon_type: dagger
+    attack: {style: melee, interval: 0.45, kind: physical}
     rarity: common
     level_req: 3
     requires: {DEX: 5}
     floor: 1
     classes: [shadow]
-    stats: {damage: [4, 5], DEX: [1, 2], crit_damage: [0.02, 0.027]}
+    stats: {damage: [5, 6], DEX: [1, 2], crit_damage: [0.02, 0.027]}
     pool: false
     sources: [drop, chest, craft]
     model: {shape: katar, length: 1.0}
@@ -2852,13 +2855,13 @@ items:
   skitter_fang:
     name: "갱도 거미 송곳니"
     type: weapon
-    weapon_type: dagger
+    attack: {style: melee, interval: 0.47, kind: physical}
     rarity: uncommon
     level_req: 5
     requires: {DEX: 10}
     floor: 2
     classes: [shadow]
-    stats: {damage: [5, 6], DEX: [1, 2], crit_chance: [0.01, 0.013]}
+    stats: {damage: [6, 8], DEX: [1, 2], crit_chance: [0.01, 0.013]}
     pool: false
     sources: [drop, chest]
     model: {shape: fang_blade, length: 1.0}
@@ -2867,13 +2870,13 @@ items:
   silk_sickle:
     name: "은실 낫"
     type: weapon
-    weapon_type: dagger
+    attack: {style: melee, interval: 0.5, kind: physical}
     rarity: uncommon
     level_req: 8
     requires: {DEX: 18}
     floor: 2
     classes: [shadow]
-    stats: {damage: [6, 7], DEX: [2, 3], lifesteal: [0.01, 0.014]}
+    stats: {damage: [9, 10], DEX: [2, 3], lifesteal: [0.01, 0.014]}
     pool: false
     sources: [craft]
     model: {shape: sickle, length: 1.0}
@@ -2882,13 +2885,13 @@ items:
   silkqueen_fang:
     name: "베셀라의 독니"
     type: weapon
-    weapon_type: dagger
+    attack: {style: melee, interval: 0.47, kind: physical}
     rarity: epic
     level_req: 10
     requires: {DEX: 23}
     floor: 2
     classes: [shadow]
-    stats: {damage: [8, 9], DEX: [3, 4], crit_chance: [0.019, 0.026], crit_damage: [0.061, 0.083], move_speed: [0.015, 0.021]}
+    stats: {damage: [11, 13], DEX: [3, 4], crit_chance: [0.019, 0.026], crit_damage: [0.061, 0.083], move_speed: [0.015, 0.021]}
     pool: false
     sources: [boss]
     weapon_skills:
@@ -2899,7 +2902,7 @@ items:
         mana: 12
         description: "짧게 미끄러져 들어가며 찌른다. 맞은 적은 3초간 중독된다."
         mechanics:
-          - {"type": "dash", "distance": 5, "ticks": 3, "particle": "DUST:#c8a0ff:1.2", "effects": [{"damage": 1.5}, {"poison": 3}]}
+          - {"type": "dash", "distance": 5, "ticks": 3, "particle": "DUST:#c8a0ff:1.2", "effects": [{"damage": 0.941}, {"poison": 3}]}
           - {"type": "sound", "sound": "entity.spider.hurt", "pitch": 1.4, "volume": 0.8}
     model: {shape: fang_blade, length: 1.0}
     texture: {style: bone, palette: ["#1a1c22", "#3b404c", "#8d95a8", "#dfe6f2", "#c8a0ff"]}
@@ -2907,13 +2910,13 @@ items:
   spore_kris:
     name: "포자 물결검"
     type: weapon
-    weapon_type: dagger
+    attack: {style: melee, interval: 0.48, kind: physical}
     rarity: rare
     level_req: 11
     requires: {DEX: 25}
     floor: 3
     classes: [shadow]
-    stats: {damage: [7, 9], DEX: [3, 4], crit_chance: [0.017, 0.023], crit_damage: [0.054, 0.072]}
+    stats: {damage: [10, 13], DEX: [3, 4], crit_chance: [0.017, 0.023], crit_damage: [0.054, 0.072]}
     pool: false
     sources: [drop, chest]
     model: {shape: kris, length: 1.0}
@@ -2922,13 +2925,13 @@ items:
   spore_katar:
     name: "포자 주먹칼"
     type: weapon
-    weapon_type: dagger
+    attack: {style: melee, interval: 0.45, kind: physical}
     rarity: rare
     level_req: 14
     requires: {DEX: 33}
     floor: 3
     classes: [shadow]
-    stats: {damage: [9, 10], DEX: [3, 5], attack_speed: [0.028, 0.037], crit_damage: [0.061, 0.083]}
+    stats: {damage: [13, 14], DEX: [3, 5], attack_speed: [0.028, 0.037], crit_damage: [0.061, 0.083]}
     pool: false
     sources: [craft]
     model: {shape: katar, length: 1.0}
@@ -2937,13 +2940,13 @@ items:
   mycelking_sporefang:
     name: "포자왕의 송곳"
     type: weapon
-    weapon_type: dagger
+    attack: {style: melee, interval: 0.48, kind: physical}
     rarity: epic
     level_req: 15
     requires: {DEX: 35}
     floor: 3
     classes: [shadow]
-    stats: {damage: [10, 11], DEX: [4, 6], crit_chance: [0.024, 0.032], attack_speed: [0.034, 0.046], lifesteal: [0.019, 0.026]}
+    stats: {damage: [15, 17], DEX: [4, 6], crit_chance: [0.024, 0.032], attack_speed: [0.034, 0.046], lifesteal: [0.019, 0.026]}
     pool: false
     sources: [boss]
     weapon_skills:
@@ -2954,7 +2957,7 @@ items:
         mana: 14
         description: "포자 송곳 세 개를 부채꼴로 던진다. 맞은 적은 2초간 중독된다."
         mechanics:
-          - {"type": "projectile", "count": 3, "spread": 30, "speed": 1.4, "range": 12, "display": "proj_spore", "effects": [{"damage": 0.75}, {"poison": 2}]}
+          - {"type": "projectile", "count": 3, "spread": 30, "speed": 1.4, "range": 12, "display": "proj_spore", "effects": [{"damage": 0.473}, {"poison": 2}]}
           - {"type": "sound", "sound": "entity.arrow.shoot", "pitch": 1.5, "volume": 0.9}
     model: {shape: kris, length: 1.0}
     texture: {style: moss, palette: ["#231a2c", "#4a3a5e", "#8a6ea8", "#d8c8e8", "#d988b8"]}
@@ -2962,13 +2965,13 @@ items:
   eel_kris:
     name: "녹물 장어 크리스"
     type: weapon
-    weapon_type: dagger
+    attack: {style: melee, interval: 0.45, kind: physical}
     rarity: epic
     level_req: 17
     requires: {DEX: 40}
     floor: 4
     classes: [shadow]
-    stats: {damage: [11, 13], DEX: [5, 7], crit_chance: [0.026, 0.035], crit_damage: [0.083, 0.112], evasion: [0.021, 0.028]}
+    stats: {damage: [16, 18], DEX: [5, 7], crit_chance: [0.026, 0.035], crit_damage: [0.083, 0.112], evasion: [0.021, 0.028]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -2979,7 +2982,7 @@ items:
         mana: 14
         description: "짧게 미끄러져 들어가며 찌른다. 맞은 적은 감전되어 느려진다."
         mechanics:
-          - {"type": "dash", "distance": 5, "ticks": 3, "particle": "ELECTRIC_SPARK", "effects": [{"damage": 1.6}, {"slow": 1.5}]}
+          - {"type": "dash", "distance": 5, "ticks": 3, "particle": "ELECTRIC_SPARK", "effects": [{"damage": 0.994}, {"slow": 1.5}]}
           - {"type": "sound", "sound": "entity.player.attack.crit", "pitch": 1.3, "volume": 1.0}
     model: {shape: kris, length: 1.0}
     texture: {style: copper, palette: ["#1e1410", "#5a2e1a", "#a0522a", "#d98a46", "#7fd0c0"]}
@@ -2987,13 +2990,13 @@ items:
   eelfin_sickle:
     name: "장어지느러미 낫"
     type: weapon
-    weapon_type: dagger
+    attack: {style: melee, interval: 0.5, kind: physical}
     rarity: rare
     level_req: 19
     requires: {DEX: 45}
     floor: 4
     classes: [shadow]
-    stats: {damage: [12, 13], DEX: [4, 6], lifesteal: [0.018, 0.025], move_speed: [0.017, 0.022]}
+    stats: {damage: [19, 21], DEX: [4, 6], lifesteal: [0.018, 0.025], move_speed: [0.017, 0.022]}
     pool: false
     sources: [drop, chest]
     model: {shape: sickle, length: 1.0}
@@ -3002,13 +3005,13 @@ items:
   slag_katar:
     name: "슬래그 주먹칼"
     type: weapon
-    weapon_type: dagger
+    attack: {style: melee, interval: 0.45, kind: physical}
     rarity: epic
     level_req: 22
     requires: {DEX: 53}
     floor: 5
     classes: [shadow]
-    stats: {damage: [15, 17], DEX: [6, 8], lifesteal: [0.024, 0.032], crit_damage: [0.098, 0.132], move_speed: [0.021, 0.029]}
+    stats: {damage: [22, 25], DEX: [6, 8], lifesteal: [0.024, 0.032], crit_damage: [0.098, 0.132], move_speed: [0.021, 0.029]}
     pool: false
     sources: [drop, chest]
     weapon_skills:
@@ -3019,20 +3022,20 @@ items:
         mana: 14
         description: "주먹칼로 앞을 세 번 빠르게 찌른다. 달군 칼날이 상처를 지져 준 피해 일부를 흡수한다."
         mechanics:
-          - {"type": "repeat", "times": 3, "interval": 4, "mechanics": [{"type": "cone", "range": 3, "angle": 70, "display": "ember_slash", "particle": "LAVA", "effects": [{"damage": 0.7}, {"lifesteal": 0.15}, {"ignite": 1}]}, {"type": "sound", "sound": "entity.player.attack.strong", "pitch": 1.4, "volume": 0.8}]}
+          - {"type": "repeat", "times": 3, "interval": 4, "mechanics": [{"type": "cone", "range": 3, "angle": 70, "display": "ember_slash", "particle": "LAVA", "effects": [{"damage": 0.435}, {"lifesteal": 0.15}, {"ignite": 1}]}, {"type": "sound", "sound": "entity.player.attack.strong", "pitch": 1.4, "volume": 0.8}]}
     model: {shape: katar, length: 1.05}
     texture: {style: dark_iron, palette: ["#180e0a", "#3a1e14", "#704028", "#b8744a", "#ff6a2a"]}
     lore: "단조 집행관의 부러진 처형도를 주먹칼로 다시 벼렸다. 찌른 상처가 쇳물처럼 달아오른다."
   cinder_fang:
     name: "불씨 송곳니"
     type: weapon
-    weapon_type: dagger
+    attack: {style: melee, interval: 0.47, kind: physical}
     rarity: epic
     level_req: 24
     requires: {DEX: 58}
     floor: 5
     classes: [shadow]
-    stats: {damage: [16, 19], DEX: [6, 9], crit_damage: [0.104, 0.141], attack_speed: [0.042, 0.057], crit_chance: [0.032, 0.044]}
+    stats: {damage: [25, 30], DEX: [6, 9], crit_damage: [0.104, 0.141], attack_speed: [0.042, 0.057], crit_chance: [0.032, 0.044]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -3041,7 +3044,7 @@ items:
         input: RIGHT
         cooldown: 14.0
         mana: 18
-        params: {"range": 10, "damage": 1.6, "back_bonus": 1.5, "guaranteed_crit": false, "stealth": 0, "effect": "burn", "effect_duration": 3.0, "fx": "ember_slash", "damage_type": "melee"}
+        params: {"range": 10, "damage": 1.003, "back_bonus": 1.5, "guaranteed_crit": false, "stealth": 0, "effect": "burn", "effect_duration": 3.0, "fx": "ember_slash", "damage_type": "melee"}
         description: "바라보는 적의 등 뒤로 불씨처럼 튀어 찌른다. 맞은 적은 3초간 불탄다."
       - id: mechanics
         name: "불티 부채"
@@ -3050,7 +3053,7 @@ items:
         mana: 16
         description: "불티 단검 다섯 자루를 부채꼴로 던진다."
         mechanics:
-          - {"type": "projectile", "count": 5, "spread": 40, "speed": 1.6, "range": 12, "display": "proj_ember", "effects": [{"damage": 0.7}, {"ignite": 2}]}
+          - {"type": "projectile", "count": 5, "spread": 40, "speed": 1.6, "range": 12, "display": "proj_ember", "effects": [{"damage": 0.439}, {"ignite": 2}]}
           - {"type": "sound", "sound": "entity.arrow.shoot", "pitch": 1.6, "volume": 1.0}
     model: {shape: fang_blade, length: 1.0}
     texture: {style: ember, palette: ["#1a0a06", "#5a1a0a", "#c43c12", "#ff9a2a", "#fff0a0"]}
@@ -3058,13 +3061,13 @@ items:
   soulflame_kris:
     name: "혼불 물결검"
     type: weapon
-    weapon_type: dagger
+    attack: {style: melee, interval: 0.48, kind: physical}
     rarity: legendary
     level_req: 27
     requires: {DEX: 65}
     floor: 6
     classes: [shadow]
-    stats: {damage: [20, 23], DEX: [9, 12], crit_chance: [0.042, 0.057], crit_damage: [0.137, 0.185], attack_speed: [0.055, 0.074], evasion: [0.032, 0.044]}
+    stats: {damage: [33, 37], DEX: [9, 12], crit_chance: [0.042, 0.057], crit_damage: [0.137, 0.185], attack_speed: [0.055, 0.074], evasion: [0.032, 0.044]}
     aura: soulfire
     pool: false
     sources: [boss]
@@ -3077,7 +3080,7 @@ items:
         description: "대상 뒤로 혼불처럼 나타나 등을 찌른다."
         mechanics:
           - {"type": "blink", "behind": true, "distance": 10, "particle": "SOUL_FIRE_FLAME"}
-          - {"type": "target", "range": 4, "effects": [{"damage": 2.0}, {"ignite": 3}, {"execute": {"amount": 1.2, "threshold": 0.25}}]}
+          - {"type": "target", "range": 4, "effects": [{"damage": 1.26}, {"ignite": 3}, {"execute": {"amount": 0.756, "threshold": 0.25}}]}
           - {"type": "sound", "sound": "entity.enderman.teleport", "pitch": 1.4, "volume": 1.0}
       - id: mechanics
         name: "도깨비불 궤도"
@@ -3086,7 +3089,7 @@ items:
         mana: 28
         description: "도깨비불 넷이 6초간 주위를 돌며 적을 태운다."
         mechanics:
-          - {"type": "orbit", "count": 4, "radius": 2.0, "duration": 6, "speed": 20, "display": "soulfire_orb", "hit_cooldown": 8, "effects": [{"damage": 0.45}, {"ignite": 2}]}
+          - {"type": "orbit", "count": 4, "radius": 2.0, "duration": 6, "speed": 20, "display": "soulfire_orb", "hit_cooldown": 8, "effects": [{"damage": 0.284}, {"ignite": 2}]}
           - {"type": "sound", "sound": "block.soul_sand.break", "pitch": 0.8, "volume": 1.0}
     model: {shape: kris, length: 1.0}
     texture: {style: frost, palette: ["#061a24", "#0e4a5e", "#2fb8d0", "#9af4ff", "#e8ffff"], animated: true, frames: 8, frametime: 2, effect: soul_flicker}
@@ -3094,13 +3097,13 @@ items:
   gravefrost_katar:
     name: "묘역 서리 주먹칼"
     type: weapon
-    weapon_type: dagger
+    attack: {style: melee, interval: 0.45, kind: physical}
     rarity: epic
     level_req: 27
     requires: {DEX: 65}
     floor: 6
     classes: [shadow]
-    stats: {damage: [19, 21], DEX: [7, 10], crit_chance: [0.035, 0.047], attack_speed: [0.045, 0.061], evasion: [0.027, 0.036]}
+    stats: {damage: [29, 32], DEX: [7, 10], crit_chance: [0.035, 0.047], attack_speed: [0.045, 0.061], evasion: [0.027, 0.036]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -3111,7 +3114,7 @@ items:
         mana: 14
         description: "짧게 미끄러져 들어가며 찌른다. 맞은 적은 느려지고 3초간 출혈한다."
         mechanics:
-          - {"type": "dash", "distance": 5, "ticks": 3, "particle": "SNOWFLAKE", "effects": [{"damage": 1.6}, {"slow": 1.5}, {"bleed": 3}]}
+          - {"type": "dash", "distance": 5, "ticks": 3, "particle": "SNOWFLAKE", "effects": [{"damage": 0.994}, {"slow": 1.5}, {"bleed": 3}]}
           - {"type": "sound", "sound": "block.glass.break", "pitch": 1.6, "volume": 0.7}
     model: {shape: katar, length: 1.0}
     texture: {style: frost, palette: ["#1c2230", "#4a5268", "#c8ccd6", "#9ad0ff", "#f0faff"]}
@@ -3119,13 +3122,13 @@ items:
   shardglass_dagger:
     name: "파편유리 단검"
     type: weapon
-    weapon_type: dagger
+    attack: {style: melee, interval: 0.45, kind: physical}
     rarity: rare
     level_req: 32
     requires: {DEX: 78}
     floor: 7
     classes: [shadow]
-    stats: {damage: [22, 25], DEX: [7, 9], crit_chance: [0.033, 0.045], crit_damage: [0.107, 0.145]}
+    stats: {damage: [34, 39], DEX: [7, 9], crit_chance: [0.033, 0.045], crit_damage: [0.107, 0.145]}
     pool: false
     sources: [drop, chest]
     model: {shape: dagger, length: 1.0}
@@ -3134,13 +3137,13 @@ items:
   shardglass_sickle:
     name: "파편유리 낫"
     type: weapon
-    weapon_type: dagger
+    attack: {style: melee, interval: 0.5, kind: physical}
     rarity: rare
     level_req: 34
     requires: {DEX: 83}
     floor: 7
     classes: [shadow]
-    stats: {damage: [24, 27], DEX: [7, 10], evasion: [0.026, 0.035], move_speed: [0.023, 0.031]}
+    stats: {damage: [42, 47], DEX: [7, 10], evasion: [0.026, 0.035], move_speed: [0.023, 0.031]}
     pool: false
     sources: [craft]
     model: {shape: sickle, length: 1.05}
@@ -3149,13 +3152,13 @@ items:
   lorekeeper_katar:
     name: "금서지기의 주먹칼"
     type: weapon
-    weapon_type: dagger
+    attack: {style: melee, interval: 0.45, kind: physical}
     rarity: epic
     level_req: 38
     requires: {DEX: 93}
     floor: 8
     classes: [shadow]
-    stats: {damage: [30, 34], DEX: [10, 13], skill_damage: [0.079, 0.106], cooldown_reduction: [0.045, 0.061], crit_chance: [0.045, 0.061]}
+    stats: {damage: [48, 54], DEX: [10, 13], skill_damage: [0.079, 0.106], cooldown_reduction: [0.045, 0.061], crit_chance: [0.045, 0.061]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -3167,7 +3170,7 @@ items:
         description: "바라보는 적의 등 뒤로 넘어가 찌르고 책갈피 표식을 남긴다. 표식이 남은 적은 4초간 빛나며 피를 흘린다."
         mechanics:
           - {"type": "blink", "distance": 8, "behind": true, "particle": "SQUID_INK"}
-          - {"type": "target", "range": 4, "effects": [{"damage": 1.8}, {"bleed": 3}, {"glow": 4}]}
+          - {"type": "target", "range": 4, "effects": [{"damage": 1.118}, {"bleed": 3}, {"glow": 4}]}
           - {"type": "sound", "sound": "entity.player.attack.sweep", "pitch": 1.5, "volume": 1.0}
     model: {shape: katar, length: 1.1}
     texture: {style: ink, palette: ["#0e0a0e", "#261c26", "#4e3a4e", "#b098b0", "#ff4a6a"]}
@@ -3175,13 +3178,13 @@ items:
   nightshade_dagger:
     name: "야음 단검"
     type: weapon
-    weapon_type: dagger
+    attack: {style: melee, interval: 0.45, kind: physical}
     rarity: legendary
     level_req: 39
     requires: {DEX: 95}
     floor: 8
     classes: [shadow]
-    stats: {damage: [34, 38], DEX: [12, 16], crit_chance: [0.052, 0.071], crit_damage: [0.17, 0.23], attack_speed: [0.065, 0.087], move_speed: [0.035, 0.047]}
+    stats: {damage: [54, 61], DEX: [12, 16], crit_chance: [0.052, 0.071], crit_damage: [0.17, 0.23], attack_speed: [0.065, 0.087], move_speed: [0.035, 0.047]}
     aura: nightshade
     pool: false
     sources: [boss]
@@ -3193,7 +3196,7 @@ items:
         mana: 18
         description: "그림자를 남기며 돌진해 지나간 적을 벤다. 끝에서 연막이 터진다."
         mechanics:
-          - {"type": "dash", "distance": 8, "ticks": 4, "display": "shadow_dash", "particle": "LARGE_SMOKE", "effects": [{"damage": 1.6}, {"poison": 3}], "on_end": [{"type": "nova", "radius": 3, "display": "smoke_cloud", "particle": "LARGE_SMOKE", "effects": [{"effect": {"id": "blind", "seconds": 3}}]}]}
+          - {"type": "dash", "distance": 8, "ticks": 4, "display": "shadow_dash", "particle": "LARGE_SMOKE", "effects": [{"damage": 0.994}, {"poison": 3}], "on_end": [{"type": "nova", "radius": 3, "display": "smoke_cloud", "particle": "LARGE_SMOKE", "effects": [{"effect": {"id": "blind", "seconds": 3}}]}]}
           - {"type": "sound", "sound": "entity.phantom.flap", "pitch": 1.2, "volume": 1.0}
       - id: mechanics
         name: "야음 폭발"
@@ -3202,7 +3205,7 @@ items:
         mana: 25
         description: "독을 머금은 야음초를 터뜨린다. 독이 오른 적은 받는 피해가 늘어난다."
         mechanics:
-          - {"type": "nova", "radius": 5, "display": "nightshade_burst", "particle": "SPORE_BLOSSOM_AIR", "effects": [{"damage": 1.6}, {"poison": 5}, {"effect": {"id": "vulnerable", "seconds": 5, "potency": 0.1}}]}
+          - {"type": "nova", "radius": 5, "display": "nightshade_burst", "particle": "SPORE_BLOSSOM_AIR", "effects": [{"damage": 0.994}, {"poison": 5}, {"effect": {"id": "vulnerable", "seconds": 5, "potency": 0.1}}]}
           - {"type": "sound", "sound": "block.big_dripleaf.tilt_down", "pitch": 0.6, "volume": 1.0}
     model: {shape: dagger, length: 1.0}
     texture: {style: shadow, palette: ["#05040a", "#1e1030", "#5a2a8a", "#b07cff", "#e8d8ff"], animated: true, frames: 8, frametime: 2, effect: shadow_smoke}
@@ -3210,13 +3213,13 @@ items:
   mainspring_dagger:
     name: "태엽 단검"
     type: weapon
-    weapon_type: dagger
+    attack: {style: melee, interval: 0.42, kind: physical}
     rarity: epic
     level_req: 41
     requires: {DEX: 100}
     floor: 9
     classes: [shadow]
-    stats: {damage: [34, 39], DEX: [10, 14], attack_speed: [0.058, 0.079], crit_chance: [0.048, 0.065], crit_damage: [0.156, 0.211]}
+    stats: {damage: [51, 59], DEX: [10, 14], attack_speed: [0.058, 0.079], crit_chance: [0.048, 0.065], crit_damage: [0.156, 0.211]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -3227,7 +3230,7 @@ items:
         mana: 14
         description: "태엽을 감았다 풀며 순식간에 세 번 찌른다."
         mechanics:
-          - {"type": "repeat", "times": 3, "interval": 3, "mechanics": [{"type": "cone", "range": 3, "angle": 60, "particle": "CRIT", "effects": [{"damage": 0.7}]}, {"type": "sound", "sound": "entity.player.attack.strong", "pitch": 1.6, "volume": 1.0}]}
+          - {"type": "repeat", "times": 3, "interval": 3, "mechanics": [{"type": "cone", "range": 3, "angle": 60, "particle": "CRIT", "effects": [{"damage": 0.428}]}, {"type": "sound", "sound": "entity.player.attack.strong", "pitch": 1.6, "volume": 1.0}]}
       - id: mechanics
         name: "역회전"
         input: SNEAK_RIGHT
@@ -3235,7 +3238,7 @@ items:
         mana: 12
         description: "뒤로 짧게 순간이동하며 원래 자리에 톱니 덫을 남긴다."
         mechanics:
-          - {"type": "zone", "at": "self", "radius": 2.5, "duration": 4, "interval": 10, "display": "snare_trap", "effects": [{"damage": 0.6}, {"root": 1.5}]}
+          - {"type": "zone", "at": "self", "radius": 2.5, "duration": 4, "interval": 10, "display": "snare_trap", "effects": [{"damage": 0.367}, {"root": 1.5}]}
           - {"type": "velocity", "forward": -1.2, "upward": 0.35}
           - {"type": "sound", "sound": "block.chain.place", "pitch": 1.4, "volume": 1.0}
     model: {shape: dagger, length: 1.0}
@@ -3244,13 +3247,13 @@ items:
   abyss_sickle:
     name: "심연 낫"
     type: weapon
-    weapon_type: dagger
+    attack: {style: melee, interval: 0.5, kind: physical}
     rarity: epic
     level_req: 46
     requires: {DEX: 113}
     floor: 10
     classes: [shadow]
-    stats: {damage: [40, 46], DEX: [11, 15], lifesteal: [0.038, 0.052], evasion: [0.038, 0.052], crit_damage: [0.171, 0.232]}
+    stats: {damage: [73, 83], DEX: [11, 15], lifesteal: [0.038, 0.052], evasion: [0.038, 0.052], crit_damage: [0.171, 0.232]}
     pool: false
     sources: [craft]
     weapon_skills:
@@ -3261,7 +3264,7 @@ items:
         mana: 14
         description: "낫에 매단 사슬을 던져 맞은 적을 끌어당기고 피를 흘리게 한다."
         mechanics:
-          - {"type": "projectile", "speed": 1.4, "range": 10, "display": "proj_hook", "spin": 30, "effects": [{"damage": 1.2}, {"pull": 0.9}, {"bleed": 3}]}
+          - {"type": "projectile", "speed": 1.4, "range": 10, "display": "proj_hook", "spin": 30, "effects": [{"damage": 0.763}, {"pull": 0.9}, {"bleed": 3}]}
           - {"type": "sound", "sound": "entity.fishing_bobber.throw", "pitch": 0.6, "volume": 1.0}
     model: {shape: sickle, length: 1.1}
     texture: {style: abyss, palette: ["#04100e", "#0e2c28", "#1e5e56", "#4ac0b0", "#ff4a8a"]}
@@ -3269,13 +3272,13 @@ items:
   viper_fang:
     name: "독사의 송곳니"
     type: weapon
-    weapon_type: dagger
+    attack: {style: melee, interval: 0.45, kind: physical}
     rarity: legendary
     level_req: 48
     requires: {DEX: 118}
     floor: 10
     classes: [shadow]
-    stats: {damage: [47, 53], DEX: [14, 19], crit_chance: [0.061, 0.083], crit_damage: [0.2, 0.27], attack_speed: [0.073, 0.099], evasion: [0.045, 0.061]}
+    stats: {damage: [77, 87], DEX: [14, 19], crit_chance: [0.061, 0.083], crit_damage: [0.2, 0.27], attack_speed: [0.073, 0.099], evasion: [0.045, 0.061]}
     aura: venom
     pool: false
     sources: [boss]
@@ -3287,7 +3290,7 @@ items:
         mana: 15
         description: "독 묻은 단검 세 자루를 던진다."
         mechanics:
-          - {"type": "projectile", "count": 3, "spread": 16, "speed": 1.8, "range": 16, "display": "venom_knife", "effects": [{"damage": 0.9}, {"effect": {"id": "venom", "seconds": 6}}]}
+          - {"type": "projectile", "count": 3, "spread": 16, "speed": 1.8, "range": 16, "display": "venom_knife", "effects": [{"damage": 0.559}, {"effect": {"id": "venom", "seconds": 6}}]}
           - {"type": "sound", "sound": "entity.arrow.shoot", "pitch": 1.7, "volume": 1.0}
       - id: mechanics
         name: "독니 처형"
@@ -3297,7 +3300,7 @@ items:
         description: "대상에게 순간이동해 독니를 박는다. 빈사의 적은 즉시 쓰러진다."
         mechanics:
           - {"type": "blink", "behind": true, "distance": 9, "particle": "DUST:#6aff3a:1.2"}
-          - {"type": "target", "range": 4, "effects": [{"damage": 1.8}, {"execute": {"amount": 2.5, "threshold": 0.3}}, {"poison": 3}]}
+          - {"type": "target", "range": 4, "effects": [{"damage": 1.118}, {"execute": {"amount": 1.552, "threshold": 0.3}}, {"poison": 3}]}
           - {"type": "sound", "sound": "entity.player.attack.crit", "pitch": 0.8, "volume": 1.0}
       - id: mechanics
         name: "맹독 폭발"
@@ -3306,8 +3309,8 @@ items:
         mana: 28
         description: "주변에 맹독을 터뜨리고 4초간 독 안개를 남긴다."
         mechanics:
-          - {"type": "nova", "radius": 5, "display": "venom_burst", "particle": "DUST:#6aff3a:1.4", "effects": [{"damage": 1.2}, {"poison": 5}]}
-          - {"type": "zone", "at": "self", "radius": 4, "duration": 4, "interval": 10, "display": "venom_ring", "particle": "SNEEZE", "effects": [{"damage": 0.3}, {"poison": 3}]}
+          - {"type": "nova", "radius": 5, "display": "venom_burst", "particle": "DUST:#6aff3a:1.4", "effects": [{"damage": 0.745}, {"poison": 5}]}
+          - {"type": "zone", "at": "self", "radius": 4, "duration": 4, "interval": 10, "display": "venom_ring", "particle": "SNEEZE", "effects": [{"damage": 0.186}, {"poison": 3}]}
           - {"type": "sound", "sound": "entity.spider.hurt", "pitch": 0.6, "volume": 1.0}
     model: {shape: fang_blade, length: 1.0}
     texture: {style: shadow, palette: ["#0a1406", "#1e4a12", "#4a9a2a", "#b0ff4a", "#efffc0"], animated: true, frames: 8, frametime: 2, effect: venom_drip}
@@ -3315,13 +3318,13 @@ items:
   eclipse_blade:
     name: "일식의 칼날"
     type: weapon
-    weapon_type: dagger
+    attack: {style: melee, interval: 0.43, kind: physical}
     rarity: mythic
     level_req: 48
     requires: {DEX: 118}
     floor: 10
     classes: [shadow]
-    stats: {damage: [53, 58], DEX: [17, 23], crit_chance: [0.079, 0.107], crit_damage: [0.259, 0.35], attack_speed: [0.094, 0.127], move_speed: [0.051, 0.068], evasion: [0.058, 0.078]}
+    stats: {damage: [83, 91], DEX: [17, 23], crit_chance: [0.079, 0.107], crit_damage: [0.259, 0.35], attack_speed: [0.094, 0.127], move_speed: [0.051, 0.068], evasion: [0.058, 0.078]}
     aura: eclipse
     pool: false
     sources: [boss]
@@ -3333,13 +3336,13 @@ items:
         mana: 0
         description: "휘두를 때마다 검은 초승달 검기가 날아간다 (짧은 재사용)."
         mechanics:
-          - {"type": "projectile", "speed": 1.6, "range": 9, "pierce": 1, "hit_radius": 0.9, "display": "eclipse_slash", "display_scale": 0.6, "impact_at_end": false, "effects": [{"damage": 0.5}, {"bleed": 2}]}
+          - {"type": "projectile", "speed": 1.6, "range": 9, "pierce": 1, "hit_radius": 0.9, "display": "eclipse_slash", "display_scale": 0.6, "impact_at_end": false, "effects": [{"damage": 0.307}, {"bleed": 2}]}
       - id: shadow_step
         name: "흑일 잠행"
         input: RIGHT
         cooldown: 10.0
         mana: 20
-        params: {"range": 14, "damage": 2.2, "back_bonus": 1.8, "guaranteed_crit": true, "stealth": 2.0, "fx": "eclipse_slash", "damage_type": "melee"}
+        params: {"range": 14, "damage": 1.353, "back_bonus": 1.8, "guaranteed_crit": true, "stealth": 2.0, "fx": "eclipse_slash", "damage_type": "melee"}
         description: "적의 등 뒤로 순간이동해 확정 치명타로 찌르고 2초 은신."
       - id: mechanics
         name: "코로나 칼날"
@@ -3348,7 +3351,7 @@ items:
         mana: 30
         description: "검은 태양의 칼날 여섯 자루가 6초간 빠르게 돈다."
         mechanics:
-          - {"type": "orbit", "count": 6, "radius": 2.5, "duration": 6, "speed": 24, "display": "eclipse_slash", "display_scale": 0.6, "hit_cooldown": 7, "effects": [{"damage": 0.5}, {"bleed": 3}]}
+          - {"type": "orbit", "count": 6, "radius": 2.5, "duration": 6, "speed": 24, "display": "eclipse_slash", "display_scale": 0.6, "hit_cooldown": 7, "effects": [{"damage": 0.307}, {"bleed": 3}]}
           - {"type": "sound", "sound": "entity.player.attack.sweep", "pitch": 1.6, "volume": 1.0}
       - id: mechanics
         name: "개기일식"
@@ -3358,9 +3361,9 @@ items:
         description: "하늘을 가리고 주변의 모든 적을 그림자 칼날로 난도질한 뒤 태양을 폭발시킨다."
         mechanics:
           - {"type": "particle", "particle": "DUST:#000000:2.0", "count": 60, "spread": 2.5, "y": 1.5}
-          - {"type": "repeat", "times": 5, "interval": 4, "mechanics": [{"type": "nova", "radius": 7, "particle": "SWEEP_ATTACK", "effects": [{"damage": 0.6}]}, {"type": "sound", "sound": "entity.player.attack.sweep", "pitch": 0.6, "volume": 1.0}]}
+          - {"type": "repeat", "times": 5, "interval": 4, "mechanics": [{"type": "nova", "radius": 7, "particle": "SWEEP_ATTACK", "effects": [{"damage": 0.369}]}, {"type": "sound", "sound": "entity.player.attack.sweep", "pitch": 0.6, "volume": 1.0}]}
           - {"type": "delay", "ticks": 22}
-          - {"type": "nova", "radius": 8, "expand_ticks": 8, "display": "eclipse_burst", "particle": "DUST:#ffb000:1.6", "effects": [{"damage": 2.8}, {"execute": {"amount": 2.0, "threshold": 0.25}}]}
+          - {"type": "nova", "radius": 8, "expand_ticks": 8, "display": "eclipse_burst", "particle": "DUST:#ffb000:1.6", "effects": [{"damage": 1.722}, {"execute": {"amount": 1.23, "threshold": 0.25}}]}
           - {"type": "sound", "sound": "entity.wither.spawn", "pitch": 0.9, "volume": 0.5}
     model: {shape: dagger, length: 1.0}
     texture: {style: shadow, palette: ["#000000", "#140c08", "#5a3a20", "#ffd27a", "#fff4d6"], animated: true, frames: 16, frametime: 2, effect: eclipse_corona}

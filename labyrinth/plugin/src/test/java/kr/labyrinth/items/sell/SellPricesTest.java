@@ -45,7 +45,7 @@ class SellPricesTest {
 
     /** 기존 정의를 바탕으로 종류·희귀도·층·획득처만 바꾼 가짜 아이템. */
     private static ItemDef fake(ItemDef base, String id, ItemType type, Rarity rarity, int floor, List<String> sources) {
-        return new ItemDef(id, base.name(), type, base.weaponType(), base.armorSlot(), base.armorSet(), rarity, base.levelReq(),
+        return new ItemDef(id, base.name(), type, type == ItemType.WEAPON ? base.attack() : null, base.armorSlot(), base.armorSet(), rarity, base.levelReq(),
                 base.classes(), base.stats(), base.setBonus(), base.aura(), base.weaponSkills(), floor, base.pool(), sources,
                 base.use(), base.model(), base.texture(), base.lore(), base.raw());
     }

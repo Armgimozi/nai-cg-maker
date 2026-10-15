@@ -6,7 +6,6 @@ import kr.labyrinth.Services;
 import kr.labyrinth.classes.ClassChangeGate;
 import kr.labyrinth.classes.ClassChangeRule;
 import kr.labyrinth.content.ClassDef;
-import kr.labyrinth.content.WeaponTypes;
 import kr.labyrinth.core.Settings;
 import kr.labyrinth.core.Text;
 import kr.labyrinth.stats.Stat;
@@ -16,7 +15,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
 /**
- * /직업 — 6직업 목록 (역할군·주 스탯·추천 무기·설명) → 클릭하면 상세(스킬 4개·패시브·전직).
+ * /직업 — 6직업 목록 (역할군·주로 쓰는 능력치·설명) → 클릭하면 상세(스킬 4개·패시브·전직).
  * 안내 칸(4)과 전직 버튼(상세 40)에 직업 변경 규칙({@link ClassChangeGate} — 첫 선택 무료·전직의 두루마리·대기 시간)과
  * 지금 상태(남은 시간·가진 두루마리)를 보여 준다. 판정은 클릭 때 {@code changeClass} 가 같은 관문으로 다시 한다.
  */
@@ -40,12 +39,9 @@ public final class ClassMenu extends LabMenu {
         };
     }
 
-    static String weaponName(String type) { return WeaponTypes.name(type); }
-
-    /** "추천 무기 활 (직업 스킬 재사용 대기 −10%)" 한 줄. */
-    static String recommendedLine(ClassDef c) {
-        return "<gray>추천 무기 <white>" + String.join(", ", c.weaponTypes().stream().map(ClassMenu::weaponName).toList())
-                + "</white> <dark_gray>(직업 스킬 재사용 대기 −" + Text.pct(WeaponTypes.RECOMMENDED_COOLDOWN_CUT) + ")";
+    /** "주로 쓰는 능력치 민첩 · 힘" 한 줄 (classes.yml main_stats). */
+    static String mainStatsLine(ClassDef c) {
+        return "<gray>주로 쓰는 능력치 " + kr.labyrinth.classes.LabyrinthClassService.mainStatsText(c);
     }
 
     static String inputName(String input) {
@@ -80,8 +76,7 @@ public final class ClassMenu extends LabMenu {
         List<String> info = new ArrayList<>(List.of("<gray>현재 직업: " + (cur == null ? "<dark_gray>없음" : "<" + cur.color() + ">" + cur.name()),
                 "<gray>직업 스킬은 무엇을 들었든",
                 "<gray>" + kr.labyrinth.core.InputKeys.CLASS_KEYS + " 로 씁니다.",
-                "<gray>무기·방어구·장신구는 어느 직업이든 쓸 수 있고,",
-                "<gray>직업마다 추천 무기를 들면 재사용 대기가 짧아집니다."));
+                "<gray>무기·방어구·장신구는 어느 직업이든 쓸 수 있습니다."));
         info.add("");
         info.addAll(changeRuleLines(new ClassChangeGate(services), p, cur));
         deco(4, Button.icon(Material.BOOK, "<#7fb2ff><b>역할군을 골라 파티를 꾸리세요</b>", info));
@@ -90,9 +85,8 @@ public final class ClassMenu extends LabMenu {
             if (i >= SLOTS.length) break;
             boolean mine = cur != null && cur.id().equals(c.id());
             List<String> lore = new ArrayList<>();
-            lore.add("<gray>역할 <white>" + roleName(c.role()) + "  <gray>주 스탯 <" + (c.primaryStat() == null ? "white" : c.primaryStat().color())
-                    + ">" + (c.primaryStat() == null ? "-" : c.primaryStat().displayName()));
-            lore.add(recommendedLine(c));
+            lore.add("<gray>역할 <white>" + roleName(c.role()));
+            lore.add(mainStatsLine(c));
             lore.add("");
             lore.addAll(wrap(c.description(), 26, "<gray>"));
             lore.add("");
@@ -136,7 +130,7 @@ public final class ClassMenu extends LabMenu {
             int level = services.data().get(p).level();
             List<String> head = new ArrayList<>();
             head.add("<gray>역할 <white>" + roleName(c.role()));
-            head.add(recommendedLine(c));
+            head.add(mainStatsLine(c));
             head.add("<gray>기본 HP <#ff5f6d>" + Text.num(c.baseHp()) + " <gray>(+" + Text.num(c.hpPerLevel()) + "/레벨)  MP <#6fc3ff>"
                     + Text.num(c.baseMp()) + " <gray>(+" + Text.num(c.mpPerLevel()) + "/레벨)");
             StringBuilder base = new StringBuilder("<gray>기본 스탯 ");

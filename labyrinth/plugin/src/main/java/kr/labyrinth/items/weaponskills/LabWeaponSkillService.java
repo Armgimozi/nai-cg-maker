@@ -163,7 +163,7 @@ public final class LabWeaponSkillService implements WeaponSkillService, Listener
         if (def == null) return false;
         ItemDef.WeaponSkillDef s = def.weaponSkill(input.name());
         if (s == null) return false;
-        boolean bow = "bow".equals(def.weaponType());
+        boolean bow = def.isRanged();
         if (bow && input == Input.RIGHT) return false;
         if (bow && input == Input.SNEAK_RIGHT && charge < 0) return false; // 활은 당겨 쏠 때(onShoot) 발동
         WeaponSkill impl = registry.get(s.id());
@@ -212,14 +212,15 @@ public final class LabWeaponSkillService implements WeaponSkillService, Listener
         return true;
     }
 
-    private static DamageType defaultType(String id, ItemDef weapon) {
+    /** 무기 스킬의 기본 피해 유형 (params.damage_type 이 없을 때) — 구현이 정한 것, 아니면 무기 공격 방식에서. */
+    static DamageType defaultType(String id, ItemDef weapon) {
         return switch (id) {
             case "slash_wave" -> DamageType.RANGED;
             case "beam", "chain_bolt", "sanctuary", "vortex" -> DamageType.MAGIC;
-            case "missile", "rain_zone", "blade_orbit", "mechanics" -> switch (weapon.weaponType() == null ? "" : weapon.weaponType()) {
-                case "bow" -> DamageType.RANGED;
-                case "staff", "scepter" -> DamageType.MAGIC;
-                default -> DamageType.MELEE;
+            case "missile", "rain_zone", "blade_orbit", "mechanics" -> switch (kr.labyrinth.combat.WeaponAttack.of(weapon).style()) {
+                case RANGED -> DamageType.RANGED;
+                case CASTER -> DamageType.MAGIC;
+                case MELEE -> DamageType.MELEE;
             };
             default -> DamageType.MELEE;
         };
@@ -310,7 +311,7 @@ public final class LabWeaponSkillService implements WeaponSkillService, Listener
 
     private boolean isBowWithSneakShot(Player p) {
         ItemDef def = services.items().heldWeapon(p);
-        return def != null && "bow".equals(def.weaponType()) && def.weaponSkill(Input.SNEAK_RIGHT.name()) != null;
+        return def != null && def.isRanged() && def.weaponSkill(Input.SNEAK_RIGHT.name()) != null;
     }
 
     /**

@@ -39,7 +39,8 @@ import org.joml.Vector3f;
 
 /**
  * 조합형 무기 스킬 실행기 (<code>id: mechanics</code>, GDD §17.5). {@link MechanicsSpec} 이 파싱한 부품 트리를
- * 실제 세계에서 돌린다. 모든 피해는 {@code DamageContext.attack(...)}(DamageService 단일 경로), 상태이상은
+ * 실제 세계에서 돌린다. 모든 피해는 {@code DamageContext.skill(...)}(DamageService 단일 경로 — 스킬 위력 기준, 효과마다
+ * 피해 종류 {@link SkillKinds#effectKind}), 상태이상은
  * StatusEffectService, 적/아군 판정은 {@link WeaponTargeting}(→ TargetFilter), 연출은 fx 모델(ItemDisplay) 또는 입자.
  * 미궁 밖 블록은 절대 바꾸지 않는다(낙뢰는 연출 전용 strikeLightningEffect, 폭발은 입자+판정만).
  */
@@ -214,6 +215,9 @@ final class MechanicsEngine {
             return c.type();
         }
 
+        /** 효과 하나의 피해 종류 (물리 = 힘, 마법 = 지능): damage_type → magic: true → 무기 attack.kind, 번개 = 마법. */
+        kr.labyrinth.combat.DamageKind kind(Effect e) { return SkillKinds.effectKind(e, c.weaponKind()); }
+
         boolean isBoss(LivingEntity e) { return c.isBoss(e); }
 
         double hpRatio(LivingEntity e) {
@@ -238,7 +242,7 @@ final class MechanicsEngine {
                 boolean boss = isBoss(t);
                 switch (e.type()) {
                     case "damage" -> {
-                        DamageContext d = DamageContext.attack(pl, t, e.amount(1.0) * power * scale, type(e)).skill(source);
+                        DamageContext d = DamageContext.skill(pl, t, e.amount(1.0) * power * scale, type(e), kind(e), source);
                         if (p.has("knockback") && !boss) d.knockback(p.dbl("knockback", 0));
                         if (p.bool("ignore_defense", false)) d.ignoreDefense();
                         c.services.damage().deal(d);
@@ -282,7 +286,7 @@ final class MechanicsEngine {
                         double th = p.dbl("threshold", 0.25);
                         if (hpRatio(t) <= th) {
                             double m = boss ? p.dbl("boss_amount", e.amount(2.0) * 0.4) : e.amount(2.0);
-                            DamageContext d = DamageContext.attack(pl, t, m * power, type(e)).skill(source).critBonus(1.0);
+                            DamageContext d = DamageContext.skill(pl, t, m * power, type(e), kind(e), source).critBonus(1.0);
                             c.services.damage().deal(d);
                             if (!d.cancelled()) dealt += d.dealt();
                             t.getWorld().spawnParticle(Particle.DAMAGE_INDICATOR, t.getLocation().add(0, t.getHeight(), 0), 8, 0.3, 0.2, 0.3, 0.1);
@@ -292,7 +296,7 @@ final class MechanicsEngine {
                     case "lightning" -> {
                         t.getWorld().strikeLightningEffect(t.getLocation());
                         if (e.amount(0) > 0) {
-                            DamageContext d = DamageContext.attack(pl, t, e.amount(0) * power * scale, DamageType.MAGIC).skill(source);
+                            DamageContext d = DamageContext.skill(pl, t, e.amount(0) * power * scale, DamageType.MAGIC, kind(e), source);
                             c.services.damage().deal(d);
                             if (!d.cancelled() && !d.evaded()) dealt += d.dealt();
                         }
@@ -304,7 +308,7 @@ final class MechanicsEngine {
                         double r = p.dbl("radius", 2.5);
                         if (e.amount(0) > 0) {
                             for (LivingEntity o : c.enemies(at, r)) {
-                                DamageContext d = DamageContext.attack(pl, o, e.amount(0) * power * scale, type(e)).skill(source);
+                                DamageContext d = DamageContext.skill(pl, o, e.amount(0) * power * scale, type(e), kind(e), source);
                                 c.services.damage().deal(d);
                             }
                         }

@@ -220,7 +220,7 @@ public final class ClassPassives implements DamageService.Hook, StatContributor 
             }
             case "vital_point" -> {
                 if (ctx.crit() && pp.bool("refresh_venom", true) && services.effects().stacks(target, "venom") > 0) {
-                    services.effects().apply(target, "venom", 6, SkillContext.dotRatio(0.10, SkillContext.weaponScale(services, atk, c)), atk);
+                    services.effects().apply(target, "venom", 6, SkillContext.dotRatio(0.10, SkillContext.skillScale(c)), atk);
                 }
             }
             default -> { }

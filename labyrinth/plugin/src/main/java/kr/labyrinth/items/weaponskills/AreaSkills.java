@@ -160,7 +160,7 @@ final class AreaSkills {
         String fx = c.fx(null);
         Color col = c.color();
         ItemDisplay ground = fx != null ? Fx.spawn(c.services, center.clone().add(0, 0.05, 0), fx, (float) (radius / 2.0), 0) : null;
-        boolean bow = "bow".equals(c.weapon.weaponType());
+        boolean bow = c.weapon.isRanged();
         c.sound(bow ? Sound.ENTITY_ARROW_SHOOT : Sound.ENTITY_EVOKER_CAST_SPELL, 0.8f, 0.7f);
         c.repeat(1, duration, t -> {
             if (t % 4 == 0) c.ring(center, radius, 24);

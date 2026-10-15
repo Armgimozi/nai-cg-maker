@@ -25,7 +25,7 @@ import kr.labyrinth.content.Params;
 import kr.labyrinth.content.Rarity;
 import kr.labyrinth.content.RecipeDef;
 import kr.labyrinth.content.StatRequirement;
-import kr.labyrinth.content.WeaponTypes;
+import kr.labyrinth.stats.Stat;
 
 /**
  * 콘텐츠 교차참조 검사 (ARCHITECTURE §8). 시작·reload 때와 단위 테스트에서 실행.
@@ -40,6 +40,11 @@ public final class ContentValidator {
     // ── 닫힌 목록 (GDD 가 원본) ───────────────────────────────────────────
     public static final Set<String> ROLES = Set.of("tank", "melee", "ranged", "magic", "healer", "assassin");
     public static final Set<String> CLASS_INPUTS = Set.of("SWAP", "SNEAK_SWAP", "DROP", "SNEAK_DROP");
+    /** 직업 스킬 피해 종류 꼬리표 (classes.yml skills[].kind). */
+    public static final Set<String> SKILL_KINDS = Set.of("physical", "magic", "hybrid", "none");
+    /** 무기 attack 블록 (0.3.5). */
+    public static final Set<String> ATTACK_STYLES = Set.of("melee", "ranged", "caster");
+    public static final Set<String> ATTACK_KINDS = Set.of("physical", "magic", "hybrid");
     public static final Set<String> WEAPON_INPUTS = Set.of("LEFT", "RIGHT", "SNEAK_LEFT", "SNEAK_RIGHT");
     public static final Set<String> ARMOR_SLOTS = Set.of("head", "chest", "legs", "feet", "offhand");
     /** GDD §11.7 아이템 스탯 키 26개. */
@@ -127,20 +132,31 @@ public final class ContentValidator {
 
     private void classes() {
         if (c.classes().isEmpty()) err("classes.yml", "직업이 하나도 없음");
-        Set<String> weaponTypes = new HashSet<>();
-        for (ItemDef d : c.items().values()) if (d.weaponType() != null) weaponTypes.add(d.weaponType());
         for (ClassDef d : c.classes().values()) {
             String w = "classes." + d.id();
             if (!ROLES.contains(d.role())) err(w, "role 이 올바르지 않음: " + d.role());
             if (d.iconItem() != null) requireItem(w + ".icon_item", d.iconItem());
-            for (String wt : d.weaponTypes()) {
-                if (!weaponTypes.contains(wt)) warn(w, "weapon_type '" + wt + "' 을 쓰는 무기가 없음");
+            // 0.3.5: 무기 종류 없음 — 추천 무기 대신 처음 줄 무기 하나 (starter_weapon)
+            if (d.raw().has("weapon_types")) {
+                warn(w, "weapon_types 는 0.3.5 부터 쓰지 않음 (무기 종류 없음) — 지울 것 (예전 파일로 보고 스킬 재사용 대기를 ×0.9 로 읽음)");
+            }
+            String starter = d.starterWeapon();
+            if (starter != null) {
+                requireItem(w + ".starter_weapon", starter);
+                ItemDef sw = c.item(starter);
+                if (sw != null && !sw.isWeapon()) err(w + ".starter_weapon", "무기가 아님: " + starter);
+            }
+            for (String k : d.raw().strings("main_stats")) {
+                if (Stat.byKey(k) == null) err(w + ".main_stats", "능력치가 아님: " + k);
             }
             Set<String> inputs = new HashSet<>();
             for (ClassDef.SkillDef s : d.skills()) {
                 if (!CLASS_INPUTS.contains(s.input())) err(w + ".skills." + s.id(), "input 이 올바르지 않음: " + s.input());
                 if (!inputs.add(s.input())) err(w + ".skills." + s.id(), "같은 input 을 쓰는 스킬이 둘: " + s.input());
                 if (s.id().isBlank()) err(w, "스킬 id 비어 있음");
+                if (!s.kind().isEmpty() && !SKILL_KINDS.contains(s.kind())) {
+                    err(w + ".skills." + s.id(), "kind 는 physical | magic | hybrid | none: " + s.kind());
+                }
                 checkFxParams(w + ".skills." + s.id(), s.params());
             }
             if (d.baseHp() <= 0) err(w, "base_hp 는 양수");
@@ -157,16 +173,7 @@ public final class ContentValidator {
         if (c.items().isEmpty()) err("items.yml", "아이템이 하나도 없음");
         for (ItemDef d : c.items().values()) {
             String w = "items." + d.id();
-            if (d.type() == ItemType.WEAPON && (d.weaponType() == null || d.weaponType().isBlank())) {
-                err(w, "무기인데 weapon_type 이 없음");
-            } else if (d.type() == ItemType.WEAPON) {
-                if (!WeaponTypes.known(d.weaponType())) warn(w, "weapon_type '" + d.weaponType() + "' 의 피해 배율(WeaponTypes)이 없음 — 직업 스킬 환산 1.0");
-                // classes = 추천 직업(드롭 편향) — classes.yml weapon_types(재사용 대기 보너스)와 어긋나면 표시가 헷갈린다
-                for (String cls : d.classes()) {
-                    ClassDef cd = c.classes().get(cls);
-                    if (cd != null && !cd.recommendsWeapon(d.weaponType())) warn(w, "추천 직업 '" + cls + "' 의 weapon_types 에 '" + d.weaponType() + "' 이 없음");
-                }
-            }
+            if (d.type() == ItemType.WEAPON) attack(w, d);
             if (d.type() == ItemType.ARMOR && (d.armorSlot() == null || !ARMOR_SLOTS.contains(d.armorSlot()))) {
                 err(w, "방어구 armor_slot 이 올바르지 않음: " + d.armorSlot());
             }
@@ -199,12 +206,48 @@ public final class ContentValidator {
         }
     }
 
+    /** 무기 공격 간격 검사 범위 (초, 민첩 전). combat_spec §11: 0.35 ~ 1.30. */
+    public static final double MIN_WEAPON_INTERVAL = 0.35;
+    public static final double MAX_WEAPON_INTERVAL = 1.30;
+
+    /**
+     * 무기 attack 블록 (0.3.5 — 무기 종류 없음): style melee | ranged | caster · interval 0.35~1.30초 · kind physical | magic | hybrid.
+     * 활 모양(model.shape 가 …bow)이면 ranged, 아니면 ranged 가 아님 (당기는 모델·바닐라 활 재료가 모양을 따른다).
+     * 예전 weapon_type 만 있는 무기는 그때 주기로 대신하고 경고.
+     */
+    private void attack(String w, ItemDef d) {
+        Params a = d.raw() == null ? Params.EMPTY : d.raw().sub("attack");
+        boolean legacy = d.raw() != null && d.raw().has("weapon_type");
+        if (legacy) warn(w, "weapon_type 은 0.3.5 부터 쓰지 않음 — attack: {style, interval, kind} 로 바꿀 것 (지금은 예전 주기로 대신)");
+        if (a.isEmpty()) {
+            if (!legacy) err(w, "무기인데 attack: {style, interval, kind} 가 없음");
+            return;
+        }
+        String style = a.str("style");
+        if (style == null || !ATTACK_STYLES.contains(style)) err(w + ".attack", "style 은 melee | ranged | caster: " + style);
+        String kind = a.str("kind");
+        if (kind != null && !ATTACK_KINDS.contains(kind)) err(w + ".attack", "kind 는 physical | magic | hybrid: " + kind);
+        if (!a.has("interval") && a.has("speed")) warn(w + ".attack", "speed 대신 interval(초) 로 적을 것");
+        double iv = d.attack().interval();
+        if (iv < MIN_WEAPON_INTERVAL - 1e-9 || iv > MAX_WEAPON_INTERVAL + 1e-9) {
+            err(w + ".attack", "interval 은 " + MIN_WEAPON_INTERVAL + " ~ " + MAX_WEAPON_INTERVAL + "초: " + iv);
+        }
+        String shape = d.model() == null ? null : d.model().str("shape");
+        boolean bowShape = shape != null && shape.endsWith("bow");
+        if (shape != null && bowShape != d.attack().ranged()) {
+            err(w + ".attack", bowShape ? "활 모양(" + shape + ")인데 style 이 ranged 가 아님" : "ranged 인데 활 모양이 아님: " + shape);
+        }
+        for (ItemDef.WeaponSkillDef s : d.weaponSkills()) {
+            if (d.attack().ranged() && "RIGHT".equals(s.input())) err(w + ".weapon_skills." + s.id(), "활은 RIGHT(바닐라 당기기) 스킬 금지");
+        }
+    }
+
     /** Lv.1 시작 포인트 (config level.start_points 기본값 — 검사는 번들 기본 기준). */
     public static final int START_POINTS = 5;
 
     /**
      * 요구 능력치 (items.yml requires / requires_any): 시작 지급 장비는 요구 없음, 직업마다 처음 받는 시작 무기
-     * ({@link WeaponTypes#starterWeapon})는 Lv.1 에 직업 기본 능력치 + 시작 포인트 {@value #START_POINTS} 로 쓸 수 있어야 한다.
+     * (classes.yml {@code starter_weapon})는 Lv.1 에 직업 기본 능력치 + 시작 포인트 {@value #START_POINTS} 로 쓸 수 있어야 한다.
      */
     private void requirements() {
         for (ItemDef d : c.items().values()) {
@@ -213,8 +256,8 @@ public final class ContentValidator {
             }
         }
         for (ClassDef cls : c.classes().values()) {
-            ItemDef weapon = WeaponTypes.starterWeapon(c.items().values(), cls);
-            if (weapon == null) continue;
+            ItemDef weapon = cls.starterWeapon() == null ? null : c.item(cls.starterWeapon());
+            if (weapon == null || !weapon.isWeapon()) continue;
             int need = weapon.requirement().pointsNeeded(StatRequirement.playerStats(cls, Map.of(), Map.of()));
             if (need > START_POINTS) {
                 warn("items." + weapon.id(), "직업 " + cls.id() + " 의 시작 무기인데 Lv.1 에 쓸 수 없음 (" + weapon.requirement().text()

@@ -3,6 +3,7 @@ package kr.labyrinth.classes.skills;
 import java.util.Optional;
 import kr.labyrinth.Services;
 import kr.labyrinth.combat.DamageContext;
+import kr.labyrinth.combat.DamageKind;
 import kr.labyrinth.combat.DamageType;
 import kr.labyrinth.content.ClassDef;
 import kr.labyrinth.content.Params;
@@ -118,20 +119,33 @@ public final class SkillContext {
 
     /**
      * 직업 스킬 배율 (0.3.5) = classes.yml {@code skill_scale}. 직업 스킬 피해 = 스킬 위력 × 이 값 × 스킬 배율 — 스킬 위력이
-     * 무기 무게와 상관없으므로 무엇을 들든 같은 단계면 같다 (예전 '추천 무기 환산'을 대신함).
+     * 무기 무게와 상관없으므로 무엇을 들든 같은 단계면 같다 (무기 종류는 없다).
      */
-    public double weaponScale() { return weaponScale(services, caster, classDef); }
+    public double skillScale() { return skillScale(classDef); }
 
-    /** {@link #weaponScale()} 의 정적 판 — 스킬 문맥 밖(독날 적중 등)에서 쓴다. */
-    public static double weaponScale(Services services, Player player, ClassDef cls) {
+    /** {@link #skillScale()} 의 정적 판 — 스킬 문맥 밖(독날 적중 등)에서 쓴다. 직업이 없으면 1. */
+    public static double skillScale(ClassDef cls) {
         return cls == null ? 1.0 : cls.skillScale();
     }
 
+    /** 이 스킬 피해의 종류 — classes.yml {@code kind}(physical·magic·hybrid), 비우면 피해 유형에서 (근접·원거리 물리, 마법 마법). */
+    public DamageKind kind(DamageType type) { return kindOf(skill, type); }
+
+    public static DamageKind kindOf(ClassDef.SkillDef skill, DamageType type) {
+        String k = skill == null ? "" : skill.kind();
+        return switch (k == null ? "" : k) {
+            case "physical" -> DamageKind.PHYSICAL;
+            case "magic" -> DamageKind.MAGIC;
+            case "hybrid" -> DamageKind.HYBRID;
+            default -> DamageKind.of(type);
+        };
+    }
+
     /**
-     * 지속 피해 비율(초당 공격력 배율 — 출혈·독·화상 potency)에 무기 환산을 곱한다. 부여 순간 공격력으로 굳으므로 부여할 때마다 부른다.
+     * 지속 피해 비율(초당 스킬 위력 배율 — 출혈·독·화상 potency)에 직업 스킬 배율을 곱한다. 부여 순간 위력으로 굳으므로 부여할 때마다 부른다.
      * 상태이상 potency 는 0~1 사이만 비율로 읽히므로 0.95 에서 자른다.
      */
-    public double dotRatio(double ratio) { return dotRatio(ratio, weaponScale()); }
+    public double dotRatio(double ratio) { return dotRatio(ratio, skillScale()); }
 
     public static double dotRatio(double ratio, double scale) { return Math.min(0.95, ratio * scale); }
 
@@ -142,7 +156,7 @@ public final class SkillContext {
 
     public DamageContext damage(LivingEntity target, double mult, DamageType type, double threat, double knockback) {
         if (target == null || !services.targets().isEnemy(caster, target)) return null;
-        DamageContext c = DamageContext.attack(caster, target, mult * weaponScale(), type).skill(skill.id());
+        DamageContext c = DamageContext.skill(caster, target, mult * skillScale(), type, kind(type), skill.id());
         if (threat != 1.0) c.threat(threat);
         if (knockback > 0 && !services.effects().isKnockbackImmune(target)) c.knockback(knockback);
         return services.damage().deal(c);

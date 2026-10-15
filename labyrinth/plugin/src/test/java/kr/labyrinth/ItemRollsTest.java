@@ -167,8 +167,10 @@ class ItemRollsTest {
         assertEquals(10.0, out.get("damage"), 1e-9);
         assertEquals(0.031, out.get("crit_chance"), 1e-9, "다른 스탯 굴림은 그대로");
         assertEquals(rolls.get("damage"), old.max(), 1e-9, "입력 맵은 그대로");
-        // 지금 데이터(범위 같음)면 아무것도 안 바뀐다
-        assertEquals(rolls, ItemMigration035.migrate(sword, rolls));
+        // 지금 데이터 = 새 범위 (P0b 가 items.yml 에 넣음) → 같은 결과, 범위가 같으면 아무것도 안 바뀐다
+        assertEquals(new Range(8, 10), sword.stats().get("damage"));
+        assertEquals(out, ItemMigration035.migrate(sword, rolls));
+        assertEquals(rolls, ItemMigration035.migrate(withDamage(sword, old), rolls));
         // 깃발 35 면 다시 옮기지 않음, 장비가 아니면 옮길 것 없음
         assertTrue(ItemMigration035.needed(sword, 0));
         assertFalse(ItemMigration035.needed(sword, ItemMigration035.VERSION));
@@ -193,7 +195,7 @@ class ItemRollsTest {
     private static ItemDef withDamage(ItemDef d, Range dmg) {
         Map<String, Range> stats = new java.util.LinkedHashMap<>(d.stats());
         stats.put("damage", dmg);
-        return new ItemDef(d.id(), d.name(), d.type(), d.weaponType(), d.armorSlot(), d.armorSet(), d.rarity(), d.levelReq(),
+        return new ItemDef(d.id(), d.name(), d.type(), d.attack(), d.armorSlot(), d.armorSet(), d.rarity(), d.levelReq(),
                 d.requires(), d.classes(), stats, d.setBonus(), d.aura(), d.weaponSkills(), d.floor(), d.pool(), d.sources(),
                 d.use(), d.model(), d.texture(), d.lore(), d.raw());
     }

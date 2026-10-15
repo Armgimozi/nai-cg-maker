@@ -242,7 +242,7 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
     }
 
     /** 상태이상 지속 피해의 종류 — 불태움·감전 = 마법, 그 밖(출혈·독·맹독·시듦·감염·즉시 피해) = 물리. */
-    static kr.labyrinth.combat.DamageKind dotKind(String effectId) {
+    public static kr.labyrinth.combat.DamageKind dotKind(String effectId) {
         return switch (effectId == null ? "" : effectId) {
             case "burn", "shock" -> kr.labyrinth.combat.DamageKind.MAGIC;
             default -> kr.labyrinth.combat.DamageKind.PHYSICAL;

@@ -57,11 +57,11 @@ def stone_tier(f):  # ChestTier.stoneTier 와 같은 구간
 # 층마다 일반 재료가 2종 — '단단한' 쪽(껍질·금속·뼈·비늘·톱니)과 '부드러운/마법' 쪽(섬유·실·진주·결정·체액).
 HARD = {1: 'beetle_shell', 2: 'rusted_iron', 3: 'spore_cap', 4: 'eel_scale', 5: 'slag_ingot',
         6: 'grave_bone', 7: 'amethyst_shard', 8: 'old_page', 9: 'brass_gear', 10: 'sculk_tendril'}
-# 종류 → 단단한 재료(True) / 부드러운 재료(False). 근접 날붙이·몸통·신발·방패 = 단단, 활 시위·마법 무기·투구·다리 = 부드러움.
-KIND_HARD = {'sword_shield': True, 'greatsword': True, 'dagger': True, 'bow': False, 'staff': False, 'scepter': False,
+# 분류 → 단단한 재료(True) / 부드러운 재료(False). 근접 무기·몸통·신발·방패 = 단단, 원거리·시전 무기·투구·다리 = 부드러움.
+KIND_HARD = {'melee': True, 'ranged': False, 'caster': False,
              'chest': True, 'feet': True, 'offhand': True, 'head': False, 'legs': False}
-KIND_ORDER = ['sword_shield', 'greatsword', 'bow', 'staff', 'scepter', 'dagger', 'head', 'chest', 'legs', 'feet', 'offhand']
-KIND_NAME = {'sword_shield': '검방', 'greatsword': '대검', 'bow': '활', 'staff': '지팡이', 'scepter': '홀', 'dagger': '단검',
+KIND_ORDER = ['melee', 'ranged', 'caster', 'head', 'chest', 'legs', 'feet', 'offhand']
+KIND_NAME = {'melee': '근접 무기', 'ranged': '원거리 무기', 'caster': '시전 무기',
              'head': '투구', 'chest': '흉갑', 'legs': '하의', 'feet': '신발', 'offhand': '방패'}
 ESS_ORDER = ['dim_essence', 'labyrinth_essence', 'radiant_essence', 'primordial_essence']
 NOT_FLOOR_MATERIAL = {'lesser_enhance_stone', 'greater_enhance_stone', 'supreme_enhance_stone', 'enhance_protection_scroll'}
@@ -299,7 +299,10 @@ def gear_floor(v):
 
 
 def kind_of(v):
-    return v.get('weapon_type') or v.get('armor_slot') or 'sword_shield'
+    # 0.3.5: 무기 종류가 없어져 무기는 공격 방식(attack.style)으로 — 근접 = 단단한 재료, 원거리·시전 = 부드러운 재료
+    if v.get('type') == 'weapon':
+        return (v.get('attack') or {}).get('style') or 'melee'
+    return v.get('armor_slot') or 'melee'
 
 
 def category(v):

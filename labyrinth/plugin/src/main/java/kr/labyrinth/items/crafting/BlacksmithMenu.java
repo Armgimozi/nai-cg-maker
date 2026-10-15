@@ -171,7 +171,7 @@ final class BlacksmithMenu extends Menu {
         List<String> lore = new ArrayList<>(ItemTooltip.lines(services.content(), def, null, Map.of(), List.of(), tail.size(), true, reqStats));
         lore.addAll(tail);
         String name = "<" + def.rarity().color() + ">" + def.name() + (r.amount() > 1 ? " <gray>×" + r.amount() : "");
-        Material base = "bow".equals(def.weaponType()) ? Material.BOW : Material.PAPER;
+        Material base = def.isRanged() ? Material.BOW : Material.PAPER;
         return Button.icon(base, def.id(), name, lore);
     }
 }

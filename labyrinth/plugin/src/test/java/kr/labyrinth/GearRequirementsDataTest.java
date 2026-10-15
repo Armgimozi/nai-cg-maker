@@ -35,7 +35,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * 장비 데이터 — 착용 요구 능력치(items.yml {@code requires} · {@code requires_any})와 영웅 이상 무기 획득처 1곳.
- * 요구 능력치 = ceil(2.5 × (숨은 아이템 레벨 − 1)), 2 이하면 없음. 능력치는 무기 종류 / 방어구 겉모습으로 정한다
+ * 요구 능력치 = ceil(2.5 × (숨은 아이템 레벨 − 1)), 2 이하면 없음. 무기는 무기마다 정한다(종류 없음 — 모두 채워야 하는 AND,
+ * 물리 무기는 힘·민첩, 마법 무기는 지능·정신 중 하나 이상), 방어구는 겉모습으로 정한다
  * (판금·방패 VIT · 가죽 DEX · 천 INT 또는 WIS · 모든 직업용은 주 능력치 하나). '내 능력치' = 직업 기본 + 분배 포인트 (+ 칭호).
  * 파서가 아직 요구 능력치를 따로 읽지 않아도 되게 {@link ItemDef#raw()} 에서 직접 읽는다.
  */
@@ -47,8 +48,10 @@ class GearRequirementsDataTest {
     static List<String> starterKit = new ArrayList<>();
 
     static final List<String> MAIN = List.of("STR", "DEX", "INT", "VIT", "WIS");
-    static final Map<String, String> WEAPON_STAT = Map.of("greatsword", "STR", "sword_shield", "STR", "bow", "DEX",
-            "dagger", "DEX", "staff", "INT", "scepter", "WIS");
+    /** 무기 피해 종류 → 요구에 하나 이상 들어 있어야 하는 능력치. */
+    static final Map<kr.labyrinth.combat.DamageKind, Set<String>> WEAPON_DAMAGE_STATS = Map.of(
+            kr.labyrinth.combat.DamageKind.PHYSICAL, Set.of("STR", "DEX"), kr.labyrinth.combat.DamageKind.MAGIC, Set.of("INT", "WIS"),
+            kr.labyrinth.combat.DamageKind.HYBRID, Set.of("STR", "DEX", "INT", "WIS"));
     /** 겉모습: 세트는 흉갑 모양, 단품 투구는 투구 모양. */
     static final Map<String, String> LOOK = Map.ofEntries(Map.entry("chestplate", "heavy"), Map.entry("leather_vest", "light"),
             Map.entry("robe_top", "cloth"), Map.entry("helm_knight", "heavy"), Map.entry("helm_horned", "heavy"),
@@ -90,13 +93,12 @@ class GearRequirementsDataTest {
         return LOOK.get(d.model().str("shape"));
     }
 
-    /** 규칙대로라면 → [requires, requires_any]. */
+    /** 방어구: 규칙대로라면 → [requires, requires_any]. */
     static List<Map<String, Integer>> expected(ItemDef d) {
         Map<String, Integer> all = new LinkedHashMap<>(), any = new LinkedHashMap<>();
         int r = value(d.levelReq());
         if (r > 0) {
-            if (d.isWeapon()) all.put(WEAPON_STAT.get(d.weaponType()), r);
-            else if (d.classes().isEmpty()) for (String s : MAIN) any.put(s, r);
+            if (d.classes().isEmpty()) for (String s : MAIN) any.put(s, r);
             else switch (look(d)) {
                 case "heavy", "shield" -> all.put("VIT", r);
                 case "light" -> all.put("DEX", r);
@@ -118,7 +120,18 @@ class GearRequirementsDataTest {
                 assertTrue(all.isEmpty() && any.isEmpty(), d.id() + " (" + d.type() + ") 에는 요구 능력치가 없다");
                 continue;
             }
-            assertEquals(expected(d), List.of(all, any), d.id() + " 요구 능력치 (아이템 레벨 " + d.levelReq() + ")");
+            if (d.isWeapon()) {
+                // 무기: 종류 없이 무기마다 — 모두 채워야 함(AND), 합 = 규칙 값, 피해 종류의 능력치가 하나 이상
+                assertTrue(any.isEmpty(), d.id() + " 무기 요구는 '모두 채움'만 (requires_any 없음)");
+                int r = value(d.levelReq());
+                assertEquals(r, all.values().stream().mapToInt(Integer::intValue).sum(), d.id() + " 요구 합 (아이템 레벨 " + d.levelReq() + ")");
+                if (r > 0) {
+                    Set<String> dmg = WEAPON_DAMAGE_STATS.get(d.attack().kind());
+                    assertTrue(all.keySet().stream().anyMatch(dmg::contains), d.id() + " " + d.attack().kind() + " 무기인데 요구 " + all);
+                }
+            } else {
+                assertEquals(expected(d), List.of(all, any), d.id() + " 요구 능력치 (아이템 레벨 " + d.levelReq() + ")");
+            }
             if (!all.isEmpty() || !any.isEmpty()) with++;
             if (!d.isWeapon() && !d.isShield() && !d.classes().isEmpty()) {
                 assertTrue(LOOK_CLASSES.get(look(d)).containsAll(d.classes()), d.id() + " 겉모습 " + look(d) + " 인데 classes " + d.classes());
@@ -150,9 +163,8 @@ class GearRequirementsDataTest {
     @Test
     void everyClassWearsItsStarterGearFreeAndFloorOneGearWithStartPoints() {
         for (ClassDef c : content.classes().values()) {
-            String wt = c.weaponTypes().get(0);
-            ItemDef starter = content.items().values().stream().filter(d -> d.isWeapon() && wt.equals(d.weaponType()))
-                    .min((a, b) -> a.floor() != b.floor() ? Integer.compare(a.floor(), b.floor()) : Integer.compare(a.levelReq(), b.levelReq())).orElseThrow();
+            ItemDef starter = content.item(c.starterWeapon());
+            assertNotNull(starter, c.id() + " starter_weapon " + c.starterWeapon());
             assertEquals(0, pointsFor(c, starter), c.id() + " 시작 무기 " + starter.id());
             for (String id : starterKit) {
                 ItemDef d = content.item(id);
@@ -177,7 +189,7 @@ class GearRequirementsDataTest {
                 for (ItemDef d : content.items().values()) {
                     if (d.floor() != f) continue;
                     String slot = null;
-                    if (d.isWeapon() && c.recommendsWeapon(d.weaponType())) slot = "weapon";
+                    if (d.isWeapon() && d.classes().contains(c.id())) slot = "weapon";
                     else if (d.isShield() && c.id().equals("guardian")) slot = "offhand";
                     else if (!d.isWeapon() && !d.isShield() && d.type() == ItemType.ARMOR && !d.classes().isEmpty() && d.classes().contains(c.id())) slot = d.armorSlot();
                     if (slot == null) continue;

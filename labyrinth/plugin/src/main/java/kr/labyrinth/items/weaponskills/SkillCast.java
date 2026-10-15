@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.function.IntPredicate;
 import kr.labyrinth.Services;
 import kr.labyrinth.combat.DamageContext;
+import kr.labyrinth.combat.DamageKind;
 import kr.labyrinth.combat.DamageType;
 import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.Params;
@@ -26,8 +27,9 @@ import org.bukkit.util.Vector;
 
 /**
  * 무기 스킬 시전 한 번의 문맥 + 공용 헬퍼 (GDD §17.1 공통 규칙):
- * 피해 = params.damage × 공격력 × (1 + skill_damage) → {@code DamageContext.attack(...).skill(id)} (DamageService 단일 경로),
- * 피해 유형 = params.damage_type, 상태이상 effect/amount/effect_duration(+dot_ratio), taunt, boss_* 대체값, fx, sound.
+ * 피해 = params.damage × 스킬 위력 × 피해 종류 배율 × (1 + skill_damage) → {@code DamageContext.skill(...)} (DamageService 단일 경로),
+ * 피해 유형 = params.damage_type, 피해 종류 = {@link SkillKinds#hitKind} (없으면 무기 attack.kind),
+ * 상태이상 effect/amount/effect_duration(+dot_ratio), taunt, boss_* 대체값, fx, sound.
  */
 public final class SkillCast {
 
@@ -94,6 +96,12 @@ public final class SkillCast {
 
     public DamageType type() { return DamageType.byId(p.str("damage_type"), defaultType); }
 
+    /** 이 스킬 피해의 종류 (물리 = 힘, 마법 = 지능) — damage_type → 구현 기본 → 무기 attack.kind. */
+    public DamageKind kind() { return SkillKinds.hitKind(skill.id(), p, weaponKind()); }
+
+    /** 무기의 기본 피해 종류 (attack.kind). */
+    public DamageKind weaponKind() { return SkillKinds.weaponKind(weapon); }
+
     public String fx(String fallback) {
         String f = p.str("fx");
         return f != null && Fx.exists(services, f) ? f : (fallback != null && Fx.exists(services, fallback) ? fallback : null);
@@ -127,12 +135,12 @@ public final class SkillCast {
 
     // ── 피해 ──────────────────────────────────────────────────────────────
 
-    /** 공격력 × mult 의 스킬 피해 + 상태이상·도발. 적이 아니면 null. */
+    /** 스킬 위력 × mult 의 스킬 피해 + 상태이상·도발. 적이 아니면 null. */
     public DamageContext hit(LivingEntity target, double mult) { return hit(target, mult, 0); }
 
     public DamageContext hit(LivingEntity target, double mult, double knockback) {
         if (target == null || !targets().isEnemy(player, target) || mult <= 0) return null;
-        DamageContext ctx = DamageContext.attack(player, target, mult, type()).skill(skill.id());
+        DamageContext ctx = DamageContext.skill(player, target, mult, type(), kind(), skill.id());
         if (knockback > 0 && !isBoss(target)) ctx.knockback(knockback);
         services.damage().deal(ctx);
         if (!ctx.cancelled() && !ctx.evaded()) afterHit(target);

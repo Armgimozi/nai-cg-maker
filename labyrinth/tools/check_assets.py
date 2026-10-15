@@ -61,7 +61,7 @@ def main():
     items = load("items.yml").get("items", {})
     for iid, it in items.items():
         need(f"items/{iid}.json", f"아이템 {iid}")
-        if (it.get("weapon_type") or it.get("type")) == "bow":
+        if (it.get("attack") or {}).get("style") == "ranged":  # 활 (0.3.5: 무기 종류 대신 attack.style)
             for i in range(3):  # 당김 단계는 items/<id>.json 의 condition 이 부르는 모델
                 need(f"models/item/{iid}_pulling_{i}.json", f"활 {iid}")
         aset = it.get("armor_set")

@@ -28,8 +28,6 @@ import kr.labyrinth.stats.Stat;
 public final class ItemTooltip {
 
     public static final Map<String, String> STAT_NAMES = new LinkedHashMap<>();
-    private static final Map<String, String> WEAPON_TYPES = Map.of("sword_shield", "한손검", "greatsword", "대검",
-            "bow", "활", "staff", "지팡이", "scepter", "홀", "dagger", "단검");
     private static final Map<String, String> SLOTS = Map.of("head", "투구", "chest", "흉갑", "legs", "각반",
             "feet", "장화", "offhand", "방패");
     /** items.yml sources 값 → 획득처 이름 (drop+chest 는 "몬스터·상자" 한 집, 보스·정예는 이름을 붙인다 — {@link #sourceLine}). */
@@ -93,10 +91,10 @@ public final class ItemTooltip {
         return trim(r.min()) + "~" + trim(r.max());
     }
 
-    /** 분류 이름 (대검, 흉갑, 장신구, 재료 …). */
+    /** 분류 이름 (무기, 흉갑, 장신구, 재료 …). 무기는 종류 없이 '무기' (0.3.5). */
     public static String category(ItemDef def) {
         return switch (def.type()) {
-            case WEAPON -> WEAPON_TYPES.getOrDefault(def.weaponType(), "무기");
+            case WEAPON -> "무기";
             case ARMOR -> SLOTS.getOrDefault(def.armorSlot(), "방어구");
             case ACCESSORY -> "장신구";
             case MATERIAL -> "재료";
@@ -107,9 +105,9 @@ public final class ItemTooltip {
 
     public static String inputName(String input) { return kr.labyrinth.core.InputKeys.label(input); }
 
-    /** 무기별 입력 이름 — 활의 SNEAK_RIGHT 는 "웅크리고 당겨 쏘기" (GDD §17.5). */
+    /** 무기별 입력 이름 — 당겨 쏘는 무기(attack.style: ranged)의 SNEAK_RIGHT 는 "웅크리고 당겨 쏘기" (GDD §17.5). */
     public static String inputName(ItemDef def, String input) {
-        if (def != null && "bow".equals(def.weaponType()) && "SNEAK_RIGHT".equals(input)) return kr.labyrinth.core.InputKeys.SNEAK + " 누른 채 당겨 쏘기";
+        if (def != null && def.isRanged() && "SNEAK_RIGHT".equals(input)) return kr.labyrinth.core.InputKeys.SNEAK + " 누른 채 당겨 쏘기";
         return inputName(input);
     }
 
@@ -174,7 +172,7 @@ public final class ItemTooltip {
         }
         head.add(top.toString());
         if (def.isGear()) {
-            // 직업 표시는 하지 않는다 (어느 직업이든 모든 장비 — 직업별 추천 무기는 직업 메뉴에서만).
+            // 직업 표시는 하지 않는다 (어느 직업이든 모든 장비).
             // 레벨 제한은 없다 — level_req 는 숨은 내부 레벨. 요구 능력치가 없으면(장신구·초반 장비) 줄 자체가 없다.
             String req = requirementLine(def, viewer);
             if (req != null) head.add(req);

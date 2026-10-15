@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
+import kr.labyrinth.combat.WeaponAttack;
 import kr.labyrinth.stats.Stat;
 
 /**
@@ -125,6 +126,9 @@ public final class ContentParser {
 
     // ── classes ───────────────────────────────────────────────────────────
 
+    /** 0.3.4 의 '추천 무기면 직업 스킬 재사용 대기 −10%' 를 0.3.5 에 모든 스킬 값으로 옮긴 배율. */
+    public static final double LEGACY_COOLDOWN_MULT = 0.9;
+
     private ClassDef parseClass(String id, Params p) {
         Map<Stat, Integer> base = new EnumMap<>(Stat.class);
         Params bs = p.sub("base_stats");
@@ -142,14 +146,17 @@ public final class ContentParser {
         ClassDef.PassiveDef pd = passive.isEmpty() ? null : new ClassDef.PassiveDef(passive.str("id", ""),
                 passive.str("name", ""), passive.str("description", ""), passive.sub("params"));
         List<ClassDef.SkillDef> skills = new ArrayList<>();
+        // 예전(0.3.4) classes.yml (weapon_types 가 남음 = 손대 jar 의 새 파일로 바뀌지 않은 것): 그때 '추천 무기 −10%' 를
+        // 모든 스킬 재사용 대기에 녹인다 (0.3.5 jar 의 값은 이미 ×0.9)
+        double legacyCooldown = p.has("weapon_types") ? LEGACY_COOLDOWN_MULT : 1.0;
         for (Params s : p.maps("skills")) {
             skills.add(new ClassDef.SkillDef(s.str("id", ""), s.str("name", s.str("id", "")),
                     s.str("input", "SWAP").toUpperCase(), s.integer("unlock_level", 1), s.dbl("mana", 0),
-                    s.dbl("cooldown", 0), s.sub("params"), s.str("description", "")));
+                    s.dbl("cooldown", 0) * legacyCooldown, s.sub("params"), s.str("description", ""), s.str("kind", "").trim().toLowerCase(java.util.Locale.ROOT)));
         }
         Params pl = p.sub("per_level");
         return new ClassDef(id, p.str("name", id), p.str("role", "melee"), p.str("color", "#ffffff"),
-                p.str("description", ""), p.str("icon_item"), p.strings("weapon_types"), primary,
+                p.str("description", ""), p.str("icon_item"), primary,
                 Collections.unmodifiableMap(base), p.dbl("base_hp", 100), p.dbl("base_mp", 50),
                 pl.dbl("hp", 0), pl.dbl("mp", 0), p.dbl("mana_regen", 1.0), pd, List.copyOf(skills), p);
     }
@@ -188,7 +195,9 @@ public final class ContentParser {
                     s.str("description", "")));
         }
         StatRequirement req = StatRequirement.of(requirementStats(id, p, "requires"), requirementStats(id, p, "requires_any"));
-        return new ItemDef(id, p.str("name", id), type, p.str("weapon_type"), p.str("armor_slot"),
+        // 0.3.5: 무기 종류 없음 — 무기마다 attack 블록 (예전 weapon_type 만 있으면 그때 주기로 대신, ContentValidator 가 경고)
+        WeaponAttack attack = type == ItemType.WEAPON ? WeaponAttack.parse(p) : null;
+        return new ItemDef(id, p.str("name", id), type, attack, p.str("armor_slot"),
                 p.str("armor_set"), rarity, p.integer("level_req", 1), req, p.strings("classes"),
                 Collections.unmodifiableMap(stats), p.str("set_bonus"), p.str("aura"), List.copyOf(ws),
                 p.integer("floor", 0), p.bool("pool", true), p.strings("sources"), p.sub("use"), p.sub("model"),

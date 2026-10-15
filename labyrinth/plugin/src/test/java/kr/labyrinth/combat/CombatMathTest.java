@@ -97,7 +97,7 @@ class CombatMathTest {
     }
 
     @Test
-    void weaponAttackFromItemBlockOrLegacyType() {
+    void weaponAttackFromItemBlockOrLegacyFile() {
         // attack 블록이 있으면 그것 (speed 만 있으면 1/speed)
         ItemDef withBlock = weapon("a", "greatsword", Map.of("attack", Map.of("style", "melee", "interval", 0.85, "kind", "physical")));
         assertEquals(new WeaponAttack(WeaponAttack.Style.MELEE, 0.85, DamageKind.PHYSICAL, 1.0), WeaponAttack.of(withBlock));
@@ -109,10 +109,15 @@ class CombatMathTest {
         ItemDef magicBow = weapon("c", "bow", Map.of("attack", Map.of("style", "ranged", "interval", 1.1, "kind", "magic")));
         assertEquals(DamageKind.MAGIC, WeaponAttack.of(magicBow).kind(), "지능 활 = 마법");
         assertTrue(WeaponAttack.of(magicBow).ranged());
-        // 블록이 없는 예전 데이터: 0.3.4 종류 주기
+        // 블록이 없는 예전(0.3.4) 파일: 남은 옛 키의 그때 주기, 옛 키도 없으면 근접 0.67초
         assertEquals(new WeaponAttack(WeaponAttack.Style.RANGED, 1.15, DamageKind.PHYSICAL, 1.0), WeaponAttack.of(weapon("d", "bow", Map.of())));
         assertEquals(0.45, WeaponAttack.of(weapon("e", "dagger", Map.of())).interval(), EPS);
         assertEquals(WeaponAttack.Style.CASTER, WeaponAttack.of(weapon("f", "scepter", Map.of())).style());
+        assertEquals(WeaponAttack.DEFAULT, WeaponAttack.of(weapon("g", null, Map.of())));
+        assertTrue(weapon("d", "bow", Map.of()).isRanged());
+        assertNull(new ItemDef("x", "x", ItemType.MATERIAL, WeaponAttack.DEFAULT, null, null, Rarity.COMMON, 1, java.util.List.of(),
+                Map.of(), null, null, java.util.List.of(), 1, true, java.util.List.of(), Params.EMPTY, Params.EMPTY, Params.EMPTY, "",
+                Params.EMPTY).attack(), "무기가 아니면 attack 없음");
         assertEquals(WeaponAttack.UNARMED, WeaponAttack.of(null));
         assertEquals(0.625, WeaponAttack.UNARMED.interval(), EPS);
         assertEquals(1.6, WeaponAttack.UNARMED.attacksPerSecond(), EPS);
@@ -131,9 +136,12 @@ class CombatMathTest {
         assertEquals(3.0, DamageService.rawAmount(null, DamageContext.Base.PER_HIT, DamageKind.PHYSICAL, 3.0), EPS);
     }
 
-    private static ItemDef weapon(String id, String type, Map<String, Object> raw) {
-        return new ItemDef(id, id, ItemType.WEAPON, type, null, null, Rarity.COMMON, 1, java.util.List.of(),
+    /** @param legacyKey 예전(0.3.4) 파일에 남은 옛 키 값 (null = 없음) — attack 블록이 없을 때만 읽힌다. */
+    private static ItemDef weapon(String id, String legacyKey, Map<String, Object> raw) {
+        Map<String, Object> r = new java.util.LinkedHashMap<>(raw);
+        if (legacyKey != null) r.put("weapon_type", legacyKey);
+        return new ItemDef(id, id, ItemType.WEAPON, null, null, null, Rarity.COMMON, 1, java.util.List.of(),
                 Map.of("damage", new Range(10, 12)), null, null, java.util.List.of(), 1, true, java.util.List.of(),
-                Params.EMPTY, Params.EMPTY, Params.EMPTY, "", Params.of(raw));
+                Params.EMPTY, Params.EMPTY, Params.EMPTY, "", Params.of(r));
     }
 }
