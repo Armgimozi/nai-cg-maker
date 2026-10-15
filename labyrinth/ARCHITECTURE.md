@@ -290,7 +290,7 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   보스는 stun/root/빙결 면역(스킬은 boss_* 값 사용). 지속 피해 sourceId = `effect:<id>` (적중 효과에서 제외용).
 - **ClassService** 확장: `changeClass(p, id)`(전직관 NPC·직업 메뉴·`/직업 선택` 이 부를 것 — 검사·안내·연출 포함), `skillBar(p)`(HUD 용 스킬 한 줄), `isChanneling(p)`.
   **직업 변경 제한**(GDD §4.5): 모든 `changeClass` 구현은 `classes.ClassChangeGate` 하나를 거친다 — 순수 판정 `ClassChangeRule`
-  (첫 선택 무료 · 그 뒤 `class_change_scroll` 1장 · 정하거나 바꾼 뒤 `cooldown_hours` · 미궁 공략 중 금지 · 같은 직업), 통과하면 두루마리 1장 소모 →
+  (첫 선택 무료 · 그 뒤 `class_change_scroll` 1장 · 바꾼 뒤 `cooldown_hours`(첫 선택은 세지 않음) · 미궁 공략 중 금지 · 같은 직업), 통과하면 두루마리 1장 소모 →
   적용 → PlayerData ext `class.changed_at`(epoch ms) 기록. 직업 메뉴·`/직업 정보` 도 같은 판정으로 규칙·남은 시간·가진 두루마리를 보여 준다.
   config.yml 최상위 `class_change: {require_item, item, cooldown_hours}`(키 없으면 true · class_change_scroll · 24, `class_change: false` = 제한 없음).
   관리자 강제 변경 `/labadmin setclass <플레이어> <직업|none>` 은 관문·기록을 건드리지 않는다. 다른 모듈은 `setClass` 를 직접 부르지 말 것.

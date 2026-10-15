@@ -187,7 +187,7 @@
 ### 4.5 직업 변경 제한 (`classes.ClassChangeRule` · `ClassChangeGate`, config `class_change`)
 - **첫 직업 선택은 무료** (지금 직업이 없을 때 — 두루마리도 대기 시간도 보지 않는다).
 - 그 뒤로 바꿀 때마다 **전직의 두루마리**(`class_change_scroll`, 떠돌이 상인 핀 3,000G) 1장이 사라진다. 우클릭으로 쓰는 물건이 아니다(type: material).
-- 직업을 **정하거나 바꾼 뒤 24시간**(`cooldown_hours`, 실제 시간) 동안은 다시 바꿀 수 없다 — 첫 선택부터 센다. 기록 = PlayerData ext `class.changed_at`.
+- 직업을 **바꾼 뒤 24시간**(`cooldown_hours`, 실제 시간) 동안은 다시 바꿀 수 없다 — 첫 선택(무료)은 세지 않는다(잘못 고른 새 플레이어는 두루마리만 있으면 바로 바꿀 수 있음). 기록 = PlayerData ext `class.changed_at`.
   이 기능 전에 직업을 고른 사람은 기록이 없어 대기 없이 (두루마리만 있으면) 바꿀 수 있다.
 - **미궁 공략 중에는 언제나 금지** (첫 선택도).
 - 진입점(`/직업 선택`, 직업 메뉴 클릭, 전직관 세라핀 → 직업 메뉴)은 모두 `ClassService.changeClass` → 관문 하나. 막히면 무엇이 모자란지와 남은 시간

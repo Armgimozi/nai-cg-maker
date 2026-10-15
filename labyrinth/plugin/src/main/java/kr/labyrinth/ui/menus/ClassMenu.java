@@ -63,7 +63,7 @@ public final class ClassMenu extends LabMenu {
             String hint = gate.shopHint();
             if (!hint.isEmpty()) out.add("<dark_gray>  (" + hint + ")");
         }
-        if (r.cooldownHours() > 0) out.add("<gray>정하거나 바꾼 뒤 <white>" + ClassChangeRule.hours(r.cooldownHours()) + "</white> 동안은 못 바꿈");
+        if (r.cooldownHours() > 0) out.add("<gray>바꾼 뒤 <white>" + ClassChangeRule.hours(r.cooldownHours()) + "</white> 동안은 못 바꿈");
         out.add("<gray>미궁 공략 중에는 바꿀 수 없습니다.");
         if (cur == null) return out;
         ClassChangeRule.Verdict v = gate.check(p, cur.id(), null);

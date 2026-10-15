@@ -61,15 +61,18 @@ public final class ClassChangeGate {
         }
         apply.run();
         PlayerData d = services.data().get(p);
-        d.ext().put(CHANGED_AT, System.currentTimeMillis());
-        d.markDirty();
+        // 대기 시간은 '바꾼' 뒤부터 — 첫 선택(무료)은 세지 않아 잘못 고른 새 플레이어가 두루마리만 있으면 바로 바꿀 수 있다
+        if (!v.first()) {
+            d.ext().put(CHANGED_AT, System.currentTimeMillis());
+            d.markDirty();
+        }
         Settings.ClassChange r = rule();
         if (v.consumesItem()) {
             Text.send(p, "<gray><white>" + itemName() + "</white> 1장을 사용했습니다."
                     + (r.cooldownHours() > 0 ? " 다음 변경은 <white>" + ClassChangeRule.hours(r.cooldownHours()) + "</white> 뒤부터." : ""));
         } else if (v.first() && (r.requireItem() || r.cooldownHours() > 0)) {
             Text.send(p, "<gray>첫 직업은 무료입니다." + (r.requireItem() ? " 다음에 바꿀 때는 <white>" + itemName() + "</white> 1장이 듭니다." : "")
-                    + (r.cooldownHours() > 0 ? " 지금부터 <white>" + ClassChangeRule.hours(r.cooldownHours()) + "</white> 동안은 바꿀 수 없습니다." : ""));
+                    + (r.cooldownHours() > 0 ? " 바꾼 뒤에는 <white>" + ClassChangeRule.hours(r.cooldownHours()) + "</white> 동안 다시 바꿀 수 없습니다." : ""));
         }
         return true;
     }
@@ -80,7 +83,7 @@ public final class ClassChangeGate {
         return switch (v.block()) {
             case SAME_CLASS -> "이미 <" + target.color() + ">" + target.name() + "</" + target.color() + "> 입니다.";
             case IN_RUN -> "미궁 공략 중에는 직업을 바꿀 수 없습니다. 입구로 돌아간 뒤 다시 시도하세요.";
-            case COOLDOWN -> "아직 직업을 바꿀 수 없습니다 — 직업을 정하거나 바꾼 뒤 " + ClassChangeRule.hours(rule().cooldownHours())
+            case COOLDOWN -> "아직 직업을 바꿀 수 없습니다 — 직업을 바꾼 뒤 " + ClassChangeRule.hours(rule().cooldownHours())
                     + "은 기다려야 합니다. 다음 변경까지 <white>" + ClassChangeRule.duration(v.cooldownLeftMs()) + "</white> 남았습니다."
                     + (v.missingItem() ? " <gray>(바꿀 때 <white>" + itemName() + "</white> 1장도 필요합니다)" : "");
             case NO_ITEM -> "직업을 바꾸려면 <white>" + itemName() + "</white> 1장이 필요합니다."
