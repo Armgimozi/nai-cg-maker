@@ -8,7 +8,7 @@ import java.util.Map;
  * 어깨·등 3D 장식 배치 — 순수 계산 (Bukkit 없음, 단위 테스트 대상). {@link ArmorCosmetics} 와 리소스팩 미리보기
  * ({@code resourcepack/src/armor_pieces.py}) 가 이 표 하나만 믿는다.
  * <p>
- * <b>좌표계</b> = 착용자 몸 기준 디스플레이 로컬 좌표 (ItemDisplay 의 yaw = 플레이어 몸 yaw, 블록 단위):
+ * <b>좌표계</b> = 착용자 몸 기준 디스플레이 로컬 좌표 (ItemDisplay 의 yaw = 플레이어 몸 yaw — {@link BodyYaw} 로 직접 계산, 블록 단위):
  * 원점 = 탑승 좌석 = 플레이어 위치 + (0, 자세 높이, 0) — 서 있을 때 1.8, 웅크릴 때 1.5 (26.3 Avatar 치수, 클라이언트도
  * 같은 값으로 탑승물을 붙인다). +X = 착용자 왼쪽, +Y = 위, +Z = 앞.
  * <p>
@@ -135,6 +135,90 @@ public final class ArmorPieceLayout {
         return Math.abs(yawDelta(sent, now)) >= 0.7f;
     }
 
+    /**
+     * 몸 yaw (도) — 다른 사람의 클라이언트가 이 플레이어의 몸통을 돌리는 계산을 그대로 따라 한다
+     * (26.3 {@code LivingEntity.tick} 의 이동 방향 → {@code tickHeadTurn}). 서버의 {@code Player#getBodyYaw} 는 쓰지 않는다:
+     * Paper 26.3 은 {@code ServerGamePacketListenerImpl.tickPlayer} 가 {@code doTick} 바로 전에 xo/zo 를 현재 위치로 맞추므로
+     * 서버에서는 이동량이 늘 0 → 몸이 이동 방향을 안 따라가고 머리 ±50° 제한과 팔 휘두르기에만 반응한다
+     * (머리를 돌린 채 걷거나 옆걸음하면 장식이 몸통보다 최대 50° 틀어졌다).
+     * <p>
+     * 매 틱 한 번 {@link #tick} (플레이어 위치 x·z, 보는 방향 yaw, 막는 중인가). 팔을 휘두르면 {@link #swing}.
+     * <ol>
+     *   <li>지난 틱 위치와의 dx·dz 가 0.05블록/틱보다 크면 목표 = 이동 방향 (뒷걸음이면 반대 방향 — 몸은 앞을 본다), 아니면 지금 몸.</li>
+     *   <li>팔을 휘두르는 중({@value #SWING_TICKS}틱)이면 목표 = 보는 방향.</li>
+     *   <li>몸 += (목표 − 몸) × 0.3.</li>
+     *   <li>보는 방향과 몸 차이가 50°(막는 중 15°)를 넘으면 그만큼만 남기고 몸을 끌어온다.</li>
+     *   <li>한 틱에 4블록 넘게 움직이면(순간이동) 몸 = 보는 방향.</li>
+     * </ol>
+     */
+    public static final class BodyYaw {
+        /** LivingEntity.tick 의 이동 판정 (0.05블록/틱)². */
+        public static final float MIN_MOVE_SQ = 0.0025000002f;
+        /** 이보다 멀리 한 틱에 움직이면 순간이동으로 보고 몸 = 보는 방향 (4블록)². */
+        public static final double TELEPORT_SQ = 16.0;
+        public static final float MAX_HEAD = 50f;
+        public static final float MAX_HEAD_BLOCKING = 15f;
+        /** 팔 휘두르기 = 6틱 (바닐라 기본 휘두르기 길이). */
+        public static final int SWING_TICKS = 6;
+        private static final float TURN = 0.3f;
+
+        private float body;
+        private double lastX;
+        private double lastZ;
+        private boolean hasLast;
+        private int swing;
+
+        public BodyYaw(float initial) { this.body = wrap(initial); }
+
+        public float body() { return body; }
+
+        /** 팔 휘두르기 시작 (PlayerArmSwingEvent — 주손·보조손) — 다음 {@value #SWING_TICKS}틱 동안 몸이 보는 방향을 따라간다. */
+        public void swing() { swing = SWING_TICKS; }
+
+        /** 한 틱 진행 → 새 몸 yaw (−180..180). */
+        public float tick(double x, double z, float yaw, boolean blocking) {
+            float target = body;
+            if (hasLast) {
+                double dx = x - lastX;
+                double dz = z - lastZ;
+                double d2 = dx * dx + dz * dz;
+                if (d2 > TELEPORT_SQ || !Double.isFinite(d2)) {
+                    lastX = x;
+                    lastZ = z;
+                    swing = 0;
+                    body = wrap(yaw);
+                    return body;
+                }
+                if ((float) d2 > MIN_MOVE_SQ) {
+                    float move = (float) Math.toDegrees(Math.atan2(dz, dx)) - 90f;
+                    float off = Math.abs(wrap(yaw) - move);
+                    target = 95f < off && off < 265f ? move - 180f : move;
+                }
+            }
+            lastX = x;
+            lastZ = z;
+            hasLast = true;
+            if (swing > 0) {
+                swing--;
+                target = yaw;
+            }
+            body += wrap(target - body) * TURN;
+            float d = wrap(yaw - body);
+            float max = blocking ? MAX_HEAD_BLOCKING : MAX_HEAD;
+            if (Math.abs(d) > max) body += d - Math.signum(d) * max;
+            body = wrap(body);
+            return body;
+        }
+
+        /** Mth.wrapDegrees: −180..180. */
+        static float wrap(float deg) {
+            float d = deg % 360f;
+            if (d >= 180f) d -= 360f;
+            if (d < -180f) d += 360f;
+            return d;
+        }
+    }
+
     /** "/미궁 장식 켜기|끄기" 인자 → true/false, 모르는 값이면 null. */
     public static Boolean parseToggle(String arg) {
         if (arg == null) return null;
@@ -150,5 +234,12 @@ public final class ArmorPieceLayout {
         if (extValue instanceof Boolean b) return b;
         if (extValue instanceof String s) return !"false".equalsIgnoreCase(s.trim()) && !"off".equalsIgnoreCase(s.trim());
         return true;
+    }
+
+    /** PlayerData ext 값 → 내 화면에도 내 장식을 보일까 (없으면 꺼짐 — 1인칭 화면 가장자리에 걸리지 않게). */
+    public static boolean selfViewFor(Object extValue) {
+        if (extValue instanceof Boolean b) return b;
+        if (extValue instanceof String s) return "true".equalsIgnoreCase(s.trim()) || "on".equalsIgnoreCase(s.trim());
+        return false;
     }
 }

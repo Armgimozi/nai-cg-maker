@@ -235,3 +235,52 @@ def element_quads(model, faces_uv, atlas, world_fn, normal_fn):
             x0, y0, x1, y1 = faces_uv[(idx, f)]
             quads.append(Quad(ps[0], ps[1], ps[2], normal_fn(n), atlas, (x0, y0, x1, y1), e.shade))
     return quads
+
+
+def _json_face_pos(frm, to, face, a, b):
+    """Same corner convention as model.El.texel_pos, for JSON elements."""
+    (x1, y1, z1), (x2, y2, z2) = frm, to
+    dx, dy, dz = x2 - x1, y2 - y1, z2 - z1
+    if face == 'north':
+        return (x2 - a * dx, y2 - b * dy, z1)
+    if face == 'south':
+        return (x1 + a * dx, y2 - b * dy, z2)
+    if face == 'east':
+        return (x2, y2 - b * dy, z2 - a * dz)
+    if face == 'west':
+        return (x1, y2 - b * dy, z1 + a * dz)
+    if face == 'up':
+        return (x1 + a * dx, y2, z1 + b * dz)
+    return (x1 + a * dx, y1, z2 - b * dz)
+
+
+def first_frame(tex: Image.Image, animated: bool) -> Image.Image:
+    """Animated item textures are vertical strips of square frames — UVs address the first one."""
+    w, h = tex.size
+    if animated and h > w and h % w == 0:
+        return tex.crop((0, 0, w, w))
+    return tex
+
+
+def json_model_quads(model_json: dict, tex: Image.Image, world_fn, normal_fn):
+    """Quads of a block-model JSON (as written to the pack): elements with from/to, optional rotation and per-face
+    uv in 0..16 texture units.  world_fn(model point) → world, normal_fn(model normal) → world."""
+    tw, th = tex.size
+    quads = []
+    for e in model_json.get('elements') or []:
+        frm, to = tuple(e['from']), tuple(e['to'])
+        rot = e.get('rotation')
+        for f, fc in (e.get('faces') or {}).items():
+            u0, v0, u1, v1 = fc.get('uv') or (0, 0, 16, 16)
+            ps = []
+            for (a, b_) in ((0, 0), (1, 0), (0, 1)):
+                p = _json_face_pos(frm, to, f, a, b_)
+                if rot and rot.get('angle'):
+                    p = rot_axis(p, rot['axis'], rot['angle'], tuple(rot.get('origin') or (8, 8, 8)))
+                ps.append(world_fn(p))
+            n = NORMALS[f]
+            if rot and rot.get('angle'):
+                n = rot_axis(n, rot['axis'], rot['angle'], (0, 0, 0))
+            quads.append(Quad(ps[0], ps[1], ps[2], normal_fn(n), tex,
+                              (u0 * tw / 16, v0 * th / 16, u1 * tw / 16, v1 * th / 16), e.get('shade', True)))
+    return quads

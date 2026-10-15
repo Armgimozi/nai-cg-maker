@@ -131,8 +131,12 @@ def build_armor_pieces(ctx: Ctx):
     specs = armor_pieces.set_specs(ctx.content['items'], ctx.content.get('sets') or {})
     nel = worst = 0
     for sid, sp in specs.items():
+        # the set's own 3D helmet (built by build_items) — pieces are carved clear of it turning / nodding
+        helmet = armor_pieces.item_models(ctx.files, sp['helm']) if sp['helm'] else []
+        if sp['helm'] and not helmet:
+            ctx.warnings.append(f'armor pieces {sid}: helmet model of {sp["helm"]} not found — bare-head clearance only')
         files, pieces = armor_pieces.build_set(sid, sp['kind'], sp['look'], sp['theme'], sp['level'], items.jdump,
-                                               items.png_bytes)
+                                               items.png_bytes, back=sp['back'], helmet_models=helmet)
         for p, b in files.items():
             ctx.add(p, b)
         for part, out in pieces.items():
@@ -435,6 +439,7 @@ def main(argv=None):
     for b in BUILDERS:
         b(ctx)
     rep = validate.validate(ctx.files, ctx.content, ctx.expect_frames, ctx.fx_names)
+    ctx.stats.update(rep.stats)
     rep.errors.extend(ctx.ui_errors)
     validate.validate_ui(ctx.files, ctx.content.get('glyphs') or {}, rep)
     os.makedirs(ctx.out_dir, exist_ok=True)

@@ -3,17 +3,22 @@
 
 A Steve-proportioned mannequin (head 8×8×8, body 8×12×4, arms/legs 4×12×4 px; vanilla player model scale 0.9375,
 HumanoidModel crouch pose) wears the set's current equipment layers (src/equipment.py, vanilla 64×32 UV layout,
-armour boxes inflated 1.0 / 0.5 px) plus the 3D shoulder/back pieces (src/armor_pieces.py) placed with EXACTLY
-the plugin's transforms — the numbers are read from ArmorPieceLayout.java's @layout-table at run time.
+armour boxes inflated 1.0 / 0.5 px), the set's 3D helmet (its pack model drawn with the CustomHeadLayer transform
+translate(0, −0.25, 0)·R180y·scale(0.625, −0.625, −0.625) on the head, display.head = identity) plus the 3D
+shoulder/back pieces (src/armor_pieces.py) placed with EXACTLY the plugin's transforms — the numbers are read from
+ArmorPieceLayout.java's @layout-table at run time.  The head can be turned relative to the body (players turn it up
+to ±50° before the body follows), which is where a helmet would cut through the pieces.
 
     python3 preview_armor.py [--out DIR] [--sets emberforged,wayfarer,silkweaver] [--overview]
 
-Writes pieces_<look>_<set>.png (rows: before / after standing / after sneaking; columns: front, left side, back,
-3/4 back) and, with --overview, pieces_all_sets.png.
+Writes pieces_<look>_<set>.png (rows: before / after standing / after sneaking / after without the helmet; columns:
+front, left side, back, 3/4 back, close-ups 3/4 front & back, close-ups with the head turned +45° / −45°) and,
+with --overview, pieces_all_sets.png.
 """
 from __future__ import annotations
 
 import argparse
+import io
 import math
 import os
 import sys
@@ -25,7 +30,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 from src import armor_pieces as AP  # noqa: E402
-from src import equipment, render  # noqa: E402
+from src import equipment, items, render  # noqa: E402
 from src.util import stable_seed  # noqa: E402
 
 CONTENT = os.path.join(HERE, '..', 'plugin', 'src', 'main', 'resources', 'content')
@@ -138,12 +143,27 @@ def _part_quads(parts, name, tex, uvmap, grow, crouch):
     return out
 
 
-def mannequin_quads(hum, leg, crouch):
+def _turn_head(quads, yaw):
+    """Head yaw relative to the body (+ = toward the figure's left) about the neck's vertical axis."""
+    if not yaw:
+        return quads
+    c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+
+    def r(p):
+        return (p[0] * c + p[2] * s, p[1], -p[0] * s + p[2] * c)
+
+    for q in quads:
+        q.p00, q.p10, q.p01, q.normal = r(q.p00), r(q.p10), r(q.p01), r(q.normal)
+    return quads
+
+
+def mannequin_quads(hum, leg, crouch, head_yaw=0.0):
     parts = _parts(crouch)
     skin = _base_skin()
     quads = []
     for name in parts:
-        quads += _part_quads(parts, name, skin, SKIN_UV, 0.0, crouch)
+        pq = _part_quads(parts, name, skin, SKIN_UV, 0.0, crouch)
+        quads += _turn_head(pq, head_yaw) if name == 'head' else pq
     if leg is not None:
         for name in ('body', 'right_leg', 'left_leg'):
             quads += _part_quads(parts, name, leg, ARMOR_UV, 0.5, crouch)
@@ -151,6 +171,45 @@ def mannequin_quads(hum, leg, crouch):
         for name in ('body', 'right_arm', 'left_arm', 'right_leg', 'left_leg'):
             quads += _part_quads(parts, name, hum, ARMOR_UV, 1.0, crouch)
     return quads
+
+
+def helmet_quads(helm, crouch, head_yaw=0.0):
+    """The set's helmet item model on the head: CustomHeadLayer maps model m to (−0.625(mx − 8), 4 + 0.625(my − 8),
+    −0.625(mz − 8)) px above the neck pivot (armor_pieces.helmet_boxes uses the same mapping for the clearance)."""
+    if not helm:
+        return []
+    k = AP.HELM_SCALE
+    neck = NECK_Y + (-0.125 if crouch else 0.0) - (4.2 if crouch else 0.0) * K
+
+    def world(m):
+        return ((-k * (m[0] - 8)) * K, neck + (4.0 + k * (m[1] - 8)) * K, (-k * (m[2] - 8)) * K)
+
+    def wn(n):
+        return (-n[0], n[1], -n[2])
+
+    quads = []
+    for (mj, tex) in helm:
+        quads += render.json_model_quads(mj, tex, world, wn)
+    return _turn_head(quads, head_yaw)
+
+
+def load_helmet(info, doc_items):
+    """Build the set's head item exactly like the pack (items.build_item) → [(model json, first-frame texture)]."""
+    hid = info.get('helm')
+    if not hid:
+        return []
+    res = items.build_item(hid, doc_items[hid])
+    out = []
+    for mj in AP.item_models(res.files, hid):
+        ref = (mj.get('textures') or {}).get('0', '')
+        ns, _, path = ref.partition(':')
+        tpath = f'assets/{ns}/textures/{path}.png'
+        if tpath not in res.files:
+            continue
+        tex = Image.open(io.BytesIO(res.files[tpath])).convert('RGBA')
+        out.append((mj, render.first_frame(tex, tpath + '.mcmeta' in res.files)))
+    info['_helmet_models'] = [m for m, _ in out]
+    return out
 
 
 # ───────────────────────────── pieces with the plugin transforms ─────────────────────────────
@@ -174,15 +233,32 @@ def piece_quads(piece, row, pixel, stance):
 # ───────────────────────────── sets & sheets ─────────────────────────────
 
 def load_sets():
-    """Same set → (kind, look, theme, level) mapping as the pack build (armor_pieces.set_specs)."""
+    """Same set → (kind, back, helm, look, theme, level) mapping as the pack build (armor_pieces.set_specs)."""
     with open(os.path.join(CONTENT, 'items.yml'), encoding='utf-8') as f:
         doc = yaml.safe_load(f)
-    return AP.set_specs(doc.get('items') or {}, doc.get('sets') or {})
+    sets = AP.set_specs(doc.get('items') or {}, doc.get('sets') or {})
+    for info in sets.values():
+        info['_items'] = doc.get('items') or {}
+    return sets
 
 
-# (label, yaw, pitch, zoom, centre height offset) — zoomed columns frame the shoulders
-VIEWS = (('front', 0, 6, 1.0, 0.0), ('left side', -90, 6, 1.0, 0.0), ('back', 180, 6, 1.0, 0.0),
-         ('3/4 back', 145, 14, 1.0, 0.0), ('close-up 3/4 front', 32, 16, 1.75, 0.34), ('close-up 3/4 back', 212, 16, 1.75, 0.34))
+def check_stances(layout):
+    """armor_pieces.STANCES (head clearance) must describe the same pose change as the Java @layout-table."""
+    rows = layout['rows']
+    for key, part in (('shoulder', 'shoulder_l'), ('back', 'back')):
+        st, sn = rows[(part, 'STAND')], rows[(part, 'SNEAK')]
+        drop_px = ((st[1] + AP.seat_height('STAND')) - (sn[1] + AP.seat_height('SNEAK')) - 2.0 / 16) / K
+        if abs(drop_px - AP.STANCES['SNEAK']['body_drop']) > 0.05 or \
+                abs(sn[3] - AP.STANCES['SNEAK']['pitch'][key]) > 1e-4:
+            raise SystemExit(f'armor_pieces.STANCES disagrees with ArmorPieceLayout.java ({part}: drop {drop_px:.3f} px, '
+                             f'pitch {sn[3]})')
+
+
+# (label, yaw, pitch, zoom, centre height offset, head yaw) — zoomed columns frame the shoulders
+VIEWS = (('front', 0, 6, 1.0, 0.0, 0), ('left side', -90, 6, 1.0, 0.0, 0), ('back', 180, 6, 1.0, 0.0, 0),
+         ('3/4 back', 145, 14, 1.0, 0.0, 0), ('close-up 3/4 front', 32, 16, 1.75, 0.34, 0),
+         ('close-up 3/4 back', 212, 16, 1.75, 0.34, 0), ('head turned +45 (left)', 20, 16, 1.75, 0.34, 45),
+         ('head turned -45 (right)', -20, 16, 1.75, 0.34, -45))
 BG = (104, 108, 120, 255)
 
 
@@ -190,31 +266,43 @@ def _label(img, text, xy, fill=(230, 230, 235)):
     ImageDraw.Draw(img).text(xy, text, fill=fill)
 
 
+def build_pieces(sid, info, helm):
+    """The pieces exactly as the pack build makes them (carved clear of this set's helmet)."""
+    profile = AP.head_profile(AP.helmet_boxes(info.get('_helmet_models') or []))
+    return {part: AP.build_part(sid, part, info['kind'], info['look'], info['theme'], info['level'], info['back'],
+                                profile) for part in AP.PARTS}
+
+
 def set_sheet(sid, info, layout, cell=(230, 300), scale=128.0):
     hum, leg = equipment.paint_set(info['look'], info['kind'], stable_seed('set', sid))
-    pieces = {part: AP.build_part(sid, part, info['kind'], info['look'], info['theme'], info['level'])
-              for part in AP.PARTS}
-    rows = [('BEFORE (equipment layer only)', 'STAND', False), ('AFTER standing', 'STAND', True),
-            ('AFTER sneaking', 'SNEAK', True)]
+    helm = load_helmet(info, info['_items'])
+    pieces = build_pieces(sid, info, helm)
+    rows = [('BEFORE (equipment + helmet)', 'STAND', False, True), ('AFTER standing', 'STAND', True, True),
+            ('AFTER sneaking', 'SNEAK', True, True), ('AFTER, helmet off', 'STAND', True, False)]
     W, H = cell
     head = 34
     sheet = Image.new('RGBA', (W * len(VIEWS) + 150, head + H * len(rows)), (52, 54, 62, 255))
     els = ' / '.join(f'{p} {pieces[p].elements}el' for p in AP.PARTS)
-    _label(sheet, f'{sid} - look {info["kind"]}, theme {info["theme"]}, lv {info["level"]} - {els}', (6, 4))
-    _label(sheet, 'transforms = ArmorPieceLayout.java @layout-table (seat 1.8 / 1.5, pixel %.4f)' % layout['pixel'],
+    _label(sheet, f'{sid} - look {info["kind"]}, back {info["back"]}, theme {info["theme"]}, lv {info["level"]}, '
+                  f'helmet {info.get("helm")} - {els}', (6, 4))
+    _label(sheet, 'transforms = ArmorPieceLayout.java @layout-table (seat 1.8 / 1.5, pixel %.4f); helmet = CustomHeadLayer; '
+                  'pieces carved clear of the helmet turned +-50 / nodded %g..%g' % (layout['pixel'], AP.HEAD_PITCH[0],
+                                                                                   AP.HEAD_PITCH[1]),
            (6, 18), (170, 175, 190))
-    for r, (title, stance, with_pieces) in enumerate(rows):
+    for r, (title, stance, with_pieces, with_helm) in enumerate(rows):
         crouch = stance == 'SNEAK'
-        base = mannequin_quads(hum, leg, crouch)
         extra = []
         if with_pieces:
             for part in AP.PARTS:
                 extra += piece_quads(pieces[part], layout['rows'][(part, stance)], layout['pixel'], stance)
-        for c, (vname, yaw, pitch, zoom, dy) in enumerate(VIEWS):
+        for c, (vname, yaw, pitch, zoom, dy, hy) in enumerate(VIEWS):
+            base = mannequin_quads(hum, leg, crouch, hy) + (helmet_quads(helm, crouch, hy) if with_helm else [])
             cy = (0.92 if not crouch else 0.8) + dy * (0.93 if crouch else 1.0)
             img = render.render_scene(base + extra, yaw=yaw, pitch=pitch, size=(W, H), scale=scale * zoom,
                                       center=(0, cy, 0 if zoom == 1.0 else (-0.05 if crouch else 0)), bg=BG)
             sheet.alpha_composite(img, (150 + c * W, head + r * H))
+            ImageDraw.Draw(sheet).rectangle((150 + c * W, head + r * H, 150 + c * W + W - 1, head + r * H + H - 1),
+                                            outline=(52, 54, 62, 255), width=2)     # cell border (close-ups crop)
             if r == 0:
                 _label(sheet, vname, (150 + c * W + 6, head + 4), (200, 205, 215))
         _label(sheet, title, (6, head + r * H + H // 2 - 6))
@@ -227,13 +315,14 @@ def overview(sets, layout, cell=(170, 230), scale=100.0):
     W, H = cell
     rows = (len(ids) + cols - 1) // cols
     sheet = Image.new('RGBA', (cols * W * 2, rows * (H + 14) + 20), (52, 54, 62, 255))
-    _label(sheet, f'All {len(ids)} armour sets with 3D shoulder/back pieces (front 3/4 and back 3/4, standing)', (6, 4))
+    _label(sheet, f'All {len(ids)} armour sets with helmet + 3D shoulder/back pieces (front 3/4 and back 3/4, standing)',
+           (6, 4))
     for n, sid in enumerate(ids):
         info = sets[sid]
         hum, leg = equipment.paint_set(info['look'], info['kind'], stable_seed('set', sid))
-        q = mannequin_quads(hum, leg, False)
-        for part in AP.PARTS:
-            pc = AP.build_part(sid, part, info['kind'], info['look'], info['theme'], info['level'])
+        helm = load_helmet(info, info['_items'])
+        q = mannequin_quads(hum, leg, False) + helmet_quads(helm, False)
+        for part, pc in build_pieces(sid, info, helm).items():
             q += piece_quads(pc, layout['rows'][(part, 'STAND')], layout['pixel'], 'STAND')
         x0, y0 = (n % cols) * W * 2, 20 + (n // cols) * (H + 14)
         for k, yaw in enumerate((35, 150)):
@@ -253,6 +342,7 @@ def main(argv=None):
     os.makedirs(args.out, exist_ok=True)
     with open(JAVA, encoding='utf-8') as f:
         layout = AP.read_java_layout(f.read())
+    check_stances(layout)
     sets = load_sets()
     for sid in [s.strip() for s in args.sets.split(',') if s.strip()]:
         if sid not in sets:

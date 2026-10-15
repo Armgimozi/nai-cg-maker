@@ -116,6 +116,95 @@ class ArmorPieceLayoutTest {
         assertTrue(ArmorPieceLayout.yawChanged(0f, 45f));
     }
 
+    // ── 몸 yaw (BodyYaw) ── MC yaw: 0 = +Z(남) 를 봄, 90 = −X(서). 보는 방향 이동 = (−sin yaw, cos yaw), 왼쪽 = +X (yaw 0 일 때).
+
+    private static double[] step(double x, double z, float yawDeg, double dist) {
+        double a = Math.toRadians(yawDeg);
+        return new double[] {x - Math.sin(a) * dist, z + Math.cos(a) * dist};
+    }
+
+    @Test
+    void bodyStaysPutWhileStandingAndOnlyFollowsTheHeadPast50() {
+        ArmorPieceLayout.BodyYaw b = new ArmorPieceLayout.BodyYaw(0f);
+        for (int i = 0; i < 20; i++) b.tick(0, 0, 40f, false);
+        assertEquals(0f, b.body(), 1e-4, "제자리에서 머리 40° — 몸은 그대로");
+        for (int i = 0; i < 20; i++) b.tick(0, 0, 80f, false);
+        assertEquals(30f, b.body(), 1e-3, "머리 80° — 몸이 50° 차이까지만 끌려온다");
+        b = new ArmorPieceLayout.BodyYaw(0f);
+        b.tick(0, 0, 30f, true);
+        assertEquals(15f, b.body(), 1e-3, "막는 중에는 15°");
+    }
+
+    @Test
+    void headTurned40ThenWalkingForwardConvergesToTheLookDirection() {
+        ArmorPieceLayout.BodyYaw b = new ArmorPieceLayout.BodyYaw(0f);
+        double x = 0, z = 0;
+        b.tick(x, z, 40f, false);
+        assertEquals(0f, b.body(), 1e-4);
+        for (int i = 0; i < 10; i++) {
+            double[] n = step(x, z, 40f, 0.216);     // 걷기 0.216 블록/틱
+            x = n[0];
+            z = n[1];
+            b.tick(x, z, 40f, false);
+        }
+        assertEquals(40f, b.body(), 1.5f, "10틱 걸으면 몸이 보는 방향으로 (0.7^10 ≈ 3%)");
+        // 서버 getBodyYaw 처럼 이동을 무시하면 0° 에 멈춰 있었을 것 → 장식이 몸통보다 40° 틀어졌다
+    }
+
+    @Test
+    void strafingTwistsTheBodyToTheHeadLimit() {
+        ArmorPieceLayout.BodyYaw b = new ArmorPieceLayout.BodyYaw(0f);
+        double x = 0;
+        for (int i = 0; i < 20; i++) b.tick(x += 0.2, 0, 0f, false);     // yaw 0 에서 왼쪽(+X)으로 옆걸음
+        assertEquals(-50f, b.body(), 1e-3, "왼쪽 옆걸음 → 몸 = yaw − 50");
+        b = new ArmorPieceLayout.BodyYaw(0f);
+        x = 0;
+        for (int i = 0; i < 20; i++) b.tick(x -= 0.2, 0, 0f, false);     // 오른쪽(−X)
+        assertEquals(50f, b.body(), 1e-3, "오른쪽 옆걸음 → 몸 = yaw + 50");
+        // 앞으로 대각선(왼쪽 앞) → 몸 = 이동 방향 (yaw − 45)
+        b = new ArmorPieceLayout.BodyYaw(0f);
+        x = 0;
+        double z = 0;
+        for (int i = 0; i < 30; i++) b.tick(x += 0.15, z += 0.15, 0f, false);
+        assertEquals(-45f, b.body(), 0.5f);
+    }
+
+    @Test
+    void walkingBackwardsKeepsFacingForwardAndSwingSnapsToTheLook() {
+        ArmorPieceLayout.BodyYaw b = new ArmorPieceLayout.BodyYaw(10f);
+        double z = 0;
+        for (int i = 0; i < 20; i++) b.tick(0, z -= 0.2, 0f, false);     // yaw 0 에서 뒷걸음(−Z)
+        assertEquals(0f, b.body(), 0.1f, "뒷걸음: 몸은 반대 방향(=앞)을 본다");
+        b = new ArmorPieceLayout.BodyYaw(0f);
+        b.tick(0, 0, 40f, false);
+        b.swing();
+        for (int i = 0; i < ArmorPieceLayout.BodyYaw.SWING_TICKS; i++) b.tick(0, 0, 40f, false);
+        assertEquals(40f, b.body(), 40f * 0.13f, "휘두르는 동안 보는 방향으로");
+        float after = b.body();
+        for (int i = 0; i < 10; i++) b.tick(0, 0, 40f, false);
+        assertEquals(after, b.body(), 1e-4, "휘두르기가 끝나면 그 자리에 멈춤");
+    }
+
+    @Test
+    void teleportResetsToTheLookDirectionAndYawWraps() {
+        ArmorPieceLayout.BodyYaw b = new ArmorPieceLayout.BodyYaw(0f);
+        b.tick(0, 0, 30f, false);
+        b.tick(100, 50, 170f, false);
+        assertEquals(170f, b.body(), 1e-4, "한 틱에 4블록 넘게 = 순간이동 → 몸 = 보는 방향");
+        // −180/180 경계를 넘어 걸어도 반대로 한 바퀴 돌지 않는다
+        b = new ArmorPieceLayout.BodyYaw(175f);
+        double x = 100, z = 50;
+        b.tick(x, z, -175f, false);
+        for (int i = 0; i < 15; i++) {
+            double[] n = step(x, z, -175f, 0.2);
+            x = n[0];
+            z = n[1];
+            b.tick(x, z, -175f, false);
+        }
+        assertEquals(0f, ArmorPieceLayout.yawDelta(-175f, b.body()), 0.5f);
+        assertTrue(b.body() >= -180f && b.body() < 180f);
+    }
+
     @Test
     void toggleArgumentsAndStoredValue() {
         assertEquals(Boolean.TRUE, ArmorPieceLayout.parseToggle("켜기"));
@@ -129,6 +218,12 @@ class ArmorPieceLayoutTest {
         assertFalse(ArmorPieceLayout.enabledFor(false));
         assertFalse(ArmorPieceLayout.enabledFor("false"));
         assertTrue(ArmorPieceLayout.enabledFor(3));
+        // 내화면: 기록이 없으면 꺼짐
+        assertFalse(ArmorPieceLayout.selfViewFor(null));
+        assertTrue(ArmorPieceLayout.selfViewFor(true));
+        assertTrue(ArmorPieceLayout.selfViewFor("true"));
+        assertFalse(ArmorPieceLayout.selfViewFor("off"));
+        assertFalse(ArmorPieceLayout.selfViewFor(1));
     }
 
     @Test

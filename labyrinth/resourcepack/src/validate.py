@@ -19,6 +19,7 @@ class Report:
     def __init__(self):
         self.errors: list[str] = []
         self.checked = 0
+        self.stats: dict = {}    # measured values worth printing with the build stats
 
     def err(self, msg):
         self.errors.append(msg)
@@ -178,16 +179,51 @@ def validate(files: dict, content: dict, expect_frames: dict, fx_names=()) -> Re
                 rep.err(f'equipment {s} {layer}: size {img.size} != 64x32')
     for name in fx_names:
         check_item_definition(files, f'assets/{NS}/items/fx/{name}.json', rep, expect_frames)
-    validate_armor_pieces(files, content, rep, expect_frames)
+    validate_armor_pieces(files, content, rep, expect_frames, rep.stats)
     validate_mobs_npcs_fx(files, content, rep, expect_frames)
     return rep
 
 
-def validate_armor_pieces(files, content, rep, expect_frames):
+# head poses the helmet/piece overlap is measured at: (head yaw relative to the body, pitch, stance)
+HELMET_POSES = [(y, 0.0, 'STAND') for y in (0.0, 25.0, -25.0, AP.HEAD_YAW, -AP.HEAD_YAW)] + \
+               [(y, 0.0, 'SNEAK') for y in (0.0, AP.HEAD_YAW, -AP.HEAD_YAW)]
+HELMET_OVERLAP_MAX = 0.25      # px³ — the pack carves pieces CLEAR_MARGIN away, so anything above is a bug
+
+
+def validate_armor_pieces(files, content, rep, expect_frames, stats=None):
     """3D shoulder/back pieces (ArmorPieceLayout model contract): every set with a chest piece has
     items/armor_piece/<set>/<part>.json for shoulder_l·shoulder_r·back → own model + texture, display.fixed identity
-    (the plugin's Transformation does all the placing), element count within AP.ELEMENT_LIMIT, and no stray sets."""
+    (the plugin's Transformation does all the placing), element count within AP.ELEMENT_LIMIT, and no stray sets.
+    sets.<id>.back must be one of AP.BACK_KINDS.  The set's 3D helmet (CustomHeadLayer, display.head identity) and the
+    bare head must not overlap any piece at head yaw 0 / ±25 / ±50 (standing) and 0 / ±50 (sneaking)."""
     specs = AP.set_specs(content['items'], content.get('sets') or {})
+    for sid, sd in (content.get('sets') or {}).items():
+        b = (sd or {}).get('back')
+        if b is not None and b not in AP.BACK_KINDS:
+            rep.err(f'items.yml sets.{sid}.back: {b!r} (one of {", ".join(AP.BACK_KINDS)})')
+    worst = (0.0, None)
+    for sid, sp in specs.items():
+        helmet = AP.item_models(files, sp['helm']) if sp.get('helm') else []
+        for hm in helmet:
+            hd = (hm.get('display') or {}).get('head') or {}
+            if (hd.get('rotation') or [0, 0, 0]) != [0, 0, 0] or (hd.get('translation') or [0, 0, 0]) != [0, 0, 0] \
+                    or (hd.get('scale') or [1, 1, 1]) != [1, 1, 1]:
+                rep.err(f'{sp["helm"]}: display.head must be identity (armor_pieces head clearance assumes it)')
+        cells = AP._helmet_cells(helmet)
+        for part in AP.PARTS:
+            mpath = f'assets/{NS}/models/armor_piece/{sid}/{part}.json'
+            if mpath not in files:
+                continue
+            ov = AP.overlap_px3(json.loads(files[mpath].decode('utf-8')), part, helmet, HELMET_POSES, cells)
+            pose, vol = max(ov.items(), key=lambda kv: kv[1])
+            if vol > worst[0]:
+                worst = (vol, f'{sid}/{part} {pose}')
+            if vol > HELMET_OVERLAP_MAX:
+                rep.err(f'{mpath}: overlaps the {sp.get("helm") or "bare head"} by {vol:.2f} px³ at head yaw {pose[0]:g}° '
+                        f'pitch {pose[1]:g}° {pose[2]} (armor_pieces head clearance)')
+            rep.checked += 1
+    if stats is not None:
+        stats['armor_piece_helmet_overlap_px3'] = round(worst[0], 3)
     for sid in specs:
         for part in AP.PARTS:
             base = f'armor_piece/{sid}/{part}'

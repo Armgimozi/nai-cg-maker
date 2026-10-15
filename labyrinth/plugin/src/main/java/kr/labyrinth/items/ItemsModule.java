@@ -29,7 +29,8 @@ import org.bukkit.entity.Player;
  * items 담당 모듈 진입점: ItemService(굴림·툴팁·장비 컴포넌트) · LootService(개인 루팅) · CraftingService(대장장이 GUI) ·
  * WeaponSkillService(17종 무기 스킬) · AuraService(전설·신화 아우라) · 장비 StatContributor(+세트 효과) · 소모품 · 바닐라 가공 차단 ·
  * 강화(enhance/EnhanceService — 대장간 [강화], +10 빛) · 어깨·등 3D 장식({@link ArmorCosmetics} — 상의 세트별 탑승 디스플레이).
- * 명령: /미궁 강화|enhance (강화 창) · /미궁 장식|cosmetics [켜기|끄기] (내 어깨·등 장식). 관리: /labadmin blacksmith [플레이어] · /labadmin loot &lt;테이블&gt; [플레이어] ·
+ * 명령: /미궁 강화|enhance (강화 창) · /미궁 장식|cosmetics [켜기|끄기] (내 어깨·등 장식) ·
+ * /미궁 장식 내화면|self [켜기|끄기] (내 장식을 내 화면에도). 관리: /labadmin blacksmith [플레이어] · /labadmin loot &lt;테이블&gt; [플레이어] ·
  * /labadmin weaponskills · /labadmin enhance &lt;단계&gt; [플레이어] (주손 장비 단계 바로 설정).
  */
 public final class ItemsModule implements Module {
@@ -174,6 +175,15 @@ public final class ItemsModule implements Module {
                 node.then(Commands.literal(arg).executes(ctx -> run(ctx,
                         () -> CommandService.withPlayer(CommandService.sender(ctx), p -> toggleCosmetics(p, arg)))));
             }
+            for (String self : new String[] {"내화면", "self"}) {
+                var selfNode = Commands.literal(self).executes(ctx -> run(ctx,
+                        () -> CommandService.withPlayer(CommandService.sender(ctx), p -> toggleSelfView(p, null))));
+                for (String arg : new String[] {"켜기", "끄기", "on", "off"}) {
+                    selfNode.then(Commands.literal(arg).executes(ctx -> run(ctx,
+                            () -> CommandService.withPlayer(CommandService.sender(ctx), p -> toggleSelfView(p, arg)))));
+                }
+                node.then(selfNode);
+            }
             cmd.addSubcommand("lab", node);
         }
         cmd.addSubcommand("labadmin", Commands.literal("enhance")
@@ -200,8 +210,31 @@ public final class ItemsModule implements Module {
             Text.send(p, "<gray>이 서버는 어깨·등 장식을 쓰지 않습니다 <dark_gray>(config cosmetics.armor_pieces.enabled)</dark_gray>. 설정만 저장했습니다.");
             return;
         }
-        Text.send(p, want ? "<gray>어깨·등 장식을 <white>켰습니다</white>. 미궁 상의를 입으면 다른 사람에게 입체 장식이 보입니다 (내 화면에는 안 보임)."
+        Text.send(p, want ? "<gray>어깨·등 장식을 <white>켰습니다</white>. 미궁 상의를 입으면 다른 사람에게 입체 장식이 보입니다 "
+                + "(내 화면에는 3인칭에서도 안 보임 — 직접 보려면 <white>/미궁 장식 내화면 켜기</white>)."
                 : "<gray>어깨·등 장식을 <white>껐습니다</white>. 다시 켜려면 <white>/미궁 장식 켜기</white>");
+        p.playSound(p.getLocation(), org.bukkit.Sound.UI_BUTTON_CLICK, 0.6f, want ? 1.4f : 0.9f);
+    }
+
+    /**
+     * /미궁 장식 내화면 [켜기|끄기] — 내 장식을 내 화면에도 보이게 (기본 꺼짐). 서버는 1인칭/3인칭을 모르므로 켜면 1인칭에서도 보인다.
+     * 인자가 없으면 뒤집는다.
+     */
+    private void toggleSelfView(Player p, String arg) {
+        Boolean want = arg == null ? Boolean.valueOf(!cosmetics.isSelfView(p)) : ArmorPieceLayout.parseToggle(arg);
+        if (want == null) {
+            Text.error(p, "켜기 또는 끄기 로 적어 주세요.");
+            return;
+        }
+        cosmetics.setSelfView(p, want);
+        if (want) {
+            Text.send(p, "<gray>내 어깨·등 장식을 <white>내 화면에도</white> 보입니다 — 3인칭(F5)에서 확인하세요. "
+                    + "<yellow>1인칭에서 아래를 보거나 고개를 돌리면 어깨 장식이 화면 가장자리에 보일 수 있습니다.</yellow> "
+                    + "<dark_gray>(되돌리기: /미궁 장식 내화면 끄기)");
+            if (!cosmetics.isOn(p)) Text.send(p, "<gray>지금은 장식이 꺼져 있습니다 — <white>/미궁 장식 켜기</white>");
+        } else {
+            Text.send(p, "<gray>내 어깨·등 장식을 내 화면에서 <white>숨깁니다</white> (다른 사람에게는 그대로 보임).");
+        }
         p.playSound(p.getLocation(), org.bukkit.Sound.UI_BUTTON_CLICK, 0.6f, want ? 1.4f : 0.9f);
     }
 

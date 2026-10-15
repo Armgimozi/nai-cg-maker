@@ -1,6 +1,7 @@
 package kr.labyrinth.items;
 
 import io.papermc.paper.datacomponent.DataComponentTypes;
+import io.papermc.paper.event.player.PlayerArmSwingEvent;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -54,23 +55,30 @@ import org.joml.Vector3f;
  * 미궁 상의(EQUIPPABLE chest, armor_set X)를 입은 플레이어마다 ItemDisplay 3개(labyrinth:armor_piece/X/shoulder_l·
  * shoulder_r·back)를 <b>플레이어의 탑승물</b>로 붙인다 → 클라이언트가 플레이어와 함께 매끄럽게 움직인다.
  * <ul>
- *   <li>방향: {@code update_ticks}(기본 2)틱마다 디스플레이 yaw = 몸 yaw ({@link Player#getBodyYaw}), teleport_duration 으로 부드럽게.</li>
+ *   <li>방향: 몸 yaw 는 매 틱 {@link ArmorPieceLayout.BodyYaw} 로 직접 계산한다 (바닐라 클라이언트가 다른 플레이어의 몸통을 돌리는 계산 —
+ *       서버의 {@link Player#getBodyYaw} 는 26.3 에서 이동 방향을 안 따라간다). {@code update_ticks}(기본 2)틱마다 바뀌었을 때만
+ *       디스플레이 yaw 로 보내고, teleport_duration 으로 부드럽게 돌린다.</li>
  *   <li>자세: 서기·웅크리기 배치는 {@link ArmorPieceLayout} (순수 계산, 리소스팩 미리보기와 같은 표).
  *       헤엄·활공·급류·잠·탈것·투명(그림자 잠행 포함)이면 크기 0 으로 숨기고, 사망·관전이면 디스플레이를 지운다.</li>
- *   <li>착용자 본인에게는 안 보인다 ({@link Player#hideEntity}, 스폰 패킷 전에) — 1인칭 시야를 절대 가리지 않는다.
- *       관전자가 착용자 시점으로 들어가면(관전 대상) 그 관전자에게도 숨긴다. 다른 사람에게는 기본으로 보인다.</li>
+ *   <li>착용자 본인에게는 기본으로 안 보인다 ({@link Player#hideEntity}, 스폰 패킷 전에) — 1인칭 시야를 가리지 않게.
+ *       서버는 1인칭/3인칭(F5)을 모르므로 3인칭에서도 안 보인다 → {@code /미궁 장식 내화면 켜기} (ext {@value #EXT_SELF}) 로
+ *       내 화면에도 보이게 할 수 있다. 관전자가 착용자 시점으로 들어가면(관전 대상) 그 관전자에게도 숨기고, 착용자를
+ *       {@code hidePlayer}·{@code hideEntity} 로 못 보는 시청자에게도 숨긴다 (탈것 없는 장식이 허공에 떠 있지 않게).</li>
  *   <li>비영속·{@code Keys.FX} 임시 태그 (재시작 후 EntityJanitor 가 청소), 무적·무음, 히트박스 없음(디스플레이) →
  *       피해·조준·상호작용 대상이 아니다. 벗기·나가기·사망·월드 이동·플러그인 종료 때 제거, 순간이동 등으로 떨어지면 다시 태운다.</li>
  *   <li>Paper 26.3 은 탑승물이 있는 플레이어의 <b>월드 간</b> teleport 를 거부한다 → 미궁 코드는 {@code core.Teleports#to}
  *       로 옮긴다 (다른 월드면 탑승물을 먼저 내림, 같은 월드면 탑승물이 그대로 따라온다).</li>
  *   <li>설정 {@code cosmetics.armor_pieces}: enabled(기본 true) · update_ticks(기본 2) · view_range(기본 0.6, 64블록 배수).
- *       플레이어별 {@code /미궁 장식 [켜기|끄기]} — PlayerData ext {@value #EXT_KEY} (끄면 내 장식이 아예 안 생긴다).</li>
+ *       플레이어별 {@code /미궁 장식 [켜기|끄기]} — PlayerData ext {@value #EXT_KEY} (끄면 내 장식이 아예 안 생긴다),
+ *       {@code /미궁 장식 내화면 [켜기|끄기]} — ext {@value #EXT_SELF} (기본 꺼짐).</li>
  * </ul>
  */
 public final class ArmorCosmetics implements Listener {
 
     /** PlayerData ext 키 (Boolean, 없으면 켜짐). */
     public static final String EXT_KEY = "cosmetics.armor_pieces";
+    /** PlayerData ext 키 (Boolean, 없으면 꺼짐): 내 장식을 내 화면에도 보이게 (3인칭 확인용). */
+    public static final String EXT_SELF = "cosmetics.armor_pieces_self";
     /** 처음 장식이 생길 때 한 번만 안내했는가 (본인 화면에는 안 보이므로). */
     public static final String EXT_TOLD = "cosmetics.armor_pieces_told";
     /** Keys.FX 태그 값 접두어. */
@@ -105,17 +113,23 @@ public final class ArmorCosmetics implements Listener {
         final String set;
         final World world;
         final ItemDisplay[] parts = new ItemDisplay[PARTS.length];
+        /** 다른 사람의 클라이언트와 같은 방식으로 매 틱 계산하는 몸 yaw. */
+        final ArmorPieceLayout.BodyYaw body;
         Stance stance;
         double scale;
+        /** 마지막으로 보낸 디스플레이 yaw. */
         float yaw;
+        /** 착용자 본인에게 보이는 중인가 (내화면 켜기). */
+        boolean selfShown;
         long lastReattach = Long.MIN_VALUE / 2;
         int burst;
-        /** 착용자 시점으로 관전 중이라 숨겨 둔 관전자. */
-        final Set<UUID> spectators = new HashSet<>();
+        /** 숨겨 둔 시청자 (착용자 제외): 착용자 시점으로 관전 중이거나, 착용자를 못 보는(hidePlayer) 플레이어. */
+        final Set<UUID> hiddenFrom = new HashSet<>();
 
-        Rig(String set, World world) {
+        Rig(String set, World world, float bodyYaw) {
             this.set = set;
             this.world = world;
+            this.body = new ArmorPieceLayout.BodyYaw(bodyYaw);
         }
 
         boolean valid() {
@@ -132,9 +146,10 @@ public final class ArmorCosmetics implements Listener {
         schedule();
     }
 
+    /** 매 틱 몸 yaw 만 계산하고 (가벼운 산수), 나머지 갱신·패킷은 update_ticks 마다. */
     private void schedule() {
         if (task != null) task.cancel();
-        task = Bukkit.getScheduler().runTaskTimer(services.plugin(), this::tickAll, 5L, cfg.updateTicks());
+        task = Bukkit.getScheduler().runTaskTimer(services.plugin(), this::tickAll, 5L, 1L);
     }
 
     public void stop() {
@@ -174,10 +189,41 @@ public final class ArmorCosmetics implements Listener {
         else backoffUntil.remove(p.getUniqueId());
     }
 
+    /** 내 장식을 내 화면에도 보일까 (/미궁 장식 내화면). 기록이 없으면 꺼짐. */
+    public boolean isSelfView(Player p) {
+        PlayerData d = services.data().getIfLoaded(p.getUniqueId());
+        return d != null && ArmorPieceLayout.selfViewFor(d.ext().get(EXT_SELF));
+    }
+
+    public void setSelfView(Player p, boolean on) {
+        PlayerData d = services.data().get(p);
+        d.ext().put(EXT_SELF, on);
+        d.markDirty();
+        Rig r = rigs.get(p.getUniqueId());
+        if (r != null) applySelf(p, r, on);
+    }
+
+    private void applySelf(Player p, Rig r, boolean show) {
+        if (r.selfShown == show) return;
+        r.selfShown = show;
+        for (ItemDisplay d : r.parts) {
+            if (d == null || !d.isValid()) continue;
+            if (show) p.showEntity(services.plugin(), d);
+            else p.hideEntity(services.plugin(), d);
+        }
+    }
+
     // ── 갱신 ──────────────────────────────────────────────────────────────
 
     private void tickAll() {
-        tick += cfg.updateTicks();
+        tick++;
+        for (Map.Entry<UUID, Rig> e : rigs.entrySet()) {
+            Player p = Bukkit.getPlayer(e.getKey());
+            if (p == null) continue;
+            Location at = p.getLocation();
+            e.getValue().body.tick(at.getX(), at.getZ(), at.getYaw(), p.isBlocking());
+        }
+        if (tick % cfg.updateTicks() != 0) return;
         for (Player p : Bukkit.getOnlinePlayers()) {
             try {
                 update(p);
@@ -187,33 +233,39 @@ public final class ArmorCosmetics implements Listener {
                 backoffUntil.put(p.getUniqueId(), tick + BACKOFF_TICKS);
             }
         }
-        if (!rigs.isEmpty()) syncSpectators();
+        if (!rigs.isEmpty()) syncViewers();
     }
 
-    /** 착용자 시점으로 관전 중인 관전자(관전 대상 = 착용자)에게는 그 장식을 숨긴다 — 착용자 본인과 같은 1인칭 화면이므로. */
-    private void syncSpectators() {
-        Map<UUID, Set<UUID>> want = new HashMap<>();
-        for (Player v : Bukkit.getOnlinePlayers()) {
-            if (v.getGameMode() != GameMode.SPECTATOR) continue;
-            if (v.getSpectatorTarget() instanceof Player t && rigs.containsKey(t.getUniqueId())) {
-                want.computeIfAbsent(t.getUniqueId(), k -> new HashSet<>()).add(v.getUniqueId());
-            }
-        }
+    /**
+     * 이 시청자에게 착용자의 장식을 숨겨야 하나 (착용자 본인 제외):
+     * 착용자 시점으로 관전 중(착용자 1인칭 화면) · 착용자를 못 봄({@code hidePlayer}/{@code hideEntity} — 시청자 클라이언트에 탈것이
+     * 없으니 장식이 탑승하지 못하고 처음 생긴 자리에 떠 있게 된다).
+     */
+    private static boolean hideFor(Player viewer, Player wearer) {
+        if (viewer.getGameMode() == GameMode.SPECTATOR && wearer.equals(viewer.getSpectatorTarget())) return true;
+        return !viewer.canSee(wearer);
+    }
+
+    /** 숨김 목록 맞추기 — update_ticks 마다 (시청자 수 × 장식 단 플레이어 수, 맵 조회뿐). */
+    private void syncViewers() {
         for (Map.Entry<UUID, Rig> e : rigs.entrySet()) {
+            Player wearer = Bukkit.getPlayer(e.getKey());
+            if (wearer == null) continue;
             Rig r = e.getValue();
-            Set<UUID> now = want.getOrDefault(e.getKey(), Set.of());
-            if (now.equals(r.spectators)) continue;
-            for (UUID id : now) {
-                Player v = Bukkit.getPlayer(id);
-                if (v != null && r.spectators.add(id)) for (ItemDisplay d : r.parts) v.hideEntity(services.plugin(), d);
+            for (Player v : Bukkit.getOnlinePlayers()) {
+                if (v.equals(wearer)) continue;
+                boolean hide = hideFor(v, wearer);
+                if (hide == r.hiddenFrom.contains(v.getUniqueId())) continue;
+                if (hide) {
+                    r.hiddenFrom.add(v.getUniqueId());
+                    for (ItemDisplay d : r.parts) if (d != null && d.isValid()) v.hideEntity(services.plugin(), d);
+                } else {
+                    r.hiddenFrom.remove(v.getUniqueId());
+                    for (ItemDisplay d : r.parts) if (d != null && d.isValid()) v.showEntity(services.plugin(), d);
+                }
             }
-            for (var it = r.spectators.iterator(); it.hasNext(); ) {
-                UUID id = it.next();
-                if (now.contains(id)) continue;
-                it.remove();
-                Player v = Bukkit.getPlayer(id);
-                if (v != null) for (ItemDisplay d : r.parts) if (d.isValid()) v.showEntity(services.plugin(), d);
-            }
+            // 나간 시청자는 목록에서만 뺀다 (Paper 가 접속 끊길 때 숨김 기록을 버린다)
+            r.hiddenFrom.removeIf(id -> Bukkit.getPlayer(id) == null);
         }
     }
 
@@ -284,21 +336,22 @@ public final class ArmorCosmetics implements Listener {
             r.stance = stance;
             r.scale = scale;
         }
-        float yaw = p.getBodyYaw();
+        float yaw = r.body.body();
         if (ArmorPieceLayout.yawChanged(r.yaw, yaw)) {
             for (ItemDisplay d : r.parts) d.setRotation(yaw, 0f);
             r.yaw = yaw;
         }
     }
 
-    /** 장식은 내 화면에 안 보이므로 처음 생길 때 한 번 알려 준다. */
+    /** 장식은 기본으로 내 화면에 안 보이므로 (3인칭 F5 에서도) 처음 생길 때 한 번 알려 준다. */
     private void tellOnce(Player p) {
         PlayerData d = services.data().getIfLoaded(p.getUniqueId());
         if (d == null || Boolean.TRUE.equals(d.ext().get(EXT_TOLD))) return;
         d.ext().put(EXT_TOLD, true);
         d.markDirty();
-        kr.labyrinth.core.Text.send(p, "<gray>미궁 상의의 <white>어깨·등 입체 장식</white>이 생겼습니다 — 다른 사람에게만 보이고 내 화면은 가리지 않습니다. "
-                + "<dark_gray>(끄기: /미궁 장식 끄기)");
+        kr.labyrinth.core.Text.send(p, "<gray>미궁 상의의 <white>어깨·등 입체 장식</white>이 생겼습니다 — 다른 사람에게만 보이고, 내 화면은 가리지 않도록 "
+                + "<white>3인칭(F5)에서도 안 보입니다</white>. 내 모습을 직접 보려면 <white>/미궁 장식 내화면 켜기</white> "
+                + "<dark_gray>(장식 끄기: /미궁 장식 끄기)");
     }
 
     private boolean reattach(Player p, ItemDisplay d) {
@@ -322,7 +375,9 @@ public final class ArmorCosmetics implements Listener {
         return s;
     }
 
-    private ItemDisplay spawnPart(World w, Location at, String set, Part part, Placement pl, String owner, Player hideFrom) {
+    /** hideFrom = 처음부터 숨길 플레이어 (착용자 · 착용자를 못 보는 시청자 · 착용자 시점 관전자). */
+    private ItemDisplay spawnPart(World w, Location at, String set, Part part, Placement pl, String owner,
+                                  java.util.List<Player> hideFrom) {
         return w.spawn(at, ItemDisplay.class, e -> {
             e.setPersistent(false);
             Keys.tagTransient(e, Keys.FX, TAG + ":" + owner);
@@ -338,24 +393,33 @@ public final class ArmorCosmetics implements Listener {
             e.setTransformation(transformation(pl));
             e.setInvulnerable(true);
             e.setSilent(true);
-            // 착용자에게는 처음부터 숨김 — 월드에 넣기 전(스폰 패킷 전)에 등록해야 1틱도 안 보인다
-            if (hideFrom != null) hideFrom.hideEntity(services.plugin(), e);
+            // 처음부터 숨김 — 월드에 넣기 전(스폰 패킷 전)에 등록해야 1틱도 안 보인다
+            for (Player v : hideFrom) v.hideEntity(services.plugin(), e);
         });
     }
 
     private Rig spawn(Player p, String set, Stance stance, double scale) {
         World w = p.getWorld();
         Location at = p.getLocation();
-        float yaw = p.getBodyYaw();
+        float yaw = p.getBodyYaw();       // 첫 값만 서버 값 — 이후는 BodyYaw 가 매 틱 계산
         at.setYaw(yaw);
         at.setPitch(0f);
-        Rig r = new Rig(set, w);
+        Rig r = new Rig(set, w, yaw);
         r.stance = stance;
         r.scale = scale;
-        r.yaw = yaw;
+        r.yaw = r.body.body();
+        r.selfShown = isSelfView(p);
+        java.util.List<Player> hide = new java.util.ArrayList<>();
+        if (!r.selfShown) hide.add(p);
+        for (Player v : Bukkit.getOnlinePlayers()) {
+            if (!v.equals(p) && hideFor(v, p)) {
+                hide.add(v);
+                r.hiddenFrom.add(v.getUniqueId());
+            }
+        }
         for (int i = 0; i < PARTS.length; i++) {
             ItemDisplay d = spawnPart(w, at, set, PARTS[i], ArmorPieceLayout.place(PARTS[i], stance, scale),
-                    p.getUniqueId().toString(), p);
+                    p.getUniqueId().toString(), hide);
             r.parts[i] = d;
             if (d == null || !p.addPassenger(d)) {
                 remove(p, r);
@@ -365,18 +429,18 @@ public final class ArmorCosmetics implements Listener {
         return r;
     }
 
-    /** 장식 제거 (+ 착용자·관전자 숨김 목록 정리 — 지운 뒤에 보여 주기를 풀어야 스폰 패킷이 안 나간다). */
+    /** 장식 제거 (+ 착용자·시청자 숨김 목록 정리 — 지운 뒤에 보여 주기를 풀어야 스폰 패킷이 안 나간다). */
     private void remove(Player p, Rig r) {
         for (ItemDisplay d : r.parts) {
             if (d == null) continue;
             if (d.isValid()) d.remove();
             if (p != null && p.isOnline()) p.showEntity(services.plugin(), d);
-            for (UUID id : r.spectators) {
+            for (UUID id : r.hiddenFrom) {
                 Player v = Bukkit.getPlayer(id);
                 if (v != null) v.showEntity(services.plugin(), d);
             }
         }
-        r.spectators.clear();
+        r.hiddenFrom.clear();
     }
 
     public void clear(Player p) {
@@ -403,6 +467,13 @@ public final class ArmorCosmetics implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onDeath(PlayerDeathEvent e) { clear(e.getPlayer()); }
+
+    /** 팔 휘두르기 (주손·보조손) — 다른 사람의 클라이언트는 휘두르는 동안 몸을 보는 방향으로 돌린다. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onSwing(PlayerArmSwingEvent e) {
+        Rig r = rigs.get(e.getPlayer().getUniqueId());
+        if (r != null) r.body.swing();
+    }
 
     /** 월드가 바뀌면 옛 월드에 남은 디스플레이를 지운다 (다음 갱신 때 새 월드에서 다시 만든다). */
     @EventHandler(priority = EventPriority.MONITOR)
