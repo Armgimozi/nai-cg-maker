@@ -228,11 +228,203 @@ def rune_mark(cx, cy, color):
 
 # ───────────────────────────── icon styles ─────────────────────────────
 
+# ───────────────────────────── 0.3.6 광산 재료 (광석·주괴·보석·새 몬스터 재료) ─────────────────────────────
+# 계약 tools/data/036/visual.json icons 의 style 19개 (원본 design036 vis_new_styles.draw_new 17 + ore_ember·gem_drop).
+# 광석 = 돌 덩이 + 박힌 광물 (광산 블록과 이어져 보이게), 주괴 = 같은 막대 + 금속마다 다른 표시, 보석 = 모양마다 다름.
+# 16×16 (인벤토리 1배) 에서 서로 갈리게: 철(둥근 알갱이) ↔ 은(하얀 줄·반짝임) · 금(노란 알갱이 + 별) ↔ 오리하르콘
+# (붉은 돌 + 불빛 틈 + 붉은 금) ↔ 황옥(보석 조각) · 석류석(육각 보석) ↔ 용혈석(물방울) · 석영(기둥) ↔ 월장석(둥근 돌).
+MINE_STYLES = {'ore_nugget', 'ore_patina', 'ore_flake', 'ore_crystal', 'ore_star', 'ore_ember',
+               'ingot_bar', 'ingot_patina', 'ingot_rune', 'ingot_star', 'ingot_shine',
+               'gem_prism', 'gem_round', 'gem_cabochon', 'gem_shard', 'gem_drop',
+               'hide', 'sinew', 'oil_flask'}
+PATINA = (88, 206, 172)
+GOLD_SHEEN = [(120, 70, 16), (200, 130, 30), (255, 196, 70), (255, 226, 130), (255, 244, 200), (255, 255, 240)]
+
+
+def _ramp6(c):
+    return [darken(c, 0.62), darken(c, 0.38), darken(c, 0.15), c, lighten(c, 0.4), lighten(c, 0.75)]
+
+
+ROCK = [(4, 21), (6, 12), (11, 6), (19, 4), (26, 8), (29, 16), (27, 24), (20, 28), (10, 28)]
+
+
+def _rock(icon, seed, base=0.5):
+    rock = poly(ROCK)
+    icon.add(rock, 'main', base, 4.0, pattern=speckle(seed, -0.13, 0.2))
+    # 아래·오른쪽 깨진 면 (어두움) + 위 왼쪽 깨진 면 (밝음)
+    icon.add(inter(rock, poly([(29, 16), (27, 24), (20, 28), (10, 28), (16, 21), (24, 17)])), 'main', base - 0.2, 2.0,
+             pattern=speckle(seed + 3, -0.1, 0.18))
+    icon.add(inter(rock, poly([(6, 12), (11, 6), (19, 4), (15, 11), (8, 15)])), 'main', base + 0.14, 1.6)
+    return rock
+
+
+def draw_mine(icon: Icon, s: str, seed: int):
+    lk = icon.look
+    if s == 'ore_nugget':
+        # 철: 차가운 회색 돌에 큰 알갱이 셋 (16 px 에서도 덩이로 보이게 크게)
+        rock = _rock(icon, seed)
+        for (x, y, r) in ((11.5, 12.5, 3.6), (21, 18.5, 4.0), (12.5, 22, 2.6), (22.5, 9.5, 2.2)):
+            icon.add(inter(rock, ellipse(x, y, r, r * 0.8, 20)), 'accent', 0.6, 2.4, gloss=True)
+    elif s == 'ore_patina':
+        # 구리: 주황 알갱이 + 큰 녹청 얼룩 (철과 갈리는 표시)
+        rock = _rock(icon, seed)
+        for (x, y, r) in ((11, 13, 2.9), (19.5, 9.5, 2.4), (21, 19, 3.1), (12, 21.5, 2.3), (25.5, 14, 1.7)):
+            icon.add(inter(rock, ellipse(x, y, r, r * 0.8, 20)), 'accent', 0.62, 2.0, gloss=True)
+        pr = _ramp6(PATINA)
+        for (x, y, r) in ((14, 11, 1.9), (23.5, 21.5, 2.0), (9, 23, 1.6), (21, 7.5, 1.4), (17, 16.5, 1.5)):
+            icon.add(inter(rock, circle(x, y, r)), pr, 0.6, 1.2)
+    elif s == 'ore_flake':
+        rock = _rock(icon, seed, 0.46)
+        for (ax, ay, bx, by, r) in ((8, 16, 14, 11, 1.1), (15, 20, 23, 14, 1.3), (11, 24, 16, 22, 0.9),
+                                    (19, 8, 23, 7, 0.8), (22, 23, 26, 19, 0.9)):
+            icon.add(inter(rock, capsule(ax, ay, bx, by, r)), 'accent', 0.78, 1.0, gloss=True)
+        for (x, y) in ((14, 11), (23, 14), (25, 9)):
+            icon.add(star(x, y, 2.2, 0.6, 4), 'accent', 1.0, 1.0, flat=True)
+    elif s == 'ore_crystal':
+        rock = _rock(icon, seed, 0.45)
+        for pts, b in (([(15, 15), (17, 3), (21, 2), (22, 14)], 0.72), ([(21, 15), (26, 6), (29, 9), (25, 17)], 0.62),
+                       ([(9, 16), (8, 8), (11, 7), (13, 16)], 0.55)):
+            icon.add(poly(pts), 'accent', b, 2.0, glow=True, gloss=True)
+        icon.add(poly([(17, 3), (21, 2), (19.5, 13), (17.5, 13)]), 'accent', 0.9, 1.0, glow=True)
+        for (x, y, r) in ((12, 21, 1.4), (20, 21, 1.2), (24, 22, 0.9)):
+            icon.add(inter(rock, circle(x, y, r)), 'accent', 0.7, 1.0, glow=True)
+    elif s == 'ore_star':
+        rock = _rock(icon, seed, 0.4)
+        for (x, y, r) in ((11, 13, 1.6), (20, 10, 1.3), (22, 20, 1.8), (13, 22, 1.2), (25, 15, 1.0), (17, 16, 1.0)):
+            icon.add(inter(rock, circle(x, y, r)), 'accent', 0.65, 1.0, gloss=True)
+        for (x, y, R) in ((16, 12, 3.4), (23, 17, 2.4), (11, 20, 2.2)):
+            icon.add(star(x, y, R, R * 0.28, 4), [(255, 236, 170), (255, 248, 220), (255, 255, 255)], 1.0, 1.0,
+                     glow=True, flat=True)
+    elif s == 'ore_ember':
+        # 오리하르콘 광석: 숯빛 붉은 돌 + 갈라진 틈의 불빛 줄 + 붉은 금 알갱이 (금 광석의 회색 돌·노란 별과 갈림)
+        rock = _rock(icon, seed, 0.46)
+        veins = (((7, 17), (11, 15), (14, 17), (18, 13), (22, 14), (27, 11)),
+                 ((12, 26), (15, 22), (19, 21), (23, 24)),
+                 ((14, 6), (15, 10), (18, 13)))
+        for pts in veins:
+            for a, b in zip(pts, pts[1:]):
+                icon.add(inter(rock, capsule(a[0], a[1], b[0], b[1], 0.85)), 'accent', 0.9, 1.0, glow=True, flat=True)
+        for (x, y, r) in ((10.5, 11, 2.3), (21.5, 19.5, 2.6), (24, 9.5, 1.6), (12, 21.5, 1.7)):
+            icon.add(inter(rock, ellipse(x, y, r, r * 0.85, -15)), GOLD_SHEEN, 0.55, 1.8, gloss=True,
+                     pattern=lambda x_, y_, d, _a=lk.accent[3], _y=y: _a if d > -0.8 and y_ > _y else 0.0)
+    # ── 주괴 ──
+    elif s in ('ingot_bar', 'ingot_patina', 'ingot_rune', 'ingot_star', 'ingot_shine'):
+        top = poly([(3, 19), (8.5, 11.5), (28.5, 11.5), (24.5, 19)])
+        front = poly([(3, 19), (24.5, 19), (24.5, 26.5), (3, 26.5)])
+        side = poly([(24.5, 19), (28.5, 11.5), (28.5, 18.5), (24.5, 26.5)])
+        pat = None
+        body = top_r = 'main'
+        if s == 'ingot_patina':
+            def pat(x, y, d, _s=seed):
+                return PATINA if h2(int(x), int(y), _s) < 0.13 else 0.0
+        if s == 'ingot_star':
+            # 오리하르콘: 몸은 진홍 쪽으로, 윗면은 붉은 금 (구리 주괴의 고른 주황과 갈림)
+            body = [mix(c, (150, 16, 34), 0.38) for c in lk.main]
+            top_r = [mix(c, g, 0.72) for c, g in zip(lk.main, GOLD_SHEEN)]
+        icon.add(top, top_r, 0.8, 1.5, gloss=True, pattern=pat)
+        icon.add(front, body, 0.5, 1.5, pattern=pat)
+        icon.add(side, body, 0.3, 1.0, pattern=pat)
+        icon.add(rbox(16.5, 15.3, 6.2, 1.6, 0.6), top_r, 0.62, 1.0, flat=True)       # 찍힌 자국
+        icon.add(poly([(4.5, 19), (9.5, 12.5), (10.5, 12.5), (5.8, 19)]), top_r, 1.0, 1.0, flat=True)   # 모서리 빛
+        if s == 'ingot_patina':
+            icon.add(capsule(5, 25, 15, 25, 0.9), _ramp6(PATINA), 0.55, 1.0, flat=True)   # 아래 모서리 녹청 줄
+        if s == 'ingot_rune':
+            icon.add(rbox(16.5, 15.3, 5.4, 1.1, 0.4), 'accent', 0.9, 1.0, glow=True, flat=True,
+                     pattern=lambda x, y, d: 0.12 if int(x) % 3 else -0.25)
+            icon.add(rbox(13.5, 22.8, 6.5, 0.8, 0.3), 'accent', 0.85, 1.0, glow=True, flat=True)
+        if s == 'ingot_shine':
+            for (x, y, R) in ((11, 14.5, 2.6), (22.5, 21.5, 2.0)):
+                icon.add(star(x, y, R, R * 0.25, 4), [(235, 245, 255), (255, 255, 255)], 1.0, 1.0, flat=True)
+        if s == 'ingot_star':
+            # 앞면을 비스듬히 가로지르는 금빛 광택 띠 + 금 별 둘
+            icon.add(inter(front, lambda x, y: abs((x - 9) + (y - 22.5) * 0.9) - 1.6), GOLD_SHEEN, 0.62, 1.0, flat=True)
+            for (x, y, R) in ((21.5, 14.5, 2.6), (17.5, 22.8, 2.4)):
+                icon.add(star(x, y, R, R * 0.3, 4), GOLD_SHEEN, 0.72, 1.0, glow=True, flat=True)
+    # ── 보석 ──
+    elif s == 'gem_prism':
+        for pts, b in (([(5, 28), (6, 15), (9, 11), (12, 15), (11, 28)], 0.48),
+                       ([(20, 28), (21, 13), (24.5, 9), (28, 13), (27, 28)], 0.55),
+                       ([(10.5, 29), (12, 9), (16, 3), (20, 9), (21.5, 29)], 0.66)):
+            icon.add(poly(pts), 'main', b, 2.0, gloss=True)
+        icon.add(poly([(16, 3), (20, 9), (18.5, 28), (16, 28)]), 'main', 0.9, 1.0)
+        icon.add(poly([(12, 9), (16, 3), (16, 9)]), 'main', 1.0, 1.0, flat=True)
+        icon.add(poly([(6, 30), (26, 30), (24, 27), (8, 27)]), 'dark', 0.4, 1.0)
+    elif s == 'gem_round':
+        icon.add(ngon(16, 16.5, 12.5, 6, -90), 'main', 0.45, 2.0)
+        icon.add(poly([(16, 4.5), (26.8, 10.3), (16, 16.5), (5.2, 10.3)]), 'main', 0.78, 1.5, gloss=True)
+        icon.add(poly([(5.2, 10.3), (16, 16.5), (16, 28.5), (5.2, 22.7)]), 'main', 0.55, 1.5)
+        icon.add(poly([(26.8, 10.3), (16, 16.5), (16, 28.5), (26.8, 22.7)]), 'main', 0.32, 1.5)
+        icon.add(poly([(16, 9), (21, 12.5), (16, 16), (11, 12.5)]), 'accent', 0.95, 1.0, glow=True)
+    elif s == 'gem_cabochon':
+        icon.add(ellipse(16, 17, 12, 9.5), 'main', 0.5, 8.0, gloss=True)
+        icon.add(inter(ellipse(16, 17, 11, 8.5), sub(ellipse(15, 16, 9.5, 7), ellipse(17.5, 18.5, 9.5, 7))), 'accent',
+                 0.5, 1.5, glow=True)
+        icon.add(inter(ellipse(16, 17, 10, 7.5), sub(ellipse(18, 19, 7, 5), ellipse(19.5, 20.5, 7, 5))), 'accent',
+                 0.75, 1.0, glow=True, flat=True)
+        icon.add(ellipse(11.5, 12.5, 2.4, 1.4, -25), 'main', 1.0, 1.0, flat=True)
+        icon.add(rbox(16, 26.5, 10, 1.4, 0.6), 'dark', 0.45, 1.0)
+    elif s == 'gem_shard':
+        # 황옥: 세로로 긴 계단 깎기 보석 (모서리 깎은 직사각형 + 계단 면 + 가운데 판) — 다른 보석과 실루엣이 다름
+        def octo(cx, cy, hw, hh, c):
+            return poly([(cx - hw + c, cy - hh), (cx + hw - c, cy - hh), (cx + hw, cy - hh + c), (cx + hw, cy + hh - c),
+                         (cx + hw - c, cy + hh), (cx - hw + c, cy + hh), (cx - hw, cy + hh - c), (cx - hw, cy - hh + c)])
+        outer = octo(16, 16, 9, 13, 4)
+        icon.add(outer, 'main', 0.42, 1.5)
+        icon.add(inter(outer, lambda x, y: (x - 16) * 1.45 + (y - 16) * 0.55), 'main', 0.6, 1.2)    # 왼쪽 위 밝은 면
+        icon.add(inter(outer, lambda x, y: (y - 16) * 0.6 - (x - 16) * 1.45 + 0.8), 'main', 0.28, 1.0, flat=True)
+        icon.add(octo(16, 16, 6, 9.5, 2.8), 'main', 0.66, 1.2, gloss=True)
+        icon.add(octo(16, 16, 3.6, 6.6, 1.6), 'accent', 0.82, 1.0, glow=True)                 # 가운데 판
+        icon.add(capsule(13.5, 10.5, 13.5, 15, 0.7), 'accent', 1.0, 1.0, glow=True, flat=True)
+        icon.add(star(23, 7, 2.6, 0.7, 4), [(255, 246, 210), (255, 255, 255)], 1.0, 1.0, flat=True)
+    elif s == 'gem_drop':
+        # 용혈석: 짙은 진홍 물방울 결정 (면 셋) + 아래쪽 안에서 타는 주황 빛 — 석류석(육각)과 갈림
+        drop = union(circle(16, 20.5, 8.5), poly([(16, 2.5), (24.2, 18), (7.8, 18)]))
+        icon.add(drop, 'main', 0.3, 3.0)
+        icon.add(inter(drop, poly([(16, 2.5), (16, 29), (5, 29), (5, 18)])), 'main', 0.46, 1.6, gloss=True)
+        icon.add(inter(drop, poly([(16, 2.5), (19, 14), (16, 20), (13, 14)])), 'main', 0.66, 1.0, flat=True)
+        icon.add(inter(drop, poly([(16, 20), (24.5, 21), (16, 29.5)])), 'main', 0.2, 1.0, flat=True)
+        icon.add(inter(drop, ellipse(17, 22.5, 4.4, 3.4)), 'accent', 0.5, 3.0, glow=True)
+        icon.add(inter(drop, ellipse(17.5, 23, 1.9, 1.4)), 'accent', 0.95, 1.0, glow=True, flat=True)
+        icon.add(ellipse(11.5, 17, 1.0, 2.6, 20), 'main', 0.95, 1.0, flat=True)
+    # ── 새 몬스터 재료 ──
+    elif s == 'hide':
+        pelt = union(rbox(16, 16, 8, 10, 3), ellipse(7, 8, 4, 3, -35), ellipse(25, 8, 4, 3, 35),
+                     ellipse(7, 25, 4, 3, 35), ellipse(25, 25, 4, 3, -35), ellipse(16, 4.5, 3, 2.5))
+        icon.add(pelt, 'main', 0.52, 3.0, pattern=speckle(seed, -0.14, 0.22))
+        icon.add(rbox(16, 16, 5.5, 7.5, 2), 'main', 0.62, 2.0, pattern=lambda x, y, d: -0.12 if int(y) % 4 == 0 else 0)
+        for pts in (((10, 10), (13, 14), (11, 18), (14, 23)), ((21, 9), (19, 14), (22, 19)), ((16, 21), (18, 26))):
+            for a, b in zip(pts, pts[1:]):
+                icon.add(capsule(a[0], a[1], b[0], b[1], 0.7), 'accent', 0.95, 1.0, glow=True, flat=True)
+    elif s == 'sinew':
+        for k in range(3):
+            cy = 9 + k * 6.5
+            icon.add(sub(ellipse(16, cy, 11, 4.2, -12), ellipse(16, cy - 0.6, 8.2, 2.2, -12)), 'main', 0.5 + 0.08 * k, 1.6,
+                     pattern=lambda x, y, d: 0.16 if int(x + y) % 3 == 0 else -0.04)
+        for k in range(3):
+            cy = 9 + k * 6.5
+            icon.add(inter(sub(ellipse(16, cy, 11, 4.2, -12), ellipse(16, cy - 0.6, 10, 3.3, -12)),
+                           lambda x, y, _cy=cy: y - _cy), 'accent', 0.85, 1.0, glow=True, flat=True)
+        icon.add(rbox(16, 16, 2.4, 13, 1), 'grip', 0.5, 1.2)
+        icon.add(capsule(16, 28, 12, 31, 0.9), 'main', 0.6, 1.0)
+        icon.add(capsule(16, 28, 20, 31, 0.9), 'main', 0.6, 1.0)
+    elif s == 'oil_flask':
+        body = circle(16, 20, 9.5)
+        icon.add(rbox(16, 8.5, 3, 3, 1), 'glass', 0.55, 1.5)
+        icon.add(rbox(16, 5, 4, 2, 1), 'wood', 0.55, 1.5)
+        icon.add(body, 'glass', 0.55, 2.5)
+        icon.add(inter(circle(16, 20, 8), lambda x, y: 16.5 - y), 'main', 0.5, 3.0,
+                 pattern=lambda x, y, d: lk.accent[4] if abs((x - 16) * 0.35 + (y - 21) * 0.9 + 2.5) < 0.7 else 0.0)
+        icon.add(ellipse(12, 15.5, 1.3, 2.5, 25), 'glass', 1.0, 1.0, flat=True)
+        icon.add(inter(circle(16, 20, 8), lambda x, y: abs(y - 16.8) - 0.8), 'accent', 0.85, 1.0, glow=True, flat=True)
+
+
 def draw(icon: Icon, style: str, seed: int):
     lk = icon.look
     acc_hi = lk.accent[5]
     s = style
-    if s == 'fiber':
+    if s in MINE_STYLES:
+        draw_mine(icon, s, seed)
+    elif s == 'fiber':
         for k, off in enumerate((-4.5, 0, 4.5)):
             pts = [(16 + off + 2.5 * math.sin(t * 0.5 + k), 4 + t) for t in range(0, 25, 3)]
             for a, b in zip(pts, pts[1:]):
@@ -350,8 +542,10 @@ def draw(icon: Icon, style: str, seed: int):
         icon.add(circle(16, 16, 10), 'accent', 0.58, 9.0, glow=True, gloss=True)
         icon.add(ellipse(12, 11, 2.5, 1.6, -30), 'accent', 1.0, 1.0, flat=True)
     elif s == 'fang':
-        icon.add(poly([(9, 4), (20, 4), (22, 10), (20, 19), (15, 28), (13, 20), (10, 12)]), 'horn', 0.62, 3.5, gloss=True)
-        icon.add(rbox(15, 6, 7, 2.5, 1), 'horn', 0.4, 1.5)
+        # 0.3.6: 팔레트 본 색으로 칠한다 (horn 램프는 뼈색이 섞여 옅게 나와 갱도 송곳니·서리 발톱이 같아 보였다)
+        icon.add(poly([(9, 4), (20, 4), (22, 10), (20, 19), (15, 28), (13, 20), (10, 12)]), 'main', 0.8, 3.5, gloss=True,
+                 pattern=lambda x, y, d: -0.18 * max(0.0, (10 - y) / 6))
+        icon.add(rbox(15, 6, 7, 2.5, 1), 'main', 0.32, 1.5)
     elif s == 'spore':
         for (x, y, r) in ((11, 19, 6), (21, 18, 7), (16, 11, 7), (16, 23, 5)):
             icon.add(circle(x, y, r), 'main', 0.55, 4.0, pattern=speckle(seed + x, 0.3, 0.1))
@@ -422,4 +616,4 @@ def draw(icon: Icon, style: str, seed: int):
 ICON_STYLES = {'fiber', 'shard', 'ingot', 'core', 'silk_bundle', 'scale', 'bone', 'essence', 'gem', 'cloth', 'plate',
                'potion_small', 'potion', 'potion_large', 'scroll', 'key', 'rune_stone', 'gear', 'pearl', 'fang', 'spore',
                'ink_vial', 'feather', 'heart', 'dust', 'crystal', 'leaf', 'coin_pouch', 'map', 'badge', 'shell', 'crown',
-               'blade', 'bell', 'page', 'coil', 'pendulum', 'tendril'}
+               'blade', 'bell', 'page', 'coil', 'pendulum', 'tendril'} | MINE_STYLES

@@ -1987,6 +1987,114 @@ def chime_rod(g, p):
     dress_shaft(g, p, -6, top - 2, ry, ry + 3)
 
 
+# ───────────────────────────── 0.3.6 곡괭이 (도구, 계약 visual.json pickaxes) ─────────────────────────────
+# 등급 = 금속 (구리 < 철 < 은 < 금 < 미스릴 < 오리하르콘). 희귀도(p.lv)가 아니라 id 의 금속 이름으로 고른다 —
+# 은·금 곡괭이는 둘 다 rare 라서. 모르는 id 는 희귀도로 (0 구리 · 1 철 · 2 은 · 3 미스릴 · 4+ 오리하르콘).
+PICKAXE_KINDS = ('copper', 'iron', 'silver', 'gold', 'mithril', 'orichalcum')
+PICKAXE_BY_LV = (0, 1, 2, 4, 5, 5)
+
+
+def pickaxe_kind(iid, lv=0):
+    for k, name in enumerate(PICKAXE_KINDS):
+        if iid.startswith(name + '_') or ('_' + name + '_') in iid:
+            return k
+    return PICKAXE_BY_LV[max(0, min(5, lv))]
+
+
+def pickaxe(g, p):
+    """곡괭이: 자루 + 소켓 + 양쪽 곡괭이 날 (+x 쪽이 '일하는 쪽' — 바닐라 도끼 머리 자리, HEAD_SHAPES).
+    구리 = 한쪽 뾰족·한쪽 끌, 녹청 점, 나무 자루 / 철 = 양날 대칭·쇠띠·리벳, 가죽 손잡이 /
+    은 = 긴 양날·은 테두리·월장석 / 금 = 넓은 양날·금 테두리·황옥, 짙은 나무 자루에 금 고리 /
+    미스릴 = 결정 날끝(빛남)·룬 띠·쇠 자루 / 오리하르콘 = 초승달 양날·붉은 금 테·용혈석·떠다니는 불티 조각(빛남)."""
+    L = p.L
+    t = pickaxe_kind(p.iid, p.lv)
+    top = int(15 * L)
+    shaft_mat = 'metal' if t >= 4 else 'wood'
+    bands = (top - 2, 5) if t in (1, 2) else ()
+    shaft(g, -7, top + 1, 1.25, shaft_mat, bands=bands)
+    if t == 3:                                         # 금: 짙은 나무 자루에 금 고리 셋
+        for y in (top - 2, 9, 5):
+            for i in range(-2, 3):
+                for k in range(-2, 3):
+                    if i * i + k * k <= 2.3:
+                        g.put(i, y, k, 'orn', 0.72 if y == top - 2 else 0.6, prio=2)
+    grip(g, -6, 3, mat='grip')
+    if t == 0:
+        g.box((-1, -8, -1), (1, -8, 1), 'metal', 0.45)
+    else:
+        pommel(g, -8, p, 1.4 if t < 4 else 1.6)
+    hy = top + 2
+
+    # 날 재료: 은 = 밝은 'edge' 램프 (철의 어두운 강철과 갈리게), 오리하르콘 = 붉은 금 ('flame' 램프의 아래쪽: 진홍 → 금)
+    blade_mat, bright = {2: ('edge', -0.12), 5: ('flame', -0.2)}.get(t, ('blade', -0.06 if t == 1 else 0.0))
+
+    def arm(sign, length, droop, r0, r1, mat=None, lift=1.2):
+        mat = mat or blade_mat
+        pts = bezier((0, hy, 0), (sign * length * 0.45, hy + lift, 0), (sign * length * 0.82, hy - droop * 0.35, 0),
+                     (sign * length, hy - droop, 0), 18)
+        g.tube(pts, r0, r1, mat, prio=2, sq=(1, 1, 0.7),
+               vfn=lambda tt, d, q: bright + 0.62 - 0.24 * d + 0.12 * tt - (0.1 if q[1] < hy - 0.6 - droop * tt * tt else 0))
+        return pts
+
+    if t == 0:
+        pa = arm(1, 11.5, 4.5, 2.6, 0.7)
+        pb = arm(-1, 6.5, 1.2, 2.5, 1.9, lift=0.6)
+        tip = pb[-1]
+        g.box((tip[0] - 1, tip[1] - 2, -1), (tip[0], tip[1] + 1, 1), 'edge', 0.8, prio=3)   # 끌 날
+        rr = random.Random(7)
+        for _ in range(9):                                                               # 녹청 점
+            q = pa[rr.randrange(2, 14)] if rr.random() < 0.7 else pb[rr.randrange(1, 12)]
+            g.put(round(q[0]), round(q[1] + rr.choice((-1, 1))), rr.choice((-1, 1)), 'gem', 0.45, prio=4)
+    elif t == 1:
+        for s in (1, -1):
+            pa = arm(s, 11.0, 4.0, 2.6, 0.7)
+            g.put(round(pa[-1][0]), round(pa[-1][1]), 0, 'edge', 0.9, prio=4)
+    elif t == 2:
+        for s in (1, -1):
+            pa = arm(s, 12.0, 4.3, 2.7, 0.7)
+            g.tube([(q[0], q[1] + 2.2, q[2]) for q in pa[1:13]], 0.7, 0.5, 'orn', 0.7, prio=3)
+    elif t == 3:
+        for s in (1, -1):
+            pa = arm(s, 12.0, 3.4, 3.3, 1.0, lift=1.0)
+            g.tube([(q[0], q[1] + 2.6, q[2]) for q in pa[1:14]], 0.8, 0.55, 'orn', 0.8, prio=3)
+            g.tube([(q[0], q[1] - 2.4, q[2]) for q in pa[2:11]], 0.6, 0.5, 'orn', 0.55, prio=3)
+            g.put(round(pa[-1][0]), round(pa[-1][1]), 0, 'edge', 0.95, prio=4)
+    elif t == 4:
+        for s in (1, -1):
+            pa = arm(s, 11.5, 3.8, 2.7, 1.0)
+            tip, prev = pa[-1], pa[-3]
+            d = (tip[0] - prev[0], tip[1] - prev[1], 0)
+            g.crystal(tip, d, 4.5, 1.1, 'crystal', glow=True, prio=4, tip=0.6)
+            g.crystal((pa[8][0], pa[8][1] + 1.5, 0), (s * 0.3, 1, 0), 2.6, 0.7, 'crystal', glow=True, prio=4)
+    else:
+        for s in (1, -1):
+            pa = arm(s, 12.5, 6.0, 2.8, 0.6, lift=2.2)
+            # 붉은 금 테 — 빛나는 칸이라 ember_glow 가 숨쉬듯 달아오르게 한다
+            g.tube([(q[0], q[1] + 2.3, q[2]) for q in pa[1:15]], 0.7, 0.5, 'orn', 0.75, glow=True, prio=3)
+            g.gem((pa[7][0], pa[7][1], 1.5), 0.9, 'glow', glow=True, prio=5)
+            g.gem((pa[7][0], pa[7][1], -1.5), 0.9, 'glow', glow=True, prio=5)
+        float_shards(g, [(0, hy + 7, 0), (-5, hy + 5.5, 0.5), (5, hy + 5.5, -0.5)], p, size=2.6, r=0.8, mat='flame')
+    # 소켓 (날 위에 덮어 그림)
+    g.box((-2, hy - 3, -2), (2, hy + 2, 2), 'metal', 0.5, prio=3,
+          vfn=lambda i, j, k: 0.4 + 0.08 * (j > hy) + (0.14 if abs(i) == 2 and abs(k) == 2 else 0))
+    if t >= 1:
+        for s in (-1, 1):                                                                # 리벳
+            g.put(0, hy, s * 2, 'orn' if t >= 2 else 'metal', 0.8, prio=4)
+            g.put(-1, hy + 1, s * 2, 'metal', 0.75, prio=4)
+            g.put(1, hy - 1, s * 2, 'metal', 0.75, prio=4)
+    if t >= 2:                                                                           # 소켓 보석
+        mat = 'flame' if t == 5 else 'gem'
+        for s in (-1, 1):
+            g.gem((0, hy, s * 2.6), 1.2 if t in (2, 5) else 1.0, mat, glow=t >= 4 or t == 2, prio=5)
+        g.box((-2, hy + 3, -2), (2, hy + 3, 2), 'orn', 0.65, prio=3)
+    if t >= 4:
+        for i in range(-2, 3):                                                           # 빛나는 룬 띠
+            for k in (-2, 2):
+                g.put(i, hy - 2, k, 'glow', 0.85, glow=True, prio=5)
+        g.crystal((0, hy + 3, 0), (0, 1, 0), 3.5 if t == 4 else 4.5, 1.0, 'crystal' if t == 4 else 'orn',
+                  glow=t == 4, prio=4, tip=0.7)
+
+
 _TEMPLATES = {
     'longsword': longsword, 'broadsword': broadsword, 'greatsword': greatsword, 'cleaver': cleaver,
     'great_axe': great_axe, 'mace': mace, 'dagger': dagger, 'kris': kris, 'fang_blade': fang_blade,
@@ -1999,13 +2107,15 @@ _TEMPLATES = {
     'executioner_axe': executioner_axe, 'flamberge': flamberge, 'great_maul': great_maul, 'sabre': sabre,
     'morning_star': morning_star, 'rapier': rapier, 'stiletto': stiletto, 'tanto': tanto, 'war_spear': war_spear,
     'antler_staff': antler_staff, 'lamp_crook': lamp_crook, 'thurible_rod': thurible_rod, 'chime_rod': chime_rod,
+    # 0.3.6 도구 (곡괭이 — type tool, 손 모습은 무기와 같은 displays.voxel_weapon)
+    'pickaxe': pickaxe,
 }
 BOWS = ('longbow', 'recurve_bow', 'composite_bow', 'horn_bow', 'blade_bow', 'bone_bow', 'twin_bow')
 TWO_HANDED = {'greatsword', 'cleaver', 'great_axe', 'war_scythe', 'glaive',
               'executioner_axe', 'flamberge', 'great_maul', 'war_spear'}
 # 머리(날·망치·등롱·향로)가 자루 옆으로 튀어나온 모양 — tools/hold_preview.py 가 바닐라 도끼 행과 함께 비교한다
 HEAD_SHAPES = ('war_scythe', 'sickle', 'great_axe', 'cleaver', 'warhammer', 'mace', 'glaive', 'falchion',
-               'executioner_axe', 'great_maul', 'morning_star', 'lamp_crook', 'thurible_rod')
+               'executioner_axe', 'great_maul', 'morning_star', 'lamp_crook', 'thurible_rod', 'pickaxe')
 
 # 손에 드는 각도 (displays.weapon). 모든 무기는 날·머리(+x)가 1인칭 화면 안쪽·3인칭 몸 앞쪽을 향하고,
 # 1인칭 y 회전 기본값은 90° (바닐라 도끼와 같은 각도: 날을 뒤에서 봄). 초승달 날(낫·낫단검)은 90° 면 날을

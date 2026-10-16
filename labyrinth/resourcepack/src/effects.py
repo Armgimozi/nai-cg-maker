@@ -18,7 +18,7 @@ INTERPOLATE = {'sun_glow', 'holy_pulse', 'blood_pulse', 'aurora_wave', 'prism_cy
 KNOWN = {'sun_glow', 'ember_flicker', 'wind_streak', 'frost_shimmer', 'holy_pulse', 'shadow_smoke', 'tide_ripple',
          'prism_cycle', 'gear_tick', 'star_twinkle', 'blood_pulse', 'lightning_arc', 'void_swirl', 'feather_glint',
          'eclipse_corona', 'rune_flow', 'soul_flicker', 'crystal_glint', 'ink_bleed', 'sculk_pulse', 'spark_crackle',
-         'mercury_flow', 'aurora_wave', 'venom_drip'}
+         'mercury_flow', 'aurora_wave', 'venom_drip', 'ember_glow'}
 
 WHITE = (255, 255, 255)
 
@@ -94,6 +94,12 @@ def make_vfn(effect, ctx: FxCtx, f):
             if p >= 0.75 and T > 0.9 and ((gx + gy + f) % 3 == 0):
                 return WHITE, 0
             return None, 0.5 * band - 0.05
+        if eff == 'ember_glow':
+            # 0.3.6 오리하르콘 곡괭이: 붉은 금 날이 천천히 달아오르고(숨쉬듯), 불티가 날을 따라 올라간다
+            rise = h3(gx, gy - f, gz, seed)
+            if rise > 0.86:
+                return (A[5] if rise > 0.93 else A[4]), 0
+            return None, 0.22 * math.sin(2 * math.pi * (p - 0.35 * T)) + 0.04
         if eff in ('ember_flicker', 'soul_flicker'):
             rise = h3(gx, gy - f, gz, seed)
             thr = 0.72 if t.role in ('edge', 'glow', 'gem', 'crystal', 'head') else 0.82
