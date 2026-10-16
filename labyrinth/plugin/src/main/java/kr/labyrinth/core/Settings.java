@@ -39,6 +39,8 @@ public final class Settings {
     private final ArmorLooks armorLooks;
     private final Wild wild;
     private final List<String> wildWarnings;
+    /** combat.bow_melee_mult (0.3.6.1) — 활을 든 채 친 근접 피해 배율, 0~1. 키가 없으면 0.5. */
+    private final double bowMeleeMult;
 
     public record Entrance(String mode, String world, double x, double y, double z, float yaw, float pitch, double radius) {
         public boolean isSet() { return world != null && !world.isBlank(); }
@@ -284,6 +286,9 @@ public final class Settings {
         Object wv = c.get("wild");
         this.wild = Boolean.FALSE.equals(wv) ? Wild.OFF : wild(wv instanceof ConfigurationSection wsec ? wsec : null, ww);
         this.wildWarnings = List.copyOf(ww);
+        // 0.3.6.1 사냥꾼 활: 활로 직접 치면 피해 × 이 값 (예전 config.yml 에는 키가 없다 → 0.5)
+        this.bowMeleeMult = kr.labyrinth.combat.BowMelee.clamp(
+                c.getDouble("combat.bow_melee_mult", kr.labyrinth.combat.BowMelee.DEFAULT_MULT));
     }
 
     /**
@@ -453,6 +458,9 @@ public final class Settings {
 
     /** config wild 를 읽다 생긴 경고 (켤 때·reload 때 서버 창에 한 줄씩). */
     public List<String> wildWarnings() { return wildWarnings; }
+
+    /** 활을 든 채 왼쪽 클릭으로 친 근접 피해 배율 (combat.bow_melee_mult, 0~1, 기본 0.5 — {@code combat.BowMelee}). */
+    public double bowMeleeMult() { return bowMeleeMult; }
 
     /** 맨손 초당 공격 횟수 (config weapon_attack_speed.none). 무기는 저마다 items.yml attack.interval. */
     public double unarmedAttackSpeed() { return unarmedAttackSpeed; }

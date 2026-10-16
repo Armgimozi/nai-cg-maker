@@ -146,6 +146,7 @@ public final class Services {
         for (String w : settings.wildWarnings()) Log.warn("[config] " + w);
         // 툴팁 겉모습 줄은 설정 숫자를 그대로 적는다 (순수 ItemTooltip 이 읽는 값)
         kr.labyrinth.items.ItemTooltip.looks(settings.armorLooks());
+        kr.labyrinth.items.ItemTooltip.bowMelee(settings.bowMeleeMult()); // 0.3.6.1 활 '직접 치면 피해 절반' 줄
     }
 
     /** config.yml 수정 + 저장 + 다시 읽기 (난이도 설정 등). */

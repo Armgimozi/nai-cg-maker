@@ -102,6 +102,25 @@ public final class UniqueEffectService implements UniqueEffects, DamageService.H
         return u;
     }
 
+    /**
+     * 이 피해에 쓸 고유 효과의 무기 id (순수): 화살은 쏜 활 ({@link DamageContext#firedWith}, 0.3.6.1 — 날아가는 동안 바꿔 쥔 무기가 아님),
+     * 그 밖은 지금 든 무기. "" (미궁 활이 아닌 것으로 쏜 화살) = 없음 → null.
+     */
+    static String uniqueWeaponId(String firedWith, String heldId) {
+        if (firedWith == null) return heldId;
+        return firedWith.isEmpty() ? null : firedWith;
+    }
+
+    /** 피해 한 건의 고유 효과 — 지금 든 무기면 {@link #current}, 쏜 활이 따로면 그 활 (요구 능력치를 못 채우면 꺼짐). */
+    private UniqueDef uniqueFor(Player p, DamageContext ctx) {
+        ItemDef held = services.items().heldWeapon(p);
+        String id = uniqueWeaponId(ctx.firedWith(), held == null ? null : held.id());
+        if (id == null) return null;
+        if (held != null && id.equals(held.id())) return current(p);
+        ItemDef w = services.content().item(id);
+        return w != null && w.unique() != null && EquipRules.usable(w, services.stats().requirementStats(p)) ? w.unique() : null;
+    }
+
     @Override
     public void held(Player p, ItemDef weapon, boolean usable) {
         if (p == null) return;
@@ -148,7 +167,7 @@ public final class UniqueEffectService implements UniqueEffects, DamageService.H
         if (p == null || t == null || t.equals(p)) return;
         boolean basic = ctx.isBasicAttack(), skill = ctx.isSkill();
         if (!basic && !skill) return;
-        UniqueDef u = current(p);
+        UniqueDef u = uniqueFor(p, ctx); // 화살은 쏜 활의 고유 효과 (0.3.6.1)
         if (u == null || u.effect() == null) return;
         boolean tp = t instanceof Player;
         UUID me = p.getUniqueId();
@@ -233,7 +252,7 @@ public final class UniqueEffectService implements UniqueEffects, DamageService.H
         if (p == null || t == null || t.equals(p) || !procable(ctx)) return;
         boolean basic = ctx.isBasicAttack(), skill = ctx.isSkill();
         if (!basic && !skill) return;
-        UniqueDef u = current(p);
+        UniqueDef u = uniqueFor(p, ctx); // 화살은 쏜 활의 고유 효과 (0.3.6.1)
         if (u == null || u.effect() == null) return;
         if (ctx.killed()) onKill(p, u, t, now);
         if (ctx.evaded() || ctx.dealt() <= 0) return;
@@ -244,7 +263,7 @@ public final class UniqueEffectService implements UniqueEffects, DamageService.H
         switch (u.id()) {
             case "rend" -> {
                 if (alive && ctx.crit() && procs.ready(me, "rend", t.getUniqueId(), u.effect().icd(), now)) {
-                    double perStack = DamageService.rawAmount(stats(p), DamageContext.Base.PER_HIT, DamageKind.PHYSICAL, u.num("pct"));
+                    double perStack = DamageService.rawAmount(stats(p), hitW(p, ctx), DamageKind.PHYSICAL, u.num("pct")); // 화살 = 쏜 활 W
                     services.effects().applyStacks(t, "bleed", u.num("duration"), perStack, 1,
                             UniqueProcs.maxStacks(u.count("max_stacks"), tp), p);
                 }
@@ -272,18 +291,18 @@ public final class UniqueEffectService implements UniqueEffects, DamageService.H
                 double got = procs.leechAllowed(me, ctx.dealt() * u.num("pct"), services.stats().maxHp(p) * u.num("cap"), now);
                 if (got > 0) services.damage().lifesteal(p, t, got, false);
             }
-            case "cleave" -> cleave(p, u, t);
+            case "cleave" -> cleave(p, u, t, hitW(p, ctx), hitKind(p, ctx));
             case "chain_spark" -> {
-                if (rng.nextDouble() < u.num("chance") && procs.ready(me, "chain_spark", null, u.effect().icd(), now)) chain(p, u, t);
+                if (rng.nextDouble() < u.num("chance") && procs.ready(me, "chain_spark", null, u.effect().icd(), now)) chain(p, u, t, hitW(p, ctx));
             }
             case "flurry" -> {
                 if (procs.nth(me, "flurry", u.count("n")) && alive) {
-                    hit(p, t, u.num("pct"), weaponKind(p), DamageContext.Base.PER_HIT, "flurry");
+                    hit(p, t, u.num("pct"), hitKind(p, ctx), DamageContext.Base.PER_HIT, "flurry", hitW(p, ctx));
                     SkillFx.burst(t.getLocation().add(0, t.getHeight() * 0.6, 0), Particle.SWEEP_ATTACK, 1, 0.1, 0, null);
                 }
             }
             case "bash_stun" -> {
-                if (procs.nth(me, "bash_stun", u.count("n"))) bash(p, u, t, alive, now);
+                if (procs.nth(me, "bash_stun", u.count("n"))) bash(p, u, t, alive, now, hitW(p, ctx), hitKind(p, ctx));
             }
             case "sanctify" -> {
                 if (procs.ready(me, "sanctify", null, u.effect().icd(), now)) sanctify(p, u);
@@ -293,7 +312,7 @@ public final class UniqueEffectService implements UniqueEffects, DamageService.H
                 services.effects().applyBuff(p, Map.of("attack_speed", u.num("as") * n), u.num("decay"), "unique:momentum");
             }
             case "longshot" -> {
-                if (ctx.type() == DamageType.RANGED && u.count("pierce") > 0) pierce(p, u, t, ctx.attackMultiplier());
+                if (ctx.type() == DamageType.RANGED && u.count("pierce") > 0) pierce(p, u, t, ctx.attackMultiplier(), hitW(p, ctx), hitKind(p, ctx));
             }
             case "overcharge" -> {
                 UniqueProcs.Armed a = procs.consume(me, "overcharge", now);
@@ -321,7 +340,7 @@ public final class UniqueEffectService implements UniqueEffects, DamageService.H
                 int n = 0;
                 for (LivingEntity x : services.targets().enemiesIn(p, at, u.num("radius"))) {
                     if (x.equals(victim)) continue;
-                    hit(p, x, u.num("pct"), weaponKind(p), DamageContext.Base.SKILL, "death_burst");
+                    hit(p, x, u.num("pct"), weaponKind(p), DamageContext.Base.SKILL, "death_burst", Double.NaN);
                     if (++n >= UniqueProcs.BURST_TARGETS) break;
                 }
                 SkillFx.burst(at, Particle.EXPLOSION, 1, 0, 0, null);
@@ -368,34 +387,34 @@ public final class UniqueEffectService implements UniqueEffects, DamageService.H
         }
     }
 
-    private void cleave(Player p, UniqueDef u, LivingEntity t) {
+    private void cleave(Player p, UniqueDef u, LivingEntity t, double w, DamageKind kind) {
         Location at = t.getLocation();
         int n = 0;
         for (LivingEntity x : services.targets().enemiesIn(p, at, u.num("radius"))) {
             if (x.equals(t)) continue;
-            hit(p, x, u.num("pct"), weaponKind(p), DamageContext.Base.PER_HIT, "cleave");
+            hit(p, x, u.num("pct"), kind, DamageContext.Base.PER_HIT, "cleave", w);
             if (++n >= u.count("targets")) break;
         }
         if (n > 0) SkillFx.burst(at.clone().add(0, 1, 0), Particle.SWEEP_ATTACK, 2, 0.6, 0, null);
     }
 
-    private void chain(Player p, UniqueDef u, LivingEntity t) {
+    private void chain(Player p, UniqueDef u, LivingEntity t, double w) {
         Location from = t.getLocation().add(0, t.getHeight() * 0.6, 0);
         int n = 0;
         for (LivingEntity x : services.targets().enemiesIn(p, from, UniqueProcs.CHAIN_RANGE)) {
             if (x.equals(t)) continue;
             Location to = x.getLocation().add(0, x.getHeight() * 0.6, 0);
             SkillFx.line(from, to, 0.4, Particle.ELECTRIC_SPARK, null);
-            hit(p, x, u.num("pct"), DamageKind.MAGIC, DamageContext.Base.PER_HIT, "chain_spark");
+            hit(p, x, u.num("pct"), DamageKind.MAGIC, DamageContext.Base.PER_HIT, "chain_spark", w);
             from = to;
             if (++n >= u.count("targets")) break;
         }
         if (n > 0) SkillFx.sound(t.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 0.3f, 1.8f);
     }
 
-    private void bash(Player p, UniqueDef u, LivingEntity t, boolean alive, long now) {
+    private void bash(Player p, UniqueDef u, LivingEntity t, boolean alive, long now, double w, DamageKind kind) {
         if (!alive) return;
-        hit(p, t, u.num("pct"), weaponKind(p), DamageContext.Base.PER_HIT, "bash_stun");
+        hit(p, t, u.num("pct"), kind, DamageContext.Base.PER_HIT, "bash_stun", w);
         if (!t.isValid() || t.isDead()) return;
         boolean boss = isBoss(t);
         if (boss) {
@@ -424,7 +443,7 @@ public final class UniqueEffectService implements UniqueEffects, DamageService.H
     }
 
     /** 관통: 화살이 날던 줄 위, 주 대상 뒤 10칸 안의 적 pierce 명에게 같은 화살 피해 × (1 − 0.2k). */
-    private void pierce(Player p, UniqueDef u, LivingEntity t, double arrowMult) {
+    private void pierce(Player p, UniqueDef u, LivingEntity t, double arrowMult, double w, DamageKind kind) {
         Location eye = p.getEyeLocation();
         Location center = t.getLocation().add(0, t.getHeight() * 0.5, 0);
         Vector dir = center.toVector().subtract(eye.toVector());
@@ -448,7 +467,7 @@ public final class UniqueEffectService implements UniqueEffects, DamageService.H
             k++;
             double m = arrowMult * UniqueProcs.pierceMult(k);
             if (p.getLocation().distanceSquared(x.getLocation()) >= far * far) m *= 1 + u.num("pct") * UniqueProcs.pvp(x instanceof Player);
-            services.damage().deal(DamageContext.attack(p, x, m, DamageType.RANGED).kind(weaponKind(p)).source("unique:longshot"));
+            services.damage().deal(DamageContext.attack(p, x, m, DamageType.RANGED).kind(kind).weaponHit(w).source("unique:longshot"));
             SkillFx.line(center, x.getLocation().add(0, x.getHeight() * 0.5, 0), 0.5, Particle.CRIT, null);
             if (k >= u.count("pierce")) break;
         }
@@ -458,7 +477,7 @@ public final class UniqueEffectService implements UniqueEffects, DamageService.H
         Location at = t.getLocation();
         int n = 0;
         for (LivingEntity x : services.targets().enemiesIn(p, at, u.num("radius"))) {
-            hit(p, x, pct, DamageKind.MAGIC, DamageContext.Base.SKILL, "overcharge");
+            hit(p, x, pct, DamageKind.MAGIC, DamageContext.Base.SKILL, "overcharge", Double.NaN);
             if (++n >= UniqueProcs.OVERCHARGE_TARGETS) break;
         }
         SkillFx.burst(at.clone().add(0, 1, 0), Particle.ELECTRIC_SPARK, 24, 0.8, 0.1, null);
@@ -482,12 +501,26 @@ public final class UniqueEffectService implements UniqueEffects, DamageService.H
 
     // ── 공통 ─────────────────────────────────────────────────────────────
 
-    /** 고유 효과 덧 피해 한 건 (치명 가능 · 흡혈 없음 · 다른 고유 효과 안 켬). 플레이어 대상은 × 0.5. */
-    private void hit(Player p, LivingEntity x, double mult, DamageKind kind, DamageContext.Base base, String id) {
+    /**
+     * 고유 효과 덧 피해 한 건 (치명 가능 · 흡혈 없음 · 다른 고유 효과 안 켬). 플레이어 대상은 × 0.5.
+     * @param w 기준이 PER_HIT 일 때 무기 한 방 W (화살 = 쏜 활 W, NaN = 지금 든 무기 — {@link #hitW})
+     */
+    private void hit(Player p, LivingEntity x, double mult, DamageKind kind, DamageContext.Base base, String id, double w) {
         if (x == null || !x.isValid() || x.isDead() || mult <= 0) return;
         DamageType type = kind == DamageKind.MAGIC ? DamageType.MAGIC : DamageType.MELEE;
         services.damage().deal(DamageContext.attack(p, x, mult * UniqueProcs.pvp(x instanceof Player), type).kind(kind).base(base)
-                .source("unique:" + id).noLifesteal());
+                .weaponHit(w).source("unique:" + id).noLifesteal());
+    }
+
+    /**
+     * 덧 피해의 무기 한 방 W (0.3.6.1 안전 검토 3): 화살은 쏜 순간의 활 W ({@link DamageContext#weaponHit}) — 날아가는 사이 단도로 바꿔도
+     * 휩쓸기·연타·방패 강타·연쇄 번개·관통·찢는 치명이 활 W 로. 근접은 지금 든 무기 (ctx 에 W 가 없음).
+     */
+    private double hitW(Player p, DamageContext ctx) { return ctx.hasWeaponHit() ? ctx.weaponHit() : stats(p).weaponDamage(); }
+
+    /** 덧 피해의 피해 종류: 화살은 쏜 활의 종류 (ctx), 근접은 지금 든 무기. */
+    private DamageKind hitKind(Player p, DamageContext ctx) {
+        return ctx.firedWith() != null && ctx.kind() != null ? ctx.kind() : weaponKind(p);
     }
 
     private static void mult(DamageContext ctx, double m) {

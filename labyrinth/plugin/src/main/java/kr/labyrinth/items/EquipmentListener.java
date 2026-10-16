@@ -2,6 +2,7 @@ package kr.labyrinth.items;
 
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.BundleContents;
+import io.papermc.paper.datacomponent.item.UseEffects;
 import io.papermc.paper.event.player.PlayerSwapWithEquipmentSlotEvent;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -10,6 +11,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import kr.labyrinth.Services;
+import kr.labyrinth.combat.BowDrawMove;
 import kr.labyrinth.content.ArmorLook;
 import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.ItemSetDef;
@@ -36,6 +38,7 @@ import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
@@ -66,7 +69,13 @@ import org.bukkit.persistence.PersistentDataType;
  *       무기는 들 수 있지만 스탯·무기 스킬이 없다 (손에 들 때 한 번 경고). 아이템을 지우거나 떨구지 않는다. 장신구는 조건 없음.</li>
  *   <li>예전 판 설명("요구 레벨 25")은 지금 규칙으로 다시 그린다 — 접속 때 가방, 엔더 상자·상자 등을 열 때 그 안,
  *       바닥에서 주울 때 ({@link #refreshLore}).</li>
- *   <li>미궁 활을 들면 '미궁 화살'(무한, 1개)을 넣어 준다 — 바닐라 활은 화살이 있어야 당겨진다.</li>
+ *   <li>미궁 활을 들면 '미궁 화살'(무한, 1개)을 넣어 준다 — 바닐라 활은 화살이 있어야 당겨진다. 가방이 가득 차면 빈 보조손에,
+ *       그것도 없으면 알리고 가방을 닫을 때 다시 넣어 본다.</li>
+ *   <li>활 당기며 걷기 ({@link BowDrawMove}, 0.3.6.1): 재계산 때마다 손(주손·보조손)의 미궁 활 {@code use_effects} 를 든 사람에 맞춘다 —
+ *       사냥꾼이면 어디서나 당김 중 걷기 배율 = 매의 눈 draw_move, 다른 직업은 바닐라 0.2 (구성요소 없음). 다음 틱에 손의 활만 고쳐 쓴다.
+ *       재계산은 손 칸 바꿈·양손 바꿈·손 칸 아이템 바뀜(줍기·거래·상자에서 꺼냄)·가방 닫기·전직·접속·부활·월드 이동 때 일어나므로
+ *       활을 주고받거나(거래·버림·엔더 상자) 직업을 바꿔도 다음 사람이 손에 드는 순간 그 사람 값이 된다. 고쳐 쓰는 것은 그 칸에 지금 있는
+ *       아이템의 사본(구성요소만 다름)이라 복사가 생기지 않고, 바닐라는 당기는 중 아이템이 같은 종류(활)면 당김을 끊지 않는다.</li>
  *   <li>재계산 때마다 손 무기와 요구 능력치 충족 여부를 고유 효과 서비스에 알린다 ({@code services.unique().held}).</li>
  * </ul>
  */
@@ -83,6 +92,10 @@ final class EquipmentListener implements Listener, StatContributor {
     private final Map<UUID, Integer> lastDeny = new ConcurrentHashMap<>();
     /** 다음 틱 가방 설명 다시 그리기가 이미 잡힌 플레이어 (주울 때 여러 번 와도 한 번). */
     private final Set<UUID> refreshPending = ConcurrentHashMap.newKeySet();
+    /** 다음 틱 손의 활 당기며 걷기 맞추기가 이미 잡힌 플레이어. */
+    private final Set<UUID> bowMovePending = ConcurrentHashMap.newKeySet();
+    /** 가방이 가득 차 화살을 못 넣은 플레이어 (가방을 닫을 때 다시 넣어 본다 · 알림은 한 번). */
+    private final Set<UUID> arrowBlocked = ConcurrentHashMap.newKeySet();
 
     EquipmentListener(Services services) { this.services = services; }
 
@@ -105,6 +118,14 @@ final class EquipmentListener implements Listener, StatContributor {
         }
         // 손 무기 고유 효과 캐시 (요구 능력치 미달이면 무기 스킬처럼 꺼짐)
         services.unique().held(p, mainWeapon, mainWeapon != null && EquipRules.usable(mainWeapon, req));
+        // 활 당기며 걷기: 손의 미궁 활이 든 사람과 맞지 않으면 다음 틱에 고친다 (재계산 도중에는 가방을 건드리지 않음)
+        double move = bowMoveWant(p);
+        if ((bowMoveWrong(main, move) || bowMoveWrong(inv.getItemInOffHand(), move)) && bowMovePending.add(p.getUniqueId())) {
+            Bukkit.getScheduler().runTask(services.plugin(), () -> {
+                bowMovePending.remove(p.getUniqueId());
+                if (p.isOnline()) applyBowMove(p);
+            });
+        }
         for (EquipmentSlot slot : new EquipmentSlot[] {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET}) {
             ItemStack it = inv.getItem(slot);
             items.defOf(it).ifPresent(def -> {
@@ -146,6 +167,52 @@ final class EquipmentListener implements Listener, StatContributor {
             set.bonuses().headMap(count, true).values().forEach(block::addAll);
         });
         warnUnmet(p, unmet, req);
+    }
+
+    // ── 활 당기며 걷기 (BowDrawMove) ─────────────────────────────────────────
+
+    /** 이 사람이 활을 당길 때 원하는 걷기 배율 (사냥꾼 = 매의 눈 draw_move — 어디서나, 아니면 바닐라 0.2). */
+    private double bowMoveWant(Player p) {
+        try {
+            return BowDrawMove.want(services.content().classDef(services.data().get(p).classId()));
+        } catch (Throwable t) {
+            return BowDrawMove.VANILLA;
+        }
+    }
+
+    /** 미궁 활인데 use_effects 가 원하는 값과 다른가. */
+    private boolean bowMoveWrong(ItemStack s, double want) {
+        if (isEmpty(s) || s.getType() != Material.BOW) return false;
+        ItemDef def = services.items().defOf(s).orElse(null);
+        if (def == null || !GearItemService.isBow(def)) return false;
+        UseEffects cur = s.getData(DataComponentTypes.USE_EFFECTS);
+        return !BowDrawMove.matches(cur != null, cur == null ? 0 : cur.speedMultiplier(), cur != null && cur.canSprint(), want);
+    }
+
+    /** 주손·보조손의 미궁 활 use_effects 를 지금 든 사람에 맞춰 다시 쓴다 (바뀐 칸만). */
+    private void applyBowMove(Player p) {
+        double want = bowMoveWant(p);
+        PlayerInventory inv = p.getInventory();
+        for (int slot : new int[] {inv.getHeldItemSlot(), 40}) {
+            ItemStack it = inv.getItem(slot);
+            if (!bowMoveWrong(it, want)) continue;
+            ItemStack copy = it.clone();
+            setBowMove(copy, want);
+            inv.setItem(slot, copy);
+        }
+    }
+
+    /** 활 하나에 당김 중 걷기 배율을 쓴다 — 바닐라 값이면 구성요소를 지운다 (BOW 기본 = 바닐라 0.2, 달리기 꺼짐). */
+    static void setBowMove(ItemStack bow, double want) {
+        if (BowDrawMove.custom(want)) {
+            bow.setData(DataComponentTypes.USE_EFFECTS, UseEffects.useEffects()
+                    .canSprint(false)
+                    .interactVibrations(true)
+                    .speedMultiplier((float) want)
+                    .build());
+        } else {
+            bow.resetData(DataComponentTypes.USE_EFFECTS);
+        }
     }
 
     /**
@@ -427,6 +494,8 @@ final class EquipmentListener implements Listener, StatContributor {
         unmetWarned.remove(u);
         lastDeny.remove(u);
         refreshPending.remove(u);
+        bowMovePending.remove(u);
+        arrowBlocked.remove(u);
     }
 
     /** 미궁 화살은 버릴 수 없다(무한 1개짜리라 의미 없음, 바닥 쓰레기 방지). */
@@ -444,10 +513,17 @@ final class EquipmentListener implements Listener, StatContributor {
     void ensureArrow(Player p) {
         if (!p.isOnline()) return;
         ItemDef def = services.items().defOf(p.getInventory().getItemInMainHand()).orElse(null);
-        if (def == null || !GearItemService.isBow(def)) return;
+        // 일찍 돌아갈 때도 '가득 참' 표시를 지운다 — 남아 있으면 같은 접속에서 다시 가방이 찼을 때 알림 없이 활이 안 당겨졌다 (안전 검토 5)
+        if (def == null || !GearItemService.isBow(def)) {
+            arrowBlocked.remove(p.getUniqueId());
+            return;
+        }
         for (ItemStack s : p.getInventory().getContents()) {
             if (s != null && (s.getType() == Material.ARROW || s.getType() == Material.SPECTRAL_ARROW
-                    || s.getType() == Material.TIPPED_ARROW)) return;
+                    || s.getType() == Material.TIPPED_ARROW)) {
+                arrowBlocked.remove(p.getUniqueId());
+                return;
+            }
         }
         ItemStack arrow = ItemStack.of(Material.ARROW);
         arrow.setData(DataComponentTypes.ITEM_NAME, Text.item("<#c8d6ff>미궁 화살 <dark_gray>(무한)"));
@@ -455,6 +531,27 @@ final class EquipmentListener implements Listener, StatContributor {
         arrow.editPersistentDataContainer(pdc -> pdc.set(LAB_ARROW, PersistentDataType.BYTE, (byte) 1));
         arrow.setData(DataComponentTypes.LORE, io.papermc.paper.datacomponent.item.ItemLore.lore(
                 Text.itemLines(java.util.List.of("<gray>미궁 활이 쓰는 마력 화살. 줄지 않는다."))));
-        p.getInventory().addItem(arrow);
+        PlayerInventory inv = p.getInventory();
+        Map<Integer, ItemStack> left = inv.addItem(arrow);
+        if (left.isEmpty()) {
+            arrowBlocked.remove(p.getUniqueId());
+            return;
+        }
+        // 가방이 가득 참 (0.3.6 까지는 여기서 조용히 화살이 없어 활을 못 당겼다): 빈 보조손에 — 바닐라 활은 보조손 화살을 먼저 쓴다
+        if (isEmpty(inv.getItemInOffHand())) {
+            inv.setItemInOffHand(left.values().iterator().next());
+            arrowBlocked.remove(p.getUniqueId());
+            return;
+        }
+        if (arrowBlocked.add(p.getUniqueId())) {
+            services.hud().actionBar(p, Text.mm("<#ff6b6b>⚠ 가방이 가득 차 미궁 화살을 넣지 못했습니다 <gray>— 한 칸 비우고 가방을 닫으면 넣습니다"), 80);
+        }
+    }
+
+    /** 가방이 가득 차 화살을 못 넣었던 사람이 가방을 닫으면 다시 넣어 본다. */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onCloseRetryArrow(InventoryCloseEvent e) {
+        if (!(e.getPlayer() instanceof Player p) || !arrowBlocked.contains(p.getUniqueId())) return;
+        Bukkit.getScheduler().runTask(services.plugin(), () -> ensureArrow(p));
     }
 }
