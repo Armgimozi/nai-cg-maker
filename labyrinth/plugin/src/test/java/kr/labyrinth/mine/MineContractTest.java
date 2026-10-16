@@ -108,7 +108,11 @@ class MineContractTest {
         Params names = mineJson.sub("names");
         assertEquals(Set.copyOf(MineNames.INTERACTS), names.sub("interact").keys());
         assertEquals(Set.of(MineNames.ROLE_MINER, MineNames.ROLE_SMELTER), names.sub("npc_roles").keys());
-        assertEquals(Set.copyOf(MineNames.EXT_KEYS), names.sub("ext").keys());
+        // 계약 §0 (기력 없음 · 광맥 공유): mine.json 에 남은 개인 광맥·기력 ext 는 쓰지 않는다 — 지금 키 + 없앤 키 = 계약 키
+        Set<String> all = new HashSet<>(MineNames.EXT_KEYS);
+        all.addAll(MineNames.EXT_REMOVED_036);
+        assertEquals(all, names.sub("ext").keys());
+        for (String gone : MineNames.EXT_REMOVED_036) assertFalse(MineNames.EXT_KEYS.contains(gone), gone);
         assertEquals(MineNames.WORLD, mineJson.sub("world").str("name"));
         assertEquals(MineNames.TOO_WEAK, mineJson.sub("rules").str("too_weak_actionbar"));
     }

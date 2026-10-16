@@ -22,8 +22,9 @@ import org.bukkit.configuration.file.YamlConfiguration;
 /**
  * labyrinth_world (공허) 만들기/불러오기 + 이전 세션 잔여 블록 정리 + 더러운 슬롯 기록.
  * 정리는 이 월드 폴더(이름이 정확히 같고 메인 월드가 아닌 것)의 region/entities/poi 만 지운다.
+ * {@link #applyRules} 는 광산 월드(0.3.6, kr.labyrinth.mine)도 같이 쓴다.
  */
-final class LabyrinthWorld {
+public final class LabyrinthWorld {
 
     private final JavaPlugin plugin;
     private final String name;
@@ -107,7 +108,11 @@ final class LabyrinthWorld {
         return count[0];
     }
 
-    static void applyRules(World w) {
+    /**
+     * 공허 월드 규칙: 시간·날씨 멈춤 · 몹 스폰 끔 · 스폰 한도 0 · 불 번짐 0 · 무작위 틱 0 · keepInventory · 바로 부활 · 알림 끔.
+     * 미궁 월드와 광산 월드(0.3.6)가 같이 쓴다 (PvP 는 pvp 모듈이 맞춘다 — 광산은 늘 끔).
+     */
+    public static void applyRules(World w) {
         rule(w, GameRules.ADVANCE_TIME, false);
         rule(w, GameRules.ADVANCE_WEATHER, false);
         rule(w, GameRules.SPAWN_MOBS, false);

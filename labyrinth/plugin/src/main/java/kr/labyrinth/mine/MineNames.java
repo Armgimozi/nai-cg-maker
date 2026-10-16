@@ -43,19 +43,27 @@ public final class MineNames {
     public static final String AMBIENT_DUST = "dust";
 
     // ── PlayerData ext ──
-    /** "L&lt;n&gt;:v&lt;i&gt;=&lt;만료 epoch초&gt;;L&lt;n&gt;:g&lt;i&gt;=…" — 개인 빈 광맥·보석 노드. 만료 지난 것은 저장할 때 뺀다. */
-    public static final String EXT_DEPLETED = "mine.depleted";
-    /** "L&lt;n&gt;=&lt;청사진 해시&gt;;…" — 청사진이 바뀐 층의 기록을 지울 때. */
-    public static final String EXT_HASH = "mine.hash";
-    /** 기력 (실수, 최대 1200). */
-    public static final String EXT_STAMINA = "mine.stamina";
-    /** 기력을 마지막으로 계산한 epoch ms (오프라인 회복). */
-    public static final String EXT_STAMINA_AT = "mine.stamina_at";
     /** true = 첫 무료 구리 곡괭이를 받음. */
     public static final String EXT_FREE_PICKAXE = "mine.free_pickaxe";
     /** true = 옛 광물 재료 바꿈 안내(채팅 1번)를 봄. */
     public static final String EXT_MAT036_NOTICE = "mat036.notice";
-    public static final List<String> EXT_KEYS = List.of(EXT_DEPLETED, EXT_HASH, EXT_STAMINA, EXT_STAMINA_AT, EXT_FREE_PICKAXE, EXT_MAT036_NOTICE);
+    /** 지금 쓰는 ext 키 (계약 §0 뒤). */
+    public static final List<String> EXT_KEYS = List.of(EXT_FREE_PICKAXE, EXT_MAT036_NOTICE);
+
+    /** @deprecated 계약 §0-3 (광맥 공유): 개인 광맥 기록이 없다 — 광맥 상태는 광산 월드 쪽. 쓰지 않는다. */
+    @Deprecated
+    public static final String EXT_DEPLETED = "mine.depleted";
+    /** @deprecated 계약 §0-3: 개인 청사진 해시 기록이 없다 (층 해시는 &lt;광산 월드&gt;/labyrinth-mine.yml). */
+    @Deprecated
+    public static final String EXT_HASH = "mine.hash";
+    /** @deprecated 계약 §0-1 (기력 없음). */
+    @Deprecated
+    public static final String EXT_STAMINA = "mine.stamina";
+    /** @deprecated 계약 §0-1 (기력 없음). */
+    @Deprecated
+    public static final String EXT_STAMINA_AT = "mine.stamina_at";
+    /** 주인 늦은 결정(계약 §0)으로 없앤 ext 키 — Q0 mine.json names.ext 에 남아 있어도 쓰지 않는다. */
+    public static final List<String> EXT_REMOVED_036 = List.of("mine.depleted", "mine.hash", "mine.stamina", "mine.stamina_at");
 
     // ── PDC ──
     /** 보석 노드 ItemDisplay: "L&lt;n&gt;:&lt;i&gt;". */
@@ -63,4 +71,21 @@ public final class MineNames {
 
     /** 곡괭이가 약할 때 액션바 (주인 결정 2). */
     public static final String TOO_WEAK = "곡괭이가 약해 캘 수 없습니다";
+    /** 곡괭이 없이 광맥을 칠 때 액션바. */
+    public static final String NEED_PICKAXE = "곡괭이가 있어야 캘 수 있습니다";
+    /** 가방이 가득 차 캐지지 않을 때. */
+    public static final String BAG_FULL = "가방이 가득 찼습니다";
+    /** 광산 밖에서 광산 곡괭이로 광산 블록을 칠 때 (R §3-15). */
+    public static final String OUTSIDE = "광산 곡괭이는 광산에서만 캘 수 있습니다";
+
+    // ── 곡괭이 PDC (Q1, mine 패키지 안 키 — core/Keys 를 건드리지 않음) ──
+    /** 곡괭이 구성요소를 쓴 블록 설정 지문 — 달라지면 접속 때 다시 쓴다. */
+    public static final String PDC_TOOL_SIG = "mine_tool_sig";
+
+    /** 광맥이 다시 차는 시간 = 기본 ÷ min(광산 월드 사람 수, 이 값) (config mine.regen_players_cap 기본). */
+    public static final int REGEN_PLAYERS_CAP = 4;
+    /** 광산 월드 메타 파일 (층마다 청사진 해시). */
+    public static final String WORLD_META = "labyrinth-mine.yml";
+    /** jar 안 청사진 경로 (n = 1..6). */
+    public static String blueprintPath(int n) { return "mine/levels/L" + n + ".json"; }
 }

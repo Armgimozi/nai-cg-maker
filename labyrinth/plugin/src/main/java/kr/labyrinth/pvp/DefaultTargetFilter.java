@@ -20,6 +20,12 @@ public class DefaultTargetFilter implements TargetFilter {
 
     public DefaultTargetFilter(Services services) { this.services = services; }
 
+    /** 기본 안전지대 = 광산 월드 (0.3.6, PvP 를 꺼 둔 서버에서도 같음). pvp 모듈의 판정은 여기에 마을 안전지대를 더한다. */
+    @Override
+    public boolean inSafeZone(Location location) {
+        return kr.labyrinth.mine.MineSafety.inMine(services.mine(), location);
+    }
+
     protected boolean isCustom(Entity e) {
         return services.mobs().byEntity(e).isPresent() || services.bosses().byEntity(e).isPresent();
     }
