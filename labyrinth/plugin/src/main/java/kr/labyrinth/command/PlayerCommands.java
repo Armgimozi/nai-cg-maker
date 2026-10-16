@@ -45,8 +45,10 @@ final class PlayerCommands {
                             kr.labyrinth.core.Text.send(s, "<gray>현재 서버 난이도: <white>" + (services.settings().isDifficultySet()
                                     ? services.settings().difficulty().name() : "미설정"));
                             if (s instanceof org.bukkit.entity.Player p) {
-                                if (kr.labyrinth.core.ServerSetup.canSetDifficulty(p)) services.menus().openSetup(p);
-                                else kr.labyrinth.core.Text.error(p, "서버 난이도는 관리자만 바꿀 수 있습니다.");
+                                if (kr.labyrinth.core.ServerSetup.lockedDifficulty() != null)
+                                    kr.labyrinth.core.Text.send(p, "<dark_gray>한 번 정한 난이도는 바꿀 수 없습니다.");
+                                else if (kr.labyrinth.core.ServerSetup.canSetDifficulty(p)) services.menus().openSetup(p);
+                                else kr.labyrinth.core.Text.error(p, "서버 난이도는 관리자만 정할 수 있습니다.");
                             }
                         });
                         return Command.SINGLE_SUCCESS;

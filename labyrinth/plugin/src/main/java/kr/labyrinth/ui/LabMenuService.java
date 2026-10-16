@@ -54,6 +54,10 @@ public final class LabMenuService implements MenuService {
 
     @Override
     public void openSetup(Player p) {
+        if (kr.labyrinth.core.ServerSetup.lockedDifficulty() != null) {
+            Text.error(p, "서버 난이도는 한 번 정하면 바꿀 수 없습니다. (지금: " + services.settings().difficulty().name() + ")");
+            return;
+        }
         if (!kr.labyrinth.core.ServerSetup.canSetDifficulty(p)) {
             Text.error(p, "관리자만 서버 설정을 바꿀 수 있습니다.");
             return;

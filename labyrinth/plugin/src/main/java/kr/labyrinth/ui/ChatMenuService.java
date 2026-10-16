@@ -110,7 +110,7 @@ public class ChatMenuService implements MenuService {
     @Override
     public void openSetup(Player p) {
         p.sendMessage(Text.mm("<gradient:#c9a2ff:#7fd8ff><b>━━━━ 미궁 라비린스 초기 설정 ━━━━</b></gradient>"));
-        p.sendMessage(Text.mm("<gray>서버 난이도를 골라 주세요. 나중에 <white>/미궁 난이도</white> 로 바꿀 수 있습니다."));
+        p.sendMessage(Text.mm("<gray>서버 난이도를 골라 주세요. <#ff9a4d>한 번 정하면 바꿀 수 없습니다."));
         StringBuilder sb = new StringBuilder();
         for (Difficulty d : services.settings().difficulties().values()) {
             // 난이도 배율 한 벌 (관리자가 층 램프를 직접 적었을 때만 1층 값→원래 값, 지하 N층부터 최대)

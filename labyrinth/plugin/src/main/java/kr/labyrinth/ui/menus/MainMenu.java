@@ -110,7 +110,7 @@ public final class MainMenu extends LabMenu {
                     });
         }
         set(45, UiTheme.close(), ctx -> ctx.player().closeInventory());
-        if (kr.labyrinth.core.ServerSetup.canSetDifficulty(p)) {
+        if (kr.labyrinth.core.ServerSetup.canOpenSetup(p)) {
             set(53, Button.icon(Material.COMMAND_BLOCK, "<#ff6b6b><b>서버 설정</b> <gray>(난이도)",
                     List.of("<gray>서버 난이도 · 입구 방식", "", "<#ffd36b>클릭: 초기 설정 메뉴")),
                     ctx -> { click(ctx.player()); services.menus().openSetup(ctx.player()); });

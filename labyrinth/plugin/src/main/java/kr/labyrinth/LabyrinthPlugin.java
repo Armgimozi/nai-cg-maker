@@ -37,6 +37,7 @@ public final class LabyrinthPlugin extends JavaPlugin {
         saveDefaultConfig();
         services = new Services(this);
         services.loadSettings();
+        kr.labyrinth.core.ServerSetup.enforceLock(services);
         services.loadContent();
 
         Bukkit.getPluginManager().registerEvents(new MenuListener(), this);

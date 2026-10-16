@@ -99,7 +99,10 @@ final class AdminCommands {
                         CommandSender s = ctx.getSource().getSender();
                         Text.send(s, "<gray>현재 서버 난이도: <white>" + (services.settings().isDifficultySet()
                                 ? services.settings().difficulty().name() : "미설정"));
-                        if (s instanceof Player p) services.menus().openSetup(p);
+                        if (kr.labyrinth.core.ServerSetup.lockedDifficulty() != null)
+                            Text.send(s, "<dark_gray>한 번 정한 난이도는 바꿀 수 없습니다."
+                                    + (s instanceof Player ? "" : " (꼭 바꿔야 하면 labadmin difficulty unlock)"));
+                        else if (s instanceof Player p) services.menus().openSetup(p);
                     }))
                     .then(Commands.argument("difficulty", StringArgumentType.word()).suggests(difficulties())
                             .executes(ctx -> run(ctx, () -> setDifficulty(ctx.getSource().getSender(),

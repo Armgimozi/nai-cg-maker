@@ -67,7 +67,7 @@ public final class SetupMenu extends LabMenu {
         deco(4, Button.icon(Material.COMMAND_BLOCK, "<#ff6b6b><b>서버 초기 설정</b>",
                 List.of("<gray>미궁 전체에 적용되는 <white>서버 난이도</white>를 정합니다.",
                         "<gray>플레이어는 입장할 때 난이도를 고르지 않습니다.",
-                        "<gray>나중에 <white>/labadmin difficulty</white> 로 바꿀 수 있습니다.",
+                        "<#ff9a4d>한 번 정하면 다시 바꿀 수 없습니다.",
                         "",
                         "<gray>현재: " + (s.isDifficultySet() ? "<white>" + s.difficulty().name() : "<#ff6b6b>미설정 (미궁 입장이 막혀 있음)"))));
         int i = 0;
