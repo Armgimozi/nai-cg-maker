@@ -2,6 +2,7 @@ package kr.labyrinth.dungeon.rooms;
 
 import java.util.ArrayList;
 import java.util.List;
+import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.Params;
 import kr.labyrinth.core.Hints;
 import kr.labyrinth.core.Log;
@@ -31,11 +32,16 @@ import org.bukkit.entity.Player;
  * 실패(시간 초과·기회 소진·안에서 전멸)가 쌓이면 다음 도전 때 {@link #hints()} 단서가 한 단계씩 또렷해진다 (core/Hints).
  * 성공: 보상 상자(gimmick_floor_N, 개인 루팅) + 경험치(층 일반 몹 평균 ×10) + 문 개방. 실패: 페널티 후 문 개방(보상 없음).
  * 안에 살아 있는 파티원이 없으면 초기화되어 다시 도전할 수 있다. 구현 키 = floors.yml gimmick.
+ * <p>
+ * 특별 시련 (GDD §10.1, {@link SpecialTrial}): FloorState 가 방을 만들 때 {@link #special(SpecialTrial)} 로 조건 하나를 붙인다.
+ * 조건을 지키고 성공하면 special_trial_fNN 상자 하나 더 + 경험치 ×(1 + xp_bonus). 깨지면 평소 보상 (실패·힌트 기록 아님).
+ * 판정 재료: 서두름 = {@link #elapsed()}, 무상 = {@link #onPlayerHurt}, 절제 = {@link #onConsume}, 무결 = {@link #noteMistake()}.
  */
 public abstract class GimmickRoom extends Room {
 
     private static final String BAR = "dungeon_gimmick";
     private static final String HINT_BAR = "dungeon_gimmick_hint";
+    private static final String SPECIAL_BAR = "dungeon_gimmick_special";
 
     protected final Params params;
     private long startAt = -1;
@@ -46,6 +52,11 @@ public abstract class GimmickRoom extends Room {
     private String clue;
     private boolean failureRecorded;
     private final List<Entity> displays = new ArrayList<>();
+    /** 특별 시련 조건 (null = 평소 시련). */
+    private SpecialTrial special;
+    private boolean specialBroken;
+    private final SpecialTrial.Counters trial = new SpecialTrial.Counters();
+    private BossBar specialBar;
 
     protected GimmickRoom(FloorState fs, FloorLayout.RoomInfo info) {
         super(fs, info);
@@ -120,9 +131,72 @@ public abstract class GimmickRoom extends Room {
 
     protected double elapsed() { return (System.currentTimeMillis() - startedMs) / 1000.0; }
 
+    /** 제한 시간(초, 0 = 없음) — 특별 시련 서두름 초를 정할 때. */
+    public final int limitSeconds() { return timeLimit(); }
+
+    // ── 특별 시련 ─────────────────────────────────────────────────────────
+
+    /** 특별 시련 조건을 붙인다 (null = 평소 시련). 방 준비(onReady) 전에 부른다. */
+    public void special(SpecialTrial s) {
+        this.special = s;
+        this.specialBroken = false;
+        trial.reset();
+    }
+
+    public SpecialTrial special() { return special; }
+
+    public boolean specialBroken() { return specialBroken; }
+
+    /** 이번 도전에서 센 값 (맞은 횟수·소모품·실수). */
+    public SpecialTrial.Counters trialCounters() { return trial; }
+
+    /** 기믹의 "실수"(기회 하나를 잃음) — 무결 조건이면 깨진다. 실수 자리에서 한 줄로 부른다. */
+    protected final void noteMistake() {
+        if (state != State.ACTIVE) return;
+        trial.mistake();
+        if (special != null && special.condition() == SpecialTrial.Condition.FLAWLESS) breakSpecial();
+    }
+
+    /** 미궁 피해를 받음 (DungeonManager 피해 훅). ratio = 받은 피해 ÷ 최대 HP. 방 안에 있을 때만 센다. */
+    public void onPlayerHurt(Player p, double ratio) {
+        if (special == null || state != State.ACTIVE || p == null || !isInsideOrDoor(p.getLocation())) return;
+        if (!trial.hurt(ratio, special.minDamage())) return;
+        if (special.condition() != SpecialTrial.Condition.UNSCATHED || specialBroken) return;
+        if (!special.kept(trial, partySize())) breakSpecial();
+        else refreshSpecialBar();
+    }
+
+    /** 미궁 소모품 사용 (ConsumableListener → DungeonService.onConsume). 방 안에 있을 때만 센다. */
+    public void onConsume(Player p, ItemDef def) {
+        if (special == null || state != State.ACTIVE || p == null || def == null || !isInsideOrDoor(p.getLocation())) return;
+        trial.consume(SpecialTrial.isPotion(def.use() == null ? null : def.use().str("action", "")));
+        if (special.condition() == SpecialTrial.Condition.ABSTAIN && !special.kept(trial, partySize())) breakSpecial();
+    }
+
+    private void breakSpecial() {
+        if (special == null || specialBroken || state != State.ACTIVE) return;
+        specialBroken = true;
+        for (Player o : fs.allPlayers()) {
+            Text.send(o, "<gray>특별 조건이 깨졌다 — 이번 상자는 평소와 같다.");
+            o.playSound(o.getLocation(), Sound.BLOCK_GLASS_BREAK, 0.6f, 1.4f);
+        }
+        refreshSpecialBar();
+    }
+
+    private void refreshSpecialBar() {
+        if (specialBar == null || special == null) return;
+        double el = running ? elapsed() : 0;
+        specialBar.name(Text.mm("<gold>특별 조건</gold> <gray>· " + special.status(trial, partySize(), el, specialBroken)));
+        specialBar.progress(special.progress(trial, partySize(), el, specialBroken));
+        if (specialBroken) specialBar.color(BossBar.Color.WHITE);
+    }
+
     @Override
     public void onReady() {
-        displays.add(fs.text(fs.tile(info.centerX(), info.centerZ(), 4.2), "<light_purple><b>✦ 시련: " + title() + " ✦</b></light_purple>\n" + rules()));
+        String board = special == null
+                ? "<light_purple><b>✦ 시련: " + title() + " ✦</b></light_purple>\n" + rules()
+                : "<gold><b>✦ 특별 시련: " + title() + " ✦</b></gold>\n" + rules() + "\n<yellow>" + special.line(partySize()) + "</yellow>";
+        displays.add(fs.text(fs.tile(info.centerX(), info.centerZ(), 4.2), board));
     }
 
     @Override
@@ -133,10 +207,17 @@ public abstract class GimmickRoom extends Room {
         lock();
         startAt = System.currentTimeMillis() + 2500;
         failureRecorded = false;
-        fs.title("<light_purple><b>" + title() + "</b></light_purple>", "<gray>시련이 시작됩니다", 5, 40, 10);
+        specialBroken = false;
+        trial.reset();
+        if (special != null) fs.title("<gold><b>특별 시련</b></gold>", "<gray>" + special.shortLine(partySize()), 5, 40, 10);
+        else fs.title("<light_purple><b>" + title() + "</b></light_purple>", "<gray>시련이 시작됩니다", 5, 40, 10);
         fs.actionBar(fs.allPlayers(), "<light_purple>시련의 방</light_purple> <gray>— 문이 닫혔다", 60);
         for (Player o : fs.allPlayers()) o.sendMessage(Text.mm(Text.PREFIX + "<light_purple><b>" + title() + "</b></light_purple><gray> — "
                 + rules().replace("\n", " ")));
+        if (special != null) {
+            for (Player o : fs.allPlayers()) o.sendMessage(Text.mm(Text.PREFIX + "<gold>✦ 특별 시련</gold> <gray>— 오늘의 방은 무언가 다르다. <yellow>"
+                    + special.line(partySize())));
+        }
         clue = Hints.partyClue(fs.services(), fs.run().onlineMembers(), hintKey(), hints());
         if (clue != null) {
             for (Player o : fs.allPlayers()) Text.send(o, "<dark_gray>실패의 기억이 속삭인다…</dark_gray> " + Hints.format(clue));
@@ -157,10 +238,16 @@ public abstract class GimmickRoom extends Room {
                 hintBar = BossBar.bossBar(Text.mm(Hints.format(clue)), 0f, BossBar.Color.WHITE, BossBar.Overlay.PROGRESS);
                 for (Player p : fs.allPlayers()) fs.services().hud().showBossBar(p, HINT_BAR, hintBar);
             }
+            if (special != null) {
+                specialBar = BossBar.bossBar(Text.mm("<gold>특별 조건"), 1f, BossBar.Color.YELLOW, BossBar.Overlay.PROGRESS);
+                for (Player p : fs.allPlayers()) fs.services().hud().showBossBar(p, SPECIAL_BAR, specialBar);
+                refreshSpecialBar();
+            }
             try {
                 begin();
             } catch (Throwable e) {
                 Log.error("기믹 시작 오류: " + title(), e);
+                specialBroken = special != null; // 오류로 넘어간 성공은 특별 보상 없음 (알림 없이)
                 succeed();
             }
             return;
@@ -172,6 +259,10 @@ public abstract class GimmickRoom extends Room {
             Log.error("기믹 진행 오류: " + title(), e);
         }
         if (!running) return;
+        if (special != null && !specialBroken && special.condition() == SpecialTrial.Condition.SWIFT && elapsed() > special.seconds()) {
+            breakSpecial();
+        }
+        if (t % 4 == 0) refreshSpecialBar();
         if (t % 4 == 0 && bar != null) {
             int limit = timeLimit();
             String time = limit > 0 ? " <gray>· 남은 시간 <white>" + Math.max(0, (int) Math.ceil(limit - elapsed())) + "초" : "";
@@ -196,9 +287,21 @@ public abstract class GimmickRoom extends Room {
         unlock();
         Location c = center();
         List<Player> winners = fs.alivePlayers();
-        fs.loot("gimmick_floor_" + fs.floor(), winners, c.clone().add(0, 0.5, 0), "chest");
-        fs.rewardXp(fs.averageMobXp() * 10);
-        fs.title("<gold><b>시련 성공!</b></gold>", "<gray>" + title() + " — 보상을 받았습니다", 5, 50, 10);
+        trial.elapsed(startedMs > 0 ? elapsed() : 0);
+        SpecialTrial.Reward reward = SpecialTrial.reward(fs.floor(), special, specialBroken, trial, partySize(),
+                fs.config().specialTrial().xpBonus());
+        for (String table : reward.tables()) fs.loot(table, winners, c.clone().add(0, 0.5, 0), "chest");
+        fs.rewardXp(fs.averageMobXp() * 10 * reward.xpMult());
+        if (reward.special()) {
+            fs.title("<gold><b>특별 시련 성공!</b></gold>", "<gray>상자 하나가 더 놓였다", 5, 60, 10);
+            for (Player p : fs.allPlayers()) {
+                p.sendMessage(Text.mm(Text.PREFIX + "<gold><b>특별 시련 성공!</b></gold> <gray>상자 하나가 더 놓였다."));
+                p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.7f, 1.2f);
+            }
+            fs.world().spawnParticle(Particle.WAX_ON, c.clone().add(0, 1, 0), 50, 1.2, 0.8, 1.2, 0.2);
+        } else {
+            fs.title("<gold><b>시련 성공!</b></gold>", "<gray>" + title() + " — 보상을 받았습니다", 5, 50, 10);
+        }
         for (Player p : fs.allPlayers()) p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.3f);
         fs.world().spawnParticle(Particle.TOTEM_OF_UNDYING, c.clone().add(0, 1, 0), 60, 2, 1, 2, 0.3);
         for (Entity e : displays) fs.untrack(e);
@@ -236,9 +339,11 @@ public abstract class GimmickRoom extends Room {
         for (Player p : fs.run().onlineMembers()) {
             fs.services().hud().hideBossBar(p, BAR);
             fs.services().hud().hideBossBar(p, HINT_BAR);
+            fs.services().hud().hideBossBar(p, SPECIAL_BAR);
         }
         bar = null;
         hintBar = null;
+        specialBar = null;
     }
 
     /** 이 도전에서 실패 1회 기록 (파티원 전원, 도전마다 한 번). */

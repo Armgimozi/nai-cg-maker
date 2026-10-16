@@ -23,7 +23,8 @@ public record DungeonConfig(
         double restHeal, double fallbackHpMult, double fallbackDamageMult, int stairsWaitSeconds,
         int finalReturnSeconds, int wipeReturnSeconds, int treasureChests, double mimicChance, int mimicMobs,
         double spectatorLeash, double fallDamage, boolean requireNearEntrance, TrapRules traps,
-        Map<Integer, Double> partyMobCount, boolean partyMobReward, double roomClearHeal, double firstClearBonus) {
+        Map<Integer, Double> partyMobCount, boolean partyMobReward, double roomClearHeal, double firstClearBonus,
+        Special specialTrial) {
 
     /** 솔로·2인 전투방 몹 수 배율 기본값 (party_mob_count 가 없거나 비어 있을 때). */
     public static final Map<Integer, Double> DEFAULT_PARTY_MOB_COUNT = Map.of(1, 0.7, 2, 0.9);
@@ -41,6 +42,43 @@ public record DungeonConfig(
      */
     public record TrapRules(double disarmSeconds, double shadowDisarmSeconds, double shadowSense, int disarmGold, double disarmXp,
                             int mimicLockSeconds) {}
+
+    /**
+     * 특별 시련 (dungeon.yml {@code special_trial.*}, GDD §10.1, {@code dungeon.rooms.SpecialTrial}).
+     * chance = 층 방문마다 시련방이 특별 시련일 확률, pityVisits = 이만큼 연속 못 보면 다음은 확정(0 = 끔),
+     * xpBonus = 조건까지 지키면 시련 경험치 × (1 + 값). 조건 값: 서두름 swift.* · 무상 unscathed.* · 절제 abstain.*.
+     */
+    public record Special(boolean enabled, double chance, int pityVisits, double xpBonus,
+                          double swiftTimeFactor, int swiftMinSeconds, int swiftDefaultSeconds,
+                          int unscathedHits, int unscathedPerMember, double unscathedMinDamage,
+                          boolean abstainPotions, boolean abstainScrolls) {
+
+        /** 코드 기본값 (= jar dungeon.yml). */
+        public static final Special DEFAULT = new Special(true, 0.3, 3, 0.5, 0.7, 40, 75, 2, 1, 0.03, true, true);
+
+        /** 같은 값으로 끈 것 ({@code special_trial: false}). */
+        public Special disabled() {
+            return new Special(false, chance, pityVisits, xpBonus, swiftTimeFactor, swiftMinSeconds, swiftDefaultSeconds,
+                    unscathedHits, unscathedPerMember, unscathedMinDamage, abstainPotions, abstainScrolls);
+        }
+
+        static Special of(ConfigurationSection c) {
+            if (c == null) return DEFAULT;
+            Special d = DEFAULT;
+            return new Special(c.getBoolean("enabled", d.enabled()),
+                    Math.max(0, Math.min(1, c.getDouble("chance", d.chance()))),
+                    Math.max(0, Math.min(50, c.getInt("pity_visits", d.pityVisits()))),
+                    Math.max(0, Math.min(5, c.getDouble("xp_bonus", d.xpBonus()))),
+                    Math.max(0.1, Math.min(1, c.getDouble("conditions.swift.time_factor", d.swiftTimeFactor()))),
+                    Math.max(5, c.getInt("conditions.swift.min_seconds", d.swiftMinSeconds())),
+                    Math.max(5, c.getInt("conditions.swift.default_seconds", d.swiftDefaultSeconds())),
+                    Math.max(0, c.getInt("conditions.unscathed.hits", d.unscathedHits())),
+                    Math.max(0, c.getInt("conditions.unscathed.per_member", d.unscathedPerMember())),
+                    Math.max(0, Math.min(1, c.getDouble("conditions.unscathed.min_damage", d.unscathedMinDamage()))),
+                    c.getBoolean("conditions.abstain.potions", d.abstainPotions()),
+                    c.getBoolean("conditions.abstain.scrolls", d.abstainScrolls()));
+        }
+    }
 
     public static DungeonConfig load(JavaPlugin plugin) {
         File f = new File(plugin.getDataFolder(), "dungeon.yml");
@@ -92,7 +130,9 @@ public record DungeonConfig(
                         : parsePartyMobCount(c.getConfigurationSection("party_mob_count")),
                 c.getBoolean("party_mob_reward", true),
                 Math.max(0, Math.min(1, c.getDouble("room_clear_heal", 0.15))),
-                Math.max(0, Math.min(2, c.getDouble("first_clear_bonus", 0.4))));
+                Math.max(0, Math.min(2, c.getDouble("first_clear_bonus", 0.4))),
+                c.get("special_trial", null) instanceof Boolean on && !on ? Special.DEFAULT.disabled()
+                        : Special.of(c.getConfigurationSection("special_trial")));
     }
 
     /**

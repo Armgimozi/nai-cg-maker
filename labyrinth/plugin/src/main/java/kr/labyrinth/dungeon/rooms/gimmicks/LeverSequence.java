@@ -149,6 +149,7 @@ public final class LeverSequence extends GimmickRoom {
             return true;
         }
         attempts--;
+        noteMistake();
         fs.sound(block.getLocation(), Sound.BLOCK_ANVIL_LAND, 0.6f, 0.6f);
         if (attempts <= 0) {
             failSpawn();

@@ -67,3 +67,25 @@ spectator_leash: 28
 fall_damage: 0.10
 # 입장 시 파티원이 입구 근처에 있어야 하는가 (반경은 config.yml entrance.radius)
 require_near_entrance: true
+# 특별 시련 (GDD §10.1): 층마다 하나 있는 시련방이 이 확률로 "특별 시련"이 된다. 기믹은 같고 조건 하나가 붙는다.
+#   기믹 성공 + 조건 지킴 → 평소 상자(gimmick_floor_N)에 더해 특별 상자(loot.yml special_trial_fNN, 개인 루팅) + 경험치 ×(1 + xp_bonus)
+#   조건이 깨져도 실패가 아니다 (평소 상자만). 층마다 조건 후보는 floors.yml special_trial 로 덮어쓸 수 있다 (없으면 기본표)
+#   끄기 = enabled: false 또는 special_trial: false
+special_trial:
+  enabled: true
+  chance: 0.3                # 층 방문마다 시련방이 특별 시련일 확률 (방 시드로 고정)
+  pity_visits: 3             # 같은 층을 이만큼 연속으로 특별 시련 없이 돌면 다음 방문은 확정 (파티원 중 가장 큰 값, 0 = 끔)
+  xp_bonus: 0.5              # 조건까지 지키면 시련 경험치 ×1.5
+  conditions:
+    swift:                   # 서두름 — 기믹 시작부터 성공까지 N초 이하 (기믹마다 기본표, 없으면 제한 시간 × time_factor, 그것도 없으면 default_seconds)
+      time_factor: 0.7
+      min_seconds: 40
+      default_seconds: 75
+    unscathed:               # 무상 — 방 안에서 최대 HP min_damage 이상 맞은 횟수 ≤ hits + per_member × (인원 − 1). 지속 피해 틱은 세지 않음
+      hits: 2
+      per_member: 1
+      min_damage: 0.03
+    abstain:                 # 절제 — 방 안에서 물약(마시는 것)·주문서(귀환·부활 등)를 쓰지 않음
+      potions: true
+      scrolls: true
+    flawless: {}             # 무결 — 기믹의 실수(기회를 잃음) 0번. lever_sequence · resonance_tune · book_cipher · gear_timing 만

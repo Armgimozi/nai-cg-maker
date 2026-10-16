@@ -86,8 +86,45 @@ public final class DungeonManager implements DungeonService, Listener {
 
     // ── 수명 ──────────────────────────────────────────────────────────────
 
+    /** 특별 시련 무상 조건: 플레이어가 받은 미궁 피해를 그 자리 시련방에 알린다 (지속 피해 틱 제외). */
+    private final kr.labyrinth.combat.DamageService.Hook trialHurtHook = new kr.labyrinth.combat.DamageService.Hook() {
+        @Override
+        public void after(kr.labyrinth.combat.DamageContext ctx) {
+            if (!(ctx.target() instanceof Player p) || ctx.dealt() <= 0) return;
+            if (!kr.labyrinth.dungeon.rooms.SpecialTrial.countsAsHit(ctx.sourceId())) return;
+            kr.labyrinth.dungeon.rooms.GimmickRoom room = trialRoomOf(p);
+            if (room == null) return;
+            double max = services.stats().maxHp(p);
+            if (max > 0) room.onPlayerHurt(p, ctx.dealt() / max);
+        }
+    };
+
+    /** 이 플레이어가 서 있는 특별 시련 방 (없으면 null). */
+    private kr.labyrinth.dungeon.rooms.GimmickRoom trialRoomOf(Player p) {
+        Run r = byPlayer.get(p.getUniqueId());
+        if (r == null) return null;
+        FloorState fs = r.floorOf(p);
+        if (fs == null) return null;
+        for (Room room : fs.rooms()) {
+            if (room instanceof kr.labyrinth.dungeon.rooms.GimmickRoom g && g.special() != null && g.isInsideOrDoor(p.getLocation())) return g;
+        }
+        return null;
+    }
+
+    @Override
+    public void onConsume(Player p, kr.labyrinth.content.ItemDef def) {
+        if (p == null || def == null) return;
+        try {
+            kr.labyrinth.dungeon.rooms.GimmickRoom room = trialRoomOf(p);
+            if (room != null) room.onConsume(p, def);
+        } catch (Throwable t) {
+            Log.error("특별 시련 소모품 처리 오류", t);
+        }
+    }
+
     void enable() {
         config = DungeonConfig.load(services.plugin());
+        services.damage().addHook(trialHurtHook);
         labWorld = new LabyrinthWorld(services.plugin(), services.settings().worldName());
         labWorld.loadOrCreate(config.resetWorldOnStartup());
         allocator = new InstanceAllocator(config.maxInstances() + 256);
@@ -110,6 +147,7 @@ public final class DungeonManager implements DungeonService, Listener {
 
     void disable() {
         SelfTest.abort();
+        services.damage().removeHook(trialHurtHook);
         if (ticker != null) ticker.cancel();
         HandlerList.unregisterAll(this);
         for (Run r : new ArrayList<>(runs.values())) {

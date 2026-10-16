@@ -28,4 +28,7 @@ public record FloorDef(
 
     public List<String> palette(String key) { return palette.getOrDefault(key, List.of()); }
     public int rooms(String type) { return rooms.getOrDefault(type, 0); }
+
+    /** floors.yml {@code special_trial: {conditions: [..], seconds: N}} 덮어쓰기 (없으면 빈 Params = 기본표, dungeon.rooms.SpecialTrial). */
+    public Params specialTrial() { return raw == null ? Params.EMPTY : raw.sub("special_trial"); }
 }

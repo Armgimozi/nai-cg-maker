@@ -63,6 +63,11 @@ public interface DungeonService {
     /** 채팅에 지금 층의 탐험 지도(지나간 길만)를 그린다. 미궁 밖이면 안내 후 false. */
     default boolean showMap(Player player) { return false; }
 
+    // ── 특별 시련 (절제 조건) ──
+
+    /** 미궁 소모품을 썼다 (items: 마신 물약·귀환/부활/망각 주문서). 그 자리 시련방이 센다. */
+    default void onConsume(Player player, kr.labyrinth.content.ItemDef def) {}
+
     // ── ui 담당 추가 (HUD 사이드바) — dungeon 구현이 더 정확한 값으로 재정의해도 된다 ──
 
     /**

@@ -189,6 +189,7 @@ public final class GearTiming extends GimmickRoom {
                     else newRound();
                 }
             } else {
+                noteMistake();
                 hurt(p, params.dbl("fail_damage", 0.06), "gear_backlash");
                 fs.sound(at, Sound.BLOCK_ANVIL_LAND, 0.7f, 1.4f);
                 fs.world().spawnParticle(Particle.CRIT, at, 12, 0.3, 0.3, 0.3, 0.2);

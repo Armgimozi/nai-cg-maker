@@ -148,6 +148,16 @@ final class ConsumableListener implements Listener, DamageInterceptor {
         }
         services.hud().refresh(p);
         services.hud().actionBar(p, Text.mm("<#9be89b>" + def.name() + " <gray>— " + ItemTooltip.useText(u)), 40);
+        used(p, def);
+    }
+
+    /** 특별 시련 절제 조건 — 미궁이 그 자리 시련방에 알린다. */
+    private void used(Player p, ItemDef def) {
+        try {
+            services.dungeon().onConsume(p, def);
+        } catch (Throwable t) {
+            kr.labyrinth.core.Log.error("소모품 사용 알림 실패: " + def.id(), t);
+        }
     }
 
     // ── 우클릭 (return / stat_reset / revive) ─────────────────────────────
@@ -212,6 +222,7 @@ final class ConsumableListener implements Listener, DamageInterceptor {
                 cancelCast(p, null);
                 if (!consumeOne(p, def.id())) return;
                 startCooldown(p, def);
+                used(p, def);
                 services.dungeon().leave(p);
                 p.playSound(p.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.8f, 1.2f);
             }
@@ -238,6 +249,7 @@ final class ConsumableListener implements Listener, DamageInterceptor {
             return;
         }
         if (!consumeOne(p, def.id())) return;
+        used(p, def);
         int back = d.resetAllocation();
         startCooldown(p, def);
         services.stats().recalc(p);
@@ -304,6 +316,7 @@ final class ConsumableListener implements Listener, DamageInterceptor {
         Params u = def.use();
         consumeOne(p, def.id());
         startCooldown(p, def);
+        used(p, def);
         double hp = services.stats().maxHp(p) * u.dbl("amount", 0.3);
         int inv = (int) Math.round(u.dbl("invulnerable", 2.0) * 20);
         skills.invulnerable(p, inv);
