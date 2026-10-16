@@ -30,6 +30,9 @@ public interface CraftingService {
         kr.labyrinth.core.Text.error(player, "제련소가 아직 문을 열지 않았습니다.");
     }
 
+    /** 제련소를 탭을 골라 연다 (0.3.6 — tab = {@code smelt}·{@code carve}·{@code pickaxe}, 모르면 제련). 광산 관리소 버튼이 쓴다. */
+    default void openSmelter(Player player, String tab) { openSmelter(player); }
+
     /**
      * 광부 상점 (0.3.6, Q3): 첫 구리 곡괭이 무료 1번 (ext mine.free_pickaxe) · 이후 구리 곡괭이 50G · 광석·주괴·보석 팔기 (SellMenu 그대로).
      * 광산 관리소({@code mine.MineApi#openOffice})의 곡괭이·팔기 탭이 이것을 쓴다.

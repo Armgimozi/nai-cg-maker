@@ -140,15 +140,3 @@ def macro_spot(reach_max, L, pick):
     return reach_max / LEVELS[L]['regen']
 
 
-def stamina_minutes(bpm):
-    """기력이 바닥나기까지 분 (가득 찬 상태에서, 블록/분 bpm 으로 쉬지 않고)."""
-    drain = bpm * P.STAMINA['cost_per_block'] - P.STAMINA['regen_per_min']
-    return float('inf') if drain <= 0 else P.STAMINA['max'] / drain
-
-
-def day_yield_share(bpm, hours=24.0):
-    """하루 hours 시간 내내 bpm 으로 캘 때 받는 수확 몫 (지침 ×0.3 포함)."""
-    total = bpm * hours * 60
-    full = min(total, (P.STAMINA['max'] + P.STAMINA['regen_per_min'] * hours * 60) / P.STAMINA['cost_per_block'])
-    got = full + (total - full) * P.STAMINA['tired_yield']
-    return got / total if total else 1.0

@@ -214,8 +214,11 @@ public final class LabCraftingService implements CraftingService {
 
     /** 제련소 (구역 제련공 · interact smelter · 광산 관리소). 레벨 조건 없음. */
     @Override
-    public void openSmelter(Player player) {
-        new SmelterMenu(services, this).open(player);
+    public void openSmelter(Player player) { openSmelter(player, "smelt"); }
+
+    @Override
+    public void openSmelter(Player player, String tab) {
+        new SmelterMenu(services, this, SmelterMenu.Tab.of(tab)).open(player);
         player.playSound(player.getLocation(), Sound.BLOCK_BLASTFURNACE_FIRE_CRACKLE, 0.6f, 1.0f);
     }
 

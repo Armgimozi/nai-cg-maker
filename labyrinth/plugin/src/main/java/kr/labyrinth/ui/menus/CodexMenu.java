@@ -55,7 +55,8 @@ public final class CodexMenu extends LabMenu {
 
     private enum Tab {
         WEAPON("무기", Material.IRON_SWORD), ARMOR("방어구", Material.IRON_CHESTPLATE), ACCESSORY("장신구", Material.AMETHYST_SHARD),
-        MATERIAL("재료", Material.IRON_NUGGET), CONSUMABLE("소모품", Material.POTION), MOB("몬스터", Material.SPIDER_EYE),
+        MATERIAL("재료", Material.IRON_NUGGET), MINE("광산", Material.IRON_PICKAXE), CONSUMABLE("소모품", Material.POTION),
+        MOB("몬스터", Material.SPIDER_EYE),
         BOSS("보스", Material.WITHER_SKELETON_SKULL);
 
         final String label;
@@ -71,7 +72,7 @@ public final class CodexMenu extends LabMenu {
     private static final ArmorLook[] LOOKS = {null, ArmorLook.HEAVY, ArmorLook.LIGHT, ArmorLook.CLOTH, ArmorLook.PLAIN};
 
     private static final int PER_PAGE = 36; // 9..44
-    private static final int FILTER_SLOT = 7, PART_SLOT = 50, WEARABLE_SLOT = 51;
+    private static final int FILTER_SLOT = 48, PART_SLOT = 50, WEARABLE_SLOT = 51;   // 0.3.6: 탭이 8개 (0~7)
 
     private Tab tab = Tab.WEAPON;
     private Rarity rarity; // null = 전체
@@ -200,8 +201,9 @@ public final class CodexMenu extends LabMenu {
             case WEAPON -> d.type() == ItemType.WEAPON;
             case ARMOR -> d.type() == ItemType.ARMOR;
             case ACCESSORY -> d.type() == ItemType.ACCESSORY;
-            case MATERIAL -> d.type() == ItemType.MATERIAL;
-            case CONSUMABLE -> d.type() == ItemType.CONSUMABLE || d.type() == ItemType.KEY;
+            case MATERIAL -> d.type() == ItemType.MATERIAL && !d.isMineMaterial();
+            case MINE -> d.isMineMaterial() || d.type() == ItemType.TOOL;   // 0.3.6: 광석·주괴·보석·곡괭이
+            case CONSUMABLE -> d.type() == ItemType.CONSUMABLE || d.type() == ItemType.KEY || d.type() == ItemType.BLUEPRINT;
             default -> false;
         };
     }
@@ -528,12 +530,13 @@ public final class CodexMenu extends LabMenu {
      * 중 1~2곳이고, 보물 상자 · 몬스터 는 재료·소모품용으로 남긴다.
      */
     public static final List<String> SOURCE_GROUPS = List.of("보스", "정예", "몬스터·상자", "보물 상자", "시련방", "특별 시련",
-            "금고·미믹", "대장간", "상인", "칭호 보상", "시작 지급", "몬스터");
+            "금고·미믹", "광산", "제련소", "대장간", "상인", "칭호 보상", "시작 지급", "몬스터");
     /** 층을 모아 "지하 9·10층" 으로 적는 묶음 (장비는 층 없이 종류 이름만). */
     private static final Set<String> FLOOR_GROUPS = Set.of("몬스터·상자", "보물 상자", "시련방", "특별 시련", "금고·미믹");
     // 대장간 = 대장장이 (재료 ×개수 · … · 골드)
-    private static final Map<String, String> SOURCE_COLORS = Map.of("보스", "#ff6b6b", "정예", "#ffb52e", "대장간", "#7fd8ff",
-            "상인", "#7fe07f", "칭호 보상", "#c9a2ff", "시작 지급", "#9be89b", "특별 시련", "#9fe3ff", "금고·미믹", "#ffd36b");
+    private static final Map<String, String> SOURCE_COLORS = Map.ofEntries(Map.entry("보스", "#ff6b6b"), Map.entry("정예", "#ffb52e"),
+            Map.entry("대장간", "#7fd8ff"), Map.entry("상인", "#7fe07f"), Map.entry("칭호 보상", "#c9a2ff"), Map.entry("시작 지급", "#9be89b"),
+            Map.entry("특별 시련", "#9fe3ff"), Map.entry("금고·미믹", "#ffd36b"), Map.entry("광산", "#e8c58a"), Map.entry("제련소", "#ff9a5a"));
     /** 도감 툴팁에서 획득처에 비워 두는 최대 줄 수 (넘치면 장비 설명 쪽이 빈 줄·스킬 설명을 줄인다). */
     public static final int SOURCE_LINES = 6;
     /** 획득처 줄바꿈 글자 수 (툴팁 폭). */
@@ -588,7 +591,8 @@ public final class CodexMenu extends LabMenu {
             collectItems(c, c.lootTable(e.getKey()), items, new HashSet<>(), new HashSet<>());
             for (String id : items) {
                 ItemDef d = c.item(id);
-                boolean gear = d != null && d.isGear();
+                // 장비와 광산 재료는 층 숫자 없이 (0.3.6 — 광석·주괴·보석·곡괭이 글에 층 표지 없음)
+                boolean gear = d != null && (d.isGear() || d.isMineMaterial() || d.isTool());
                 for (Src s : e.getValue()) add(src, id, s.group(), gear ? s.gearLabel() : s.label());
             }
         }
@@ -601,8 +605,12 @@ public final class CodexMenu extends LabMenu {
                 sb.append(md == null ? m.getKey() : Text.strip(md.name())).append(" ×").append(m.getValue());
             }
             if (r.gold() > 0) sb.append(n > 0 ? ", " : "").append(r.gold()).append("G");
-            add(src, r.result(), "대장간", sb.toString());
+            boolean smelter = kr.labyrinth.mine.MineNames.STATION_SMELTER.equals(r.station());
+            add(src, r.result(), smelter ? "제련소" : "대장간", sb.toString());
         }
+        // 0.3.6 광산: 광석·보석이 많이 나는 층 이름 (층 번호 없이, 몫이 큰 순 2곳)
+        for (String id : c.mine().ores().keySet()) for (String name : mineHomes(c, id, true)) add(src, id, "광산", name);
+        for (String id : c.mine().gems().keySet()) for (String name : mineHomes(c, id, false)) add(src, id, "광산", name);
         for (NpcDef npc : c.npcs().values()) {
             if (npc.shop() == null) continue;
             for (NpcDef.ShopEntry s : npc.shop()) add(src, s.item(), "상인", ItemTooltip.shortName(npc.name()) + " " + s.price() + "G");
@@ -620,6 +628,25 @@ public final class CodexMenu extends LabMenu {
         src.forEach((id, groups) -> out.put(id, List.copyOf(formatSources(groups))));
         return out;
     }
+
+    /** 광석(ore=true)·보석이 많이 나는 광산 층 이름, 몫이 큰 순 최대 2곳 (층 번호 없이 이름만). */
+    static List<String> mineHomes(Content c, String id, boolean ore) {
+        List<MineHome> homes = new ArrayList<>();
+        for (var l : c.mine().levels()) {
+            Map<String, Integer> w = ore ? l.oreWeights() : l.gemWeights();
+            if (w == null) continue;
+            int total = 0;
+            for (int v : w.values()) total += v;
+            Integer mine = w.get(id);
+            if (mine != null && mine > 0 && total > 0) homes.add(new MineHome(Text.strip(l.name()).trim(), mine / (double) total));
+        }
+        homes.sort(Comparator.comparingDouble(MineHome::share).reversed());
+        List<String> out = new ArrayList<>();
+        for (int i = 0; i < homes.size() && i < 2; i++) out.add(homes.get(i).name());
+        return out;
+    }
+
+    private record MineHome(String name, double share) {}
 
     /** label == null = 층 없이 종류만 (장비의 층 묶음). */
     private static void add(Map<String, Map<String, Set<String>>> src, String id, String group, String label) {
@@ -648,7 +675,9 @@ public final class CodexMenu extends LabMenu {
                 List<String> fs = new ArrayList<>();
                 for (int f : floors) fs.add(String.valueOf(f));
                 if (!fs.isEmpty()) parts.add("지하 " + String.join("·", fs) + "층");
-            } else if (g.equals("대장간")) {
+            } else if (g.equals("광산")) {
+                parts.add("많이 나는 곳: " + String.join(" · ", labels));
+            } else if (g.equals("대장간") || g.equals("제련소")) {
                 for (String l : labels) parts.addAll(List.of(l.split(", "))); // 재료마다 끊어 줄바꿈
             } else {
                 parts.addAll(labels);

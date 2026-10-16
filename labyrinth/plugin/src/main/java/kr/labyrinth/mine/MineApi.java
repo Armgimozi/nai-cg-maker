@@ -26,7 +26,7 @@ public interface MineApi {
     /** 광산 관리소 메뉴 (곡괭이·제련·새기기·벼리기·팔기·현황). interact mine_office · NPC miner. */
     void openOffice(Player player);
 
-    /** 광부 게시판 (광맥 현황·기력·기록). interact mine_info. */
+    /** 광부 게시판 (광맥 현황). interact mine_info. */
     void openInfo(Player player);
 
     /**

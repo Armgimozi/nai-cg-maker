@@ -45,6 +45,9 @@ final class MineLift {
         new LiftMenu(p, module.isMineWorld(p.getWorld())).open(p);
     }
 
+    /** glyphs.yml menus.mine_lift: 마을로 0 · 층 4·13·22·31·40·49 (위에서 아래로 깊어짐) · 닫기 8. */
+    static final int[] LEVEL_SLOTS = {4, 13, 22, 31, 40, 49};
+
     private final class LiftMenu extends Menu {
         private final boolean inMine;
 
@@ -57,7 +60,7 @@ final class MineLift {
         protected void build(Player viewer) {
             UiTheme.frame(this, "mine_lift", 6);
             List<MineLevel> levels = module.levels();
-            int[] slots = {11, 13, 15, 29, 31, 33};
+            int[] slots = LEVEL_SLOTS;
             MineLevel here = module.levelAt(viewer.getLocation());
             for (int i = 0; i < levels.size() && i < slots.length; i++) {
                 MineLevel l = levels.get(i);
@@ -81,13 +84,13 @@ final class MineLift {
                 });
             }
             if (inMine) {
-                set(49, Button.icon(Material.OAK_DOOR, "<#ffd36b>마을로", List.of("<gray>광산을 나가 마을로 올라갑니다.", "", "<yellow>클릭: 올라가기")),
+                set(0, Button.icon(Material.OAK_DOOR, "<#ffd36b>마을로", List.of("<gray>광산을 나가 마을로 올라갑니다.", "", "<yellow>클릭: 올라가기")),
                         ctx -> {
                             ctx.player().closeInventory();
                             rideUp(ctx.player());
                         });
             }
-            set(53, UiTheme.close(), ctx -> ctx.player().closeInventory());
+            set(8, UiTheme.close(), ctx -> ctx.player().closeInventory());
         }
     }
 

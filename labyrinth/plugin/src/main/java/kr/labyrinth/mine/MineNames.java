@@ -20,7 +20,7 @@ public final class MineNames {
     public static final String INTERACT_OFFICE = "mine_office";
     /** 구역 제련소 (CraftingService.openSmelter). 레시피 station 이름과 같다. */
     public static final String INTERACT_SMELTER = "smelter";
-    /** 광부 숙소 게시판 (광맥 현황·기력·기록). */
+    /** 광부 숙소 게시판 (광맥 현황). */
     public static final String INTERACT_INFO = "mine_info";
     public static final List<String> INTERACTS = List.of(INTERACT_LIFT, INTERACT_OFFICE, INTERACT_SMELTER, INTERACT_INFO);
 
@@ -50,19 +50,7 @@ public final class MineNames {
     /** 지금 쓰는 ext 키 (계약 §0 뒤). */
     public static final List<String> EXT_KEYS = List.of(EXT_FREE_PICKAXE, EXT_MAT036_NOTICE);
 
-    /** @deprecated 계약 §0-3 (광맥 공유): 개인 광맥 기록이 없다 — 광맥 상태는 광산 월드 쪽. 쓰지 않는다. */
-    @Deprecated
-    public static final String EXT_DEPLETED = "mine.depleted";
-    /** @deprecated 계약 §0-3: 개인 청사진 해시 기록이 없다 (층 해시는 &lt;광산 월드&gt;/labyrinth-mine.yml). */
-    @Deprecated
-    public static final String EXT_HASH = "mine.hash";
-    /** @deprecated 계약 §0-1 (기력 없음). */
-    @Deprecated
-    public static final String EXT_STAMINA = "mine.stamina";
-    /** @deprecated 계약 §0-1 (기력 없음). */
-    @Deprecated
-    public static final String EXT_STAMINA_AT = "mine.stamina_at";
-    /** 주인 늦은 결정(계약 §0)으로 없앤 ext 키 — Q0 mine.json names.ext 에 남아 있어도 쓰지 않는다. */
+    /** 주인 늦은 결정(계약 §0)으로 없앤 ext 키 (개인 광맥·기력) — 계약 mine.json 에서도 뺐다. */
     public static final List<String> EXT_REMOVED_036 = List.of("mine.depleted", "mine.hash", "mine.stamina", "mine.stamina_at");
 
     // ── PDC ──

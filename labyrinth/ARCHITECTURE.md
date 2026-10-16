@@ -998,6 +998,7 @@ special_trial:
 - **보상**: `SpecialTrial.reward(층, 조건, 깨짐, 센 값, 인원, xp_bonus)` → 표 목록(`gimmick_floor_N` 언제나 + 지켰으면 `special_trial_fNN`) · 경험치 배율.
 - **자가 진단**: 층마다 `special_trials`(확정된 특별 시련) · `special_conditions_checked`(조건 4종 × 지킴→어김) · `special_loot_items`(특별 상자를 사람 없이 굴린 개수).
 
+
 ### 6.10 0.3.5.1 야생 막기 (config.yml `wild` — 키가 없어도 코드 기본값, GDD §2.8)
 ```yaml
 wild:                 # wild: false = 통째로 끔 (Settings.Wild.OFF)
@@ -1037,6 +1038,20 @@ wild:                 # wild: false = 통째로 끔 (Settings.Wild.OFF)
   (이유 47 × 좀비·소·갑옷 거치대·마네킹을 광장에 실제 소환, 네더·엔드 NATURAL 허용, 스폰 상한 0, 광장 40칸 위 돼지 번개 — 시험 동안 플러그인 청크 티켓을
   걸고 청크가 ENTITY_TICKING 이 된 뒤 번개, 돼지에게 zap·변신 이벤트가 실제로 왔을 때만 판정 · 안 왔으면 `skip (번개 안 맞음)`). `village selftest` 줄에 `border=ok`
   (월드 스폰·광장·입구·NPC·보호 상자가 마을 경계 안), `village info` 에 한 줄 요약.
+
+### 6.11 0.3.6 광산 · 광석 재료 · 도안 (전부 추가 — 키가 없어도 동작)
+- `content/mine.yml` (생성물, `tools/mine/gen_mine.py` ← 계약 `tools/data/036/mine.json`): 층 6 · 광석 6 · 보석 6 · 블록 · 바이옴 · 캐는 초.
+  `ContentParser` → `MineDef.parse` → `Content.mine()`. 청사진 `resources/mine/levels/L1–L6.json`.
+- items.yml `type: tool` + `tool: {kind: pickaxe, tier, speed: {광석 tier: 배율}, bonus}` · `model: {shape: pickaxe}` (팩 voxel 틀).
+  만들 때·다시 그릴 때 `services.mine().applyPickaxe` (Tool 규칙·CAN_BREAK·UNBREAKABLE). 광산 재료 = `mine_level`·`mine_kind: ore|ingot|gem`.
+- items.yml `type: blueprint` (`blueprint` 하나, 가르치는 레시피 id 는 PDC) · loot.yml 항목 `{blueprint: 단계, chance}` (LootRoller 가 이웃 단계 2:7:1 로
+  희귀 이상 장비 레시피 하나를 고름 · `gen_036_blueprints.py` 가 generate() **마지막** 단계로 넣음).
+- recipes.yml `station: blacksmith|smelter` (없으면 대장간) · `category: tool`. 제련소 = `CraftingService.openSmelter(p[, tab])` (smelt·carve·pickaxe).
+- items.yml `sources` 에 `mine`·`smelt` (툴팁 "광산"·"제련소"). 도감 "광산" 탭 = 광산 재료 + 도구.
+- config `mine:` (MineConfig — 광맥 공유 regen_players_cap · 기력 없음) · `sell.mine` · `starter_kit` (+ copper_pickaxe, 0.3.5.1 기본 목록은 새 기본으로 읽음) · `blueprints:`.
+- `mine.MineApi` (Services.mine(), 광산이 꺼지면 Noop): openMine (메인 메뉴·/미궁 광산) · openLift · openOffice · openInfo · applyPickaxe · isMineWorld.
+  0.3.6 은 마을 구역(MineLinks.district)이 없다 → 구역 없음 경로(얕은 갱도 승강장).
+- glyphs.yml 메뉴 `smelter`·`mine_lift`·`mine_office`·`setup_village` 는 소켓 배경 (UiTheme.SOCKET_LAYOUT) — 버튼 칸 = `menus.<id>.slots`.
 
 ## 7. 성능·안정성 규칙
 

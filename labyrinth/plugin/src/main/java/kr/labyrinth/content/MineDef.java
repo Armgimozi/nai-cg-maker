@@ -8,7 +8,7 @@ import java.util.Map;
 
 /**
  * 광산 설계 데이터 (content/mine.yml, 0.3.6 — 자동 갱신 파일). 원본 계약: tools/data/036/mine.json ({@code levels}·{@code ores}·{@code gems}
- * 를 그대로 옮김, Q1 tools/mine/gen_mine.py). 손잡이(재생 분·기력·fx·auto_build)는 config.yml {@code mine:} 에 있다 (R §3-16).
+ * 를 그대로 옮김, Q1 tools/mine/gen_mine.py). 손잡이(재생 분·fx·안전)는 config.yml {@code mine:} 에 있다 (R §3-16).
  * <p>
  * 층 6개는 모두 처음부터 열려 있고 레벨 조건이 없다. 층마다 광석·보석이 섞여 있다 ({@link Level#oreWeights()}).
  * 광석·보석 종류마다 바닐라 블록이 하나씩, 12개 모두 다르다 ({@link #byBlock}). mine.yml 이 없으면 {@link #EMPTY} (광산 꺼짐).

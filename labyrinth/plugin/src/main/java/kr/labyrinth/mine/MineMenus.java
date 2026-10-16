@@ -32,31 +32,37 @@ final class MineMenus {
         protected void build(Player viewer) {
             UiTheme.frame(this, "mine_office", 6);
             var s = module.services();
-            set(20, UiTheme.item("copper_pickaxe", Material.IRON_PICKAXE, "<#e8843f>곡괭이",
+            // glyphs.yml menus.mine_office: 탭 1·2·3·5·6·7 = 곡괭이·제련·새기기·벼리기·팔기·현황 · 안내 4 · 지갑 49
+            set(1, UiTheme.item("copper_pickaxe", Material.IRON_PICKAXE, "<#e8843f>곡괭이",
                     List.of("<gray>첫 구리 곡괭이는 무료입니다.", "<gray>잃었으면 다시 살 수 있습니다.", "", "<yellow>클릭: 열기")),
                     ctx -> s.crafting().openMineShop(ctx.player()));
-            set(22, UiTheme.item("copper_ingot", Material.COPPER_INGOT, "<#ff9a5a>제련",
+            set(2, UiTheme.item("copper_ingot", Material.COPPER_INGOT, "<#ff9a5a>제련",
                     List.of("<gray>광석 둘을 주괴 하나로 녹입니다.", "", "<yellow>클릭: 열기")),
-                    ctx -> s.crafting().openSmelter(ctx.player()));
-            set(24, UiTheme.item("quartz", Material.QUARTZ, "<#9ccaff>새기기",
+                    ctx -> s.crafting().openSmelter(ctx.player(), "smelt"));
+            set(3, UiTheme.item("quartz", Material.QUARTZ, "<#9ccaff>새기기",
                     List.of("<gray>보석과 정수로 강화석을 만듭니다.", "", "<yellow>클릭: 열기")),
-                    ctx -> s.crafting().openSmelter(ctx.player()));
-            set(30, UiTheme.item("iron_pickaxe", Material.DIAMOND_PICKAXE, "<#c9ced6>곡괭이 벼리기",
+                    ctx -> s.crafting().openSmelter(ctx.player(), "carve"));
+            set(4, Button.icon(Material.LANTERN, "<#e8c58a>광산 관리소",
+                    List.of("<gray>여섯 층 모두 처음부터 열려 있습니다.", "<gray>좋은 곡괭이일수록 빨리 캐고",
+                            "<gray>더 단단한 광석을 캘 수 있습니다.", "<gray>광맥은 모두가 함께 씁니다.")), null);
+            set(5, UiTheme.item("iron_pickaxe", Material.DIAMOND_PICKAXE, "<#c9ced6>곡괭이 벼리기",
                     List.of("<gray>쓰던 곡괭이를 더 단단한 곡괭이로", "<gray>다시 벼립니다.", "", "<yellow>클릭: 열기")),
-                    ctx -> s.crafting().openSmelter(ctx.player()));
-            set(32, Button.icon(Material.GOLD_NUGGET, "<#ffd36b>팔기",
+                    ctx -> s.crafting().openSmelter(ctx.player(), "pickaxe"));
+            set(6, Button.icon(Material.GOLD_NUGGET, "<#ffd36b>팔기",
                     List.of("<gray>광석·주괴·보석을 팝니다.", "<gray>도구는 팔 수 없습니다.", "", "<yellow>클릭: 열기")),
                     ctx -> {
                         var sell = kr.labyrinth.items.sell.SellService.get();
                         if (sell != null) sell.open(ctx.player());
                         else s.crafting().openMineShop(ctx.player());
                     });
-            set(40, Button.icon(Material.MAP, "<#7fd8ff>광맥 현황",
+            set(7, Button.icon(Material.MAP, "<#7fd8ff>광맥 현황",
                     List.of("<gray>층마다 다 찬 광맥과 보석 노드.", "", "<yellow>클릭: 보기")),
                     ctx -> info(ctx.player()));
             if (module.isMineWorld(viewer.getWorld())) {
-                set(49, Button.icon(Material.IRON_CHAIN, "<#e8c58a>승강기", List.of("<yellow>클릭: 열기")), ctx -> module.lift().open(ctx.player()));
+                set(22, Button.icon(Material.IRON_CHAIN, "<#e8c58a>승강기",
+                        List.of("<gray>다른 층으로 가거나 마을로 올라갑니다.", "", "<yellow>클릭: 열기")), ctx -> module.lift().open(ctx.player()));
             }
+            set(49, Button.icon(Material.GOLD_NUGGET, "<#ffd27a>보유 골드 " + Text.num(s.data().get(viewer).gold()), List.of()), null);
             set(53, UiTheme.close(), ctx -> ctx.player().closeInventory());
         }
     }

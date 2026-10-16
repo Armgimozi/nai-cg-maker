@@ -32,31 +32,47 @@ import org.bukkit.inventory.ItemStack;
 public final class SmelterMenu extends Menu {
 
     enum Tab {
-        SMELT("제련", "<gray>광석 2개를 녹여 주괴 1개"),
-        CARVE("새기기", "<gray>보석 + 미궁 정수 → 강화석 2개"),
-        TOOL("곡괭이", "<gray>쓰던 곡괭이를 더 좋은 금속으로");
+        SMELT("smelt", "제련", "<gray>광석 2개를 녹여 주괴 1개"),
+        CARVE("carve", "새기기", "<gray>보석 + 미궁 정수 → 강화석 2개"),
+        TOOL("pickaxe", "곡괭이", "<gray>쓰던 곡괭이를 더 좋은 금속으로");
 
+        final String key;
         final String label;
         final String hint;
 
-        Tab(String label, String hint) {
+        Tab(String key, String label, String hint) {
+            this.key = key;
             this.label = label;
             this.hint = hint;
         }
+
+        /** glyphs.yml menus.smelter tab_order 이름 (smelt·carve·pickaxe, forge·tool 도 곡괭이) → 탭. 모르면 제련. */
+        static Tab of(String key) {
+            if (key == null) return SMELT;
+            String k = key.trim().toLowerCase(java.util.Locale.ROOT);
+            if (k.equals("forge") || k.equals("tool")) return TOOL;
+            for (Tab t : values()) if (t.key.equals(k)) return t;
+            return SMELT;
+        }
     }
 
+    /** glyphs.yml menus.smelter 칸: 돌아가기 0 · 탭 2·4·6 · 지갑 8 · 레시피 행 1~4 × 열 1~7 · 이전 45 · ×1·×8·전부 48·49·50 · 다음 53. */
     private static final int[] TAB_SLOTS = {2, 4, 6};
-    private static final int PER_PAGE = 27;
+    static final int[] GRID = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43};
+    private static final int PER_PAGE = GRID.length;
 
     private final Services services;
     private final LabCraftingService crafting;
     private Tab tab = Tab.SMELT;
     private int page;
 
-    SmelterMenu(Services services, LabCraftingService crafting) {
+    SmelterMenu(Services services, LabCraftingService crafting) { this(services, crafting, Tab.SMELT); }
+
+    SmelterMenu(Services services, LabCraftingService crafting, Tab tab) {
         super(6, kr.labyrinth.ui.UiTheme.title("smelter", 6, "<#ff9a5a>제련소"));
         this.services = services;
         this.crafting = crafting;
+        this.tab = tab == null ? Tab.SMELT : tab;
     }
 
     /** 레시피가 어느 탭인가 (제련소 레시피가 아니면 null). */
@@ -105,10 +121,10 @@ public final class SmelterMenu extends Menu {
         List<RecipeDef> list = recipes(tab);
         int pages = Math.max(1, (list.size() + PER_PAGE - 1) / PER_PAGE);
         page = Math.max(0, Math.min(page, pages - 1));
-        int slot = 18;
-        for (int i = page * PER_PAGE; i < list.size() && slot < 45; i++) {
+        int g = 0;
+        for (int i = page * PER_PAGE; i < list.size() && g < GRID.length; i++) {
             RecipeDef r = list.get(i);
-            set(slot++, recipeIcon(viewer, d, r), ctx -> {
+            set(GRID[g++], recipeIcon(viewer, d, r), ctx -> {
                 int times = tab == Tab.TOOL ? 1 : ctx.isShift() ? Integer.MAX_VALUE : ctx.isRight() ? 8 : 1;
                 int[] res = crafting.craftMany(viewer, r.id(), times);
                 if (res[0] == 0) {
@@ -118,7 +134,7 @@ public final class SmelterMenu extends Menu {
                 refresh();
             });
         }
-        if (list.isEmpty()) deco(31, Button.icon(Material.BARRIER, "<gray>만들 수 있는 것이 없습니다", List.of()));
+        if (list.isEmpty()) deco(22, Button.icon(Material.BARRIER, "<gray>만들 수 있는 것이 없습니다", List.of()));
 
         if (page > 0) set(45, Button.icon(Material.ARROW, "<white>이전 쪽", List.of("<gray>" + page + " / " + pages)), ctx -> {
             page--;
@@ -130,10 +146,16 @@ public final class SmelterMenu extends Menu {
             click(viewer);
             refresh();
         });
-        deco(49, Button.icon(Material.GOLD_NUGGET, "<#ffd27a>보유 골드 " + Text.num(d.gold()),
-                List.of("<gray>광석은 광산에서 캡니다.", "<gray>던전 몬스터·상자에서도 조금 나옵니다.", "",
-                        tab == Tab.TOOL ? "<gray>클릭: 벼리기 (쓰던 곡괭이는 사라짐)" : "<gray>클릭 ×1 · 우클릭 ×8 · 쉬프트 클릭 전부")));
-        set(51, Button.icon(Material.OAK_DOOR, "<gray>닫기", List.of()), ctx -> viewer.closeInventory());
+        deco(8, Button.icon(Material.GOLD_NUGGET, "<#ffd27a>보유 골드 " + Text.num(d.gold()),
+                List.of("<gray>광석은 광산에서 캡니다.", "<gray>던전 몬스터·상자에서도 조금 나옵니다.")));
+        if (tab == Tab.TOOL) {
+            deco(49, Button.icon(Material.ANVIL, "<#ffd27a>클릭: 벼리기", List.of("<gray>쓰던 곡괭이는 재료로 사라집니다.")));
+        } else {
+            deco(48, Button.icon(Material.PAPER, "<#ffd27a>클릭 ×1", List.of("<gray>한 번 만듭니다.")));
+            deco(49, Button.icon(Material.PAPER, "<#ffd27a>우클릭 ×8", List.of("<gray>여덟 번 만듭니다.")));
+            deco(50, Button.icon(Material.PAPER, "<#ffd27a>쉬프트 클릭 전부", List.of("<gray>재료·골드가 있는 만큼 만듭니다.")));
+        }
+        set(0, Button.icon(Material.OAK_DOOR, "<gray>닫기", List.of()), ctx -> viewer.closeInventory());
     }
 
     private void click(Player p) { p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 0.4f, 1.2f); }

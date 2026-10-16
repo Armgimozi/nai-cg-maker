@@ -549,7 +549,8 @@ def gui_party(seed):
     return g
 
 
-def gui_setup(seed):
+def gui_setup(seed, village=False):
+    """village = 미리 지은 마을 월드 (0.3.6): 입구는 마을 게이트로 정해져 있어 석문·NPC 고르는 두 소켓 대신 가운데(40) 안내 하나."""
     g = Gui(6, '#f0b446', 'setup', seed)
     cv = g.cv
     for k, (diff, col) in enumerate(DIFF_COLORS.items()):
@@ -574,8 +575,11 @@ def gui_setup(seed):
     for k, slot in enumerate((10, 12, 14, 16)):
         g.sock(slot, 'gem', list(DIFF_COLORS.values())[k])
     # entrance mode options (row 4) + confirm (row 5)
-    g.sock(38, 'big', '#c8a070')
-    g.sock(42, 'big', '#8fd0ff')
+    if village:
+        g.sock(40, 'big', '#c79bff')
+    else:
+        g.sock(38, 'big', '#c8a070')
+        g.sock(42, 'big', '#8fd0ff')
     g.sock(49, 'big', '#ffd27a')
     return g
 
@@ -1163,6 +1167,7 @@ def paint_gui(name, ctx_content):
         return gui_class(seed, cols).image()
     fns = {
         'main': gui_main, 'stats': gui_stats, 'party': gui_party, 'setup': gui_setup, 'entrance': gui_entrance,
+        'setup_village': lambda s: gui_setup(s, village=True),
         'blacksmith': gui_blacksmith, 'titles': gui_titles, 'accessories': gui_accessories,
         'merchant': gui_merchant, 'confirm': gui_confirm, 'enhance': gui_enhance,
         'smelter': gui_smelter, 'mine_office': gui_mine_office,

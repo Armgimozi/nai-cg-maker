@@ -109,6 +109,7 @@ glyphs:
   gui_smelter: {char: "\uE012", file: gui/smelter.png, ascent: 13, height: 222, advance: 177}
   gui_mine_lift: {char: "\uE013", file: gui/mine_lift.png, ascent: 13, height: 222, advance: 177}
   gui_mine_office: {char: "\uE014", file: gui/mine_office.png, ascent: 13, height: 222, advance: 177}
+  gui_setup_village: {char: "\uE015", file: gui/setup_village.png, ascent: 13, height: 222, advance: 177}
   gui_emblem_mine: {char: "\uE04F", file: gui/emblem_mine.png, ascent: 9, height: 11, advance: 12}
   gui_emblem_smelter: {char: "\uE050", file: gui/emblem_smelter.png, ascent: 9, height: 11, advance: 12}
   gui_emblem_lift: {char: "\uE051", file: gui/emblem_lift.png, ascent: 9, height: 11, advance: 12}
@@ -404,6 +405,17 @@ menus:
       entrance_block: 38
       entrance_npc: 42
       confirm: 49
+  # 0.3.6: 미리 지은 마을 월드의 첫 설정 (입구 = 마을 게이트 — 석문·NPC 소켓 없음)
+  setup_village:
+    glyph: gui_setup_village
+    rows: 6
+    title: "서버 첫 설정"
+    title_color: "#ffe2a0"
+    slots:
+      difficulties: [10, 12, 14, 16]
+      difficulty_order: [easy, normal, hard, nightmare]
+      entrance: 40
+      confirm: 49
   entrance:
     glyph: gui_entrance
     rows: 6
@@ -587,6 +599,7 @@ menu_emblems:
   confirm: confirm
   blacksmith: blacksmith
   setup: setup
+  setup_village: setup
   smelter: smelter
   mine_lift: lift
   mine_office: mine

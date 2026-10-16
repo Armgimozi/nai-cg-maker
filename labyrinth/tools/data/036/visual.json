@@ -950,13 +950,6 @@
    }
   },
   "bag_full": "<red>가방이 가득 찼습니다</red>",
-  "tired": "<gold>지침 — 수확 ×0.3</gold> (1분에 1번)",
-  "stamina_bar": {
-   "text": "기력 {cur}/{max}",
-   "shown": "광산 월드 안, 25% 아래에서만",
-   "color": "YELLOW",
-   "tired_color": "RED"
-  },
   "lift": {
    "effect": "BLINDNESS 40틱",
    "sounds": [

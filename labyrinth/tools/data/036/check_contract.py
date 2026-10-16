@@ -214,9 +214,9 @@ def main():
     need(mine['rules']['lift']['gate'] is None and mine['owner_decisions']['all_levels_open'] is True, '승강기 잠김 (주인 결정 2)')
     need(mine['owner_decisions']['level_binding'] is False, 'level_binding')
     need(mine['rules']['too_weak_actionbar'] == '곡괭이가 약해 캘 수 없습니다', '못 캘 때 액션바 글')
-    st = mine['rules']['stamina']
-    need(st['max'] == 1200 and st['regen_per_minute'] == 1.0 and st['tired_yield'] == 0.3 and st['bar_below'] == 0.25 and st['boss_refill'] == 0,
-         '기력 수치 (R §3-11 · 주인 결정 5)')
+    need('stamina' not in mine['rules'] and 'stamina' not in mine['config_defaults']['mine'], '기력이 남음 (계약 §0-1)')
+    need(not any('stamina' in k for k in mine['names']['ext']), 'ext mine.stamina* 가 남음 (계약 §0-1)')
+    need('anti_afk' not in mine['rules'] and 'alert_per_hour' not in mine['config_defaults']['mine'], '매크로 막기가 남음 (계약 §0-2)')
     need('mine.prev_mode' not in mine['names']['ext'], 'ext mine.prev_mode 가 남음 (R §2-3)')
     need(set(mine['names']['interact']) == {'mine_lift', 'mine_office', 'smelter', 'mine_info'}, 'interact 이름')
     need(set(mine['names']['npc_roles']) == {'miner', 'smelter'}, 'NPC 역할 이름')
@@ -408,9 +408,7 @@ def main():
             need(c['delta_4p'] <= 0.45, f"{r['tier']} 4인 제작 시간 +{c['delta_4p'] * 100:.0f}% > 45%")
             need(r['gold']['ratio_with_sale'] <= 0.20, f"{r['tier']} 광산 골드 {r['gold']['ratio_with_sale'] * 100:.0f}% (판매 포함) > 20%")
             need(r['gold']['ratio'] <= 0.25, f"{r['tier']} 광산 골드 {r['gold']['ratio'] * 100:.0f}% (드롭만) > 25%")
-        h = eco['stamina']['honest']
-        need(h['with_breaks_75pct_hours'] >= 2.8, f"정직한 플레이 기력 {h['with_breaks_75pct_hours']}시간 < ~3시간")
-        need(all(d['share_of_honest'] <= 0.15 for d in eco['stamina']['macro_spot'].values()), '한 자리 매크로 몫 > 15%')
+        need('stamina' not in eco, 'economy.json 에 기력이 남음 (계약 §0-1)')
         pj = json.loads((HERE / 'model/out/proto036.json').read_text(encoding='utf-8'))
         for f, tgt in pj['dungeon_ore_target'].items():
             got = sum(pj['dungeon_ore_check'][f].values())

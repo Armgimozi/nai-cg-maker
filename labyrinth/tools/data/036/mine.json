@@ -1013,25 +1013,13 @@
    "no_xp": true
   },
   "veins": {
-   "server_block": "서버 블록은 늘 광석",
-   "personal": "캔 사람에게만 depleted_block (sendBlockChanges)",
-   "resend": "취소한 칸만 1틱 뒤 다시 보냄 (6 이웃 아님 — R §2-13). 다시 보내는 때: PlayerChunkLoadEvent · 텔레포트·승강기 · 우클릭 뒤 · 고갈 칸 BlockDamageEvent",
-   "regen": "개인, 실제 시간 (오프라인에도 흐름), 1초마다 만료 목록 묶어 처리",
+   "shared": "진짜 블록이 모두에게 빈 광맥(depleted_block)이 되고 시간이 지나면 다시 찬다 (계약 §0-3)",
+   "regen": "다시 차는 시간 = regen_minutes ÷ min(광산 월드 사람 수, regen_players_cap). 재시작 때는 다 찬 상태",
    "ids": "광맥 번호 = 청사진 마커를 (y, z, x) 순으로 정렬한 번호",
    "reach_max": 12,
    "reach_metric": "발 = 바닥+1, 눈 = 바닥+2.62, 선 자리 아무 곳 (몸 폭 0.6), 눈 → 블록 상자 가장 가까운 점 ≤ 4.5 (R §2-8). 밟고 설 수 있는 장식(통·울타리·계단 등) 위도 선 자리로 잰다",
    "reach_server": 4.75,
    "reach_server_metric": "같은 방식, 거리만 4.75 (server_recheck 의 한도) — 여기서도 ≤ reach_max"
-  },
-  "stamina": {
-   "max": 1200,
-   "regen_per_minute": 1.0,
-   "cost_per_block": 0.75,
-   "tired_yield": 0.3,
-   "bar_below": 0.25,
-   "boss_refill": 0,
-   "offline_regen": true,
-   "note": "하루 단위 소프트 상한 (R §3-11). 보스바는 25% 아래에서만 (광산 월드 안)"
   },
   "lift": {
    "ride_seconds": 2.0,
@@ -1050,21 +1038,11 @@
     "새기기",
     "곡괭이 벼리기",
     "팔기 (SellMenu 그대로, 도구는 못 팜)",
-    "광맥 현황·기력"
+    "광맥 현황"
    ],
    "note": "메뉴는 코드로 만든다 — npcs.yml 에 정의가 없어도 열린다 (R §2-1). 구역 NPC 광부·제련공은 같은 메뉴의 얼굴"
   },
-  "teleport": "/미궁 광산 (/lab mine)·메인 메뉴 \"광산\": 구역이 있으면 승강장으로, 없으면 얕은 갱도 승강장으로. 미궁 안에서는 못 씀. village.teleport_command: false 서버는 기본 끔 (R §3-17)",
-  "anti_afk": [
-   "개인 광맥 + 재생",
-   "한 자리 손 닿는 광맥 ≤ 12 (4.5 · 서버 한도 4.75 둘 다)",
-   "서버 손 닿는 거리 한도 (server_recheck)",
-   "서버 진행 확인 (0.7 미만 거절)",
-   "기력",
-   "가방에 바로",
-   "어드벤처 + 보호",
-   "/labadmin mine stats <이름> · 1시간 alert_per_hour 넘으면 로그 1줄"
-  ]
+  "teleport": "/미궁 광산 (/lab mine)·메인 메뉴 \"광산\": 구역이 있으면 승강장으로, 없으면 얕은 갱도 승강장으로. 미궁 안에서는 못 씀. village.teleport_command: false 서버는 기본 끔 (R §3-17)"
  },
  "config_defaults": {
   "mine": {
@@ -1086,18 +1064,9 @@
     "chance": 0.04,
     "multiplier": 3
    },
-   "stamina": {
-    "enabled": true,
-    "max": 1200,
-    "regen_per_minute": 1.0,
-    "cost_per_block": 0.75,
-    "tired_yield": 0.3,
-    "bar_below": 0.25
-   },
    "fx": {
     "pop": true
    },
-   "alert_per_hour": 600,
    "no_hunger": true,
    "safe": true,
    "district": {
@@ -1123,7 +1092,7 @@
    "mine_lift": "승강기 메뉴 (구역 승강장 · 광산 각 층 승강기)",
    "mine_office": "광산 관리소 메뉴 (광산 안)",
    "smelter": "제련소 메뉴 (구역 제련소)",
-   "mine_info": "광부 게시판 (광맥 현황·기력·기록)"
+   "mine_info": "광부 게시판 (광맥 현황)"
   },
   "npc_roles": {
    "miner": "MineApi.openOffice",
@@ -1143,15 +1112,13 @@
    "smoke": "굴뚝"
   },
   "ext": {
-   "mine.depleted": "\"L<n>:v<i>=<만료 epoch초>;L<n>:g<i>=…\" 만료 지난 것은 저장할 때 뺌",
-   "mine.hash": "\"L<n>=<청사진 해시>;…\" 바뀐 층의 기록을 지울 때",
-   "mine.stamina": "기력 (실수)",
-   "mine.stamina_at": "기력을 마지막으로 계산한 epoch ms",
    "mine.free_pickaxe": "true = 첫 무료 구리 곡괭이를 받음",
    "mat036.notice": "true = 옛 재료 바꿈 안내를 봄"
   },
   "ext_removed": [
-   "mine.prev_mode (R §2-3)"
+   "mine.prev_mode (R §2-3)",
+   "mine.depleted · mine.hash (광맥 공유, §0-3)",
+   "mine.stamina · mine.stamina_at (기력 없음, §0-1)"
   ],
   "pdc": {
    "labyrinth:mine_node": "\"L<n>:<i>\" 보석 노드 ItemDisplay"

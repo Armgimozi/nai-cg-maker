@@ -259,7 +259,7 @@ CLUSTER_S = 2.0
 CLUSTER_SIZE = 4.0
 LOOP_S = 45.0
 LIFT_TRIP_S = 12.0             # 승강기 2초 + 내려서 걷기
-STAMINA = {'max': 1200, 'regen_per_min': 1.0, 'cost_per_block': 0.75, 'tired_yield': 0.3, 'bar_below': 0.25, 'boss_refill': 0}
+# 기력(STAMINA) 없음 — 계약 §0-1 (주인: "기력 없애")
 
 # ───────────────────────── 재료·생성기 규칙 ─────────────────────────
 ING_SHARE = OWNER['ing_share']  # 장비 레시피 주괴 = 반올림(옛 일반 재료 합 × 0.20), 최소 2

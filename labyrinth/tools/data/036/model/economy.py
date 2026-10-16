@@ -9,7 +9,7 @@
   C. 단계별 대표 한 벌(무기 1 + 방어구 4부위) 제작 총시간 (솔로 / 4인, 던전 분 + 광산 분) — 0.3.5 와 비교, +5 까지도
   D. 곡괭이 준비 (그 앞 곡괭이로 그 앞 금속·보석을 캐는 분)
   E. 골드: 광산 다 팔기 G/분 ÷ 던전 G/분 (그 단계 곡괭이, ≤ 0.20) + 친구가 준 가장 좋은 곡괭이로 낮은 단계에서
-  F. 기력: 정직한 속도별 바닥까지 시간, 한 자리 매크로, 하루 내내 도는 봇의 수확 몫
+  F. (기력 없음 — 계약 §0-1)
 결과: out/economy.json · out/economy.md (CONTRACT.md 표)
 """
 import collections
@@ -187,32 +187,8 @@ def main():
 
     prep = pickaxe_prep()
 
-    # F. 기력
-    paces = {}
-    for bpm in (6, 8, 10, 12):
-        paces[bpm] = {'minutes_to_empty': round(M.stamina_minutes(bpm), 0), 'day_share_24h': round(M.day_yield_share(bpm), 3)}
-    lay = json.loads((HERE / 'out/layout.json').read_text(encoding='utf-8'))
-    macro = {}
-    for k, v in lay.items():
-        L = int(k)
-        b = M.macro_spot(v['reach_max'], L, 6)
-        macro[L] = {'reach_max': v['reach_max'], 'blocks_per_min': round(b, 2),
-                    'minutes_to_empty': M.stamina_minutes(b) if M.stamina_minutes(b) != float('inf') else None,
-                    'share_of_honest': None}
-    honest_top = M.gold_plan(6, price_ore, price_gem)[2]
-    for L, d in macro.items():
-        d['share_of_honest'] = round(d['blocks_per_min'] / honest_top, 3)
-    bot = {'bpm': round(honest_top, 2), 'minutes_to_empty': round(M.stamina_minutes(honest_top), 0),
-           'day_share_24h': round(M.day_yield_share(honest_top), 3)}
-    craft_bpm = [r['craft']['new_solo']['mine_bpm'] for r in rows if r['craft']['new_solo']['mine_bpm']]
-    honest = {'craft_focus_bpm_range': [min(craft_bpm), max(craft_bpm)],
-              'craft_focus_hours_to_empty': [round(M.stamina_minutes(max(craft_bpm)) / 60, 1), round(M.stamina_minutes(min(craft_bpm)) / 60, 1)],
-              'all_minable_top_pick_bpm': round(honest_top, 2),
-              'all_minable_top_pick_hours': round(M.stamina_minutes(honest_top) / 60, 1),
-              'with_breaks_75pct_hours': round(M.stamina_minutes(honest_top * 0.75) / 60, 1)}
-
     res = {'table_a_single_level': table_a, 'table_b_focused': table_b, 'gem_focused': gem_b, 'rows': rows,
-           'pickaxe_prep': prep, 'stamina': {'paces': paces, 'macro_spot': macro, 'bot_24h': bot, 'honest': honest},
+           'pickaxe_prep': prep,
            'assumptions': {'run_minutes': P.RUN_MINUTES, 'party_time': P.PARTY_TIME, 'party_bonus': P.PARTY_BONUS,
                            'aim_s': P.AIM_S, 'cluster_s': P.CLUSTER_S, 'loop_s': P.LOOP_S, 'lift_trip_s': P.LIFT_TRIP_S,
                            'ing_share': P.ING_SHARE}}
@@ -292,25 +268,7 @@ def render_md(res):
         L.append(f"| {r['tier']} | {g['dungeon_per_min']} | {g['dungeon_with_sale_per_min']} | {picks[RANK[g['band_pickaxe'].replace('_pickaxe', '')]]} | {g['mine_per_min']} | "
                  f"{g['ratio'] * 100:.0f}% / {g['ratio_with_sale'] * 100:.0f}% | {g['gift_top_pickaxe_per_min']} | {g['gift_ratio'] * 100:.0f}% |")
     L.append('')
-    s = res['stamina']
-    st = P.STAMINA
-    L.append(f"### 표 F. 기력 (최대 {st['max']:,} · 1분에 {st['regen_per_min']:g} · 블록마다 {st['cost_per_block']:g} · 바닥나면 수확 ×{st['tired_yield']:g})")
-    L.append('')
-    L.append('| 캐는 속도 (블록/분) | 가득 찬 데서 바닥까지 | 하루 24시간 내내 캘 때 받는 몫 |')
-    L.append('|---|---|---|')
-    for bpm, d in s['paces'].items():
-        L.append(f"| {bpm} | {d['minutes_to_empty'] / 60:.1f}시간 | {d['day_share_24h'] * 100:.0f}% |")
-    h = s['honest']
-    L.append('')
-    L.append(f"- 정직한 플레이: 한 벌 재료를 노려 캘 때 {h['craft_focus_bpm_range'][0]:.1f}~{h['craft_focus_bpm_range'][1]:.1f} 블록/분 → "
-             f"{h['craft_focus_hours_to_empty'][0]}~{h['craft_focus_hours_to_empty'][1]}시간 동안 닿지 않음. "
-             f"가장 좋은 곡괭이로 모든 층을 쉬지 않고 돌면 {h['all_minable_top_pick_bpm']} 블록/분 → {h['all_minable_top_pick_hours']}시간, "
-             f"쉬는 틈(제련·팔기·이동)이 1/4 이면 {h['with_breaks_75pct_hours']}시간.")
-    L.append('- 한 자리 매크로 (손 닿는 광맥 전부를 재생마다): ' + ' · '.join(
-        f"{P.LEVELS[L_ - 1]['name']} {d['reach_max']}개 → {d['blocks_per_min']}/분 ({d['share_of_honest'] * 100:.0f}%)" for L_, d in sorted(s['macro_spot'].items()))
-        + ' — 회복보다 느려 기력은 줄지 않지만, 정직한 속도의 10% 아래다.')
-    b = s['bot_24h']
-    L.append(f"- 모든 층을 하루 내내 도는 봇 ({b['bpm']} 블록/분): {b['minutes_to_empty'] / 60:.1f}시간 뒤 지침, 하루 수확은 정직한 속도의 {b['day_share_24h'] * 100:.0f}%.")
+    L.append('기력은 없다 (계약 §0-1) — 표 F 는 쓰지 않는다.')
     return '\n'.join(L) + '\n'
 
 
