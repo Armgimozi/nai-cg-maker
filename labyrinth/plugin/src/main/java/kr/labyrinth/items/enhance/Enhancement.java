@@ -141,11 +141,13 @@ public final class Enhancement {
         return w;
     }
 
-    /** "피해" / "방어·HP" — 강화 배율이 곱해지는 스탯 이름. */
+    /** "공격력" / "방어·HP" — 강화 배율이 곱해지는 스탯 이름 (무기 한 방 피해는 툴팁과 같이 '공격력'). */
     static String scaledText(ItemDef def) {
         List<String> names = new ArrayList<>();
         for (String k : ItemTooltip.STAT_NAMES.keySet()) {
-            if (rules.scaledKeys(def).contains(k) && def.stats().containsKey(k)) names.add(ItemTooltip.statName(k));
+            if (rules.scaledKeys(def).contains(k) && def.stats().containsKey(k)) {
+                names.add(def.isWeapon() && "damage".equals(k) ? "공격력" : ItemTooltip.statName(k));
+            }
         }
         return names.isEmpty() ? "능력치" : String.join("·", names);
     }

@@ -5,6 +5,7 @@ import java.util.List;
 import kr.labyrinth.Services;
 import kr.labyrinth.content.ArmorLook;
 import kr.labyrinth.core.ArmorLooks;
+import kr.labyrinth.items.LookText;
 import kr.labyrinth.core.Text;
 import kr.labyrinth.data.PlayerData;
 import kr.labyrinth.stats.DerivedStats;
@@ -165,50 +166,13 @@ public final class StatsMenu extends LabMenu {
         return "<gray>겉모습 <white>" + String.join(" · ", parts) + (full != null ? " <gray>→ <white>" + cfg.fullName(full) : "");
     }
 
-    /** 숨은 효과 합 한 줄 ("방어 +16% · 받는 피해 −2% · 이동 속도 −8% …"). */
-    static String pieceText(ArmorLooks.Look look, int n) {
-        if (look == null) return "";
-        List<String> t = new ArrayList<>();
-        // 받는 피해 감소는 '받는 피해 −0.5%' 로 (더 적게 받음)
-        look.piece().forEach((k, v) -> t.add(keyName(k) + " " + signedPct(k.equals("damage_reduction") ? -v * n : v * n)
-                + (k.equals("evasion") || k.equals("crit_chance") ? "p" : "")));
-        return String.join(" · ", t);
-    }
+    /** 숨은 효과 합 한 줄 ("방어 +16% · 받는 피해 −2% · 이동 속도 −8% …") — 툴팁과 같은 글 ({@link LookText}). */
+    static String pieceText(ArmorLooks.Look look, int n) { return LookText.sum(look, n); }
 
-    static String keyName(String k) {
-        return switch (k) {
-            case "defense_pct" -> "방어";
-            case "hp_pct" -> "최대 HP";
-            case "mana_regen_pct" -> "MP 재생";
-            case "cooldown_pct" -> "재사용 대기";
-            case "damage_reduction" -> "받는 피해";
-            case "move_speed" -> "이동 속도";
-            case "evasion" -> "회피";
-            case "crit_chance" -> "치명";
-            case "attack_speed" -> "공격 속도";
-            case "skill_damage" -> "스킬 피해";
-            default -> k;
-        };
-    }
-
-    static String fullText(ArmorLooks cfg, ArmorLook l) {
-        return switch (l) {
-            case HEAVY -> "밀려남 −" + Text.pct(cfg.steadfast().knockbackResist()) + " · 기절·속박·빙결 −" + Text.pct(cfg.steadfast().ccResist())
-                    + " (보스 제외)";
-            case LIGHT -> "웅크리기 두 번 → " + fmt(cfg.tumble().distance()) + "칸 구르며 피함 (" + fmt(cfg.tumble().cooldown()) + "초)";
-            case CLOTH -> "받는 피해 " + Text.pct(cfg.manaShield().absorb()) + "를 MP로 받음 (MP 1 = 피해 " + fmt(cfg.manaShield().damagePerMp()) + ")";
-            default -> "";
-        };
-    }
-
-    private static String fmt(double v) {
-        return v == Math.rint(v) ? String.valueOf((long) v) : String.format(java.util.Locale.ROOT, "%.1f", v);
-    }
+    static String fullText(ArmorLooks cfg, ArmorLook l) { return LookText.fullText(cfg, l); }
 
     /** 부호 붙인 퍼센트 ("+4%" · "−8%"). */
-    public static String signedPct(double v) {
-        return (v < 0 ? "−" : "+") + Text.pct(Math.abs(v));
-    }
+    public static String signedPct(double v) { return LookText.signedPct(v); }
 
     /** 초당 횟수 — 소수 한 자리 ("1.5"). */
     static String perSecond(double v) {

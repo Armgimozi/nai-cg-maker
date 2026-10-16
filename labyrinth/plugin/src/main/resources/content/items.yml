@@ -8898,20 +8898,16 @@ items:
 
 # 세트 효과: bonuses 의 키 = 착용 개수(이상), 값 = 고정 수치(굴림 없음). look = 생성기의 장비 레이어 실루엣
 # bonuses 생략 = 세트 효과 없음 (수련생 — 장비 레이어·도감 묶음용)
-# back = 어깨·등 3D 장식의 등 부분 (리소스팩 armor_pieces.py): plate(등판) | quiver(화살통) | cape(망토·두건) | pack(담요 말이·배낭).
-#        생략하면 look 기본값 (heavy → plate, light → quiver, cloth → cape). 공용(모든 직업) 세트는 pack.
 sets:
   novice:
     name: "미궁 수련생"
     look: light
     look_effects: false
-    back: pack
     pieces: [novice_cap, novice_tunic, novice_trousers, novice_boots]
   wayfarer:
     name: "미궁 길잡이"
     look: light
     look_effects: false
-    back: pack
     pieces: [wayfarer_helm, wayfarer_chest, wayfarer_legs, wayfarer_boots]
     bonuses: {2: {hp: 25, move_speed: 0.03}, 4: {VIT: 3, hp_regen: 0.8}}
   pit_foreman:

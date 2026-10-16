@@ -5,12 +5,16 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import kr.labyrinth.Services;
+import kr.labyrinth.content.ArmorLook;
 import kr.labyrinth.content.ItemDef;
+import kr.labyrinth.content.ItemType;
 import kr.labyrinth.content.RecipeDef;
+import kr.labyrinth.core.ArmorLooks;
 import kr.labyrinth.core.Text;
 import kr.labyrinth.data.PlayerData;
 import kr.labyrinth.items.CraftingService;
 import kr.labyrinth.items.ItemTooltip;
+import kr.labyrinth.items.WeaponFilter;
 import kr.labyrinth.stats.Stat;
 import kr.labyrinth.ui.Button;
 import kr.labyrinth.ui.Glyphs;
@@ -24,7 +28,8 @@ import org.bukkit.inventory.ItemStack;
  * 대장장이 두르간 GUI (GDD §11.11). 탭 = recipes.yml category(무기 · 방어구·방패 · 장신구 · 정수 정제),
  * 레시피마다 재료 보유/필요 · 골드 표시(부족하면 빨강), 클릭 = 제작. 제작 레벨 제한·직업 필터는 없다 — 장비의 요구 능력치는
  * 툴팁에 보는 사람 기준(맞춤 초록 / 모자람 빨강 "(현재 22)")으로 보여 주기만 하고 제작은 막지 않는다(입을 때 가린다).
- * 배너 가운데(13) = [장비 강화] → 강화 창 (GDD §11.13).
+ * 거르개 (0.3.5, 분류 이름 없음): 무기 = 방식·피해 종류, 방어구 = 겉모습, 둘 다 "지금 낄 수 있는 것만".
+ * 목록 순서 = 숨은 내부 레벨 → 희귀도. 배너 가운데(13) = [장비 강화] → 강화 창 (GDD §11.13).
  */
 final class BlacksmithMenu extends Menu {
 
@@ -35,10 +40,17 @@ final class BlacksmithMenu extends Menu {
     /** 배너 가운데(모루) — 강화 창 버튼. */
     private static final int ENHANCE_SLOT = 13;
 
+    /** 거르개 칸: 47 = 방식(무기) · 겉모습(방어구), 50 = 지금 낄 수 있는 것만. */
+    private static final int FILTER_SLOT = 47, WEARABLE_SLOT = 50;
+    private static final ArmorLook[] LOOKS = {null, ArmorLook.HEAVY, ArmorLook.LIGHT, ArmorLook.CLOTH, ArmorLook.PLAIN};
+
     private final Services services;
     private final LabCraftingService crafting;
     private int tab;
     private int page;
+    private WeaponFilter weaponFilter = WeaponFilter.ALL;
+    private int look;
+    private boolean wearableOnly;
 
     BlacksmithMenu(Services services, LabCraftingService crafting, Player viewer) {
         super(6, kr.labyrinth.ui.UiTheme.title("blacksmith", 6, "<#f3e3bd>대장장이 두르간의 대장간"));
@@ -46,13 +58,13 @@ final class BlacksmithMenu extends Menu {
         this.crafting = crafting;
     }
 
-    private List<RecipeDef> recipes() {
+    private List<RecipeDef> recipes(Map<Stat, Integer> reqStats) {
         String cat = TABS[tab];
         List<RecipeDef> out = new ArrayList<>();
         for (RecipeDef r : services.content().recipes().values()) {
             if (!cat.equals(r.category() == null ? "weapon" : r.category())) continue;
             ItemDef def = services.content().item(r.result());
-            if (def == null) continue;
+            if (def == null || !passes(def, reqStats)) continue;
             out.add(r);
         }
         // 결과 장비의 숨은 내부 레벨(items.yml level_req) → 희귀도 순 — 제작 레벨 제한은 없다
@@ -60,6 +72,12 @@ final class BlacksmithMenu extends Menu {
                 .thenComparing(r -> services.content().item(r.result()).rarity().ordinal())
                 .thenComparing(RecipeDef::id));
         return out;
+    }
+
+    private boolean passes(ItemDef def, Map<Stat, Integer> reqStats) {
+        if (def.isWeapon() && !weaponFilter.test(def)) return false;
+        if (def.type() == ItemType.ARMOR && LOOKS[look] != null && def.armorLook() != LOOKS[look]) return false;
+        return !wearableOnly || !def.isGear() || def.requirement().met(reqStats);
     }
 
     @Override
@@ -97,7 +115,8 @@ final class BlacksmithMenu extends Menu {
             });
         }
 
-        List<RecipeDef> list = recipes();
+        drawFilters(viewer);
+        List<RecipeDef> list = recipes(reqStats);
         int pages = Math.max(1, (list.size() + PER_PAGE - 1) / PER_PAGE);
         page = Math.max(0, Math.min(page, pages - 1));
         int start = page * PER_PAGE;
@@ -125,7 +144,7 @@ final class BlacksmithMenu extends Menu {
             click(viewer);
             refresh();
         });
-        // 아래 줄 = 45 이전 · 49 골드·제작 안내 · 51 닫기 · 53 다음 (47 은 예전 직업 필터 자리 — 텍스처에서도 버튼을 지웠다)
+        // 아래 줄 = 45 이전 · 47 거르개 · 49 골드·제작 안내 · 50 낄 수 있는 것만 · 51 닫기 · 53 다음
         double disc = services.stats().get(viewer).craftDiscount();
         deco(49, Button.icon(Material.GOLD_NUGGET, "<#ffd27a>보유 골드 " + Text.num(d.gold()),
                 List.of(disc > 0 ? "<gray>제작 할인 " + Text.pct(Math.min(RecipeCheck.MAX_DISCOUNT, disc)) : "<gray>제작 레벨 제한 없음",
@@ -135,6 +154,40 @@ final class BlacksmithMenu extends Menu {
                         "<gray>모자란 재료·골드는 <#ff6b6b>빨강</#ff6b6b>으로 표시됩니다.",
                         "<gray>요구 능력치는 입을 때 필요합니다 (제작은 언제나 가능).")));
         set(51, Button.icon(Material.OAK_DOOR, "<gray>닫기", List.of()), ctx -> viewer.closeInventory());
+    }
+
+    /** 무기 탭 = 방식 거르개, 방어구 탭 = 겉모습 거르개, 두 탭 모두 "지금 낄 수 있는 것만". */
+    private void drawFilters(Player viewer) {
+        String cat = TABS[tab];
+        if (cat.equals("weapon")) {
+            set(FILTER_SLOT, Button.icon(Material.HOPPER, "<gray>방식: <white>" + weaponFilter.label(),
+                    List.of("<dark_gray>근접 · 원거리 · 시전 · 물리 피해 · 마법 피해", "<dark_gray>클릭: 다음 · 우클릭: 전체")), ctx -> {
+                weaponFilter = ctx.isRight() ? WeaponFilter.ALL : weaponFilter.next();
+                page = 0;
+                click(viewer);
+                refresh();
+            });
+        } else if (cat.equals("armor")) {
+            ArmorLooks cfg = services.settings().armorLooks();
+            ArmorLook l = LOOKS[look];
+            set(FILTER_SLOT, Button.icon(Material.LEATHER_CHESTPLATE, "<gray>겉모습: " + (l == null ? "<white>전체" : "<" + cfg.color(l) + ">" + cfg.name(l)),
+                    List.of("<dark_gray>판금 · 가죽 · 천 · 평상복", "<dark_gray>클릭: 다음 · 우클릭: 전체")), ctx -> {
+                look = ctx.isRight() ? 0 : (look + 1) % LOOKS.length;
+                page = 0;
+                click(viewer);
+                refresh();
+            });
+        }
+        if (cat.equals("weapon") || cat.equals("armor")) {
+            set(WEARABLE_SLOT, Button.icon(wearableOnly ? Material.LIME_DYE : Material.GRAY_DYE,
+                    (wearableOnly ? "<#7fe07f>" : "<gray>") + "지금 낄 수 있는 것만: " + (wearableOnly ? "켜짐" : "꺼짐"),
+                    List.of("<dark_gray>요구 능력치를 모두 채운 장비만", "<dark_gray>클릭: 켜기/끄기")), ctx -> {
+                wearableOnly = !wearableOnly;
+                page = 0;
+                click(viewer);
+                refresh();
+            });
+        }
     }
 
     private void click(Player p) { p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 0.4f, 1.2f); }

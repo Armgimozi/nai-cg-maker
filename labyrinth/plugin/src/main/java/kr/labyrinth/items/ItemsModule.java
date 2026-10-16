@@ -31,9 +31,8 @@ import org.bukkit.entity.Player;
  * items 담당 모듈 진입점: ItemService(굴림·툴팁·장비 컴포넌트) · LootService(개인 루팅) · CraftingService(대장장이 GUI) ·
  * WeaponSkillService(17종 무기 스킬) · UniqueEffects(무기 고유 효과 26종, {@link UniqueEffectService}) · AuraService(전설·신화 아우라) · 장비 StatContributor(+세트 효과 · 겉모습 수) ·
  * 겉모습 4부위 효과({@link ArmorLookService} — 가죽 구르기 · 천 마나 보호막) · 소모품 · 바닐라 가공 차단 ·
- * 강화(enhance/EnhanceService — 대장간 [강화], +10 빛) · 어깨·등 3D 장식({@link ArmorCosmetics} — 상의 세트별 탑승 디스플레이).
- * 명령: /미궁 강화|enhance (강화 창) ·
- * /미궁 장식 내화면|self [켜기|끄기] (내 장식을 내 화면에도). 관리: /labadmin blacksmith [플레이어] · /labadmin loot &lt;테이블&gt; [플레이어] ·
+ * 강화(enhance/EnhanceService — 대장간 [강화], +10 빛).
+ * 명령: /미궁 강화|enhance (강화 창). 관리: /labadmin blacksmith [플레이어] · /labadmin loot &lt;테이블&gt; [플레이어] ·
  * /labadmin weaponskills · /labadmin enhance &lt;단계&gt; [플레이어] (주손 장비 단계 바로 설정).
  */
 public final class ItemsModule implements Module {
@@ -45,7 +44,6 @@ public final class ItemsModule implements Module {
     private EquipmentListener equipment;
     private LabLootService loot;
     private EnhanceService enhance;
-    private ArmorCosmetics cosmetics;
     private UniqueEffectService unique;
     private ArmorLookService looks;
 
@@ -86,7 +84,6 @@ public final class ItemsModule implements Module {
         auras = new AuraService(services);
         auras.start();
         enhance.start();
-        // 어깨·등 3D 장식(ArmorCosmetics)은 0.3.4.2 에서 뺐다 — 서비스·명령을 켜지 않는다
 
         registerCommands();
         checkContent();
@@ -96,7 +93,6 @@ public final class ItemsModule implements Module {
     @Override
     public void disable() {
         if (auras != null) auras.stop();
-        if (cosmetics != null) cosmetics.stop();
         if (enhance != null) enhance.stop();
         if (weaponSkills != null) weaponSkills.stop();
         if (unique != null) {
@@ -114,7 +110,6 @@ public final class ItemsModule implements Module {
     @Override
     public void reload() {
         if (auras != null) auras.reload();
-        if (cosmetics != null) cosmetics.reload();
         if (enhance != null) enhance.reload();
         checkContent();
         for (Player p : Bukkit.getOnlinePlayers()) services.stats().markDirty(p);

@@ -62,8 +62,8 @@ labyrinth/
   - 플러그인은 `EQUIPPABLE` 컴포넌트의 `assetId = labyrinth:<set>`.
 - **어깨·등 3D 장식 (없앰)**: 0.3.4.2 에서 런타임(서비스·명령·config·자가 진단)이 빠졌고, 0.3.5 에서 팩 생성기
   (`resourcepack/src/armor_pieces.py`·`preview_armor.py`)와 팩 검사(`validate`·`tools/check_assets.py`)도 지웠다 —
-  팩에 `armor_piece/…` 모델이 더는 없다. 남은 Java(`items.ArmorPieceLayout`·`ArmorCosmetics`·테스트)는 P6 에서 지운다.
-  items.yml `sets.<id>.back` 은 이제 아무도 읽지 않는다.
+  팩에 `armor_piece/…` 모델이 더는 없다. 남은 Java(`items.ArmorPieceLayout`·`ArmorCosmetics`·테스트)와 items.yml `sets.<id>.back` 도
+  0.3.5 에서 지웠다(§6.8).
   - **플레이어를 다른 월드로 옮길 때는 `core.Teleports.to(p, loc)`**: Paper 26.3 `CraftPlayer#teleport0` 는 탑승물이 있는 플레이어의 월드 간
     teleport 를 이벤트 없이 false 로 거부한다(같은 월드는 탑승물이 따라옴). `Teleports.to` 는 월드가 다를 때만 탑승물을 먼저 내리고, 장식은
     월드 이동 뒤 다음 갱신 때 다시 생긴다. (다른 플러그인이 `Player#teleport` 로 월드를 옮기면 실패할 수 있다 — 그런 서버는
@@ -257,14 +257,23 @@ data/    PlayerData(레벨, 경험치, 스탯포인트, 스탯, 직업, 골드, 
          PlayerDataService(플레이어별 YAML: plugins/Labyrinth/players/<uuid>.yml, 비동기 저장, 자동저장 5분),
          ServerRecords(서버 최초 달성 기록: records.yml)
 stats/   Stat(STR 힘, DEX 민첩, INT 지능, VIT 체력, WIS 정신, LUK 행운), StatService(장비+스탯+칭호 → 파생 능력치,
-         바닐라 속성 반영: max_health, movement_speed, attack_speed 등), LevelService(경험치 곡선, 레벨업 연출, 포인트 지급)
+         바닐라 속성 반영: max_health, movement_speed, attack_speed 1024(게이지 없음) 등), StatCalculator(순수) → DerivedStats(physicalPower ·
+         magicPower · attackPower · skillPower · cycle · 겉모습 수), LevelService(경험치 곡선, 레벨업 연출, 포인트 지급,
+         0.3.5 무료 스탯 초기화 1회 ext `stats.role_reset_035`)
 combat/  DamageService(모든 피해 계산의 단일 경로: 플레이어→몹, 몹→플레이어, 스킬, 보스 패턴), DamageContext, 치명타/회피/방어
-         몹·보스는 **자체 HP 풀** 사용 (바닐라 체력은 표시/사망 처리용으로만). 피해 숫자 표시(TextDisplay, 0.8초).
+         몹·보스는 **자체 HP 풀** 사용 (바닐라 체력은 표시/사망 처리용으로만). 피해 숫자 표시(TextDisplay, 0.8초, 마법 하늘색, 0.5초 묶음).
+         0.3.5 (combat_spec): 공격 게이지 없음 — AttackClock·AttackTiming(순수, 무기 간격·이른 클릭 1번 기억), WeaponAttack(무기 방식·간격·
+         피해 종류, `ItemDef.attack()`), DamageKind(물리 = 힘 · 마법 = 지능 · 혼합 · 고정), DamageContext 기준(한 방 W / 스킬 위력 SP),
+         CombatMath(순수: power(kind) · 공속 = 민첩 몫 ≤ 0.45 + 장비, 합 ≤ 0.75, 간격 하한 0.25 · K(방식, 간격) · skillPower), CrowdControl(판금 버팀).
 classes/ RoleClass(classes.yml 로드), Skill(interface), ClassService(전직, 스킬 입력, 마나, 쿨다운), skills/*(직업별 구현)
 items/   ItemDef, Rarity, ItemService(정의→ItemStack, ItemStack→정의/굴림값 PDC, 툴팁 lore 생성), AuraService(전설·신화 무기
          들고 있을 때 파티클 + ItemDisplay 링 이펙트, 플레이어 수·거리 기반 LOD)
          구현: GearItemService(기반 재질 PAPER, 활만 BOW+무한·파괴불가 — 활을 들면 '미궁 화살' 1개 자동 지급),
-         ItemRolls(굴림·PDC 형식 "key=value;…"), ItemTooltip, EquipRules(레벨·직업 미달 = 스탯/무기 스킬 없음, 방어구는 착용 즉시 반환),
+         ItemRolls(굴림·PDC 형식 "key=value;…"), ItemMigration035(가진 무기 한 방 굴림을 같은 위치로 새 범위에 · 방어구 줄 이름 — 깃발 ITEM_COMBAT_VER 35),
+         ItemTooltip(순수 — 첫 줄 "영웅 무기"/"영웅 판금 흉갑" · 요구 줄(모두 채움) · ⚔ 공격력(한 방) · 물리/마법 + 공격 속도 초당 N회 ·
+         고유 효과 두 줄(UniqueText) · 무기 스킬 · 겉모습 줄(LookText, 설정은 `ItemTooltip.looks(cfg)` 를 Services 가 넣음) · 세트 · 이야기 ·
+         획득처 한 줄(층 숫자 없음). 20줄 넘으면 접기: 이야기 → 획득처 → 빈 줄 → 스킬·고유 접기, 보스 장비는 획득처를 마지막에),
+         WeaponFilter(도감·대장간 무기 거르개: 방식·피해 종류), EquipRules(요구 능력치 미달 = 스탯/무기 스킬/고유 효과 없음, 방어구는 착용 즉시 반환),
          EquipmentListener(장비 StatContributor + 세트 효과 + 겉모습 수 `look.<id>`·`look_body.<id>`), ConsumableListener,
          ItemGuardListener(바닐라 제작·화로·모루·거래 차단)
          방어구 겉모습 (0.3.5, look_spec): content/ArmorLook(heavy·light·cloth·plain·any, `ItemDef.armorLook()` — 파서가 단품 look →
@@ -280,7 +289,8 @@ items/weaponskills/ LabWeaponSkillService(입력: LEFT = PlayerArmSwingEvent, RI
 items/unique/ 무기 고유 효과 26종 (0.3.5, unique_spec) — 창구 `UniqueEffects`(`services.unique()`, 기본 NONE), 구현 UniqueEffectService
          (DamageService.Hook + 1초 타이머: 손 무기의 `ItemDef.unique()` 하나, 요구 능력치 미달이면 꺼짐) + 순수 UniqueProcs(재발동·N번째·
          첫 타 창·중첩·기절 면역·장전). 정의 = content/UniqueDef · 닫힌 목록 content/UniqueCatalog(검사기·시험과 같은 표).
-         배정 데이터 tools/data/035/unique_assign.json (tools/gen_035_unique.py, items.yml 에는 P3 가 넣음)
+         배정 데이터 tools/data/035/unique_assign.json (tools/gen_035_unique.py → gen_035_content 가 items.yml 에 넣음).
+         툴팁 글 UniqueText(순수 — 수치에서 설명 34자 이하·접은 한 줄을 만든다, 설계 도구 ud_assign.desc/short 와 같은 문장)
 loot/    LootService(loot 테이블, 희귀도 가중치, LUK 보정, 파티 개인 루팅: 아이템은 개인별로 지급/표시)
          구현 items/loot: LootRoller(순수 굴림), LabLootService(주인에게만 보이는 아이템 엔티티, 줍는 순간 ItemObtainEvent·전설 알림)
 crafting/CraftingService(+대장장이 GUI, 재료 확인/소모, 결과 지급) — 구현 items/crafting: RecipeCheck, LabCraftingService, BlacksmithMenu
@@ -304,7 +314,7 @@ pvp/     파티 규칙 PvP (GDD §18 — 대전·투기장·레이팅 없음): �
 titles/  Achievement(titles.yml), TitleService(사건 판정 → 칭호마다 주인 한 명(records.yml), 주인 방송, 칭호 장착: 채팅·탭·이름표 접두어, 소소한 보너스)
 npc/     NpcService(npcs.yml: 안내인/대장장이/전직관/칭호관리인… Mannequin + 커스텀 스킨, 우클릭 → GUI)
 ui/      Menu 프레임워크(InventoryHolder 기반, 커스텀 폰트 배경 타이틀, 버튼 콜백), menus/*(초기 설정(난이도), 스탯, 직업, 파티, 입장(층 선택),
-         대장장이, 칭호, 장신구), HudService(액션바: HP/MP 바·레벨·골드, 사이드바: 층·남은 적·파티원 HP, 보스바)
+         대장장이, 칭호, 장신구, 도감 CodexMenu), HudService(액션바: HP/MP 바·레벨·골드, 사이드바: 층·남은 적·파티원 HP, 보스바)
 pack/    PackService(HTTP 서빙 + 전송)
 command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 ```
@@ -334,9 +344,9 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   무기 스킬(items)은 `services.effects().isSilenced(p)` 와 `cooldownRate(p)` 를 확인할 것.
 - **DungeonService** 기본 메서드: `isDowned(p)`, `revive(p, at, hpRatio)`(사제 부활의 성가) — dungeon 구현은 자기 사망 상태와 맞게 재정의.
 - 직업 스킬은 **아무 미궁 무기**(type: weapon, 종류 무관)를 들었을 때 발동 — 바닐라 무기는 해당 없음(F/Q 바닐라 그대로).
-  classes.yml weapon_types = **추천 무기**: 들면 직업 스킬 재사용 대기 −10%, 직업 스킬 피해는 무기 종류 배율을 추천 무기 기준으로 환산
+  0.3.5: 무기 종류·추천 무기·`content.WeaponTypes` 는 없다. 직업 스킬 피해 = 든 무기의 스킬 위력 × classes.yml `skill_scale` × 스킬 종류(`kind`) 배율
   (`SkillContext.damage`·`dotRatio` 가 자동 적용 — 새 직업 스킬은 피해를 `c.damage(...)`, 지속 피해 potency 를 `c.dotRatio(...)` 로 낼 것).
-  규칙 원본 = `content.WeaponTypes`(순수, GDD §4.4). 명령: `/직업 선택|choose <직업>`, `/직업 정보|info`, `/직업 스킬|skills`.
+  처음 전직 지급 = `starter_weapon`. 명령: `/직업 선택|choose <직업>`, `/직업 정보|info`, `/직업 스킬|skills`.
 - **장비 직업 제한 없음**: `ItemDef.usableBy` 는 항상 true, `EquipRules` 는 요구 능력치만 본다. 0.3.5 부터 장비에는 `classes` 가 없다
   (`ItemDef.suitedFor` 는 늘 true) — 드롭 편향은 요구 능력치로 (`LootRoller` own_build_bias). 다른 모듈도 착용 가능 여부를 직업으로 막지 말 것.
 
@@ -479,11 +489,16 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   그 자리에 몹 + 6칸 앞 허수아비(무적 갑옷 거치대)를 세우고 능동 스킬을 하나씩 강제로 시전(거리·시야 조건 무시, 경고·판정은 그대로) →
   피해(분노 임계)·처치(사망 스킬) → 소환물·허수아비 정리. 자가 진단은 플레이어가 없으면 스킬을 한 번도 안 쓰므로, **새 몹·새 스킬은 이걸로 확인**.
   로그 `[몹 훈련] 결과: 예외 0 · 몹 n/n · 시전 … · 허수아비 적중 …`. 스킬 대상은 `LivingEntity`(플레이어 또는 허수아비) — 광역 판정은 `LabMob.victimsNear`.
-- **도감** `/codex` = `/도감` = `/미궁 도감` (`ui.menus.CodexMenu`): 종류·희귀도별 아이템(실제 툴팁 + 획득처: 몹/보스 드롭·보물 상자·기믹 방·
-  제작 재료·상점·칭호 보상·시작 지급 — loot 테이블 중첩·PICK 까지 계산. 층 섞음 표 `mix_fNN_drop`(0.3.4 `gear_fNN_common`)은 따라 들어가지 않고 "몬스터·상자 지하 N층" 한 줄,
-  `special_trial_fNN`·`hoard_fNN` 은 "특별 시련"·"금고·미믹" 묶음 (0.3.5 P3 임시 — P6 가 층 없는 글로 바꿈),
-  층별 미로 상자는 `ChestTier` 규칙으로 실제로 굴리는 표를 보물 상자로), 몬스터·보스(모델 머리 아이콘·능력치·드롭, 수치는 "(보통·보정 전)").
-  획득처 그룹 순서(장비) = 보스 · 정예 · 몬스터·상자 · 제작 · 칭호 보상.
+- **도감** `/codex` = `/도감` = `/미궁 도감` (`ui.menus.CodexMenu`): 종류·희귀도별 아이템(실제 툴팁 + 획득처 목록 — loot 테이블 중첩·PICK 까지 계산),
+  몬스터·보스(모델 머리 아이콘·능력치·드롭, 수치는 "(보통·보정 전)", 층 정보 그대로).
+  - 획득처 묶음(`CodexMenu.SOURCE_GROUPS`, 순서) = 보스 · 정예 · 몬스터·상자 · 보물 상자 · 시련방 · 특별 시련 · 금고·미믹 · 대장간 · 상인 · 칭호 보상 · 시작 지급 · 몬스터.
+    표 → 묶음: 몹·보스 drops, `mix_fNN_drop`(몬스터·상자 — 몹·상자 표에서는 따라 들어가지 않음), `treasure_floor_N`·`ChestTier` 규칙으로 실제로 굴리는
+    미로 상자 표(보물 상자), `gimmick_floor_N`(시련방), `special_trial_fNN`(특별 시련), `hoard_fNN`(금고·미믹), 레시피(대장간 재료 목록), 상점, 칭호, `starter`.
+  - **장비 줄에는 층 숫자가 없다** (보스·정예는 이름만, 층 묶음은 종류 이름만). 재료·소모품은 "보물 상자 지하 9·10층"·"이름(9층)" 처럼 층을 적는다.
+  - 정렬 = 희귀도 → 단계(장비, `tier`)·층(재료) → 숨은 레벨 → id. 거르개: 희귀도(8번) · 무기 방식/방어구 겉모습(7번) · 방어구 부위(50번) ·
+    "지금 낄 수 있는 것만"(51번). 장비를 클릭하면 자세히 보기(`CodexMenu.detailLines` — 무기 = 공격 방식·간격·**스킬 위력**(힘·지능·공속 전),
+    방어구 = 겉모습·요구 짝·4부위 효과 전문), 다시 클릭하면 돌아간다. 몬스터 도감의 공용 장비 묶음은 "장비 N종 (몬스터·상자 공용)" 한 줄.
+  - 줄 수: `CodexMenu.lore`·`detailLore` 모두 20줄 · 330px 안 (`TooltipFitTest`), 획득처 글은 `CodexSourceTextTest`.
 - **config.yml** 추가 키: `mobs.elite_variant_chance`(기본 0.06), `mobs.model_yaw_offset`(도, 기본 0).
 - **에셋 id 대조** `python3 tools/check_assets.py [팩.zip]`: 아이템(활 당김 모델 포함)·방어구 세트·몹/보스 파트·NPC 스킨·fx(fx.yml + 아우라·params.fx
   참조 + Java 스킬 fx 기본값)·글리프(font/ui.json 문자, 메뉴 배경 줄 수) ↔ 팩 zip. 오류 0 이어야 배포.
@@ -496,7 +511,8 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 
 - 레벨 1~50. 레벨업마다 스탯포인트 5. 스탯 초기화 아이템/명령.
 - 직업 6종: 수호기사(탱커), 광전사(근접 딜러), 사냥꾼(원거리), 비전술사(마법 광역), 사제(힐·버프), 그림자(암살·치명타).
-  각 직업 스킬 4개(3 + 궁극기), 레벨에 따라 해금. 직업마다 추천 무기 타입(장비 제한은 없음 — 누구나 모든 장비).
+  각 직업 스킬 4개(3 + 궁극기), 레벨에 따라 해금. 무기 종류는 없다(0.3.5) — 직업에는 '주로 쓰는 능력치'(`main_stats`)와 시작 무기만,
+  장비 제한도 없음(누구나 모든 장비). 직업 스킬 = 든 무기의 스킬 위력 × `skill_scale`.
 - 희귀도: 일반(흰) < 고급(초록) < 희귀(파랑) < 영웅(보라) < 전설(금, 아우라) < 신화(빨강, 애니메이션 아우라).
   **전설·신화 무기 텍스처는 프레임 애니메이션(.mcmeta, GIF 처럼 움직임)** + 들고 있을 때 파티클/링 아우라.
 - 장비 획득 루트 (GDD §11.3, 0.3.5): 장비는 숨은 단계 `tier` 를 갖고, 보스가 아닌 장비는 단계 풀 `band_tNN_<종류>` 를 이웃 층 셋이 PICK 2 : 7 : 1 로
@@ -507,8 +523,8 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   - 솔로 입장 또는 파티 입장(파티원 모두 입구 근처, 파티장만 시작).
   - **파티 인원 배율**: 몹 HP ×(1 + `hp_per_member`×(n−1)), 피해 ×(1 + `dmg_per_member`×(n−1)), 보상 약간 증가. config.
     솔로(1명)만 HP ×`party.solo_hp`·피해 ×`party.solo_damage`(0.85, 보상 그대로 — `core.PartyScaling`).
-  - **난이도 층 램프**: 어려움·악몽의 HP·피해·경고 시간은 낮은 층에서 완만하게 시작해 `ramp.full_floor` 층부터 원래 값(`Difficulty.atFloor`,
-    InstanceContext 가 층마다 한 번 적용 — 몹·보스·함정·보스 기믹 배율이 모두 층 실효값). 드롭·경험치는 1층부터 원래 값. GDD §2.4.
+  - **난이도는 1층부터 모든 층 같은 배율** (0.3.4). 층 램프는 관리자가 `ramp` 를 직접 적었을 때만(`Difficulty.atFloor`,
+    InstanceContext 가 층마다 한 번 적용). 0.3.5 어려움 HP 1.45 — 고친 적 없는 예전 값은 읽을 때 저절로 올림. GDD §2.4.
   - **난이도는 서버 전체 설정 하나**: 쉬움/보통/어려움/악몽 (HP·피해·드롭 배율, config.yml 프리셋). **난이도 해금 없음**,
     입장할 때 고르지도 않음. **서버를 처음 만들 때 관리자가 정한다**: 첫 실행 시 `config.yml: difficulty` 가 비어 있으면
     처음 접속한 관리자(OP/`labyrinth.admin`)에게 **초기 설정 GUI**(난이도 4개 + 입구 방식 블록/NPC-only)를 띄우고,
@@ -538,7 +554,9 @@ classes:
     name: "수호기사"
     role: tank            # tank | melee | ranged | magic | healer | assassin
     icon_item: guardian_emblem   # items.yml id
-    weapon_types: [sword_shield]   # 추천 무기 (제한 아님, GDD §4.4)
+    main_stats: [VIT, STR]         # 0.3.5: '주로 쓰는 능력치' (직업 메뉴 한 줄) — 무기 종류·추천 무기는 없다
+    starter_weapon: corridor_longsword   # 처음 전직 때 한 번 주는 무기
+    skill_scale: 1.0               # 직업 스킬 배율 (스킬 위력 × 이 값)
     base_stats: {STR: 5, DEX: 2, INT: 1, VIT: 6, WIS: 2, LUK: 1}
     per_level: {hp: 6, mp: 2}
     skills:
@@ -556,16 +574,17 @@ items:
   ember_greatsword:
     name: "잿불 대검"
     type: weapon              # weapon | armor | accessory | material | consumable | key
-    weapon_type: greatsword   # classes.weapon_types(추천 무기) 와 매칭. bow 는 활 동작.
-    armor_slot: null          # head | chest | legs | feet | offhand(방패, 보조손 — 수호기사 추천) (armor 일 때)
+    attack: {style: melee, interval: 1.0, kind: physical}   # 0.3.5: 무기 종류 없음 — 방식 melee|ranged|caster · 간격(초) · 피해 종류 physical|magic
+    unique: {id: overcharge, name: "불씨 폭발", pct: 1.8, window: 5, radius: 2.5}   # 0.3.5: 고유 효과 하나 (닫힌 목록 26, 수치 고정)
+    armor_slot: null          # head | chest | legs | feet | offhand(방패, 보조손) (armor 일 때). 세트 없는 투구는 look: heavy|light|cloth|any
     armor_set: null           # 방어구면 장비 에셋 세트 id
     rarity: legendary
     level_req: 25
     requires: {STR: 33, VIT: 20, INT: 13}   # 0.3.5: '모두 채움' 요구 능력치 (합 ceil(2.75(L−1)), 2~3개) — classes 는 장비에 없다
     tier: 5                   # 0.3.5 숨은 단계 (Lv 5N−5~5N, 옛 floor) — 보스가 아니면 이웃 층 셋이 단계 풀로 나눠 준다
     pool: false               # rarity_pool 미사용 (장비는 전부 false)
-    sources: [boss, craft]    # 획득처 (툴팁·도감) — 집 최대 2곳, GDD §11.3
-    stats: {damage: [38, 44], STR: [6, 9], crit_chance: [0.04, 0.06]}   # [최소, 최대] 굴림
+    sources: [boss]           # 획득처 종류 (툴팁·도감) — 1~2개, 영웅 이상 무기는 1개, GDD §11.3
+    stats: {damage: [38, 44], STR: [6, 9], crit_chance: [0.04, 0.06]}   # [최소, 최대] 굴림 — damage = 한 방 피해(툴팁 "공격력")
     set_bonus: null           # 세트 id (sets: 섹션 참고)
     aura: ember               # fx.yml aura id (전설/신화 무기)
     weapon_skills:            # 일부 상위 무기에만, 무기마다 1~4개(보통 1~3). 좌클릭 기본기는 소수 무기만. 구현: items/weaponskills/*
@@ -577,7 +596,7 @@ items:
         params: {damage: 0.8, range: 12, width: 2.5, fx: ember_slash}
         description: "휘두를 때마다 불꽃 검기를 날린다."
     model:                    # 3D 모델 지시 (리소스팩 생성기)
-      shape: greatsword       # 생성기 3D 템플릿 (GDD.md "Pack generator templates" 의 닫힌 목록)
+      shape: greatsword       # 생성기 3D 템플릿 (GDD.md "Pack generator templates" 의 닫힌 목록 — 활 모양 ⇔ ranged, 시전 모양 ⇔ caster)
       length: 1.0             # 상대 크기
     texture:                  # 리소스팩 생성기 지시 (자체 제작 픽셀아트, 3D 모델 UV 아틀라스)
       style: greatsword       # 생성기가 아는 재질/장식 템플릿
@@ -765,9 +784,10 @@ hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100,
     gen_035_content 가 loot/recipes/titles/npcs/config `starter_kit` 에서 계산해 적음). `drop`+`chest` = 몬스터·상자 한 종류(`mix_fNN_drop`),
     `trial` 시련방 · `special` 특별 시련 · `hoard` 금고·미믹, `starter` = 시작 지급(몹·상자·대장간에서 안 나옴). **획득처 종류 1~2개, 영웅 이상 무기는 1개**.
     실제 획득처와 다르면 검사기 경고. 툴팁 한 줄 = `ItemTooltip.sourceLine`
-    ("보스 테오라(9층) · 대장간", "정예 <이름>(N층)", "지하 N층 몬스터·상자", "시작 지급" — 이름은 주는 보스·정예가 하나뿐일 때만, 콘텐츠를 다시 읽을 때 계산).
+    ("보스 테오라 · 대장간", "정예 · 대장간", "몬스터·상자", "시련방", "상인 핀", "시작 지급" — **층 숫자 없음**, 이름은 주는 보스·정예·상인이
+    하나뿐일 때만, 콘텐츠를 다시 읽을 때 계산).
   - `classes`: 0.3.5 부터 장비에는 없다 (드롭 편향은 `requires` 로 — loot.yml `own_build_bias`). `requires_any` 도 없어졌다(파서가 문제로 알리고 무시).
-  - `armor_slot: offhand` = 방패(수호기사). 보조손에 있을 때만 스탯 적용, `block_chance` 로 막기(GDD §11.2).
+  - `armor_slot: offhand` = 방패. 보조손에 있을 때만 스탯 적용, `block_chance` 로 막기(GDD §11.2), 겉모습은 판금 한 부위.
   - `stats` 키 = GDD §11.7 닫힌 목록 26개(`damage`, 스탯 6종, hp, mp, defense, crit_chance, crit_damage, attack_speed, move_speed,
     cooldown_reduction, skill_damage, mana_regen, hp_regen, heal_power, lifesteal, damage_reduction, evasion, block_chance, gold_bonus,
     xp_bonus, craft_discount). 값은 전부 [최소, 최대].
@@ -782,7 +802,8 @@ hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100,
   - `texture.style`/`effect` 에 아이콘 무늬 8개·effect 8개 추가(GDD §14.2).
   - 무기 `model.shape` 에 새 실루엣 12종 추가(GDD §14.1·§11.2, 무기 종류마다 2개): warhammer · falchion · war_scythe · glaive ·
     horn_bow · blade_bow(활 — `_pulling_0..2` 자동) · staff_spiral · staff_fork · bell_scepter · chalice_scepter · sickle · katar.
-    생성기 = `resourcepack/src/voxel/weapons.py`(복셀 전용, 옛 상자 템플릿 없음). 플러그인은 shape 를 읽지 않는다(활 여부는 weapon_type).
+    생성기 = `resourcepack/src/voxel/weapons.py`(복셀 전용, 옛 상자 템플릿 없음). 플러그인은 shape 를 읽지 않는다(활 여부는 `attack.style`,
+    검사기가 활 모양 ⇔ ranged 를 맞춘다). 0.3.5 새 실루엣 15종(§14.1).
   - `sets.<id>.look`: heavy | light | cloth — 장비 에셋 레이어 실루엣(GDD §14.7). `bonuses` 키 = 착용 개수(이상).
 - **loot.yml**
   - 최상위 `settings: {own_build_bias, luck_per_point, party_bonus_per_member, max_chance, rarity_weight: {난이도: {희귀도: 배율}}, announce_rarity}`.
@@ -930,24 +951,10 @@ first_clear_bonus: 0.4     # 층 첫 돌파 경험치 = 그 층 level_range 최�
   입장 메뉴·채팅 설정 메뉴는 고른 층의 실효 배율 + 솔로 보정 줄.
 - **mobs.yml** `attack_interval`, summon `solo_count`·`solo_max_alive` 는 §6.1. classes.yml 은 수치만 바뀜(그림자 base_hp 115·VIT 5, 비전술사 110·VIT 4, 마력탄 damage 2.0).
 
-### 6.8 0.3.4 어깨·등 3D 장식 (config.yml — 키가 없어도 코드 기본값)
-```yaml
-cosmetics:
-  armor_pieces:            # items.ArmorCosmetics.Config.from — 묶음·키가 없으면 DEFAULT (true, 2, 0.6)
-    enabled: true          #   끄기 = false (디스플레이를 하나도 만들지 않음)
-    update_ticks: 2        #   몸 yaw·자세를 다시 보는 간격 1~20 틱 (teleport_duration 도 같은 값)
-    view_range: 0.6        #   Display view_range (1.0 ≈ 64블록), 0 이하·NaN → 기본, 최대 4
-```
-- 플레이어별 `/미궁 장식|cosmetics [켜기|끄기|on|off]` (인자 없으면 뒤집기) → PlayerData ext `cosmetics.armor_pieces` (Boolean, 없으면 켜짐).
-  끄면 그 플레이어의 장식이 아예 생기지 않는다(다른 사람에게도 안 보임). 다른 사람 장식을 내 화면에서만 끄는 기능은 없다.
-- `/미궁 장식 내화면|self [켜기|끄기]` → ext `cosmetics.armor_pieces_self` (없으면 꺼짐): 켜면 내 장식을 나에게도 보인다(3인칭 확인용 —
-  1인칭에서 아래를 보거나 고개를 돌리면 어깨 장식이 화면 가장자리에 걸릴 수 있다고 안내). 기본은 꺼짐이라 **혼자 접속해 F5 로 보면 장식이
-  안 보인다** — 두 번째 계정으로 보거나 내화면 켜기로 확인한다. 처음 장식이 생길 때 한 번 이 명령을 안내한다(ext `cosmetics.armor_pieces_told`).
-- 자세 (`ArmorPieceLayout.stance`): 사망·관전 = 디스플레이 제거, 투명(효과 포함)·탈것·잠·활공·헤엄·급류·서기/웅크리기 밖의 자세 = 크기 0,
-  웅크리기 = 웅크리기 배치(보간 3틱). 벗기·나가기·사망·월드 이동·reload·플러그인 종료 때 제거, 탑승이 풀리면 다시 태움(40틱 안에 6번 넘게
-  풀리면 100틱 쉼 — 탑승물을 계속 내리는 다른 코드와 싸우지 않음).
-- SelfTest 1층: `ArmorCosmetics.selfCheck` — 첫 세트 장식 3개를 시작방에 띄웠다 지우고(모델 키·배율 확인), 배포 팩 zip(`plugins/Labyrinth/pack/labyrinth-pack.zip`
-  또는 jar 안 `pack/`)이 있으면 모든 세트 × 부위의 아이템 정의가 있는지 본다.
+### 6.8 (없앰) 0.3.4 어깨·등 3D 장식
+0.3.4.2 에서 서비스·명령(`/미궁 장식`)·config `cosmetics`·자가 진단 단계를, 0.3.5 에서 팩 생성기(`armor_pieces.py`)·Java 코드(`items.ArmorCosmetics`·
+`ArmorPieceLayout`·그 테스트)·items.yml `sets.<id>.back` 을 지웠다. 예전 config 의 `cosmetics` 키와 PlayerData ext `cosmetics.*` 는 남아 있어도 읽지 않는다.
+`core.Teleports` 의 월드 간 탑승물 내리기는 그대로 둔다 — 상태이상 표식·얼음 껍질(`SkillFx.attach`)이 PvP 에서 플레이어에게도 붙는다.
 
 ### 6.9 0.3.5 특별 시련 (dungeon.yml · floors.yml · loot.yml — 키가 없어도 코드 기본값)
 ```yaml
@@ -993,6 +1000,9 @@ special_trial:
   요구 레벨 ≤ 층 구간), `EnhanceMaterialsTest`·`EnhanceRulesTest`·`EnhanceLayoutTest`(재료 규칙·곡선·비용 줄 배치), `ScalingTest`(램프·솔로 보정·예전 설정 기본값),
   `RoomRewardTest`(솔로·2인 몹 수·보상 보정·방 정리 회복·첫 돌파), `EarlySoloDataTest`(1·2층 공격 간격·소환 솔로 값·직업 HP), `StarterKitTest`, `ClassChangeRuleTest`.
   콘텐츠를 고치면 이 테스트와 `tools/gen_enhance.py --check` 를 같이 돌릴 것.
+- 0.3.5 화면 글: `TooltipFitTest`(모든 아이템 +0·+8·+10 · 도감 · 자세히 보기 · 대장간 목록 20줄 · 330px, 장비에 층 숫자·"또는"·굴림 품질 없음,
+  공격력 + 공격 속도 줄, 고유 효과 두 줄·접기, 겉모습 줄, 보스 장비는 접어도 보스 이름), `CodexSourceTextTest`(장비 획득처에 층 없음 ·
+  몬스터·상자 한 줄 · 시련방·특별 시련·금고·미믹 묶음 · 재료는 층 그대로), `WeaponTypeGoneTest`(분류 이름·종류 코드 없음).
 - 0.3.5 특별 시련: `SpecialTrialTest`(굴림 시드·확률·확정 카운터, 층마다 그 기믹이 쓸 수 있는 조건만, 조건 4종 판정, 깨져도 평소 상자는 그대로,
   dungeon.yml 기본값, special_trial_fNN 표, floors.yml 덮어쓰기 오타, 무결 기믹 = noteMistake 를 부르는 기믹).
 - `labadmin selftest` 는 층마다 기믹방 단서 3단계·보스 단서의 MiniMessage 읽기를 확인한다(`hints` 단계, `hint_gimmicks`/`hint_bosses` 개수).

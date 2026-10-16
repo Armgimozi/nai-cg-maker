@@ -109,7 +109,7 @@ class ItemRollsTest {
         String all = String.join("\n", lines);
         assertTrue(all.contains("요구 힘 <white>60"), all);
         assertFalse(all.contains("요구 레벨"), all);
-        assertTrue(all.contains("피해"), all);
+        assertTrue(all.contains("⚔ 공격력 "), all);
         assertTrue(all.contains("잿불 검기"), all);
         assertFalse(all.contains("굴림 품질"), all); // 굴림 품질은 표시하지 않는다
         assertTrue(all.contains("아우라"), all);
