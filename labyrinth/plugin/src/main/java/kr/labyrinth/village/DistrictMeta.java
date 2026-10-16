@@ -66,7 +66,7 @@ public final class DistrictMeta {
     public String toYaml() throws InvalidConfigurationException {
         YamlConfiguration y = new YamlConfiguration();
         y.loadFromString(meta.toYaml());
-        y.options().setHeader(List.of("미궁 라비린스 — 광산 마을 같은 구역 기록 (0.3.6, 플러그인이 씀 — 직접 고치지 마세요)",
+        y.options().setHeader(List.of("미궁 라비린스 — 광산 마을 기록 (0.3.6.1, 플러그인이 씀 — 직접 고치지 마세요)",
                 "state: building(짓는 중) | built(다 지음) | removed(지움 — 자동으로 다시 짓지 않음)",
                 "되돌리기 백업: " + (backup.isBlank() ? backupName(id) : backup) + " (같은 폴더)"));
         y.set("district", id);
