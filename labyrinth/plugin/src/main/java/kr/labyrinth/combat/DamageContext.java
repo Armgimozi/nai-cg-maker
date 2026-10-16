@@ -44,6 +44,8 @@ public final class DamageContext {
     private double critDamageScale = 1.0;
     private double critDamageAdd;
     private String sourceId;
+    private double weaponHit = Double.NaN;
+    private boolean casterBolt;
 
     // 결과
     private double finalDamage;
@@ -126,6 +128,13 @@ public final class DamageContext {
     public DamageContext critDamageScale(double s) { this.critDamageScale = Math.max(0, s); return this; }
     /** 이 피해 한 건의 치명 피해 가산 (0.45 = 치명 피해 +45%p, 고유 효과 피 냄새). 누적된다. PvP 의 critDamageScale 은 그 뒤에 곱한다. */
     public DamageContext critDamageAdd(double add) { this.critDamageAdd += add; return this; }
+    /**
+     * 기본 공격 기준 한 방 W 를 이 값으로 (0.3.6.1 마법탄 — 쏜 순간 든 무기의 W. 날아가는 사이 무기를 바꿔도 쏜 무기의 피해).
+     * 기준이 {@link Base#PER_HIT} 일 때만 쓴다.
+     */
+    public DamageContext weaponHit(double w) { this.weaponHit = w; return this; }
+    /** 시전 무기 마법탄 (0.3.6.1) — 기본 공격 (유형은 마법). '기본 공격 적중' 효과(광전사 피의 분노 MP 등)가 근접처럼 붙는다. */
+    public DamageContext casterBolt() { this.casterBolt = true; return this; }
 
     // ── 입력 접근 ─────────────────────────────────────────────────────────
     public LivingEntity attacker() { return attacker; }
@@ -158,6 +167,11 @@ public final class DamageContext {
     public double defenseScale() { return defenseScale; }
     public double critDamageScale() { return critDamageScale; }
     public double critDamageAdd() { return critDamageAdd; }
+    /** 정해 둔 기본 공격 한 방 (없으면 NaN — 지금 든 무기의 W). */
+    public double weaponHit() { return weaponHit; }
+    public boolean hasWeaponHit() { return !Double.isNaN(weaponHit); }
+    /** 시전 무기 마법탄인가 (기본 공격, 유형 마법). */
+    public boolean isCasterBolt() { return casterBolt; }
     /** 기본 공격인가 — 플레이어가 무기로 친 한 대 (스킬·보스 패턴·지속 피해·고유 효과 피해·출처 붙은 피해가 아님). */
     public boolean isBasicAttack() {
         return attacker instanceof Player && !skill && !pattern && sourceId == null && usesAttackPower() && base == Base.PER_HIT;

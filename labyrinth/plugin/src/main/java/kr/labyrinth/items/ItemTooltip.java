@@ -341,10 +341,18 @@ public final class ItemTooltip {
         return cfg.name(l) + " " + cat;
     }
 
-    /** "공격 속도 초당 1.5회" — 1 ÷ attack.interval (활은 한 발 주기), 민첩 넣기 전, 소수 한 자리. */
+    /**
+     * "공격 속도 초당 1.5회" — 1 ÷ attack.interval (활은 한 발 주기), 민첩 넣기 전, 소수 한 자리.
+     * 시전 무기는 뒤에 " · 좌클릭 마법탄" (0.3.6.1, combat.caster_bolt 가 켜져 있을 때).
+     */
     public static String speedLine(ItemDef def) {
-        return "<gray>공격 속도 초당 <white>" + perSecond(kr.labyrinth.combat.WeaponAttack.of(def).attacksPerSecond()) + "</white>회";
+        kr.labyrinth.combat.WeaponAttack a = kr.labyrinth.combat.WeaponAttack.of(def);
+        String line = "<gray>공격 속도 초당 <white>" + perSecond(a.attacksPerSecond()) + "</white>회";
+        return a.firesBolt() ? line + " <dark_gray>·</dark_gray> <gray>" + CASTER_BOLT + "</gray>" : line;
     }
+
+    /** 시전 무기 기본 공격 한 마디 (툴팁·도감). */
+    public static final String CASTER_BOLT = "좌클릭 마법탄";
 
     /** 초당 횟수 소수 한 자리 ("1.5" · "2.2" · "0.8"). */
     public static String perSecond(double v) {

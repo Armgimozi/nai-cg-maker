@@ -55,6 +55,7 @@ import org.bukkit.potion.PotionType;
  *       → pvp 리스너가 배율·상한</li>
  *   <li>커스텀 몹이 받는 그 밖의 바닐라 피해(낙하·불 등): 취소 (자체 HP 풀)</li>
  *   <li>그 외 플레이어가 받는 바닐라 피해: 'HP 20 기준 비율'로 환산 (config combat.scale_vanilla_damage)</li>
+ *   <li>0.3.6.1 시전 무기(마법탄 켜짐)의 근접 피해가 적에게 오면 취소만 — 피해는 {@link CasterBolts} 의 마법탄 한 발</li>
  * </ul>
  */
 final class CombatListener implements Listener {
@@ -72,12 +73,23 @@ final class CombatListener implements Listener {
     private final Services services;
     private final DamageService damage;
     private final AttackClock clock;
+    private final CasterBolts bolts;
     private final Map<UUID, Float> preAttackCooldown = new ConcurrentHashMap<>();
 
-    CombatListener(Services services, DamageService damage, AttackClock clock) {
+    CombatListener(Services services, DamageService damage, AttackClock clock, CasterBolts bolts) {
         this.services = services;
         this.damage = damage;
         this.clock = clock;
+        this.bolts = bolts;
+    }
+
+    /**
+     * 시전 무기(마법탄 켜짐)의 바닐라 근접 피해가 적에게 들어옴 → 취소만 ({@link CasterBoltRules#cancelMeleeDamage}). 보통은 공격 시계가
+     * 공격 자체를 막아 여기까지 오지 않지만, 다른 길(다른 플러그인의 공격 명령 등)로 와도 마법탄과 겹쳐 두 번 맞지 않게.
+     */
+    private boolean casterMelee(Player player, LivingEntity target, EntityDamageByEntityEvent be, Entity damager) {
+        return isMelee(be, damager, player) && CasterBoltRules.cancelMeleeDamage(bolts != null && bolts.ready(player),
+                services.targets().isEnemy(player, target));
     }
 
     /** 공격 직전의 쿨다운 (데미지 이벤트 시점엔 이미 0 으로 리셋되어 있음). */
@@ -130,6 +142,8 @@ final class CombatListener implements Listener {
                 if (damager instanceof AbstractArrow arrow) {
                     damage.deal(DamageContext.attack(player, target, rangedMult(player, arrow, be.isCritical()), DamageType.RANGED));
                     if (!(arrow instanceof Trident)) arrow.remove(); // 삼지창은 지우면 잃어버린다 — 바닐라처럼 튕겨 떨어지게
+                } else if (casterMelee(player, target, be, damager)) {
+                    return; // 시전 무기: 피해는 마법탄이 준다
                 } else if (isMelee(be, damager, player)) {
                     damage.deal(DamageContext.attack(player, target, meleeMult(player, be), DamageType.MELEE));
                 }
@@ -138,6 +152,10 @@ final class CombatListener implements Listener {
             // 플레이어 → 미궁 밖 바닐라 적대 몹: 미궁 무기 평타·미궁 활 화살은 스킬과 같은 미궁 공격력으로 (바닐라 무기는 바닐라 피해 그대로).
             // 바닐라 몹이라 DamageService 가 바닐라 피해로 넣으면서(applyVanilla) 기본 넉백도 바닐라가 붙인다
             if (source instanceof Player player && victimPool.isEmpty() && victim instanceof LivingEntity target && !(victim instanceof Player)) {
+                if (casterMelee(player, target, be, damager)) {
+                    e.setCancelled(true); // 시전 무기: 피해는 마법탄이 준다
+                    return;
+                }
                 boolean melee = isMelee(be, damager, player) && services.items().heldWeapon(player) != null;
                 AbstractArrow arrow = !melee && damager instanceof AbstractArrow a && !(a instanceof Trident) && firedFromLabyrinthBow(a) ? a : null;
                 if ((melee || arrow != null) && services.targets().isEnemy(player, target)) {
@@ -175,7 +193,7 @@ final class CombatListener implements Listener {
                     }
                     if (isMelee(be, damager, culprit)) {
                         e.setCancelled(true);
-                        pvpMelee(culprit, vp, be);
+                        if (!casterMelee(culprit, vp, be, damager)) pvpMelee(culprit, vp, be); // 시전 무기: 피해는 마법탄이 준다
                         return;
                     }
                     if (damager instanceof AbstractArrow arrow && culprit.equals(arrow.getShooter())) {

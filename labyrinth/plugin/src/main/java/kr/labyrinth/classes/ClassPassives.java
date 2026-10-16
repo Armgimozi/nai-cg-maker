@@ -202,7 +202,8 @@ public final class ClassPassives implements DamageService.Hook, StatContributor 
         Params pp = c.passive().params();
         switch (c.passive().id()) {
             case "bloodrage" -> {
-                if (!ctx.isSkill() && ctx.type() == DamageType.MELEE && ctx.dealt() > 0 && ctx.sourceId() == null) {
+                // 기본 공격 적중 = 근접 한 대 또는 시전 무기 마법탄 (0.3.6.1 — 예전 시전 무기 휘두르기와 같게)
+                if (!ctx.isSkill() && (ctx.type() == DamageType.MELEE || ctx.isCasterBolt()) && ctx.dealt() > 0 && ctx.sourceId() == null) {
                     services.classes().restoreMana(atk, pp.dbl("mana_on_hit", 3));
                 }
             }

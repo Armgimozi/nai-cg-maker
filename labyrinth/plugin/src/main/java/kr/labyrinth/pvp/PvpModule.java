@@ -285,9 +285,9 @@ public final class PvpModule implements Module {
             }
             if (ctx.isSkill()) return "스킬";
         }
-        if (ctx.type() == DamageType.MELEE) {
+        if (ctx.type() == DamageType.MELEE || ctx.isCasterBolt()) { // 마법탄도 든 무기 이름 (0.3.6.1)
             ItemDef held = services.items().heldWeapon(attacker);
-            return held != null ? Text.strip(held.name()) : "근접 공격";
+            return held != null ? Text.strip(held.name()) : ctx.isCasterBolt() ? "마법탄" : "근접 공격";
         }
         return switch (ctx.type()) {
             case RANGED -> "원거리 공격";

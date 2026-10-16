@@ -8,7 +8,8 @@ import kr.labyrinth.content.Params;
 /**
  * 무기 한 자루의 공격 방식 (0.3.5, 순수) — 무기 종류(분류) 없이 무기마다 공격 간격·방식·피해 종류를 가진다.
  * <ul>
- *   <li>{@code style}: MELEE(근접 휘두르기) · RANGED(활 — 당겨 쏘기) · CASTER(시전 — 지금은 근접 휘두르기, 피해는 마법)</li>
+ *   <li>{@code style}: MELEE(근접 휘두르기) · RANGED(활 — 당겨 쏘기) · CASTER(시전 — 0.3.6.1 부터 좌클릭 = 마법탄, 피해는 마법.
+ *       한 방·간격은 예전 휘두르기와 같고 공격 시계를 함께 쓴다 — {@code CasterBolts}. config combat.caster_bolt.enabled: false 면 예전처럼 휘두르기)</li>
  *   <li>{@code interval}: 툴팁 간격(초, 민첩 전). 활은 한 발 주기 = 끝까지 당기는 시간 + 0.15초</li>
  *   <li>{@code kind}: 기본 공격·무기 스킬의 기본 피해 종류 (시전 = 마법, 그 밖 = 물리)</li>
  *   <li>{@code skillPowerMult}: 스킬 위력 배율 (시전 1.05, 그 밖 1.0)</li>
@@ -99,6 +100,18 @@ public record WeaponAttack(Style style, double interval, DamageKind kind, double
     }
 
     public boolean ranged() { return style == Style.RANGED; }
+
+    public boolean caster() { return style == Style.CASTER; }
+
+    /** 시전 무기 좌클릭이 마법탄인가 (config combat.caster_bolt.enabled — 전투 모듈이 켤 때·다시 읽을 때 정한다. 툴팁·도감 글이 따른다). */
+    private static volatile boolean casterBolt = true;
+
+    public static boolean casterBolt() { return casterBolt; }
+
+    public static void casterBolt(boolean on) { casterBolt = on; }
+
+    /** 기본 공격이 마법탄인가 (시전 무기 + 켜짐). */
+    public boolean firesBolt() { return style == Style.CASTER && casterBolt; }
 
     /** 툴팁 '공격 속도 초당 N회' (민첩 전) = 1 ÷ interval. */
     public double attacksPerSecond() { return 1.0 / interval; }
