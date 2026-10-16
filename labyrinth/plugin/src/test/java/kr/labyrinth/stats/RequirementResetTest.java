@@ -62,6 +62,28 @@ class RequirementResetTest {
     }
 
     @Test
+    void roleNoticeTellsThatGearRequirementsChanged() {
+        // 포인트를 나눈 사람: 역할 + 장비 요구 + 무료 초기화
+        PlayerData a = new PlayerData(UUID.randomUUID(), "f");
+        a.statPoints(10);
+        assertTrue(a.allocate(Stat.VIT, 4));
+        String msg = LevelService.roleResetNotice(a);
+        assertNotNull(msg);
+        assertTrue(msg.contains("장비 요구 능력치도 바뀌었습니다") && msg.contains("무료"), msg);
+        assertNull(LevelService.roleResetNotice(a), "한 번만");
+        // 나누지 않은 예전 플레이어 (직업 기본 능력치로 요구를 채우던 사람): 초기화 없이 안내만
+        PlayerData b = new PlayerData(UUID.randomUUID(), "g");
+        b.level(12);
+        String msgB = LevelService.roleResetNotice(b);
+        assertNotNull(msgB);
+        assertTrue(msgB.contains("장비 요구 능력치도 바뀌었습니다") && !msgB.contains("무료"), msgB);
+        // 처음 온 사람: 안내 없음 (처음부터 새 규칙), 표시만
+        PlayerData c = new PlayerData(UUID.randomUUID(), "h");
+        assertNull(LevelService.roleResetNotice(c));
+        assertEquals(Boolean.TRUE, c.ext().get(LevelService.ROLE_RESET_FLAG));
+    }
+
+    @Test
     void roleResetOnlyMarksPlayerWithoutAllocation() {
         PlayerData d = new PlayerData(UUID.randomUUID(), "e");
         d.counter(StatsMenu.FREE_RESET_KEY, 1);

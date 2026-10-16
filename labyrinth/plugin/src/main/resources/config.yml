@@ -297,7 +297,7 @@ enhance:
   #   몬스터·보스의 드롭)가 content/enhance.yml 에 있다 (low +1~+3 · mid +4~+6 · high +7~+10, 없으면 강화석·골드만).
   #   골드·강화석·재료는 전부 있어야 시작하고, 실패해도 모두 사라진다.
   stone_counts: [1, 1, 1, 1, 2, 2, 2, 3, 3, 4]
-  # 장비가 속한 층(items.yml floor, 없으면 요구 레벨로 추정) → 쓰는 강화석. 드롭은 loot.yml 의 enhance_* 테이블.
+  # 장비 단계(items.yml tier, 없으면 요구 레벨로 추정) → 쓰는 강화석 (max_floor = 그 돌을 쓰는 가장 높은 단계). 드롭은 loot.yml 의 enhance_* 테이블.
   stones:
     - {item: lesser_enhance_stone, max_floor: 3}
     - {item: greater_enhance_stone, max_floor: 7}
@@ -308,7 +308,7 @@ enhance:
 
 # 판매 — 떠돌이 상인 핀의 상점 [물건 팔기] · /미궁 판매 (미궁 공략 중에는 불가). 가방에서 클릭해 올리고 [판매] 로 한꺼번에.
 #   재료  = materials[희귀도] × (1 + material_floor_bonus × 층)        (층 = items.yml floor, 정수·강화석처럼 층이 없으면 0)
-#   장비  = gear[희귀도] × (1 + gear_floor_bonus × 층) × (1 + enhance_bonus × 강화 단계)   (무기·방어구·방패·장신구)
+#   장비  = gear[희귀도] × (1 + gear_floor_bonus × 장비 단계) × (1 + enhance_bonus × 강화 단계)   (무기·방어구·방패·장신구, 단계 = items.yml tier)
 #   소모품 = 핀이 파는 것이면 산 값 × consumable_shop_ratio, 아니면 재료 값
 #   핀이 파는 물건은 무엇이든 산 값 × shop_item_cap 이하이고, 언제나 산 값보다 싸다 (사서 되팔아 골드를 불릴 수 없음).
 #   팔 수 없음: 시작 지급품 · 열쇠·직업 문장(type: key) · 전직의 두루마리(class_change.item) · unsellable 목록.

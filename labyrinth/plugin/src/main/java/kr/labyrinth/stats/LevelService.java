@@ -127,11 +127,25 @@ public final class LevelService implements Module {
     /**
      * 0.3.5 에서 스탯이 맡는 일이 바뀌었다 (공격력: 힘 = 물리, 지능 = 마법 · 민첩 = 공격 속도·치명·회피). 예전 판에서 포인트를 이미 나눈
      * 플레이어에게 무료 초기화를 한 번 되돌려 준다 (접속할 때 한 번만, 0.3.4 {@link #ensureRequirementReset} 와 같은 모양).
+     * 장비 요구 능력치(짝)도 바뀌어 낀 장비가 꺼질 수 있으므로 같은 안내에 한 줄 붙인다 — 포인트를 안 나눈 예전 플레이어(직업 기본 능력치·칭호로
+     * 요구를 채우던 사람)에게도 ({@link #roleResetNotice}).
      */
     public void ensureRoleReset(Player p) {
-        if (grantRoleReset(services.data().get(p))) {
-            Text.send(p, "<#c79bff>힘은 물리, 지능은 마법 공격력이 되었습니다. 민첩은 공격 속도·치명·회피입니다.</#c79bff> <gray>/스탯</gray> <white>에서 스탯 초기화를 한 번 무료로 할 수 있습니다.");
-        }
+        String msg = roleResetNotice(services.data().get(p));
+        if (msg != null) Text.send(p, msg);
+    }
+
+    static final String ROLE_NOTICE = "<#c79bff>힘은 물리, 지능은 마법 공격력이 되었습니다. 민첩은 공격 속도·치명·회피입니다. "
+            + "장비 요구 능력치도 바뀌었습니다.</#c79bff>";
+
+    /**
+     * 순수: 0.3.5 접속 안내 한 번. 포인트를 나눈 사람 = 역할 줄 + 장비 요구 줄 + 무료 초기화, 나누지 않은 예전 플레이어(직업이 있거나 Lv.2+) =
+     * 역할 줄 + 장비 요구 줄, 처음 온 사람·이미 받은 사람 = null.
+     */
+    static String roleResetNotice(PlayerData d) {
+        if (Boolean.TRUE.equals(d.ext().get(ROLE_RESET_FLAG))) return null;
+        if (grantRoleReset(d)) return ROLE_NOTICE + " <gray>/스탯</gray> <white>에서 스탯 초기화를 한 번 무료로 할 수 있습니다.";
+        return d.classId() != null || d.level() > 1 ? ROLE_NOTICE : null;
     }
 
     /** 순수 판정: 아직 안 받았으면 표시하고, 나눈 포인트가 있으면 무료 초기화를 되돌려 true (쌓이지 않음 — 이미 무료면 그대로). */

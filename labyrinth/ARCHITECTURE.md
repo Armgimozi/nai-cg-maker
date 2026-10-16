@@ -262,7 +262,7 @@ stats/   Stat(STR 힘, DEX 민첩, INT 지능, VIT 체력, WIS 정신, LUK 행�
          0.3.5 무료 스탯 초기화 1회 ext `stats.role_reset_035`)
 combat/  DamageService(모든 피해 계산의 단일 경로: 플레이어→몹, 몹→플레이어, 스킬, 보스 패턴), DamageContext, 치명타/회피/방어
          몹·보스는 **자체 HP 풀** 사용 (바닐라 체력은 표시/사망 처리용으로만). 피해 숫자 표시(TextDisplay, 0.8초, 마법 하늘색, 0.5초 묶음).
-         0.3.5 (combat_spec): 공격 게이지 없음 — AttackClock·AttackTiming(순수, 무기 간격·이른 클릭 1번 기억), WeaponAttack(무기 방식·간격·
+         0.3.5 (combat_spec): 공격 게이지 없음 — AttackClock·AttackTiming(순수, 무기 간격·이른 클릭 1번 기억·활 쏘기와 근접이 같은 시계), WeaponAttack(무기 방식·간격·
          피해 종류, `ItemDef.attack()`), DamageKind(물리 = 힘 · 마법 = 지능 · 혼합 · 고정), DamageContext 기준(한 방 W / 스킬 위력 SP),
          CombatMath(순수: power(kind) · 공속 = 민첩 몫 ≤ 0.45 + 장비, 합 ≤ 0.75, 간격 하한 0.25 · K(방식, 간격) · skillPower), CrowdControl(판금 버팀).
 classes/ RoleClass(classes.yml 로드), Skill(interface), ClassService(전직, 스킬 입력, 마나, 쿨다운), skills/*(직업별 구현)

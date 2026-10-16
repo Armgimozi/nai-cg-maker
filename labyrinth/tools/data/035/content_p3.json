@@ -3892,7 +3892,10 @@
   "rarity:spore_thurible_rod": {
    "epic_cells": 35,
    "keep_cells": 36,
-   "chosen": "rare"
+   "chosen": "rare",
+   "why": "FIXUP 0.3.5 확인 (scratchpad/fixup/rarity_trial.py, 칸 모델 = ClassBandChoiceTest): 영웅으로 올리면(Lv13) 사제 11–15 를 혼자 이겨(지배) 54칸. review2 B1 '희귀면 영웅으로'보다 B4 가 이긴다 — 설계 때 칸 비교(35 대 36)로 희귀를 골랐고, 최종 데이터로 다시 재도 같다(54 대 55).",
+   "final_epic_cells": 54,
+   "final_keep_cells": 55
   },
   "skill:spore_thurible_rod": {
    "skill": "포자 축복의 원",
@@ -4237,6 +4240,12 @@
     2
    ],
    "source": "elite"
+  },
+  "rarity:silkknot_bell_scepter": {
+   "epic_cells": 53,
+   "keep_cells": 55,
+   "chosen": "uncommon",
+   "why": "FIXUP 0.3.5 확인 (scratchpad/fixup/rarity_trial.py, 칸 모델 = ClassBandChoiceTest): 영웅으로 올리면(Lv6 · 정신 8/체력 6) 사제 6–10 을 혼자 이기고(지배) 비전술사 6–10 이 쓸 만한 무기 1개로 줄어 53칸. review2 B2 '모두 영웅'보다 B4(55칸 · 보스 전설 아닌 지배 없음)가 이긴다 — 6–10 대장간과 같은 고급으로 둔다."
   }
  },
  "new_weapon_patch": {

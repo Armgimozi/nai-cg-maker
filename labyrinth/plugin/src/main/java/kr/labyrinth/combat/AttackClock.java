@@ -43,6 +43,8 @@ import org.bukkit.util.Vector;
  *       더 이르면 본인에게만 작은 '휙' 소리.</li>
  *   <li>무기를 바꾸면 다음 시각 = max(다음 시각, 지금 + 새 간격 × 0.5).</li>
  *   <li>활: 끝까지 당겨지면 본인에게만 작은 '탁' 소리 (바닐라 활 그림은 늘 1초라서).</li>
+ *   <li>활 쏘기와 근접 치기는 같은 시계 — 한 주기(당김 + 0.15초)에 화살 한 발이나 근접 한 대 중 하나만. 쏘면 근접은 한 발 주기 뒤에,
+ *       근접하거나 쏜 뒤의 당김은 다시 메기기(0.15초) 뒤부터 센다 ({@link AttackTiming#bowDrawnMs} · {@link AttackTiming#shot}).</li>
  * </ul>
  * 바닐라 무기(칼·도끼·삼지창 등 아이템에 공격 속도가 있는 것)는 바닐라 게이지 그대로라 여기서 막지 않는다.
  */
@@ -58,6 +60,8 @@ final class AttackClock implements Listener {
     static final double SWAP_DELAY_FRACTION = 0.5;
     /** 너무 이른 클릭 소리 간격 (ms). */
     static final long WHOOSH_GAP_MS = 150;
+    /** 활: 놓고 다시 메기는 시간 (ms) — 한 발 주기 = 당김 + 이것. */
+    static final long NOCK_MS = Math.round(CombatMath.BOW_NOCK * 1000.0);
 
     private final Services services;
     private final Map<UUID, AttackTiming> clocks = new ConcurrentHashMap<>();
@@ -216,6 +220,7 @@ final class AttackClock implements Listener {
     }
 
     private void drawCue() {
+        long now = System.currentTimeMillis();
         for (Player p : Bukkit.getOnlinePlayers()) {
             UUID u = p.getUniqueId();
             ItemStack active = p.hasActiveItem() ? p.getActiveItem() : null;
@@ -226,18 +231,24 @@ final class AttackClock implements Listener {
             if (drawCued.containsKey(u)) continue;
             DerivedStats s = services.stats().get(p);
             if (s.weapon() == null || !s.weapon().ranged()) continue;
-            double draw = CombatMath.bowDraw(s.weaponInterval(), s.attackSpeed(), cfg().attackIntervalMin());
-            if (p.getActiveItemUsedTime() >= Math.ceil(draw * 20.0 - 1e-9)) {
+            Draw d = draw(p, 0, now); // 당긴 시간을 못 읽으면 0 (소리 없음)
+            if (d.force() >= 0.999) {
                 drawCued.put(u, Boolean.TRUE);
                 p.playSound(p, Sound.ITEM_CROSSBOW_LOADING_END, SoundCategory.PLAYERS, 0.3f, 1.2f);
             }
         }
     }
 
-    /** 활 한 발: 서버가 잰 당김 세기 (0~1). 당긴 시간을 못 읽으면 바닐라 세기에서 되돌린다. */
-    double bowForce(Player p, double vanillaForce) {
+    /** 활 한 발의 당김: 바닐라가 잰 당긴 시간(ms), 끝까지 당기는 시간(초), 서버가 인정한 당긴 시간(ms), 세기. */
+    private record Draw(long usedMs, double fullDraw, long drawnMs, double force) {}
+
+    /**
+     * 당김 재기 (상태는 바꾸지 않음). 당긴 시간을 못 읽으면 바닐라 세기에서 되돌린다. 끝까지 당긴 화살이 공유 시계의 다음 시각보다 먼저
+     * 나가지 않게 자른다 (근접 한 대·앞 화살 뒤에는 다시 메기기 0.15초 뒤부터).
+     */
+    private Draw draw(Player p, double vanillaForce, long now) {
         DerivedStats s = services.stats().get(p);
-        double draw = CombatMath.bowDraw(s.weapon() != null && s.weapon().ranged() ? s.weaponInterval() : 1.15,
+        double full = CombatMath.bowDraw(s.weapon() != null && s.weapon().ranged() ? s.weaponInterval() : 1.15,
                 s.attackSpeed(), cfg().attackIntervalMin());
         int used = 0;
         try {
@@ -246,8 +257,29 @@ final class AttackClock implements Listener {
             // 없는 판
         }
         double ticks = used > 0 ? used : CombatMath.ticksFromVanillaForce(vanillaForce);
+        long usedMs = Math.round(ticks * 50.0);
+        AttackTiming t = clocks.get(p.getUniqueId());
+        long drawnMs = t == null ? usedMs : t.bowDrawnMs(now, usedMs, Math.round(full * 1000.0), cfg().clickToleranceMs());
+        return new Draw(usedMs, full, drawnMs, CombatMath.bowForce(drawnMs / 1000.0, full));
+    }
+
+    /** 활 한 발: 서버가 잰 당김 세기 (0~1) — 무기 스킬 '웅크리고 당겨 쏘기' 위력도 같은 값. 시계는 바꾸지 않는다. */
+    double bowForce(Player p, double vanillaForce) {
         drawCued.remove(p.getUniqueId());
-        return CombatMath.bowForce(ticks / 20.0, draw);
+        return draw(p, vanillaForce, System.currentTimeMillis()).force();
+    }
+
+    /**
+     * 화살이 나갔다 (활 — 쇠뇌 말고): 세기를 재고 근접과 같은 시계에 남긴다. 다음 근접 = 한 발 주기(당김 + 0.15초) 뒤,
+     * 다음 당김은 0.15초 뒤부터. @return 서버가 잰 세기 (0~1)
+     */
+    double shoot(Player p, double vanillaForce) {
+        long now = System.currentTimeMillis();
+        Draw d = draw(p, vanillaForce, now);
+        long fullMs = Math.round(d.fullDraw() * 1000.0);
+        clock(p).shot(now, d.usedMs(), fullMs, cfg().clickToleranceMs(), fullMs + NOCK_MS);
+        drawCued.remove(p.getUniqueId());
+        return d.force();
     }
 
     /** 엔티티가 시계를 쓰는 플레이어인가 (디버그·자가 진단용). */

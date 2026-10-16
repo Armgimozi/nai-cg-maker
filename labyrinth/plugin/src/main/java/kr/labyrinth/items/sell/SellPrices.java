@@ -20,7 +20,8 @@ import org.bukkit.configuration.ConfigurationSection;
  * 떠돌이 상인 핀에게 파는 값 (순수 계산 — 서버 없이 단위 테스트). 설정은 config.yml {@code sell:}, 없으면 {@link Config#DEFAULT}.
  * <ul>
  *   <li>재료: 희귀도 표 × (1 + material_floor_bonus × 층) — 층은 items.yml floor (정수·강화석 등 층 없는 재료는 0)</li>
- *   <li>장비(무기·방어구·방패·장신구): 희귀도 표 × (1 + gear_floor_bonus × 층) × (1 + enhance_bonus × 강화 단계)</li>
+ *   <li>장비(무기·방어구·방패·장신구): 희귀도 표 × (1 + gear_floor_bonus × 장비 단계) × (1 + enhance_bonus × 강화 단계) — 단계 = items.yml tier
+ *       (장비에는 층 글자를 붙이지 않는다, 0.3.5)</li>
  *   <li>소모품: 핀이 파는 것이면 산 값 × consumable_shop_ratio, 아니면 재료 표</li>
  *   <li>핀이 파는 물건은 무엇이든 산 값 × shop_item_cap 이하, 그리고 언제나 산 값보다 1 G 이상 싸다 (사서 되팔아 버는 일 없음)</li>
  *   <li>팔 수 없음: 열쇠류(type: key — 금고 열쇠·직업 문장), 시작 지급품(sources 에 starter), 전직의 두루마리, unsellable 목록</li>
@@ -228,7 +229,7 @@ public final class SellPrices {
         return List.of(
                 "<gray>재료 <dark_gray>(× 1 + " + pct(c.materialFloorBonus()) + " × 층)",
                 "<white>" + row(c.materials()),
-                "<gray>장비 <dark_gray>(× 1 + " + pct(c.gearFloorBonus()) + " × 층 · × 1 + " + pct(c.enhanceBonus()) + " × 강화)",
+                "<gray>장비 <dark_gray>(× 1 + " + pct(c.gearFloorBonus()) + " × 장비 단계 · × 1 + " + pct(c.enhanceBonus()) + " × 강화)",
                 "<white>" + row(c.gear()),
                 "<gray>소모품: 핀이 파는 것은 산 값의 <white>" + pct(c.consumableShopRatio()) + "</white>, 그 밖은 재료 값",
                 "<gray>핀이 파는 물건은 언제나 산 값보다 쌉니다.",

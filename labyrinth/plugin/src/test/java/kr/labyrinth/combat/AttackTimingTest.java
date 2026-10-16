@@ -127,6 +127,85 @@ class AttackTimingTest {
         assertEquals(2000, late.nextReady(), "이미 더 늦으면 그대로");
     }
 
+    // ── 활: 쏘기와 근접이 시계 하나 (화살 한 발 또는 근접 한 대 / 한 발 주기) ──────────────
+
+    private static final long FULL = 1000, NOCK = 150, CYCLE = FULL + NOCK;
+
+    @Test
+    void shootingBlocksMeleeForOneCycle() {
+        AttackTiming t = new AttackTiming();
+        assertEquals(FULL, t.bowDrawnMs(1000, 1000, FULL, 0), "처음엔 바닐라가 잰 당긴 시간 그대로");
+        t.shot(1000, 1000, FULL, TOL, CYCLE);
+        assertEquals(1000 + CYCLE, t.nextReady());
+        assertEquals(AttackTiming.Result.EARLY, t.click(1050, CYCLE, TOL, BUF, A, "bow"), "쏜 직후 근접 막힘");
+        assertEquals(AttackTiming.Result.BUFFER, t.click(1000 + CYCLE - 200, CYCLE, TOL, BUF, A, "bow"), "주기 끝 0.35초 안 → 기억");
+        t.shot(1000 + CYCLE - 100, 1000, FULL, TOL, CYCLE);
+        assertFalse(t.hasBuffer(), "쏘면 기억한 근접을 지움");
+    }
+
+    @Test
+    void meleeThenBowDrawStartsFromZero() {
+        AttackTiming t = new AttackTiming();
+        assertEquals(AttackTiming.Result.ACCEPT, t.click(0, CYCLE, TOL, BUF, A, "bow"));
+        assertEquals(0, t.bowDrawnMs(100, 100, FULL, 0), "근접 직후 → 다시 메기기 0.15초 전이라 세기 0");
+        assertEquals(0, t.bowDrawnMs(NOCK, 2000, FULL, 0), "0.15초 지나서부터 센다");
+        assertEquals(500, t.bowDrawnMs(NOCK + 500, 2000, FULL, 0));
+        assertEquals(300, t.bowDrawnMs(NOCK + 500, 300, FULL, 0), "늦게 당기기 시작했으면 바닐라 시간");
+        assertEquals(FULL, t.bowDrawnMs(CYCLE, CYCLE, FULL, 0), "끝까지 당겨지는 때 = 근접 다음 시각");
+    }
+
+    @Test
+    void releaseAndRedrawAtOnceStillWaitsTheNock() {
+        // 놓자마자 다시 당기는 매크로: 한 발 주기 = 당김 + 0.15초 (당김 + 0.05초가 아님)
+        AttackTiming t = new AttackTiming();
+        long drawStart = 0, first = -1, last = -1;
+        int shots = 0;
+        for (long now = 0; shots < 101; now += 10) {
+            if (t.bowDrawnMs(now, now - drawStart, FULL, TOL) >= FULL) {
+                t.shot(now, now - drawStart, FULL, TOL, CYCLE);
+                if (first < 0) first = now;
+                last = now;
+                shots++;
+                drawStart = now;
+            }
+        }
+        // 처음 한 번만 허용 오차(0.05초)만큼 이르고, 그 뒤로는 빌린 당김을 갚아 쌓이지 않는다
+        assertEquals(100 * CYCLE, last - first, TOL + 10, "빨라지지 않음");
+    }
+
+    @Test
+    void alternatingMeleeAndShotsGetOneAttackPerCycle() {
+        // 쏘자마자 근접 한 대 → 다시 당겨 쏘기: 주기마다 화살 한 발 + 근접 한 대가 되면 안 된다
+        AttackTiming t = new AttackTiming();
+        long drawStart = -1;
+        int attacks = 0;
+        long end = 60_000;
+        for (long now = 0; now < end; now += 10) {
+            if (drawStart >= 0) {
+                if (t.bowDrawnMs(now, now - drawStart, FULL, TOL) >= FULL) {
+                    t.shot(now, now - drawStart, FULL, TOL, CYCLE);
+                    attacks++;
+                    drawStart = -1;
+                }
+            } else if (t.click(now, CYCLE, TOL, 0, A, "bow") == AttackTiming.Result.ACCEPT) {
+                attacks++;
+                drawStart = now; // 근접 뒤 곧바로 당기기
+            }
+        }
+        assertEquals((double) end / CYCLE, attacks, 1.5, "한 주기에 한 번");
+    }
+
+    @Test
+    void earlyReleaseIsWeakAndStillCostsTheCycle() {
+        AttackTiming t = new AttackTiming();
+        t.click(0, CYCLE, TOL, BUF, A, "bow");
+        long drawn = t.bowDrawnMs(400, 400, FULL, TOL);
+        assertEquals(400 - NOCK + TOL, drawn);
+        t.shot(400, 400, FULL, TOL, CYCLE);
+        assertEquals(450 + CYCLE, t.nextReady(), "약한 화살도 한 발 주기를 쓴다 (오차로 빌린 0.05초는 뒤로)");
+        assertEquals(0, t.bowDrawnMs(500, 100, FULL, 0), "다음 당김도 다시 메기기 뒤부터");
+    }
+
     @Test
     void whooshIsRateLimited() {
         AttackTiming t = new AttackTiming();

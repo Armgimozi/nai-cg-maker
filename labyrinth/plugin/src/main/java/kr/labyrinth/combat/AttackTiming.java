@@ -11,6 +11,9 @@ import java.util.UUID;
  *       시각이 되면 넣는다(새 클릭이 오면 대상만 바꿈). 더 이르면 {@link Result#EARLY}.</li>
  *   <li>기억한 클릭을 넣으면 다음 시각 = 그 시각 + 간격.</li>
  *   <li>무기를 바꾸면 다음 시각 = max(다음 시각, 지금 + 새 간격 × 0.5), 기억한 클릭은 지운다.</li>
+ *   <li>활도 같은 시계를 쓴다 — 한 주기(당김 + 0.15초)에 화살 한 발이나 근접 한 대 중 하나만. 당긴 시간은 '다음 시각 − 끝까지 당기는 시간'
+ *       뒤부터만 친다 ({@link #bowDrawnMs}: 쏜 뒤·근접 뒤에는 다시 메기기 0.15초 뒤부터). 쏘면 다음 시각 = max(다음 시각, 쏜 시각 + 한 발 주기)
+ *       ({@link #shot}).</li>
  * </ul>
  * 시간은 모두 ms. 스레드 안전하지 않다 (메인 스레드에서만).
  */
@@ -80,6 +83,29 @@ public final class AttackTiming {
     /** 손에 든 무기가 바뀜: 다음 시각 = max(다음 시각, 지금 + 새 간격 × fraction), 기억 지움. */
     public void swap(long now, long newIntervalMs, double fraction) {
         nextReady = Math.max(nextReady, now + Math.round(Math.max(0, newIntervalMs) * Math.max(0, fraction)));
+        clearBuffer();
+    }
+
+    /**
+     * 활: 서버가 인정하는 당긴 시간 (ms) = min(바닐라가 잰 당긴 시간, 지금 − (다음 시각 − 끝까지 당기는 시간)). 끝까지 당긴 화살이 다음 시각보다
+     * 먼저 나가지 않는다 — 쏜 직후나 근접 직후에는 다시 메기기(한 발 주기 − 당김 = 0.15초) 뒤부터 세기가 0 에서 찬다. 허용 오차(toleranceMs)만큼
+     * 일찍 당긴 것은 쳐 주고, 빌린 몫은 {@link #shot} 이 다음 시각에서 갚는다.
+     */
+    public long bowDrawnMs(long now, long usedMs, long fullDrawMs, long toleranceMs) {
+        long since = now - (nextReady - Math.max(0, fullDrawMs)) + Math.max(0, toleranceMs);
+        return Math.max(0, Math.min(Math.max(0, usedMs), since));
+    }
+
+    /**
+     * 화살 한 발을 쐈다: 다음 시각 = max(다음 시각, 쏜 시각 + 한 발 주기(cycleMs = 당김 + 0.15초)) — 근접도 다음 당김도 이 시각을 기다린다.
+     * 허용 오차로 빌려 끝까지 당겼으면 '쏜 시각' = 원래 끝까지 당겨질 시각 (근접의 허용 오차처럼 빨라지지 않는다). 기억한 근접 클릭은 지운다.
+     */
+    public void shot(long now, long usedMs, long fullDrawMs, long toleranceMs, long cycleMs) {
+        long full = Math.max(0, fullDrawMs);
+        long strict = Math.min(bowDrawnMs(now, usedMs, full, 0), full);
+        long loose = Math.min(bowDrawnMs(now, usedMs, full, toleranceMs), full);
+        long at = loose > strict ? Math.max(now, nextReady - full + loose) : now;
+        nextReady = Math.max(nextReady, at + Math.max(1, cycleMs));
         clearBuffer();
     }
 

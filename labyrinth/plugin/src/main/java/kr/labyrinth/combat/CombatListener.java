@@ -91,13 +91,14 @@ final class CombatListener implements Listener {
 
     /**
      * 화살: 서버가 잰 당김 세기를 남기고 화살 속도를 그 세기로 맞춘다. 끝까지 당겼으면 치명 화살 표시(피해 배율은 없음 — 한 방 숫자 안).
+     * 쏜 것은 근접과 같은 시계에 남긴다 ({@link AttackClock#shoot} — 한 주기에 화살 한 발이나 근접 한 대).
      * 쇠뇌는 장전식이라 바닐라 세기 그대로.
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onShoot(EntityShootBowEvent e) {
         if (!(e.getEntity() instanceof Player p) || !(e.getProjectile() instanceof Projectile proj)) return;
         boolean crossbow = e.getBow() != null && e.getBow().getType() == org.bukkit.Material.CROSSBOW;
-        float force = crossbow ? e.getForce() : (float) clock.bowForce(p, e.getForce());
+        float force = crossbow ? e.getForce() : (float) clock.shoot(p, e.getForce());
         proj.getPersistentDataContainer().set(Keys.ARROW_FORCE, PersistentDataType.FLOAT, force);
         ItemDef bow = services.items().heldWeapon(p);
         if (bow != null) proj.getPersistentDataContainer().set(Keys.ARROW_WEAPON, PersistentDataType.STRING, bow.id());

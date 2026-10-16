@@ -384,23 +384,20 @@ final class EnhanceMenu extends Menu {
         out.add("<dark_gray>보스 고유 장비는 가장 높은 단계에 그 보스의 핵이 듭니다.");
         out.add("<gray>+" + r.config().glintFrom() + " 부터 이름이 빛나고, +" + r.maxLevel() + " 은 특별한 빛을 냅니다.");
         out.add("<gray>+" + r.config().broadcastFrom() + " 이상 성공은 서버 전체에 알려집니다.");
-        out.add("<dark_gray>강화석: 지하 1~3층 하급 · 4~7층 상급 · 8~10층 최상급 장비");
+        List<String> stoneNames = new ArrayList<>();
+        for (EnhanceRules.Stone s : enhance.rules().config().stones()) {
+            ItemDef d = services.content().item(s.item());
+            stoneNames.add(d == null ? s.item() : d.name());
+        }
+        out.add("<dark_gray>" + EnhanceGuide.stoneGuide(stoneNames));
         return out;
     }
 
+    /** 강화석 얻는 곳 (재료라 층을 적는다 — 장비에는 층 글자 없음): "지하 1~3층 몬스터·상자·보스 · 상인". */
     private String stoneSourceText(String stone) {
-        for (EnhanceRules.Stone s : enhance.rules().config().stones()) {
-            if (s.item().equals(stone)) {
-                int prev = 0;
-                for (EnhanceRules.Stone o : enhance.rules().config().stones()) {
-                    if (o.maxFloor() < s.maxFloor()) prev = Math.max(prev, o.maxFloor());
-                }
-                boolean shop = services.content().npcs().values().stream().anyMatch(n -> n.shop() != null
-                        && n.shop().stream().anyMatch(e -> stone.equals(e.item())));
-                return "지하 " + (prev + 1) + "~" + s.maxFloor() + "층 장비용 · 그 층 몬스터·상자·보스" + (shop ? " · 상인" : "");
-            }
-        }
-        return "미궁에서 얻습니다";
+        boolean shop = services.content().npcs().values().stream().anyMatch(n -> n.shop() != null
+                && n.shop().stream().anyMatch(e -> stone.equals(e.item())));
+        return EnhanceGuide.stoneSource(enhance.rules().config().stones(), stone, shop);
     }
 
     /** 비용 한 줄 아이콘: 이름 앞 ✔/✘, 개수 = 필요 개수, 설명 = 보유/필요 + 얻는 곳. */
