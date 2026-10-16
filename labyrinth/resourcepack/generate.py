@@ -232,7 +232,7 @@ def build_npcs(ctx: Ctx):
         if sid in done:
             continue
         done.add(sid)
-        img, warns = npc_skins.paint_skin(sid, (d or {}).get('skin_style'))
+        img, warns = npc_skins.paint_skin(sid, (d or {}).get('skin_style'), (d or {}).get('role'))
         ctx.warnings.extend(warns)
         ctx.add(f'assets/{NS}/textures/entity/npc/{sid}.png', items.png_bytes(img))
         ctx.npc_previews.append((sid, img))

@@ -117,6 +117,8 @@ labyrinth/
   .model(PlayerTextures.SkinModel.CLASSIC)).build())`. **asset id 형식 확인됨(26.3 클라이언트 `ClientAsset$ResourceTexture`)**:
   키 `ns:path` → 리소스 `assets/<ns>/textures/<path>.png` (= `"textures/" + path + ".png"`), 아틀라스 아님(단독 텍스처) →
   `labyrinth:entity/npc/<skin>` 이 정답(앞에 `textures/`·뒤에 `.png` 붙이지 말 것). 겉옷 레이어가 보이도록 `setSkinParts` 는 전부 켠다.
+  스킨은 `resourcepack/src/npc_skins.py` 가 `skin_style` + `role` 로 그린다(GDD §14.5). 미리보기: `resourcepack/tools/skin_preview.py`
+  (플레이어 모델 상자 렌더러 — 겉 레이어 0.5/0.25px 부풀림, 양면, 바닐라 엔티티 조명).
 - **이펙트 모델**(아우라 링, 장판 경고, 투사체 등): `labyrinth:fx/<name>` → `assets/labyrinth/items/fx/<name>.json`.
   목록은 `content/fx.yml`.
 - **표시 규칙(몹 파트·이펙트 공통)**: 플러그인은 `ItemDisplay` + `ItemDisplayTransform.FIXED` 로 띄운다. 생성기는 모델 좌표 한계

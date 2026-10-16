@@ -1742,6 +1742,12 @@ effect 프리셋 동작 (frames 동안 한 주기, 루프):
 - `accessories`: `hood_down` `lantern_belt` `satchel` `soot_marks` `thick_gloves` `goggles_forehead` `shoulder_cape` `medal_sash` `monocle`
   `round_glasses` `scroll_bundle` `quill_ear` `big_backpack` `coin_pouch` `scarf` `helmet_lamp` `bandage_arm` `map_case` `key_ring` `rain_cape`
   `ghostly`(반투명 창백) `frost_cracks` `broken_crown` `tuning_fork` `crystal_pendant` `ink_stains` `tool_belt` `mechanical_arm` `torn_cape` `sculk_scars`
+- 얼굴(생성기 고정 규칙): 눈은 얼굴 3~4행에 한쪽 3×2(흰자 · `palette[5]` 홍채 · 진한 동공 · 하이라이트 1px), 두 눈 사이 2px.
+  눈썹(머리색)·입(2~3px) 모양 = 표정: `role` 로 정함(entrance 다정 · blacksmith 엄격 · class_master 기품 · title_keeper 온화 ·
+  merchant 명랑), 그 밖은 outfit 으로(robe 차분 · apron/traveler/uniform 진지 · miner 지침 · coat 기품 · scholar 온화),
+  `ghostly` 는 슬픔. 머리 모양은 바깥 레이어(모자 층)로 부피·앞머리·옆머리를 만들고 귀가 보이는 모양은 귀를 남긴다.
+- 확인: `python resourcepack/tools/skin_preview.py --out DIR [--tag after] [--compare before] [--styles]` — NPC 마다
+  앞·뒤·옆·3/4(빛 적용)·머리 16배·거리 확인(2배/1배) 시트 + 전체 한눈에 보기 + 닫힌 목록 전체 견본.
 
 ### 14.6 크기·좌표·렌더 규칙 (생성기 ↔ ModelRig/FX 계약)
 - 1블록 = 16px. YAML 의 `size` 는 **표시 스케일 1일 때 월드에서 보일 크기**(px).
