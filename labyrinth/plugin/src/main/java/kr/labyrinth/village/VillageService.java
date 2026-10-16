@@ -101,6 +101,7 @@ public final class VillageService implements Listener {
     private BukkitTask fx;
     private long tick;
     private WildService wild;
+    private DistrictService districts;
 
     VillageService(VillageModule module) { this.module = module; }
 
@@ -111,15 +112,19 @@ public final class VillageService implements Listener {
         load();
         Bukkit.getPluginManager().registerEvents(this, module.plugin());
         fx = Bukkit.getScheduler().runTaskTimer(module.plugin(), this::ambient, 40L, 10L);
+        districts = new DistrictService(module, this);
+        districts.enable();
         wild = new WildService(module, this);
         wild.enable();
         if (meta != null) Bukkit.getScheduler().runTask(module.plugin(), () -> {
             if (!applyIfNew(false)) wild.refresh("시작");
         });
+        districts.scheduleStartup(); // 0.3.6.1 광산 마을: 시작 5초 뒤 한 번 (기록이 없으면 짓기 · building 이면 되돌리기)
     }
 
     void disable() {
         HandlerList.unregisterAll(this);
+        if (districts != null) districts.disable();
         if (wild != null) wild.disable();
         if (fx != null) fx.cancel();
         if (instance == this) instance = null;
@@ -128,11 +133,14 @@ public final class VillageService implements Listener {
     /** 야생 막기 (월드 경계 · 스폰). */
     WildService wild() { return wild; }
 
+    /** 구역 (0.3.6.1 광산 마을). */
+    DistrictService districts() { return districts; }
+
     // ── 메타데이터 ───────────────────────────────────────────────────────
 
     static File metaFile(World w) { return new File(w.getWorldFolder(), VillageMeta.FILE); }
 
-    private File appliedFile() { return new File(module.plugin().getDataFolder(), "village-applied.yml"); }
+    File appliedFile() { return new File(module.plugin().getDataFolder(), "village-applied.yml"); }
 
     void load() {
         world = Bukkit.getWorlds().isEmpty() ? null : Bukkit.getWorlds().get(0);
@@ -157,16 +165,35 @@ public final class VillageService implements Listener {
     /** 새 메타데이터 적용 (build 직후). */
     void setMeta(VillageMeta m, boolean log) {
         meta = m;
+        rebuildIndex();
+        if (log) Log.info("[마을] 메타데이터 갱신: 보호 상자 " + m.protect.size() + "개");
+        if (log && wild != null) wild.refresh("마을 메타데이터 갱신");
+    }
+
+    /** 보호 상자·우클릭 칸 색인 = 마을 + 살아 있는 구역(지어짐·짓는 중) (0.3.6.1). */
+    void rebuildIndex() {
         boxes.clear();
         interact.clear();
-        for (VillageMeta.Box b : m.protect) {
+        if (meta == null) return;
+        for (VillageMeta.Box b : protectAll()) {
             for (int cx = b.x0() >> 4; cx <= b.x1() >> 4; cx++) {
                 for (int cz = b.z0() >> 4; cz <= b.z1() >> 4; cz++) boxes.computeIfAbsent(Scan.key(cx, cz), k -> new ArrayList<>()).add(b);
             }
         }
-        interact.putAll(m.interact);
-        if (log) Log.info("[마을] 메타데이터 갱신: 보호 상자 " + m.protect.size() + "개");
-        if (log && wild != null) wild.refresh("마을 메타데이터 갱신");
+        interact.putAll(meta.interact);
+        if (districts != null) for (DistrictMeta d : districts.active()) if (d.built()) interact.putAll(d.meta.interact);
+    }
+
+    /** 마을 보호 상자 + 살아 있는 구역의 보호 상자 (야생 경계·보호가 함께 쓴다). */
+    List<VillageMeta.Box> protectAll() {
+        List<VillageMeta.Box> out = new ArrayList<>(meta == null ? List.of() : meta.protect);
+        if (districts != null) for (DistrictMeta d : districts.active()) out.addAll(d.meta.protect);
+        return out;
+    }
+
+    /** 마을 경계 = 마을 + 구역 상자 + margin (WildBorder.compute). */
+    WildBorder.Square borderTarget(int margin) {
+        return WildBorder.compute(meta.center, meta.radius, protectAll(), margin);
     }
 
     public VillageMeta meta() { return meta; }
@@ -230,6 +257,7 @@ public final class VillageService implements Listener {
         for (Player p : Bukkit.getOnlinePlayers()) markSeen(p);
         Log.info("[마을] 월드 적용: NPC " + npcs + "/" + meta.npcs.size() + " · 입구 " + (en == null ? "없음" : "마을 게이트")
                 + (forgot > 0 ? " · 예전 석문 기록 " + forgot + "칸 버림(entrance.yml.old)" : ""));
+        if (districts != null) districts.applyNpcs(true); // 월드가 바뀌었으면 구역 NPC 도 다시 (village-applied.yml districts.*)
         if (wild != null) wild.refresh("마을 적용");
     }
 
@@ -462,7 +490,18 @@ public final class VillageService implements Listener {
         Location l = e.getLocation();
         if (!l.getWorld().equals(world)) return;
         double dx = l.getX() - meta.center[0], dz = l.getZ() - meta.center[2], rr = meta.radius + 8;
-        if (dx * dx + dz * dz <= rr * rr) e.setCancelled(true);
+        if (dx * dx + dz * dz <= rr * rr) {
+            e.setCancelled(true);
+            return;
+        }
+        // 0.3.6.1 광산 마을: 구역 중심 반경 R + 8 안도
+        if (districts != null) for (DistrictMeta d : districts.active()) {
+            double ex = l.getX() - d.meta.center[0], ez = l.getZ() - d.meta.center[2], dr = d.meta.radius + 8;
+            if (ex * ex + ez * ez <= dr * dr) {
+                e.setCancelled(true);
+                return;
+            }
+        }
     }
 
     // ── 상호작용 ─────────────────────────────────────────────────────────
@@ -544,11 +583,13 @@ public final class VillageService implements Listener {
     // ── 연출 ─────────────────────────────────────────────────────────────
 
     private void ambient() {
-        if (meta == null || world == null || meta.ambient.isEmpty()) return;
+        if (meta == null || world == null) return;
         tick++;
         List<Player> players = world.getPlayers();
         if (players.isEmpty()) return;
-        for (VillageMeta.Ambient a : meta.ambient) {
+        List<VillageMeta.Ambient> all = new ArrayList<>(meta.ambient);
+        if (districts != null) for (DistrictMeta d : districts.active()) if (d.built()) all.addAll(d.meta.ambient);
+        for (VillageMeta.Ambient a : all) {
             if (badFx.contains(a.fx()) || !world.isChunkLoaded(a.x() >> 4, a.z() >> 4)) continue;
             Location l = new Location(world, a.x() + 0.5, a.y() + 0.5, a.z() + 0.5);
             boolean near = false;
@@ -574,6 +615,11 @@ public final class VillageService implements Listener {
                     case "fountain" -> {
                         world.spawnParticle(Particle.SPLASH, l, 10, 0.5, 0.2, 0.5, 0.05);
                         world.spawnParticle(Particle.FALLING_WATER, l.clone().add(0, 0.6, 0), 3, 0.4, 0.2, 0.4, 0);
+                    }
+                    case kr.labyrinth.mine.MineNames.AMBIENT_DUST -> {
+                        // 광산 승강장 갱구: 흙먼지가 천천히 날림
+                        world.spawnParticle(Particle.WHITE_ASH, l, 6, 0.8, 0.6, 0.8, 0.01);
+                        if (tick % 2 == 0) world.spawnParticle(Particle.ASH, l, 4, 0.6, 0.4, 0.6, 0.01);
                     }
                     case "smoke" -> {
                         world.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, l, 0, 0, 0.06, 0, 1);

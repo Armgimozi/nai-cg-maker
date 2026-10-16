@@ -14,9 +14,9 @@
   "shipped": {"center": [-136, 16], "rotation": "COUNTERCLOCKWISE_90", "turns": 3, "seed": 24680, "build_ids": ["c99c3fb3-4621-4037-b7dd-26f71e3edfce", "a06800d8-7a5d-452d-b3eb-79364ebfac99"]},
   "path_styles": {"mine_yard": [["minecraft:andesite", 3], ["minecraft:polished_andesite", 2], ["minecraft:tuff", 2], ["minecraft:gravel", 1], ["minecraft:stone", 1]]},
   "pieces": [
-    {"piece": "mine_headframe", "at": [1, 70], "front": "north"},
-    {"piece": "smelter", "at": [-12, 54], "front": "east"},
-    {"piece": "miners_lodge", "at": [8, 56], "front": "west"},
+    {"piece": "mine_headframe", "at": [1, 70], "front": "north", "slack": 0},
+    {"piece": "smelter", "at": [-12, 54], "front": "east", "slack": 1},
+    {"piece": "miners_lodge", "at": [8, 56], "front": "west", "slack": 1},
     {"piece": "ore_yard", "at": [-13, 72], "front": "east"},
     {"piece": "signpost_mine", "at": [4, 38], "front": "west"},
     {"piece": "lamp_post_copper", "at": [5, 41], "front": "west"},
@@ -24,7 +24,7 @@
     {"piece": "lamp_post_copper", "at": [-4, 57], "front": "east"},
     {"piece": "cart", "at": [-9, 45], "front": "east"},
     {"piece": "bench", "at": [11, 66], "front": "west"},
-    {"piece": "tree_oak", "at": [13, 42], "front": "east"},
+    {"piece": "tree_oak", "at": [13, 42], "front": "east", "slack": 2},
     {"piece": "flower_bed", "at": [6, 45], "front": "east"}
   ],
   "paths": [

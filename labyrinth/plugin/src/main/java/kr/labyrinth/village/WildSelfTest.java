@@ -194,12 +194,13 @@ final class WildSelfTest extends VillageJob {
             }
         }
         List<String> out = WildBorder.outside(tgt, pts);
-        List<Integer> boxes = WildBorder.boxesOutside(tgt, m.protect);
+        List<VillageMeta.Box> prot = module.service().protectAll();
+        List<Integer> boxes = WildBorder.boxesOutside(tgt, prot);
         insideOk = out.isEmpty() && boxes.isEmpty();
-        inside = (insideOk ? "ok" : "bad") + " (점 " + pts.size() + " · 보호 상자 " + m.protect.size() + ")";
+        inside = (insideOk ? "ok" : "bad") + " (점 " + pts.size() + " · 보호 상자 " + prot.size() + ")";
         for (String o : out) sample("마을 경계 밖: " + o);
         for (int i : boxes) {
-            VillageMeta.Box bx = m.protect.get(i);
+            VillageMeta.Box bx = prot.get(i);
             sample("마을 경계 밖 보호 상자 #" + i + " (" + bx.x0() + " " + bx.z0() + " ~ " + bx.x1() + " " + bx.z1() + ")");
         }
         WildBorder.Square cur = wild.current();

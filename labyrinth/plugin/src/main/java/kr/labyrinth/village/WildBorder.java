@@ -81,6 +81,13 @@ public final class WildBorder {
         return compute(m.center, m.radius, m.protect, margin);
     }
 
+    /** 마을 + 구역(0.3.6.1 광산 마을 — 지은 자리가 east 든 south_east 든 here 든) 보호 상자를 함께 감싼다. */
+    public static Square compute(VillageMeta m, List<VillageMeta> districts, int margin) {
+        List<VillageMeta.Box> all = new ArrayList<>(m.protect);
+        if (districts != null) for (VillageMeta d : districts) if (d != null) all.addAll(d.protect);
+        return compute(m.center, m.radius, all, margin);
+    }
+
     /** 우리가 정한 경계 기록: 우리가 놓은 것(ours)과 그 전에 있던 것(previous — 끌 때 되돌림). */
     public record Record(Square ours, Square previous) {}
 

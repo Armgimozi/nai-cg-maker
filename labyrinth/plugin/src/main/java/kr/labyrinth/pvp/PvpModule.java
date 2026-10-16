@@ -157,7 +157,8 @@ public final class PvpModule implements Module {
         VillageZone.Zone z = c.safeZoneVillage() ? zone.current(c.safeZoneMargin()) : null;
         to.sendMessage(Text.mm("<gray> 마을 안전지대: " + (!c.safeZoneVillage() ? "끔 (safe_zone_village: false)"
                 : z == null ? "없음 (주 월드 폴더에 " + VillageZone.FILE + " 없음)"
-                : "중심 (" + Math.round(z.x()) + ", " + Math.round(z.z()) + ") 반경 " + Math.round(z.radius()) + "칸")));
+                : "중심 (" + Math.round(z.x()) + ", " + Math.round(z.z()) + ") 반경 " + Math.round(z.radius()) + "칸"
+                        + (z.rects().isEmpty() ? "" : " + 광산 마을 상자 " + z.rects().size() + "개"))));
         StringBuilder worlds = new StringBuilder();
         for (World w : Bukkit.getWorlds()) {
             Boolean v = w.getGameRuleValue(GameRules.PVP);

@@ -8,7 +8,8 @@ import java.util.Locale;
  * 기존 월드 구역 자리 검사 (0.3.6, CONTRACT §2.13 2·4 · review036 §2-5) — 순수 로직. 사람 손을 보면 막는다.
  * <ol>
  *   <li>지문 (배포 월드면): 열마다 정규화 블록 해시가 같으면 그대로. 다르면 — 땅 높이가 2칸 넘게 다름, 땅속 10칸에 없던 공기·물
- *       (판 구덩이·굴), 없던 원목 (심은 나무·원목 건물) → 막음. 잔디↔흙·꽃·풀·눈 층·잎은 정규화가 지워 허용.</li>
+ *       (판 구덩이·굴) → 막음. 없던 원목 (심은 나무·원목 건물)은 해시와 상관없이 본다 (원목은 정규화에서 공기라).
+ *       잔디↔흙·꽃·풀·눈 층·잎은 정규화가 지워 허용, 베어 낸 나무도 허용.</li>
  *   <li>비자연 블록 ({@link Nature} 화이트리스트 밖 — 땅 위 전부 + 땅속 10칸, 지속 잎 포함) → 막음 (지문이 없어도).</li>
  *   <li>엔티티 ({@link #entityBlocks}) — 서버 쪽이 주 스레드에서 모아 넘긴다.</li>
  * </ol>
@@ -75,10 +76,21 @@ public final class DistrictCheck {
                 col.add(new Problem(x, yOf(n, live.ground(x, z)), z, "사람이 놓은 블록 " + (n == null ? "" : n.replaceAll("@.*", ""))));
             }
             DistrictFingerprint.Column f = fp == null ? null : fp.at(x, z);
+            if (f != null) {
+                // 새 원목 (심은 나무·원목 건물): 원목은 정규화에서 공기라 해시가 같아도 따로 본다 (베어 낸 나무는 허용)
+                for (int dy = 1; dy <= above; dy++) {
+                    int y = f.h() + dy;
+                    String id = live.block(x, y, z);
+                    if (id == null || Nature.kind(id) != Nature.Kind.LOG || f.hasLogAt(dy)) continue;
+                    col.add(new Problem(x, y, z, "새 원목 " + Nature.key(id) + " (심은 나무·원목 건물)"));
+                    break;
+                }
+            }
+            long hash = f == null ? 0 : liveHash(live, x, z, f.h(), under, above);
             if (f == null) {
                 uncovered++;
-            } else if (liveHash(live, x, z, f.h(), under, above) == f.hash()) {
-                same++;
+            } else if (hash == f.hash()) {
+                if (col.isEmpty()) same++;
             } else {
                 int g = live.ground(x, z);
                 if (Math.abs(g - f.h()) > 2) {
@@ -92,13 +104,6 @@ public final class DistrictCheck {
                         col.add(new Problem(x, y, z, "땅속에 새 " + (n.equals("air") ? "빈칸" : "물") + " (구덩이·굴)"));
                         break;
                     }
-                }
-                for (int dy = 1; dy <= above; dy++) {
-                    int y = f.h() + dy;
-                    String id = live.block(x, y, z);
-                    if (id == null || Nature.kind(id) != Nature.Kind.LOG || f.hasLogAt(dy)) continue;
-                    col.add(new Problem(x, y, z, "새 원목 " + Nature.key(id) + " (심은 나무·원목 건물)"));
-                    break;
                 }
                 if (col.isEmpty()) allowed++;
             }

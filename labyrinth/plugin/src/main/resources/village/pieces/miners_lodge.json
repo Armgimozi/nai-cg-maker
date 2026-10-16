@@ -190,8 +190,9 @@
   "markers": [
     {"type": "light", "pos": [4, 4, 0]},
     {"type": "sign", "pos": [7, 3, 0], "lines": ["<#e8843f><b>광부 게시판</b></#e8843f>", "<gray>광맥 현황</gray>", "<gray>우클릭</gray>"], "glow": true},
-    {"type": "sign", "pos": [8, 3, 0], "lines": ["<gray>오늘의 광맥</gray>", "<#3fb090>승강장으로</#3fb090>"], "glow": false},
-    {"type": "interact", "action": "mine_info", "pos": [[7, 3, 0], [8, 3, 0]]},
+    {"type": "interact", "action": "mine_info", "pos": [[7, 3, 0]]},
+    {"type": "sign", "pos": [8, 3, 0], "lines": ["<#e8c58a><b>광산 관리소</b></#e8c58a>", "<gray>곡괭이 · 제련 · 팔기</gray>", "<gray>우클릭</gray>"], "glow": true},
+    {"type": "interact", "action": "mine_office", "pos": [[8, 3, 0]]},
     {"type": "light", "pos": [7, 3, 2]},
     {"type": "light", "pos": [5, 4, 4]},
     {"type": "light", "pos": [5, 8, 4]}

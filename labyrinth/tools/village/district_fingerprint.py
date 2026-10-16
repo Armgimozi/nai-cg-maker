@@ -200,11 +200,12 @@ class Region:
 
 
 def _pal_id(p):
-    """팔레트 항목 → id. 26.x 는 속성 없는 블록을 문자열("minecraft:stone")로, 있는 블록은 {Name, Properties} 로 쓴다
-    (둘이 섞이면 문자열은 {"": …})."""
+    """팔레트 항목 → id. 26.x 는 기본 상태 블록을 문자열("minecraft:stone")로, 아닌 블록은 {id, properties}
+    (옛 판 {Name, Properties}) 로 쓴다 (둘이 섞이면 문자열은 {"": …})."""
     if isinstance(p, dict):
-        # 섞인 목록(문자열 + 묶음)은 문자열을 {"": 문자열} 로 감싼다 (NBT 목록은 한 종류만)
-        name = p.get("Name", p.get(""))
+        # 섞인 목록(문자열 + 묶음)은 문자열을 {"": 문자열} 로 감싼다 (NBT 목록은 한 종류만).
+        # 26.3 은 기본 상태가 아닌 블록(가로 원목·거리 있는 잎·큰 풀 윗쪽 …)을 {id, properties} 로 쓴다 (0.3.6.1 고침 — 전에는 None)
+        name = p.get("Name", p.get("id", p.get("")))
     else:
         name = p
     name = str(name)
@@ -312,6 +313,48 @@ class World:
                 under |= 1 << (k - 1)
         logs = [dy for dy in range(1, ABOVE + 1) if c.min_y <= h + dy <= c.max_y and kind(c.block(lx, h + dy, lz)) == "LOG"]
         return (h, column_hash(names), under, tuple(logs))
+
+    def terrain(self, x, z):
+        """계획기 열 (Java Scan.columns 와 같은 규칙) — 시험 픽스처용: (ground, holes, flags, logs, surface). 청크 없음 = None.
+        flags: 1 물·얼음 · 2 비자연 · 4 눈 · 8 나무 (잎은 속성을 읽지 않으므로 모두 자연 잎으로 본다)."""
+        c = self.chunk(x >> 4, z >> 4)
+        if c is None:
+            return None
+        lx, lz = x & 15, z & 15
+        ground, flags, logs, surface, above = None, 0, 0, None, None
+        for y in range(c.max_y, c.min_y - 1, -1):
+            k = c.block(lx, y, lz)
+            t = kind(k)
+            if t == "AIR":
+                continue
+            if t in ("LIQUID", "ICE"):
+                flags |= 1
+            elif t == "LOG":
+                logs += 1
+                flags |= 8
+            elif t in ("LEAVES", "TREE_PART"):
+                flags |= 8
+            elif t == "UNNATURAL":
+                flags |= 2
+            if t == "GROUND":
+                ground, surface = y, k
+                if above == "snow":
+                    flags |= 4
+                break
+            above = k
+        if ground is None:
+            return (c.min_y, 0, flags | 1, logs, "stone")
+        holes = 0
+        for k in range(1, 17):
+            y = ground - k
+            if y < c.min_y:
+                break
+            t = kind(c.block(lx, y, lz))
+            if t in ("AIR", "LIQUID"):
+                holes |= 1 << (k - 1)
+            elif t == "UNNATURAL" and k <= 10:
+                flags |= 2
+        return (ground, holes, flags, logs, surface)
 
 
 # ── 덮는 범위 (구역 json + 조각 크기 + 배포 마을 중심·회전) ─────────────────
@@ -433,6 +476,7 @@ def main(argv=None):
     ap.add_argument("--world", action="append", default=[], help="world.zip · 서버팩 zip · world 폴더 (여러 번)")
     ap.add_argument("--out", default=None)
     ap.add_argument("--check", action="store_true", help="다시 만들어 지금 파일과 같은지만 본다")
+    ap.add_argument("--terrain", default=None, help="첫 --world 의 계획기 열(땅 높이·빈칸·물·나무)을 이 gz 글로 (단위 시험 픽스처)")
     a = ap.parse_args(argv)
     with open(os.path.join(RES, "districts", a.district + ".json"), encoding="utf-8") as f:
         district = json.load(f)
@@ -473,6 +517,21 @@ def main(argv=None):
     for bid in district["shipped"].get("build_ids", []):
         if not any(bid in m[0] for m in merged):
             print("  경고: 배포 월드 build_id %s 의 지문이 없음 (그 월드가 --world 에 없음)" % bid)
+    if a.terrain:
+        w = World(paths[0])
+        lines = ["# %s 계획기 열 — x z ground holes flags logs surface (district_fingerprint.py --terrain, 손대지 말 것)" % os.path.basename(paths[0])]
+        for z in range(rect[1], rect[3] + 1):
+            for x in range(rect[0], rect[2] + 1):
+                t = w.terrain(x, z)
+                if t is not None:
+                    lines.append("%d %d %d %d %d %d %s" % ((x, z) + t))
+        buf = io.BytesIO()
+        with gzip.GzipFile(fileobj=buf, mode="wb", mtime=0) as g:
+            g.write(("\n".join(lines) + "\n").encode("utf-8"))
+        with open(a.terrain, "wb") as f:
+            f.write(buf.getvalue())
+        print("지형 픽스처: %s (%d열)" % (a.terrain, len(lines) - 1))
+        return 0
     data = encode(merged, rect)
     if a.check:
         old = open(out, "rb").read() if os.path.isfile(out) else b""

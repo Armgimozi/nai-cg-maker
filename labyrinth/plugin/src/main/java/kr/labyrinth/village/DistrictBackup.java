@@ -154,24 +154,45 @@ public final class DistrictBackup {
         return new DistrictBackup(district, Phase.DIFF, out);
     }
 
+    /** 칸 하나 되돌리기 판단. */
+    public enum Decision { APPLY, SAME, SKIP }
+
     /**
-     * 되돌리기 계획. DIFF: 지금 == 놓은 것 → 되돌림, 지금 == 원래 → 이미 같음, 그 밖 → 건너뜀(사람이 바꿈).
-     * BEFORE (짓다 꺼짐): 지금 ≠ 원래 인 칸은 모두 되돌림 (짓는 동안 보호되어 사람이 바꾼 칸이 없다).
+     * 칸 하나: 지금 == 원래 → 이미 같음. DIFF: 지금 == 놓은 것 → 되돌림, 그 밖 → 건너뜀(사람이 바꿈).
+     * BEFORE (짓다 꺼짐): 지금 ≠ 원래 인 칸은 모두 되돌림 (짓는 동안 구역 상자는 보호되어 사람이 바꾼 칸이 없다).
      */
+    public Decision decide(Entry e, String now) {
+        if (now != null && now.equals(e.before())) return Decision.SAME;
+        if (phase == Phase.BEFORE || (now != null && now.equals(e.after()))) return Decision.APPLY;
+        return Decision.SKIP;
+    }
+
+    /** 되돌리기 계획 ({@link #decide} 를 칸마다, 같은 칸이 두 번 있으면 처음 것). */
     public Restore restorePlan(Lookup current) {
         List<Entry> apply = new ArrayList<>();
         int skipped = 0, same = 0;
         java.util.Set<Long> seen = new java.util.HashSet<>();
         for (Entry e : entries) {
             if (!seen.add(e.key())) continue;
-            String now = current.at(e.x(), e.y(), e.z());
-            if (now != null && now.equals(e.before())) {
-                same++;
-                continue;
+            switch (decide(e, current.at(e.x(), e.y(), e.z()))) {
+                case SAME -> same++;
+                case APPLY -> apply.add(e);
+                case SKIP -> skipped++;
             }
-            if (phase == Phase.BEFORE || (now != null && now.equals(e.after()))) apply.add(e);
-            else skipped++;
         }
         return new Restore(apply, skipped, same);
+    }
+
+    /** 칸들의 xz 상자 [x0, z0, x1, z1] (비었으면 null) — 되돌리기 전에 청크를 불러올 범위. */
+    public int[] bounds() {
+        if (entries.isEmpty()) return null;
+        int x0 = Integer.MAX_VALUE, z0 = Integer.MAX_VALUE, x1 = Integer.MIN_VALUE, z1 = Integer.MIN_VALUE;
+        for (Entry e : entries) {
+            x0 = Math.min(x0, e.x());
+            z0 = Math.min(z0, e.z());
+            x1 = Math.max(x1, e.x());
+            z1 = Math.max(z1, e.z());
+        }
+        return new int[] {x0, z0, x1, z1};
     }
 }

@@ -47,18 +47,24 @@ class DistrictLayoutTest {
 
     static VillageMeta shipped() throws Exception { return VillageMeta.fromYaml(Fixtures.read("village/shipped-village.yml")); }
 
-    /** 배포 마을 지형(다듬은 높이) + 그 밖은 완만한 들판 (64 → 동쪽·남쪽으로 조금씩 오름). */
+    /**
+     * 배포 월드 지형 (dist/world.zip 의 east·south_east 마스크 범위, district_fingerprint.py --terrain 이 만든 픽스처 —
+     * 땅 높이·땅속 빈칸·물·나무). 마을 길 칸은 기록된 길 높이로 (Scan 은 길 블록 아래 흙을 땅으로 보지만 계획기 이음은 길 높이를 본다).
+     */
     static TerrainGrid terrain(VillageMeta v) {
-        TerrainGrid g = new TerrainGrid(-200, -60, 200, 200);
-        for (int z = -60; z < 140; z++) {
-            for (int x = -200; x < 0; x++) {
-                int y = 64 + Math.floorDiv(Math.max(0, z), 12);
-                if (v.terrain != null && v.terrain.in(x, z)) y = v.terrain.height(x, z);
-                g.setGround(x, z, y);
+        TerrainGrid g = new TerrainGrid(-140, -40, 120, 160);
+        try (var in = new java.util.zip.GZIPInputStream(DistrictLayoutTest.class.getClassLoader().getResourceAsStream("village/shipped-terrain.txt.gz"));
+             var r = new java.io.BufferedReader(new java.io.InputStreamReader(in, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = r.readLine()) != null) {
+                if (line.startsWith("#") || line.isBlank()) continue;
+                String[] a = line.trim().split(" ");
+                g.set(Integer.parseInt(a[0]), Integer.parseInt(a[1]), Integer.parseInt(a[2]), Integer.parseInt(a[3]), Integer.parseInt(a[4]),
+                        Integer.parseInt(a[5]), a[6], "plains", (Integer.parseInt(a[4]) & Terrain.UNNATURAL) != 0 ? "픽스처 비자연" : null);
             }
+        } catch (IOException e) {
+            throw new java.io.UncheckedIOException(e);
         }
-        // 마을 길 칸 = 기록된 길 높이 (마을 길과 구역 길의 이음)
-        for (VillageMeta.PathRec p : v.paths) for (int[] c : p.cells()) g.setGround(c[0], c[1], c[2]);
         return g;
     }
 
@@ -143,8 +149,61 @@ class DistrictLayoutTest {
         assertEquals(Dir.WEST.yaw(), miner.yaw(), 0.01);
         assertEquals(Dir.NORTH.yaw(), smelter.yaw(), 0.01);
         assertNotNull(m.points.get("mine_exit"), "mine_exit");
-        assertEquals(List.of("mine_info", "mine_lift", "smelter"), m.interact.values().stream().distinct().sorted().toList());
+        // mine_office = 숙소 '광산 관리소' 표지판 — 광부 NPC 가 없어도(npcs.yml 을 고친 서버) 관리소 메뉴가 열린다
+        assertEquals(List.of("mine_info", "mine_lift", "mine_office", "smelter"), m.interact.values().stream().distinct().sorted().toList());
         assertTrue(m.ambient.stream().anyMatch(a -> a.fx().equals("dust")));
+    }
+
+    /** 얼린 칸 (CONTRACT §2.13 3): 구역 길이 마을이 다듬은 칸을 지나면 원래 높이 그대로 겉 블록만, 마을 길·보호 상자 칸은 건너뜀. */
+    @Test
+    void districtRoadCrossesTrimmedCellsWithoutReshaping() throws Exception {
+        DistrictLibrary.Entry e = library().get("mine");
+        VillageMeta v = shipped();
+        TerrainGrid g = terrain(v);
+        Plan p = plan(e, e.layout().site("east"), v, g);
+        assertTrue(p.ok(), p.reason);
+        FrozenCells fz = FrozenCells.of(v, List.of());
+        int trimmed = 0;
+        for (int[] c : p.paths.get(0).cells) {
+            assertFalse(fz.untouchable(c[0], c[1]), "마을 길·보호 상자 칸 (" + c[0] + ", " + c[1] + ")");
+            if (fz.kind(c[0], c[1]) == FrozenCells.Kind.TRIM) {
+                trimmed++;
+                assertEquals(g.ground(c[0], c[1]), c[2], "다듬은 칸 위 구역 길은 원래 높이 (" + c[0] + ", " + c[1] + ")");
+                assertTrue(c[0] <= -101, "다듬은 칸은 큰길 끝 쪽에만 (" + c[0] + ")");
+            }
+        }
+        // 배포 월드에서는 마을이 큰길 끝(x −104) 너머를 다듬지 않았다 — 구역 큰길 첫 칸(x −103)이 마을 길 칸에 바로 붙는다
+        assertTrue(trimmed >= 0);
+        boolean touches = false;
+        for (int[] c : p.paths.get(0).cells) if (c[0] == -103 && fz.pathY(-104, c[1]) != null) touches = true;
+        assertTrue(touches, "구역 큰길이 마을 큰길 끝 (-104, 15..17) 에 붙음");
+        // 이음: 구역 큰길 첫 칸 높이 − 마을 큰길 끝 칸 높이 ≤ 1 (계획기 frozenPaths 가 지킴)
+        assertTrue(p.junctions > 0);
+        for (int[] c : p.paths.get(0).cells) {
+            Integer vy = fz.pathY(c[0] - 1, c[1]);
+            if (vy != null) assertTrue(Math.abs(vy - c[2]) <= 1, "이음 높이 차 (" + c[0] + ", " + c[1] + ")");
+        }
+    }
+
+    /** 더러운 자리: east 영역 안에 사람이 놓은 블록 → east 탈락 (짓지 않음), south_east 는 그대로 통과 (차례대로 다음 자리). */
+    @Test
+    void dirtyEastFallsBackToSouthEast() throws Exception {
+        DistrictLibrary.Entry e = library().get("mine");
+        VillageMeta v = shipped();
+        TerrainGrid g = terrain(v);
+        // 승강장 자리 (-66, 14) 에 판자 집
+        for (int x = -68; x <= -64; x++) for (int z = 12; z <= 16; z++) g.addFlags(x, z, Terrain.UNNATURAL, "oak_planks@67");
+        Plan east = plan(e, e.layout().site("east"), v, g);
+        assertFalse(east.ok());
+        assertEquals(Planner.Fail.STRUCTURE, east.fail);
+        assertTrue(east.reason.contains("oak_planks"), east.reason);
+        Plan se = plan(e, e.layout().site("south_east"), v, g);
+        assertTrue(se.ok(), se.reason);
+        // 물 웅덩이도 막는다 (구역 영역 안 지표 물 — fill_small_water_max 0)
+        TerrainGrid wet = terrain(v);
+        wet.addFlags(-80, 30, Terrain.WATER, "water@66");
+        Plan w = plan(e, e.layout().site("east"), v, wet);
+        assertEquals(Planner.Fail.WATER, w.fail);
     }
 
     /** here: 길 0 첫 점이 고른 자리, 방향을 돌리면 같은 모양이 돈다. */

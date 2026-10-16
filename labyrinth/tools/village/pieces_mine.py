@@ -255,7 +255,7 @@ def smelter():
 
 def miners_lodge():
     """광부 숙소: 돌 아래층 + 가문비 뼈대·회반죽 다락(지붕 속 2층) + 심층암 기와 박공(앞뒤 박공, 녹슨 구리 테).
-    앞 현관 벽에 광부 게시판(표지판 둘, 우클릭 mine_info), 옆에 곡괭이 걸이·광석 바구니."""
+    앞 현관 벽에 광부 게시판(우클릭 mine_info)과 광산 관리소 표지판(우클릭 mine_office), 옆에 곡괭이 걸이·광석 바구니."""
     W, H, D, F = 11, 12, 9, 1
     p = Piece("miners_lodge", "광부 숙소", W, H, D, floor_y=F, anchor=(5, 1),
               foundation_mix=[("stone_bricks", 3), ("tuff_bricks", 2), ("mossy_stone_bricks", 1)])
@@ -310,8 +310,11 @@ def miners_lodge():
     # 광부 게시판 (현관 벽, 문 오른쪽)
     p.sign(7, 3, 0, ["<#e8843f><b>광부 게시판</b></#e8843f>", "<gray>광맥 현황</gray>", "<gray>우클릭</gray>"],
            wood="dark_oak", facing="north", glow=True)
-    p.sign(8, 3, 0, ["<gray>오늘의 광맥</gray>", "<#3fb090>승강장으로</#3fb090>"], wood="dark_oak", facing="north")
-    p.interact("mine_info", [(7, 3, 0), (8, 3, 0)])
+    p.interact("mine_info", [(7, 3, 0)])
+    # 광산 관리소 (곡괭이·제련·새기기·벼리기·팔기) — 광부 브론 NPC 가 없어도(npcs.yml 을 고친 서버) 여기서 열린다
+    p.sign(8, 3, 0, ["<#e8c58a><b>광산 관리소</b></#e8c58a>", "<gray>곡괭이 · 제련 · 팔기</gray>", "<gray>우클릭</gray>"],
+           wood="dark_oak", facing="north", glow=True)
+    p.interact("mine_office", [(8, 3, 0)])
     # 현관 옆: 곡괭이 걸이(다락문) · 광석 바구니(통 + 원석)
     p.set(2, 2, 0, B("barrel", facing="up"))
     p.set(2, 3, 0, B("raw_copper_block"))

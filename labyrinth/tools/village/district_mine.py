@@ -9,11 +9,12 @@ build_all 이 마을 좌표(layout.json 과 같은 틀: 중심 (0,0), 앞 = 북)
 바꾼다 (그 길과 겹치는 장식은 뺀다). 그다음은 관리자 명령 (/labadmin village district build mine here [방향]).
 """
 
-# 조각 (배포 월드): piece, 발자국 최소 모서리 [x0, z0], 정면
+# 조각 (배포 월드): piece, 발자국 최소 모서리 [x0, z0], 정면, slack (계획기가 옮길 수 있는 칸 — 승강장은 계약 자리 그대로,
+# 제련소·숙소는 NPC 자리가 계약 ±2 안에 남게 1, 참나무는 마을이 다듬은 칸(x ≤ −101)에 닿지 않게 2)
 PIECES = [
-    {"piece": "mine_headframe", "w": [-72, 9], "front": "west"},       # 0 승강장 (13×24×13) x -72..-60 z 9..21
-    {"piece": "smelter", "w": [-88, 23], "front": "north"},             # 1 제련소 (13×18×12) x -88..-76 z 23..34
-    {"piece": "miners_lodge", "w": [-85, 4], "front": "south"},         # 2 광부 숙소 (11×12×9) x -85..-75 z 4..12
+    {"piece": "mine_headframe", "w": [-72, 9], "front": "west", "slack": 0},   # 0 승강장 (13×24×13) x -72..-60 z 9..21
+    {"piece": "smelter", "w": [-88, 23], "front": "north", "slack": 1},       # 1 제련소 (13×18×12) x -88..-76 z 23..34
+    {"piece": "miners_lodge", "w": [-85, 4], "front": "south", "slack": 1},   # 2 광부 숙소 (11×12×9) x -85..-75 z 4..12
     {"piece": "ore_yard", "w": [-68, 26], "front": "north"},            # 3 광석 하치장 (9×5×7) x -68..-60 z 26..32
     {"piece": "signpost_mine", "w": [-99, 11], "front": "south"},       # 4 광산 길잡이 (큰길 북쪽 길가)
     {"piece": "lamp_post_copper", "w": [-95, 11], "front": "south"},    # 5 가로등 (큰길 북쪽)
@@ -21,7 +22,7 @@ PIECES = [
     {"piece": "lamp_post_copper", "w": [-79, 20], "front": "north"},    # 7 가로등 (마당 남쪽, 제련소 길 옆)
     {"piece": "cart", "w": [-93, 24], "front": "north"},                # 8 수레
     {"piece": "bench", "w": [-72, 5], "front": "south"},                # 9 벤치 (승강장 북쪽)
-    {"piece": "tree_oak", "w": [-98, -1], "front": "north"},            # 10 참나무
+    {"piece": "tree_oak", "w": [-98, -1], "front": "north", "slack": 2},      # 10 참나무
     {"piece": "flower_bed", "w": [-93, 9], "front": "north"},           # 11 화단
 ]
 
