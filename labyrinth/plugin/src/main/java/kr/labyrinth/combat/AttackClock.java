@@ -108,8 +108,8 @@ final class AttackClock implements Listener {
 
     private static long ms(double seconds) { return Math.max(1, Math.round(seconds * 1000.0)); }
 
-    /** 손에 든 것의 표시 (칸 + 아이템 id) — 기억한 클릭을 넣을 때 같은 무기인지. */
-    private String weaponKey(Player p) {
+    /** 손에 든 것의 표시 (칸 + 아이템 id) — 기억한 클릭을 넣을 때·날던 마법탄이 맞을 때 같은 무기인지. */
+    String weaponKey(Player p) {
         ItemStack main = p.getInventory().getItemInMainHand();
         String id = services.items().defOf(main).map(ItemDef::id).orElse(main.getType().name());
         return p.getInventory().getHeldItemSlot() + ":" + id;

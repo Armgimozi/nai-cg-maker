@@ -43,8 +43,8 @@ class CasterBoltDataTest {
             List<String> pal = d.texture() == null ? List.of() : d.texture().strings("palette");
             int rgb = CasterBoltRules.trailColor(pal, -1);
             assertNotEquals(-1, rgb, d.id() + " — 팔레트에서 색을 못 고름");
-            assertTrue(CasterBoltRules.vividness(rgb) > 0.05 || ((rgb >> 16 & 0xFF) + (rgb >> 8 & 0xFF) + (rgb & 0xFF)) > 600,
-                    d.id() + " — 너무 칙칙한 색 " + Integer.toHexString(rgb));
+            assertTrue(CasterBoltRules.vividness(rgb) >= CasterBoltRules.GREY, d.id() + " — 회색 마법탄 (연기처럼 보임) " + Integer.toHexString(rgb));
+            assertTrue(CasterBoltRules.value(rgb) >= 0.5, d.id() + " — 너무 어두운 마법탄 " + Integer.toHexString(rgb));
         }
         for (ItemDef d : content.items().values()) {
             if (d.isWeapon() && !WeaponAttack.of(d).caster()) assertFalse(WeaponAttack.of(d).firesBolt(), d.id() + " — 근접·활은 그대로");

@@ -19,8 +19,8 @@ class CasterBoltMergeTest {
 
     @Test
     void boltCarriesTheStaffThatCastIt() {
-        CasterBolts.Shot shot = new CasterBolts.Shot("frostheart_staff", 14.0, DamageKind.MAGIC, Color.fromRGB(0x88ccff));
-        DamageContext c = CasterBolts.context(null, null, shot);
+        CasterBolts.Shot shot = new CasterBolts.Shot("4:frostheart_staff", "frostheart_staff", 14.0, DamageKind.MAGIC, Color.fromRGB(0x88ccff));
+        DamageContext c = CasterBolts.context(null, null, shot, 1.0);
         assertEquals("frostheart_staff", c.firedWith(), "고유 효과·덧 피해 = 쏜 지팡이 (날아가는 사이 단도로 바꿔도)");
         assertTrue(c.hasWeaponHit());
         assertEquals(14.0, c.weaponHit(), 1e-9, "한 방 W = 쏜 순간의 지팡이");
@@ -30,8 +30,21 @@ class CasterBoltMergeTest {
         assertFalse(c.isSkill());
         assertNull(c.sourceId(), "기본 공격 (고유 효과 '기본 공격' 발동)");
         assertEquals(DamageContext.Base.PER_HIT, c.base());
-        // 무기 없이 쏜 것으로 기록된 마법탄 (있을 수 없지만): 고유 효과 없음 — 화살의 "" 와 같은 뜻
-        assertEquals("", CasterBolts.context(null, null, new CasterBolts.Shot("", 3.0, DamageKind.MAGIC, Color.WHITE)).firedWith());
+        assertEquals(1.0, c.attackMultiplier(), 1e-9, "몹에게는 배율 없음");
+        // 무기 없이 쏜 것으로 기록된 마법탄 (있을 수 없지만): 고유 효과 없음 — 화살의 "" 와 같은 뜻.
+        // 손 칸 표시(weaponKey)는 바닐라 이름이어도 firedWith 에는 items.yml id 만 들어간다
+        assertEquals("", CasterBolts.context(null, null, new CasterBolts.Shot("4:STICK", "", 3.0, DamageKind.MAGIC, Color.WHITE), 1.0).firedWith());
+    }
+
+    @Test
+    void pvpMultiplierKeepsTheStaffThatCastIt() {
+        CasterBolts.Shot shot = new CasterBolts.Shot("0:frostheart_staff", "frostheart_staff", 14.0, DamageKind.MAGIC, Color.WHITE);
+        double pvp = CasterBoltConfig.DEFAULT.pvpDamage();
+        DamageContext c = CasterBolts.context(null, null, shot, pvp);
+        assertEquals(pvp, c.attackMultiplier(), 1e-9, "플레이어에게는 × pvp_damage (c0361)");
+        assertEquals("frostheart_staff", c.firedWith(), "배율이 붙어도 쏜 지팡이로 센다");
+        assertEquals(14.0, c.weaponHit(), 1e-9);
+        assertTrue(c.isCasterBolt());
     }
 
     @Test
