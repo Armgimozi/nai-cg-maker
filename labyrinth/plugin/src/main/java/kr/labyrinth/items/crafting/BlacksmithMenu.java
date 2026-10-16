@@ -153,15 +153,13 @@ public final class BlacksmithMenu extends Menu {
         });
         // 아래 줄 = 45 이전 · 47 거르개 · 49 골드·제작 안내 · 50 낄 수 있는 것만 · 51 닫기 · 53 다음
         double disc = services.stats().get(viewer).craftDiscount();
-        List<String> info = new ArrayList<>(List.of(disc > 0 ? "<gray>제작 할인 " + Text.pct(Math.min(RecipeCheck.MAX_DISCOUNT, disc)) : "<gray>제작 레벨 제한 없음",
-                "<dark_gray>재료는 미궁의 몬스터·정예·보스에게서 얻습니다.",
-                "",
-                "<gray>레시피를 클릭하면 바로 제작합니다.",
-                "<gray>모자란 재료·골드는 <#ff6b6b>빨강</#ff6b6b>으로 표시됩니다.",
-                "<gray>요구 능력치는 입을 때 필요합니다 (제작은 언제나 가능)."));
-        var bp = kr.labyrinth.items.blueprint.BlueprintService.get();
-        if (bp != null && bp.enabled()) info.add("<gray>희귀 이상 장비는 도안을 배우면 목록에 나옵니다.");
-        deco(49, Button.icon(Material.GOLD_NUGGET, "<#ffd27a>보유 골드 " + Text.num(d.gold()), info));
+        deco(49, Button.icon(Material.GOLD_NUGGET, "<#ffd27a>보유 골드 " + Text.num(d.gold()),
+                List.of(disc > 0 ? "<gray>제작 할인 " + Text.pct(Math.min(RecipeCheck.MAX_DISCOUNT, disc)) : "<gray>제작 레벨 제한 없음",
+                        "<dark_gray>재료는 미궁의 몬스터·정예·보스에게서 얻습니다.",
+                        "",
+                        "<gray>레시피를 클릭하면 바로 제작합니다.",
+                        "<gray>모자란 재료·골드는 <#ff6b6b>빨강</#ff6b6b>으로 표시됩니다.",
+                        "<gray>요구 능력치는 입을 때 필요합니다 (제작은 언제나 가능).")));
         set(51, Button.icon(Material.OAK_DOOR, "<gray>닫기", List.of()), ctx -> viewer.closeInventory());
     }
 

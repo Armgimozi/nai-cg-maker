@@ -160,7 +160,7 @@ public final class BlueprintService implements Listener {
         it.setAmount(it.getAmount() - 1);
         if (e.getHand() == EquipmentSlot.OFF_HAND) p.getInventory().setItemInOffHand(it.getAmount() <= 0 ? null : it);
         else p.getInventory().setItemInMainHand(it.getAmount() <= 0 ? null : it);
-        Text.send(p, "<#ffd27a>도안을 배웠습니다:</#ffd27a> " + name + " <gray>— 이제 대장간 목록에 나옵니다.");
+        Text.send(p, "<#ffd27a>도안을 배웠습니다:</#ffd27a> " + name);
         p.playSound(p.getLocation(), Sound.ITEM_BOOK_PAGE_TURN, 0.9f, 1.0f);
         p.playSound(p.getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 0.6f, 1.3f);
         p.spawnParticle(Particle.ENCHANT, p.getLocation().add(0, 1.2, 0), 30, 0.4, 0.5, 0.4, 0.6);
