@@ -40,6 +40,8 @@ public final class DamageContext {
     private double knockback;
     private double threatMultiplier = 1.0;
     private double critBonus;
+    private double defenseScale = 1.0;
+    private double critDamageScale = 1.0;
     private String sourceId;
 
     // 결과
@@ -117,6 +119,10 @@ public final class DamageContext {
     public DamageContext type(DamageType t) { this.type = t; return this; }
     /** 이 피해 한 건의 치명타 확률 가산 (1.0 이상 = 확정 치명타, 플레이어 공격자만). 누적된다. */
     public DamageContext critBonus(double add) { this.critBonus += add; return this; }
+    /** 대상 방어를 얼마나 셀지 (1 = 그대로, 0 = 방어 무시). PvP 훅이 before() 에서 바꾼다 (pvp.defense_weight). */
+    public DamageContext defenseScale(double s) { this.defenseScale = Math.max(0, s); return this; }
+    /** 치명 '추가' 피해 배율 (1 = 그대로, 0.6 = 치명 피해 2.5 → 1.9). PvP 훅이 before() 에서 바꾼다 (pvp.crit_damage_scale). */
+    public DamageContext critDamageScale(double s) { this.critDamageScale = Math.max(0, s); return this; }
 
     // ── 입력 접근 ─────────────────────────────────────────────────────────
     public LivingEntity attacker() { return attacker; }
@@ -146,6 +152,8 @@ public final class DamageContext {
     public double knockbackStrength() { return knockback; }
     public double threatMultiplier() { return threatMultiplier; }
     public double critBonus() { return critBonus; }
+    public double defenseScale() { return defenseScale; }
+    public double critDamageScale() { return critDamageScale; }
     public String sourceId() { return sourceId; }
 
     // ── 결과 ──────────────────────────────────────────────────────────────

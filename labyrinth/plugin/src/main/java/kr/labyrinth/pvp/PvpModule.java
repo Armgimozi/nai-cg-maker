@@ -9,6 +9,7 @@ import kr.labyrinth.Services;
 import kr.labyrinth.combat.DamageContext;
 import kr.labyrinth.combat.DamageService;
 import kr.labyrinth.combat.DamageType;
+import kr.labyrinth.combat.HealKind;
 import kr.labyrinth.command.CommandService;
 import kr.labyrinth.content.ClassDef;
 import kr.labyrinth.content.ItemDef;
@@ -21,17 +22,20 @@ import org.bukkit.GameRules;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.bukkit.scheduler.BukkitTask;
 
 /**
  * PvP = 따로 신청하는 대전 없이 <b>파티 규칙</b> 하나 (GDD §18): 같은 파티원끼리는 야생·마을·미궁 어디서든 서로 피해를 줄 수 없고,
- * 그 밖의 플레이어끼리는 피해를 줄 수 있다. config {@code pvp:} (켜기 · 피해 배율 · 한 방 상한 · 마을 안전지대 · 파티원 이름표 색).
+ * 그 밖의 플레이어끼리는 피해를 줄 수 있다. config {@code pvp:} (pvp_spec §12 — 피해 공식·회복·상태이상·마을 안전지대·이름표 색).
  * <ul>
  *   <li>{@link TargetFilter} 를 config 를 따르는 {@link DefaultTargetFilter} 로 교체 → 근접·화살(CombatListener)·직업 스킬·
- *       무기 스킬·장판이 모두 같은 규칙</li>
- *   <li>DamageService 훅: 같은 파티원 피해 차단(늦게 도착한 지속 피해 등) · 플레이어끼리 배율 · 한 방 상한 · 마지막 피해 기록</li>
+ *       무기 스킬·장판이 모두 같은 규칙. {@link TargetFilter#pvp()} = 이 모듈의 {@link PvpState} (회복·보호막·상태이상 배율)</li>
+ *   <li>DamageService 훅: 같은 파티원 피해 차단(늦게 도착한 지속 피해 등) · 플레이어끼리 피해 공식({@link PvpDamage}: 기준 배율 ·
+ *       직업 보정 · 스킬 pvp_mult · 강인함 · 완충 체력, 방어 대신 강인함, 치명 추가 피해 × 0.6) · 한 방 상한(기본 없음) · 마지막 피해 기록 ·
+ *       'PvP 전투 중' 기록</li>
  *   <li>{@link PvpListener}: 바닐라 경로(물약·잔류 구름·발화·폭발·늑대·낚싯대) · 죽음 메시지 · 월드 PvP 스위치</li>
  *   <li>1초마다: 파티원 이름표 초록색(보는 사람 기준) · 모든 월드의 바닐라 PvP 게임 규칙을 config 와 맞춤</li>
  * </ul>
@@ -53,6 +57,9 @@ public final class PvpModule implements Module {
     private final VillageZone zone = new VillageZone();
     private final Map<UUID, Long> lastCombat = new ConcurrentHashMap<>();
     private final Map<UUID, Hit> lastHit = new ConcurrentHashMap<>();
+    private final PvpFights fights = new PvpFights();
+    private final Map<UUID, PvpCc> ccs = new ConcurrentHashMap<>();
+    private final State state = new State();
     private volatile PvpConfig config = PvpConfig.OFF;
     private PvpListener listener;
     private DamageService.Hook hook;
@@ -78,9 +85,7 @@ public final class PvpModule implements Module {
             return Command.SINGLE_SUCCESS;
         }));
         Log.info(config.enabled()
-                ? "PvP 켜짐: 같은 파티원끼리는 피해 없음, 그 밖의 플레이어끼리 피해 ×" + config.damageMultiplier()
-                        + " (한 번에 최대 HP " + Math.round(config.maxHitRatio() * 100) + "%까지)"
-                        + (config.safeZoneVillage() ? ", 마을 안 금지" : "")
+                ? "PvP 켜짐: 같은 파티원끼리는 피해 없음. " + summary(config) + (config.safeZoneVillage() ? " · 마을 안 금지" : "")
                 : "PvP 꺼짐 (config pvp.enabled: false) — 플레이어끼리 서로 피해를 줄 수 없습니다.");
     }
 
@@ -95,6 +100,8 @@ public final class PvpModule implements Module {
         services.setTargets(new DefaultTargetFilter(services));
         lastCombat.clear();
         lastHit.clear();
+        fights.clear();
+        ccs.clear();
     }
 
     @Override
@@ -105,10 +112,28 @@ public final class PvpModule implements Module {
     }
 
     private void loadConfig() {
-        config = PvpConfig.from(services.plugin().getConfig().getConfigurationSection("pvp"));
+        java.util.List<String> notes = new java.util.ArrayList<>();
+        config = PvpConfig.from(services.plugin().getConfig().getConfigurationSection("pvp"), notes);
+        for (String n : notes) Log.info(n + " — config.yml 의 pvp 블록은 그대로 두고 읽을 때만 바꿉니다");
     }
 
     PvpConfig config() { return config; }
+
+    PvpState state() { return state; }
+
+    /** 켤 때 로그·/labadmin pvp 한 줄: 기준 배율 Lv20·35·50 · 완충 · 강인함 상한 · 회복 · 상태이상 · 한 방 상한. */
+    static String summary(PvpConfig c) {
+        return "기준 배율 Lv20 ×" + PvpConfig.fmt(PvpMath.levelMult(c, 20)) + " · Lv35 ×" + PvpConfig.fmt(PvpMath.levelMult(c, 35))
+                + " · Lv50 ×" + PvpConfig.fmt(PvpMath.levelMult(c, 50))
+                + " · 완충 Lv20 " + Math.round(PvpMath.bufferHp(c, 20)) + " / Lv50 " + Math.round(PvpMath.bufferHp(c, 50))
+                + " · 강인함 최대 " + Text.pct(c.resilience().cap())
+                + " · 치명 추가 피해 ×" + PvpConfig.fmt(c.critDamageScale())
+                + " · 전투 중 회복 " + Text.pct(c.healing()) + " (물약 " + Text.pct(c.healing() * c.potion())
+                + " · 흡혈 " + Text.pct(c.lifesteal()) + " · 보호막 " + Text.pct(c.shield()) + ")"
+                + " · 상태이상 같은 분류 " + Math.round(c.cc().window()) + "초 안 다시 맞으면 줄어듦, 기절·빙결 뒤 "
+                + PvpConfig.fmt(c.cc().controlImmunity()) + "초 면역"
+                + (c.maxHitRatio() < 1 ? " · 한 번에 최대 HP " + Text.pct(c.maxHitRatio()) : " · 한 방 상한 없음");
+    }
 
     boolean inSafeZone(Location l) {
         PvpConfig c = config;
@@ -120,8 +145,13 @@ public final class PvpModule implements Module {
         PvpConfig c = config;
         to.sendMessage(Text.mm(Text.PREFIX + "<white>PvP " + (c.enabled() ? "<green>켜짐" : "<red>꺼짐")
                 + "</white> <gray>— 같은 파티원끼리는 어디서든 피해 없음, 그 밖의 플레이어끼리는 피해 가능"));
-        to.sendMessage(Text.mm("<gray> 플레이어끼리 피해 ×" + c.damageMultiplier() + " · 한 번에 최대 HP "
-                + Text.pct(c.maxHitRatio()) + " · 파티원 이름표 초록 " + (c.partyNameColor() ? "켬" : "끔")));
+        to.sendMessage(Text.mm("<gray> " + Text.escape(summary(c))));
+        StringBuilder cls = new StringBuilder();
+        c.classDamage().byClass().forEach((id, b) -> cls.append(cls.isEmpty() ? "" : " · ").append(id).append(' ')
+                .append(b.low() == b.mid() && b.mid() == b.high() ? "×" + PvpConfig.fmt(b.low())
+                        : "×" + PvpConfig.fmt(b.low()) + "/" + PvpConfig.fmt(b.mid()) + "/" + PvpConfig.fmt(b.high())));
+        to.sendMessage(Text.mm("<gray> 직업 보정: " + Text.escape(cls.isEmpty() ? "없음" : cls.toString())
+                + " · 배율 ×" + PvpConfig.fmt(c.damageMultiplier()) + " · 파티원 이름표 초록 " + (c.partyNameColor() ? "켬" : "끔")));
         VillageZone.Zone z = c.safeZoneVillage() ? zone.current(c.safeZoneMargin()) : null;
         to.sendMessage(Text.mm("<gray> 마을 안전지대: " + (!c.safeZoneVillage() ? "끔 (safe_zone_village: false)"
                 : z == null ? "없음 (주 월드 폴더에 " + VillageZone.FILE + " 없음)"
@@ -161,6 +191,9 @@ public final class PvpModule implements Module {
         try {
             applyWorldRules(false);
             syncNameTags();
+            long now = System.currentTimeMillis();
+            fights.prune(now, config.combatSeconds());
+            ccs.values().removeIf(cc -> cc.idle(config.cc(), now));
         } catch (Throwable t) {
             Log.error("PvP 갱신 오류", t);
         }
@@ -208,6 +241,8 @@ public final class PvpModule implements Module {
     void forget(UUID u) {
         lastCombat.remove(u);
         lastHit.remove(u);
+        fights.forget(u);
+        ccs.remove(u);
     }
 
     /** 피해 출처 이름 (죽음 메시지): 직업 스킬 · 무기 스킬 · 들고 있던 무기 · 피해 유형. */
@@ -223,7 +258,7 @@ public final class PvpModule implements Module {
                     default -> "지속 피해";
                 };
             }
-            if (id.startsWith("mech:")) {
+            if (id.startsWith("mech:") || id.startsWith("ws:")) {
                 String[] parts = id.split(":");
                 ItemDef item = parts.length > 1 ? services.content().item(parts[1]) : null;
                 if (item != null) {
@@ -259,9 +294,6 @@ public final class PvpModule implements Module {
     /** 플레이어 → 다른 플레이어 피해에만 끼어든다 (몹·보스 피해는 그대로). */
     private final class PvpHook implements DamageService.Hook {
 
-        /** 다른 피해를 옮겨 받는 피해 (배율 중복 방지). */
-        private static final java.util.Set<String> RELAYED = java.util.Set.of("guardian_oath");
-
         private Player victimOf(DamageContext ctx) {
             Player a = ctx.attackerPlayer();
             return a != null && ctx.target() instanceof Player v && !a.equals(v) ? v : null;
@@ -275,8 +307,24 @@ public final class PvpModule implements Module {
 
         @Override
         public void before(DamageContext ctx) {
-            // 수호의 맹세(피해 나눠 받기)는 이미 배율이 적용된 피해를 옮겨 받는 것이라 다시 줄이지 않는다
-            if (victimOf(ctx) != null && !RELAYED.contains(ctx.sourceId())) ctx.amount(ctx.amount() * config.damageMultiplier());
+            Player v = victimOf(ctx);
+            if (v == null) return;
+            Player a = ctx.attackerPlayer();
+            PvpConfig c = config;
+            long now = System.currentTimeMillis();
+            fights.mark(a.getUniqueId(), now, c.combatSeconds());
+            fights.mark(v.getUniqueId(), now, c.combatSeconds());
+            // 수호의 맹세(피해 나눠 받기)는 이미 PvP 공식을 거친 피해를 옮겨 받는 것이라 다시 줄이지 않는다
+            if (PvpDamage.relayed(ctx.sourceId())) return;
+            var vs = services.stats().get(v);
+            PvpMath.Target t = new PvpMath.Target(level(v), services.damage().maxHp(v), vs.stat(kr.labyrinth.stats.Stat.VIT),
+                    vs.defense());
+            ClassDef cls = services.classes().classOf(a);
+            double skill = PvpDamage.skillMult(services.content(), cls, services.items().heldWeapon(a), ctx.sourceId(), ctx.isSkill());
+            double f = PvpDamage.factor(c, new PvpDamage.Hit(level(a), cls == null ? null : cls.id(), t, skill, ctx.isPercent()));
+            ctx.amount(ctx.amount() * f);
+            ctx.defenseScale(c.defenseWeight());
+            ctx.critDamageScale(c.critDamageScale());
         }
 
         @Override
@@ -312,5 +360,83 @@ public final class PvpModule implements Module {
 
         @Override
         public boolean inSafeZone(Location location) { return module.inSafeZone(location); }
+
+        @Override
+        public PvpState pvp() { return module.state(); }
+    }
+
+    int level(Player p) { return services.data().get(p).level(); }
+
+    /** 바닐라 경로 PvP 피해 배율 = × HP ÷ (HP + B(높은 레벨)) × (1 − 강인함). 두 사람 'PvP 전투 중' 갱신. */
+    double vanillaFactor(Player culprit, Player victim) {
+        PvpConfig c = config;
+        long now = System.currentTimeMillis();
+        fights.mark(culprit.getUniqueId(), now, c.combatSeconds());
+        fights.mark(victim.getUniqueId(), now, c.combatSeconds());
+        var vs = services.stats().get(victim);
+        int vl = level(victim);
+        int l = PvpMath.level(level(culprit), vl);
+        return PvpMath.poolFactor(c, services.damage().maxHp(victim), l)
+                * (1 - PvpMath.resilience(c, vs.stat(kr.labyrinth.stats.Stat.VIT), vs.defense(), vl));
+    }
+
+    // ── PvP 전투 상태 (회복·보호막·상태이상) ───────────────────────────────
+
+    /** {@link TargetFilter#pvp()} — 회복·보호막·상태이상 쪽에서 묻는다 (pvp_spec §8·§9). */
+    private final class State implements PvpState {
+
+        private boolean fighting(Player p, long now) {
+            PvpConfig c = config;
+            return c.enabled() && fights.inCombat(p.getUniqueId(), now, c.combatSeconds());
+        }
+
+        @Override
+        public boolean inCombat(Player p) { return p != null && fighting(p, System.currentTimeMillis()); }
+
+        @Override
+        public double healFactor(Player p, HealKind kind) {
+            if (p == null) return 1.0;
+            long now = System.currentTimeMillis();
+            PvpConfig c = config;
+            return PvpDamage.healFactor(c, kind, fighting(p, now), fights.seconds(p.getUniqueId(), now, c.combatSeconds()));
+        }
+
+        @Override
+        public double flatHealFactor(Player p) {
+            if (p == null) return 1.0;
+            return PvpDamage.flatHealFactor(config, fighting(p, System.currentTimeMillis()), services.damage().maxHp(p), level(p));
+        }
+
+        @Override
+        public double shieldFactor(Player p) {
+            if (p == null) return 1.0;
+            long now = System.currentTimeMillis();
+            PvpConfig c = config;
+            return PvpDamage.shieldFactor(c, fighting(p, now), fights.seconds(p.getUniqueId(), now, c.combatSeconds()));
+        }
+
+        /** 다른 파티 플레이어가 건 것인가 (같은 파티·자기 자신·몹이면 아님). */
+        private boolean byEnemyPlayer(Player target, LivingEntity source) {
+            return config.enabled() && source instanceof Player sp && !sp.equals(target) && !services.targets().isAlly(sp, target);
+        }
+
+        @Override
+        public double ccSeconds(Player target, LivingEntity source, String effectId, double seconds) {
+            if (target == null || !byEnemyPlayer(target, source)) return seconds;
+            return ccs.computeIfAbsent(target.getUniqueId(), u -> new PvpCc())
+                    .duration(config.cc(), effectId, seconds, System.currentTimeMillis());
+        }
+
+        @Override
+        public double ccPotency(Player target, LivingEntity source, String effectId, double potency) {
+            if (target == null || !"slow".equals(effectId) || !byEnemyPlayer(target, source)) return potency;
+            return PvpCc.slowPotency(config.cc(), potency);
+        }
+
+        @Override
+        public void onControlEnd(Player target) {
+            if (target == null) return;
+            ccs.computeIfAbsent(target.getUniqueId(), u -> new PvpCc()).onControlEnd(config.cc(), System.currentTimeMillis());
+        }
     }
 }

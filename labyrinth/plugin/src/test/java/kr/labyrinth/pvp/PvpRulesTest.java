@@ -103,13 +103,10 @@ class PvpRulesTest {
     }
 
     @Test
-    void damageMultiplierAndOneHitCap() {
-        PvpConfig c = new PvpConfig(true, 0.7, 0.35, true, 8, true);
-        assertEquals(35.0, c.adjust(50, 1000), 1e-9, "배율만");
-        assertEquals(70.0, c.adjust(1000, 200), 1e-9, "최대 HP 35% 상한");
-        assertEquals(0.0, c.adjust(-5, 100), 1e-9);
-        PvpConfig noCap = new PvpConfig(true, 1.0, 1.0, false, 0, false);
-        assertEquals(500.0, noCap.adjust(500, 100), 1e-9, "1.0 = 상한 없음");
+    void noOneHitCapByDefault() {
+        assertEquals(1.0, PvpConfig.DEFAULT.maxHitRatio(), 1e-9, "0.3.5: 한 방 상한 없음 (관리자용 키만 남음)");
+        assertEquals(1.0, PvpConfig.DEFAULT.damageMultiplier(), 1e-9, "기본 대비 배율 1.0");
+        assertFalse(PvpConfig.OFF.enabled());
     }
 
     @Test

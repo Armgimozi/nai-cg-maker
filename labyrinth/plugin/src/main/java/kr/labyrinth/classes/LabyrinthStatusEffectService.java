@@ -58,6 +58,8 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
     private static final org.bukkit.NamespacedKey JUMP_KEY = Keys.key("fx_jump");
     private static final org.bukkit.NamespacedKey KB_KEY = Keys.key("fx_knockback");
     private static final long TICK_MS = 250;
+    /** PvP 에서 안 걸렸을 때 작은 '면역' 표시를 띄우는 효과. */
+    private static final java.util.Set<String> CONTROL_LIKE = java.util.Set.of("stun", "frozen", "root", "silence", "blind");
 
     /** 엔티티 하나의 상태. */
     private static final class State {
@@ -74,6 +76,8 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
         ItemDisplay iceShell;
         ItemDisplay markDisplay;
         long lastShieldFx;
+        /** 지금 걸린 행동 불가(기절·빙결)가 다른 파티 플레이어가 건 것 — 끝나면 PvP 면역 시작. */
+        boolean pvpControl;
 
         State(LivingEntity e) { this.entity = e; }
 
@@ -141,7 +145,22 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
         if (target instanceof Player p && EffectStack.harmful(id) && !id.equals("stun") && !id.equals("frozen")) {
             dur *= 1.0 - services.stats().get(p).debuffReduction();
         }
+        // PvP (pvp_spec §9): 다른 파티 플레이어가 건 것만 — 정신 감소 다음에 종류별 배율 → 상한 → 줄어듦 → 면역. 기절은 기절 그대로
+        boolean pvpCc = false;
+        if (target instanceof Player p && source instanceof Player && !source.equals(p) && EffectStack.harmful(id)) {
+            kr.labyrinth.pvp.PvpState pvp = services.targets().pvp();
+            dur = pvp.ccSeconds(p, source, id, dur);
+            if (dur <= 0) {
+                if (CONTROL_LIKE.contains(id)) {
+                    SkillFx.burst(target.getLocation().add(0, target.getHeight() + 0.3, 0), Particle.ENCHANTED_HIT, 6, 0.25, 0.05, null);
+                }
+                return;
+            }
+            potency = pvp.ccPotency(p, source, id, potency);
+            pvpCc = id.equals("stun") || id.equals("frozen");
+        }
         State s = state(target);
+        if (pvpCc) s.pvpControl = true;
         double value = potency;
         int addStacks = 1;
         if (EffectStack.DOT.contains(id)) {
@@ -184,6 +203,7 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
                 s.effects.remove("frost");
                 s.freeHits = 4;
                 apply(target, "frozen", 4, 1, source);
+                if (!s.effects.has("frozen", System.currentTimeMillis())) return; // PvP 면역·줄어듦으로 안 걸림
                 SkillFx.sound(target.getLocation(), Sound.BLOCK_GLASS_PLACE, 1f, 0.6f);
                 SkillFx.burst(target.getLocation().add(0, 1, 0), Particle.SNOWFLAKE, 40, 0.5, 0.05, null);
                 if (s.iceShell == null || !s.iceShell.isValid()) {
@@ -319,6 +339,13 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
     }
 
     private void onRemoved(State s, String id) {
+        if ((id.equals("stun") || id.equals("frozen")) && s.pvpControl && s.entity instanceof Player p) {
+            long now = System.currentTimeMillis();
+            if (!s.effects.has("stun", now) && !s.effects.has("frozen", now)) {
+                s.pvpControl = false;
+                services.targets().pvp().onControlEnd(p); // 기절·빙결이 끝남(만료·동료가 깨 줌) → 잠깐 면역
+            }
+        }
         switch (id) {
             case "frozen" -> {
                 SkillFx.remove(s.iceShell);
@@ -361,7 +388,9 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
     }
 
     @Override
-    public void addShield(LivingEntity target, double amount, double durationSeconds, String sourceId) {
+    public void addShield(LivingEntity target, double base, double durationSeconds, String sourceId) {
+        // PvP 전투 중이면 새로 얻는 보호막 × shield × 긴 싸움 (pvp_spec §8)
+        double amount = target instanceof Player tp ? base * services.targets().pvp().shieldFactor(tp) : base;
         if (target == null || amount <= 0) return;
         State s = state(target);
         long until = System.currentTimeMillis() + (long) (durationSeconds * 1000);

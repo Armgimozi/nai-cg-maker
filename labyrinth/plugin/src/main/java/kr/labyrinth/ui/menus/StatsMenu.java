@@ -88,6 +88,15 @@ public final class StatsMenu extends LabMenu {
         der.add("<gray>스킬 피해 <white>+" + Text.pct(s.skillDamage()) + "  <gray>치유량 <white>+" + Text.pct(s.healPower()));
         der.add("<gray>이동 속도 <white>+" + Text.pct(s.moveSpeed()));
         der.add("<gray>경험치 <white>+" + Text.pct(s.xpBonus()) + "  <gray>골드 <white>+" + Text.pct(s.goldBonus()));
+        kr.labyrinth.pvp.PvpConfig pc = services.targets().pvpConfig();
+        if (pc.enabled()) {
+            // PvP 강인함·PvP 체력 (pvp_spec §4·§16) — 다른 플레이어에게 맞을 때만
+            int lv = services.data().get(p).level();
+            double res = kr.labyrinth.pvp.PvpMath.resilience(pc, s.stat(Stat.VIT), s.defense(), lv);
+            double buffer = kr.labyrinth.pvp.PvpMath.bufferHp(pc, lv);
+            der.add("<gray>PvP 강인함 <white>" + Text.pct(res) + "  <gray>PvP 체력 <white>" + Text.num(s.maxHp() + buffer)
+                    + " <dark_gray>(최대 HP + " + Text.num(buffer) + ")");
+        }
         deco(22, Button.icon(Material.BOOK, "<#7fd8ff><b>능력치 요약</b>", der));
 
         boolean free = services.data().get(p).counter(FREE_RESET_KEY) == 0;

@@ -17,6 +17,7 @@
 #  - main_stats       : 주로 쓰는 능력치 (직업 메뉴 안내 한 줄에만)
 #  - skills[].kind    : 피해 종류 physical(힘이 키움) | magic(지능이 키움) | hybrid | none(피해 없음)
 #  - skills[].cooldown: 재사용 대기(초). 0.3.5 에 예전 '추천 무기 −10%' 를 모든 스킬 값에 녹였다 (×0.9)
+#  - skills[].pvp_mult: 플레이어에게 주는 피해 배율 (기본 1, 0.1~1.0 — 광역·궁극기만, tools/gen_035_pvp.py)
 # 해금 레벨: 스킬1=1, 스킬2=8, 스킬3=18, 궁극기=30 (전 직업 공통, 1~40 구간 안)
 # ─────────────────────────────────────────────────────────────────────────────
 version: 1
@@ -110,6 +111,7 @@ classes:
         input: SWAP
         unlock_level: 1
         mana: 12
+        pvp_mult: 0.8
         cooldown: 4.5
         params: {radius: 3.5, damage: 1.4, bleed_ratio: 0.15, bleed_duration: 4, bleed_tick: 1.0, fx: slash_arc}
         description: "무기를 크게 돌려 주위 3.5칸을 벤다. 맞은 적은 4초간 <red>출혈</red>(초당 공격력 15%)."
@@ -119,6 +121,7 @@ classes:
         input: SNEAK_SWAP
         unlock_level: 8
         mana: 18
+        pvp_mult: 0.85
         cooldown: 9.0
         params: {length: 9, width: 2.0, damage: 1.8, launch: 0.6, boss_launch: 0.0, fx: shockwave}
         description: "무기를 내리꽂아 전방 9칸 직선으로 균열을 일으킨다. 적을 공중으로 띄운다(보스 제외)."
@@ -137,6 +140,7 @@ classes:
         input: SNEAK_DROP
         unlock_level: 30
         mana: 45
+        pvp_mult: 0.45
         cooldown: 67.5
         params: {range: 12, radius: 5, damage: 3.5, vulnerability: 0.15, vuln_duration: 6, fx: shockwave}
         description: "바라보는 지점(최대 12칸)으로 뛰어올라 내려찍는다. 반경 5칸에 큰 피해, 맞은 적은 6초간 <light_purple>모든 피해를 15% 더 받는다</light_purple>(파티 전체 혜택)."
@@ -169,6 +173,7 @@ classes:
         input: SWAP
         unlock_level: 1
         mana: 12
+        pvp_mult: 0.8
         cooldown: 4.5
         params: {damage: 2.0, pierce: 4, falloff: 0.20, speed: 3.0, range: 40, fx: proj_piercing_arrow}
         description: "일직선으로 적을 최대 4명까지 꿰뚫는 화살. 관통할 때마다 피해 20% 감소."
@@ -196,6 +201,7 @@ classes:
         input: SNEAK_DROP
         unlock_level: 30
         mana: 45
+        pvp_mult: 0.3
         cooldown: 63.0
         params: {range: 28, radius: 6, duration: 4, tick: 0.5, damage: 0.6, slow: 0.25}
         description: "바라보는 지점(최대 28칸) 반경 6칸에 4초간 화살비. 0.5초마다 피해, 안의 적 25% 둔화."
@@ -255,6 +261,7 @@ classes:
         input: SNEAK_DROP
         unlock_level: 30
         mana: 70
+        pvp_mult: 0.35
         cooldown: 72.0
         params: {range: 30, delay: 1.5, radius: 6, damage: 5.0, burn_duration: 4, burn_dps: 0.30, fx: meteor}
         description: "바라보는 지점에 1.5초 뒤 운석을 떨어뜨린다. 반경 6칸 막대한 피해 후 4초간 불타는 대지."
@@ -374,6 +381,7 @@ classes:
         input: SNEAK_DROP
         unlock_level: 30
         mana: 50
+        pvp_mult: 0.4
         cooldown: 63.0
         params: {radius: 10, max_targets: 6, damage: 2.2, execute_threshold: 0.30, execute_bonus: 1.0, boss_hits: 3, interval: 0.25, fx: shadow_dash}
         description: "주위 10칸의 적 최대 6명 사이를 순간이동하며 벤다(적이 하나면 3연타). HP 30% 이하인 적에게 <dark_red>피해 2배</dark_red>."

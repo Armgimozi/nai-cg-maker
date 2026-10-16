@@ -32,6 +32,7 @@
 #  use         : 소모품 효과 (action 닫힌 목록 = GDD §11.9)
 #  weapon_skills : 일부 상위 무기의 무기 스킬. id = 구현 키(GDD §17 Weapon skill catalog 닫힌 목록, 공용 구현 재사용)
 #                input = LEFT | RIGHT | SNEAK_LEFT | SNEAK_RIGHT (활은 RIGHT 가 바닐라 당기기라 금지 → SNEAK_LEFT · SNEAK_RIGHT(웅크리고 당겨 쏘기), 일부 신화 활만 LEFT)
+#                pvp_mult = 플레이어에게 주는 피해 배율 (기본 1, 0.1~1.0 — 여러 번 맞히는 광역·큰 스킬만, tools/gen_035_pvp.py)
 #                params.damage = 스킬 위력 배율 (스킬 위력 = 무기 초당 피해 기준, 0.3.5 — 무거운 무기가 스킬을 독차지하지 않음),
 #                params.fx = fx.yml models 이름, params.damage_type = melee|ranged|magic (없으면 무기 attack.kind)
 #  model       : 3D 템플릿 {shape, length} (GDD §14.1). 재료·소모품만 shape: icon (2D)
@@ -295,6 +296,7 @@ items:
         input: RIGHT
         cooldown: 12.0
         mana: 18
+        pvp_mult: 0.85
         description: "망치를 앞쪽 바닥에 내려쳐 불똥을 터뜨리고 주변 적을 2초 도발한다. 맞은 자리에 쇳물이 고여 4초간 적을 태우고 느리게 한다."
         mechanics:
           - {"type": "nova", "at": "aim", "range": 3, "radius": 3.5, "display": "ember_burst", "particle": "LAVA", "effects": [{"damage": 1.666}, {"ignite": 3}, {"taunt": 2}]}
@@ -590,6 +592,7 @@ items:
         input: SNEAK_RIGHT
         cooldown: 30.0
         mana: 35
+        pvp_mult: 0.9
         params: {"duration": 3.0, "reduction": 0.65, "angle": 160, "counter_radius": 5, "counter_damage": 2.156, "per_block": 0.294, "reflect": 0.25, "taunt": 3.0, "fx": "abyssal_burst", "damage_type": "melee"}
         description: "3초간 정면 피해를 65% 막고, 끝나면 심연의 문이 열리며 반경 5칸을 강타한다."
     model: {shape: longsword, length: 1.0}
@@ -621,6 +624,7 @@ items:
         input: RIGHT
         cooldown: 18.0
         mana: 25
+        pvp_mult: 0.8
         params: {"duration": 3.0, "reduction": 0.7, "angle": 180, "counter_radius": 5, "counter_damage": 2.352, "per_block": 0.294, "reflect": 0.3, "taunt": 3.0, "fx": "celestial_burst", "damage_type": "melee"}
         description: "3초간 앞쪽 반원의 피해를 70% 막고 30%를 되돌려준다. 끝나면 별빛 반격."
       - id: mechanics
@@ -628,6 +632,7 @@ items:
         input: SNEAK_LEFT
         cooldown: 22.0
         mana: 30
+        pvp_mult: 0.7
         description: "하늘로 솟구친 뒤 별처럼 떨어진다. 착지 순간 주변에 별 여섯 개가 쏟아진다."
         mechanics:
           - {"type": "leap", "forward": 0.6, "upward": 1.1, "particle": "END_ROD", "land": [{"type": "nova", "radius": 5, "expand_ticks": 8, "display": "celestial_burst", "particle": "END_ROD", "effects": [{"damage": 2.548}, {"launch": 0.6}, {"taunt": 3}]}, {"type": "rain", "at": "origin", "count": 6, "radius": 5, "interval": 3, "height": 14, "speed": 1.4, "display": "celestial_orb", "impact_radius": 2, "effects": [{"damage": 0.882, "magic": true}]}, {"type": "sound", "sound": "entity.generic.explode", "pitch": 0.7, "volume": 1.0}]}
@@ -784,6 +789,7 @@ items:
         input: SNEAK_RIGHT
         cooldown: 18.0
         mana: 22
+        pvp_mult: 0.85
         description: "닻 사슬을 휘감아 한 바퀴 돈 뒤 내리꽂는다. 주변 적이 물속처럼 느려진다."
         mechanics:
           - {"type": "nova", "radius": 4, "particle": "BUBBLE_POP", "display": "shockwave", "effects": [{"damage": 3.403}, {"slow": {"amount": 3, "potency": 0.5}}, {"launch": 0.3}]}
@@ -849,6 +855,7 @@ items:
         input: SNEAK_RIGHT
         cooldown: 14.0
         mana: 22
+        pvp_mult: 0.7
         description: "언월도를 앞으로 겨눠 용의 숨결을 세 번 뿜는다. 부채꼴 안의 적이 불탄다."
         mechanics:
           - {"type": "repeat", "times": 3, "interval": 6, "mechanics": [{"type": "cone", "range": 6, "angle": 60, "display": "ember_slash", "particle": "FLAME", "effects": [{"damage": 1.238}, {"ignite": 2}]}]}
@@ -874,6 +881,7 @@ items:
         input: RIGHT
         cooldown: 12.0
         mana: 18
+        pvp_mult: 0.5
         description: "대검으로 앞을 내려쳐 쇳물 웅덩이를 남긴다. 웅덩이 위의 적은 4초간 불탄다."
         mechanics:
           - {"type": "cone", "range": 4, "angle": 80, "display": "slash_arc", "particle": "LAVA", "effects": [{"damage": 2.785}]}
@@ -884,6 +892,7 @@ items:
         input: SNEAK_RIGHT
         cooldown: 24.0
         mana: 28
+        pvp_mult: 0.45
         description: "1초간 열을 모은 뒤 몸에서 폭발을 일으킨다. 체력이 낮은 적은 녹아내린다."
         mechanics:
           - {"type": "particle", "particle": "FLAME", "count": 40, "spread": 1.0, "y": 1}
@@ -929,6 +938,7 @@ items:
         input: SNEAK_RIGHT
         cooldown: 20.0
         mana: 25
+        pvp_mult: 0.55
         description: "대검을 꽂아 앞으로 용암 균열을 찢어 낸다. 균열 끝에서 불기둥이 솟는다."
         mechanics:
           - {"type": "projectile", "ground": true, "speed": 1.1, "range": 13, "pierce": true, "hit_radius": 1.4, "particle": "LAVA", "particle_count": 3, "effects": [{"damage": 3.094}, {"launch": 0.5}, {"ignite": 3}], "on_impact": [{"type": "strike", "at": "origin", "visual": "pillar", "display": "hymn_pillar", "particle": "FLAME", "impact_radius": 2.5, "effects": [{"damage": 1.856}, {"ignite": 4}]}]}
@@ -1009,6 +1019,7 @@ items:
         input: RIGHT
         cooldown: 12.0
         mana: 20
+        pvp_mult: 0.75
         description: "언월도를 앞세워 돌진하며 지나간 적을 1.5초 침묵시키고, 끝에서 크게 베어 낸다."
         mechanics:
           - {"type": "dash", "distance": 6, "ticks": 5, "width": 2, "particle": "SQUID_INK", "effects": [{"damage": 2.166}, {"effect": {"id": "silence", "seconds": 1.5, "potency": 1.0}}], "on_end": [{"type": "cone", "range": 4, "angle": 140, "display": "inkblot_slash", "particle": "SQUID_INK", "effects": [{"damage": 1.547}]}]}
@@ -1035,6 +1046,7 @@ items:
         input: RIGHT
         cooldown: 15.0
         mana: 25
+        pvp_mult: 0.65
         description: "도약해 내려찍으면 주변에 수정 가시가 솟는다."
         mechanics:
           - {"type": "leap", "forward": 0.7, "upward": 0.9, "particle": "DUST:#c8a0ff:1.2", "land": [{"type": "nova", "radius": 4.5, "display": "geode_burst", "particle": "BLOCK:amethyst_block", "effects": [{"damage": 3.094}, {"launch": 0.5}]}, {"type": "strike", "at": "origin", "count": 5, "radius": 4, "interval": 2, "visual": "none", "particle": "DUST:#c8a0ff:1.4", "impact_radius": 1.5, "effects": [{"damage": 0.928}, {"stun": 0.5}]}, {"type": "sound", "sound": "block.amethyst_cluster.break", "pitch": 0.6, "volume": 1.0}]}
@@ -1052,6 +1064,7 @@ items:
         input: SNEAK_RIGHT
         cooldown: 24.0
         mana: 30
+        pvp_mult: 0.5
         description: "모든 수정을 한꺼번에 터뜨려 주변을 산산조각 낸다."
         mechanics:
           - {"type": "nova", "radius": 5.5, "expand_ticks": 8, "display": "geode_burst", "particle": "BLOCK:amethyst_cluster", "effects": [{"damage": 4.332}, {"knockback": 1.0}, {"execute": {"amount": 2.321, "threshold": 0.25}}]}
@@ -1077,6 +1090,7 @@ items:
         input: RIGHT
         cooldown: 13.0
         mana: 20
+        pvp_mult: 0.7
         description: "태엽을 풀어 단숨에 돌진한다. 끝에서 톱니가 회전하며 주변을 벤다."
         mechanics:
           - {"type": "dash", "distance": 8, "ticks": 5, "particle": "CRIT", "effects": [{"damage": 2.475}], "on_end": [{"type": "nova", "radius": 3, "display": "chrono_burst", "particle": "CRIT", "effects": [{"damage": 1.547}]}, {"type": "sound", "sound": "block.chain.break", "pitch": 0.7, "volume": 1.0}]}
@@ -1110,6 +1124,7 @@ items:
         input: RIGHT
         cooldown: 14.0
         mana: 24
+        pvp_mult: 0.65
         description: "주변 적을 1초간 끌어모은 뒤 크게 휘둘러 거둔다. 베인 적은 시들어 피를 흘리고 약해진다."
         mechanics:
           - {"type": "vortex", "at": "self", "radius": 6, "duration": 1, "strength": 0.35, "display": "void_orb", "particle": "REVERSE_PORTAL", "effects": [{"damage": 0.464}]}
@@ -1138,6 +1153,7 @@ items:
         input: RIGHT
         cooldown: 15.0
         mana: 25
+        pvp_mult: 0.75
         description: "대검을 돌려 세 번 휘몰아친다."
         mechanics:
           - {"type": "repeat", "times": 4, "interval": 6, "mechanics": [{"type": "nova", "radius": 3.6, "display": "chrono_slash", "particle": "SWEEP_ATTACK", "effects": [{"damage": 1.238}, {"knockback": 0.3}]}, {"type": "sound", "sound": "entity.player.attack.sweep", "pitch": 0.8, "volume": 1.0}]}
@@ -1153,6 +1169,7 @@ items:
         input: SNEAK_RIGHT
         cooldown: 38.0
         mana: 40
+        pvp_mult: 0.35
         description: "시곗바늘이 자정을 가리키면 앞의 모든 것을 처형한다. 빈사의 적에게 치명적이다."
         mechanics:
           - {"type": "particle", "particle": "DUST:#ffd27a:1.4", "count": 30, "spread": 1.2}
@@ -1190,6 +1207,7 @@ items:
         input: RIGHT
         cooldown: 12.0
         mana: 25
+        pvp_mult: 0.7
         description: "붉은 달 같은 거대한 반원 참격. 벤 피해의 일부를 흡혈한다."
         mechanics:
           - {"type": "cone", "range": 6.5, "angle": 200, "display": "bloodmoon_slash", "display_scale": 1.3, "particle": "DUST:#c4002f:2.0", "effects": [{"damage": 3.403}, {"bleed": 4}, {"lifesteal": 0.3}]}
@@ -1206,6 +1224,7 @@ items:
         input: SNEAK_RIGHT
         cooldown: 22.0
         mana: 30
+        pvp_mult: 0.4
         description: "핏빛 잔상을 남기며 멀리 돌진하고, 끝에서 초승달 균열을 찢는다."
         mechanics:
           - {"type": "dash", "distance": 10, "ticks": 5, "particle": "DUST:#c4002f:1.5", "effects": [{"damage": 2.785}, {"lifesteal": 0.2}], "on_end": [{"type": "projectile", "ground": true, "speed": 1.2, "range": 12, "pierce": true, "hit_radius": 1.5, "particle": "DUST:#8a0020:1.8", "particle_count": 4, "effects": [{"damage": 3.713}, {"launch": 0.6}, {"bleed": 5}]}, {"type": "sound", "sound": "entity.ravager.roar", "pitch": 1.4, "volume": 0.7}]}
@@ -1401,6 +1420,7 @@ items:
         input: SNEAK_LEFT
         cooldown: 18.0
         mana: 22
+        pvp_mult: 0.75
         description: "하늘로 불씨를 쏘아 올려 노린 곳에 잿더미를 쏟는다."
         mechanics:
           - {"type": "rain", "count": 9, "radius": 4, "interval": 2, "height": 12, "speed": 1.3, "display": "proj_ember", "particle": "FLAME", "impact_particle": "LAVA", "impact_radius": 1.8, "effects": [{"damage": 1.04, "damage_type": "ranged"}, {"ignite": 2}]}
@@ -1551,6 +1571,7 @@ items:
         input: SNEAK_LEFT
         cooldown: 20.0
         mana: 26
+        pvp_mult: 0.75
         description: "회오리를 묶은 화살을 쏜다. 꽂힌 곳에 회오리가 일어 적을 빨아들인다."
         mechanics:
           - {"type": "projectile", "speed": 2.0, "range": 26, "display": "gale_arrow", "particle": "CLOUD", "effects": [{"damage": 1.3, "damage_type": "ranged"}], "on_impact": [{"type": "vortex", "at": "origin", "radius": 5, "duration": 2.5, "strength": 0.3, "display": "gale_ring", "particle": "CLOUD", "effects": [{"damage": 0.52, "damage_type": "ranged"}], "end": [{"type": "nova", "radius": 3, "display": "gale_burst", "particle": "GUST", "effects": [{"damage": 1.56, "damage_type": "ranged"}, {"launch": 0.7}]}]}]}
@@ -1647,6 +1668,7 @@ items:
         input: SNEAK_LEFT
         cooldown: 24.0
         mana: 32
+        pvp_mult: 0.8
         description: "노린 곳에 수은비를 5초간 내린다. 맞은 적은 중독된다."
         mechanics:
           - {"type": "zone", "at": "aim", "radius": 5, "duration": 5, "interval": 10, "display": "quicksilver_ring", "particle": "FALLING_DUST:iron_block", "effects": [{"damage": 0.585, "damage_type": "ranged"}, {"poison": 3}]}
@@ -1656,6 +1678,7 @@ items:
         input: SNEAK_RIGHT
         cooldown: 6.0
         mana: 14
+        pvp_mult: 0.8
         description: "당겨 쏜 수은탄이 맞으면 다섯 방울로 갈라져 주변을 친다."
         mechanics:
           - {"type": "projectile", "speed": 2.4, "range": 30, "display": "quicksilver_arrow", "particle": "DUST:#c8d0dc:1.0", "effects": [{"damage": 1.82, "damage_type": "ranged"}], "on_impact": [{"type": "rain", "at": "origin", "count": 5, "radius": 3, "interval": 1, "height": 3, "speed": 0.6, "display": "quicksilver_orb", "impact_radius": 1.5, "effects": [{"damage": 0.65, "damage_type": "ranged"}, {"poison": 3}]}]}
@@ -1689,6 +1712,7 @@ items:
         input: SNEAK_LEFT
         cooldown: 38.0
         mana: 45
+        pvp_mult: 0.2
         description: "노린 곳에 폭풍의 눈을 연다. 6초간 적을 끌어당기며 번개가 여덟 번 내리친다."
         mechanics:
           - {"type": "vortex", "at": "aim", "radius": 7, "duration": 6, "strength": 0.22, "interval": 20, "display": "tempest_ring", "particle": "CLOUD", "effects": [{"damage": 0.52, "damage_type": "ranged"}]}
@@ -1699,6 +1723,7 @@ items:
         input: SNEAK_RIGHT
         cooldown: 8.0
         mana: 18
+        pvp_mult: 0.85
         description: "당겨 쏜 화살이 꽂힌 자리에 벼락이 떨어진다."
         mechanics:
           - {"type": "projectile", "speed": 3.0, "range": 36, "display": "tempest_arrow", "particle": "ELECTRIC_SPARK", "effects": [{"damage": 2.34, "damage_type": "ranged"}], "on_impact": [{"type": "strike", "at": "origin", "visual": "lightning", "impact_radius": 3, "effects": [{"damage": 2.08, "magic": true}, {"stun": 0.6}]}]}
@@ -2094,6 +2119,7 @@ items:
         input: SNEAK_LEFT
         cooldown: 30.0
         mana: 30
+        pvp_mult: 0.9
         description: "깃펜 정령 셋을 불러 10초간 가까운 적에게 먹물을 쏘게 한다."
         mechanics:
           - {"type": "summon", "count": 3, "duration": 10, "interval": 20, "range": 12, "display": "proj_quill", "effects": [{"damage": 0.528, "magic": true}, {"slow": 1}]}
@@ -2103,6 +2129,7 @@ items:
         input: SNEAK_RIGHT
         cooldown: 24.0
         mana: 34
+        pvp_mult: 0.7
         description: "노린 곳에 먹물 소용돌이를 열어 적을 모은 뒤 글자로 봉해 터뜨린다."
         mechanics:
           - {"type": "vortex", "at": "aim", "radius": 5.5, "duration": 3, "strength": 0.3, "display": "inkblot_ring", "particle": "SQUID_INK", "effects": [{"damage": 0.475, "magic": true}], "end": [{"type": "nova", "radius": 4, "display": "inkblot_burst", "particle": "ENCHANT", "effects": [{"damage": 2.323, "magic": true}, {"effect": {"id": "silence", "seconds": 2}}]}, {"type": "sound", "sound": "item.book.put", "pitch": 0.6, "volume": 1.0}]}
@@ -2136,6 +2163,7 @@ items:
         input: SNEAK_RIGHT
         cooldown: 22.0
         mana: 30
+        pvp_mult: 0.5
         description: "노린 곳에 별 세 개를 차례로 떨어뜨린다. 마지막 별은 더 크다."
         mechanics:
           - {"type": "rain", "count": 2, "radius": 2.5, "interval": 8, "height": 16, "speed": 1.2, "display": "proj_arcane_bolt", "impact_radius": 2.2, "particle": "END_ROD", "effects": [{"damage": 1.267, "magic": true}]}
@@ -2197,6 +2225,7 @@ items:
         input: SNEAK_LEFT
         cooldown: 30.0
         mana: 35
+        pvp_mult: 0.35
         description: "노린 곳 주변 적들에게 낙뢰 여섯 줄기를 내리꽂는다."
         mechanics:
           - {"type": "strike", "at": "aim", "targets": true, "count": 6, "radius": 6, "interval": 4, "visual": "lightning", "impact_radius": 2, "effects": [{"damage": 1.584, "magic": true}, {"stun": 0.5}]}
@@ -2238,6 +2267,7 @@ items:
         input: RIGHT
         cooldown: 20.0
         mana: 35
+        pvp_mult: 0.55
         description: "모든 것을 빨아들이는 블랙홀을 열고 붕괴시킨다."
         mechanics:
           - {"type": "vortex", "at": "aim", "radius": 7, "duration": 3.5, "strength": 0.4, "display": "void_ring", "particle": "REVERSE_PORTAL", "effects": [{"damage": 0.528, "magic": true}], "end": [{"type": "nova", "radius": 5, "expand_ticks": 6, "display": "void_burst", "particle": "REVERSE_PORTAL", "effects": [{"damage": 3.168, "magic": true}, {"effect": {"id": "vulnerable", "seconds": 5, "potency": 0.15}}]}, {"type": "sound", "sound": "entity.generic.explode", "pitch": 0.5, "volume": 1.0}]}
@@ -2256,6 +2286,7 @@ items:
         input: SNEAK_RIGHT
         cooldown: 50.0
         mana: 55
+        pvp_mult: 0.35
         description: "노린 곳에 별 열두 개를 쏟아 내리고, 마지막에 별의 핵이 떨어진다."
         mechanics:
           - {"type": "rain", "at": "aim", "count": 12, "radius": 6, "interval": 3, "height": 18, "speed": 1.5, "display": "void_orb", "impact_radius": 2.2, "effects": [{"damage": 1.056, "magic": true}]}
@@ -3358,6 +3389,7 @@ items:
         input: SNEAK_RIGHT
         cooldown: 48.0
         mana: 45
+        pvp_mult: 0.85
         description: "하늘을 가리고 주변의 모든 적을 그림자 칼날로 난도질한 뒤 태양을 폭발시킨다."
         mechanics:
           - {"type": "particle", "particle": "DUST:#000000:2.0", "count": 60, "spread": 2.5, "y": 1.5}

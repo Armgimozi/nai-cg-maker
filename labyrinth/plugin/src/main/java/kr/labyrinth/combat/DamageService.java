@@ -184,9 +184,12 @@ public final class DamageService implements Module {
             taken = pool.damageTaken();
         }
 
+        // PvP: 방어 대신 강인함(defenseScale 0) · 치명 추가 피해 × 0.6 (pvp 훅이 before() 에서 정함)
+        defense *= ctx.defenseScale();
+        double critDamage = DamageFormula.scaledCritDamage(atk != null ? atk.critDamage() : 1.5, ctx.critDamageScale());
         DamageFormula.Input in = new DamageFormula.Input(ctx.amount(), ctx.isSkill(),
                 atk != null ? atk.damageMult() : 0, atk != null ? atk.skillDamage() : 0,
-                (atk != null ? atk.critChance() : 0) + ctx.critBonus(), atk != null ? atk.critDamage() : 1.5,
+                (atk != null ? atk.critChance() : 0) + ctx.critBonus(), critDamage,
                 ctx.canCrit() && atk != null,
                 evasion, ctx.canEvade(), defense, ctx.ignoresDefense(), dr, taken, block, ctx.canBlock());
         DamageFormula.Output out = DamageFormula.compute(in, rng);
@@ -247,7 +250,7 @@ public final class DamageService implements Module {
 
         if (ctx.knockbackStrength() > 0 && ctx.attacker() != null && !killed) knockback(target, ctx.attacker(), ctx.knockbackStrength());
         if (atk != null && ctx.applyLifesteal() && atk.lifesteal() > 0 && dealt > 0) {
-            services.stats().heal(attackerPlayer, dealt * atk.lifesteal());
+            lifesteal(attackerPlayer, target, dealt * atk.lifesteal(), false);
         }
         for (Hook h : hooks) {
             try {
@@ -286,8 +289,38 @@ public final class DamageService implements Module {
         return b * atk.power(kind) * multiplier * Math.max(0.1, 1.0 + magic);
     }
 
-    /** 치유 (커스텀 HP 단위). 플레이어·커스텀 몹 공통. @return 실제 회복량 */
+    /** 치유 (커스텀 HP 단위, 출처 = {@link HealKind#OTHER}, 전부 '최대 HP 비율' 몫). 플레이어·커스텀 몹 공통. @return 실제 회복량 */
     public double heal(LivingEntity target, double amount, boolean showNumber) {
+        return heal(target, amount, 0, HealKind.OTHER, showNumber);
+    }
+
+    /**
+     * 치유 (pvp_spec §8). pctAmount = 최대 HP 비율로 정한 몫, flatAmount = 고정량 몫(치유력·흡혈·재생).
+     * 대상이 PvP 전투 중인 플레이어면 (pct + flat × HP÷PvP 체력) × 출처 배율 × 긴 싸움, 아니면 둘을 더한 그대로.
+     * @return 실제 회복량
+     */
+    public double heal(LivingEntity target, double pctAmount, double flatAmount, HealKind kind, boolean showNumber) {
+        return applyHeal(target, healAmount(target, pctAmount, flatAmount, kind), showNumber);
+    }
+
+    /** {@link #heal(LivingEntity, double, double, HealKind, boolean)} 가 실제로 넣을 양 (넣지는 않음 — 넘친 치유 계산 등). */
+    public double healAmount(LivingEntity target, double pctAmount, double flatAmount, HealKind kind) {
+        double pct = Math.max(0, pctAmount), flat = Math.max(0, flatAmount);
+        if (target instanceof Player p) {
+            kr.labyrinth.pvp.PvpState pvp = services.targets().pvp();
+            return (pct + flat * pvp.flatHealFactor(p)) * pvp.healFactor(p, kind == null ? HealKind.OTHER : kind);
+        }
+        return pct + flat;
+    }
+
+    /** 흡혈: 플레이어를 때려 얻은 것은 {@link HealKind#LIFESTEAL}, 몹을 때려 얻은 것은 고정량 회복. @return 실제 회복량 */
+    public double lifesteal(Player attacker, LivingEntity victim, double amount, boolean showNumber) {
+        if (attacker == null || amount <= 0) return 0;
+        return heal(attacker, 0, amount, victim instanceof Player ? HealKind.LIFESTEAL : HealKind.OTHER, showNumber);
+    }
+
+    /** 이미 정해진 양을 그대로 넣는다 (PvP 배율 없음 — {@link #healAmount} 로 구한 값). @return 실제 회복량 */
+    public double applyHeal(LivingEntity target, double amount, boolean showNumber) {
         if (target == null || target.isDead() || amount <= 0) return 0;
         double healed;
         if (target instanceof Player p) {

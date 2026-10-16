@@ -258,7 +258,7 @@ final class AreaSkills {
                 for (LivingEntity e : c.enemies(at.clone().add(0, 1, 0), radius)) {
                     DamageContext ctx = c.hit(e, c.damage());
                     if (ctx == null) continue;
-                    if (lifesteal > 0 && ctx.dealt() > 0) c.services.damage().heal(c.player, ctx.dealt() * lifesteal, false);
+                    if (lifesteal > 0 && ctx.dealt() > 0) c.services.damage().lifesteal(c.player, e, ctx.dealt() * lifesteal, false);
                     if (pull > 0) c.pull(e, at, pull * 3, 0);
                 }
             }

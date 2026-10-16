@@ -152,7 +152,8 @@ public final class ContentParser {
         for (Params s : p.maps("skills")) {
             skills.add(new ClassDef.SkillDef(s.str("id", ""), s.str("name", s.str("id", "")),
                     s.str("input", "SWAP").toUpperCase(), s.integer("unlock_level", 1), s.dbl("mana", 0),
-                    s.dbl("cooldown", 0) * legacyCooldown, s.sub("params"), s.str("description", ""), s.str("kind", "").trim().toLowerCase(java.util.Locale.ROOT)));
+                    s.dbl("cooldown", 0) * legacyCooldown, s.sub("params"), s.str("description", ""), s.str("kind", "").trim().toLowerCase(java.util.Locale.ROOT),
+                    s.dbl("pvp_mult", 1.0)));
         }
         Params pl = p.sub("per_level");
         return new ClassDef(id, p.str("name", id), p.str("role", "melee"), p.str("color", "#ffffff"),
@@ -192,7 +193,7 @@ public final class ContentParser {
             }
             ws.add(new ItemDef.WeaponSkillDef(s.str("id", ""), s.str("name", s.str("id", "")),
                     s.str("input", "RIGHT").toUpperCase(), s.dbl("cooldown", 0), s.dbl("mana", 0), sp,
-                    s.str("description", "")));
+                    s.str("description", ""), s.dbl("pvp_mult", 1.0)));
         }
         StatRequirement req = StatRequirement.of(requirementStats(id, p, "requires"), requirementStats(id, p, "requires_any"));
         // 0.3.5: 무기 종류 없음 — 무기마다 attack 블록 (예전 weapon_type 만 있으면 그때 주기로 대신, ContentValidator 가 경고)

@@ -30,13 +30,19 @@ public record ClassDef(
      * 직업 스킬. input = SWAP | SNEAK_SWAP | DROP | SNEAK_DROP.
      * kind = 피해 종류 꼬리표 (classes.yml {@code kind}: physical | magic | hybrid | none, 0.3.5) — 물리는 힘, 마법은 지능이 키운다.
      * 비우면 구현이 쓰는 피해 유형에서 (근접·원거리 = 물리, 마법 = 마법).
+     * pvpMult = 플레이어에게 주는 피해 배율 (classes.yml {@code pvp_mult}, 기본 1, 0.1~1.0 — pvp_spec §6: 광역·궁극기).
      */
     public record SkillDef(String id, String name, String input, int unlockLevel, double mana, double cooldown,
-                           Params params, String description, String kind) {
+                           Params params, String description, String kind, double pvpMult) {
+
+        public SkillDef(String id, String name, String input, int unlockLevel, double mana, double cooldown,
+                        Params params, String description, String kind) {
+            this(id, name, input, unlockLevel, mana, cooldown, params, description, kind, 1.0);
+        }
 
         public SkillDef(String id, String name, String input, int unlockLevel, double mana, double cooldown,
                         Params params, String description) {
-            this(id, name, input, unlockLevel, mana, cooldown, params, description, "");
+            this(id, name, input, unlockLevel, mana, cooldown, params, description, "", 1.0);
         }
     }
 

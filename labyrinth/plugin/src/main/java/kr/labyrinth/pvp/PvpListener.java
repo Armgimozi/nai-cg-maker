@@ -28,7 +28,8 @@ import org.bukkit.potion.PotionType;
 /**
  * 근접·화살 말고 바닐라가 처리하는 PvP 경로에도 같은 파티 규칙을 건다 (규칙 판정은 전부 {@code services.targets().isEnemy}).
  * <ul>
- *   <li>그 밖의 바닐라 PvP 피해(폭발·물약·눈덩이·늑대 등 — 같은 파티면 CombatListener 가 이미 취소): 플레이어끼리 배율 · 한 방 상한</li>
+ *   <li>그 밖의 바닐라 PvP 피해(폭발·물약·눈덩이·늑대 등 — 같은 파티면 CombatListener 가 이미 취소): 'HP 20 기준' 환산 뒤
+ *       × 완충(HP ÷ (HP + B)) × (1 − 강인함) — 미궁 공격력이 아니라 레벨 곡선·직업 보정은 안 곱함 · 한 방 상한(관리자가 켰을 때)</li>
  *   <li>투척 물약: 해로운 효과가 있으면 던진 사람의 파티원은 안 맞음 · 잔류 구름: 해로우면 파티원 제외</li>
  *   <li>발화(화염 · 불붙은 화살 · 번개): 파티원이면 취소 · 길들인 늑대 등: 주인의 파티원을 노리지 않음 · 낚싯대: 파티원은 못 끌어옴</li>
  *   <li>죽음 메시지: 미궁 피해로 쓰러졌으면 "누구의 무엇에 · 마지막 피해" (미궁 안은 당사자 둘에게만)</li>
@@ -58,7 +59,11 @@ final class PvpListener implements Listener {
             return;
         }
         var mh = victim.getAttribute(Attribute.MAX_HEALTH);
-        e.setDamage(module.config().adjust(e.getDamage(), mh == null ? 20.0 : mh.getValue()));
+        double vanillaMax = mh == null ? 20.0 : mh.getValue();
+        double d = Math.max(0, e.getDamage()) * module.vanillaFactor(culprit, victim);
+        PvpConfig c = module.config();
+        if (c.maxHitRatio() < 1.0 && vanillaMax > 0) d = Math.min(d, vanillaMax * c.maxHitRatio());
+        e.setDamage(d);
         module.noticeHit(culprit, victim);
     }
 

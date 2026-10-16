@@ -29,6 +29,9 @@ public interface TargetFilter {
     /** 현재 PvP 설정 (켜짐·배율·한 방 상한·안전지대). 메뉴·안내 표시와 피해 조정에 쓴다. */
     default PvpConfig pvpConfig() { return PvpConfig.OFF; }
 
+    /** PvP 전투 상태 (회복·보호막·상태이상 배율). pvp 모듈이 꺼져 있으면 {@link PvpState#NONE}. */
+    default PvpState pvp() { return PvpState.NONE; }
+
     /** 그 위치가 PvP 금지 구역(마을 안전지대)인가. */
     default boolean inSafeZone(Location location) { return false; }
 }

@@ -1,0 +1,2863 @@
+{
+ "version": "pvp-p1 (0.3.5 안, combat_spec + look_spec 위)",
+ "config": {
+  "pvp": {
+   "enabled": true,
+   "damage_multiplier": 1.0,
+   "level_curve": {
+    "base": 2.0,
+    "ref_level": 20,
+    "exponent": 2.35
+   },
+   "buffer_hp": {
+    "per_level_low": 42,
+    "knee_level": 20,
+    "per_level_high": 12
+   },
+   "defense_weight": 0.0,
+   "resilience": {
+    "cap": 0.4,
+    "per_level": 8
+   },
+   "crit_damage_scale": 0.6,
+   "max_hit_ratio": 1.0,
+   "class_damage": {
+    "hunter": 0.9,
+    "arcanist": 1.2,
+    "shadow": 1.2
+   },
+   "combat_seconds": 8,
+   "healing": 0.6,
+   "potion": 0.6,
+   "lifesteal": 0.5,
+   "shield": 0.8,
+   "flat_heal_by_pool": true,
+   "long_fight": {
+    "start": 20,
+    "per_second": 0.025,
+    "floor": 0.1
+   },
+   "cc": {
+    "duration": {
+     "stun": 0.8,
+     "frozen": 1.0,
+     "root": 0.8,
+     "silence": 0.8,
+     "blind": 0.7,
+     "slow": 1.0,
+     "cooldown_slow": 0.5
+    },
+    "max_seconds": {
+     "stun": 1.0,
+     "frozen": 1.5,
+     "root": 1.5,
+     "silence": 1.5,
+     "blind": 1.5,
+     "slow": 3.0,
+     "cooldown_slow": 2.0
+    },
+    "slow_max_potency": 0.5,
+    "diminishing": {
+     "window": 8,
+     "steps": [
+      1.0,
+      0.5,
+      0.25,
+      0.0
+     ],
+     "groups": {
+      "control": [
+       "stun",
+       "frozen"
+      ],
+      "root": [
+       "root"
+      ],
+      "silence": [
+       "silence"
+      ],
+      "blind": [
+       "blind"
+      ]
+     }
+    },
+    "control_immunity": 2.0,
+    "min_seconds": 0.2
+   },
+   "safe_zone_village": true,
+   "safe_zone_margin": 8,
+   "party_name_color": true
+  }
+ },
+ "formulas": {
+  "level": "L = max(공격자 레벨, 대상 레벨)",
+  "level_mult": "m(L) = 2.0 × min(1, (20/L)^2.35) × damage_multiplier",
+  "buffer": "B(L) = 42 × min(L, 20) + 12 × max(0, L − 20)",
+  "pool_factor": "H / (H + B(L))  (H = 대상 최대 HP)",
+  "resilience": "R = 0.40 × S / (S + 8 × L_대상), S = VIT + 방어",
+  "pvp_amount": "원피해 × m(L) × class_damage[공격자] × skill pvp_mult × (1 − R) × H/(H+B)",
+  "formula": "DamageFormula: 방어 × defense_weight(0) · 치명 = 1 + (cd − 1) × 0.6 · 피해 감소·표식·막기·보호막 그대로 · max_hit_ratio",
+  "heal": "PvP 전투 중: (비율 몫 + 고정 몫 × H/(H+B)) × healing(0.6) [× potion 0.6] × 긴 싸움;  흡혈 = dealt × ls × lifesteal(0.5) × H/(H+B) × 긴 싸움 (healing 은 안 곱함)",
+  "shield": "× 0.8 × 긴 싸움",
+  "long_fight": "max(0.10, 1 − 0.025 × max(0, t − 20)), t = 이번 PvP 전투가 이어진 초 (8초 끊기면 0)",
+  "cc": "시간 × (1−WIS, 기절·빙결 제외) × (1−0.40 판금4, 기절·속박·빙결) × PvP 배율 → 상한 → 줄어듦 [1, .5, .25, 0] (8초) → 0.2초 아래 무시; 기절·빙결 끝나면 2초 면역",
+  "skill_mult_rule": "계수 c = 한 사람 기대 피해(스킬 위력 단위, skill_scale 포함); c > 2.5 이면 pvp_mult = floor20(2.5/c), 0.9 이하만"
+ },
+ "targets": {
+  "basic_hit_max": 0.15,
+  "rotation_glass_vs_glass": [
+   1.0,
+   1.3
+  ],
+  "rotation_glass_vs_glass_all_crit_min": 1.0,
+  "rotation_glass_vs_guard": [
+   0.5,
+   0.7
+  ],
+  "guard_rotation_vs_glass": [
+   0.4,
+   0.7
+  ],
+  "duel_burst_vs_guard": [
+   0.4,
+   0.6
+  ],
+  "longest_control_chain_s": 1.5
+ },
+ "skill_mult": {
+  "spin_slash": 0.8,
+  "ground_cleaver": 0.85,
+  "ruinous_leap": 0.45,
+  "piercing_arrow": 0.8,
+  "arrow_storm": 0.3,
+  "meteor_fall": 0.35,
+  "shadow_execution": 0.4,
+  "emberforge_warhammer:RIGHT": 0.85,
+  "abyss_sentinel_longsword:SNEAK_RIGHT": 0.9,
+  "celestial_oathkeeper:RIGHT": 0.8,
+  "celestial_oathkeeper:SNEAK_LEFT": 0.7,
+  "drowned_anchor_cleaver:SNEAK_RIGHT": 0.85,
+  "cinderdrake_glaive:SNEAK_RIGHT": 0.7,
+  "slagforged_greatsword:RIGHT": 0.5,
+  "slagforged_greatsword:SNEAK_RIGHT": 0.45,
+  "ember_greatsword:SNEAK_RIGHT": 0.55,
+  "lore_glaive:RIGHT": 0.75,
+  "geode_sunderer:RIGHT": 0.65,
+  "geode_sunderer:SNEAK_RIGHT": 0.5,
+  "regulator_greatsword:RIGHT": 0.7,
+  "void_scythe:RIGHT": 0.65,
+  "doomclock_executioner:RIGHT": 0.75,
+  "doomclock_executioner:SNEAK_RIGHT": 0.35,
+  "bloodmoon_reaver:RIGHT": 0.7,
+  "bloodmoon_reaver:SNEAK_RIGHT": 0.4,
+  "bellows_composite_bow:SNEAK_LEFT": 0.75,
+  "galewing_bow:SNEAK_LEFT": 0.75,
+  "quicksilver_longbow:SNEAK_LEFT": 0.8,
+  "quicksilver_longbow:SNEAK_RIGHT": 0.8,
+  "tempest_bow:SNEAK_LEFT": 0.2,
+  "tempest_bow:SNEAK_RIGHT": 0.85,
+  "inkwell_staff:SNEAK_LEFT": 0.9,
+  "inkwell_staff:SNEAK_RIGHT": 0.7,
+  "orrery_staff:SNEAK_RIGHT": 0.5,
+  "tesla_coil_staff:SNEAK_LEFT": 0.35,
+  "voidheart_staff:RIGHT": 0.55,
+  "voidheart_staff:SNEAK_RIGHT": 0.35,
+  "eclipse_blade:SNEAK_RIGHT": 0.85
+ },
+ "class_damage": {
+  "hunter": 0.9,
+  "arcanist": 1.2,
+  "shadow": 1.2
+ },
+ "cc_table": [
+  {
+   "src": "class",
+   "owner": "guardian",
+   "owner_name": "수호기사",
+   "skill": "shield_bash",
+   "name": "방패 강타",
+   "effect": "stun",
+   "seconds": 1.0,
+   "potency": null,
+   "repeats": 1,
+   "note": "부채꼴 3.5칸",
+   "pvp": [
+    0.8,
+    0.4,
+    0.2
+   ],
+   "pvp_heavy": [
+    0.48,
+    0.24,
+    0.0
+   ]
+  },
+  {
+   "src": "class",
+   "owner": "guardian",
+   "owner_name": "수호기사",
+   "skill": "taunting_roar",
+   "name": "도발의 함성",
+   "effect": "taunt",
+   "seconds": 4,
+   "potency": null,
+   "repeats": 1,
+   "note": "몹만 — 플레이어에게는 효과 없음",
+   "pvp": null
+  },
+  {
+   "src": "class",
+   "owner": "guardian",
+   "owner_name": "수호기사",
+   "skill": "bulwark_citadel",
+   "name": "불굴의 성채",
+   "effect": "slow",
+   "seconds": 0.6,
+   "potency": 0.3,
+   "repeats": 1,
+   "note": "방벽 안에 있는 동안 (6초)",
+   "pvp": [
+    0.6,
+    0.6,
+    0.6
+   ],
+   "pvp_heavy": [
+    0.6,
+    0.6,
+    0.6
+   ]
+  },
+  {
+   "src": "class",
+   "owner": "berserker",
+   "owner_name": "광전사",
+   "skill": "ground_cleaver",
+   "name": "대지 가르기",
+   "effect": "launch",
+   "seconds": null,
+   "potency": 0.6,
+   "repeats": 1,
+   "note": "띄우기 — 시간 없음",
+   "pvp": null
+  },
+  {
+   "src": "class",
+   "owner": "berserker",
+   "owner_name": "광전사",
+   "skill": "ruinous_leap",
+   "name": "파멸의 도약",
+   "effect": "vulnerable",
+   "seconds": 6,
+   "potency": 0.15,
+   "repeats": 1,
+   "note": "받는 피해 +15%",
+   "pvp": null
+  },
+  {
+   "src": "class",
+   "owner": "hunter",
+   "owner_name": "사냥꾼",
+   "skill": "hunters_mark",
+   "name": "사냥꾼의 표식",
+   "effect": "mark",
+   "seconds": 10,
+   "potency": 0.2,
+   "repeats": 1,
+   "note": "받는 피해 +20%, 은신 드러냄",
+   "pvp": null
+  },
+  {
+   "src": "class",
+   "owner": "hunter",
+   "owner_name": "사냥꾼",
+   "skill": "evasive_trap",
+   "name": "회피 덫",
+   "effect": "root",
+   "seconds": 2.5,
+   "potency": null,
+   "repeats": 1,
+   "note": "덫을 밟으면",
+   "pvp": [
+    1.5,
+    0.75,
+    0.38
+   ],
+   "pvp_heavy": [
+    1.2,
+    0.6,
+    0.3
+   ]
+  },
+  {
+   "src": "class",
+   "owner": "hunter",
+   "owner_name": "사냥꾼",
+   "skill": "arrow_storm",
+   "name": "화살비",
+   "effect": "slow",
+   "seconds": 0.8,
+   "potency": 0.25,
+   "repeats": 1,
+   "note": "화살비 안에 있는 동안 (0.5초마다 다시 걸림, 4초)",
+   "pvp": [
+    0.8,
+    0.8,
+    0.8
+   ],
+   "pvp_heavy": [
+    0.8,
+    0.8,
+    0.8
+   ]
+  },
+  {
+   "src": "class",
+   "owner": "arcanist",
+   "owner_name": "비전술사",
+   "skill": "frost_nova",
+   "name": "서리 고리",
+   "effect": "root",
+   "seconds": 2.0,
+   "potency": null,
+   "repeats": 1,
+   "note": "주위 5칸 (보스는 둔화)",
+   "pvp": [
+    1.5,
+    0.75,
+    0.38
+   ],
+   "pvp_heavy": [
+    0.96,
+    0.48,
+    0.24
+   ]
+  },
+  {
+   "src": "class",
+   "owner": "shadow",
+   "owner_name": "그림자",
+   "skill": "venom_blades",
+   "name": "독날",
+   "effect": "weaken",
+   "seconds": 6.0,
+   "potency": 0.1,
+   "repeats": 1,
+   "note": "독 5중첩일 때",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "mycelking_guard_blade",
+   "owner_name": "균사왕 근위 넓은검",
+   "skill": "RIGHT",
+   "name": "근위 포자벽",
+   "effect": "taunt",
+   "seconds": 2.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "sluice_breaker_mace",
+   "owner_name": "수문 부수개",
+   "skill": "RIGHT",
+   "name": "수문 막기",
+   "effect": "taunt",
+   "seconds": 2.0,
+   "potency": null,
+   "repeats": 1,
+   "note": "riposte",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "sluice_breaker_mace",
+   "owner_name": "수문 부수개",
+   "skill": "SNEAK_RIGHT",
+   "name": "수문 해일",
+   "effect": "knockback",
+   "seconds": null,
+   "potency": 1.0,
+   "repeats": 1.5,
+   "note": "projectile",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "sluice_breaker_mace",
+   "owner_name": "수문 부수개",
+   "skill": "SNEAK_RIGHT",
+   "name": "수문 해일",
+   "effect": "slow",
+   "seconds": 2.0,
+   "potency": 0.35,
+   "repeats": 1.5,
+   "note": "projectile",
+   "pvp": [
+    2.0,
+    2.0,
+    2.0
+   ],
+   "pvp_heavy": [
+    2.0,
+    2.0,
+    2.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "sluice_breaker_mace",
+   "owner_name": "수문 부수개",
+   "skill": "SNEAK_RIGHT",
+   "name": "수문 해일",
+   "effect": "taunt",
+   "seconds": 2.0,
+   "potency": null,
+   "repeats": 1.5,
+   "note": "projectile",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "emberforge_warhammer",
+   "owner_name": "잿불 단조 망치",
+   "skill": "RIGHT",
+   "name": "단조 강타",
+   "effect": "taunt",
+   "seconds": 2.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "emberforge_warhammer",
+   "owner_name": "잿불 단조 망치",
+   "skill": "RIGHT",
+   "name": "단조 강타",
+   "effect": "slow",
+   "seconds": 1.0,
+   "potency": 0.35,
+   "repeats": 8.0,
+   "note": "zone",
+   "pvp": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "pvp_heavy": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "anvil_oath_broadsword",
+   "owner_name": "모루 서약 넓은검",
+   "skill": "RIGHT",
+   "name": "모루의 맹세",
+   "effect": "taunt",
+   "seconds": 3.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "dawnbringer",
+   "owner_name": "여명을 맹세한 검",
+   "skill": "RIGHT",
+   "name": "여명의 방벽",
+   "effect": "taunt",
+   "seconds": 3.0,
+   "potency": null,
+   "repeats": 1,
+   "note": "riposte",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "dawnbringer",
+   "owner_name": "여명을 맹세한 검",
+   "skill": "SNEAK_LEFT",
+   "name": "새벽 파쇄",
+   "effect": "launch",
+   "seconds": null,
+   "potency": 0.5,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "dawnbringer",
+   "owner_name": "여명을 맹세한 검",
+   "skill": "SNEAK_LEFT",
+   "name": "새벽 파쇄",
+   "effect": "taunt",
+   "seconds": 3.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "dawnbringer",
+   "owner_name": "여명을 맹세한 검",
+   "skill": "SNEAK_RIGHT",
+   "name": "새벽 성역",
+   "effect": "slow",
+   "seconds": 1.5,
+   "potency": 0.2,
+   "repeats": 6.0,
+   "note": "sanctuary",
+   "pvp": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "pvp_heavy": [
+    1.5,
+    1.5,
+    1.5
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "frostgrave_mace",
+   "owner_name": "서리 묘지기의 철퇴",
+   "skill": "RIGHT",
+   "name": "묘지기의 종",
+   "effect": "slow",
+   "seconds": 2.0,
+   "potency": 0.35,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": [
+    2.0,
+    2.0,
+    2.0
+   ],
+   "pvp_heavy": [
+    2.0,
+    2.0,
+    2.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "frostgrave_mace",
+   "owner_name": "서리 묘지기의 철퇴",
+   "skill": "RIGHT",
+   "name": "묘지기의 종",
+   "effect": "taunt",
+   "seconds": 2.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "inkseal_warhammer",
+   "owner_name": "금서 봉인 망치",
+   "skill": "RIGHT",
+   "name": "인장 내려찍기",
+   "effect": "silence",
+   "seconds": 2.0,
+   "potency": 1.0,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": [
+    1.5,
+    0.75,
+    0.38
+   ],
+   "pvp_heavy": [
+    1.5,
+    0.75,
+    0.38
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "inkseal_warhammer",
+   "owner_name": "금서 봉인 망치",
+   "skill": "RIGHT",
+   "name": "인장 내려찍기",
+   "effect": "root",
+   "seconds": 1.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": [
+    0.8,
+    0.4,
+    0.2
+   ],
+   "pvp_heavy": [
+    0.48,
+    0.24,
+    0.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "index_keeper_sword",
+   "owner_name": "색인 수호자의 넓은검",
+   "skill": "RIGHT",
+   "name": "봉인 문장",
+   "effect": "root",
+   "seconds": 1.5,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": [
+    1.2,
+    0.6,
+    0.3
+   ],
+   "pvp_heavy": [
+    0.72,
+    0.36,
+    0.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "index_keeper_sword",
+   "owner_name": "색인 수호자의 넓은검",
+   "skill": "RIGHT",
+   "name": "봉인 문장",
+   "effect": "weaken",
+   "seconds": 5.0,
+   "potency": 0.2,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "index_keeper_sword",
+   "owner_name": "색인 수호자의 넓은검",
+   "skill": "RIGHT",
+   "name": "봉인 문장",
+   "effect": "taunt",
+   "seconds": 2.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "index_keeper_sword",
+   "owner_name": "색인 수호자의 넓은검",
+   "skill": "SNEAK_RIGHT",
+   "name": "떠도는 책장",
+   "effect": "mark",
+   "seconds": 3.0,
+   "potency": null,
+   "repeats": 6.0,
+   "note": "orbit",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "clockguard_mace",
+   "owner_name": "태엽 수비 철퇴",
+   "skill": "RIGHT",
+   "name": "시계추 강타",
+   "effect": "knockback",
+   "seconds": null,
+   "potency": 0.7,
+   "repeats": 1.0,
+   "note": "cone",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "clockguard_mace",
+   "owner_name": "태엽 수비 철퇴",
+   "skill": "RIGHT",
+   "name": "시계추 강타",
+   "effect": "cooldown_slow",
+   "seconds": 4.0,
+   "potency": 0.3,
+   "repeats": 1.0,
+   "note": "cone",
+   "pvp": [
+    2.0,
+    2.0,
+    2.0
+   ],
+   "pvp_heavy": [
+    2.0,
+    2.0,
+    2.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "clockguard_mace",
+   "owner_name": "태엽 수비 철퇴",
+   "skill": "RIGHT",
+   "name": "시계추 강타",
+   "effect": "taunt",
+   "seconds": 2.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "cone",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "void_falchion",
+   "owner_name": "공허 팔시온",
+   "skill": "RIGHT",
+   "name": "공허 가르기",
+   "effect": "vulnerable",
+   "seconds": 4.0,
+   "potency": 0.1,
+   "repeats": 1.0,
+   "note": "cone",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "abyss_sentinel_longsword",
+   "owner_name": "심연 파수검",
+   "skill": "RIGHT",
+   "name": "심연 끌개",
+   "effect": "taunt",
+   "seconds": 2.0,
+   "potency": null,
+   "repeats": 1.8,
+   "note": "vortex",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "abyss_sentinel_longsword",
+   "owner_name": "심연 파수검",
+   "skill": "RIGHT",
+   "name": "심연 끌개",
+   "effect": "slow",
+   "seconds": 2.0,
+   "potency": 0.35,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": [
+    2.0,
+    2.0,
+    2.0
+   ],
+   "pvp_heavy": [
+    2.0,
+    2.0,
+    2.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "abyss_sentinel_longsword",
+   "owner_name": "심연 파수검",
+   "skill": "SNEAK_LEFT",
+   "name": "해일 검기",
+   "effect": "knockback",
+   "seconds": null,
+   "potency": 0.6,
+   "repeats": 1.5,
+   "note": "projectile",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "abyss_sentinel_longsword",
+   "owner_name": "심연 파수검",
+   "skill": "SNEAK_RIGHT",
+   "name": "심연의 문",
+   "effect": "taunt",
+   "seconds": 3.0,
+   "potency": null,
+   "repeats": 1,
+   "note": "riposte",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "celestial_oathkeeper",
+   "owner_name": "천궁의 맹세수호검",
+   "skill": "RIGHT",
+   "name": "천궁 방벽",
+   "effect": "taunt",
+   "seconds": 3.0,
+   "potency": null,
+   "repeats": 1,
+   "note": "riposte",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "celestial_oathkeeper",
+   "owner_name": "천궁의 맹세수호검",
+   "skill": "SNEAK_LEFT",
+   "name": "유성 낙하",
+   "effect": "launch",
+   "seconds": null,
+   "potency": 0.6,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "celestial_oathkeeper",
+   "owner_name": "천궁의 맹세수호검",
+   "skill": "SNEAK_LEFT",
+   "name": "유성 낙하",
+   "effect": "taunt",
+   "seconds": 3.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "celestial_oathkeeper",
+   "owner_name": "천궁의 맹세수호검",
+   "skill": "SNEAK_RIGHT",
+   "name": "별자리 성역",
+   "effect": "slow",
+   "seconds": 1.5,
+   "potency": 0.25,
+   "repeats": 8.0,
+   "note": "sanctuary",
+   "pvp": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "pvp_heavy": [
+    1.5,
+    1.5,
+    1.5
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "silkqueen_reaper",
+   "owner_name": "베셀라의 거미다리 큰낫",
+   "skill": "RIGHT",
+   "name": "거미다리 휩쓸기",
+   "effect": "slow",
+   "seconds": 2.0,
+   "potency": 0.35,
+   "repeats": 1.0,
+   "note": "cone",
+   "pvp": [
+    2.0,
+    2.0,
+    2.0
+   ],
+   "pvp_heavy": [
+    2.0,
+    2.0,
+    2.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "drowned_anchor_cleaver",
+   "owner_name": "익사한 닻날",
+   "skill": "RIGHT",
+   "name": "닻 던지기",
+   "effect": "pull",
+   "seconds": null,
+   "potency": 1.1,
+   "repeats": 1.0,
+   "note": "projectile",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "drowned_anchor_cleaver",
+   "owner_name": "익사한 닻날",
+   "skill": "RIGHT",
+   "name": "닻 던지기",
+   "effect": "slow",
+   "seconds": 2.0,
+   "potency": 0.35,
+   "repeats": 0.8,
+   "note": "nova",
+   "pvp": [
+    2.0,
+    2.0,
+    2.0
+   ],
+   "pvp_heavy": [
+    2.0,
+    2.0,
+    2.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "drowned_anchor_cleaver",
+   "owner_name": "익사한 닻날",
+   "skill": "SNEAK_RIGHT",
+   "name": "침몰",
+   "effect": "slow",
+   "seconds": 3.0,
+   "potency": 0.5,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": [
+    3.0,
+    3.0,
+    3.0
+   ],
+   "pvp_heavy": [
+    3.0,
+    3.0,
+    3.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "drowned_anchor_cleaver",
+   "owner_name": "익사한 닻날",
+   "skill": "SNEAK_RIGHT",
+   "name": "침몰",
+   "effect": "launch",
+   "seconds": null,
+   "potency": 0.3,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "osric_drowned_axe",
+   "owner_name": "오스릭의 익사 닻도끼",
+   "skill": "RIGHT",
+   "name": "수문 내려찍기",
+   "effect": "slow",
+   "seconds": 2.0,
+   "potency": 0.35,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": [
+    2.0,
+    2.0,
+    2.0
+   ],
+   "pvp_heavy": [
+    2.0,
+    2.0,
+    2.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "osric_drowned_axe",
+   "owner_name": "오스릭의 익사 닻도끼",
+   "skill": "RIGHT",
+   "name": "수문 내려찍기",
+   "effect": "knockback",
+   "seconds": null,
+   "potency": 0.6,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "ember_greatsword",
+   "owner_name": "잿불 대검",
+   "skill": "LEFT",
+   "name": "잿불 검기",
+   "effect": "burn",
+   "seconds": 2.0,
+   "potency": null,
+   "repeats": 1,
+   "note": "slash_wave",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "ember_greatsword",
+   "owner_name": "잿불 대검",
+   "skill": "SNEAK_RIGHT",
+   "name": "용암 균열",
+   "effect": "launch",
+   "seconds": null,
+   "potency": 0.5,
+   "repeats": 1.0,
+   "note": "projectile",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "rime_reaper_scythe",
+   "owner_name": "서리 수확자의 큰낫",
+   "skill": "RIGHT",
+   "name": "서리꽃 수확",
+   "effect": "frost",
+   "seconds": 2.0,
+   "potency": 1,
+   "repeats": 1.0,
+   "note": "서리 중첩 — 5중첩이면 빙결",
+   "frozen_today": 4.0,
+   "pvp": [
+    1.5,
+    0.75,
+    0.38
+   ],
+   "pvp_heavy": [
+    1.5,
+    0.75,
+    0.38
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "lore_glaive",
+   "owner_name": "금서 언월도",
+   "skill": "RIGHT",
+   "name": "필경 돌진",
+   "effect": "silence",
+   "seconds": 1.5,
+   "potency": 1.0,
+   "repeats": 1.0,
+   "note": "dash",
+   "pvp": [
+    1.2,
+    0.6,
+    0.3
+   ],
+   "pvp_heavy": [
+    1.2,
+    0.6,
+    0.3
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "geode_sunderer",
+   "owner_name": "정동 파쇄 도끼",
+   "skill": "RIGHT",
+   "name": "정동 낙하",
+   "effect": "launch",
+   "seconds": null,
+   "potency": 0.5,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "geode_sunderer",
+   "owner_name": "정동 파쇄 도끼",
+   "skill": "RIGHT",
+   "name": "정동 낙하",
+   "effect": "stun",
+   "seconds": 0.5,
+   "potency": null,
+   "repeats": 1.8,
+   "note": "strike",
+   "pvp": [
+    0.4,
+    0.2,
+    0.0
+   ],
+   "pvp_heavy": [
+    0.24,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "geode_sunderer",
+   "owner_name": "정동 파쇄 도끼",
+   "skill": "SNEAK_LEFT",
+   "name": "공명 파열",
+   "effect": "vulnerable",
+   "seconds": 4.0,
+   "potency": 0.12,
+   "repeats": 1.0,
+   "note": "cone",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "geode_sunderer",
+   "owner_name": "정동 파쇄 도끼",
+   "skill": "SNEAK_RIGHT",
+   "name": "수정 폭쇄",
+   "effect": "knockback",
+   "seconds": null,
+   "potency": 1.0,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "void_scythe",
+   "owner_name": "공허의 큰낫",
+   "skill": "RIGHT",
+   "name": "공허 거두기",
+   "effect": "weaken",
+   "seconds": 3.0,
+   "potency": 0.12,
+   "repeats": 1,
+   "note": "시듦(출혈+약화)",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "doomclock_executioner",
+   "owner_name": "종말시계 단두도끼",
+   "skill": "RIGHT",
+   "name": "톱니 선풍",
+   "effect": "knockback",
+   "seconds": null,
+   "potency": 0.3,
+   "repeats": 3.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "bloodmoon_reaver",
+   "owner_name": "혈월의 수확자",
+   "skill": "SNEAK_RIGHT",
+   "name": "피의 질주",
+   "effect": "launch",
+   "seconds": null,
+   "potency": 0.6,
+   "repeats": 1.0,
+   "note": "projectile",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "eelbone_recurve",
+   "owner_name": "장어뼈 만곡궁",
+   "skill": "SNEAK_RIGHT",
+   "name": "전기뱀장어 화살",
+   "effect": "slow",
+   "seconds": 1.0,
+   "potency": 0.35,
+   "repeats": 0.8,
+   "note": "chain",
+   "pvp": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "pvp_heavy": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "tidecaller_bow",
+   "owner_name": "조수 부르는 활",
+   "skill": "SNEAK_LEFT",
+   "name": "밀물 결계",
+   "effect": "slow",
+   "seconds": 1.5,
+   "potency": 0.35,
+   "repeats": 6.0,
+   "note": "zone",
+   "pvp": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "pvp_heavy": [
+    1.5,
+    1.5,
+    1.5
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "tidecaller_bow",
+   "owner_name": "조수 부르는 활",
+   "skill": "SNEAK_RIGHT",
+   "name": "물보라 화살",
+   "effect": "knockback",
+   "seconds": null,
+   "potency": 0.5,
+   "repeats": 1.5,
+   "note": "projectile",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "frostbone_longbow",
+   "owner_name": "얼음뼈 장궁",
+   "skill": "SNEAK_RIGHT",
+   "name": "고드름 화살",
+   "effect": "slow",
+   "seconds": 2.0,
+   "potency": 0.35,
+   "repeats": 0.8,
+   "note": "nova",
+   "pvp": [
+    2.0,
+    2.0,
+    2.0
+   ],
+   "pvp_heavy": [
+    2.0,
+    2.0,
+    2.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "inkquill_hornbow",
+   "owner_name": "깃펜 각궁",
+   "skill": "SNEAK_RIGHT",
+   "name": "깃펜 산탄",
+   "effect": "blind",
+   "seconds": 1.5,
+   "potency": 1.0,
+   "repeats": 2.0,
+   "note": "projectile",
+   "pvp": [
+    1.05,
+    0.52,
+    0.26
+   ],
+   "pvp_heavy": [
+    1.05,
+    0.52,
+    0.26
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "galewing_bow",
+   "owner_name": "질풍 날개 활",
+   "skill": "SNEAK_LEFT",
+   "name": "회오리 화살",
+   "effect": "launch",
+   "seconds": null,
+   "potency": 0.7,
+   "repeats": 0.8,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "galewing_bow",
+   "owner_name": "질풍 날개 활",
+   "skill": "SNEAK_RIGHT",
+   "name": "돌풍 화살",
+   "effect": "knockback",
+   "seconds": null,
+   "potency": 0.4,
+   "repeats": 1.0,
+   "note": "projectile",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "springloaded_bow",
+   "owner_name": "용수철 연발궁",
+   "skill": "SNEAK_LEFT",
+   "name": "용수철 도약",
+   "effect": "root",
+   "seconds": 1.5,
+   "potency": null,
+   "repeats": 8.0,
+   "note": "zone",
+   "pvp": [
+    1.2,
+    0.6,
+    0.3
+   ],
+   "pvp_heavy": [
+    0.72,
+    0.36,
+    0.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "abyss_bladebow",
+   "owner_name": "심연 날활",
+   "skill": "SNEAK_LEFT",
+   "name": "물러서며 베기",
+   "effect": "knockback",
+   "seconds": null,
+   "potency": 0.8,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "abyss_bladebow",
+   "owner_name": "심연 날활",
+   "skill": "SNEAK_LEFT",
+   "name": "물러서며 베기",
+   "effect": "slow",
+   "seconds": 1.5,
+   "potency": 0.35,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "pvp_heavy": [
+    1.5,
+    1.5,
+    1.5
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "tempest_bow",
+   "owner_name": "폭풍의 눈",
+   "skill": "LEFT",
+   "name": "번개 화살",
+   "effect": "slow",
+   "seconds": 1.0,
+   "potency": 0.15,
+   "repeats": 1,
+   "note": "missile",
+   "pvp": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "pvp_heavy": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "tempest_bow",
+   "owner_name": "폭풍의 눈",
+   "skill": "SNEAK_RIGHT",
+   "name": "천둥 화살",
+   "effect": "stun",
+   "seconds": 0.6,
+   "potency": null,
+   "repeats": 0.9,
+   "note": "strike",
+   "pvp": [
+    0.48,
+    0.24,
+    0.0
+   ],
+   "pvp_heavy": [
+    0.29,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "brine_orb_staff",
+   "owner_name": "소금물 구슬 지팡이",
+   "skill": "RIGHT",
+   "name": "거품 탄막",
+   "effect": "slow",
+   "seconds": 1.5,
+   "potency": 0.35,
+   "repeats": 0.8,
+   "note": "nova",
+   "pvp": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "pvp_heavy": [
+    1.5,
+    1.5,
+    1.5
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "brine_orb_staff",
+   "owner_name": "소금물 구슬 지팡이",
+   "skill": "SNEAK_RIGHT",
+   "name": "물감옥",
+   "effect": "root",
+   "seconds": 2.5,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": [
+    1.5,
+    0.75,
+    0.38
+   ],
+   "pvp_heavy": [
+    1.2,
+    0.6,
+    0.3
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "brine_orb_staff",
+   "owner_name": "소금물 구슬 지팡이",
+   "skill": "SNEAK_RIGHT",
+   "name": "물감옥",
+   "effect": "slow",
+   "seconds": 4.0,
+   "potency": 0.35,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": [
+    3.0,
+    3.0,
+    3.0
+   ],
+   "pvp_heavy": [
+    3.0,
+    3.0,
+    3.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "osric_tide_trident",
+   "owner_name": "오스릭의 조수 삼지창",
+   "skill": "RIGHT",
+   "name": "역류 소용돌이",
+   "effect": "slow",
+   "seconds": 2.0,
+   "potency": 0.35,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": [
+    2.0,
+    2.0,
+    2.0
+   ],
+   "pvp_heavy": [
+    2.0,
+    2.0,
+    2.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "cinder_crystal_staff",
+   "owner_name": "불씨 수정 지팡이",
+   "skill": "SNEAK_RIGHT",
+   "name": "불씨 폭발",
+   "effect": "knockback",
+   "seconds": null,
+   "potency": 0.8,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "rimeheart_staff",
+   "owner_name": "서리심장 지팡이",
+   "skill": "LEFT",
+   "name": "서리 파편",
+   "effect": "slow",
+   "seconds": 1.5,
+   "potency": 0.15,
+   "repeats": 1,
+   "note": "missile",
+   "pvp": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "pvp_heavy": [
+    1.5,
+    1.5,
+    1.5
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "rimeheart_staff",
+   "owner_name": "서리심장 지팡이",
+   "skill": "RIGHT",
+   "name": "빙하 광선",
+   "effect": "frost",
+   "seconds": 2.0,
+   "potency": 1,
+   "repeats": 8.0,
+   "note": "서리 중첩 — 5중첩이면 빙결",
+   "frozen_today": 4.0,
+   "pvp": [
+    1.5,
+    0.75,
+    0.38
+   ],
+   "pvp_heavy": [
+    1.5,
+    0.75,
+    0.38
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "rimeheart_staff",
+   "owner_name": "서리심장 지팡이",
+   "skill": "SNEAK_RIGHT",
+   "name": "서리 별",
+   "effect": "frost",
+   "seconds": 3.0,
+   "potency": 2,
+   "repeats": 1.0,
+   "note": "서리 중첩 — 5중첩이면 빙결",
+   "frozen_today": 4.0,
+   "pvp": [
+    1.5,
+    0.75,
+    0.38
+   ],
+   "pvp_heavy": [
+    1.5,
+    0.75,
+    0.38
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "rimeheart_staff",
+   "owner_name": "서리심장 지팡이",
+   "skill": "SNEAK_RIGHT",
+   "name": "서리 별",
+   "effect": "slow",
+   "seconds": 1.5,
+   "potency": 0.35,
+   "repeats": 4.0,
+   "note": "zone",
+   "pvp": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "pvp_heavy": [
+    1.5,
+    1.5,
+    1.5
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "rimebell_staff",
+   "owner_name": "서리방울 고리 지팡이",
+   "skill": "RIGHT",
+   "name": "얼음 방울",
+   "effect": "slow",
+   "seconds": 1.5,
+   "potency": 0.35,
+   "repeats": 0.8,
+   "note": "nova",
+   "pvp": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "pvp_heavy": [
+    1.5,
+    1.5,
+    1.5
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "ink_spiral_staff",
+   "owner_name": "먹물 소용돌이 지팡이",
+   "skill": "RIGHT",
+   "name": "먹구름 장막",
+   "effect": "blind",
+   "seconds": 1.0,
+   "potency": 1.0,
+   "repeats": 10.0,
+   "note": "zone",
+   "pvp": [
+    0.7,
+    0.35,
+    0.0
+   ],
+   "pvp_heavy": [
+    0.7,
+    0.35,
+    0.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "ink_spiral_staff",
+   "owner_name": "먹물 소용돌이 지팡이",
+   "skill": "RIGHT",
+   "name": "먹구름 장막",
+   "effect": "slow",
+   "seconds": 1.0,
+   "potency": 0.35,
+   "repeats": 10.0,
+   "note": "zone",
+   "pvp": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "pvp_heavy": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "inkwell_staff",
+   "owner_name": "먹물 서고 지팡이",
+   "skill": "RIGHT",
+   "name": "먹물 탄",
+   "effect": "blind",
+   "seconds": 3.0,
+   "potency": null,
+   "repeats": 0.8,
+   "note": "nova",
+   "pvp": [
+    1.5,
+    0.75,
+    0.38
+   ],
+   "pvp_heavy": [
+    1.5,
+    0.75,
+    0.38
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "inkwell_staff",
+   "owner_name": "먹물 서고 지팡이",
+   "skill": "SNEAK_LEFT",
+   "name": "필사 정령",
+   "effect": "slow",
+   "seconds": 1.0,
+   "potency": 0.35,
+   "repeats": 10.0,
+   "note": "summon",
+   "pvp": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "pvp_heavy": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "inkwell_staff",
+   "owner_name": "먹물 서고 지팡이",
+   "skill": "SNEAK_RIGHT",
+   "name": "잉크 소용돌이",
+   "effect": "silence",
+   "seconds": 2.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": [
+    1.5,
+    0.75,
+    0.38
+   ],
+   "pvp_heavy": [
+    1.5,
+    0.75,
+    0.38
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "orrery_staff",
+   "owner_name": "태엽 천구 지팡이",
+   "skill": "SNEAK_RIGHT",
+   "name": "천체 정렬",
+   "effect": "launch",
+   "seconds": null,
+   "potency": 0.5,
+   "repeats": 2.0,
+   "note": "rain",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "void_fork_staff",
+   "owner_name": "공허 갈래 지팡이",
+   "skill": "SNEAK_RIGHT",
+   "name": "공허 쌍탄",
+   "effect": "slow",
+   "seconds": 2.0,
+   "potency": 0.35,
+   "repeats": 0.8,
+   "note": "nova",
+   "pvp": [
+    2.0,
+    2.0,
+    2.0
+   ],
+   "pvp_heavy": [
+    2.0,
+    2.0,
+    2.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "tesla_coil_staff",
+   "owner_name": "전격 코일 지팡이",
+   "skill": "RIGHT",
+   "name": "연쇄 전격",
+   "effect": "slow",
+   "seconds": 0.8,
+   "potency": 0.35,
+   "repeats": 1.0,
+   "note": "chain",
+   "pvp": [
+    0.8,
+    0.8,
+    0.8
+   ],
+   "pvp_heavy": [
+    0.8,
+    0.8,
+    0.8
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "tesla_coil_staff",
+   "owner_name": "전격 코일 지팡이",
+   "skill": "SNEAK_LEFT",
+   "name": "과부하",
+   "effect": "stun",
+   "seconds": 0.5,
+   "potency": null,
+   "repeats": 7.5,
+   "note": "strike",
+   "pvp": [
+    0.4,
+    0.2,
+    0.0
+   ],
+   "pvp_heavy": [
+    0.24,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "tesla_coil_staff",
+   "owner_name": "전격 코일 지팡이",
+   "skill": "SNEAK_RIGHT",
+   "name": "전자기장",
+   "effect": "slow",
+   "seconds": 1.0,
+   "potency": 0.35,
+   "repeats": 12.0,
+   "note": "zone",
+   "pvp": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "pvp_heavy": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "voidheart_staff",
+   "owner_name": "공허의 심장 지팡이",
+   "skill": "RIGHT",
+   "name": "사건의 지평선",
+   "effect": "vulnerable",
+   "seconds": 5.0,
+   "potency": 0.15,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "voidheart_staff",
+   "owner_name": "공허의 심장 지팡이",
+   "skill": "SNEAK_LEFT",
+   "name": "차원 베기",
+   "effect": "weaken",
+   "seconds": 4.0,
+   "potency": 0.12,
+   "repeats": 1,
+   "note": "시듦(출혈+약화)",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "voidheart_staff",
+   "owner_name": "공허의 심장 지팡이",
+   "skill": "SNEAK_RIGHT",
+   "name": "별 붕괴",
+   "effect": "launch",
+   "seconds": null,
+   "potency": 0.8,
+   "repeats": 2.0,
+   "note": "rain",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "silkqueen_spindle_censer",
+   "owner_name": "실잣는 물렛가락 향로",
+   "skill": "SNEAK_RIGHT",
+   "name": "은실 고치 요람",
+   "effect": "slow",
+   "seconds": 1.5,
+   "potency": 0.35,
+   "repeats": 5.0,
+   "note": "zone",
+   "pvp": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "pvp_heavy": [
+    1.5,
+    1.5,
+    1.5
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "tidebell_censer",
+   "owner_name": "조수종 향로",
+   "skill": "SNEAK_RIGHT",
+   "name": "조수의 종",
+   "effect": "slow",
+   "seconds": 1.5,
+   "potency": 0.35,
+   "repeats": 6.0,
+   "note": "zone",
+   "pvp": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "pvp_heavy": [
+    1.5,
+    1.5,
+    1.5
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "frost_vigil_censer",
+   "owner_name": "서리 철야 향로",
+   "skill": "RIGHT",
+   "name": "철야의 등불",
+   "effect": "slow",
+   "seconds": 1.5,
+   "potency": 0.35,
+   "repeats": 6.0,
+   "note": "zone",
+   "pvp": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "pvp_heavy": [
+    1.5,
+    1.5,
+    1.5
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "abyss_bell_scepter",
+   "owner_name": "심연 울림종 홀",
+   "skill": "RIGHT",
+   "name": "심연의 메아리",
+   "effect": "slow",
+   "seconds": 2.0,
+   "potency": 0.35,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": [
+    2.0,
+    2.0,
+    2.0
+   ],
+   "pvp_heavy": [
+    2.0,
+    2.0,
+    2.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "seraph_scepter",
+   "owner_name": "치천사의 홀",
+   "skill": "SNEAK_LEFT",
+   "name": "심판의 창",
+   "effect": "knockback",
+   "seconds": null,
+   "potency": 0.6,
+   "repeats": 0.8,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "eel_kris",
+   "owner_name": "녹물 장어 크리스",
+   "skill": "RIGHT",
+   "name": "뱀장어 찌르기",
+   "effect": "slow",
+   "seconds": 1.5,
+   "potency": 0.35,
+   "repeats": 1.0,
+   "note": "dash",
+   "pvp": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "pvp_heavy": [
+    1.5,
+    1.5,
+    1.5
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "cinder_fang",
+   "owner_name": "불씨 송곳니",
+   "skill": "RIGHT",
+   "name": "불씨 잠행",
+   "effect": "burn",
+   "seconds": 3.0,
+   "potency": null,
+   "repeats": 1,
+   "note": "shadow_step",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "gravefrost_katar",
+   "owner_name": "묘역 서리 주먹칼",
+   "skill": "RIGHT",
+   "name": "서리 도굴",
+   "effect": "slow",
+   "seconds": 1.5,
+   "potency": 0.35,
+   "repeats": 1.0,
+   "note": "dash",
+   "pvp": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "pvp_heavy": [
+    1.5,
+    1.5,
+    1.5
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "lorekeeper_katar",
+   "owner_name": "금서지기의 주먹칼",
+   "skill": "RIGHT",
+   "name": "책갈피 표식",
+   "effect": "mark",
+   "seconds": 4.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "target",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "nightshade_dagger",
+   "owner_name": "야음 단검",
+   "skill": "RIGHT",
+   "name": "그림자 질주",
+   "effect": "blind",
+   "seconds": 3.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": [
+    1.5,
+    0.75,
+    0.38
+   ],
+   "pvp_heavy": [
+    1.5,
+    0.75,
+    0.38
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "nightshade_dagger",
+   "owner_name": "야음 단검",
+   "skill": "SNEAK_LEFT",
+   "name": "야음 폭발",
+   "effect": "vulnerable",
+   "seconds": 5.0,
+   "potency": 0.1,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "mainspring_dagger",
+   "owner_name": "태엽 단검",
+   "skill": "SNEAK_RIGHT",
+   "name": "역회전",
+   "effect": "root",
+   "seconds": 1.5,
+   "potency": null,
+   "repeats": 8.0,
+   "note": "zone",
+   "pvp": [
+    1.2,
+    0.6,
+    0.3
+   ],
+   "pvp_heavy": [
+    0.72,
+    0.36,
+    0.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "abyss_sickle",
+   "owner_name": "심연 낫",
+   "skill": "RIGHT",
+   "name": "낫 갈고리",
+   "effect": "pull",
+   "seconds": null,
+   "potency": 0.9,
+   "repeats": 1.0,
+   "note": "projectile",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "viper_fang",
+   "owner_name": "독사의 송곳니",
+   "skill": "RIGHT",
+   "name": "독침 투척",
+   "effect": "venom",
+   "seconds": 6.0,
+   "potency": null,
+   "repeats": 1.5,
+   "note": "projectile",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "eel_twin_bow",
+   "owner_name": "장어 쌍현 활",
+   "skill": "SNEAK_RIGHT",
+   "name": "물살 기습 화살",
+   "effect": "mark",
+   "seconds": 4.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "projectile",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "cinder_dagger",
+   "owner_name": "불씨 단검",
+   "skill": "RIGHT",
+   "name": "불티 그림자 걸음",
+   "effect": "mark",
+   "seconds": 4.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "cone",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "ember_tanto",
+   "owner_name": "잿불 탄토",
+   "skill": "RIGHT",
+   "name": "불티 등 뒤 일격",
+   "effect": "mark",
+   "seconds": 4.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "cone",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "slag_war_spear",
+   "owner_name": "슬래그 창",
+   "skill": "RIGHT",
+   "name": "불티 버티기",
+   "effect": "taunt",
+   "seconds": 3.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "rime_morning_star",
+   "owner_name": "서리 모닝스타",
+   "skill": "RIGHT",
+   "name": "서리 버티기",
+   "effect": "taunt",
+   "seconds": 3.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "rime_composite_bow",
+   "owner_name": "서리 복합궁",
+   "skill": "SNEAK_RIGHT",
+   "name": "서리 꿰뚫는 화살",
+   "effect": "vulnerable",
+   "seconds": 4.0,
+   "potency": 0.1,
+   "repeats": 1.0,
+   "note": "projectile",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "rime_chime_rod",
+   "owner_name": "묘역 풍경 홀",
+   "skill": "RIGHT",
+   "name": "서리 방벽",
+   "effect": "taunt",
+   "seconds": 3.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "ink_great_maul",
+   "owner_name": "봉인 대형 망치",
+   "skill": "RIGHT",
+   "name": "먹물 짓찧기",
+   "effect": "vulnerable",
+   "seconds": 4.0,
+   "potency": 0.1,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "ink_morning_star",
+   "owner_name": "먹물 모닝스타",
+   "skill": "RIGHT",
+   "name": "먹물 버티기",
+   "effect": "taunt",
+   "seconds": 3.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "ink_stiletto",
+   "owner_name": "먹물 스틸레토",
+   "skill": "RIGHT",
+   "name": "먹물 그림자 걸음",
+   "effect": "mark",
+   "seconds": 4.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "cone",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "index_war_spear",
+   "owner_name": "색인 창",
+   "skill": "RIGHT",
+   "name": "먹물 방벽",
+   "effect": "taunt",
+   "seconds": 3.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "clock_blade_bow",
+   "owner_name": "태엽 날활",
+   "skill": "SNEAK_RIGHT",
+   "name": "톱니 기습 화살",
+   "effect": "mark",
+   "seconds": 4.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "projectile",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "clock_mace",
+   "owner_name": "태엽 철퇴",
+   "skill": "RIGHT",
+   "name": "톱니 버티기",
+   "effect": "taunt",
+   "seconds": 3.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "clock_greatsword",
+   "owner_name": "톱니 대검",
+   "skill": "RIGHT",
+   "name": "톱니 짓찧기",
+   "effect": "vulnerable",
+   "seconds": 4.0,
+   "potency": 0.1,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "clock_broadsword",
+   "owner_name": "놋쇠 넓은검",
+   "skill": "RIGHT",
+   "name": "톱니 방벽",
+   "effect": "taunt",
+   "seconds": 3.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "clock_katar",
+   "owner_name": "톱니 주먹칼",
+   "skill": "RIGHT",
+   "name": "톱니 그림자 걸음",
+   "effect": "mark",
+   "seconds": 4.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "cone",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "abyss_great_maul",
+   "owner_name": "심연 대형 망치",
+   "skill": "RIGHT",
+   "name": "공허 짓찧기",
+   "effect": "vulnerable",
+   "seconds": 4.0,
+   "potency": 0.1,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "abyss_bone_bow",
+   "owner_name": "심연 뼈 활",
+   "skill": "SNEAK_RIGHT",
+   "name": "공허 기습 화살",
+   "effect": "mark",
+   "seconds": 4.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "projectile",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "void_tanto",
+   "owner_name": "공허 탄토",
+   "skill": "RIGHT",
+   "name": "공허 그림자 걸음",
+   "effect": "mark",
+   "seconds": 4.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "cone",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "abyss_war_spear",
+   "owner_name": "문지기의 창",
+   "skill": "RIGHT",
+   "name": "공허 버티기",
+   "effect": "taunt",
+   "seconds": 3.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "unique",
+   "owner": "mycelking_guard_blade",
+   "owner_name": "균사왕 근위 넓은검",
+   "skill": "shield_bash",
+   "name": "근위의 방패",
+   "effect": "stun",
+   "seconds": 0.6,
+   "potency": null,
+   "repeats": 1,
+   "note": "5번째 공격마다, 같은 적 6초 면역(몹)",
+   "pvp": [
+    0.48,
+    0.24,
+    0.0
+   ],
+   "pvp_heavy": [
+    0.29,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "src": "unique",
+   "owner": "frostgrave_mace",
+   "owner_name": "서리 묘지기의 철퇴",
+   "skill": "imbue",
+   "name": "묘지 서리",
+   "effect": "frost",
+   "seconds": 6.0,
+   "potency": 1,
+   "repeats": 1,
+   "note": "25% 확률 서리 1중첩, 5중첩이면 빙결 1초",
+   "frozen_today": 1.0,
+   "pvp": [
+    1.0,
+    0.5,
+    0.25
+   ],
+   "pvp_heavy": [
+    0.6,
+    0.3,
+    0.0
+   ]
+  },
+  {
+   "src": "unique",
+   "owner": "resonant_longsword",
+   "owner_name": "공명 수정 장검",
+   "skill": "shield_bash",
+   "name": "공명 강타",
+   "effect": "stun",
+   "seconds": 0.8,
+   "potency": null,
+   "repeats": 1,
+   "note": "5번째 공격마다, 같은 적 6초 면역(몹)",
+   "pvp": [
+    0.64,
+    0.32,
+    0.0
+   ],
+   "pvp_heavy": [
+    0.38,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "src": "unique",
+   "owner": "tidecaller_bow",
+   "owner_name": "조수 부르는 활",
+   "skill": "imbue",
+   "name": "밀물 화살",
+   "effect": "frost",
+   "seconds": 6.0,
+   "potency": 1,
+   "repeats": 1,
+   "note": "25% 확률 서리 1중첩, 5중첩이면 빙결 1초",
+   "frozen_today": 1.0,
+   "pvp": [
+    1.0,
+    0.5,
+    0.25
+   ],
+   "pvp_heavy": [
+    0.6,
+    0.3,
+    0.0
+   ]
+  },
+  {
+   "src": "unique",
+   "owner": "frostbone_longbow",
+   "owner_name": "얼음뼈 장궁",
+   "skill": "imbue",
+   "name": "얼음뼈 화살",
+   "effect": "frost",
+   "seconds": 6.0,
+   "potency": 1,
+   "repeats": 1,
+   "note": "25% 확률 서리 1중첩, 5중첩이면 빙결 1초",
+   "frozen_today": 1.0,
+   "pvp": [
+    1.0,
+    0.5,
+    0.25
+   ],
+   "pvp_heavy": [
+    0.6,
+    0.3,
+    0.0
+   ]
+  },
+  {
+   "src": "unique",
+   "owner": "osric_tide_trident",
+   "owner_name": "오스릭의 조수 삼지창",
+   "skill": "imbue",
+   "name": "조수 냉기",
+   "effect": "frost",
+   "seconds": 6.0,
+   "potency": 1,
+   "repeats": 1,
+   "note": "25% 확률 서리 1중첩, 5중첩이면 빙결 1초",
+   "frozen_today": 1.0,
+   "pvp": [
+    1.0,
+    0.5,
+    0.25
+   ],
+   "pvp_heavy": [
+    0.6,
+    0.3,
+    0.0
+   ]
+  },
+  {
+   "src": "unique",
+   "owner": "miners_bell_scepter",
+   "owner_name": "갱도 경보종 홀",
+   "skill": "shield_bash",
+   "name": "경보종",
+   "effect": "stun",
+   "seconds": 1.5,
+   "potency": null,
+   "repeats": 1,
+   "note": "4번째 공격마다, 같은 적 6초 면역(몹)",
+   "pvp": [
+    1.0,
+    0.5,
+    0.25
+   ],
+   "pvp_heavy": [
+    0.72,
+    0.36,
+    0.0
+   ]
+  },
+  {
+   "src": "unique",
+   "owner": "frost_vigil_censer",
+   "owner_name": "서리 철야 향로",
+   "skill": "imbue",
+   "name": "서리 향",
+   "effect": "frost",
+   "seconds": 6.0,
+   "potency": 1,
+   "repeats": 1,
+   "note": "25% 확률 서리 1중첩, 5중첩이면 빙결 1초",
+   "frozen_today": 1.0,
+   "pvp": [
+    1.0,
+    0.5,
+    0.25
+   ],
+   "pvp_heavy": [
+    0.6,
+    0.3,
+    0.0
+   ]
+  },
+  {
+   "src": "unique",
+   "owner": "crystal_bell_scepter",
+   "owner_name": "수정 종 홀",
+   "skill": "shield_bash",
+   "name": "수정 종소리",
+   "effect": "stun",
+   "seconds": 1.5,
+   "potency": null,
+   "repeats": 1,
+   "note": "4번째 공격마다, 같은 적 6초 면역(몹)",
+   "pvp": [
+    1.0,
+    0.5,
+    0.25
+   ],
+   "pvp_heavy": [
+    0.72,
+    0.36,
+    0.0
+   ]
+  },
+  {
+   "src": "unique",
+   "owner": "pit_war_spear",
+   "owner_name": "감독관의 창",
+   "skill": "shield_bash",
+   "name": "입구 막기",
+   "effect": "stun",
+   "seconds": 1.5,
+   "potency": null,
+   "repeats": 1,
+   "note": "4번째 공격마다, 같은 적 6초 면역(몹)",
+   "pvp": [
+    1.0,
+    0.5,
+    0.25
+   ],
+   "pvp_heavy": [
+    0.72,
+    0.36,
+    0.0
+   ]
+  },
+  {
+   "src": "unique",
+   "owner": "rime_morning_star",
+   "owner_name": "서리 모닝스타",
+   "skill": "shield_bash",
+   "name": "고드름 강타",
+   "effect": "stun",
+   "seconds": 1.5,
+   "potency": null,
+   "repeats": 1,
+   "note": "4번째 공격마다, 같은 적 6초 면역(몹)",
+   "pvp": [
+    1.0,
+    0.5,
+    0.25
+   ],
+   "pvp_heavy": [
+    0.72,
+    0.36,
+    0.0
+   ]
+  },
+  {
+   "src": "unique",
+   "owner": "clock_broadsword",
+   "owner_name": "놋쇠 넓은검",
+   "skill": "shield_bash",
+   "name": "경비병 방패",
+   "effect": "stun",
+   "seconds": 1.5,
+   "potency": null,
+   "repeats": 1,
+   "note": "4번째 공격마다, 같은 적 6초 면역(몹)",
+   "pvp": [
+    1.0,
+    0.5,
+    0.25
+   ],
+   "pvp_heavy": [
+    0.72,
+    0.36,
+    0.0
+   ]
+  },
+  {
+   "src": "unique",
+   "owner": "abyss_war_spear",
+   "owner_name": "문지기의 창",
+   "skill": "shield_bash",
+   "name": "문 앞의 창",
+   "effect": "stun",
+   "seconds": 1.5,
+   "potency": null,
+   "repeats": 1,
+   "note": "4번째 공격마다, 같은 적 6초 면역(몹)",
+   "pvp": [
+    1.0,
+    0.5,
+    0.25
+   ],
+   "pvp_heavy": [
+    0.72,
+    0.36,
+    0.0
+   ]
+  },
+  {
+   "src": "status",
+   "owner": "frost",
+   "owner_name": "서리 5중첩",
+   "skill": "frost",
+   "name": "빙결",
+   "effect": "frozen",
+   "seconds": 4.0,
+   "potency": null,
+   "repeats": 1,
+   "note": "무기 스킬·몹이 건 서리 5중첩 → 빙결 (고유 효과 imbue 는 1초)",
+   "pvp": [
+    1.5,
+    0.75,
+    0.38
+   ],
+   "pvp_heavy": [
+    1.5,
+    0.75,
+    0.38
+   ]
+  }
+ ],
+ "unique_rule_changes": [
+  {
+   "effect": "shield_bash",
+   "before": "stun → slow 40% 1s vs players",
+   "after": "stun stays; PvP CC rules"
+  },
+  {
+   "effect": "imbue(frost)",
+   "before": "frozen → slow vs players",
+   "after": "frozen stays; PvP CC rules"
+  },
+  {
+   "effect": "leech",
+   "before": "heal ×0.5",
+   "after": "global lifesteal 0.5 (no extra)"
+  },
+  {
+   "effect": "sanctify",
+   "before": "self half when solo",
+   "after": "same + flat heal rule + healing 0.6"
+  },
+  {
+   "effect": "feast",
+   "before": "procs on player kill",
+   "after": "same; healing 0.6"
+  },
+  {
+   "effect": "ward_aura",
+   "before": "same party only",
+   "after": "same; shield 0.8 + long fight"
+  },
+  {
+   "effect": "thorns",
+   "before": "×0.5, PvP cap",
+   "after": "×0.5; no cap (1.0); PvP formula"
+  },
+  {
+   "effect": "hemorrhage",
+   "before": "crit capped by PvP cap",
+   "after": "crit_damage_scale 0.6"
+  },
+  {
+   "effect": "rend/armor_break",
+   "before": "max 3 stacks vs players",
+   "after": "same"
+  },
+  {
+   "effect": "multiplier bonuses",
+   "before": "+dmg ×0.5",
+   "after": "same"
+  }
+ ],
+ "code_touch_points": [
+  {
+   "file": "pvp/PvpConfig",
+   "change": "새 레코드: damageMultiplier(기본 대비) · levelCurve(base, ref, exp) · bufferHp(low, knee, high) · defenseWeight · resilience(cap, perLevel) · critDamageScale · maxHitRatio · classDamage(Map) · combatSeconds · healing · potion · lifesteal · shield · flatHealByPool · longFight(start, perSecond, floor) · cc(PvpCcConfig). `from()` 이 0.3.4 값 옮기기(§13). 옛 `adjust()` 는 `PvpMath` 로."
+  },
+  {
+   "file": "pvp/PvpMath (새, 순수)",
+   "change": "`levelMult(L)` · `bufferHp(L)` · `poolFactor(maxHp, L)` = H÷(H+B) · `resilience(vit, defense, L)` · `critMultiplier(critDamage)` = 1 + (cd−1)×scale · `longFight(secondsInCombat)` · `flatHeal(amount, maxHp, L)`. 모든 숫자는 PvpConfig 에서."
+  },
+  {
+   "file": "pvp/PvpCc (새, 순수)",
+   "change": "플레이어 하나의 줄어듦 기록(분류 → 횟수·마지막 시각)과 면역 끝 시각. `double duration(String id, double seconds, long now)` = PvP 배율 → 상한 → 줄어듦 단계 → 면역 → 0.2초 아래면 0 (횟수는 셈). `onControlEnd(until)` = 면역 시작."
+  },
+  {
+   "file": "pvp/PvpModule.PvpHook.before",
+   "change": "대상이 다른 파티 플레이어일 때: amount × damageMultiplier × levelMult(max(두 레벨)) × classDamage(공격자 직업) × skillPvpMult(ctx.sourceId) × (1 − 강인함(대상)) × poolFactor(대상). `ctx.defenseScale(defenseWeight)` · `ctx.critDamageScale(critDamageScale)`. 수호의 맹세(RELAYED)는 지금처럼 건너뜀. 두 사람 '전투 중' 시각 갱신."
+  },
+  {
+   "file": "pvp/PvpModule.PvpHook.absorb",
+   "change": "`maxHitRatio < 1` 일 때만 상한 (기본 1.0 = 없음). 기록(recordHit)은 그대로."
+  },
+  {
+   "file": "pvp/PvpModule (전투 중)",
+   "change": "UUID → (마지막 PvP 피해 시각, 이번 전투 시작 시각). `inCombat(p)` = combatSeconds 안. 전투가 끊기면 시작 시각을 지움. `PvpState` 를 TargetFilter 로 내보냄 (아래)."
+  },
+  {
+   "file": "pvp/TargetFilter + PvpState (새 인터페이스)",
+   "change": "`default PvpState pvp() { return PvpState.NONE; }` — PartyTargetFilter 가 모듈의 것을 돌려줌. PvpState: `inCombat(Player)` · `healFactor(Player, HealKind)` · `flatHealFactor(Player)` · `shieldFactor(Player)` · `ccSeconds(Player target, LivingEntity source, String id, double seconds)` · `onCcEnd(...)`. NONE 은 모두 1(그대로)."
+  },
+  {
+   "file": "pvp/PvpListener.onVanillaPvp",
+   "change": "바닐라 경로(물약·TNT·늑대 등): 'HP 20 기준' 환산 뒤 × poolFactor(대상) × (1 − 강인함(대상)) (레벨 곡선·직업 보정은 안 곱함 — 미궁 공격력이 아님). maxHitRatio < 1 이면 상한."
+  },
+  {
+   "file": "pvp/PvpModule.label · status · enable 로그",
+   "change": "출처 이름에 `ws:<무기>:<입력>` 도 읽기. `/labadmin pvp` 와 켤 때 로그: 기준 배율(Lv20·35·50) · 완충 · 강인함 상한 · 회복 60% · 상태이상 규칙 한 줄."
+  },
+  {
+   "file": "combat/DamageContext",
+   "change": "새 필드 `defenseScale`(기본 1) · `critDamageScale`(기본 1) + 설정자. 훅이 before() 에서 바꾼다."
+  },
+  {
+   "file": "combat/DamageService.deal",
+   "change": "방어 = 대상 방어 × ctx.defenseScale(). 치명 피해 = 1 + (critDamage − 1) × ctx.critDamageScale(). 흡혈: 대상이 플레이어면 `heal(공격자, 0, dealt×흡혈, HealKind.LIFESTEAL)`."
+  },
+  {
+   "file": "combat/DamageService.heal",
+   "change": "새 판 `heal(target, pctAmount, flatAmount, HealKind kind, boolean show)` — HealKind = SKILL · POTION · LIFESTEAL · REGEN · OTHER. 대상이 플레이어면 `targets().pvp()` 로: (pct + flat × flatHealFactor) × healFactor(kind) × 긴 싸움. 옛 `heal(target, amount, show)` = pct 만(OTHER)."
+  },
+  {
+   "file": "stats/StatService (재생)",
+   "change": "HP 재생 틱: `damage().heal(p, 0, hpRegen, REGEN, false)`."
+  },
+  {
+   "file": "classes/skills/SkillContext.heal · items/weaponskills/SkillCast.heal · MechanicsEngine(heal·heal_caster·lifesteal·absorption) · AreaSkills(흡혈)",
+   "change": "최대 HP 비율 몫과 치유력(고정) 몫을 나눠 넘김. 흡혈은 LIFESTEAL."
+  },
+  {
+   "file": "items/weaponskills/SkillCast.hit",
+   "change": "`.skill(skill.id())` → `.skill(sourceId())` (`ws:<무기>:<입력>`) — 스킬마다 PvP 배율·죽음 메시지가 무기 스킬을 알아보게."
+  },
+  {
+   "file": "items/ConsumableListener",
+   "change": "치유 물약 `heal(p, maxHp×amount, 0, POTION, true)`."
+  },
+  {
+   "file": "classes/LabyrinthStatusEffectService.apply",
+   "change": "정신(WIS) 감소 · 판금 4부위 cc_resist(TASK B) 다음에: 대상·시전자가 다른 파티 플레이어면 `pvp().ccSeconds(...)` — 0 이면 걸지 않음. 둔화 세기는 slow_max_potency 까지. frost 중첩 자체는 그대로, 5중첩 빙결(apply 'frozen')이 이 규칙을 탐. 기절·빙결이 풀릴 때(만료·해방·정화) `onCcEnd` 로 면역 시작."
+  },
+  {
+   "file": "classes/LabyrinthStatusEffectService.addShield",
+   "change": "대상이 PvP 전투 중이면 × shield × 긴 싸움."
+  },
+  {
+   "file": "items/unique/UniqueEffectService (unique_spec)",
+   "change": "shield_bash 의 '기절 → 느려짐', imbue 의 '빙결 → 느려짐' 지우기 (그냥 apply). leech 의 PvP ×0.5 지우기(전역 lifesteal). 고정량 회복은 HealKind 로."
+  },
+  {
+   "file": "content/ClassDef · ItemDef.WeaponSkillDef · ContentParser · ContentValidator",
+   "change": "스킬마다 `pvp_mult` (classes.yml skills[].pvp_mult · items.yml weapon_skills[].pvp_mult, 기본 1.0, 검사 0.1~1.0)."
+  },
+  {
+   "file": "content/classes.yml · items.yml",
+   "change": "§6 표의 38개 스킬에 pvp_mult. classes.yml 머리 주석에 'pvp_mult = 플레이어에게 주는 피해 배율' 한 줄."
+  },
+  {
+   "file": "ui/menus/MainMenu.pvpLore · ui/menus/StatsMenu",
+   "change": "메인 메뉴 PvP 칸: '한 바퀴로 쓰러뜨릴 수 있음 · 기절·속박은 짧고 연달아 걸리면 더 짧음 · PvP 중 회복 60%'. /스탯 에 'PvP 강인함 N% · PvP 체력 N (최대 HP + 완충 B)' 한 줄."
+  },
+  {
+   "file": "config.yml · GDD §18.3 · §9.2 · ARCHITECTURE(pvp)",
+   "change": "§12 설정 블록. GDD 18.3 표를 새 키로, 9.2 에 'PvP 에서는 §18.6 규칙' 한 줄."
+  }
+ ],
+ "tests": [
+  {
+   "name": "PvpConfigTest (새)",
+   "checks": "기본값 · 범위 자르기 · 0.3.4 옮기기: damage_multiplier 0.7 → 1.0, 고친 0.5 → 0.714 · max_hit_ratio 0.35 → 1.0, 고친 0.5 → 0.5 · 키 없으면 기본."
+  },
+  {
+   "name": "PvpMathTest (새, 순수)",
+   "checks": "levelMult: Lv1~20 = 2.0, Lv35 ≈ 0.537, Lv50 ≈ 0.232 · bufferHp: Lv10 420, Lv20 840, Lv50 1200 · poolFactor · 강인함(S=360, Lv50 → 0.19) · 치명 2.5 → 1.9 · 긴 싸움 20초 1.0, 40초 0.5, 60초 0.1 · 높은 레벨 쪽을 쓴다."
+  },
+  {
+   "name": "PvpCcTest (새, 순수)",
+   "checks": "기절 1초 → 0.8 → 0.4 → 0.2 → 면역 · 8초 지나면 처음으로 · 빙결 4초 → 1.5초 (상한) · 기절 끝난 뒤 2초 안 기절 0 · 속박은 다른 분류라 기절 면역과 무관 · 0.2초 아래 0 이지만 횟수 셈 · 정신·판금 감소가 PvP 배율 앞."
+  },
+  {
+   "name": "PvpDamageHookTest (새, 가짜 Services)",
+   "checks": "같은 레벨 유리→유리 기본 공격 한 대가 공식대로 · 방어 0(defenseScale) · 스킬 pvp_mult 적용 · 같은 파티 0 · 몹 피해는 그대로 · 수호의 맹세 옮긴 피해는 두 번 줄이지 않음."
+  },
+  {
+   "name": "PvpHealTest (새)",
+   "checks": "PvP 전투 중: 치유 스킬 = (비율 + 치유력×HP비) × 0.6 · 물약 × 0.36 · 흡혈 × 0.5 × HP비 · 재생 × HP비 × 0.6 · 전투 밖이면 그대로 · 긴 싸움 줄어듦."
+  },
+  {
+   "name": "PvpSkillMultDataTest (새, 데이터)",
+   "checks": "classes.yml·items.yml 의 pvp_mult 가 pvp_spec.json `skill_mult` 와 같음 (38개) · 범위 0.1~1.0 · 없는 스킬은 1.0."
+  },
+  {
+   "name": "DamageFormulaTest",
+   "checks": "그대로 + defenseScale 0 이면 방어 무시와 같고, critDamageScale 0.6 이면 치명 2.5 → 1.9."
+  },
+  {
+   "name": "PvpRulesTest · PvpSourcesTest",
+   "checks": "그대로 (파티 규칙·책임 플레이어)."
+  },
+  {
+   "name": "UniqueProcTest (unique_spec)",
+   "checks": "shield_bash·imbue 서리가 플레이어에게 기절·빙결 그대로 (PvpCc 를 거침)."
+  }
+ ],
+ "migration": {
+  "max_hit_ratio": "0.35(안 고침) → 1.0, 그 밖은 그대로",
+  "damage_multiplier": "0.7(안 고침) → 1.0 (뜻: 기본 대비 배율), 고친 값 v → v/0.7",
+  "new_keys": "없으면 코드 기본값 = config.pvp",
+  "data": "classes.yml skills[].pvp_mult 7 · items.yml weapon_skills[].pvp_mult 31",
+  "docs": "GDD §18.3 다시 · §18.6 PvP 상태이상 · §18.7 PvP 회복 · §9.2 한 줄 · combat_spec §8.1 대체"
+ },
+ "_note": "설계 pvp_spec.json 사본 (sim 표 뺌). tools/gen_035_pvp.py · PvpSkillMultDataTest · PvpConfigTest 가 읽는다."
+}

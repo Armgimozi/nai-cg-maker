@@ -125,8 +125,12 @@ public final class MainMenu extends LabMenu {
             lore.add("<gray>같은 <#7fe07f>파티원</#7fe07f>끼리는 어디서든 서로 다치지 않습니다.");
             lore.add("<gray>그 밖의 플레이어는 야생·미궁 어디서든 공격할 수 있고,");
             lore.add("<gray>스킬·화살·물약도 똑같이 맞습니다." + (pc.safeZoneVillage() ? " <dark_gray>(마을 안은 금지)" : ""));
-            lore.add("<gray>플레이어끼리 피해 <white>×" + decimal(pc.damageMultiplier()) + "</white>"
-                    + (pc.maxHitRatio() < 1 ? " · 한 번에 최대 HP <white>" + Text.pct(pc.maxHitRatio()) + "</white>까지" : ""));
+            lore.add("<gray>스킬을 몰아 맞으면 쓰러질 수 있습니다."
+                    + (pc.maxHitRatio() < 1 ? " <dark_gray>(한 번에 최대 HP " + Text.pct(pc.maxHitRatio()) + ")" : ""));
+            lore.add("<gray>판금·방패·체력은 PvP 에서도 더 버팁니다.");
+            lore.add("<gray>기절·속박은 짧고, 연달아 맞으면 더 짧아집니다.");
+            lore.add("<gray>PvP 중 회복 <white>" + Text.pct(pc.healing()) + "</white> · 물약 <white>"
+                    + Text.pct(pc.healing() * pc.potion()) + "</white> <dark_gray>(오래 싸우면 더 줄어듦)");
             if (pc.partyNameColor()) lore.add("<gray>내 파티원 이름은 <#7fe07f>초록색</#7fe07f>으로 보입니다.");
             var death = services.settings().death();
             if (death.keepInventory()) {

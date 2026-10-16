@@ -115,14 +115,49 @@ combat:
 #   플러그인이 켤 때 모든 월드의 바닐라 PvP 규칙(게임 규칙 pvp)을 enabled 값으로 맞춘다 (server.properties 와 무관).
 pvp:
   enabled: true
-  # 플레이어 → 다른 플레이어 피해 배율. 미궁 피해 공식(공격력 × 주스탯 × 치명타)은 몹 HP 기준이라 그대로 쓰면 고레벨이 너무 세다.
-  # 근거 (GDD §3·§16.4 공식, 같은 레벨 광전사 → 사냥꾼, 희귀 장비 기준) — 배율 1.0 일 때 기본 공격 한 대가 상대 최대 HP 의
-  #   Lv1 8% · Lv20 9% · Lv30 13% · Lv44 19%, 궁극기(공격력 ×3.5) 치명타는 Lv44 에서 98% (= 한 방).
-  # 0.7 → 기본 공격으로 Lv1 18대 · Lv20 16대 · Lv30 11대 · Lv44 8대. 0.6 이하는 저레벨 싸움이 20대 넘게 늘어져서 0.7 로 둔다.
-  damage_multiplier: 0.7
-  # 한 번의 피해 상한 = 맞는 사람 최대 HP × 이 값. 0.35 → 체력이 가득하면 최소 3번은 맞아야 쓰러진다
-  # (위 배율만으로는 Lv44 치명타 궁극기가 69% 라 두 방이면 끝 — 그 순삭만 막는다). 1.0 = 상한 없음.
-  max_hit_ratio: 0.35
+  # ── 피해 (0.3.5, pvp_spec) ─────────────────────────────────────────────────────
+  # 플레이어 → 다른 파티 플레이어 피해 = 원피해 × 기준 배율 m(L) × 직업 보정 × 스킬 pvp_mult × (1 − 강인함) × HP ÷ (HP + 완충)
+  #   L = 두 사람 중 높은 레벨. 방어 대신 강인함, 치명 추가 피해 × crit_damage_scale. 한 바퀴(스킬을 몰아 쓰기)로 쓰러뜨릴 수 있다.
+  # 기본 대비 배율. 1.0 = 명세의 균형. 0.3.4 config 의 0.7(안 고친 값)은 1.0 으로, 고친 값 v 는 v ÷ 0.7 로 읽는다 (파일은 그대로).
+  damage_multiplier: 1.0
+  # 레벨 곡선: 기준 배율 = base × min(1, (ref_level ÷ L)^exponent) — Lv20 까지 2.0, Lv35 0.54, Lv50 0.23
+  #   (공격 쪽은 레벨²보다 빨리 크고 HP 는 레벨에 비례해서, 그대로 두면 Lv50 한 바퀴가 Lv20 의 3~4배가 된다)
+  level_curve: {base: 2.0, ref_level: 20, exponent: 2.35}
+  # 완충 체력 B(L) — 모두에게 같은 양 (HP 가 적은 사람과 많은 사람의 차이를 줄임). Lv20 까지 레벨마다 42, 그 위 레벨마다 +12
+  buffer_hp: {per_level_low: 42, knee_level: 20, per_level_high: 12}
+  # 피해 공식의 방어를 PvP 에서 얼마나 셀지 (0 = 방어 대신 아래 강인함)
+  defense_weight: 0.0
+  # 강인함 R = cap × S ÷ (S + per_level × 대상 레벨), S = 체력(VIT) + 방어 → 받는 PvP 피해 × (1 − R). 최대 40%
+  resilience: {cap: 0.40, per_level: 8}
+  crit_damage_scale: 0.6       # 치명 '추가' 피해 × 0.6 (치명 피해 2.5 → 1.9)
+  # 한 방 상한 (관리자용) = 맞는 사람 최대 HP × 이 값. 1.0 = 없음. 0.3.4 의 안 고친 0.35 는 1.0 으로 읽는다
+  max_hit_ratio: 1.0
+  # 직업 보정 (플레이어에게 주는 피해). 적지 않은 직업 = 1.0. 레벨대마다 따로: arcanist: {low: 1.2, mid: 1.1, high: 1.2}
+  class_damage: {hunter: 0.9, arcanist: 1.2, shadow: 1.2}
+  # 레벨대 경계 (두 사람 중 높은 레벨): mid 부터 mid, high 부터 high (그 아래 low)
+  class_damage_levels: {mid: 28, high: 43}
+  # ── 회복 · 보호막 ('PvP 전투 중' = 다른 파티 플레이어와 피해를 주고받은 지 combat_seconds 초 안) ──────────
+  combat_seconds: 8
+  healing: 0.6                 # 받는 모든 회복 (스킬·물약·장비·재생)
+  potion: 0.6                  # 물약은 한 번 더 (0.6 × 0.6 = 36%)
+  lifesteal: 0.5               # 플레이어를 때려 얻는 흡혈 — healing 대신 이 값
+  shield: 0.8                  # 새로 얻는 보호막
+  flat_heal_by_pool: true      # 고정량 회복(치유력·흡혈·재생)은 × 최대 HP ÷ (최대 HP + 완충) — 피해와 같은 단위로
+  # 긴 싸움: 전투가 start 초 넘게 이어지면 받는 회복·보호막이 초마다 per_second 씩 줄어든다 (floor 까지)
+  long_fight: {start: 20, per_second: 0.025, floor: 0.10}
+  # ── 상태이상 (플레이어가 다른 파티 플레이어에게 건 것만. 몹·보스가 건 것은 그대로) ──────────────────────
+  # 기절은 기절 그대로 — 시간만: 정신 감소 다음 × duration → max_seconds 까지 → 줄어듦 → 면역
+  cc:
+    duration: {stun: 0.8, frozen: 1.0, root: 0.8, silence: 0.8, blind: 0.7, slow: 1.0, cooldown_slow: 0.5}
+    max_seconds: {stun: 1.0, frozen: 1.5, root: 1.5, silence: 1.5, blind: 1.5, slow: 3.0, cooldown_slow: 2.0}
+    slow_max_potency: 0.5      # 플레이어에게 거는 둔화 세기 상한 (몹에게는 0.85)
+    diminishing:
+      window: 8                # 같은 분류를 이 시간(초) 안에 다시 맞으면
+      steps: [1.0, 0.5, 0.25, 0.0]   # 첫 번째 100% → 50% → 25% → 면역 (window 동안 안 맞으면 처음으로)
+      groups: {control: [stun, frozen], root: [root], silence: [silence], blind: [blind]}
+    control_immunity: 2.0      # 기절·빙결이 끝난 뒤 이 시간(초) 동안 기절·빙결 면역
+    min_seconds: 0.2           # 줄여서 이보다 짧으면 걸지 않는다 (그래도 횟수는 센다)
+  # ── 그 밖 ─────────────────────────────────────────────────────────────────────
   # 마을 안은 PvP 금지 — 주 월드 폴더의 labyrinth-village.yml(마을 기능이 만든다) 중심에서 반경 radius + safe_zone_margin 칸.
   # 마을 파일이 없으면 이 설정은 아무 일도 하지 않는다.
   safe_zone_village: true

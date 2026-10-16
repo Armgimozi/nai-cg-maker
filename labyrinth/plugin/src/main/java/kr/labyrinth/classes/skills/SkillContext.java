@@ -168,13 +168,18 @@ public final class SkillContext {
      */
     public double heal(LivingEntity target, double ratio) {
         if (target == null || target.isDead()) return 0;
-        double amount = services.damage().maxHp(target) * ratio + p("heal_power_scale", 1.0) * stats().healPower();
-        return healFlat(target, amount);
+        return heal(target, services.damage().maxHp(target) * ratio, p("heal_power_scale", 1.0) * stats().healPower());
     }
 
-    public double healFlat(LivingEntity target, double amount) {
-        if (amount <= 0 || target == null || target.isDead()) return 0;
-        double healed = services.damage().heal(target, amount, true);
+    /**
+     * 최대 HP 비율 몫(pct) + 치유력 몫(flat) 치유 — PvP 전투 중인 대상이면 회복 배율(pvp_spec §8). 넘친 치유는 PvP 배율을 거친 양 기준.
+     * @return 실제 회복량
+     */
+    public double heal(LivingEntity target, double pctAmount, double flatAmount) {
+        if (target == null || target.isDead()) return 0;
+        double amount = services.damage().healAmount(target, pctAmount, flatAmount, kr.labyrinth.combat.HealKind.SKILL);
+        if (amount <= 0) return 0;
+        double healed = services.damage().applyHeal(target, amount, true);
         if (classDef.passive() != null && "grace".equals(classDef.passive().id()) && target instanceof Player tp) {
             Params pp = classDef.passive().params();
             double over = amount - healed;

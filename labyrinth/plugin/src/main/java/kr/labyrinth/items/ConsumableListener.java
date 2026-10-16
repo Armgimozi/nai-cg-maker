@@ -127,10 +127,10 @@ final class ConsumableListener implements Listener, DamageInterceptor {
         Params u = def.use();
         double amount = u.dbl("amount", 0);
         switch (u.str("action", "")) {
-            case "heal" -> services.damage().heal(p, services.stats().maxHp(p) * amount, true);
+            case "heal" -> services.damage().heal(p, services.stats().maxHp(p) * amount, 0, kr.labyrinth.combat.HealKind.POTION, true);
             case "mana" -> services.classes().restoreMana(p, services.classes().maxMana(p) * amount);
             case "restore" -> {
-                services.damage().heal(p, services.stats().maxHp(p) * amount, true);
+                services.damage().heal(p, services.stats().maxHp(p) * amount, 0, kr.labyrinth.combat.HealKind.POTION, true);
                 services.classes().restoreMana(p, services.classes().maxMana(p) * amount);
             }
             case "cleanse" -> {

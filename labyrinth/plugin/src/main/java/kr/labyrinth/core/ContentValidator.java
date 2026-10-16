@@ -157,10 +157,16 @@ public final class ContentValidator {
                 if (!s.kind().isEmpty() && !SKILL_KINDS.contains(s.kind())) {
                     err(w + ".skills." + s.id(), "kind 는 physical | magic | hybrid | none: " + s.kind());
                 }
+                pvpMult(w + ".skills." + s.id(), s.pvpMult());
                 checkFxParams(w + ".skills." + s.id(), s.params());
             }
             if (d.baseHp() <= 0) err(w, "base_hp 는 양수");
         }
+    }
+
+    /** 스킬 pvp_mult (플레이어에게 주는 피해 배율, pvp_spec §6): 0.1 ~ 1.0. */
+    private void pvpMult(String where, double v) {
+        if (Double.isNaN(v) || v < 0.1 - 1e-9 || v > 1.0 + 1e-9) err(where, "pvp_mult 는 0.1 ~ 1.0: " + v);
     }
 
     private void checkFxParams(String where, Params p) {
@@ -191,6 +197,7 @@ public final class ContentValidator {
                 } else if (!WEAPON_SKILLS.contains(s.id())) err(sw, "알 수 없는 무기 스킬 구현 id");
                 if (!WEAPON_INPUTS.contains(s.input())) err(sw, "input 이 올바르지 않음: " + s.input());
                 if (!inputs.add(s.input())) err(sw, "같은 input 을 쓰는 무기 스킬이 둘: " + s.input());
+                pvpMult(sw, s.pvpMult());
                 checkFxParams(sw, s.params());
             }
             if (d.type() == ItemType.CONSUMABLE) {

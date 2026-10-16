@@ -33,6 +33,11 @@ public final class DamageFormula {
         return 100.0 / (100.0 + Math.max(0, defense));
     }
 
+    /** 치명 피해 배율의 '추가' 몫만 scale 배 (PvP crit_damage_scale: 2.5, 0.6 → 1.9). */
+    public static double scaledCritDamage(double critDamage, double scale) {
+        return 1.0 + Math.max(0, critDamage - 1.0) * Math.max(0, scale);
+    }
+
     public static Output compute(Input in, RandomGenerator rng) {
         double dmg = Math.max(0, in.amount());
         dmg *= Math.max(0.1, 1.0 + in.attackerDamageMult());

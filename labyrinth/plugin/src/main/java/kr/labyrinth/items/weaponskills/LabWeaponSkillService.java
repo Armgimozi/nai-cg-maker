@@ -370,8 +370,9 @@ public final class LabWeaponSkillService implements WeaponSkillService, Listener
     /** 낙하 피해 면제 (도약). */
     public void noFall(Player p, int ticks) { noFallUntil.merge(p.getUniqueId(), now() + ticks, Math::max); }
 
-    /** 보호막 (커스텀 HP 단위). 기존 보호막보다 크면 교체. */
-    public void shield(Player p, double amount, double seconds) {
+    /** 보호막 (커스텀 HP 단위). 기존 보호막보다 크면 교체. PvP 전투 중이면 × shield × 긴 싸움 (pvp_spec §8). */
+    public void shield(Player p, double base, double seconds) {
+        double amount = base * services.targets().pvp().shieldFactor(p);
         if (amount <= 0) return;
         int until = now() + SkillCast.ticks(seconds);
         shields.compute(p.getUniqueId(), (u, old) -> old == null || old.until < now() || old.amount < amount

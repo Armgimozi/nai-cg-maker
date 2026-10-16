@@ -37,9 +37,18 @@ public record ItemDef(
         String lore,
         Params raw) {
 
-    /** 무기 스킬. input = LEFT | RIGHT | SNEAK_LEFT | SNEAK_RIGHT. */
+    /**
+     * 무기 스킬. input = LEFT | RIGHT | SNEAK_LEFT | SNEAK_RIGHT.
+     * pvpMult = 플레이어에게 주는 피해 배율 (items.yml {@code weapon_skills[].pvp_mult}, 기본 1, 0.1~1.0 — pvp_spec §6).
+     */
     public record WeaponSkillDef(String id, String name, String input, double cooldown, double mana, Params params,
-                                 String description) {}
+                                 String description, double pvpMult) {
+
+        public WeaponSkillDef(String id, String name, String input, double cooldown, double mana, Params params,
+                              String description) {
+            this(id, name, input, cooldown, mana, params, description, 1.0);
+        }
+    }
 
     public ItemDef {
         if (type != ItemType.WEAPON) attack = null;

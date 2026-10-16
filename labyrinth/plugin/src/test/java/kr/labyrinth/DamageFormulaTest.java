@@ -46,6 +46,23 @@ class DamageFormulaTest {
         assertEquals(100, noCrit.damage(), 1e-9);
     }
 
+    /** PvP (pvp_spec §3·§5): 방어 × defenseScale(0) = 방어 무시와 같고, 치명 추가 피해 × 0.6 → 2.5 가 1.9. */
+    @Test
+    void pvpDefenseAndCritScales() {
+        double defense = 120;
+        var scaled = DamageFormula.compute(in(100, 0, 0, defense * 0.0, 0, 0, false, 0), fixed(0.99));
+        var ignored = DamageFormula.compute(new DamageFormula.Input(100, false, 0, 0, 0, 1.5, true, 0, true, defense, true, 0, 0,
+                0, true), fixed(0.99));
+        assertEquals(ignored.damage(), scaled.damage(), 1e-9, "defenseScale 0 = 방어 무시");
+        assertEquals(1.9, DamageFormula.scaledCritDamage(2.5, 0.6), 1e-9);
+        assertEquals(2.5, DamageFormula.scaledCritDamage(2.5, 1.0), 1e-9, "기본 1 = 그대로");
+        assertEquals(1.0, DamageFormula.scaledCritDamage(0.8, 0.6), 1e-9, "1 아래는 1");
+        var crit = DamageFormula.compute(new DamageFormula.Input(100, false, 0, 0, 1.0, DamageFormula.scaledCritDamage(2.5, 0.6),
+                true, 0, true, 0, false, 0, 0, 0, true), fixed(0.0));
+        assertTrue(crit.crit());
+        assertEquals(190, crit.damage(), 1e-9);
+    }
+
     @Test
     void evasionNegatesDamage() {
         var out = DamageFormula.compute(in(100, 0, 0.3, 0, 0, 0, false, 0), fixed(0.1));

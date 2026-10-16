@@ -263,7 +263,10 @@ public final class StatService implements Module, Listener {
         if (++tickCounter % 20 == 0) {
             for (Player p : Bukkit.getOnlinePlayers()) {
                 DerivedStats s = cache.get(p.getUniqueId());
-                if (s != null && s.hpRegen() > 0 && !p.isDead()) heal(p, s.hpRegen());
+                if (s != null && s.hpRegen() > 0 && !p.isDead()) {
+                    // PvP 전투 중이면 회복 배율 (고정량이라 × HP÷PvP 체력, pvp_spec §8)
+                    heal(p, services.damage().healAmount(p, 0, s.hpRegen(), kr.labyrinth.combat.HealKind.REGEN));
+                }
             }
         }
     }

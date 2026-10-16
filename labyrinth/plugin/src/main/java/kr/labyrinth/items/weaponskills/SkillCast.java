@@ -140,7 +140,7 @@ public final class SkillCast {
 
     public DamageContext hit(LivingEntity target, double mult, double knockback) {
         if (target == null || !targets().isEnemy(player, target) || mult <= 0) return null;
-        DamageContext ctx = DamageContext.skill(player, target, mult, type(), kind(), skill.id());
+        DamageContext ctx = DamageContext.skill(player, target, mult, type(), kind(), sourceId());
         if (knockback > 0 && !isBoss(target)) ctx.knockback(knockback);
         services.damage().deal(ctx);
         if (!ctx.cancelled() && !ctx.evaded()) afterHit(target);
@@ -190,14 +190,16 @@ public final class SkillCast {
 
     // ── 치유 ──────────────────────────────────────────────────────────────
 
-    /** 최대 HP × ratio + 치유력 × scale. */
+    /** 최대 HP × ratio + 치유력 × scale (PvP 배율 전). */
     public double healAmount(Player target, double ratio, double healPowerScale) {
         return services.stats().maxHp(target) * ratio + services.stats().get(player).healPower() * healPowerScale;
     }
 
+    /** 최대 HP × ratio(비율 몫) + 치유력 × scale(고정 몫) — PvP 전투 중인 대상이면 회복 배율 (pvp_spec §8). */
     public void heal(Player target, double ratio, double healPowerScale) {
-        double amount = healAmount(target, ratio, healPowerScale);
-        if (amount > 0) services.damage().heal(target, amount, true);
+        double pct = services.stats().maxHp(target) * ratio;
+        double flat = services.stats().get(player).healPower() * healPowerScale;
+        if (pct + flat > 0) services.damage().heal(target, pct, flat, kr.labyrinth.combat.HealKind.SKILL, true);
     }
 
     // ── 위치 ──────────────────────────────────────────────────────────────

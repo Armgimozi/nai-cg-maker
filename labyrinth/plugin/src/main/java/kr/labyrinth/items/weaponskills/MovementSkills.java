@@ -165,7 +165,7 @@ final class MovementSkills {
             c.player.setFallDistance(0);
             double mult = c.damage() * backBonus;
             if (guaranteedCrit) mult *= Math.max(1.0, c.services.stats().get(c.player).critDamage());
-            var ctx = kr.labyrinth.combat.DamageContext.skill(c.player, target, mult, c.type(), c.kind(), c.skill.id());
+            var ctx = kr.labyrinth.combat.DamageContext.skill(c.player, target, mult, c.type(), c.kind(), c.sourceId());
             if (guaranteedCrit) ctx.noCrit();
             if (c.targets().isEnemy(c.player, target)) {
                 c.services.damage().deal(ctx);

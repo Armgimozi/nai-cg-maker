@@ -317,7 +317,7 @@ final class MechanicsEngine {
                             p.integer("count", 10), p.dbl("spread", 0.3), p.dbl("speed", 0.05));
                     case "sound" -> playSound(t.getLocation(), p.str("sound", p.str("amount")), (float) p.dbl("volume", 1),
                             (float) p.dbl("pitch", 1));
-                    case "lifesteal" -> { if (dealt > 0) c.services.damage().heal(pl, dealt * e.amount(0.2), true); }
+                    case "lifesteal" -> { if (dealt > 0) c.services.damage().lifesteal(pl, t, dealt * e.amount(0.2), true); }
                     case "heal_caster" -> c.heal(pl, e.amount(0.05), p.dbl("power", 0.3));
                     case "mana" -> c.services.classes().restoreMana(pl, c.services.classes().maxMana(pl) * e.amount(0.05));
                     default -> { }
