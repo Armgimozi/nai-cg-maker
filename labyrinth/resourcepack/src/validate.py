@@ -473,3 +473,126 @@ def validate_rig(files, content, rep):
                     rep.err(f'{coll} {mid}/{p.get("name")}: {p.get("form")} with legs_walk must be cut into one part per leg (set)')
                 if p.get('form') == 'wing_pair' and not p.get('set'):
                     rep.err(f'{coll} {mid}/{p.get("name")}: a wing pair must be cut into wing_l / wing_r (set)')
+
+
+# ───────────────────────────── 0.3.6 광산 (계약 tools/data/036) ─────────────────────────────
+BLOCK_OVERRIDE = re.compile(r'^assets/[^/]+/(blockstates/|models/block/|textures/block/)')
+
+
+def _elements(files, model_ref):
+    ns, p = model_ref.split(':', 1)
+    path = f'assets/{ns}/models/{p}.json'
+    if path not in files:
+        return None
+    return json.loads(files[path].decode('utf-8')).get('elements') or []
+
+
+def validate_mine(files, content, contract, rep, mine_ids=(), aliases=None, nodes=None):
+    """계약 §3.8 · §8 Q4: 아이콘·곡괭이·보석 결정·옛 id 별칭·메뉴 배경·NPC 스킨 + 팩이 블록을 하나도 안 바꿈."""
+    vis = (contract or {}).get('visual') or {}
+    items = content.get('items') or {}
+    # 팩은 블록을 바꾸지 않는다 (광맥 = 바닐라 블록): blockstates · models/block · textures/block 0개
+    bad = sorted(p for p in files if BLOCK_OVERRIDE.match(p))
+    rep.checked += 1
+    rep.stats['block_overrides'] = len(bad)
+    if bad:
+        rep.err(f'pack overrides {len(bad)} block asset(s) (contract §3.3: zero): ' + ', '.join(bad[:5]))
+    if not vis:
+        rep.warnings.append('tools/data/036/visual.json not found — 0.3.6 mine asset checks skipped')
+        return
+    # 아이콘·곡괭이: 모든 계약 id 에 아이템 정의 + 모델
+    for iid in mine_ids:
+        rep.checked += 1
+        path = f'assets/{NS}/items/{iid}.json'
+        if path not in files:
+            rep.err(f'mine item {iid}: missing {path}')
+            continue
+        it = items.get(iid) or {}
+        want = (vis.get('icons') or {}).get(iid) or (vis.get('pickaxes') or {}).get(iid)
+        have = (it.get('texture') or {}).get('style')
+        if want and have and have != want.get('style'):
+            rep.warnings.append(f'mine item {iid}: items.yml style {have!r} ≠ contract {want.get("style")!r}')
+        if (it.get('model') or {}).get('shape', 'icon') == 'icon':
+            img = _png(files, f'assets/{NS}/textures/item/{iid}.png', rep)
+            if img is not None and img.size[0] != 32:
+                rep.err(f'mine icon {iid}: {img.size} (icons are 32 px wide)')
+    picks = vis.get('pickaxes') or {}
+    worst = {}
+    for iid, pk in picks.items():
+        rep.checked += 1
+        it = items.get(iid) or {}
+        if (it.get('model') or {}).get('shape') != 'pickaxe':
+            rep.err(f'pickaxe {iid}: model.shape {(it.get("model") or {}).get("shape")!r} (contract: pickaxe)')
+        els = _elements(files, f'{NS}:item/{iid}')
+        if els is None:
+            rep.err(f'pickaxe {iid}: no model')
+            continue
+        budget = int(pk.get('element_budget') or 380)
+        worst[iid] = len(els)
+        if len(els) > budget:
+            rep.err(f'pickaxe {iid}: {len(els)} elements > budget {budget}')
+        m = json.loads(files[f'assets/{NS}/models/item/{iid}.json'].decode('utf-8'))
+        for ctx_name in ('firstperson_righthand', 'thirdperson_righthand', 'gui', 'fixed'):
+            if ctx_name not in (m.get('display') or {}):
+                rep.err(f'pickaxe {iid}: display.{ctx_name} missing (held model = displays.voxel_weapon)')
+    rep.stats['pickaxe_elements'] = '/'.join(str(worst[k]) for k in picks if k in worst)
+    # 보석 노드 결정: visual.json gem_nodes 의 6개, ≤ 300 요소, 바닥이 모델 y = 8 (ItemDisplay 원점 = 블록 면)
+    want_nodes = ((vis.get('gem_nodes') or {}).get('models')) or {}
+    counts = []
+    for key, d in want_nodes.items():
+        rep.checked += 1
+        ref = f'{NS}:item/mine/{key}'
+        check_item_definition(files, f'assets/{NS}/items/mine/{key}.json', rep, {})
+        els = _elements(files, ref)
+        if not els:
+            rep.err(f'gem node {key}: no model')
+            continue
+        counts.append(len(els))
+        cap = min(300, int(d.get('element_budget') or 300))
+        if len(els) > cap:
+            rep.err(f'gem node {key}: {len(els)} elements > {cap}')
+        lo = min(e['from'][1] for e in els)
+        if not 7.0 <= lo <= 8.5:
+            rep.err(f'gem node {key}: base at model y {lo} (must sit on the block face, y = 8)')
+        if d.get('glow') and not any(e.get('light_emission') for e in els):
+            rep.err(f'gem node {key}: contract glow=true but no emissive element')
+    rep.stats['gem_node_elements'] = '/'.join(map(str, counts))
+    # 옛 재료 별칭 (두 판): items/<옛 id>.json → 새 id 의 모델
+    mat = (contract or {}).get('materials') or {}
+    retired = set((mat.get('retired') or {})) | set(((mat.get('conversion') or {}).get('map')) or {})
+    for old in sorted(retired):
+        rep.checked += 1
+        if old in items:
+            continue
+        new = (aliases or {}).get(old)
+        path = f'assets/{NS}/items/{old}.json'
+        if not new or path not in files:
+            rep.err(f'retired id {old}: no alias item definition (contract §2.10: keep two versions)')
+            continue
+        refs = set()
+
+        def walk(n):
+            if isinstance(n, dict):
+                if 'model' in n and isinstance(n['model'], str):
+                    refs.add(n['model'])
+                for v in n.values():
+                    walk(v)
+        walk(json.loads(files[path].decode('utf-8')))
+        if refs != {f'{NS}:item/{new}'}:
+            rep.err(f'retired id {old}: alias points at {sorted(refs)} (want {NS}:item/{new})')
+    # 메뉴 배경 (glyphs.yml menus) · NPC 스킨
+    menus = (content.get('glyphs') or {}).get('menus') or {}
+    for mid, md in (vis.get('menus') or {}).items():
+        gid = (md or {}).get('glyph') or ''
+        if not gid.startswith('gui_') or ' ' in gid:
+            continue                                      # 'gui_merchant (재사용)' 같은 설명 줄
+        rep.checked += 1
+        if (menus.get(mid) or {}).get('glyph') != gid:
+            rep.err(f'menu {mid}: glyphs.yml menus.{mid}.glyph must be {gid} (contract visual.json menus)')
+        elif (menus.get(mid) or {}).get('rows') != md.get('rows'):
+            rep.err(f'menu {mid}: rows {(menus.get(mid) or {}).get("rows")} ≠ contract {md.get("rows")}')
+    for role, d in (vis.get('npcs') or {}).items():
+        if isinstance(d, dict) and d.get('skin'):
+            rep.checked += 1
+            if f'assets/{NS}/textures/entity/npc/{d["skin"]}.png' not in files:
+                rep.err(f'npc {role}: skin {d["skin"]} not painted')
