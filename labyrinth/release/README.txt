@@ -171,8 +171,8 @@
     플레이어끼리는 피해·회복이 따로 맞춰져 있습니다 (방어 대신 'PvP 강인함', 회복·보호막은 조금 줄어듦).
       기절·빙결은 짧게 걸리고, 같은 종류가 연달아 걸리면 점점 약해지다 잠깐 면역이 됩니다. /스탯 에 PvP 강인함·체력이 나옵니다.
     내 파티원 이름은 초록색으로 보입니다. 다른 파티와 싸움이 시작되면 화면 아래에 'PvP' 가 잠깐 뜹니다.
-    미궁 밖에서는 어디서 죽든 소지품과 경험치 레벨을 떨어뜨리지 않습니다 (인벤세이브 — 야생·마을·네더·엔드, PvP 로 죽어도).
-      서버장이 바닐라처럼 떨어뜨리게 하려면 config.yml 의 death: keep_inventory / keep_level 을 false 로.
+    미궁 밖에서는 어디서 죽든 소지품을 떨어뜨리지 않습니다 (인벤세이브 — 야생·마을·네더·엔드, PvP 로 죽어도).
+      서버장이 바닐라처럼 떨어뜨리게 하려면 config.yml 의 death: keep_inventory 를 false 로.
       대신 죽으면 이번 레벨 경험치가 처음으로 돌아갑니다 (아래 [죽으면]).
     파티를 나가면 그때부터 남입니다 — 미궁 안에 같이 남아 있어도 서로 맞습니다.
     서버장: /labadmin pvp 로 지금 규칙·배율·마을 안전지대를 확인. 숫자는 config.yml 의 pvp: 에서 바꿉니다.
@@ -204,7 +204,7 @@
     어디서 죽든 이번 레벨에서 모은 경험치가 처음으로 돌아갑니다 (레벨은 내려가지 않음, 최고 레벨이면 그대로).
     미궁 안에서 쓰러지면 가방 속 물건 2~3칸이 통째로 사라집니다 (떨어지지 않음 — 되찾을 수 없음).
       손에 든 칸 · 입은 갑옷 · 장신구 · 보조손 · 열쇠와 문장은 안전합니다. 그 밖의 소지품은 그대로 지닙니다.
-    미궁 밖에서는 소지품·경험치 레벨을 떨어뜨리지 않습니다 (인벤세이브, config.yml 의 death:).
+    미궁 밖에서는 소지품을 떨어뜨리지 않습니다 (인벤세이브, config.yml 의 death: keep_inventory).
     미궁 안에서 쓰러지면 관전 모드가 되고,
     파티원이 휴식방에 닿거나 보스를 쓰러뜨리면 부활합니다. 사제의 '부활의 성가' 로도 일으킬 수 있어요.
     파티 전원이 쓰러지면 공략 실패 → 입구로 돌아옵니다.
@@ -284,9 +284,11 @@
 
   plugins/Labyrinth/ 폴더 (서버를 한 번 켜면 생깁니다)
     config.yml      난이도 프리셋(difficulties — 난이도마다 배율 한 벌), 판매 가격(sell), 화면 알림(hud), 파티 인원 배율·솔로 보정(party: solo_hp·solo_damage),
-                    리소스팩(pack: port·url·sha1), 전투(피해 숫자·치명타), 레벨 곡선(level), 무기 공격 속도,
+                    리소스팩(pack: port·url·sha1·public_copy), 전투(피해 숫자·치명타 · 활로 직접 칠 때 bow_melee_mult · 마법탄 caster_bolt),
+                    레벨 곡선(level), 무기 공격 속도,
                     몬스터(mobs: 정예 변종 확률), 점진 힌트(hints: mode·thresholds), 시작 꾸러미(starter_kit),
                     직업 변경 제한(class_change: 두루마리·대기 시간), 죽을 때 소지품 보존(death: keep_inventory·keep_level),
+                    죽음 페널티(death: penalty — 경험치·미궁에서 잃는 칸),
                     강화(enhance: 확률·하락·능력치 곡선 stat_bonus·강화석),
                     야생 막기(wild: 마을 둘레 월드 경계 border·border_margin · 마을 월드 스폰 막기 spawns: all|monsters|none)
                     광산(mine: 승강기 시간·광맥 재생 · 광산 마을 district: auto_build·sites·blocks_per_tick·notify_admins)
@@ -331,8 +333,10 @@
   · 플러그인을 바꿀 때는 /reload 대신 서버를 껐다 켜세요.
   · 마을 상태 점검 → 서버 창에 labadmin village selftest (블록·NPC·입구가 제자리인지), labadmin village info.
     NPC 나 입구가 엉뚱한 곳에 있으면 labadmin village apply 로 마을 자리에 다시 놓습니다.
-  · 광산 마을이 안 생김 → 서버 창에 labadmin village district info. 'blocked' 기록이 있으면 그 자리에 사람이 만든 것이 있어서입니다
-    (plugins/Labyrinth/village/district-mine-blocked.txt 에 좌표). 치운 뒤 다시 켜거나, 다른 자리에 build mine here east.
+  · 광산 마을이 안 생김 → 서버 창에 labadmin village district info. 막힘 기록이 있으면
+    plugins/Labyrinth/village/district-mine-blocked.txt 에 이유가 있습니다 (그 자리에 사람이 만든 것 · 서버팩 월드가 아님).
+    만든 것을 치웠으면 서버를 다시 켜면 다시 살펴봅니다. 다른 자리에 지으려면 게임 안에서 그 자리에 서서
+    /labadmin village district preview mine here east → /labadmin village district build mine here east
   · 마을 밖으로 못 나감 · 몹이 안 나옴 → 야생 막기입니다 (config.yml 의 wild). 상태는 labadmin wild,
     점검은 labadmin wild selftest. 경계를 넓히려면 wild: border_margin, 끄려면 border: false 로 바꾸고 /labadmin reload.
 
@@ -354,8 +358,7 @@
   ※ 예전 월드에 지은 건물은 world_old 에 그대로 있습니다. 돌아가려면 서버를 끄고 폴더 이름만 되돌리면 됩니다.
   ※ 관리자가 예전 월드에 따로 세운 NPC(setnpc)는 예전 좌표에 남으니 필요하면 다시 setnpc 하세요.
   ※ 이미 '등불 어귀 마을' world 를 쓰는 서버(광장·미궁의 아가리가 있음)는 2~4번을 건너뛰고 plugins/Labyrinth.jar 만 바꾸면 됩니다.
-     0.3.2 이후 서버는 plugins/Labyrinth.jar 만 바꾸면 됩니다. (0.3.6.1 의 광산 마을은 처음 켤 때 저절로 지어집니다)
-  ※ (0.3.6.1) jar 만 바꾸면 됩니다 — 아래 '■ 0.3.6.1' 의 [업데이트 방법].
+     0.3.2 이후 서버는 plugins/Labyrinth.jar 만 바꾸면 됩니다 (0.3.6.1 은 아래 '■ 0.3.6.1' 의 [업데이트 방법]).
   ※ (0.3.6) jar 만 바꾸는 법: 서버를 끔 (stop) → plugins 의 예전 Labyrinth jar 를 지우고 새 jar 를 넣음 → 서버를 켬.
      처음 켤 때 서버 폴더에 광산 월드(labyrinth_mine)를 만들고 6층을 짓습니다 (서버 창에 '[광산] 켜짐' 줄이 나옵니다).
      옛 재료 8가지(녹슨 철괴·슬래그 주괴·불씨 조각·서리 결정·자수정 파편·프리즘 가루·놋쇠 톱니·태엽 용수철)는 가방·엔더 상자·상자·셜커·
@@ -434,8 +437,7 @@
       금 곡괭이        = 은 곡괭이 + 금 주괴 20 + 황옥 3 + 미궁 정수 2 + 2,500G
       미스릴 곡괭이    = 금 곡괭이 + 미스릴 주괴 24 + 청옥 3 + 미궁 정수 4 + 5,000G
       오리하르콘 곡괭이 = 미스릴 곡괭이 + 오리하르콘 주괴 12 + 용혈석 2 + 찬란한 미궁 정수 3 + 10,000G
-    미스릴 곡괭이로도 오리하르콘 광석과 용혈석을 캘 수 있습니다. 오리하르콘 곡괭이는 무엇이든 가장 빨리 캐는 마지막 곡괭이라
-    다른 곡괭이보다 재료를 적게 받습니다.
+    오리하르콘 곡괭이는 마지막 곡괭이라 주괴·보석이 덜 듭니다.
   · 보석 노드는 벽에서 튀어나온 결정 대신 네모난 광석 블록입니다 (보석마다 그림이 다름, 빛나지 않음).
   · 구리 곡괭이의 끌 날이 흰 덩이가 아니라 구리색으로 보입니다.
   · 리소스팩 주소를 손으로 고치지 않아도 됩니다.
@@ -482,18 +484,26 @@
     레벨은 내려가지 않습니다. 최고 레벨이면 잃을 것이 없습니다. 광산 안에서는 다치지 않아 죽지 않습니다.
   · 미궁 공략 중 쓰러지면 가방(단축 칸 포함)에서 2~3칸을 통째로 잃습니다. 잃은 물건은 바닥에 떨어지지 않고 사라집니다.
     손에 든 칸 · 입은 갑옷 · 장신구 · 보조손은 안전합니다. 직업 문장 · 금고 열쇠 같은 열쇠 종류와 미궁 화살(무한)도 잃지 않습니다.
-    빈 칸은 세지 않고, 물건이 든 칸이 둘보다 적으면 있는 만큼만 잃습니다. 셜커 상자도 한 칸입니다.
+    빈 칸은 세지 않고, 물건이 든 칸이 둘보다 적으면 있는 만큼만 잃습니다.
+    가방 속 셜커 상자는 안에 든 것까지 통째로 한 칸으로 사라집니다. 손에 들거나 보조손에 둔 셜커 상자는 안에 든 것까지 안전합니다.
   · 쓰러지면 (미궁 밖이면 다시 살아난 뒤) 채팅에 무엇을 잃었는지 나옵니다.
       예) 죽어서 잃었습니다: 철 주괴 ×13, 하급 치유 물약 ×5
           이번 레벨 경험치가 처음으로 돌아갔습니다. (-1,234 XP)
     미궁에 처음 들어갈 때 이 규칙을 한 번 알려 줍니다.
   · 미궁 밖의 소지품은 지금처럼 config.yml death: keep_inventory 대로입니다 (false 면 바닐라처럼 그 자리에 떨어지고, 더 빼앗지 않음).
-  · 토템이나 부활 물약으로 살아나면 죽은 것이 아니라 아무것도 잃지 않습니다. 접속을 끊으면 그때처럼 공략에 남아 있다가
-    다시 들어오면 합류합니다 (쓰러진 것이 아니라 잃지 않음). 관리자 시험 입장(/labadmin tpfloor)은 물건을 잃지 않습니다.
+  · 토템이나 불사조 깃털로 살아나면 아무것도 잃지 않습니다. 접속을 끊으면 지금처럼 공략에 남아 있다가
+    다시 들어오면 합류합니다 (쓰러진 것이 아니라 잃지 않음).
+    관리자 시험 입장(/labadmin tpfloor)에서는 물건을 잃지 않습니다 (경험치는 똑같이 처음으로).
   · 서버장: 서버 콘솔에 "[죽음 페널티] 이름 … 잃은 물건 …" 이 남습니다 (되돌려 줄 때 보세요).
   · 설정: config.yml 의 death: 아래 penalty: — 예전 config.yml 에 이 블록이 없어도 jar 만 바꾸면 켜집니다.
       penalty: false (모두 끔) · xp_progress_reset: false (경험치 끔) · dungeon_item_loss: false (물건 끔)
-      slots_min / slots_max (몇 칸) · safe_items: [return_scroll] (더 지켜 줄 아이템 — items.yml id 나 바닐라 이름)
+      몇 칸 잃는지와 더 지켜 줄 아이템은 dungeon_item_loss: 안에 적습니다 (penalty: 바로 아래에 적으면 읽지 않음). 예)
+        death:
+          penalty:
+            dungeon_item_loss:
+              slots_min: 1
+              slots_max: 2
+              safe_items: [return_scroll]     # items.yml id 나 바닐라 이름
 
   [업데이트 방법]  (0.3.2 이후 서버 — 그보다 예전이면 위 '이미 돌리던 서버 업데이트' 부터)
   1. 서버를 끕니다 (서버 창에 stop).
@@ -506,11 +516,14 @@
      · 광산 층을 새 보석 블록으로 다시 짓습니다 (옛 보석 블록과 결정이 없어짐).
      · 리소스팩 주소가 저절로 맞춰집니다 (위 [광산 손보기]). pack: url · sha1 을 손으로 고칠 필요 없습니다.
   · 죽음 페널티를 끄려면 config.yml 의 death: 아래에 penalty: false 한 줄을 넣고 /labadmin reload.
+    새로 받은 config.yml 에는 penalty: 블록이 이미 있으니, 그 블록을 통째로 penalty: false 한 줄로 바꾸세요.
+  · content 파일 중 items · recipes · mine · classes 가 바뀌었습니다. 고친 적이 없으면 저절로 새 판이 됩니다.
+    고친 적이 있으면 위 [설정·콘텐츠 파일] 처럼 새 파일을 받으세요 (recipes.yml 이 예전 것이면 새 곡괭이 레시피가 안 들어갑니다).
   · 광산 마을 자리에 누가 무엇을 지었거나 땅을 팠으면(판자·흙집·구덩이·심은 나무·갑옷 거치대 등) 블록을 하나도 바꾸지 않습니다.
     남쪽 옆 자리(south_east)를 살펴보고, 거기도 막히면 짓지 않고 plugins/Labyrinth/village/district-mine-blocked.txt 에 이유와
     좌표를 남깁니다. 관리자(op)가 들어오면 하루 한 번 알려 줍니다. 광산은 /미궁 광산 으로 그대로 쓸 수 있습니다.
-    다른 곳에 지으려면 큰길에서 이어질 자리에 서서 labadmin village district preview mine here east (미리 보기, 안 바꿈)
-    → labadmin village district build mine here east (east 대신 north·south·west 도 됨).
+    다른 곳에 지으려면 게임 안에서 큰길에서 이어질 자리에 서서 /labadmin village district preview mine here east
+    (미리 보기, 안 바꿈) → /labadmin village district build mine here east (east 대신 north·south·west 도 됨).
   · 짓다가 서버가 꺼지면 다음에 켤 때 백업으로 되돌린 뒤 처음부터 다시 짓습니다.
   · 저절로 짓지 않으려면 업데이트 전에 config.yml 의 mine: 아래에 district: {auto_build: false} 를 적으세요.
   · 상태 보기: labadmin village district info · 점검: labadmin village selftest (마을과 광산 마을 두 줄)

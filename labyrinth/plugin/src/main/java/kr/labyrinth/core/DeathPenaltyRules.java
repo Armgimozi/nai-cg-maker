@@ -61,7 +61,7 @@ public final class DeathPenaltyRules {
                 on = false;
             } else if (loss instanceof ConfigurationSection l) {
                 on = l.getBoolean("enabled", on);
-                min = l.getInt("slots_min", min);
+                min = l.getInt("slots_min", Math.min(min, l.getInt("slots_max", max))); // slots_max: 1 만 적으면 1칸 (min 기본 2 가 끌어올리지 않게)
                 max = l.getInt("slots_max", max);
                 safe = l.getStringList("safe_items").stream().filter(s -> s != null && !s.isBlank())
                         .map(s -> s.trim().toLowerCase(Locale.ROOT)).collect(Collectors.toSet());

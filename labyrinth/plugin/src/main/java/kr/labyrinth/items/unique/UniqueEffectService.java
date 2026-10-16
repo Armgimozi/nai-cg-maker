@@ -254,7 +254,7 @@ public final class UniqueEffectService implements UniqueEffects, DamageService.H
         if (!basic && !skill) return;
         UniqueDef u = uniqueFor(p, ctx); // 화살은 쏜 활의 고유 효과 (0.3.6.1)
         if (u == null || u.effect() == null) return;
-        if (ctx.killed()) onKill(p, u, t, now);
+        if (ctx.killed()) onKill(p, u, t, now, ctx);
         if (ctx.evaded() || ctx.dealt() <= 0) return;
         if (!basic && !u.effect().onSkill()) return;
         UUID me = p.getUniqueId();
@@ -305,7 +305,7 @@ public final class UniqueEffectService implements UniqueEffects, DamageService.H
                 if (procs.nth(me, "bash_stun", u.count("n"))) bash(p, u, t, alive, now, hitW(p, ctx), hitKind(p, ctx));
             }
             case "sanctify" -> {
-                if (procs.ready(me, "sanctify", null, u.effect().icd(), now)) sanctify(p, u);
+                if (procs.ready(me, "sanctify", null, u.effect().icd(), now)) sanctify(p, u, ctx);
             }
             case "momentum" -> {
                 int n = procs.momentum(me, u.count("max_stacks"), u.num("decay"), now);
@@ -324,7 +324,8 @@ public final class UniqueEffectService implements UniqueEffects, DamageService.H
 
     // ── 효과 ─────────────────────────────────────────────────────────────
 
-    private void onKill(Player p, UniqueDef u, LivingEntity victim, long now) {
+    /** 처치 효과. 화살·마법탄으로 처치하면 쏜 무기 기준 (피해 종류 · 재사용 대기를 줄일 무기) — 날아가는 사이 바꿔 쥔 무기가 아님. */
+    private void onKill(Player p, UniqueDef u, LivingEntity victim, long now, DamageContext ctx) {
         UUID me = p.getUniqueId();
         double icd = u.effect().icd();
         switch (u.id()) {
@@ -340,7 +341,7 @@ public final class UniqueEffectService implements UniqueEffects, DamageService.H
                 int n = 0;
                 for (LivingEntity x : services.targets().enemiesIn(p, at, u.num("radius"))) {
                     if (x.equals(victim)) continue;
-                    hit(p, x, u.num("pct"), weaponKind(p), DamageContext.Base.SKILL, "death_burst", Double.NaN);
+                    hit(p, x, u.num("pct"), hitKind(p, ctx), DamageContext.Base.SKILL, "death_burst", Double.NaN);
                     if (++n >= UniqueProcs.BURST_TARGETS) break;
                 }
                 SkillFx.burst(at, Particle.EXPLOSION, 1, 0, 0, null);
@@ -356,7 +357,8 @@ public final class UniqueEffectService implements UniqueEffects, DamageService.H
                 if (!procs.ready(me, "siphon", null, icd, now)) return;
                 services.classes().restoreMana(p, services.classes().maxMana(p) * u.num("mp"));
                 ItemDef w = services.items().heldWeapon(p);
-                if (w != null) services.weaponSkills().reduceCooldowns(p, w.id(), u.num("cdr"));
+                String wid = uniqueWeaponId(ctx.firedWith(), w == null ? null : w.id()); // 쏜 지팡이·활 (그 밖은 든 무기)
+                if (wid != null) services.weaponSkills().reduceCooldowns(p, wid, u.num("cdr"));
                 SkillFx.burst(p.getLocation().add(0, 1.2, 0), Particle.WITCH, 6, 0.3, 0.02, null);
             }
             default -> { }
@@ -426,9 +428,10 @@ public final class UniqueEffectService implements UniqueEffects, DamageService.H
         SkillFx.sound(t.getLocation(), Sound.ITEM_SHIELD_BLOCK, 0.6f, 0.7f);
     }
 
-    private void sanctify(Player p, UniqueDef u) {
+    /** 무기 W·종류는 이 피해의 것 ({@link #hitW} · {@link #hitKind} — 화살·마법탄은 쏜 무기). */
+    private void sanctify(Player p, UniqueDef u, DamageContext ctx) {
         DerivedStats st = stats(p);
-        double amount = st.weaponDamage() * st.power(st.weaponKind()) * u.num("pct") + st.healPower() * UniqueProcs.SANCTIFY_HEAL_POWER;
+        double amount = hitW(p, ctx) * st.power(hitKind(p, ctx)) * u.num("pct") + st.healPower() * UniqueProcs.SANCTIFY_HEAL_POWER;
         if (amount <= 0) return;
         List<Player> allies = services.targets().alliesIn(p, p.getLocation(), u.num("radius"));
         boolean solo = allies.stream().allMatch(a -> a.equals(p));
@@ -518,9 +521,15 @@ public final class UniqueEffectService implements UniqueEffects, DamageService.H
      */
     private double hitW(Player p, DamageContext ctx) { return ctx.hasWeaponHit() ? ctx.weaponHit() : stats(p).weaponDamage(); }
 
-    /** 덧 피해의 피해 종류: 화살은 쏜 활의 종류 (ctx), 근접은 지금 든 무기. */
-    private DamageKind hitKind(Player p, DamageContext ctx) {
-        return ctx.firedWith() != null && ctx.kind() != null ? ctx.kind() : weaponKind(p);
+    /** {@link #hitW} 의 순수 판 (시험용): 쏜 무기 W 가 ctx 에 있으면 그것, 없으면 지금 든 무기 W. */
+    static double hitW(DamageContext ctx, double heldW) { return ctx.hasWeaponHit() ? ctx.weaponHit() : heldW; }
+
+    /** 덧 피해의 피해 종류: 화살·마법탄은 쏜 무기의 종류 (ctx), 근접은 지금 든 무기. */
+    private DamageKind hitKind(Player p, DamageContext ctx) { return hitKind(ctx, weaponKind(p)); }
+
+    /** {@link #hitKind(Player, DamageContext)} 의 순수 판 (시험용). */
+    static DamageKind hitKind(DamageContext ctx, DamageKind heldKind) {
+        return ctx.firedWith() != null && ctx.kind() != null ? ctx.kind() : heldKind;
     }
 
     private static void mult(DamageContext ctx, double m) {

@@ -2002,6 +2002,7 @@ death: {keep_inventory: true, keep_level: true,     # 인벤세이브 §2.6
         penalty: {xp_progress_reset: true, dungeon_item_loss: {enabled: true, slots_min: 2, slots_max: 3, safe_items: []}}}   # §2.6.1 (끄기 penalty: false)
 combat: {base_crit_chance: 0.05, base_crit_damage: 1.5, attack_interval_min: 0.25, early_click_buffer: 0.35, early_click_sound: true,
          click_tolerance_ms: 50, jump_crit: 1.2, bow_full_draw_cue: true, damage_numbers: true}   # §3 (게이지 없음)
+#        0.3.6.1: combat.bow_melee_mult: 0.5 (§4.6 활로 직접 치면) · combat.caster_bolt: {enabled: true, range: 16, speed: 2.5, radius: 0.3, pvp_knockback: 0.6, trail: true, sound: true} (§11.2.1, false = 휘두르기)
 weapon_attack_speed: {none: 1.6}   # 0.3.5 부터 맨손(none)만 읽는다 — 무기 간격은 items.yml attack.interval
 armor_looks: {enabled: true, heavy: {piece: …, full: …}, light: …, cloth: …}   # §11.8 (false = 모두 끔)
 hud: {skill_messages: false, skill_bar_on_swap: false}   # 스킬 알림 줄 (0.3.4.1 기본 끔)
