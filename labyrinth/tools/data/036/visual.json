@@ -1,0 +1,991 @@
+{
+ "contract": "0.3.6",
+ "schema": 1,
+ "note": "계약 (Q0). 손으로 고치지 말고 tools/data/036/model/params.py 를 고친 뒤 run_all.py — check_contract.py 가 지킨다.",
+ "blocks": {
+  "ores": {
+   "copper_ore": {
+    "block": "minecraft:copper_ore",
+    "why": "바닐라 구리 광석 그대로 — 누구나 구리로 읽음"
+   },
+   "iron_ore": {
+    "block": "minecraft:iron_ore",
+    "why": "바닐라 철 광석 그대로"
+   },
+   "silver_ore": {
+    "block": "minecraft:calcite",
+    "why": "방해석: 어두운 벽에 하얀 줄 (V 비교 4개 중 가장 잘 보임, 바닐라에 은빛 점 광석 없음)"
+   },
+   "gold_ore": {
+    "block": "minecraft:gold_ore",
+    "why": "바닐라 금 광석 (돌 바탕) — 심층암 금 광석은 오리하르콘·용혈석 쪽 어두운 블록과 헷갈려 뺌"
+   },
+   "mithril_ore": {
+    "block": "minecraft:deepslate_diamond_ore",
+    "why": "심층암 다이아 광석: 어두운 바탕에 청록 점 (V)"
+   },
+   "orichalcum_ore": {
+    "block": "minecraft:ancient_debris",
+    "why": "고대 잔해: 바닐라에서 가장 귀하고 단단한 광석으로 읽힘. 붉은 갈색 결 (별 주제가 없어져 V 의 반대 이유가 사라짐)"
+   }
+  },
+  "gems": {
+   "quartz": {
+    "block": "minecraft:nether_quartz_ore",
+    "why": "네더 석영 광석 + 석영 결정 모델 (V)",
+    "node_model": "labyrinth:mine/node_quartz"
+   },
+   "garnet": {
+    "block": "minecraft:cinnabar",
+    "why": "진사(26.x): 자연스러운 붉은 돌, 자기 소리 (V)",
+    "node_model": "labyrinth:mine/node_garnet"
+   },
+   "moonstone": {
+    "block": "minecraft:sea_lantern",
+    "why": "바다 랜턴: 희뿌옇게 빛남, 캐면 그 사람 화면에서 빛이 꺼짐 (V)",
+    "node_model": "labyrinth:mine/node_moonstone"
+   },
+   "topaz": {
+    "block": "minecraft:glowstone",
+    "why": "발광석: 노란 결정 덩이가 빛남 — 자연 블록, 노랑은 이것뿐(금 광석과 바탕·밝기가 다름)",
+    "node_model": "labyrinth:mine/node_topaz"
+   },
+   "sapphire": {
+    "block": "minecraft:deepslate_lapis_ore",
+    "why": "심층암 청금석 광석 + 청옥 결정 모델 (V)",
+    "node_model": "labyrinth:mine/node_sapphire"
+   },
+   "dragonblood_stone": {
+    "block": "minecraft:magma_block",
+    "why": "마그마 블록: 붉게 맥박치는 돌 = 용의 피. 광산 안은 피해가 없어 밟아도 안전, 물이 없어 거품 기둥 없음",
+    "node_model": "labyrinth:mine/node_dragonblood"
+   }
+  },
+  "depleted": {
+   "1": "minecraft:cobblestone",
+   "2": "minecraft:mossy_cobblestone",
+   "3": "minecraft:cobbled_deepslate",
+   "4": "minecraft:cobblestone",
+   "5": "minecraft:cobbled_deepslate",
+   "6": "minecraft:blackstone"
+  },
+  "forbidden": [
+   "minecraft:redstone_ore",
+   "minecraft:deepslate_redstone_ore",
+   "minecraft:gravel",
+   "minecraft:sand",
+   "minecraft:suspicious_gravel",
+   "minecraft:potent_sulfur",
+   "minecraft:budding_amethyst"
+  ],
+  "rules": [
+   "광석·보석 블록 12개는 서로 모두 다름 (Tool 규칙이 블록 종류마다 하나 · 층이 섞여 종류마다 블록이 하나)",
+   "lit/powered 상태(레드스톤 광석)·떨어지는 블록·블록 엔티티·정육면체 아닌 블록 안 됨",
+   "광석·보석·빈 광맥 블록은 광산 어느 층 장식·벽·바닥에도 쓰지 않음 (캐지는 것처럼 보이면 헷갈림)",
+   "빈 광맥 블록은 그 층 벽·바닥 재료와 다름 (캔 자리가 길잡이)",
+   "청사진은 @vein:<광석 id> · @gem:<보석 id> 논리 글자 — 블록을 바꿔도 청사진은 그대로",
+   "팩은 블록을 하나도 바꾸지 않음 (blockstates·models/block·textures/block 0개)",
+   "구역 건물의 구리는 모두 waxed_*"
+  ]
+ },
+ "levels": {
+  "1": {
+   "id": "shallow_drift",
+   "name": "얕은 갱도",
+   "title_color": "#E8843F",
+   "biome": "minecraft:dripstone_caves",
+   "biome_y": [
+    128,
+    319
+   ],
+   "light": [
+    "lantern",
+    "waxed_copper_lantern"
+   ],
+   "palette": {
+    "wall": [
+     "stone",
+     "andesite",
+     "tuff"
+    ],
+    "floor": [
+     "coarse_dirt",
+     "packed_mud",
+     "stone"
+    ],
+    "post": "stripped_oak_log",
+    "beam": "oak_log",
+    "decor": [
+     "rail",
+     "barrel",
+     "oak_fence",
+     "iron_chain"
+    ]
+   },
+   "depleted_block": "minecraft:cobblestone",
+   "regen_fx": {
+    "particle": "WAX_ON",
+    "count": 6,
+    "spread": 0.25,
+    "sound": "BLOCK_AMETHYST_BLOCK_CHIME",
+    "volume": 0.35,
+    "pitch": 1.0
+   },
+   "mood": "나무 받침 갱도, 레일과 통, 따뜻한 등불. 가장 밝고 아늑하다."
+  },
+  "2": {
+   "id": "dripstone_drift",
+   "name": "종유 갱도",
+   "title_color": "#C9CED6",
+   "biome": "minecraft:dripstone_caves",
+   "biome_y": [
+    104,
+    127
+   ],
+   "light": [
+    "lantern"
+   ],
+   "palette": {
+    "wall": [
+     "stone",
+     "deepslate",
+     "dripstone_block",
+     "andesite"
+    ],
+    "floor": [
+     "stone",
+     "tuff"
+    ],
+    "post": "stripped_dark_oak_log",
+    "beam": "dark_oak_log",
+    "decor": [
+     "pointed_dripstone",
+     "iron_chain"
+    ]
+   },
+   "depleted_block": "minecraft:mossy_cobblestone",
+   "regen_fx": {
+    "particle": "ELECTRIC_SPARK",
+    "count": 6,
+    "spread": 0.25,
+    "sound": "BLOCK_AMETHYST_BLOCK_CHIME",
+    "volume": 0.35,
+    "pitch": 1.1
+   },
+   "mood": "돌과 심층암이 섞인 벽, 천장에 종유석, 쇠사슬에 매단 등불."
+  },
+  "3": {
+   "id": "moss_vein",
+   "name": "이끼빛 수맥",
+   "title_color": "#EEF3FF",
+   "biome": "minecraft:lush_caves",
+   "biome_y": [
+    80,
+    103
+   ],
+   "light": [
+    "soul_lantern",
+    "glow_lichen"
+   ],
+   "palette": {
+    "wall": [
+     "deepslate",
+     "tuff"
+    ],
+    "floor": [
+     "polished_deepslate",
+     "tuff",
+     "deepslate_tiles"
+    ],
+    "post": "stripped_spruce_log",
+    "beam": "spruce_log",
+    "decor": [
+     "tuff_bricks",
+     "moss_carpet",
+     "glow_lichen"
+    ]
+   },
+   "depleted_block": "minecraft:cobbled_deepslate",
+   "regen_fx": {
+    "particle": "WAX_OFF",
+    "count": 6,
+    "spread": 0.25,
+    "sound": "BLOCK_AMETHYST_BLOCK_CHIME",
+    "volume": 0.35,
+    "pitch": 1.2
+   },
+   "mood": "심층암과 응회암, 이끼와 발광 이끼, 차가운 영혼 등불. 조용하다."
+  },
+  "4": {
+   "id": "ochre_fault",
+   "name": "황토 단층",
+   "title_color": "#F2C14E",
+   "biome": "minecraft:badlands",
+   "biome_y": [
+    52,
+    79
+   ],
+   "light": [
+    "ochre_froglight",
+    "lantern"
+   ],
+   "palette": {
+    "wall": [
+     "granite",
+     "terracotta",
+     "orange_terracotta",
+     "tuff"
+    ],
+    "floor": [
+     "packed_mud",
+     "terracotta",
+     "coarse_dirt"
+    ],
+    "post": "stripped_acacia_log",
+    "beam": "acacia_log",
+    "decor": [
+     "brown_terracotta",
+     "iron_chain",
+     "barrel"
+    ]
+   },
+   "depleted_block": "minecraft:cobblestone",
+   "regen_fx": {
+    "particle": "CRIT",
+    "count": 6,
+    "spread": 0.25,
+    "sound": "BLOCK_AMETHYST_BLOCK_CHIME",
+    "volume": 0.35,
+    "pitch": 1.3
+   },
+   "mood": "붉고 노란 흙층이 비스듬히 갈라진 단층. 황토빛 개구리불이 따뜻하게 비춘다."
+  },
+  "5": {
+   "id": "geode_hollow",
+   "name": "청록 정동",
+   "title_color": "#7FF2FF",
+   "biome": "minecraft:warped_forest",
+   "biome_y": [
+    28,
+    51
+   ],
+   "light": [
+    "pearlescent_froglight",
+    "small_amethyst_bud",
+    "glow_lichen"
+   ],
+   "palette": {
+    "wall": [
+     "deepslate",
+     "smooth_basalt",
+     "amethyst_block"
+    ],
+    "floor": [
+     "basalt",
+     "deepslate"
+    ],
+    "post": "polished_basalt",
+    "beam": "polished_basalt",
+    "decor": [
+     "amethyst_block",
+     "amethyst_cluster",
+     "small_amethyst_bud"
+    ]
+   },
+   "depleted_block": "minecraft:cobbled_deepslate",
+   "regen_fx": {
+    "particle": "GLOW",
+    "count": 6,
+    "spread": 0.25,
+    "sound": "BLOCK_AMETHYST_BLOCK_CHIME",
+    "volume": 0.35,
+    "pitch": 1.4
+   },
+   "mood": "둥근 정동, 자수정 군락(캐지 않음), 청록 포자가 떠다니는 푸른 빛."
+  },
+  "6": {
+   "id": "dragon_abyss",
+   "name": "용의 심연",
+   "title_color": "#FF8A5C",
+   "biome": "minecraft:basalt_deltas",
+   "biome_y": [
+    -64,
+    27
+   ],
+   "light": [
+    "end_rod",
+    "verdant_froglight"
+   ],
+   "palette": {
+    "wall": [
+     "basalt",
+     "polished_basalt",
+     "smooth_basalt"
+    ],
+    "floor": [
+     "polished_blackstone",
+     "smooth_basalt"
+    ],
+    "post": "chiseled_polished_blackstone",
+    "beam": "polished_blackstone_bricks",
+    "decor": [
+     "chiseled_polished_blackstone",
+     "end_rod"
+    ]
+   },
+   "depleted_block": "minecraft:blackstone",
+   "regen_fx": {
+    "particle": "END_ROD",
+    "count": 6,
+    "spread": 0.25,
+    "sound": "BLOCK_AMETHYST_BLOCK_CHIME",
+    "volume": 0.35,
+    "pitch": 1.5
+   },
+   "mood": "검은 현무암 동굴, 하얀 재가 별가루처럼 내리고 붉은 돌이 맥박친다. 가장 깊고 어둡다."
+  }
+ },
+ "icons": {
+  "copper_ore": {
+   "style": "ore_patina",
+   "palette": [
+    "#1f1915",
+    "#3d322a",
+    "#62554a",
+    "#8a7b6e",
+    "#ea8a46"
+   ],
+   "new_style": false,
+   "shape": "icon",
+   "size": 32
+  },
+  "iron_ore": {
+   "style": "ore_nugget",
+   "palette": [
+    "#1c1c20",
+    "#393a41",
+    "#5e6069",
+    "#8a8d96",
+    "#e0b08c"
+   ],
+   "new_style": false,
+   "shape": "icon",
+   "size": 32
+  },
+  "silver_ore": {
+   "style": "ore_flake",
+   "palette": [
+    "#15161d",
+    "#2c2e39",
+    "#4c505e",
+    "#727788",
+    "#f2f6ff"
+   ],
+   "new_style": false,
+   "shape": "icon",
+   "size": 32
+  },
+  "gold_ore": {
+   "style": "ore_star",
+   "palette": [
+    "#1c1b1a",
+    "#383632",
+    "#5d5a54",
+    "#8a867e",
+    "#ffcf3a"
+   ],
+   "new_style": false,
+   "shape": "icon",
+   "size": 32
+  },
+  "mithril_ore": {
+   "style": "ore_crystal",
+   "palette": [
+    "#10151e",
+    "#202b3b",
+    "#38495f",
+    "#5b7089",
+    "#a6f2ff"
+   ],
+   "new_style": false,
+   "shape": "icon",
+   "size": 32
+  },
+  "orichalcum_ore": {
+   "style": "ore_ember",
+   "palette": [
+    "#120806",
+    "#2a140e",
+    "#4a2418",
+    "#6e3622",
+    "#ff8a5c"
+   ],
+   "new_style": true,
+   "shape": "icon",
+   "size": 32
+  },
+  "copper_ingot": {
+   "style": "ingot_patina",
+   "palette": [
+    "#3a190c",
+    "#783818",
+    "#bd6630",
+    "#f2a462",
+    "#3fb090"
+   ],
+   "new_style": false,
+   "shape": "icon",
+   "size": 32
+  },
+  "iron_ingot": {
+   "style": "ingot_bar",
+   "palette": [
+    "#1e2128",
+    "#3c424d",
+    "#646c79",
+    "#9aa3b0",
+    "#5a6270"
+   ],
+   "new_style": false,
+   "shape": "icon",
+   "size": 32
+  },
+  "silver_ingot": {
+   "style": "ingot_shine",
+   "palette": [
+    "#4a5060",
+    "#8a92a4",
+    "#d0d6e2",
+    "#ffffff",
+    "#9ccaff"
+   ],
+   "new_style": false,
+   "shape": "icon",
+   "size": 32
+  },
+  "gold_ingot": {
+   "style": "ingot_bar",
+   "palette": [
+    "#4a3208",
+    "#8a6014",
+    "#d9a52a",
+    "#ffe07a",
+    "#b07a10"
+   ],
+   "new_style": false,
+   "shape": "icon",
+   "size": 32
+  },
+  "mithril_ingot": {
+   "style": "ingot_rune",
+   "palette": [
+    "#1d3848",
+    "#3e6f88",
+    "#7ec4d8",
+    "#dafcff",
+    "#7ff2ff"
+   ],
+   "new_style": false,
+   "shape": "icon",
+   "size": 32
+  },
+  "orichalcum_ingot": {
+   "style": "ingot_star",
+   "palette": [
+    "#2a0e06",
+    "#5a2010",
+    "#a8442a",
+    "#ff9a6a",
+    "#3a1408",
+    "#ffd86e"
+   ],
+   "new_style": false,
+   "shape": "icon",
+   "size": 32
+  },
+  "quartz": {
+   "style": "gem_prism",
+   "palette": [
+    "#7a756f",
+    "#b5afa8",
+    "#e7e3dd",
+    "#ffffff",
+    "#fffaf0"
+   ],
+   "new_style": false,
+   "shape": "icon",
+   "size": 32
+  },
+  "garnet": {
+   "style": "gem_round",
+   "palette": [
+    "#22040c",
+    "#5a0a1c",
+    "#a01830",
+    "#f04a5e",
+    "#c8102e"
+   ],
+   "new_style": false,
+   "shape": "icon",
+   "size": 32
+  },
+  "moonstone": {
+   "style": "gem_cabochon",
+   "palette": [
+    "#59607a",
+    "#a0aac0",
+    "#dfe6f2",
+    "#ffffff",
+    "#6f9cff"
+   ],
+   "new_style": false,
+   "shape": "icon",
+   "size": 32
+  },
+  "topaz": {
+   "style": "gem_shard",
+   "palette": [
+    "#3a2404",
+    "#7a4e08",
+    "#d9940f",
+    "#ffd45a",
+    "#ffb21a"
+   ],
+   "new_style": false,
+   "shape": "icon",
+   "size": 32
+  },
+  "sapphire": {
+   "style": "gem",
+   "palette": [
+    "#060c2e",
+    "#122a78",
+    "#2e5ad8",
+    "#8fb4ff",
+    "#4a7cff"
+   ],
+   "new_style": false,
+   "shape": "icon",
+   "size": 32
+  },
+  "dragonblood_stone": {
+   "style": "gem_drop",
+   "palette": [
+    "#1a0204",
+    "#4a060c",
+    "#a0121c",
+    "#ff4a3a",
+    "#ffb04a"
+   ],
+   "new_style": true,
+   "shape": "icon",
+   "size": 32
+  },
+  "cinder_hide": {
+   "style": "hide",
+   "palette": [
+    "#170c08",
+    "#3a2015",
+    "#663823",
+    "#965836",
+    "#ff7a2a"
+   ],
+   "new_style": false,
+   "shape": "icon",
+   "size": 32
+  },
+  "resonant_sinew": {
+   "style": "sinew",
+   "palette": [
+    "#24162a",
+    "#553858",
+    "#956896",
+    "#d8b2d8",
+    "#c49cff"
+   ],
+   "new_style": false,
+   "shape": "icon",
+   "size": 32
+  },
+  "clock_oil": {
+   "style": "oil_flask",
+   "palette": [
+    "#050608",
+    "#11161b",
+    "#1d2731",
+    "#2f3d4a",
+    "#1a2028",
+    "#7ae0c0"
+   ],
+   "new_style": false,
+   "shape": "icon",
+   "size": 32
+  }
+ },
+ "new_icon_styles": [
+  "gem_cabochon",
+  "gem_drop",
+  "gem_prism",
+  "gem_round",
+  "gem_shard",
+  "hide",
+  "ingot_bar",
+  "ingot_patina",
+  "ingot_rune",
+  "ingot_shine",
+  "ingot_star",
+  "oil_flask",
+  "ore_crystal",
+  "ore_ember",
+  "ore_flake",
+  "ore_nugget",
+  "ore_patina",
+  "ore_star",
+  "sinew"
+ ],
+ "icon_styles_new_in_q0": [
+  "gem_drop",
+  "ore_ember"
+ ],
+ "icon_source": "design036/tools/vis_new_styles.py draw_new (17 모양) + Q0 가 더한 ore_ember·gem_drop (Q4 가 그림)",
+ "palette_rule": "0.3.5 Palette: 끝 강조색이 본 램프보다 밝으면 본 램프에 섞인다. 강조색만 쓰려면 그 앞에 어두운 색 하나를 끼운다",
+ "pickaxes": {
+  "copper_pickaxe": {
+   "template": "pickaxe",
+   "style": "copper",
+   "palette": [
+    "#3a190c",
+    "#783818",
+    "#bd6630",
+    "#f2a462",
+    "#3fb090"
+   ],
+   "animated": false,
+   "effect": null,
+   "element_budget": 380,
+   "look": "한쪽 뾰족·한쪽 끌, 녹청 점, 나무 자루",
+   "display": "displays.voxel_weapon"
+  },
+  "iron_pickaxe": {
+   "template": "pickaxe",
+   "style": "steel",
+   "palette": [
+    "#1e2128",
+    "#3c424d",
+    "#646c79",
+    "#9aa3b0",
+    "#7a5a30",
+    "#d9a54e"
+   ],
+   "animated": false,
+   "effect": null,
+   "element_budget": 380,
+   "look": "양날 대칭, 쇠띠·리벳, 가죽 손잡이",
+   "display": "displays.voxel_weapon"
+  },
+  "silver_pickaxe": {
+   "template": "pickaxe",
+   "style": "silver",
+   "palette": [
+    "#4a5060",
+    "#8a92a4",
+    "#d0d6e2",
+    "#ffffff",
+    "#6f9cff"
+   ],
+   "animated": false,
+   "effect": null,
+   "element_budget": 380,
+   "look": "긴 양날, 은 테두리, 월장석 보석",
+   "display": "displays.voxel_weapon"
+  },
+  "gold_pickaxe": {
+   "template": "pickaxe",
+   "style": "gold",
+   "palette": [
+    "#4a3208",
+    "#8a6014",
+    "#d9a52a",
+    "#ffe07a",
+    "#7a4a20",
+    "#ffd24a"
+   ],
+   "animated": false,
+   "effect": null,
+   "element_budget": 450,
+   "look": "넓은 양날, 금 테두리, 황옥 보석, 짙은 나무 자루에 금 고리",
+   "display": "displays.voxel_weapon"
+  },
+  "mithril_pickaxe": {
+   "template": "pickaxe",
+   "style": "crystal",
+   "palette": [
+    "#1d3848",
+    "#3e6f88",
+    "#7ec4d8",
+    "#dafcff",
+    "#4a7cff"
+   ],
+   "animated": false,
+   "effect": null,
+   "element_budget": 520,
+   "look": "결정 날끝·룬 띠(빛남), 쇠 자루",
+   "display": "displays.voxel_weapon"
+  },
+  "orichalcum_pickaxe": {
+   "template": "pickaxe",
+   "style": "ember",
+   "palette": [
+    "#2a0e06",
+    "#5a2010",
+    "#a8442a",
+    "#ff9a6a",
+    "#3a1408",
+    "#ffd86e"
+   ],
+   "animated": true,
+   "effect": "ember_glow",
+   "element_budget": 720,
+   "look": "초승달 양날, 붉은 금 테, 용혈석 보석, 떠다니는 불티 조각, ember_glow 반짝임 + 날 오라 겹",
+   "display": "displays.voxel_weapon"
+  }
+ },
+ "gem_nodes": {
+  "entity": "ItemDisplay",
+  "models": {
+   "node_quartz": {
+    "gem": "quartz",
+    "kind": "prism",
+    "palette": [
+     "#7a756f",
+     "#b5afa8",
+     "#e7e3dd",
+     "#ffffff",
+     "#f6f2ea"
+    ],
+    "glow": false,
+    "element_budget": 300
+   },
+   "node_garnet": {
+    "gem": "garnet",
+    "kind": "round",
+    "palette": [
+     "#22040c",
+     "#5a0a1c",
+     "#a01830",
+     "#f04a5e",
+     "#b0102a"
+    ],
+    "glow": false,
+    "element_budget": 300
+   },
+   "node_moonstone": {
+    "gem": "moonstone",
+    "kind": "cabochon",
+    "palette": [
+     "#59607a",
+     "#a0aac0",
+     "#dfe6f2",
+     "#ffffff",
+     "#7fa8ff"
+    ],
+    "glow": true,
+    "element_budget": 300
+   },
+   "node_topaz": {
+    "gem": "topaz",
+    "kind": "prism",
+    "palette": [
+     "#3a2404",
+     "#7a4e08",
+     "#d9940f",
+     "#ffd45a",
+     "#ffe9a0"
+    ],
+    "glow": true,
+    "element_budget": 300
+   },
+   "node_sapphire": {
+    "gem": "sapphire",
+    "kind": "hex",
+    "palette": [
+     "#060c2e",
+     "#122a78",
+     "#2e5ad8",
+     "#8fb4ff",
+     "#3f6fff"
+    ],
+    "glow": true,
+    "element_budget": 300
+   },
+   "node_dragonblood": {
+    "gem": "dragonblood_stone",
+    "kind": "shard",
+    "palette": [
+     "#1a0204",
+     "#4a060c",
+     "#a0121c",
+     "#ff4a3a",
+     "#ffb04a"
+    ],
+    "glow": true,
+    "element_budget": 300
+   }
+  },
+  "asset_paths": "assets/labyrinth/{models/item,items,textures/item}/mine/node_<gem>",
+  "placement": {
+   "location": "보석 블록 중심 + 0.5·바깥면 법선",
+   "rotation": "모델 +y → 바깥면 법선",
+   "scale": 1.25,
+   "item_display_transform": "NONE",
+   "brightness": {
+    "block": 11,
+    "sky": 0
+   },
+   "view_range": 0.6,
+   "shadow_radius": 0,
+   "persistent": false,
+   "pdc": "labyrinth:mine_node = \"L<n>:<i>\""
+  },
+  "visibility": "보이는 것이 기본. 캔 사람에게 hideEntity, 재생 때 showEntity. 접속·텔레포트·승강기 때 다시 계산"
+ },
+ "feedback": {
+  "too_weak": {
+   "trigger": "PlayerAnimationEvent ARM_SWING + 5칸 시선",
+   "actionbar": "<red>곡괭이가 약해 캘 수 없습니다</red>",
+   "throttle_ms": 1000
+  },
+  "dig": "vanilla (Tool 규칙 + CAN_BREAK) — 금 가는 10단계·그 블록 소리",
+  "resend": "취소한 칸만 1틱 뒤 (R §2-13)",
+  "harvest": {
+   "actionbar": "<{ore_color}>+{n} {광석}</{ore_color}> <gray>(가방 {count})</gray>",
+   "sound": [
+    "ENTITY_ITEM_PICKUP",
+    0.3,
+    1.4
+   ],
+   "bonus": "<gold>+{n}</gold>",
+   "rich": "<gold>풍부한 광맥! ×3</gold>",
+   "gem": "<{gem_color}>✦ {보석}!</{gem_color}>",
+   "pop": {
+    "config": "mine.fx.pop",
+    "default": true,
+    "scale": 0.4,
+    "ticks": 8,
+    "teleport_duration": 6,
+    "visible": "miner_only"
+   }
+  },
+  "bag_full": "<red>가방이 가득 찼습니다</red>",
+  "tired": "<gold>지침 — 수확 ×0.3</gold> (1분에 1번)",
+  "stamina_bar": {
+   "text": "기력 {cur}/{max}",
+   "shown": "광산 월드 안, 25% 아래에서만",
+   "color": "YELLOW",
+   "tired_color": "RED"
+  },
+  "lift": {
+   "effect": "BLINDNESS 40틱",
+   "sounds": [
+    [
+     "ENTITY_MINECART_RIDING",
+     0.6,
+     0.8
+    ],
+    [
+     "BLOCK_CHAIN_PLACE",
+     0.5,
+     0.7
+    ]
+   ],
+   "arrival_subtitle": "<{title_color}>{이름}",
+   "no_level_number": true
+  },
+  "colors_by": "광석·보석 색 = mine.json ores/gems color (층 색이 아님 — 층이 섞여서)"
+ },
+ "npcs": {
+  "rule": "기존 NPC 스킨과 같은 그림 수준: resourcepack/src/npc_skins.paint_skin 그대로, outfit·hair·accessories 는 GDD §14.5 닫힌 목록만. 눈 크게·잔무늬 많게 다시 그리지 않음 (주인이 거절함)",
+  "miner": {
+   "name": "광부 브론",
+   "nameplate": "<gradient:#e8843f:#f0b050>[광부]</gradient>",
+   "skin": "miner",
+   "skin_style": {
+    "palette": [
+     "#c98e6b",
+     "#3a2a20",
+     "#4a5866",
+     "#8c6a44",
+     "#f0b050",
+     "#2a2a2a"
+    ],
+    "outfit": "miner",
+    "hair": "short_beard",
+    "accessories": [
+     "helmet_lamp",
+     "tool_belt",
+     "soot_marks"
+    ]
+   },
+   "differs_from": "lore_floor2_miner 토브 (bandage_arm·갈색 옷) — 푸른 회색 작업복·연장 띠"
+  },
+  "smelter": {
+   "name": "제련공 이그나",
+   "nameplate": "<gradient:#ff9a5a:#3fb090>[제련공]</gradient>",
+   "skin": "smelter",
+   "skin_style": {
+    "palette": [
+     "#d9a882",
+     "#2a3a3a",
+     "#5a3121",
+     "#8c5a34",
+     "#ff9a5a",
+     "#3fb090"
+    ],
+    "outfit": "apron",
+    "hair": "bun",
+    "accessories": [
+     "goggles_forehead",
+     "thick_gloves",
+     "tool_belt"
+    ]
+   },
+   "differs_from": "대장장이 두르간 (수염·짧은 머리) · 견습 미라 (쌍둥이 쪽머리) — 올림머리·녹청 눈·연장 띠"
+  }
+ },
+ "menus": {
+  "smelter": {
+   "glyph": "gui_smelter",
+   "rows": 6,
+   "motif": "대장간 틀 + 화덕 불빛 띠, 탭 제련/새기기/곡괭이, ×1·×8·전부 단추"
+  },
+  "mine_lift": {
+   "glyph": "gui_mine_lift",
+   "rows": 6,
+   "motif": "세로 갱도 그림, 층 단추 6개(층 색) + 마을 — 잠김 쇠사슬 없음"
+  },
+  "mine_office": {
+   "glyph": "gui_mine_office",
+   "rows": 6,
+   "motif": "갱도 나무 틀 + 등불, 탭 곡괭이/제련/새기기/벼리기/팔기/현황"
+  },
+  "mine_shop": {
+   "glyph": "gui_merchant (재사용)"
+  }
+ },
+ "district_style": {
+  "theme": "마을 공통 재료(VILLAGE.md §5) + 구역 주제색 녹청 구리 #3FB090 · 구리 주황 #E8843F · 흑암, 따뜻한 등불",
+  "mine_headframe": "석재·심층암 벽돌 아래층, 심층암 기와 박공 + 구리 용마루, 벗긴 짙은 참나무 탑 + 엇갈린 울타리 버팀, 권양 바퀴, 구리 창살 승강기 칸 + 쇠사슬",
+  "smelter": "흑암 벽돌 작업장 + 짙은 참나무 뼈대·회반죽 2층 + 녹청 구리 지붕 + 벽돌 굴뚝(모닥불 연기). 크기 13×18×12 (V)",
+  "miners_lodge": "가문비·짙은 참나무 뼈대 + 회반죽, 심층암 기와 + 녹슨 구리 테, 게시판, 곡괭이 걸이",
+  "ore_yard": "레일, 원석 블록 더미, 울타리 기중기 + 쇠사슬 + 등불, 통 더미 (장식 — 광산 광석 블록은 쓰지 않음)",
+  "street": "가로등 = 짙은 참나무 울타리 기둥 + 구리 등불(초록 불꽃), 광산 마당 길 = 조약돌·안산암·자갈·응회암 섞기",
+  "banned": "구역 장식에 광산 광석·보석 블록 12종 쓰지 않음 (헷갈림) — 원석 블록(raw_*_block)은 됨"
+ },
+ "pack_rules": [
+  "새 아이콘 21개 (광석 6·주괴 6·보석 6·새 몬스터 재료 3) + 곡괭이 3D 6개 + 보석 결정 6개",
+  "옛 8개 id 는 새 그림 별칭 두 판",
+  "곡괭이 요소 예산 380/380/380/450/520/720, 결정 ≤ 300",
+  "blockstates·models/block·textures/block 0개",
+  "메뉴 배경 gui_smelter·gui_mine_lift·gui_mine_office (glyphs.yml + ui.py)"
+ ]
+}

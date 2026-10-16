@@ -92,6 +92,7 @@ public final class Services {
     private volatile TitleService titles;
     private volatile HudService hud;
     private volatile MenuService menus;
+    private volatile kr.labyrinth.mine.MineApi mine = new kr.labyrinth.mine.NoopMineApi();
 
     Services(LabyrinthPlugin plugin) {
         this.plugin = plugin;
@@ -172,7 +173,7 @@ public final class Services {
             Content c = content;
             content = new Content(c.classes(), c.items(), c.sets(), c.mobs(), c.bosses(), c.floors(), c.lootTables(),
                     c.lootSettings(), c.recipes(), c.achievements(), c.npcs(), c.auras(), c.fxModels(),
-                    java.util.Map.of(), java.util.Map.of(), c.enhance());
+                    java.util.Map.of(), java.util.Map.of(), c.enhance(), c.mine());
             Log.info("ui.use_glyphs: false — UI 글리프(커스텀 폰트)를 쓰지 않고 글자 HUD 로 표시합니다.");
         }
         Log.info("콘텐츠 로드: " + content.summary());
@@ -221,6 +222,8 @@ public final class Services {
     public TitleService titles() { return titles; }
     public HudService hud() { return hud; }
     public MenuService menus() { return menus; }
+    /** 광산 (0.3.6, Q1 MineModule 이 교체 — 기본 = 꺼진 광산). */
+    public kr.labyrinth.mine.MineApi mine() { return mine; }
 
     // ── 팀 계약 setter (담당 모듈 enable 에서 호출) ───────────────────────
 
@@ -247,6 +250,7 @@ public final class Services {
     }
 
     public void setMenus(MenuService s) { menus = Objects.requireNonNull(s); }
+    public void setMine(kr.labyrinth.mine.MineApi s) { mine = Objects.requireNonNull(s); }
 
     static void clear() { instance = null; }
 }

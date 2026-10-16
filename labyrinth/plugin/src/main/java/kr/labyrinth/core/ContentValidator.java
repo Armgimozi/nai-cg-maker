@@ -76,9 +76,12 @@ public final class ContentValidator {
             "DIFFICULTY_CLEAR", "SPEED_CLEAR", "KILL", "BOSS_KILL", "LEVEL", "OBTAIN_RARITY", "CRAFT", "ENHANCE", "TREASURE");
     public static final Set<String> TREASURE_KINDS = Set.of("chest", "gold_chest", "vault", "mimic");
     public static final Set<String> TITLE_BONUS_KEYS = Set.of("STR", "DEX", "INT", "VIT", "WIS", "LUK", "xp_bonus", "gold_bonus");
-    public static final Set<String> NPC_ROLES = Set.of("entrance", "blacksmith", "class_master", "title_keeper", "merchant", "lore");
+    /** 0.3.6: miner (광부 → 광산 관리소 메뉴) · smelter (제련공 → 제련소 메뉴) — 이름은 kr.labyrinth.mine.MineNames. */
+    public static final Set<String> NPC_ROLES = Set.of("entrance", "blacksmith", "class_master", "title_keeper", "merchant", "lore",
+            kr.labyrinth.mine.MineNames.ROLE_MINER, kr.labyrinth.mine.MineNames.ROLE_SMELTER);
     public static final Set<String> DIFFICULTIES = Set.of("easy", "normal", "hard", "nightmare");
-    public static final Set<String> RECIPE_CATEGORIES = Set.of("weapon", "armor", "accessory", "material");
+    public static final Set<String> RECIPE_CATEGORIES = Set.of("weapon", "armor", "accessory", "material",
+            kr.labyrinth.mine.MineNames.CATEGORY_TOOL);
 
     private final Content c;
     private final List<String> errors = new ArrayList<>();

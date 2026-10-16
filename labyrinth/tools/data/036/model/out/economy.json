@@ -1,0 +1,2980 @@
+{
+ "table_a_single_level": {
+  "1:1": {
+   "ore_per_min": 4.73,
+   "by_metal": {
+    "copper": 4.73
+   },
+   "blocks_per_min": 4.38,
+   "loop_min": 3.3
+  },
+  "1:2": {
+   "ore_per_min": 2.4,
+   "by_metal": {
+    "copper": 2.4
+   },
+   "blocks_per_min": 2.22,
+   "loop_min": 2.3
+  },
+  "1:3": {
+   "ore_per_min": 0.96,
+   "by_metal": {
+    "copper": 0.96
+   },
+   "blocks_per_min": 0.89,
+   "loop_min": 1.5
+  },
+  "1:4": {
+   "ore_per_min": 0.65,
+   "by_metal": {
+    "copper": 0.65
+   },
+   "blocks_per_min": 0.6,
+   "loop_min": 1.4
+  },
+  "1:5": {
+   "ore_per_min": 0.32,
+   "by_metal": {
+    "copper": 0.32
+   },
+   "blocks_per_min": 0.3,
+   "loop_min": 1.1
+  },
+  "1:6": {
+   "ore_per_min": 0.32,
+   "by_metal": {
+    "copper": 0.32
+   },
+   "blocks_per_min": 0.3,
+   "loop_min": 1.1
+  },
+  "2:1": {
+   "ore_per_min": 7.16,
+   "by_metal": {
+    "copper": 4.82,
+    "iron": 2.34
+   },
+   "blocks_per_min": 6.5,
+   "loop_min": 4.2
+  },
+  "2:2": {
+   "ore_per_min": 5.63,
+   "by_metal": {
+    "iron": 3.18,
+    "copper": 2.45
+   },
+   "blocks_per_min": 5.11,
+   "loop_min": 3.8
+  },
+  "2:3": {
+   "ore_per_min": 3.18,
+   "by_metal": {
+    "iron": 2.2,
+    "copper": 0.98
+   },
+   "blocks_per_min": 2.89,
+   "loop_min": 2.6
+  },
+  "2:4": {
+   "ore_per_min": 1.54,
+   "by_metal": {
+    "iron": 0.88,
+    "copper": 0.66
+   },
+   "blocks_per_min": 1.4,
+   "loop_min": 1.8
+  },
+  "2:5": {
+   "ore_per_min": 0.88,
+   "by_metal": {
+    "iron": 0.55,
+    "copper": 0.33
+   },
+   "blocks_per_min": 0.8,
+   "loop_min": 1.5
+  },
+  "2:6": {
+   "ore_per_min": 0.88,
+   "by_metal": {
+    "iron": 0.55,
+    "copper": 0.33
+   },
+   "blocks_per_min": 0.8,
+   "loop_min": 1.5
+  },
+  "3:1": {
+   "ore_per_min": 7.86,
+   "by_metal": {
+    "copper": 4.91,
+    "iron": 2.39,
+    "silver": 0.56
+   },
+   "blocks_per_min": 7.0,
+   "loop_min": 4.1
+  },
+  "3:2": {
+   "ore_per_min": 6.86,
+   "by_metal": {
+    "iron": 3.24,
+    "copper": 2.5,
+    "silver": 1.12
+   },
+   "blocks_per_min": 6.11,
+   "loop_min": 4.2
+  },
+  "3:3": {
+   "ore_per_min": 6.36,
+   "by_metal": {
+    "silver": 3.12,
+    "iron": 2.25,
+    "copper": 1.0
+   },
+   "blocks_per_min": 5.67,
+   "loop_min": 4.1
+  },
+  "3:4": {
+   "ore_per_min": 3.14,
+   "by_metal": {
+    "silver": 1.57,
+    "iron": 0.9,
+    "copper": 0.67
+   },
+   "blocks_per_min": 2.8,
+   "loop_min": 2.7
+  },
+  "3:5": {
+   "ore_per_min": 1.68,
+   "by_metal": {
+    "silver": 0.79,
+    "iron": 0.56,
+    "copper": 0.34
+   },
+   "blocks_per_min": 1.5,
+   "loop_min": 1.9
+  },
+  "3:6": {
+   "ore_per_min": 1.57,
+   "by_metal": {
+    "silver": 0.67,
+    "iron": 0.56,
+    "copper": 0.34
+   },
+   "blocks_per_min": 1.4,
+   "loop_min": 1.8
+  },
+  "4:1": {
+   "ore_per_min": 8.01,
+   "by_metal": {
+    "copper": 5.01,
+    "iron": 2.43,
+    "silver": 0.57
+   },
+   "blocks_per_min": 7.0,
+   "loop_min": 3.9
+  },
+  "4:2": {
+   "ore_per_min": 7.38,
+   "by_metal": {
+    "iron": 3.31,
+    "copper": 2.54,
+    "silver": 1.14,
+    "gold": 0.38
+   },
+   "blocks_per_min": 6.44,
+   "loop_min": 4.1
+  },
+  "4:3": {
+   "ore_per_min": 7.38,
+   "by_metal": {
+    "silver": 3.18,
+    "iron": 2.29,
+    "copper": 1.02,
+    "gold": 0.89
+   },
+   "blocks_per_min": 6.44,
+   "loop_min": 4.3
+  },
+  "4:4": {
+   "ore_per_min": 5.84,
+   "by_metal": {
+    "gold": 2.63,
+    "silver": 1.6,
+    "iron": 0.92,
+    "copper": 0.69
+   },
+   "blocks_per_min": 5.1,
+   "loop_min": 4.0
+  },
+  "4:5": {
+   "ore_per_min": 3.32,
+   "by_metal": {
+    "gold": 1.6,
+    "silver": 0.8,
+    "iron": 0.57,
+    "copper": 0.34
+   },
+   "blocks_per_min": 2.9,
+   "loop_min": 2.7
+  },
+  "4:6": {
+   "ore_per_min": 2.63,
+   "by_metal": {
+    "gold": 1.03,
+    "silver": 0.69,
+    "iron": 0.57,
+    "copper": 0.34
+   },
+   "blocks_per_min": 2.3,
+   "loop_min": 2.3
+  },
+  "5:1": {
+   "ore_per_min": 8.16,
+   "by_metal": {
+    "copper": 5.1,
+    "iron": 2.48,
+    "silver": 0.58
+   },
+   "blocks_per_min": 7.0,
+   "loop_min": 3.7
+  },
+  "5:2": {
+   "ore_per_min": 7.52,
+   "by_metal": {
+    "iron": 3.37,
+    "copper": 2.59,
+    "silver": 1.17,
+    "gold": 0.39
+   },
+   "blocks_per_min": 6.44,
+   "loop_min": 3.9
+  },
+  "5:3": {
+   "ore_per_min": 7.78,
+   "by_metal": {
+    "silver": 3.24,
+    "iron": 2.33,
+    "copper": 1.04,
+    "gold": 0.91,
+    "mithril": 0.26
+   },
+   "blocks_per_min": 6.67,
+   "loop_min": 4.2
+  },
+  "5:4": {
+   "ore_per_min": 6.77,
+   "by_metal": {
+    "gold": 2.68,
+    "silver": 1.63,
+    "iron": 0.93,
+    "mithril": 0.82,
+    "copper": 0.7
+   },
+   "blocks_per_min": 5.8,
+   "loop_min": 4.2
+  },
+  "5:5": {
+   "ore_per_min": 6.3,
+   "by_metal": {
+    "mithril": 2.92,
+    "gold": 1.63,
+    "silver": 0.82,
+    "iron": 0.58,
+    "copper": 0.35
+   },
+   "blocks_per_min": 5.4,
+   "loop_min": 4.1
+  },
+  "5:6": {
+   "ore_per_min": 4.43,
+   "by_metal": {
+    "mithril": 1.75,
+    "gold": 1.05,
+    "silver": 0.7,
+    "iron": 0.58,
+    "copper": 0.35
+   },
+   "blocks_per_min": 3.8,
+   "loop_min": 3.2
+  },
+  "6:1": {
+   "ore_per_min": 8.32,
+   "by_metal": {
+    "copper": 5.2,
+    "iron": 2.52,
+    "silver": 0.59
+   },
+   "blocks_per_min": 7.0,
+   "loop_min": 3.6
+  },
+  "6:2": {
+   "ore_per_min": 7.66,
+   "by_metal": {
+    "iron": 3.43,
+    "copper": 2.64,
+    "silver": 1.19,
+    "gold": 0.4
+   },
+   "blocks_per_min": 6.44,
+   "loop_min": 3.8
+  },
+  "6:3": {
+   "ore_per_min": 7.92,
+   "by_metal": {
+    "silver": 3.3,
+    "iron": 2.38,
+    "copper": 1.06,
+    "gold": 0.92,
+    "mithril": 0.26
+   },
+   "blocks_per_min": 6.67,
+   "loop_min": 4.0
+  },
+  "6:4": {
+   "ore_per_min": 7.13,
+   "by_metal": {
+    "gold": 2.73,
+    "silver": 1.66,
+    "iron": 0.95,
+    "mithril": 0.83,
+    "copper": 0.71,
+    "orichalcum": 0.24
+   },
+   "blocks_per_min": 6.0,
+   "loop_min": 4.2
+  },
+  "6:5": {
+   "ore_per_min": 7.37,
+   "by_metal": {
+    "mithril": 2.97,
+    "gold": 1.66,
+    "orichalcum": 0.95,
+    "silver": 0.83,
+    "iron": 0.59,
+    "copper": 0.36
+   },
+   "blocks_per_min": 6.2,
+   "loop_min": 4.5
+  },
+  "6:6": {
+   "ore_per_min": 7.84,
+   "by_metal": {
+    "orichalcum": 3.33,
+    "mithril": 1.78,
+    "gold": 1.07,
+    "silver": 0.71,
+    "iron": 0.59,
+    "copper": 0.36
+   },
+   "blocks_per_min": 6.6,
+   "loop_min": 4.8
+  }
+ },
+ "table_b_focused": {
+  "1:copper": {
+   "ore_per_min": 8.73,
+   "levels": [
+    1,
+    2,
+    3,
+    4
+   ]
+  },
+  "2:copper": {
+   "ore_per_min": 8.91,
+   "levels": [
+    1,
+    2,
+    3,
+    4
+   ]
+  },
+  "2:iron": {
+   "ore_per_min": 8.61,
+   "levels": [
+    1,
+    2,
+    3,
+    4
+   ]
+  },
+  "3:copper": {
+   "ore_per_min": 9.2,
+   "levels": [
+    1,
+    2,
+    3,
+    4,
+    5
+   ]
+  },
+  "3:iron": {
+   "ore_per_min": 8.81,
+   "levels": [
+    1,
+    2,
+    3,
+    4,
+    5
+   ]
+  },
+  "3:silver": {
+   "ore_per_min": 7.28,
+   "levels": [
+    2,
+    3,
+    4,
+    5,
+    6
+   ]
+  },
+  "4:copper": {
+   "ore_per_min": 9.6,
+   "levels": [
+    1,
+    2,
+    3,
+    4,
+    6
+   ]
+  },
+  "4:iron": {
+   "ore_per_min": 9.23,
+   "levels": [
+    1,
+    2,
+    3,
+    4,
+    6
+   ]
+  },
+  "4:silver": {
+   "ore_per_min": 7.42,
+   "levels": [
+    2,
+    3,
+    4,
+    5,
+    6
+   ]
+  },
+  "4:gold": {
+   "ore_per_min": 6.54,
+   "levels": [
+    2,
+    3,
+    4,
+    5,
+    6
+   ]
+  },
+  "5:copper": {
+   "ore_per_min": 9.78,
+   "levels": [
+    1,
+    2,
+    3,
+    4,
+    5
+   ]
+  },
+  "5:iron": {
+   "ore_per_min": 9.64,
+   "levels": [
+    1,
+    2,
+    3,
+    4,
+    6
+   ]
+  },
+  "5:silver": {
+   "ore_per_min": 7.6,
+   "levels": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ]
+  },
+  "5:gold": {
+   "ore_per_min": 6.66,
+   "levels": [
+    2,
+    3,
+    4,
+    5,
+    6
+   ]
+  },
+  "5:mithril": {
+   "ore_per_min": 5.74,
+   "levels": [
+    3,
+    4,
+    5,
+    6
+   ]
+  },
+  "6:copper": {
+   "ore_per_min": 9.96,
+   "levels": [
+    1,
+    2,
+    3,
+    4,
+    5
+   ]
+  },
+  "6:iron": {
+   "ore_per_min": 9.88,
+   "levels": [
+    1,
+    2,
+    3,
+    4,
+    5
+   ]
+  },
+  "6:silver": {
+   "ore_per_min": 7.84,
+   "levels": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ]
+  },
+  "6:gold": {
+   "ore_per_min": 6.78,
+   "levels": [
+    2,
+    3,
+    4,
+    5,
+    6
+   ]
+  },
+  "6:mithril": {
+   "ore_per_min": 5.85,
+   "levels": [
+    3,
+    4,
+    5,
+    6
+   ]
+  },
+  "6:orichalcum": {
+   "ore_per_min": 4.51,
+   "levels": [
+    4,
+    5,
+    6
+   ]
+  }
+ },
+ "gem_focused": {
+  "1:quartz": 0.278,
+  "2:quartz": 0.278,
+  "2:garnet": 0.305,
+  "3:quartz": 0.278,
+  "3:garnet": 0.305,
+  "3:moonstone": 0.243,
+  "4:quartz": 0.284,
+  "4:garnet": 0.308,
+  "4:moonstone": 0.243,
+  "4:topaz": 0.226,
+  "5:quartz": 0.284,
+  "5:garnet": 0.314,
+  "5:moonstone": 0.243,
+  "5:topaz": 0.226,
+  "5:sapphire": 0.208,
+  "6:quartz": 0.284,
+  "6:garnet": 0.316,
+  "6:moonstone": 0.243,
+  "6:topaz": 0.226,
+  "6:sapphire": 0.208,
+  "6:dragonblood_stone": 0.15
+ },
+ "rows": [
+  {
+   "tier": 1,
+   "craft": {
+    "old_solo": {
+     "kit": [
+      "mossvine_hornbow",
+      "wayfarer_helm",
+      "wayfarer_chest",
+      "wayfarer_legs",
+      "wayfarer_boots"
+     ],
+     "runs": 0.76,
+     "bottleneck": "moss_fiber",
+     "runs_stone": 0,
+     "dungeon_min": 11.4,
+     "total_min": 11.4
+    },
+    "old_4p": {
+     "kit": [
+      "mossvine_hornbow",
+      "wayfarer_helm",
+      "wayfarer_chest",
+      "wayfarer_legs",
+      "wayfarer_boots"
+     ],
+     "runs": 0.66,
+     "bottleneck": "moss_fiber",
+     "runs_stone": 0,
+     "dungeon_min": 8.0,
+     "total_min": 8.0
+    },
+    "new_solo": {
+     "kit": [
+      "mossvine_hornbow",
+      "wayfarer_helm",
+      "wayfarer_chest",
+      "wayfarer_legs",
+      "wayfarer_boots"
+     ],
+     "runs": 0.76,
+     "bottleneck": "moss_fiber",
+     "runs_stone": 0,
+     "dungeon_min": 11.4,
+     "ingots": {
+      "copper": 12
+     },
+     "ore_from_dungeon": {
+      "copper": 5.0
+     },
+     "ore_to_mine": {
+      "copper": 19.0
+     },
+     "pickaxe": "copper_pickaxe",
+     "mine_levels": [
+      1,
+      2,
+      3,
+      4
+     ],
+     "mine_min": 2.2,
+     "mine_bpm": 8.09,
+     "total_min": 13.6,
+     "share_mine": 0.16
+    },
+    "new_4p": {
+     "kit": [
+      "mossvine_hornbow",
+      "wayfarer_helm",
+      "wayfarer_chest",
+      "wayfarer_legs",
+      "wayfarer_boots"
+     ],
+     "runs": 0.66,
+     "bottleneck": "moss_fiber",
+     "runs_stone": 0,
+     "dungeon_min": 8.0,
+     "ingots": {
+      "copper": 12
+     },
+     "ore_from_dungeon": {
+      "copper": 5.0
+     },
+     "ore_to_mine": {
+      "copper": 19.0
+     },
+     "pickaxe": "copper_pickaxe",
+     "mine_levels": [
+      1,
+      2,
+      3,
+      4
+     ],
+     "mine_min": 2.2,
+     "mine_bpm": 8.09,
+     "total_min": 10.1,
+     "share_mine": 0.215
+    },
+    "delta_solo": 0.193,
+    "delta_4p": 0.262
+   },
+   "plus5": {
+    "old_solo": {
+     "kit": [
+      "mossvine_hornbow",
+      "wayfarer_helm",
+      "wayfarer_chest",
+      "wayfarer_legs",
+      "wayfarer_boots"
+     ],
+     "runs": 1.93,
+     "bottleneck": "beetle_shell",
+     "runs_stone": 3.03,
+     "dungeon_min": 29.0,
+     "total_min": 29.0
+    },
+    "old_4p": {
+     "kit": [
+      "mossvine_hornbow",
+      "wayfarer_helm",
+      "wayfarer_chest",
+      "wayfarer_legs",
+      "wayfarer_boots"
+     ],
+     "runs": 1.68,
+     "bottleneck": "beetle_shell",
+     "runs_stone": 2.64,
+     "dungeon_min": 20.2,
+     "total_min": 20.2
+    },
+    "new_solo": {
+     "kit": [
+      "mossvine_hornbow",
+      "wayfarer_helm",
+      "wayfarer_chest",
+      "wayfarer_legs",
+      "wayfarer_boots"
+     ],
+     "runs": 1.72,
+     "bottleneck": "beetle_shell",
+     "runs_stone": 3.03,
+     "dungeon_min": 25.9,
+     "ingots": {
+      "copper": 24.666666666666664
+     },
+     "ore_from_dungeon": {
+      "copper": 11.2
+     },
+     "ore_to_mine": {
+      "copper": 38.1
+     },
+     "pickaxe": "copper_pickaxe",
+     "mine_levels": [
+      1,
+      2,
+      3,
+      4
+     ],
+     "mine_min": 4.4,
+     "mine_bpm": 8.09,
+     "total_min": 30.2,
+     "share_mine": 0.144
+    },
+    "new_4p": {
+     "kit": [
+      "mossvine_hornbow",
+      "wayfarer_helm",
+      "wayfarer_chest",
+      "wayfarer_legs",
+      "wayfarer_boots"
+     ],
+     "runs": 1.5,
+     "bottleneck": "beetle_shell",
+     "runs_stone": 2.64,
+     "dungeon_min": 18.0,
+     "ingots": {
+      "copper": 24.666666666666664
+     },
+     "ore_from_dungeon": {
+      "copper": 11.2
+     },
+     "ore_to_mine": {
+      "copper": 38.1
+     },
+     "pickaxe": "copper_pickaxe",
+     "mine_levels": [
+      1,
+      2,
+      3,
+      4
+     ],
+     "mine_min": 4.4,
+     "mine_bpm": 8.09,
+     "total_min": 22.4,
+     "share_mine": 0.195
+    },
+    "delta_solo": 0.041,
+    "delta_4p": 0.109
+   },
+   "gold": {
+    "dungeon_per_run": 884,
+    "dungeon_per_min": 58.9,
+    "band_pickaxe": "copper_pickaxe",
+    "dungeon_with_sale_per_min": 83.1,
+    "ratio_with_sale": 0.125,
+    "mine_per_min": 10.4,
+    "mine_levels": [
+     1,
+     2,
+     3,
+     4
+    ],
+    "ratio": 0.176,
+    "gift_top_pickaxe_per_min": 39.7,
+    "gift_ratio": 0.673
+   }
+  },
+  {
+   "tier": 2,
+   "craft": {
+    "old_solo": {
+     "kit": [
+      "silkguard_falchion",
+      "silkweaver_helm",
+      "silkweaver_chest",
+      "silkweaver_legs",
+      "silkweaver_boots"
+     ],
+     "runs": 0.94,
+     "bottleneck": "spider_silk",
+     "runs_stone": 0,
+     "dungeon_min": 15.0,
+     "total_min": 15.0
+    },
+    "old_4p": {
+     "kit": [
+      "silkguard_falchion",
+      "silkweaver_helm",
+      "silkweaver_chest",
+      "silkweaver_legs",
+      "silkweaver_boots"
+     ],
+     "runs": 0.82,
+     "bottleneck": "spider_silk",
+     "runs_stone": 0,
+     "dungeon_min": 10.4,
+     "total_min": 10.4
+    },
+    "new_solo": {
+     "kit": [
+      "silkguard_falchion",
+      "pit_foreman_helm",
+      "pit_foreman_chest",
+      "pit_foreman_legs",
+      "pit_foreman_boots"
+     ],
+     "runs": 0.92,
+     "bottleneck": "foreman_badge",
+     "runs_stone": 0,
+     "dungeon_min": 14.7,
+     "ingots": {
+      "copper": 5,
+      "iron": 8
+     },
+     "ore_from_dungeon": {
+      "copper": 2.1,
+      "iron": 4.3
+     },
+     "ore_to_mine": {
+      "copper": 7.9,
+      "iron": 11.7
+     },
+     "pickaxe": "iron_pickaxe",
+     "mine_levels": [
+      2,
+      3,
+      4,
+      5
+     ],
+     "mine_min": 1.9,
+     "mine_bpm": 9.59,
+     "total_min": 16.6,
+     "share_mine": 0.115
+    },
+    "new_4p": {
+     "kit": [
+      "silkguard_falchion",
+      "pit_foreman_helm",
+      "pit_foreman_chest",
+      "pit_foreman_legs",
+      "pit_foreman_boots"
+     ],
+     "runs": 0.8,
+     "bottleneck": "foreman_badge",
+     "runs_stone": 0,
+     "dungeon_min": 10.2,
+     "ingots": {
+      "copper": 5,
+      "iron": 8
+     },
+     "ore_from_dungeon": {
+      "copper": 2.1,
+      "iron": 4.3
+     },
+     "ore_to_mine": {
+      "copper": 7.9,
+      "iron": 11.7
+     },
+     "pickaxe": "iron_pickaxe",
+     "mine_levels": [
+      2,
+      3,
+      4,
+      5
+     ],
+     "mine_min": 1.9,
+     "mine_bpm": 9.59,
+     "total_min": 12.1,
+     "share_mine": 0.158
+    },
+    "delta_solo": 0.107,
+    "delta_4p": 0.163
+   },
+   "plus5": {
+    "old_solo": {
+     "kit": [
+      "silkguard_falchion",
+      "silkweaver_helm",
+      "silkweaver_chest",
+      "silkweaver_legs",
+      "silkweaver_boots"
+     ],
+     "runs": 2.13,
+     "bottleneck": "spider_silk",
+     "runs_stone": 3.02,
+     "dungeon_min": 34.1,
+     "total_min": 34.1
+    },
+    "old_4p": {
+     "kit": [
+      "silkguard_falchion",
+      "silkweaver_helm",
+      "silkweaver_chest",
+      "silkweaver_legs",
+      "silkweaver_boots"
+     ],
+     "runs": 1.85,
+     "bottleneck": "spider_silk",
+     "runs_stone": 2.62,
+     "dungeon_min": 23.7,
+     "total_min": 23.7
+    },
+    "new_solo": {
+     "kit": [
+      "silkguard_falchion",
+      "pit_foreman_helm",
+      "pit_foreman_chest",
+      "pit_foreman_legs",
+      "pit_foreman_boots"
+     ],
+     "runs": 1.79,
+     "bottleneck": "spider_silk",
+     "runs_stone": 3.02,
+     "dungeon_min": 28.7,
+     "ingots": {
+      "copper": 5,
+      "iron": 34.888888888888886
+     },
+     "ore_from_dungeon": {
+      "copper": 4.1,
+      "iron": 8.5
+     },
+     "ore_to_mine": {
+      "copper": 5.9,
+      "iron": 61.3
+     },
+     "pickaxe": "iron_pickaxe",
+     "mine_levels": [
+      2,
+      3,
+      4,
+      5
+     ],
+     "mine_min": 9.6,
+     "mine_bpm": 9.59,
+     "total_min": 38.2,
+     "share_mine": 0.25
+    },
+    "new_4p": {
+     "kit": [
+      "silkguard_falchion",
+      "pit_foreman_helm",
+      "pit_foreman_chest",
+      "pit_foreman_legs",
+      "pit_foreman_boots"
+     ],
+     "runs": 1.56,
+     "bottleneck": "spider_silk",
+     "runs_stone": 2.62,
+     "dungeon_min": 20.0,
+     "ingots": {
+      "copper": 5,
+      "iron": 34.888888888888886
+     },
+     "ore_from_dungeon": {
+      "copper": 4.1,
+      "iron": 8.5
+     },
+     "ore_to_mine": {
+      "copper": 5.9,
+      "iron": 61.3
+     },
+     "pickaxe": "iron_pickaxe",
+     "mine_levels": [
+      2,
+      3,
+      4,
+      5
+     ],
+     "mine_min": 9.6,
+     "mine_bpm": 9.59,
+     "total_min": 29.5,
+     "share_mine": 0.324
+    },
+    "delta_solo": 0.12,
+    "delta_4p": 0.245
+   },
+   "gold": {
+    "dungeon_per_run": 1097,
+    "dungeon_per_min": 68.6,
+    "band_pickaxe": "iron_pickaxe",
+    "dungeon_with_sale_per_min": 88.4,
+    "ratio_with_sale": 0.18,
+    "mine_per_min": 15.9,
+    "mine_levels": [
+     1,
+     2
+    ],
+    "ratio": 0.232,
+    "gift_top_pickaxe_per_min": 39.7,
+    "gift_ratio": 0.578
+   }
+  },
+  {
+   "tier": 3,
+   "craft": {
+    "old_solo": {
+     "kit": [
+      "mycel_scythe",
+      "mycel_carapace_helm",
+      "mycel_carapace_chest",
+      "mycel_carapace_legs",
+      "mycel_carapace_boots"
+     ],
+     "runs": 1.07,
+     "bottleneck": "spore_cap",
+     "runs_stone": 0,
+     "dungeon_min": 19.2,
+     "total_min": 19.2
+    },
+    "old_4p": {
+     "kit": [
+      "mycel_scythe",
+      "mycel_carapace_helm",
+      "mycel_carapace_chest",
+      "mycel_carapace_legs",
+      "mycel_carapace_boots"
+     ],
+     "runs": 0.93,
+     "bottleneck": "spore_cap",
+     "runs_stone": 0,
+     "dungeon_min": 13.4,
+     "total_min": 13.4
+    },
+    "new_solo": {
+     "kit": [
+      "mycel_scythe",
+      "mycel_carapace_helm",
+      "mycel_carapace_chest",
+      "mycel_carapace_legs",
+      "mycel_carapace_boots"
+     ],
+     "runs": 1.07,
+     "bottleneck": "spore_cap",
+     "runs_stone": 0,
+     "dungeon_min": 19.2,
+     "ingots": {
+      "iron": 16
+     },
+     "ore_from_dungeon": {
+      "iron": 7.5
+     },
+     "ore_to_mine": {
+      "iron": 24.5
+     },
+     "pickaxe": "iron_pickaxe",
+     "mine_levels": [
+      1,
+      2,
+      3,
+      4
+     ],
+     "mine_min": 2.8,
+     "mine_bpm": 7.81,
+     "total_min": 22.1,
+     "share_mine": 0.129
+    },
+    "new_4p": {
+     "kit": [
+      "mycel_scythe",
+      "mycel_carapace_helm",
+      "mycel_carapace_chest",
+      "mycel_carapace_legs",
+      "mycel_carapace_boots"
+     ],
+     "runs": 0.93,
+     "bottleneck": "spore_cap",
+     "runs_stone": 0,
+     "dungeon_min": 13.4,
+     "ingots": {
+      "iron": 16
+     },
+     "ore_from_dungeon": {
+      "iron": 7.5
+     },
+     "ore_to_mine": {
+      "iron": 24.5
+     },
+     "pickaxe": "iron_pickaxe",
+     "mine_levels": [
+      1,
+      2,
+      3,
+      4
+     ],
+     "mine_min": 2.8,
+     "mine_bpm": 7.81,
+     "total_min": 16.2,
+     "share_mine": 0.175
+    },
+    "delta_solo": 0.151,
+    "delta_4p": 0.209
+   },
+   "plus5": {
+    "old_solo": {
+     "kit": [
+      "mycel_scythe",
+      "mycel_carapace_helm",
+      "mycel_carapace_chest",
+      "mycel_carapace_legs",
+      "mycel_carapace_boots"
+     ],
+     "runs": 2.78,
+     "bottleneck": "spore_cap",
+     "runs_stone": 3.0,
+     "dungeon_min": 50.0,
+     "total_min": 50.0
+    },
+    "old_4p": {
+     "kit": [
+      "mycel_scythe",
+      "mycel_carapace_helm",
+      "mycel_carapace_chest",
+      "mycel_carapace_legs",
+      "mycel_carapace_boots"
+     ],
+     "runs": 2.41,
+     "bottleneck": "spore_cap",
+     "runs_stone": 2.61,
+     "dungeon_min": 34.7,
+     "total_min": 34.7
+    },
+    "new_solo": {
+     "kit": [
+      "mycel_scythe",
+      "mycel_carapace_helm",
+      "mycel_carapace_chest",
+      "mycel_carapace_legs",
+      "mycel_carapace_boots"
+     ],
+     "runs": 2.63,
+     "bottleneck": "spore_cap",
+     "runs_stone": 3.0,
+     "dungeon_min": 47.4,
+     "ingots": {
+      "iron": 32.888888888888886
+     },
+     "ore_from_dungeon": {
+      "iron": 18.4
+     },
+     "ore_to_mine": {
+      "iron": 47.3
+     },
+     "pickaxe": "iron_pickaxe",
+     "mine_levels": [
+      1,
+      2,
+      3,
+      4
+     ],
+     "mine_min": 5.5,
+     "mine_bpm": 7.81,
+     "total_min": 52.9,
+     "share_mine": 0.104
+    },
+    "new_4p": {
+     "kit": [
+      "mycel_scythe",
+      "mycel_carapace_helm",
+      "mycel_carapace_chest",
+      "mycel_carapace_legs",
+      "mycel_carapace_boots"
+     ],
+     "runs": 2.29,
+     "bottleneck": "spore_cap",
+     "runs_stone": 2.61,
+     "dungeon_min": 33.0,
+     "ingots": {
+      "iron": 32.888888888888886
+     },
+     "ore_from_dungeon": {
+      "iron": 18.4
+     },
+     "ore_to_mine": {
+      "iron": 47.3
+     },
+     "pickaxe": "iron_pickaxe",
+     "mine_levels": [
+      1,
+      2,
+      3,
+      4
+     ],
+     "mine_min": 5.5,
+     "mine_bpm": 7.81,
+     "total_min": 38.5,
+     "share_mine": 0.143
+    },
+    "delta_solo": 0.058,
+    "delta_4p": 0.11
+   },
+   "gold": {
+    "dungeon_per_run": 1336,
+    "dungeon_per_min": 74.2,
+    "band_pickaxe": "iron_pickaxe",
+    "dungeon_with_sale_per_min": 101.2,
+    "ratio_with_sale": 0.157,
+    "mine_per_min": 15.9,
+    "mine_levels": [
+     1,
+     2
+    ],
+    "ratio": 0.215,
+    "gift_top_pickaxe_per_min": 39.7,
+    "gift_ratio": 0.534
+   }
+  },
+  {
+   "tier": 4,
+   "craft": {
+    "old_solo": {
+     "kit": [
+      "eelbone_recurve",
+      "verdigris_guard_helm",
+      "verdigris_guard_chest",
+      "verdigris_guard_legs",
+      "verdigris_guard_boots"
+     ],
+     "runs": 0.97,
+     "bottleneck": "brine_pearl",
+     "runs_stone": 0,
+     "dungeon_min": 19.5,
+     "total_min": 19.5
+    },
+    "old_4p": {
+     "kit": [
+      "eelbone_recurve",
+      "verdigris_guard_helm",
+      "verdigris_guard_chest",
+      "verdigris_guard_legs",
+      "verdigris_guard_boots"
+     ],
+     "runs": 0.85,
+     "bottleneck": "brine_pearl",
+     "runs_stone": 0,
+     "dungeon_min": 13.5,
+     "total_min": 13.5
+    },
+    "new_solo": {
+     "kit": [
+      "eelbone_recurve",
+      "verdigris_guard_helm",
+      "verdigris_guard_chest",
+      "verdigris_guard_legs",
+      "verdigris_guard_boots"
+     ],
+     "runs": 0.97,
+     "bottleneck": "brine_pearl",
+     "runs_stone": 0,
+     "dungeon_min": 19.5,
+     "ingots": {
+      "silver": 16
+     },
+     "ore_from_dungeon": {
+      "silver": 7.8
+     },
+     "ore_to_mine": {
+      "silver": 24.2
+     },
+     "pickaxe": "silver_pickaxe",
+     "mine_levels": [
+      2,
+      3,
+      4,
+      5,
+      6
+     ],
+     "mine_min": 3.3,
+     "mine_bpm": 6.48,
+     "total_min": 22.8,
+     "share_mine": 0.146
+    },
+    "new_4p": {
+     "kit": [
+      "eelbone_recurve",
+      "verdigris_guard_helm",
+      "verdigris_guard_chest",
+      "verdigris_guard_legs",
+      "verdigris_guard_boots"
+     ],
+     "runs": 0.85,
+     "bottleneck": "brine_pearl",
+     "runs_stone": 0,
+     "dungeon_min": 13.5,
+     "ingots": {
+      "silver": 16
+     },
+     "ore_from_dungeon": {
+      "silver": 7.8
+     },
+     "ore_to_mine": {
+      "silver": 24.2
+     },
+     "pickaxe": "silver_pickaxe",
+     "mine_levels": [
+      2,
+      3,
+      4,
+      5,
+      6
+     ],
+     "mine_min": 3.3,
+     "mine_bpm": 6.48,
+     "total_min": 16.9,
+     "share_mine": 0.197
+    },
+    "delta_solo": 0.169,
+    "delta_4p": 0.252
+   },
+   "plus5": {
+    "old_solo": {
+     "kit": [
+      "eelbone_recurve",
+      "verdigris_guard_helm",
+      "verdigris_guard_chest",
+      "verdigris_guard_legs",
+      "verdigris_guard_boots"
+     ],
+     "runs": 2.8,
+     "bottleneck": "brine_pearl",
+     "runs_stone": 2.9,
+     "dungeon_min": 56.0,
+     "total_min": 56.0
+    },
+    "old_4p": {
+     "kit": [
+      "eelbone_recurve",
+      "verdigris_guard_helm",
+      "verdigris_guard_chest",
+      "verdigris_guard_legs",
+      "verdigris_guard_boots"
+     ],
+     "runs": 2.43,
+     "bottleneck": "brine_pearl",
+     "runs_stone": 2.52,
+     "dungeon_min": 39.0,
+     "total_min": 39.0
+    },
+    "new_solo": {
+     "kit": [
+      "eelbone_recurve",
+      "verdigris_guard_helm",
+      "verdigris_guard_chest",
+      "verdigris_guard_legs",
+      "verdigris_guard_boots"
+     ],
+     "runs": 2.8,
+     "bottleneck": "brine_pearl",
+     "runs_stone": 2.9,
+     "dungeon_min": 56.0,
+     "ingots": {
+      "silver": 28.666666666666664
+     },
+     "ore_from_dungeon": {
+      "silver": 22.4
+     },
+     "ore_to_mine": {
+      "silver": 34.9
+     },
+     "pickaxe": "silver_pickaxe",
+     "mine_levels": [
+      2,
+      3,
+      4,
+      5,
+      6
+     ],
+     "mine_min": 4.8,
+     "mine_bpm": 6.48,
+     "total_min": 60.8,
+     "share_mine": 0.079
+    },
+    "new_4p": {
+     "kit": [
+      "eelbone_recurve",
+      "verdigris_guard_helm",
+      "verdigris_guard_chest",
+      "verdigris_guard_legs",
+      "verdigris_guard_boots"
+     ],
+     "runs": 2.43,
+     "bottleneck": "brine_pearl",
+     "runs_stone": 2.52,
+     "dungeon_min": 39.0,
+     "ingots": {
+      "silver": 28.666666666666664
+     },
+     "ore_from_dungeon": {
+      "silver": 22.4
+     },
+     "ore_to_mine": {
+      "silver": 34.9
+     },
+     "pickaxe": "silver_pickaxe",
+     "mine_levels": [
+      2,
+      3,
+      4,
+      5,
+      6
+     ],
+     "mine_min": 4.8,
+     "mine_bpm": 6.48,
+     "total_min": 43.8,
+     "share_mine": 0.11
+    },
+    "delta_solo": 0.086,
+    "delta_4p": 0.123
+   },
+   "gold": {
+    "dungeon_per_run": 2960,
+    "dungeon_per_min": 148.0,
+    "band_pickaxe": "silver_pickaxe",
+    "dungeon_with_sale_per_min": 188.9,
+    "ratio_with_sale": 0.117,
+    "mine_per_min": 22.1,
+    "mine_levels": [
+     2,
+     3,
+     4
+    ],
+    "ratio": 0.149,
+    "gift_top_pickaxe_per_min": 39.7,
+    "gift_ratio": 0.268
+   }
+  },
+  {
+   "tier": 5,
+   "craft": {
+    "old_solo": {
+     "kit": [
+      "cinder_fang",
+      "emberforged_helm",
+      "emberforged_chest",
+      "emberforged_legs",
+      "emberforged_boots"
+     ],
+     "runs": 1.22,
+     "bottleneck": "executioner_edge",
+     "runs_stone": 0,
+     "dungeon_min": 25.6,
+     "total_min": 25.6
+    },
+    "old_4p": {
+     "kit": [
+      "cinder_fang",
+      "emberforged_helm",
+      "emberforged_chest",
+      "emberforged_legs",
+      "emberforged_boots"
+     ],
+     "runs": 1.06,
+     "bottleneck": "executioner_edge",
+     "runs_stone": 0,
+     "dungeon_min": 17.8,
+     "total_min": 17.8
+    },
+    "new_solo": {
+     "kit": [
+      "cinder_fang",
+      "emberforged_helm",
+      "emberforged_chest",
+      "emberforged_legs",
+      "emberforged_boots"
+     ],
+     "runs": 1.22,
+     "bottleneck": "executioner_edge",
+     "runs_stone": 0,
+     "dungeon_min": 25.6,
+     "ingots": {
+      "silver": 16,
+      "gold": 3
+     },
+     "ore_from_dungeon": {
+      "silver": 4.4,
+      "gold": 5.4
+     },
+     "ore_to_mine": {
+      "silver": 27.6,
+      "gold": 0.6
+     },
+     "pickaxe": "gold_pickaxe",
+     "mine_levels": [
+      1,
+      2,
+      3,
+      4
+     ],
+     "mine_min": 4.4,
+     "mine_bpm": 8.82,
+     "total_min": 30.0,
+     "share_mine": 0.146
+    },
+    "new_4p": {
+     "kit": [
+      "cinder_fang",
+      "emberforged_helm",
+      "emberforged_chest",
+      "emberforged_legs",
+      "emberforged_boots"
+     ],
+     "runs": 1.06,
+     "bottleneck": "executioner_edge",
+     "runs_stone": 0,
+     "dungeon_min": 17.8,
+     "ingots": {
+      "silver": 16,
+      "gold": 3
+     },
+     "ore_from_dungeon": {
+      "silver": 4.4,
+      "gold": 5.4
+     },
+     "ore_to_mine": {
+      "silver": 27.6,
+      "gold": 0.6
+     },
+     "pickaxe": "gold_pickaxe",
+     "mine_levels": [
+      1,
+      2,
+      3,
+      4
+     ],
+     "mine_min": 4.4,
+     "mine_bpm": 8.82,
+     "total_min": 22.2,
+     "share_mine": 0.197
+    },
+    "delta_solo": 0.172,
+    "delta_4p": 0.247
+   },
+   "plus5": {
+    "old_solo": {
+     "kit": [
+      "cinder_fang",
+      "emberforged_helm",
+      "emberforged_chest",
+      "emberforged_legs",
+      "emberforged_boots"
+     ],
+     "runs": 2.25,
+     "bottleneck": "slag_ingot",
+     "runs_stone": 2.85,
+     "dungeon_min": 47.2,
+     "total_min": 47.2
+    },
+    "old_4p": {
+     "kit": [
+      "cinder_fang",
+      "emberforged_helm",
+      "emberforged_chest",
+      "emberforged_legs",
+      "emberforged_boots"
+     ],
+     "runs": 1.95,
+     "bottleneck": "slag_ingot",
+     "runs_stone": 2.48,
+     "dungeon_min": 32.8,
+     "total_min": 32.8
+    },
+    "new_solo": {
+     "kit": [
+      "cinder_fang",
+      "emberforged_helm",
+      "emberforged_chest",
+      "emberforged_legs",
+      "emberforged_boots"
+     ],
+     "runs": 1.87,
+     "bottleneck": "cinder_hide",
+     "runs_stone": 2.85,
+     "dungeon_min": 39.3,
+     "ingots": {
+      "silver": 37.888888888888886,
+      "gold": 13.222222222222221
+     },
+     "ore_from_dungeon": {
+      "silver": 6.8,
+      "gold": 8.2
+     },
+     "ore_to_mine": {
+      "silver": 69.0,
+      "gold": 18.2
+     },
+     "pickaxe": "gold_pickaxe",
+     "mine_levels": [
+      1,
+      2,
+      3,
+      4
+     ],
+     "mine_min": 10.9,
+     "mine_bpm": 8.82,
+     "total_min": 50.3,
+     "share_mine": 0.218
+    },
+    "new_4p": {
+     "kit": [
+      "cinder_fang",
+      "emberforged_helm",
+      "emberforged_chest",
+      "emberforged_legs",
+      "emberforged_boots"
+     ],
+     "runs": 1.63,
+     "bottleneck": "cinder_hide",
+     "runs_stone": 2.48,
+     "dungeon_min": 27.4,
+     "ingots": {
+      "silver": 37.888888888888886,
+      "gold": 13.222222222222221
+     },
+     "ore_from_dungeon": {
+      "silver": 6.8,
+      "gold": 8.2
+     },
+     "ore_to_mine": {
+      "silver": 69.0,
+      "gold": 18.2
+     },
+     "pickaxe": "gold_pickaxe",
+     "mine_levels": [
+      1,
+      2,
+      3,
+      4
+     ],
+     "mine_min": 10.9,
+     "mine_bpm": 8.82,
+     "total_min": 38.3,
+     "share_mine": 0.286
+    },
+    "delta_solo": 0.066,
+    "delta_4p": 0.168
+   },
+   "gold": {
+    "dungeon_per_run": 3657,
+    "dungeon_per_min": 174.1,
+    "band_pickaxe": "gold_pickaxe",
+    "dungeon_with_sale_per_min": 223.6,
+    "ratio_with_sale": 0.125,
+    "mine_per_min": 27.9,
+    "mine_levels": [
+     3,
+     4,
+     5
+    ],
+    "ratio": 0.16,
+    "gift_top_pickaxe_per_min": 39.7,
+    "gift_ratio": 0.228
+   }
+  },
+  {
+   "tier": 6,
+   "craft": {
+    "old_solo": {
+     "kit": [
+      "gravefrost_katar",
+      "rimefang_helm",
+      "rimefang_chest",
+      "rimefang_legs",
+      "rimefang_boots"
+     ],
+     "runs": 1.03,
+     "bottleneck": "grave_bone",
+     "runs_stone": 0,
+     "dungeon_min": 23.7,
+     "total_min": 23.7
+    },
+    "old_4p": {
+     "kit": [
+      "gravefrost_katar",
+      "rimefang_helm",
+      "rimefang_chest",
+      "rimefang_legs",
+      "rimefang_boots"
+     ],
+     "runs": 0.89,
+     "bottleneck": "grave_bone",
+     "runs_stone": 0,
+     "dungeon_min": 16.5,
+     "total_min": 16.5
+    },
+    "new_solo": {
+     "kit": [
+      "gravefrost_katar",
+      "rimefang_helm",
+      "rimefang_chest",
+      "rimefang_legs",
+      "rimefang_boots"
+     ],
+     "runs": 0.92,
+     "bottleneck": "funeral_bell_shard",
+     "runs_stone": 0,
+     "dungeon_min": 21.1,
+     "ingots": {
+      "gold": 20
+     },
+     "ore_from_dungeon": {
+      "gold": 10.1
+     },
+     "ore_to_mine": {
+      "gold": 29.9
+     },
+     "pickaxe": "gold_pickaxe",
+     "mine_levels": [
+      2,
+      3,
+      4,
+      5,
+      6
+     ],
+     "mine_min": 4.6,
+     "mine_bpm": 5.71,
+     "total_min": 25.6,
+     "share_mine": 0.178
+    },
+    "new_4p": {
+     "kit": [
+      "gravefrost_katar",
+      "rimefang_helm",
+      "rimefang_chest",
+      "rimefang_legs",
+      "rimefang_boots"
+     ],
+     "runs": 0.8,
+     "bottleneck": "funeral_bell_shard",
+     "runs_stone": 0,
+     "dungeon_min": 14.7,
+     "ingots": {
+      "gold": 20
+     },
+     "ore_from_dungeon": {
+      "gold": 10.1
+     },
+     "ore_to_mine": {
+      "gold": 29.9
+     },
+     "pickaxe": "gold_pickaxe",
+     "mine_levels": [
+      2,
+      3,
+      4,
+      5,
+      6
+     ],
+     "mine_min": 4.6,
+     "mine_bpm": 5.71,
+     "total_min": 19.2,
+     "share_mine": 0.238
+    },
+    "delta_solo": 0.08,
+    "delta_4p": 0.164
+   },
+   "plus5": {
+    "old_solo": {
+     "kit": [
+      "gravefrost_katar",
+      "rimefang_helm",
+      "rimefang_chest",
+      "rimefang_legs",
+      "rimefang_boots"
+     ],
+     "runs": 2.55,
+     "bottleneck": "grave_bone",
+     "runs_stone": 2.8,
+     "dungeon_min": 58.6,
+     "total_min": 58.6
+    },
+    "old_4p": {
+     "kit": [
+      "gravefrost_katar",
+      "rimefang_helm",
+      "rimefang_chest",
+      "rimefang_legs",
+      "rimefang_boots"
+     ],
+     "runs": 2.22,
+     "bottleneck": "grave_bone",
+     "runs_stone": 2.44,
+     "dungeon_min": 40.8,
+     "total_min": 40.8
+    },
+    "new_solo": {
+     "kit": [
+      "gravefrost_katar",
+      "rimefang_helm",
+      "rimefang_chest",
+      "rimefang_legs",
+      "rimefang_boots"
+     ],
+     "runs": 1.9,
+     "bottleneck": "grave_bone",
+     "runs_stone": 2.8,
+     "dungeon_min": 43.7,
+     "ingots": {
+      "gold": 64.44444444444444
+     },
+     "ore_from_dungeon": {
+      "gold": 20.9
+     },
+     "ore_to_mine": {
+      "gold": 108.0
+     },
+     "pickaxe": "gold_pickaxe",
+     "mine_levels": [
+      2,
+      3,
+      4,
+      5,
+      6
+     ],
+     "mine_min": 16.5,
+     "mine_bpm": 5.71,
+     "total_min": 60.2,
+     "share_mine": 0.274
+    },
+    "new_4p": {
+     "kit": [
+      "gravefrost_katar",
+      "rimefang_helm",
+      "rimefang_chest",
+      "rimefang_legs",
+      "rimefang_boots"
+     ],
+     "runs": 1.65,
+     "bottleneck": "grave_bone",
+     "runs_stone": 2.44,
+     "dungeon_min": 30.4,
+     "ingots": {
+      "gold": 64.44444444444444
+     },
+     "ore_from_dungeon": {
+      "gold": 20.9
+     },
+     "ore_to_mine": {
+      "gold": 108.0
+     },
+     "pickaxe": "gold_pickaxe",
+     "mine_levels": [
+      2,
+      3,
+      4,
+      5,
+      6
+     ],
+     "mine_min": 16.5,
+     "mine_bpm": 5.71,
+     "total_min": 46.9,
+     "share_mine": 0.352
+    },
+    "delta_solo": 0.027,
+    "delta_4p": 0.15
+   },
+   "gold": {
+    "dungeon_per_run": 4494,
+    "dungeon_per_min": 195.4,
+    "band_pickaxe": "gold_pickaxe",
+    "dungeon_with_sale_per_min": 251.8,
+    "ratio_with_sale": 0.111,
+    "mine_per_min": 27.9,
+    "mine_levels": [
+     3,
+     4,
+     5
+    ],
+    "ratio": 0.143,
+    "gift_top_pickaxe_per_min": 39.7,
+    "gift_ratio": 0.203
+   }
+  },
+  {
+   "tier": 7,
+   "craft": {
+    "old_solo": {
+     "kit": [
+      "prism_hornbow",
+      "shard_dancer_helm",
+      "shard_dancer_chest",
+      "shard_dancer_legs",
+      "shard_dancer_boots"
+     ],
+     "runs": 1.11,
+     "bottleneck": "prism_dust",
+     "runs_stone": 0,
+     "dungeon_min": 26.7,
+     "total_min": 26.7
+    },
+    "old_4p": {
+     "kit": [
+      "prism_hornbow",
+      "shard_dancer_helm",
+      "shard_dancer_chest",
+      "shard_dancer_legs",
+      "shard_dancer_boots"
+     ],
+     "runs": 0.97,
+     "bottleneck": "prism_dust",
+     "runs_stone": 0,
+     "dungeon_min": 18.6,
+     "total_min": 18.6
+    },
+    "new_solo": {
+     "kit": [
+      "prism_hornbow",
+      "shard_dancer_helm",
+      "shard_dancer_chest",
+      "shard_dancer_legs",
+      "shard_dancer_boots"
+     ],
+     "runs": 0.92,
+     "bottleneck": "tuning_fork_core",
+     "runs_stone": 0,
+     "dungeon_min": 22.0,
+     "ingots": {
+      "gold": 13,
+      "mithril": 9
+     },
+     "ore_from_dungeon": {
+      "gold": 7.0,
+      "mithril": 4.0
+     },
+     "ore_to_mine": {
+      "gold": 19.0,
+      "mithril": 14.0
+     },
+     "pickaxe": "mithril_pickaxe",
+     "mine_levels": [
+      3,
+      4,
+      5,
+      6
+     ],
+     "mine_min": 3.2,
+     "mine_bpm": 9.68,
+     "total_min": 25.2,
+     "share_mine": 0.128
+    },
+    "new_4p": {
+     "kit": [
+      "prism_hornbow",
+      "shard_dancer_helm",
+      "shard_dancer_chest",
+      "shard_dancer_legs",
+      "shard_dancer_boots"
+     ],
+     "runs": 0.8,
+     "bottleneck": "tuning_fork_core",
+     "runs_stone": 0,
+     "dungeon_min": 15.3,
+     "ingots": {
+      "gold": 13,
+      "mithril": 9
+     },
+     "ore_from_dungeon": {
+      "gold": 7.0,
+      "mithril": 4.0
+     },
+     "ore_to_mine": {
+      "gold": 19.0,
+      "mithril": 14.0
+     },
+     "pickaxe": "mithril_pickaxe",
+     "mine_levels": [
+      3,
+      4,
+      5,
+      6
+     ],
+     "mine_min": 3.2,
+     "mine_bpm": 9.68,
+     "total_min": 18.5,
+     "share_mine": 0.174
+    },
+    "delta_solo": -0.056,
+    "delta_4p": -0.005
+   },
+   "plus5": {
+    "old_solo": {
+     "kit": [
+      "prism_hornbow",
+      "shard_dancer_helm",
+      "shard_dancer_chest",
+      "shard_dancer_legs",
+      "shard_dancer_boots"
+     ],
+     "runs": 2.54,
+     "bottleneck": "prism_dust",
+     "runs_stone": 2.33,
+     "dungeon_min": 60.9,
+     "total_min": 60.9
+    },
+    "old_4p": {
+     "kit": [
+      "prism_hornbow",
+      "shard_dancer_helm",
+      "shard_dancer_chest",
+      "shard_dancer_legs",
+      "shard_dancer_boots"
+     ],
+     "runs": 2.21,
+     "bottleneck": "prism_dust",
+     "runs_stone": 2.03,
+     "dungeon_min": 42.4,
+     "total_min": 42.4
+    },
+    "new_solo": {
+     "kit": [
+      "prism_hornbow",
+      "shard_dancer_helm",
+      "shard_dancer_chest",
+      "shard_dancer_legs",
+      "shard_dancer_boots"
+     ],
+     "runs": 1.92,
+     "bottleneck": "resonant_sinew",
+     "runs_stone": 2.33,
+     "dungeon_min": 46.2,
+     "ingots": {
+      "gold": 21.444444444444443,
+      "mithril": 49.22222222222223
+     },
+     "ore_from_dungeon": {
+      "gold": 14.7,
+      "mithril": 8.4
+     },
+     "ore_to_mine": {
+      "gold": 28.2,
+      "mithril": 90.0
+     },
+     "pickaxe": "mithril_pickaxe",
+     "mine_levels": [
+      4,
+      5,
+      6
+     ],
+     "mine_min": 16.4,
+     "mine_bpm": 9.3,
+     "total_min": 62.6,
+     "share_mine": 0.262
+    },
+    "new_4p": {
+     "kit": [
+      "prism_hornbow",
+      "shard_dancer_helm",
+      "shard_dancer_chest",
+      "shard_dancer_legs",
+      "shard_dancer_boots"
+     ],
+     "runs": 1.67,
+     "bottleneck": "resonant_sinew",
+     "runs_stone": 2.03,
+     "dungeon_min": 32.1,
+     "ingots": {
+      "gold": 21.444444444444443,
+      "mithril": 49.22222222222223
+     },
+     "ore_from_dungeon": {
+      "gold": 14.7,
+      "mithril": 8.4
+     },
+     "ore_to_mine": {
+      "gold": 28.2,
+      "mithril": 90.0
+     },
+     "pickaxe": "mithril_pickaxe",
+     "mine_levels": [
+      4,
+      5,
+      6
+     ],
+     "mine_min": 16.4,
+     "mine_bpm": 9.3,
+     "total_min": 48.5,
+     "share_mine": 0.338
+    },
+    "delta_solo": 0.028,
+    "delta_4p": 0.144
+   },
+   "gold": {
+    "dungeon_per_run": 9096,
+    "dungeon_per_min": 379.0,
+    "band_pickaxe": "mithril_pickaxe",
+    "dungeon_with_sale_per_min": 453.8,
+    "ratio_with_sale": 0.071,
+    "mine_per_min": 32.2,
+    "mine_levels": [
+     3,
+     4,
+     5
+    ],
+    "ratio": 0.085,
+    "gift_top_pickaxe_per_min": 39.7,
+    "gift_ratio": 0.105
+   }
+  },
+  {
+   "tier": 8,
+   "craft": {
+    "old_solo": {
+     "kit": [
+      "inkseal_warhammer",
+      "index_bulwark_helm",
+      "index_bulwark_chest",
+      "index_bulwark_legs",
+      "index_bulwark_boots"
+     ],
+     "runs": 1.24,
+     "bottleneck": "old_page",
+     "runs_stone": 0,
+     "dungeon_min": 32.2,
+     "total_min": 32.2
+    },
+    "old_4p": {
+     "kit": [
+      "inkseal_warhammer",
+      "index_bulwark_helm",
+      "index_bulwark_chest",
+      "index_bulwark_legs",
+      "index_bulwark_boots"
+     ],
+     "runs": 1.08,
+     "bottleneck": "old_page",
+     "runs_stone": 0,
+     "dungeon_min": 22.4,
+     "total_min": 22.4
+    },
+    "new_solo": {
+     "kit": [
+      "inkseal_warhammer",
+      "index_bulwark_helm",
+      "index_bulwark_chest",
+      "index_bulwark_legs",
+      "index_bulwark_boots"
+     ],
+     "runs": 1.24,
+     "bottleneck": "old_page",
+     "runs_stone": 0,
+     "dungeon_min": 32.2,
+     "ingots": {
+      "mithril": 28
+     },
+     "ore_from_dungeon": {
+      "mithril": 13.6
+     },
+     "ore_to_mine": {
+      "mithril": 42.4
+     },
+     "pickaxe": "mithril_pickaxe",
+     "mine_levels": [
+      3,
+      4,
+      5,
+      6
+     ],
+     "mine_min": 7.4,
+     "mine_bpm": 4.92,
+     "total_min": 39.6,
+     "share_mine": 0.187
+    },
+    "new_4p": {
+     "kit": [
+      "inkseal_warhammer",
+      "index_bulwark_helm",
+      "index_bulwark_chest",
+      "index_bulwark_legs",
+      "index_bulwark_boots"
+     ],
+     "runs": 1.08,
+     "bottleneck": "old_page",
+     "runs_stone": 0,
+     "dungeon_min": 22.4,
+     "ingots": {
+      "mithril": 28
+     },
+     "ore_from_dungeon": {
+      "mithril": 13.6
+     },
+     "ore_to_mine": {
+      "mithril": 42.4
+     },
+     "pickaxe": "mithril_pickaxe",
+     "mine_levels": [
+      3,
+      4,
+      5,
+      6
+     ],
+     "mine_min": 7.4,
+     "mine_bpm": 4.92,
+     "total_min": 29.8,
+     "share_mine": 0.248
+    },
+    "delta_solo": 0.23,
+    "delta_4p": 0.33
+   },
+   "plus5": {
+    "old_solo": {
+     "kit": [
+      "inkseal_warhammer",
+      "index_bulwark_helm",
+      "index_bulwark_chest",
+      "index_bulwark_legs",
+      "index_bulwark_boots"
+     ],
+     "runs": 2.68,
+     "bottleneck": "old_page",
+     "runs_stone": 2.11,
+     "dungeon_min": 69.7,
+     "total_min": 69.7
+    },
+    "old_4p": {
+     "kit": [
+      "inkseal_warhammer",
+      "index_bulwark_helm",
+      "index_bulwark_chest",
+      "index_bulwark_legs",
+      "index_bulwark_boots"
+     ],
+     "runs": 2.33,
+     "bottleneck": "old_page",
+     "runs_stone": 1.83,
+     "dungeon_min": 48.5,
+     "total_min": 48.5
+    },
+    "new_solo": {
+     "kit": [
+      "inkseal_warhammer",
+      "index_bulwark_helm",
+      "index_bulwark_chest",
+      "index_bulwark_legs",
+      "index_bulwark_boots"
+     ],
+     "runs": 2.56,
+     "bottleneck": "old_page",
+     "runs_stone": 2.11,
+     "dungeon_min": 66.6,
+     "ingots": {
+      "mithril": 51.333333333333336
+     },
+     "ore_from_dungeon": {
+      "mithril": 28.2
+     },
+     "ore_to_mine": {
+      "mithril": 74.5
+     },
+     "pickaxe": "mithril_pickaxe",
+     "mine_levels": [
+      3,
+      4,
+      5,
+      6
+     ],
+     "mine_min": 13.0,
+     "mine_bpm": 4.92,
+     "total_min": 79.5,
+     "share_mine": 0.163
+    },
+    "new_4p": {
+     "kit": [
+      "inkseal_warhammer",
+      "index_bulwark_helm",
+      "index_bulwark_chest",
+      "index_bulwark_legs",
+      "index_bulwark_boots"
+     ],
+     "runs": 2.23,
+     "bottleneck": "old_page",
+     "runs_stone": 1.83,
+     "dungeon_min": 46.3,
+     "ingots": {
+      "mithril": 51.333333333333336
+     },
+     "ore_from_dungeon": {
+      "mithril": 28.2
+     },
+     "ore_to_mine": {
+      "mithril": 74.5
+     },
+     "pickaxe": "mithril_pickaxe",
+     "mine_levels": [
+      3,
+      4,
+      5,
+      6
+     ],
+     "mine_min": 13.0,
+     "mine_bpm": 4.92,
+     "total_min": 59.3,
+     "share_mine": 0.219
+    },
+    "delta_solo": 0.141,
+    "delta_4p": 0.223
+   },
+   "gold": {
+    "dungeon_per_run": 12471,
+    "dungeon_per_min": 479.6,
+    "band_pickaxe": "mithril_pickaxe",
+    "dungeon_with_sale_per_min": 612.5,
+    "ratio_with_sale": 0.053,
+    "mine_per_min": 32.2,
+    "mine_levels": [
+     3,
+     4,
+     5
+    ],
+    "ratio": 0.067,
+    "gift_top_pickaxe_per_min": 39.7,
+    "gift_ratio": 0.083
+   }
+  },
+  {
+   "tier": 9,
+   "craft": {
+    "old_solo": {
+     "kit": [
+      "pendulum_censer",
+      "clockwork_juggernaut_helm",
+      "clockwork_juggernaut_chest",
+      "clockwork_juggernaut_legs",
+      "clockwork_juggernaut_boots"
+     ],
+     "runs": 1.04,
+     "bottleneck": "brass_gear",
+     "runs_stone": 0,
+     "dungeon_min": 28.2,
+     "total_min": 28.2
+    },
+    "old_4p": {
+     "kit": [
+      "pendulum_censer",
+      "clockwork_juggernaut_helm",
+      "clockwork_juggernaut_chest",
+      "clockwork_juggernaut_legs",
+      "clockwork_juggernaut_boots"
+     ],
+     "runs": 0.91,
+     "bottleneck": "brass_gear",
+     "runs_stone": 0,
+     "dungeon_min": 19.6,
+     "total_min": 19.6
+    },
+    "new_solo": {
+     "kit": [
+      "pendulum_censer",
+      "clockwork_juggernaut_helm",
+      "clockwork_juggernaut_chest",
+      "clockwork_juggernaut_legs",
+      "clockwork_juggernaut_boots"
+     ],
+     "runs": 1.01,
+     "bottleneck": "regulator_pendulum",
+     "runs_stone": 0,
+     "dungeon_min": 27.3,
+     "ingots": {
+      "mithril": 3,
+      "orichalcum": 25
+     },
+     "ore_from_dungeon": {
+      "mithril": 3.7,
+      "orichalcum": 10.5
+     },
+     "ore_to_mine": {
+      "mithril": 2.3,
+      "orichalcum": 39.5
+     },
+     "pickaxe": "orichalcum_pickaxe",
+     "mine_levels": [
+      4,
+      5,
+      6
+     ],
+     "mine_min": 8.8,
+     "mine_bpm": 8.5,
+     "total_min": 36.0,
+     "share_mine": 0.243
+    },
+    "new_4p": {
+     "kit": [
+      "pendulum_censer",
+      "clockwork_juggernaut_helm",
+      "clockwork_juggernaut_chest",
+      "clockwork_juggernaut_legs",
+      "clockwork_juggernaut_boots"
+     ],
+     "runs": 0.88,
+     "bottleneck": "regulator_pendulum",
+     "runs_stone": 0,
+     "dungeon_min": 19.0,
+     "ingots": {
+      "mithril": 3,
+      "orichalcum": 25
+     },
+     "ore_from_dungeon": {
+      "mithril": 3.7,
+      "orichalcum": 10.5
+     },
+     "ore_to_mine": {
+      "mithril": 2.3,
+      "orichalcum": 39.5
+     },
+     "pickaxe": "orichalcum_pickaxe",
+     "mine_levels": [
+      4,
+      5,
+      6
+     ],
+     "mine_min": 8.8,
+     "mine_bpm": 8.5,
+     "total_min": 27.7,
+     "share_mine": 0.316
+    },
+    "delta_solo": 0.277,
+    "delta_4p": 0.413
+   },
+   "plus5": {
+    "old_solo": {
+     "kit": [
+      "pendulum_censer",
+      "clockwork_juggernaut_helm",
+      "clockwork_juggernaut_chest",
+      "clockwork_juggernaut_legs",
+      "clockwork_juggernaut_boots"
+     ],
+     "runs": 2.2,
+     "bottleneck": "brass_gear",
+     "runs_stone": 2.01,
+     "dungeon_min": 59.4,
+     "total_min": 59.4
+    },
+    "old_4p": {
+     "kit": [
+      "pendulum_censer",
+      "clockwork_juggernaut_helm",
+      "clockwork_juggernaut_chest",
+      "clockwork_juggernaut_legs",
+      "clockwork_juggernaut_boots"
+     ],
+     "runs": 1.91,
+     "bottleneck": "brass_gear",
+     "runs_stone": 1.75,
+     "dungeon_min": 41.3,
+     "total_min": 41.3
+    },
+    "new_solo": {
+     "kit": [
+      "pendulum_censer",
+      "clockwork_juggernaut_helm",
+      "clockwork_juggernaut_chest",
+      "clockwork_juggernaut_legs",
+      "clockwork_juggernaut_boots"
+     ],
+     "runs": 1.92,
+     "bottleneck": "clock_oil",
+     "runs_stone": 2.01,
+     "dungeon_min": 51.7,
+     "ingots": {
+      "mithril": 3,
+      "orichalcum": 65.55555555555556
+     },
+     "ore_from_dungeon": {
+      "mithril": 7.0,
+      "orichalcum": 19.8
+     },
+     "ore_to_mine": {
+      "mithril": 0.0,
+      "orichalcum": 111.3
+     },
+     "pickaxe": "orichalcum_pickaxe",
+     "mine_levels": [
+      4,
+      5,
+      6
+     ],
+     "mine_min": 24.6,
+     "mine_bpm": 3.8,
+     "total_min": 76.4,
+     "share_mine": 0.323
+    },
+    "new_4p": {
+     "kit": [
+      "pendulum_censer",
+      "clockwork_juggernaut_helm",
+      "clockwork_juggernaut_chest",
+      "clockwork_juggernaut_legs",
+      "clockwork_juggernaut_boots"
+     ],
+     "runs": 1.67,
+     "bottleneck": "clock_oil",
+     "runs_stone": 1.75,
+     "dungeon_min": 36.0,
+     "ingots": {
+      "mithril": 3,
+      "orichalcum": 65.55555555555556
+     },
+     "ore_from_dungeon": {
+      "mithril": 7.0,
+      "orichalcum": 19.8
+     },
+     "ore_to_mine": {
+      "mithril": 0.0,
+      "orichalcum": 111.3
+     },
+     "pickaxe": "orichalcum_pickaxe",
+     "mine_levels": [
+      4,
+      5,
+      6
+     ],
+     "mine_min": 24.6,
+     "mine_bpm": 3.8,
+     "total_min": 60.6,
+     "share_mine": 0.407
+    },
+    "delta_solo": 0.286,
+    "delta_4p": 0.467
+   },
+   "gold": {
+    "dungeon_per_run": 14932,
+    "dungeon_per_min": 553.1,
+    "band_pickaxe": "orichalcum_pickaxe",
+    "dungeon_with_sale_per_min": 703.4,
+    "ratio_with_sale": 0.056,
+    "mine_per_min": 39.7,
+    "mine_levels": [
+     4,
+     5,
+     6
+    ],
+    "ratio": 0.072,
+    "gift_top_pickaxe_per_min": 39.7,
+    "gift_ratio": 0.072
+   }
+  },
+  {
+   "tier": 10,
+   "craft": {
+    "old_solo": {
+     "kit": [
+      "void_falchion",
+      "starless_choir_helm",
+      "starless_choir_chest",
+      "starless_choir_legs",
+      "starless_choir_boots"
+     ],
+     "runs": 1.12,
+     "bottleneck": "abyss_ichor",
+     "runs_stone": 0,
+     "dungeon_min": 33.6,
+     "total_min": 33.6
+    },
+    "old_4p": {
+     "kit": [
+      "void_falchion",
+      "starless_choir_helm",
+      "starless_choir_chest",
+      "starless_choir_legs",
+      "starless_choir_boots"
+     ],
+     "runs": 0.97,
+     "bottleneck": "abyss_ichor",
+     "runs_stone": 0,
+     "dungeon_min": 23.3,
+     "total_min": 23.3
+    },
+    "new_solo": {
+     "kit": [
+      "void_falchion",
+      "starless_choir_helm",
+      "starless_choir_chest",
+      "starless_choir_legs",
+      "starless_choir_boots"
+     ],
+     "runs": 1.12,
+     "bottleneck": "abyss_ichor",
+     "runs_stone": 0,
+     "dungeon_min": 33.6,
+     "ingots": {
+      "orichalcum": 28
+     },
+     "ore_from_dungeon": {
+      "orichalcum": 14.5
+     },
+     "ore_to_mine": {
+      "orichalcum": 41.5
+     },
+     "pickaxe": "orichalcum_pickaxe",
+     "mine_levels": [
+      4,
+      5,
+      6
+     ],
+     "mine_min": 9.2,
+     "mine_bpm": 3.8,
+     "total_min": 42.7,
+     "share_mine": 0.215
+    },
+    "new_4p": {
+     "kit": [
+      "void_falchion",
+      "starless_choir_helm",
+      "starless_choir_chest",
+      "starless_choir_legs",
+      "starless_choir_boots"
+     ],
+     "runs": 0.97,
+     "bottleneck": "abyss_ichor",
+     "runs_stone": 0,
+     "dungeon_min": 23.3,
+     "ingots": {
+      "orichalcum": 28
+     },
+     "ore_from_dungeon": {
+      "orichalcum": 14.5
+     },
+     "ore_to_mine": {
+      "orichalcum": 41.5
+     },
+     "pickaxe": "orichalcum_pickaxe",
+     "mine_levels": [
+      4,
+      5,
+      6
+     ],
+     "mine_min": 9.2,
+     "mine_bpm": 3.8,
+     "total_min": 32.5,
+     "share_mine": 0.282
+    },
+    "delta_solo": 0.271,
+    "delta_4p": 0.395
+   },
+   "plus5": {
+    "old_solo": {
+     "kit": [
+      "void_falchion",
+      "starless_choir_helm",
+      "starless_choir_chest",
+      "starless_choir_legs",
+      "starless_choir_boots"
+     ],
+     "runs": 2.75,
+     "bottleneck": "abyss_ichor",
+     "runs_stone": 1.98,
+     "dungeon_min": 82.4,
+     "total_min": 82.4
+    },
+    "old_4p": {
+     "kit": [
+      "void_falchion",
+      "starless_choir_helm",
+      "starless_choir_chest",
+      "starless_choir_legs",
+      "starless_choir_boots"
+     ],
+     "runs": 2.39,
+     "bottleneck": "abyss_ichor",
+     "runs_stone": 1.73,
+     "dungeon_min": 57.4,
+     "total_min": 57.4
+    },
+    "new_solo": {
+     "kit": [
+      "void_falchion",
+      "starless_choir_helm",
+      "starless_choir_chest",
+      "starless_choir_legs",
+      "starless_choir_boots"
+     ],
+     "runs": 2.75,
+     "bottleneck": "abyss_ichor",
+     "runs_stone": 1.98,
+     "dungeon_min": 82.4,
+     "ingots": {
+      "orichalcum": 51.333333333333336
+     },
+     "ore_from_dungeon": {
+      "orichalcum": 35.7
+     },
+     "ore_to_mine": {
+      "orichalcum": 66.9
+     },
+     "pickaxe": "orichalcum_pickaxe",
+     "mine_levels": [
+      4,
+      5,
+      6
+     ],
+     "mine_min": 14.8,
+     "mine_bpm": 3.8,
+     "total_min": 97.3,
+     "share_mine": 0.152
+    },
+    "new_4p": {
+     "kit": [
+      "void_falchion",
+      "starless_choir_helm",
+      "starless_choir_chest",
+      "starless_choir_legs",
+      "starless_choir_boots"
+     ],
+     "runs": 2.39,
+     "bottleneck": "abyss_ichor",
+     "runs_stone": 1.73,
+     "dungeon_min": 57.4,
+     "ingots": {
+      "orichalcum": 51.333333333333336
+     },
+     "ore_from_dungeon": {
+      "orichalcum": 35.7
+     },
+     "ore_to_mine": {
+      "orichalcum": 66.9
+     },
+     "pickaxe": "orichalcum_pickaxe",
+     "mine_levels": [
+      4,
+      5,
+      6
+     ],
+     "mine_min": 14.8,
+     "mine_bpm": 3.8,
+     "total_min": 72.2,
+     "share_mine": 0.205
+    },
+    "delta_solo": 0.181,
+    "delta_4p": 0.258
+   },
+   "gold": {
+    "dungeon_per_run": 22603,
+    "dungeon_per_min": 753.4,
+    "band_pickaxe": "orichalcum_pickaxe",
+    "dungeon_with_sale_per_min": 920.9,
+    "ratio_with_sale": 0.043,
+    "mine_per_min": 39.7,
+    "mine_levels": [
+     4,
+     5,
+     6
+    ],
+    "ratio": 0.053,
+    "gift_top_pickaxe_per_min": 39.7,
+    "gift_ratio": 0.053
+   }
+  }
+ ],
+ "pickaxe_prep": {
+  "iron_pickaxe": {
+   "with": "copper_pickaxe",
+   "ingots": 12,
+   "gems": 2,
+   "essence": {
+    "dim_essence": 2
+   },
+   "minutes": 7.2,
+   "levels": [
+    1,
+    2,
+    3,
+    4
+   ],
+   "gold": 324
+  },
+  "silver_pickaxe": {
+   "with": "iron_pickaxe",
+   "ingots": 16,
+   "gems": 2,
+   "essence": {
+    "dim_essence": 4
+   },
+   "minutes": 6.6,
+   "levels": [
+    1,
+    2,
+    3,
+    4
+   ],
+   "gold": 1064
+  },
+  "gold_pickaxe": {
+   "with": "silver_pickaxe",
+   "ingots": 20,
+   "gems": 3,
+   "essence": {
+    "labyrinth_essence": 2
+   },
+   "minutes": 12.4,
+   "levels": [
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "gold": 2660
+  },
+  "mithril_pickaxe": {
+   "with": "gold_pickaxe",
+   "ingots": 24,
+   "gems": 3,
+   "essence": {
+    "labyrinth_essence": 4
+   },
+   "minutes": 13.3,
+   "levels": [
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "gold": 5288
+  },
+  "orichalcum_pickaxe": {
+   "with": "mithril_pickaxe",
+   "ingots": 28,
+   "gems": 4,
+   "essence": {
+    "radiant_essence": 3
+   },
+   "minutes": 19.2,
+   "levels": [
+    3,
+    4,
+    5,
+    6
+   ],
+   "gold": 10504
+  }
+ },
+ "stamina": {
+  "paces": {
+   "6": {
+    "minutes_to_empty": 343.0,
+    "day_share_24h": 0.585
+   },
+   "8": {
+    "minutes_to_empty": 240.0,
+    "day_share_24h": 0.514
+   },
+   "10": {
+    "minutes_to_empty": 185.0,
+    "day_share_24h": 0.471
+   },
+   "12": {
+    "minutes_to_empty": 150.0,
+    "day_share_24h": 0.443
+   }
+  },
+  "macro_spot": {
+   "1": {
+    "reach_max": 10,
+    "blocks_per_min": 1.25,
+    "minutes_to_empty": null,
+    "share_of_honest": 0.092
+   },
+   "2": {
+    "reach_max": 10,
+    "blocks_per_min": 1.11,
+    "minutes_to_empty": null,
+    "share_of_honest": 0.082
+   },
+   "3": {
+    "reach_max": 10,
+    "blocks_per_min": 1.11,
+    "minutes_to_empty": null,
+    "share_of_honest": 0.082
+   },
+   "4": {
+    "reach_max": 10,
+    "blocks_per_min": 1.0,
+    "minutes_to_empty": null,
+    "share_of_honest": 0.074
+   },
+   "5": {
+    "reach_max": 9,
+    "blocks_per_min": 0.9,
+    "minutes_to_empty": null,
+    "share_of_honest": 0.066
+   },
+   "6": {
+    "reach_max": 10,
+    "blocks_per_min": 1.0,
+    "minutes_to_empty": null,
+    "share_of_honest": 0.074
+   }
+  },
+  "bot_24h": {
+   "bpm": 13.6,
+   "minutes_to_empty": 130.0,
+   "day_share_24h": 0.426
+  },
+  "honest": {
+   "craft_focus_bpm_range": [
+    3.8,
+    9.68
+   ],
+   "craft_focus_hours_to_empty": [
+    3.2,
+    10.8
+   ],
+   "all_minable_top_pick_bpm": 13.6,
+   "all_minable_top_pick_hours": 2.2,
+   "with_breaks_75pct_hours": 3.0
+  }
+ },
+ "assumptions": {
+  "run_minutes": {
+   "1": 15,
+   "2": 16,
+   "3": 18,
+   "4": 20,
+   "5": 21,
+   "6": 23,
+   "7": 24,
+   "8": 26,
+   "9": 27,
+   "10": 30
+  },
+  "party_time": 0.8,
+  "party_bonus": 0.15,
+  "aim_s": 1.0,
+  "cluster_s": 2.0,
+  "loop_s": 45.0,
+  "lift_trip_s": 12.0,
+  "ing_share": 0.2
+ }
+}

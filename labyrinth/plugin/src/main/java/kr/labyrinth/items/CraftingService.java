@@ -19,4 +19,22 @@ public interface CraftingService {
 
     /** 대장장이 GUI 열기 (NPC 우클릭·명령). */
     void openBlacksmith(Player player);
+
+    /**
+     * 제련소 GUI (0.3.6, Q3): recipes.yml {@code station: smelter} — 탭 제련(광석 ×2 → 주괴, ×1·×8·전부) · 새기기(보석 + 정수 → 강화석 2) ·
+     * 곡괭이(앞 곡괭이를 재료로 다시 벼림). 구역 제련공 NPC·interact smelter·광산 관리소가 연다. 레벨 조건 없음.
+     */
+    default void openSmelter(Player player) {
+        kr.labyrinth.core.Log.notImplemented("CraftingService.openSmelter");
+        kr.labyrinth.core.Text.error(player, "제련소가 아직 문을 열지 않았습니다.");
+    }
+
+    /**
+     * 광부 상점 (0.3.6, Q3): 첫 구리 곡괭이 무료 1번 (ext mine.free_pickaxe) · 이후 구리 곡괭이 50G · 광석·주괴·보석 팔기 (SellMenu 그대로).
+     * 광산 관리소({@code mine.MineApi#openOffice})의 곡괭이·팔기 탭이 이것을 쓴다.
+     */
+    default void openMineShop(Player player) {
+        kr.labyrinth.core.Log.notImplemented("CraftingService.openMineShop");
+        kr.labyrinth.core.Text.error(player, "광부 상점이 아직 문을 열지 않았습니다.");
+    }
 }

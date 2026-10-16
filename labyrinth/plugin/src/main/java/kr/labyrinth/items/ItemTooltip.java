@@ -117,6 +117,7 @@ public final class ItemTooltip {
             case MATERIAL -> "재료";
             case CONSUMABLE -> "소모품";
             case KEY -> "열쇠";
+            case TOOL -> "도구";
         };
     }
 

@@ -17,11 +17,14 @@ import kr.labyrinth.stats.Stat;
  */
 public final class ContentParser {
 
-    /** 파일 이름 목록 (확장자 포함). glyphs.yml · enhance.yml 은 없어도 된다. */
+    /** 파일 이름 목록 (확장자 포함). glyphs.yml · enhance.yml · mine.yml 은 없어도 된다. */
     public static final List<String> FILES = List.of("classes.yml", "items.yml", "mobs.yml", "bosses.yml",
-            "floors.yml", "loot.yml", "recipes.yml", "titles.yml", "npcs.yml", "fx.yml", "glyphs.yml", "enhance.yml");
-    /** 없어도 되는 파일 — enhance.yml 이 없으면 모든 장비가 강화석·골드만 든다(예전 서버 그대로). */
-    public static final List<String> OPTIONAL_FILES = List.of("glyphs.yml", "enhance.yml");
+            "floors.yml", "loot.yml", "recipes.yml", "titles.yml", "npcs.yml", "fx.yml", "glyphs.yml", "enhance.yml", "mine.yml");
+    /**
+     * 없어도 되는 파일 — enhance.yml 이 없으면 모든 장비가 강화석·골드만 든다(예전 서버 그대로).
+     * mine.yml (0.3.6 광산, 계약 tools/data/036/mine.json) 이 없으면 {@link MineDef#EMPTY} — 광산이 꺼진다.
+     */
+    public static final List<String> OPTIONAL_FILES = List.of("glyphs.yml", "enhance.yml", "mine.yml");
     /** 예전 버전이 복사해 두었지만 이제 쓰지 않는 파일 (손대지 않았으면 시작할 때 지운다). arenas.yml = 없앤 파티 대전 투기장. */
     public static final List<String> RETIRED_FILES = List.of("arenas.yml");
 
@@ -47,6 +50,7 @@ public final class ContentParser {
         Params fxRoot = root(files, "fx.yml");
         Params glyphsRoot = root(files, "glyphs.yml");
         Params enhanceRoot = root(files, "enhance.yml");
+        Params mineRoot = root(files, "mine.yml");
 
         Map<String, ClassDef> classes = new LinkedHashMap<>();
         classesRoot.sub("classes").children().forEach((id, p) -> classes.put(id, parseClass(id, p)));
@@ -104,6 +108,7 @@ public final class ContentParser {
         for (String k : sp.keys()) spaces.put(k, sp.integer(k, 0));
 
         EnhanceDef enhance = files.containsKey("enhance.yml") ? parseEnhance(enhanceRoot, items) : EnhanceDef.EMPTY;
+        MineDef mine = files.containsKey("mine.yml") ? parseMine(mineRoot) : MineDef.EMPTY;
 
         return new Content(
                 Collections.unmodifiableMap(classes), Collections.unmodifiableMap(items),
@@ -112,7 +117,12 @@ public final class ContentParser {
                 Collections.unmodifiableMap(loot), lootSettings, Collections.unmodifiableMap(recipes),
                 Collections.unmodifiableMap(achievements), Collections.unmodifiableMap(npcs),
                 Collections.unmodifiableMap(auras), Collections.unmodifiableMap(fxModels),
-                Collections.unmodifiableMap(glyphs), Collections.unmodifiableMap(spaces), enhance);
+                Collections.unmodifiableMap(glyphs), Collections.unmodifiableMap(spaces), enhance, mine);
+    }
+
+    /** mine.yml → {@link MineDef} (0.3.6). 시험에서 계약 JSON(tools/data/036/mine.json)도 이것으로 읽는다. */
+    public MineDef parseMine(Params root) {
+        return MineDef.parse(root, (id, msg) -> problem("mine.yml", id, msg));
     }
 
     private Params root(Map<String, Map<String, Object>> files, String name) {
@@ -225,11 +235,17 @@ public final class ContentParser {
         // 0.3.5: 장비의 층 = tier (숨은 단계, 표시 안 함). 예전 floor 도 같은 값으로 읽는다 (ContentValidator 가 경고).
         // 재료는 floor 그대로 (그 층 재료 — 레시피·강화 재료 검사).
         int tier = type.isGear() && p.has("tier") ? p.integer("tier", 0) : p.integer("floor", 0);
+        // 0.3.6 광산: mine_level (광물 등급 1~6) · mine_kind (ore|ingot|gem) · tool (곡괭이, type: tool 만)
+        MineKind mineKind = MineKind.byId(p.str("mine_kind"));
+        if (p.has("mine_kind") && mineKind == null) problem("items.yml", id, "mine_kind 는 ore | ingot | gem: " + p.str("mine_kind"));
+        ToolSpec tool = type == ItemType.TOOL ? ToolSpec.parse(p.sub("tool")) : null;
+        if (type == ItemType.TOOL && tool == null) problem("items.yml", id, "type: tool 인데 tool: {kind, tier, speed, bonus} 가 없음");
+        if (type != ItemType.TOOL && p.has("tool")) problem("items.yml", id, "tool 블록은 type: tool 만 — 무시됨");
         return new ItemDef(id, p.str("name", id), type, attack, p.str("armor_slot"),
                 p.str("armor_set"), rarity, p.integer("level_req", 1), req, p.strings("classes"),
                 Collections.unmodifiableMap(stats), p.str("set_bonus"), p.str("aura"), List.copyOf(ws),
                 tier, p.bool("pool", true), p.strings("sources"), p.sub("use"), p.sub("model"),
-                p.sub("texture"), p.str("lore", ""), p, unique, look);
+                p.sub("texture"), p.str("lore", ""), p, unique, look, p.integer("mine_level", 0), mineKind, tool);
     }
 
     /** requires: {STR: 30, ...} — 키는 STR DEX INT VIT WIS LUK, 값은 0 이상 정수 (0 = 요구 없음). */

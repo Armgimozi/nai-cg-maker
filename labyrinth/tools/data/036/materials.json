@@ -1,0 +1,1349 @@
+{
+ "contract": "0.3.6",
+ "schema": 1,
+ "note": "계약 (Q0). 손으로 고치지 말고 tools/data/036/model/params.py 를 고친 뒤 run_all.py — check_contract.py 가 지킨다.",
+ "items": {
+  "copper_ore": {
+   "name": "구리 광석",
+   "type": "material",
+   "kind": "ore",
+   "mine_level": 1,
+   "rarity": "common",
+   "sell": 1,
+   "sources": [
+    "mine",
+    "drop",
+    "elite",
+    "boss",
+    "chest"
+   ],
+   "sources_text": "광산 (그 금속이 많은 층) · 던전 몬스터·상자에서 조금",
+   "lore": "광산 얕은 곳 어디서나 보이는 붉은 광석. 제련소에서 녹이면 구리 주괴가 된다."
+  },
+  "copper_ingot": {
+   "name": "구리 주괴",
+   "type": "material",
+   "kind": "ingot",
+   "mine_level": 1,
+   "rarity": "uncommon",
+   "sell": 3,
+   "sources": [
+    "smelt"
+   ],
+   "sources_text": "제련소 구리 광석 ×2, 2G",
+   "lore": "구리 광석을 녹여 부은 주괴. 무르지만 다루기 쉬워 처음 벼리는 장비에 두루 쓴다."
+  },
+  "iron_ore": {
+   "name": "철 광석",
+   "type": "material",
+   "kind": "ore",
+   "mine_level": 2,
+   "rarity": "common",
+   "sell": 1,
+   "sources": [
+    "mine",
+    "drop",
+    "elite",
+    "boss",
+    "chest"
+   ],
+   "sources_text": "광산 (그 금속이 많은 층) · 던전 몬스터·상자에서 조금",
+   "lore": "갱도 벽의 검붉은 광석. 무겁고 단단하다. 녹이면 철 주괴가 된다."
+  },
+  "iron_ingot": {
+   "name": "철 주괴",
+   "type": "material",
+   "kind": "ingot",
+   "mine_level": 2,
+   "rarity": "uncommon",
+   "sell": 4,
+   "sources": [
+    "smelt"
+   ],
+   "sources_text": "제련소 철 광석 ×2, 4G",
+   "lore": "철 광석을 녹여 부은 주괴. 두드릴수록 질겨진다."
+  },
+  "silver_ore": {
+   "name": "은 광석",
+   "type": "material",
+   "kind": "ore",
+   "mine_level": 3,
+   "rarity": "common",
+   "sell": 2,
+   "sources": [
+    "mine",
+    "drop",
+    "elite",
+    "boss",
+    "chest"
+   ],
+   "sources_text": "광산 (그 금속이 많은 층) · 던전 몬스터·상자에서 조금",
+   "lore": "어두운 벽을 따라 하얗게 뻗은 은맥. 녹이면 은 주괴가 된다."
+  },
+  "silver_ingot": {
+   "name": "은 주괴",
+   "type": "material",
+   "kind": "ingot",
+   "mine_level": 3,
+   "rarity": "uncommon",
+   "sell": 5,
+   "sources": [
+    "smelt"
+   ],
+   "sources_text": "제련소 은 광석 ×2, 8G",
+   "lore": "은 광석을 녹여 부은 주괴. 마력을 잘 받아들인다."
+  },
+  "gold_ore": {
+   "name": "금 광석",
+   "type": "material",
+   "kind": "ore",
+   "mine_level": 4,
+   "rarity": "uncommon",
+   "sell": 2,
+   "sources": [
+    "mine",
+    "drop",
+    "elite",
+    "boss",
+    "chest"
+   ],
+   "sources_text": "광산 (그 금속이 많은 층) · 던전 몬스터·상자에서 조금",
+   "lore": "황토빛 단층 사이에 박힌 금 알갱이. 녹이면 금 주괴가 된다."
+  },
+  "gold_ingot": {
+   "name": "금 주괴",
+   "type": "material",
+   "kind": "ingot",
+   "mine_level": 4,
+   "rarity": "rare",
+   "sell": 6,
+   "sources": [
+    "smelt"
+   ],
+   "sources_text": "제련소 금 광석 ×2, 12G",
+   "lore": "금 광석을 녹여 부은 주괴. 무겁고 녹슬지 않아 귀한 장비의 이음새에 쓴다."
+  },
+  "mithril_ore": {
+   "name": "미스릴 광석",
+   "type": "material",
+   "kind": "ore",
+   "mine_level": 5,
+   "rarity": "uncommon",
+   "sell": 2,
+   "sources": [
+    "mine",
+    "drop",
+    "elite",
+    "boss",
+    "chest"
+   ],
+   "sources_text": "광산 (그 금속이 많은 층) · 던전 몬스터·상자에서 조금",
+   "lore": "푸른 정동 깊이 자라는 가벼운 광석. 녹이면 미스릴 주괴가 된다."
+  },
+  "mithril_ingot": {
+   "name": "미스릴 주괴",
+   "type": "material",
+   "kind": "ingot",
+   "mine_level": 5,
+   "rarity": "rare",
+   "sell": 7,
+   "sources": [
+    "smelt"
+   ],
+   "sources_text": "제련소 미스릴 광석 ×2, 18G",
+   "lore": "미스릴 광석을 녹여 부은 주괴. 깃털처럼 가볍고 강철보다 단단하다."
+  },
+  "orichalcum_ore": {
+   "name": "오리하르콘 광석",
+   "type": "material",
+   "kind": "ore",
+   "mine_level": 6,
+   "rarity": "rare",
+   "sell": 3,
+   "sources": [
+    "mine",
+    "drop",
+    "elite",
+    "boss",
+    "chest"
+   ],
+   "sources_text": "광산 (그 금속이 많은 층) · 던전 몬스터·상자에서 조금",
+   "lore": "가장 깊은 곳의 붉은 금빛 광석. 쥐면 손바닥이 따뜻해진다. 녹이면 오리하르콘 주괴가 된다."
+  },
+  "orichalcum_ingot": {
+   "name": "오리하르콘 주괴",
+   "type": "material",
+   "kind": "ingot",
+   "mine_level": 6,
+   "rarity": "epic",
+   "sell": 8,
+   "sources": [
+    "smelt"
+   ],
+   "sources_text": "제련소 오리하르콘 광석 ×2, 25G",
+   "lore": "오리하르콘 광석을 녹여 부은 주괴. 전설 속 장비만이 이 금속을 견딘다."
+  },
+  "quartz": {
+   "name": "석영",
+   "type": "material",
+   "kind": "gem",
+   "mine_level": 1,
+   "rarity": "rare",
+   "sell": 6,
+   "sources": [
+    "mine"
+   ],
+   "sources_text": "광산 · 구리 광석을 캘 때 드물게 · 보석 결정",
+   "lore": "맑은 결정. 하급 강화석을 새기거나 곡괭이를 벼릴 때 쓴다."
+  },
+  "garnet": {
+   "name": "석류석",
+   "type": "material",
+   "kind": "gem",
+   "mine_level": 2,
+   "rarity": "rare",
+   "sell": 8,
+   "sources": [
+    "mine"
+   ],
+   "sources_text": "광산 · 철 광석을 캘 때 드물게 · 보석 결정",
+   "lore": "광맥 사이에 박힌 짙은 붉은 보석. 하급 강화석을 새기거나 곡괭이를 벼릴 때 쓴다."
+  },
+  "moonstone": {
+   "name": "월장석",
+   "type": "material",
+   "kind": "gem",
+   "mine_level": 3,
+   "rarity": "rare",
+   "sell": 10,
+   "sources": [
+    "mine"
+   ],
+   "sources_text": "광산 · 은 광석을 캘 때 드물게 · 보석 결정",
+   "lore": "달빛을 머금은 듯 은은한 젖빛 보석. 상급 강화석을 새기거나 곡괭이를 벼릴 때 쓴다."
+  },
+  "topaz": {
+   "name": "황옥",
+   "type": "material",
+   "kind": "gem",
+   "mine_level": 4,
+   "rarity": "epic",
+   "sell": 12,
+   "sources": [
+    "mine"
+   ],
+   "sources_text": "광산 · 금 광석을 캘 때 드물게 · 보석 결정",
+   "lore": "햇빛을 굳힌 듯한 노란 보석. 상급 강화석을 새기거나 곡괭이를 벼릴 때 쓴다."
+  },
+  "sapphire": {
+   "name": "청옥",
+   "type": "material",
+   "kind": "gem",
+   "mine_level": 5,
+   "rarity": "epic",
+   "sell": 14,
+   "sources": [
+    "mine"
+   ],
+   "sources_text": "광산 · 미스릴 광석을 캘 때 드물게 · 보석 결정",
+   "lore": "깊은 바다빛 보석. 최상급 강화석을 새기거나 곡괭이를 벼릴 때 쓴다."
+  },
+  "dragonblood_stone": {
+   "name": "용혈석",
+   "type": "material",
+   "kind": "gem",
+   "mine_level": 6,
+   "rarity": "legendary",
+   "sell": 17,
+   "sources": [
+    "mine"
+   ],
+   "sources_text": "광산 · 오리하르콘 광석을 캘 때 드물게 · 보석 결정",
+   "lore": "잠든 용의 피가 굳었다는 붉은 돌. 안쪽에서 불씨가 맥박친다. 최상급 강화석을 새길 때 쓴다."
+  },
+  "cinder_hide": {
+   "name": "잿불 가죽",
+   "type": "material",
+   "kind": "monster",
+   "floor": 5,
+   "rarity": "uncommon",
+   "sell": "SellPrices 재료 공식 (uncommon · 그 층)",
+   "sources": [
+    "drop",
+    "elite",
+    "boss",
+    "chest"
+   ],
+   "sources_text": "옛 ember_shard 의 루팅 자리 그대로",
+   "lore": "잿불 드레이크와 풀무 사냥개의 그을린 가죽. 불길 속에서도 타지 않는다.",
+   "replaces": "ember_shard"
+  },
+  "resonant_sinew": {
+   "name": "공명 힘줄",
+   "type": "material",
+   "kind": "monster",
+   "floor": 7,
+   "rarity": "uncommon",
+   "sell": "SellPrices 재료 공식 (uncommon · 그 층)",
+   "sources": [
+    "drop",
+    "elite",
+    "boss",
+    "chest"
+   ],
+   "sources_text": "옛 prism_dust 의 루팅 자리 그대로",
+   "lore": "정동 거한과 수정 용인의 몸속에서 떨던 힘줄. 퉁기면 맑은 음이 난다.",
+   "replaces": "prism_dust"
+  },
+  "clock_oil": {
+   "name": "태엽 기름",
+   "type": "material",
+   "kind": "monster",
+   "floor": 9,
+   "rarity": "uncommon",
+   "sell": "SellPrices 재료 공식 (uncommon · 그 층)",
+   "sources": [
+    "drop",
+    "elite",
+    "boss",
+    "chest"
+   ],
+   "sources_text": "옛 mainspring 의 루팅 자리 그대로",
+   "lore": "태엽 짐승들의 관절에서 흘러나온 검은 기름. 식어도 굳지 않는다.",
+   "replaces": "mainspring"
+  },
+  "copper_pickaxe": {
+   "name": "구리 곡괭이",
+   "type": "tool",
+   "kind": "pickaxe",
+   "tier": 1,
+   "rarity": "common",
+   "sell": null,
+   "sellable": false,
+   "stack": 1,
+   "level_req": null,
+   "tool": {
+    "kind": "pickaxe",
+    "tier": 1,
+    "speed": {
+     "1": 1.0
+    },
+    "bonus": 0.0
+   },
+   "sources": [
+    "starter",
+    "shop"
+   ],
+   "sources_text": "시작 꾸러미 · 광산 관리소·광부 (처음 1개 무료, 이후 50G)",
+   "lore": "광부 브론이 처음 오는 이에게 쥐여 주는 곡괭이. 구리 광석과 석영만 캘 수 있다.",
+   "model": {
+    "shape": "pickaxe"
+   }
+  },
+  "iron_pickaxe": {
+   "name": "철 곡괭이",
+   "type": "tool",
+   "kind": "pickaxe",
+   "tier": 2,
+   "rarity": "uncommon",
+   "sell": null,
+   "sellable": false,
+   "stack": 1,
+   "level_req": null,
+   "tool": {
+    "kind": "pickaxe",
+    "tier": 2,
+    "speed": {
+     "1": 1.2,
+     "2": 1.2
+    },
+    "bonus": 0.02
+   },
+   "sources": [
+    "craft"
+   ],
+   "sources_text": "제련소·광산 관리소 곡괭이 벼리기",
+   "lore": "구리 날을 철로 덧댄 곡괭이. 손에 묵직하게 감긴다.",
+   "model": {
+    "shape": "pickaxe"
+   }
+  },
+  "silver_pickaxe": {
+   "name": "은 곡괭이",
+   "type": "tool",
+   "kind": "pickaxe",
+   "tier": 3,
+   "rarity": "rare",
+   "sell": null,
+   "sellable": false,
+   "stack": 1,
+   "level_req": null,
+   "tool": {
+    "kind": "pickaxe",
+    "tier": 3,
+    "speed": {
+     "1": 1.4,
+     "2": 1.4,
+     "3": 1.4
+    },
+    "bonus": 0.04
+   },
+   "sources": [
+    "craft"
+   ],
+   "sources_text": "제련소·광산 관리소 곡괭이 벼리기",
+   "lore": "은을 입힌 곡괭이. 날이 닿는 곳마다 희미한 빛이 남는다.",
+   "model": {
+    "shape": "pickaxe"
+   }
+  },
+  "gold_pickaxe": {
+   "name": "금 곡괭이",
+   "type": "tool",
+   "kind": "pickaxe",
+   "tier": 4,
+   "rarity": "rare",
+   "sell": null,
+   "sellable": false,
+   "stack": 1,
+   "level_req": null,
+   "tool": {
+    "kind": "pickaxe",
+    "tier": 4,
+    "speed": {
+     "1": 1.6,
+     "2": 1.6,
+     "3": 1.6,
+     "4": 1.6
+    },
+    "bonus": 0.06
+   },
+   "sources": [
+    "craft"
+   ],
+   "sources_text": "제련소·광산 관리소 곡괭이 벼리기",
+   "lore": "금으로 테를 두른 곡괭이. 단단한 돌도 결을 따라 갈라진다.",
+   "model": {
+    "shape": "pickaxe"
+   }
+  },
+  "mithril_pickaxe": {
+   "name": "미스릴 곡괭이",
+   "type": "tool",
+   "kind": "pickaxe",
+   "tier": 5,
+   "rarity": "epic",
+   "sell": null,
+   "sellable": false,
+   "stack": 1,
+   "level_req": null,
+   "tool": {
+    "kind": "pickaxe",
+    "tier": 5,
+    "speed": {
+     "1": 1.8,
+     "2": 1.8,
+     "3": 1.8,
+     "4": 1.8,
+     "5": 1.8
+    },
+    "bonus": 0.08
+   },
+   "sources": [
+    "craft"
+   ],
+   "sources_text": "제련소·광산 관리소 곡괭이 벼리기",
+   "lore": "가볍고 질긴 미스릴 곡괭이. 날끝에 새긴 룬이 은은히 빛난다.",
+   "model": {
+    "shape": "pickaxe"
+   }
+  },
+  "orichalcum_pickaxe": {
+   "name": "오리하르콘 곡괭이",
+   "type": "tool",
+   "kind": "pickaxe",
+   "tier": 6,
+   "rarity": "legendary",
+   "sell": null,
+   "sellable": false,
+   "stack": 1,
+   "level_req": null,
+   "tool": {
+    "kind": "pickaxe",
+    "tier": 6,
+    "speed": {
+     "1": 2.0,
+     "2": 2.0,
+     "3": 2.0,
+     "4": 2.0,
+     "5": 2.0,
+     "6": 2.0
+    },
+    "bonus": 0.1
+   },
+   "sources": [
+    "craft"
+   ],
+   "sources_text": "제련소·광산 관리소 곡괭이 벼리기",
+   "lore": "오리하르콘으로 벼린 곡괭이. 휘두를 때마다 붉은 불티가 흩날린다.",
+   "model": {
+    "shape": "pickaxe"
+   }
+  }
+ },
+ "new_ids": [
+  "copper_ore",
+  "copper_ingot",
+  "iron_ore",
+  "iron_ingot",
+  "silver_ore",
+  "silver_ingot",
+  "gold_ore",
+  "gold_ingot",
+  "mithril_ore",
+  "mithril_ingot",
+  "orichalcum_ore",
+  "orichalcum_ingot",
+  "quartz",
+  "garnet",
+  "moonstone",
+  "topaz",
+  "sapphire",
+  "dragonblood_stone",
+  "cinder_hide",
+  "resonant_sinew",
+  "clock_oil",
+  "copper_pickaxe",
+  "iron_pickaxe",
+  "silver_pickaxe",
+  "gold_pickaxe",
+  "mithril_pickaxe",
+  "orichalcum_pickaxe"
+ ],
+ "smelting": [
+  {
+   "id": "copper_ingot",
+   "result": "copper_ingot",
+   "station": "smelter",
+   "category": "material",
+   "materials": {
+    "copper_ore": 2
+   },
+   "gold": 2,
+   "amount": 1
+  },
+  {
+   "id": "iron_ingot",
+   "result": "iron_ingot",
+   "station": "smelter",
+   "category": "material",
+   "materials": {
+    "iron_ore": 2
+   },
+   "gold": 4,
+   "amount": 1
+  },
+  {
+   "id": "silver_ingot",
+   "result": "silver_ingot",
+   "station": "smelter",
+   "category": "material",
+   "materials": {
+    "silver_ore": 2
+   },
+   "gold": 8,
+   "amount": 1
+  },
+  {
+   "id": "gold_ingot",
+   "result": "gold_ingot",
+   "station": "smelter",
+   "category": "material",
+   "materials": {
+    "gold_ore": 2
+   },
+   "gold": 12,
+   "amount": 1
+  },
+  {
+   "id": "mithril_ingot",
+   "result": "mithril_ingot",
+   "station": "smelter",
+   "category": "material",
+   "materials": {
+    "mithril_ore": 2
+   },
+   "gold": 18,
+   "amount": 1
+  },
+  {
+   "id": "orichalcum_ingot",
+   "result": "orichalcum_ingot",
+   "station": "smelter",
+   "category": "material",
+   "materials": {
+    "orichalcum_ore": 2
+   },
+   "gold": 25,
+   "amount": 1
+  }
+ ],
+ "carving": [
+  {
+   "id": "lesser_enhance_stone",
+   "result": "lesser_enhance_stone",
+   "station": "smelter",
+   "category": "material",
+   "materials": {
+    "quartz": 1,
+    "dim_essence": 1
+   },
+   "gold": 20,
+   "amount": 2
+  },
+  {
+   "id": "lesser_enhance_stone_garnet",
+   "result": "lesser_enhance_stone",
+   "station": "smelter",
+   "category": "material",
+   "materials": {
+    "garnet": 1,
+    "dim_essence": 1
+   },
+   "gold": 20,
+   "amount": 2
+  },
+  {
+   "id": "greater_enhance_stone",
+   "result": "greater_enhance_stone",
+   "station": "smelter",
+   "category": "material",
+   "materials": {
+    "moonstone": 1,
+    "labyrinth_essence": 1
+   },
+   "gold": 120,
+   "amount": 2
+  },
+  {
+   "id": "greater_enhance_stone_topaz",
+   "result": "greater_enhance_stone",
+   "station": "smelter",
+   "category": "material",
+   "materials": {
+    "topaz": 1,
+    "labyrinth_essence": 1
+   },
+   "gold": 120,
+   "amount": 2
+  },
+  {
+   "id": "supreme_enhance_stone",
+   "result": "supreme_enhance_stone",
+   "station": "smelter",
+   "category": "material",
+   "materials": {
+    "sapphire": 1,
+    "radiant_essence": 1
+   },
+   "gold": 400,
+   "amount": 2
+  },
+  {
+   "id": "supreme_enhance_stone_dragonblood",
+   "result": "supreme_enhance_stone",
+   "station": "smelter",
+   "category": "material",
+   "materials": {
+    "dragonblood_stone": 1,
+    "radiant_essence": 1
+   },
+   "gold": 400,
+   "amount": 2
+  }
+ ],
+ "pickaxe_recipes": [
+  {
+   "id": "iron_pickaxe",
+   "result": "iron_pickaxe",
+   "station": "smelter",
+   "category": "tool",
+   "materials": {
+    "copper_pickaxe": 1,
+    "copper_ingot": 12,
+    "quartz": 2,
+    "dim_essence": 2
+   },
+   "gold": 300,
+   "consumes_previous_pickaxe": true
+  },
+  {
+   "id": "silver_pickaxe",
+   "result": "silver_pickaxe",
+   "station": "smelter",
+   "category": "tool",
+   "materials": {
+    "iron_pickaxe": 1,
+    "iron_ingot": 16,
+    "garnet": 2,
+    "dim_essence": 4
+   },
+   "gold": 1000,
+   "consumes_previous_pickaxe": true
+  },
+  {
+   "id": "gold_pickaxe",
+   "result": "gold_pickaxe",
+   "station": "smelter",
+   "category": "tool",
+   "materials": {
+    "silver_pickaxe": 1,
+    "silver_ingot": 20,
+    "moonstone": 3,
+    "labyrinth_essence": 2
+   },
+   "gold": 2500,
+   "consumes_previous_pickaxe": true
+  },
+  {
+   "id": "mithril_pickaxe",
+   "result": "mithril_pickaxe",
+   "station": "smelter",
+   "category": "tool",
+   "materials": {
+    "gold_pickaxe": 1,
+    "gold_ingot": 24,
+    "topaz": 3,
+    "labyrinth_essence": 4
+   },
+   "gold": 5000,
+   "consumes_previous_pickaxe": true
+  },
+  {
+   "id": "orichalcum_pickaxe",
+   "result": "orichalcum_pickaxe",
+   "station": "smelter",
+   "category": "tool",
+   "materials": {
+    "mithril_pickaxe": 1,
+    "mithril_ingot": 28,
+    "sapphire": 4,
+    "radiant_essence": 3
+   },
+   "gold": 10000,
+   "consumes_previous_pickaxe": true
+  }
+ ],
+ "retired": {
+  "rusted_iron": {
+   "floor": 2,
+   "slot": "ingot",
+   "to": "iron_ore",
+   "ratio": "1:1"
+  },
+  "slag_ingot": {
+   "floor": 5,
+   "slot": "ingot",
+   "to": "gold_ore",
+   "ratio": "1:1"
+  },
+  "ember_shard": {
+   "floor": 5,
+   "slot": "monster",
+   "to": "cinder_hide",
+   "ratio": "1:1"
+  },
+  "rime_crystal": {
+   "floor": 6,
+   "slot": "ingot",
+   "to": "gold_ore",
+   "ratio": "1:1"
+  },
+  "amethyst_shard": {
+   "floor": 7,
+   "slot": "ingot",
+   "to": "gold_ore",
+   "ratio": "1:1"
+  },
+  "prism_dust": {
+   "floor": 7,
+   "slot": "monster",
+   "to": "resonant_sinew",
+   "ratio": "1:1"
+  },
+  "brass_gear": {
+   "floor": 9,
+   "slot": "ingot",
+   "to": "orichalcum_ore",
+   "ratio": "1:1"
+  },
+  "mainspring": {
+   "floor": 9,
+   "slot": "monster",
+   "to": "clock_oil",
+   "ratio": "1:1"
+  }
+ },
+ "conversion": {
+  "map": {
+   "rusted_iron": "iron_ore",
+   "slag_ingot": "gold_ore",
+   "ember_shard": "cinder_hide",
+   "rime_crystal": "gold_ore",
+   "amethyst_shard": "gold_ore",
+   "prism_dust": "resonant_sinew",
+   "brass_gear": "orichalcum_ore",
+   "mainspring": "clock_oil"
+  },
+  "ratio": "1:1 그 자리에서 id 만 (칸·개수 그대로)",
+  "rule": "ingot 칸 옛 재료 → 그 층 장비 레시피가 가장 많이 쓰는 금속의 광석 · monster 칸 → 새 몬스터 재료 (T §5, 금속은 새 규칙으로 다시 정함)",
+  "where": [
+   "ItemMigration036 은 PDC 의 원래 item_id 를 먼저 본다 (defOf() 로 거르지 않음 — R §2-7)",
+   "접속: 가방·엔더 상자",
+   "보관함(상자·통·셜커·수레·호퍼 등) 열 때",
+   "줍기·손에 들기",
+   "셜커 상자·꾸러미 안 (겹친 것까지)",
+   "액자·갑옷 거치대·바닥 아이템: EntitiesLoadEvent",
+   "판매 바구니·대장간 창: 닫을 때 돌려받은 뒤 위 규칙"
+  ],
+  "equal_to_fresh": "결과는 ItemService 로 새로 만든 아이템과 isSimilar (겹쳐짐) — 시험",
+  "guard": "새 id 가 지금 content 에 없으면 바꾸지 않고 시작 때 경고 1줄 · 두 번 해도 같음 · 모르는 id 그대로",
+  "pack_alias": "팩은 옛 8개 id 를 새 그림으로 가리키는 별칭을 두 판(0.3.6·0.3.7) 남긴다",
+  "notice": {
+   "ext": "mat036.notice",
+   "text": "<gray>광산이 열렸습니다. 녹슨 철괴·슬래그 주괴 같은 광물 재료는 광석으로, 불씨 조각·프리즘 가루·태엽 용수철은 새 몬스터 재료로 바뀌었습니다. 광석은 제련소나 광산 관리소에서 주괴로 녹이세요.</gray>"
+  }
+ },
+ "generator_rules": {
+  "owner": "Q3 (tools/gen_036_materials.py — gen_035_content.generate() 안의 메모리 단계, R §3-18)",
+  "metal_choice": {
+   "rule": "장비의 힘 P = 단계(tier) + rarity_step[희귀도] + (보스 장비면 boss_step). 자리 pos = clamp(1 + (P − 1)/2, 1, 6). 소수부 f < mix_band[0] → 아래 금속만, f > mix_band[1] → 윗 금속만, 그 사이(양끝 포함) → 이웃 두 금속 섞음 (윗 금속 개수 = 반올림(n·f), 둘 다 1 이상). pos = 6 → 오리하르콘만",
+   "rarity_step": {
+    "common": 0.0,
+    "uncommon": 0.25,
+    "rare": 0.5,
+    "epic": 1.0,
+    "legendary": 1.5,
+    "mythic": 2.0
+   },
+   "boss_step": 0.5,
+   "mix_band": [
+    0.375,
+    0.625
+   ],
+   "not_a_band_table": true,
+   "examples_n10": {
+    "1/common": {
+     "pos": 1.0,
+     "split_of_10": [
+      [
+       "copper",
+       10
+      ]
+     ]
+    },
+    "1/uncommon": {
+     "pos": 1.125,
+     "split_of_10": [
+      [
+       "copper",
+       10
+      ]
+     ]
+    },
+    "1/rare/boss": {
+     "pos": 1.5,
+     "split_of_10": [
+      [
+       "copper",
+       5
+      ],
+      [
+       "iron",
+       5
+      ]
+     ]
+    },
+    "2/uncommon": {
+     "pos": 1.625,
+     "split_of_10": [
+      [
+       "copper",
+       4
+      ],
+      [
+       "iron",
+       6
+      ]
+     ]
+    },
+    "3/rare": {
+     "pos": 2.25,
+     "split_of_10": [
+      [
+       "iron",
+       10
+      ]
+     ]
+    },
+    "3/epic/boss": {
+     "pos": 2.75,
+     "split_of_10": [
+      [
+       "silver",
+       10
+      ]
+     ]
+    },
+    "4/rare": {
+     "pos": 2.75,
+     "split_of_10": [
+      [
+       "silver",
+       10
+      ]
+     ]
+    },
+    "4/epic": {
+     "pos": 3.0,
+     "split_of_10": [
+      [
+       "silver",
+       10
+      ]
+     ]
+    },
+    "5/rare": {
+     "pos": 3.25,
+     "split_of_10": [
+      [
+       "silver",
+       10
+      ]
+     ]
+    },
+    "5/epic": {
+     "pos": 3.5,
+     "split_of_10": [
+      [
+       "silver",
+       5
+      ],
+      [
+       "gold",
+       5
+      ]
+     ]
+    },
+    "6/epic": {
+     "pos": 4.0,
+     "split_of_10": [
+      [
+       "gold",
+       10
+      ]
+     ]
+    },
+    "7/rare": {
+     "pos": 4.25,
+     "split_of_10": [
+      [
+       "gold",
+       10
+      ]
+     ]
+    },
+    "7/epic": {
+     "pos": 4.5,
+     "split_of_10": [
+      [
+       "gold",
+       5
+      ],
+      [
+       "mithril",
+       5
+      ]
+     ]
+    },
+    "7/legendary/boss": {
+     "pos": 5.0,
+     "split_of_10": [
+      [
+       "mithril",
+       10
+      ]
+     ]
+    },
+    "8/epic": {
+     "pos": 5.0,
+     "split_of_10": [
+      [
+       "mithril",
+       10
+      ]
+     ]
+    },
+    "8/legendary/boss": {
+     "pos": 5.5,
+     "split_of_10": [
+      [
+       "mithril",
+       5
+      ],
+      [
+       "orichalcum",
+       5
+      ]
+     ]
+    },
+    "9/epic": {
+     "pos": 5.5,
+     "split_of_10": [
+      [
+       "mithril",
+       5
+      ],
+      [
+       "orichalcum",
+       5
+      ]
+     ]
+    },
+    "9/legendary": {
+     "pos": 5.75,
+     "split_of_10": [
+      [
+       "orichalcum",
+       10
+      ]
+     ]
+    },
+    "10/epic": {
+     "pos": 6.0,
+     "split_of_10": [
+      [
+       "orichalcum",
+       10
+      ]
+     ]
+    },
+    "10/legendary": {
+     "pos": 6.0,
+     "split_of_10": [
+      [
+       "orichalcum",
+       10
+      ]
+     ]
+    }
+   }
+  },
+  "ing_share": 0.2,
+  "min_ing": 2,
+  "ingot_count": "반올림(옛 일반 재료 개수 합 × ing_share), 최소 min_ing — 옛 일반 재료 = 그 층 몬스터 재료 + 광물 재료",
+  "placement": "주괴는 몬스터 재료 바로 뒤 (정예 재료·정수·핵 앞), 섞을 때 아래 금속 먼저. 몬스터 재료 개수·골드는 그대로. 레벨 조건을 새로 넣지 않음",
+  "monster_slot": "몬스터 칸 옛 재료 → 새 몬스터 재료 (개수·확률 그대로)",
+  "loot": [
+   "주괴 칸 옛 재료의 {item} 항목은 지운다 (확정 항목 포함)",
+   "one_of 안의 주괴 칸 옛 재료는 목록에서 뺀다 (남은 재료가 몫을 나눔)",
+   "몬스터 칸 옛 재료 → 새 몬스터 재료로 이름만",
+   "강화석 표·정수·장비 표는 그대로"
+  ],
+  "dungeon_ore": {
+   "rule": "R §3-10 — 모든 층. 그 층 1회(솔로) 기대 광석 = per_run[층], 금속 비율 = metals[층] (그 단계 장비 레시피의 주괴 수요 비율, 15% 미만 뺌, 최대 2종), 집 비율 split. 각 테이블의 guaranteed 에 {item: 광석, chance, amount} 확률 항목으로 넣는다 (기대 0.6 넘으면 amount 를 올림)",
+   "per_run": {
+    "1": 8,
+    "2": 7,
+    "3": 7,
+    "4": 8,
+    "5": 8,
+    "6": 11,
+    "7": 12,
+    "8": 11,
+    "9": 14,
+    "10": 13
+   },
+   "metals": {
+    "1": {
+     "copper": 0.812,
+     "iron": 0.188
+    },
+    "2": {
+     "iron": 0.677,
+     "copper": 0.323
+    },
+    "3": {
+     "iron": 1.0
+    },
+    "4": {
+     "silver": 1.0
+    },
+    "5": {
+     "gold": 0.549,
+     "silver": 0.451
+    },
+    "6": {
+     "gold": 1.0
+    },
+    "7": {
+     "gold": 0.635,
+     "mithril": 0.365
+    },
+    "8": {
+     "mithril": 1.0
+    },
+    "9": {
+     "orichalcum": 0.74,
+     "mithril": 0.26
+    },
+    "10": {
+     "orichalcum": 1.0
+    }
+   },
+   "split": {
+    "mob": 0.45,
+    "elite": 0.05,
+    "boss": 0.15,
+    "chest": 0.35
+   },
+   "homes": {
+    "mob": "그 층 일반 몹 drops",
+    "elite": "그 층 정예 drops",
+    "boss": "그 층 보스 drops",
+    "chest": "treasure_floor_N · gimmick_floor_N"
+   },
+   "share_of_kit": 0.25,
+   "tolerance": 0.1
+  },
+  "enhance": {
+   "owner": "Q3 (tools/gen_enhance.py)",
+   "P": "그 장비의 몬스터 재료 (레시피에서 가장 많이 드는 몬스터 재료 / 드롭 장비는 HARD 표)",
+   "S": "그 장비의 주 금속 주괴 (레시피면 가장 많이 드는 주괴, 같으면 윗 금속 · 드롭 장비는 primary_metal(힘)). 개수 = 반올림(S_BASE × P 공급 배율 × ingot_unit), 최소 1",
+   "R_K": "그대로 — 정예 재료·정수·보스 핵 (던전 몫)",
+   "swap": "몬스터 재료가 둘인 층(1·3·4·8·10) = 다른 몬스터 재료를 P 로 / 하나인 층(2·5·6·7·9) = 주괴를 P 로 (P 주괴 개수 × ingot_unit, S 는 몬스터 재료)",
+   "hard": {
+    "2": "spider_silk",
+    "5": "cinder_hide",
+    "6": "grave_bone",
+    "7": "resonant_sinew",
+    "9": "clock_oil"
+   },
+   "ingot_unit": 0.5,
+   "ingot_supply": "주괴 1회 공급량(환산 비교·보스 장비 검사) = 그 금속 곡괭이로 그 금속만 노릴 때 1분당 광석 × 그 층 1회 클리어 분 ÷ 2"
+  },
+  "sources": {
+   "kinds": {
+    "mine": "광산",
+    "smelt": "제련소"
+   },
+   "source_order_after": "hoard",
+   "compute": "compute_sources 를 036 적용 뒤 최종 루팅으로 다시 돌림 (광석의 drop·elite·boss·chest 는 루팅에서)"
+  },
+  "items_yml": {
+   "ore_ingot_gem": {
+    "type": "material",
+    "mine_level": "등급 1~6 (mine.json ores/gems tier 와 같아야 함)",
+    "mine_kind": "ore | ingot | gem",
+    "floor": "비움"
+   },
+   "tool": {
+    "type": "tool",
+    "tool": "{kind: pickaxe, tier, speed: {광석 tier: 배율}, bonus}",
+    "level_req": "적지 않음 (레벨 조건 없음)"
+   }
+  },
+  "checks": [
+   "NoRetiredIds",
+   "GearRecipeIngot (금속 = 힘 규칙, 이웃 두 금속까지)",
+   "MineLadder (제련 6 · 곡괭이 사다리 · 레벨 조건 없음)",
+   "SellMine",
+   "EnhanceIngot",
+   "DungeonOrePerRun (±10%)",
+   "NoLevelLabels (광석·주괴·곡괭이·광산 글에 Lv·층 번호·단계 없음)"
+  ],
+  "verify_first": "0.3.5 verify 를 036 단계 앞에서 돌린다 (R §3-18)"
+ },
+ "sell": {
+  "config": {
+   "sell": {
+    "mine": {
+     "ore": 1,
+     "ingot": 3,
+     "gem": 6,
+     "rank_bonus": 0.35
+    }
+   }
+  },
+  "formula": "값 = 반올림(base × (1 + rank_bonus × (mine_level − 1))), 최소 1 · mine_kind 로 종류 · 도구(type tool)는 못 팜 (\"도구는 팔 수 없습니다.\")",
+  "table": {
+   "1": {
+    "ore": 1,
+    "ingot": 3,
+    "gem": 6,
+    "smelt_gold": 2
+   },
+   "2": {
+    "ore": 1,
+    "ingot": 4,
+    "gem": 8,
+    "smelt_gold": 4
+   },
+   "3": {
+    "ore": 2,
+    "ingot": 5,
+    "gem": 10,
+    "smelt_gold": 8
+   },
+   "4": {
+    "ore": 2,
+    "ingot": 6,
+    "gem": 12,
+    "smelt_gold": 12
+   },
+   "5": {
+    "ore": 2,
+    "ingot": 7,
+    "gem": 14,
+    "smelt_gold": 18
+   },
+   "6": {
+    "ore": 3,
+    "ingot": 8,
+    "gem": 17,
+    "smelt_gold": 25
+   }
+  },
+  "rule": "녹여 팔면 언제나 손해: 주괴 값 < 광석 2개 값 + 제련 골드"
+ },
+ "starter_kit": {
+  "add": {
+   "item": "copper_pickaxe",
+   "amount": 1
+  },
+  "config": "config.yml starter_kit (Q3)"
+ },
+ "codex": {
+  "groups_order": [
+   "보스",
+   "정예",
+   "몬스터·상자",
+   "보물 상자",
+   "시련방",
+   "특별 시련",
+   "금고·미믹",
+   "광산",
+   "제련소",
+   "대장간",
+   "상인",
+   "칭호 보상",
+   "시작 지급",
+   "몬스터"
+  ],
+  "colors": {
+   "광산": "#d9a066",
+   "제련소": "#ff9a5a"
+  },
+  "mine_line": "광산 · 많이 나는 곳: <층 이름 둘> (mine.json 무게가 가장 큰 두 곳) — 층 번호·Lv·단계 글자 없음",
+  "smelt_line": "제련소 <재료 ×n>, <골드>G (레시피 amount 가 2 이상이면 끝에 \"(n개)\")",
+  "pickaxe_line": "캘 수 있는 것: <광석·보석 이름들> · 속도 ×<speed> · 광석 덤 <bonus%> (레벨 줄 없음)",
+  "enhance_source": "광석·보석 \"광산\", 주괴 \"제련소\""
+ },
+ "drops_reserved": {
+  "spec_dir": "design036/drops/ (따로 설계 — 아직 없을 수 있음)",
+  "owner": "Q3",
+  "applies": "materials 규칙 다음 단계로 (gen_036_materials → drops) — 같은 generate() 안",
+  "may_add": [
+   "몹 주제 드롭 재료 id",
+   "상자 모양 미믹 관련 루팅"
+  ],
+  "must_keep": [
+   "이 파일의 금속·보석·곡괭이 id 와 규칙",
+   "mine.json",
+   "ING_SHARE·던전 광석 per_run (바꾸려면 Q0 계약을 고친다)"
+  ]
+ },
+ "derived": {
+  "recipes_changed": 184,
+  "mixed_recipes": 53,
+  "single_metal_recipes": 131,
+  "ingots_by_tier": {
+   "1": {
+    "copper": 39,
+    "iron": 9
+   },
+   "2": {
+    "copper": 20,
+    "iron": 42
+   },
+   "3": {
+    "iron": 67,
+    "silver": 8
+   },
+   "4": {
+    "silver": 62
+   },
+   "5": {
+    "silver": 32,
+    "gold": 39
+   },
+   "6": {
+    "gold": 89,
+    "mithril": 2
+   },
+   "7": {
+    "gold": 54,
+    "mithril": 31
+   },
+   "8": {
+    "mithril": 98,
+    "orichalcum": 13
+   },
+   "9": {
+    "mithril": 20,
+    "orichalcum": 57
+   },
+   "10": {
+    "orichalcum": 92
+   }
+  },
+  "ingots_all_recipes_once": {
+   "copper": 59,
+   "iron": 118,
+   "silver": 102,
+   "gold": 182,
+   "mithril": 151,
+   "orichalcum": 162
+  },
+  "loot": {
+   "one_of": 24,
+   "removed": 50,
+   "rename": 30
+  },
+  "enhance": {
+   "collisions": 0,
+   "unfair": [],
+   "problems": [],
+   "cheaper": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0,
+    "5": 0,
+    "6": 0,
+    "7": 0,
+    "8": 0,
+    "9": 0,
+    "10": 0
+   },
+   "grade_bad": 0,
+   "r_bad": 0,
+   "ingot_as_P": 75,
+   "no_ingot_mid_high": []
+  },
+  "recipes_total_after": 204
+ },
+ "economy": {
+  "source": "tools/data/036/model/out/economy.json · CONTRACT.md §5"
+ }
+}

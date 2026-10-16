@@ -26,10 +26,22 @@ public record Content(
         Map<String, FxModelDef> fxModels,
         Map<String, GlyphDef> glyphs,
         Map<String, Integer> spaces,
-        EnhanceDef enhance) {
+        EnhanceDef enhance,
+        MineDef mine) {
 
     public Content {
         if (enhance == null) enhance = EnhanceDef.EMPTY;
+        if (mine == null) mine = MineDef.EMPTY;
+    }
+
+    /** mine.yml(광산, 0.3.6)이 생기기 전 모양 — 광산 없음. */
+    public Content(Map<String, ClassDef> classes, Map<String, ItemDef> items, Map<String, ItemSetDef> sets,
+                   Map<String, MobDef> mobs, Map<String, BossDef> bosses, NavigableMap<Integer, FloorDef> floors,
+                   Map<String, LootTable> lootTables, LootTable.Settings lootSettings, Map<String, RecipeDef> recipes,
+                   Map<String, AchievementDef> achievements, Map<String, NpcDef> npcs, Map<String, AuraDef> auras,
+                   Map<String, FxModelDef> fxModels, Map<String, GlyphDef> glyphs, Map<String, Integer> spaces, EnhanceDef enhance) {
+        this(classes, items, sets, mobs, bosses, floors, lootTables, lootSettings, recipes, achievements, npcs, auras,
+                fxModels, glyphs, spaces, enhance, MineDef.EMPTY);
     }
 
     /** enhance.yml(장비별 강화 재료)이 생기기 전 모양 — 재료 없음(강화석·골드만). */
@@ -44,7 +56,8 @@ public record Content(
 
     public static Content empty() {
         return new Content(Map.of(), Map.of(), Map.of(), Map.of(), Map.of(), new TreeMap<>(), Map.of(),
-                LootTable.Settings.DEFAULT, Map.of(), Map.of(), Map.of(), Map.of(), Map.of(), Map.of(), Map.of(), EnhanceDef.EMPTY);
+                LootTable.Settings.DEFAULT, Map.of(), Map.of(), Map.of(), Map.of(), Map.of(), Map.of(), Map.of(), EnhanceDef.EMPTY,
+                MineDef.EMPTY);
     }
 
     public ClassDef classDef(String id) { return id == null ? null : classes.get(id); }
@@ -81,6 +94,6 @@ public record Content(
                 + ", 보스 " + bosses.size() + ", 층 " + floors.size() + ", 루팅 " + lootTables.size()
                 + ", 레시피 " + recipes.size() + ", 칭호 " + achievements.size() + ", NPC " + npcs.size()
                 + ", 아우라 " + auras.size() + ", 이펙트 " + fxModels.size() + ", 글리프 " + glyphs.size()
-                + ", 강화 재료 " + enhance.items().size();
+                + ", 강화 재료 " + enhance.items().size() + ", 광산 층 " + mine.levels().size();
     }
 }

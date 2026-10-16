@@ -223,6 +223,8 @@ public final class NpcServiceImpl implements NpcService, Listener {
                 case "class_master" -> services.menus().openClass(player);
                 case "title_keeper" -> services.menus().openTitles(player);
                 case "merchant" -> new ShopMenu(services, def).open(player);
+                case kr.labyrinth.mine.MineNames.ROLE_MINER -> services.mine().openOffice(player);
+                case kr.labyrinth.mine.MineNames.ROLE_SMELTER -> services.crafting().openSmelter(player);
                 default -> { }
             }
         } catch (Throwable t) {
