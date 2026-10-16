@@ -141,8 +141,10 @@ public final class MainMenu extends LabMenu {
             if (pc.partyNameColor()) lore.add("<gray>내 파티원 이름은 <#7fe07f>초록색</#7fe07f>으로 보입니다.");
             var death = services.settings().death();
             if (death.keepInventory()) {
-                lore.add("<gray>어디서 쓰러져도 소지품" + (death.keepLevel() ? "·경험치 레벨" : "") + "은 잃지 않습니다.");
+                lore.add("<gray>미궁 밖에서 쓰러지면 소지품" + (death.keepLevel() ? "·경험치 레벨" : "") + "은 지킵니다.");
             }
+            String penalty = kr.labyrinth.core.DeathPenaltyRules.menuLine(services.settings().deathPenalty());
+            if (penalty != null) lore.add("<gray>" + penalty);
         } else {
             lore.add("<gray>이 서버는 PvP 가 꺼져 있어");
             lore.add("<gray>플레이어끼리는 서로 다치지 않습니다.");

@@ -101,14 +101,33 @@
 
 ### 2.6 사망과 부활
 - 파티원이 남아 있으면 관전 모드. 휴식방 도달·보스 처치·사제의 **부활의 성가**로 부활.
-- 전원 사망 → 인스턴스 실패, 입구로 귀환. 아이템 손실 없음. 해당 층 진행만 잃는다.
-- **미궁 밖에서 죽어도**(야생·마을·네더·엔드, PvP 포함) 소지품과 바닐라 경험치 레벨을 잃지 않는다 — 인벤세이브
-  (config `death: {keep_inventory: true, keep_level: true}`, false 면 그 부분만 바닐라 규칙).
+- 전원 사망 → 인스턴스 실패, 입구로 귀환. 전멸 자체의 추가 손실은 없다 (쓰러질 때마다 아래 페널티는 이미 받음). 해당 층 진행을 잃는다.
+- **미궁 밖에서 죽어도**(야생·마을·네더·엔드, PvP 포함) 소지품과 바닐라 경험치 레벨을 떨구지 않는다 — 인벤세이브
+  (config `death: {keep_inventory: true, keep_level: true}`, false 면 그 부분만 바닐라 규칙). 미궁 안은 설정과 상관없이 떨구지 않는다.
+- **0.3.6.1 죽음 페널티** (`core.DeathPenaltyRules` 순수 · `core.DeathPenalty` 적용, config `death.penalty`) — §2.6.1.
 - **게임 모드**(보스·몹은 크리에이티브·관전 플레이어를 공격하지 않으므로): 파티 입장(일반 입장) 때 모두 **서바이벌**로 바꾸고,
   입장 전 모드는 기억했다가 **미궁을 나갈 때만** 되돌린다. 재접속·부활 때는 쓰러진 상태면 관전, 아니면 항상 서바이벌
   (입장 전 크리에이티브로 되돌리지 않는다). 관리자 테스트 입장(`/labadmin tpfloor`)만 모드를 바꾸지 않는다.
   인스턴스가 닫힌 뒤 미궁 월드에 남은 사람(서버 재시작 등)은 입장 전 모드로 원래 자리에 돌려보낸다.
 - 다른 플레이어에게 쓰러져도(파티를 나간 사람 등, §18.5) 똑같이 처리된다.
+
+#### 2.6.1 0.3.6.1 죽음 페널티
+- **어디서든**: 취소되지 않은 죽음(미궁 밖·미궁 월드의 공략 밖)과 미궁 공략 중 쓰러짐 모두 **이번 레벨 경험치 진행도 → 0**.
+  레벨은 내려가지 않는다. 최고 레벨(xp 늘 0)이면 아무것도 없다. 바닐라 경험치(keep_level)와는 따로다.
+- **미궁 공략 중 쓰러짐만**(`Run.onMemberDeath`, 죽음이 취소되고 관전): 가방 칸 **2 또는 3**(고르게)을 통째로 지운다 — 떨구지 않는다.
+  후보 = `getStorageContents()` 36칸(단축 0~8 + 가방 9~35) 중 물건이 있고 안전하지 않은 칸, **손에 든 단축 칸 제외**.
+  갑옷 36~39 · 보조손 40 · 장신구(PlayerData, 가방 밖)는 후보가 아니다. 후보가 모자라면 있는 만큼. 칸 고르기는 부분 피셔-예이츠(칸마다 같은 확률).
+  고르기 전에 열린 창을 닫아(커서·2×2 제작 칸·판매 바구니 → 가방) 같은 규칙으로 고른다.
+- **언제나 안전**: items.yml `type: key`(직업 문장 · 층 금고 열쇠 — 금고는 파티 몫이라 한 사람이 쓰러져 잃으면 남은 파티원도 막힘),
+  미궁 활 무한 화살(PDC `lab_arrow`, 진짜 물건 아님), config `safe_items`. 그 밖은 잃을 수 있다: 안 배운 도안 · 전직의 두루마리(핀이 팜) ·
+  구리 곡괭이(광부 50G, 레시피 재료) · 귀환 주문서 · 셜커 상자(한 칸 — 따로 지켜 주면 다 넣어 피할 수 있다).
+- 안내: 미궁 쓰러짐은 바로, 밖의 죽음은 부활한 뒤(`PlayerPostRespawnEvent`) 채팅 한두 줄 — "죽어서 잃었습니다: 철 주괴 ×13, 하급 치유 물약 ×5" ·
+  "이번 레벨 경험치가 처음으로 돌아갔습니다. (-N XP)". 잃은 것이 없으면 말 없음. 미궁 첫 입장 때 한 번 규칙 안내(ext `death.penalty_notice`).
+  콘솔에 `[죽음 페널티] 이름 (곳) 잃은 물건 id×n … · 경험치 -n`.
+- 예외 규칙: 토템·부활 물약 = 죽음 없음 → 페널티 없음. 미궁 밖 keep_inventory false = 바닐라 드롭만(더 지우지 않음).
+  미궁 월드의 공략 밖 죽음(관전 중 /kill 등) = 경험치만. 관리자 시험 입장(`/labadmin tpfloor`) = 경험치만.
+  보스·미믹·함정·공허·/kill 모두 같은 쓰러짐 경로라 같은 규칙. 전멸·보스 실패에 추가 손실 없음. 부활(휴식방·보스 처치·부활의 성가)은 되돌려 주지 않는다.
+  접속 끊기(전투 중 포함)는 지금처럼 공략에 남았다가 재접속하면 합류 — 쓰러짐이 아니므로 잃지 않는다(새 벌칙 없음).
 
 ### 2.7 초반·솔로 완화 (0.3.2)
 보통·솔로로도 1~3층을 넘길 수 있게 맞춘 값이다(난이도 램프 §2.4, 솔로 보정 §2.5 와 함께). 전부 설정으로 끌 수 있다.
@@ -1898,7 +1917,8 @@ party: {max_size: 5, hp_per_member: 0.6, dmg_per_member: 0.08, reward_per_member
         solo_hp: 0.85, solo_damage: 0.85}          # 솔로 보정 (§2.5, 끄기 1.0)
 starter_kit: {enabled: true, gold: 300, items: [{item: novice_cap, amount: 1}, …, {item: minor_healing_potion, amount: 10}, {item: minor_mana_potion, amount: 5}, {item: return_scroll, amount: 2}]}   # §2.7
 class_change: {require_item: true, item: class_change_scroll, cooldown_hours: 24}   # §4.5 (끄기 class_change: false)
-death: {keep_inventory: true, keep_level: true}     # 인벤세이브 §2.6
+death: {keep_inventory: true, keep_level: true,     # 인벤세이브 §2.6
+        penalty: {xp_progress_reset: true, dungeon_item_loss: {enabled: true, slots_min: 2, slots_max: 3, safe_items: []}}}   # §2.6.1 (끄기 penalty: false)
 combat: {base_crit_chance: 0.05, base_crit_damage: 1.5, attack_interval_min: 0.25, early_click_buffer: 0.35, early_click_sound: true,
          click_tolerance_ms: 50, jump_crit: 1.2, bow_full_draw_cue: true, damage_numbers: true}   # §3 (게이지 없음)
 weapon_attack_speed: {none: 1.6}   # 0.3.5 부터 맨손(none)만 읽는다 — 무기 간격은 items.yml attack.interval

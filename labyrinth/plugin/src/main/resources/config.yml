@@ -273,11 +273,23 @@ class_change:
 
 # 죽을 때 (인벤세이브) — 야생·마을·네더·엔드 어디서 죽든 (PvP 포함)
 #   keep_inventory: 소지품을 그대로 지니고 아무것도 떨구지 않는다. keep_level: 바닐라 경험치 레벨 유지 (경험치 구슬도 안 떨굼).
-#   false 면 그 부분만 바닐라(게임 규칙 keepInventory)대로. 미궁 안에서 죽으면 이 값과 상관없이 언제나 잃지 않는다.
+#   false 면 그 부분만 바닐라(게임 규칙 keepInventory)대로. 미궁 안에서는 이 값과 상관없이 떨구지 않는다 (아래 penalty 만 있음).
 #   키가 없으면 둘 다 true.
+# penalty — 죽음 페널티 (0.3.6.1). 이 블록이 없어도 아래 값으로 켜진다. 모두 끄기: penalty: false
+#   xp_progress_reset: 어디서 죽든 지금 레벨에서 모은 경험치가 0 으로 (레벨은 안 내려감, 최고 레벨이면 그대로)
+#   dungeon_item_loss: 미궁 공략 중 쓰러지면 가방(단축 칸 포함) slots_min ~ slots_max 칸을 통째로 잃는다. 떨어뜨리지 않고 사라진다.
+#     손에 든 칸·입은 갑옷·장신구·보조손은 안전. 열쇠·문장도 잃지 않는다. 끄기: dungeon_item_loss: false
+#     safe_items: 잃지 않을 아이템을 더 적는다 (items.yml id 나 바닐라 이름, 예: [return_scroll, totem_of_undying])
 death:
   keep_inventory: true
   keep_level: true
+  penalty:
+    xp_progress_reset: true
+    dungeon_item_loss:
+      enabled: true
+      slots_min: 2
+      slots_max: 3
+      safe_items: []
 
 # 맨손 공격 속도 (초당 횟수). 0.3.5 부터 무기는 저마다 items.yml attack.interval 을 쓰고, 이 표는 none(맨손)만 읽는다.
 #   공격 속도 스탯 = 민첩 0.5%/점(최대 +45%) + 장비·버프, 합계 최대 +75% — 간격 ÷ (1 + 공격 속도).
