@@ -1381,6 +1381,19 @@ LOD: 보는 사람이 24칸 밖이면 입자 절반, 48칸 밖이면 링만. 같
 - 옛 재료는 `ItemMigration036` 이 1:1 로 바꾼다 (가방·엔더 상자·보관함·셜커·꾸러미·액자). 팩은 옛 id 별칭을 0.3.7 까지 둔다.
 - 글 규칙: 광석·주괴·보석·곡괭이·광산 층 글에 Lv·층 번호·단계를 쓰지 않는다 (도감은 "광산 · 많이 나는 곳: <층 이름>").
 
+#### 0.3.6.1 광산 손보기 (주인 결정 — 위 줄보다 앞선다, 계약 CONTRACT §0.1)
+- **한 단계 위까지**: 곡괭이 tier t 는 광석·보석 tier ≤ t + 1 을 캔다 ("구리 곡괭이로 철을 캘 수 있고 철 괭이로 은을 캐는 식").
+  한 단계 위 = 그 광석 제 곡괭이 빠르기 × 0.6 (구리 곡괭이 · 철 광석 4.0초, 철 곡괭이 2.4초). t + 2 부터 "곡괭이가 약해 캘 수 없습니다".
+  `ToolSpec.maxHardness·isSlow` · `TierRule.slow` · items.yml `tool.speed` 에 t + 1 칸 (생성기). 0.6 의 까닭 = CONTRACT §5 표 G.
+- **곡괭이 레시피 = 제 금속**: `<금속>_pickaxe` = 앞 곡괭이 + 제 금속 주괴 + 같은 등급 보석 + 정수 + 골드 (철 12 · 은 16 · 금 20 · 미스릴 24 · 오리하르콘 24,
+  보석 2 · 2 · 3 · 3 · 3). 새로 온 사람의 첫 철 곡괭이 = 던전 1회 + 광산 약 5~7분 (표 D).
+- **보석 노드 = 네모난 광석 블록**: 결정 ItemDisplay 없음. 보석 블록은 좀벌레 돌 6개(석영 infested_stone_bricks · 석류석 infested_cobblestone ·
+  월장석 infested_mossy_stone_bricks · 황옥 infested_deepslate · 청옥 infested_chiseled_stone_bricks · 용혈석 infested_cracked_stone_bricks)이고
+  팩이 그 모습만 광산 벽 돌 바탕 + 보석 색 알갱이 16×16 그림으로 바꾼다 (`resourcepack/src/mine_blocks.py`). 이 팩의 다른 세계에는 없는 블록이다.
+  옛 결정은 시작·층 짓기·청크 읽기·30초 정리 때 지운다 (자가 진단 `crystals=0`).
+- 구리 곡괭이 끌 날 = 구리 팔레트의 가장 밝은 구리 (흰 강철이 아님).
+- 리소스팩 주소: `pack.public_copy` (jar 팩 sha 공개 사본) — `pack.PackUrlChoice` (내장 먼저 · 받지 못하면 사본 · 옛 사본 url 바로잡기 · 직접 적은 url 그대로).
+
 ### 11.12 무기 스킬을 가진 무기 (구현 = §17 Weapon skill catalog)
 무기 **159종**(영웅 132 전부 · 전설 18 · 신화 6 + 고급·희귀 3)이 무기 스킬을 가지며, 무기마다 **고유한 조합형 스킬**(§17.5 `id: mechanics`)이 최소 하나 있다 —
 같은 스킬을 이름만 바꿔 돌려 쓰지 않는다. 특수 판정이 필요한 것(방어 자세 `riposte`, 자기 강화 `empower`, 성역 `sanctuary`,

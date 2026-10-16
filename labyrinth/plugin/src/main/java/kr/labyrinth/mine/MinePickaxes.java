@@ -29,7 +29,7 @@ import org.bukkit.persistence.PersistentDataType;
 
 /**
  * 곡괭이 구성요소 ({@link MineApi#applyPickaxe}, 계약 §2.6) — {@link PickaxePlan} 대로:
- * Tool 규칙(블록마다 speed, correct_for_drops TRUE, 그 밖 1.0, 내구 0) · CAN_BREAK (tier 이하 광석·보석 블록) · UNBREAKABLE ·
+ * Tool 규칙(블록마다 speed, correct_for_drops TRUE, 그 밖 1.0, 내구 0) · CAN_BREAK (tier + 1 이하 광석·보석 블록, 0.3.6.1) · UNBREAKABLE ·
  * 공격 속성 비움 · 한 칸 1개 · 바탕 PAPER · TOOLTIP_DISPLAY 로 바닐라 줄 숨김 · PDC 지문(블록 설정이 바뀌면 접속 때 다시 씀).
  */
 final class MinePickaxes {

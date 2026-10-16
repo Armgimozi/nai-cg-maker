@@ -97,7 +97,7 @@ M·T·V 와 달라진 큰 것:
 - 캐는 모습은 바닐라 그대로: 어드벤처 + 곡괭이 `CAN_BREAK` + `Tool` 규칙(블록마다 speed, `correct_for_drops = TRUE`).
 - 초 = 광석 `base_seconds` ÷ 곡괭이 `speed[광석 tier]`. 서버가 `speed = 30·단단함(Material#getHardness) ÷ (20·초)` 로 바꾼다. 보석 노드는 `gems.base_seconds` (같은 등급 광석의 1.5배). 어떤 조합도 1.0초보다 빠르지 않다.
 - **tier 규칙** (0.3.6.1 §0-6): 광석·보석 tier ≤ 곡괭이 tier + 1 일 때만 캔다 (한 단계 위는 제 곡괭이 빠르기 × 0.6). 아니면 금도 안 가고(CAN_BREAK 밖) 액션바 `곡괭이가 약해 캘 수 없습니다` (1초에 1번, 팔 휘두름 + 5칸 시선 검사).
-- `BlockBreakEvent` 는 늘 취소하고 서버가 다시 본다: 광산 월드 · 곡괭이 tier ≥ 광석 tier · **그 사람에게 고갈이 아님** · **눈 → 블록 상자 거리 ≤ 4.5 + 0.25** · 가방 자리. 하나라도 아니면 수확 없음 (`mine.json` `rules.server_recheck`).
+- `BlockBreakEvent` 는 늘 취소하고 서버가 다시 본다: 광산 월드 · 곡괭이 tier + 1 ≥ 광석 tier (0.3.6.1) · **그 사람에게 고갈이 아님** · **눈 → 블록 상자 거리 ≤ 4.5 + 0.25** · 가방 자리. 하나라도 아니면 수확 없음 (`mine.json` `rules.server_recheck`).
   - 거리 한도를 두는 까닭: 바닐라 서버는 `isWithinBlockInteractionRange(pos, 1.0)` 으로 5.5 칸까지 받는다(26.3 `ServerPlayerGameMode.handleBlockBreakAction`). 고친 클라이언트로 5.5 에서 캐면 시안 청사진에서도 한 자리 광맥이 12~15개가 된다.
 - 수확은 가방에 바로. 가득 차면 캐지지도 비워지지도 않는다. 바닐라 드롭·경험치 없음.
 - 다시 보내기: **취소한 칸만** 1틱 뒤 (R §2-13, 6 이웃 아님). 그 밖에 `PlayerChunkLoadEvent`·텔레포트·승강기·우클릭 뒤·고갈 칸 `BlockDamageEvent` 때.
@@ -129,7 +129,7 @@ M·T·V 와 달라진 큰 것:
 - `type: tool` (ItemType.TOOL). 장비가 아니다: 능력치·강화·요구 능력치·판매 없음, 한 칸에 1개, 내구도 없음(UNBREAKABLE 숨김).
 - 바탕 아이템은 지금 재료처럼 `PAPER` 다(ENCHANTABLE 없음). 효율 마법·모루로 §3.4 속도표가 깨지지 않게 하려는 것이다. MAX_STACK_SIZE 1.
 - items.yml `tool: {kind: pickaxe, tier, speed: {광석 tier: 배율}, bonus}`. `level_req` 를 적지 않는다.
-- 구성요소(Q1 `MineApi.applyPickaxe`): Tool 규칙(블록마다 speed), CAN_BREAK(tier 이하 광석·보석 블록), UNBREAKABLE, 공격 속성 비움, TOOLTIP_DISPLAY 로 바닐라 줄 숨김. 블록 설정이 바뀌면 접속 때 다시 쓴다.
+- 구성요소(Q1 `MineApi.applyPickaxe`): Tool 규칙(블록마다 speed), CAN_BREAK(tier + 1 이하 광석·보석 블록, 0.3.6.1), UNBREAKABLE, 공격 속성 비움, TOOLTIP_DISPLAY 로 바닐라 줄 숨김. 블록 설정이 바뀌면 접속 때 다시 쓴다.
 - 벼리기 레시피는 **제련소 `station: smelter`, `category: tool`** (마을 대장간이 아님 — 관리소에서도 된다). 앞 곡괭이를 재료로 넣으면 앞 곡괭이는 사라진다.
 - 구리 곡괭이: 시작 꾸러미 + 관리소·광부에게서 첫 1개 무료(ext `mine.free_pickaxe`) + 잃으면 50G.
 
@@ -300,20 +300,25 @@ starter_kit: ... + {item: copper_pickaxe, amount: 1}    # Q3
 
 층 색·재생 입자·팔레트·분위기 글은 `mine.json` `levels`, `visual.json` `levels`. 승강기 (0, 바닥+1, 0), 내리는 자리 (0.5, 바닥+1, 3.5).
 
-### 3.3 블록 (바닐라, 12개 모두 다름)
+### 3.3 블록 (바닐라, 12개 모두 다름 — 0.3.6.1 보석 블록 바뀜, §0-8)
 
-| 광석 | 블록 | 보석 | 블록 (+ 결정 모델) |
-|---|---|---|---|
-| 구리 | copper_ore | 석영 | nether_quartz_ore (+ node_quartz) |
-| 철 | iron_ore | 석류석 | cinnabar (+ node_garnet) |
-| 은 | calcite | 월장석 | sea_lantern (+ node_moonstone) |
-| 금 | gold_ore | 황옥 | glowstone (+ node_topaz) |
-| 미스릴 | deepslate_diamond_ore | 청옥 | deepslate_lapis_ore (+ node_sapphire) |
-| 오리하르콘 | ancient_debris | 용혈석 | magma_block (+ node_dragonblood) |
+| 광석 | 블록 | 보석 | 블록 (팩이 그림을 바꿈) | 0.3.6 |
+|---|---|---|---|---|
+| 구리 | copper_ore | 석영 | infested_stone_bricks (돌 바탕 + 흰 조각) | nether_quartz_ore + 결정 |
+| 철 | iron_ore | 석류석 | infested_cobblestone (돌 바탕 + 붉은 알) | cinnabar + 결정 |
+| 은 | calcite | 월장석 | infested_mossy_stone_bricks (응회암 바탕 + 젖빛 알) | sea_lantern + 결정 |
+| 금 | gold_ore | 황옥 | infested_deepslate (심층암 바탕 + 노란 조각) | glowstone + 결정 |
+| 미스릴 | deepslate_diamond_ore | 청옥 | infested_chiseled_stone_bricks (돌 바탕 + 파란 육각) | deepslate_lapis_ore + 결정 |
+| 오리하르콘 | ancient_debris | 용혈석 | infested_cracked_stone_bricks (현무암 바탕 + 붉게 타는 결) | magma_block + 결정 |
 
-- 고른 이유는 `visual.json` `blocks.*.why`. 쓰면 안 됨: 레드스톤 광석(lit), 떨어지는 블록, 블록 엔티티, 정육면체 아님.
+- 고른 이유는 `visual.json` `blocks.*.why`·`natural`. 쓰면 안 됨: 레드스톤 광석(lit), 떨어지는 블록, 블록 엔티티, 정육면체 아님.
+- 0.3.6.1: 보석 블록 = 좀벌레 돌 6개. 만들 수도 주울 수도 없고, 이 팩의 세계(미궁 floors.yml · 마을·구역 조각 · 광산 장식 ·
+  배포 월드 지형 — 0.3.6 zip 의 세 차원 3,314청크를 훑어 0칸)에 없다. 그래서 팩이 그 모습을 바꿔도 다른 곳이 안 바뀐다
+  (`GemBlockCollateralTest` · check_contract `collateral_uses`). 자연 생성은 요새·이글루 지하·삼림 대저택·산 아래 심층암과 좀벌레가 숨은 돌뿐 —
+  그 자리의 좀벌레 돌이 보석 광석처럼 보인다. 바닐라 광석 그림은 하나도 바꾸지 않는다. infested_stone(산 겉의 덩이)은 쓰지 않는다.
 - 이 12개와 빈 광맥 블록은 광산 어느 층의 벽·바닥·장식·빛에도 쓰지 않는다. 구역 장식에도 쓰지 않는다(원석 블록 `raw_*_block` 은 됨).
-- 팩은 블록을 하나도 바꾸지 않는다 (blockstates·models/block·textures/block 0개).
+- 팩이 바꾸는 블록은 이 보석 블록 6개뿐이다 (blockstates 6 + `labyrinth:block/mine/gem_<보석>` 모델·16×16 그림). 그 밖 blockstates·models/block·textures/block 0개.
+- 금속 광맥 블록은 그대로 (은 = 방해석, 미스릴 = 심층암 다이아 광석): 바닐라 모습이 틀리지 않고, 바꾸면 미궁 6·7층 방해석과 야생 다이아 광석이 바뀐다.
 
 ### 3.4 캐는 초 (곡괭이 × 광석, 0.3.6.1 — 한 단계 위 포함)
 
@@ -384,7 +389,7 @@ starter_kit: ... + {item: copper_pickaxe, amount: 1}    # Q3
 
 - 아이콘 21개 (32×32, 0.3.5 `icons.py` 방식): V 의 새 모양 17개 + Q0 가 더한 `ore_ember`(오리하르콘 광석) · `gem_drop`(용혈석). 금 광석 `ore_star`, 금 주괴 `ingot_bar`(철과 같은 모양·다른 색), 오리하르콘 주괴 `ingot_star`, 황옥 `gem_shard`.
 - 곡괭이 3D 6개 (새 틀 `pickaxe`, 손 모습 `displays.voxel_weapon`): 모양 copper · steel · silver · **gold**(새) · crystal · **ember**(새, 반짝임 `ember_glow`). 요소 예산 380 · 380 · 380 · 450 · 520 · 720.
-- 보석 결정 6개 (ItemDisplay, ≤ 300 요소): node_quartz · node_garnet · node_moonstone · node_topaz(새) · node_sapphire · node_dragonblood(새). 놓는 법·숨김은 `visual.json` `gem_nodes`.
+- 보석 결정 6개 (ItemDisplay) — 0.3.6.1 에서 없앰 (§0-8). 보석 광석 블록 그림 6개 (16×16, `visual.json` `blocks.gems.*.look`)로 바뀜.
 - NPC 스킨: 기존 `paint_skin` + 닫힌 목록. 광부 `miner/short_beard/[helmet_lamp, tool_belt, soot_marks]` 푸른 회색 작업복 · 제련공 `apron/bun/[goggles_forehead, thick_gloves, tool_belt]` 주황·녹청 강조. 큰 눈·잔무늬 없음.
 
 ---
