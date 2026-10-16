@@ -815,7 +815,7 @@ public final class ContentValidator {
                 }
                 for (Integer k : t.speed().keySet()) if (k < 1 || k > t.tier()) warn(w, "tool.speed 등급 " + k + " 는 캘 수 없는 등급 (무시)");
                 if (!d.stats().isEmpty()) err(w, "도구에는 능력치(stats)가 없다");
-                if (d.levelReq() > 0) warn(w, "도구에 level_req 가 있음 — 광산에는 레벨 조건이 없다 (무시)");
+                if (d.raw() != null && d.raw().has("level_req")) warn(w, "도구에 level_req 가 있음 — 광산에는 레벨 조건이 없다 (무시)");
             }
         }
         if (!have) return;
