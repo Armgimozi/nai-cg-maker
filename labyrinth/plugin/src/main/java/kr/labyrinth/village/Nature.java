@@ -51,6 +51,15 @@ public final class Nature {
 
     private Nature() {}
 
+    /**
+     * 분류 목록 서명 (0.3.6 구역 지문): tools/village/district_fingerprint.py 의 nature_signature() 와 같은 글.
+     * 지문 파일에 이 글의 해시가 적혀 있어, 두 쪽 목록이 어긋나면 시험(DistrictFingerprintTest)이 잡는다.
+     */
+    static String signature() {
+        return "G:" + String.join(",", new java.util.TreeSet<>(GROUND)) + "|P:" + String.join(",", new java.util.TreeSet<>(PLANT))
+                + "|T:" + String.join(",", new java.util.TreeSet<>(TREE_PART));
+    }
+
     /** "minecraft:oak_log[axis=y]" / "OAK_LOG" / "oak_log" → 종류. */
     public static Kind kind(String block) {
         String k = key(block);

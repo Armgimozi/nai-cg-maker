@@ -45,6 +45,12 @@ public final class Layout {
         this.terraces = List.copyOf(terraces);
     }
 
+    /** 코드로 만든 배치 (0.3.6 구역: 자리마다 월드 방향으로 펼친 배치 — {@link DistrictLayout#place}). */
+    static Layout of(String name, int radius, int blend, List<Entry> pieces, List<PathDef> paths,
+                     Map<String, List<Blueprint.Weighted>> styles) {
+        return new Layout(name, radius, blend, pieces, paths, new LinkedHashMap<>(styles), List.of());
+    }
+
     public static Layout parse(String json) {
         JsonObject o;
         try {

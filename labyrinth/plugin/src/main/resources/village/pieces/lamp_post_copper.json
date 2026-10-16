@@ -1,0 +1,50 @@
+{
+  "format": 1,
+  "id": "lamp_post_copper",
+  "name": "구리 가로등",
+  "size": [1, 6, 2],
+  "floor_y": 0,
+  "foundation": "minecraft:stone_bricks",
+  "foundation_mix": [["minecraft:stone_bricks", 3], ["minecraft:tuff_bricks", 1], ["minecraft:polished_andesite", 1]],
+  "anchor": [0, 1],
+  "palette": {
+    "b": "minecraft:chiseled_tuff_bricks",
+    "f": "minecraft:dark_oak_fence[east=false,north=false,south=false,waterlogged=false,west=false]",
+    "d": "minecraft:dark_oak_fence[east=false,north=false,south=true,waterlogged=false,west=false]",
+    "F": "minecraft:dark_oak_fence[east=false,north=true,south=false,waterlogged=false,west=false]",
+    "l": "minecraft:dark_oak_log[axis=y]",
+    "w": "minecraft:tuff_brick_wall[east=none,north=none,south=none,up=true,waterlogged=false,west=none]",
+    "L": "minecraft:waxed_copper_lantern[hanging=false,waterlogged=false]",
+    "W": "minecraft:waxed_copper_lantern[hanging=true,waterlogged=false]"
+  },
+  "layers": [
+    [
+      " ",
+      "b"
+    ],
+    [
+      " ",
+      "w"
+    ],
+    [
+      " ",
+      "l"
+    ],
+    [
+      "W",
+      "f"
+    ],
+    [
+      "d",
+      "F"
+    ],
+    [
+      " ",
+      "L"
+    ]
+  ],
+  "markers": [
+    {"type": "light", "pos": [0, 3, 0]},
+    {"type": "light", "pos": [0, 5, 1]}
+  ]
+}

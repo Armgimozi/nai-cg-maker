@@ -10,22 +10,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import kr.labyrinth.core.Log;
 import kr.labyrinth.core.Text;
-import net.kyori.adventure.key.Key;
 import org.bukkit.Bukkit;
-import org.bukkit.DyeColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.block.Banner;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
-import org.bukkit.block.Sign;
-import org.bukkit.block.banner.Pattern;
-import org.bukkit.block.banner.PatternType;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.type.Slab;
-import org.bukkit.block.sign.Side;
-import org.bukkit.block.sign.SignSide;
 import org.bukkit.command.CommandSender;
 
 /**
@@ -59,9 +49,7 @@ final class VillageBuilder extends VillageJob {
     private List<long[]> regrass = List.of();
     private int cursor, cursor2, cursor3;
     private int ox, oz;
-    private final Map<String, BlockData> dataCache = new HashMap<>();
-    private final Map<String, BlockData> pieceCache = new HashMap<>();
-    private int changed, errors;
+    private PlanWriter writer;
     private String planNote = "";
 
     VillageBuilder(VillageModule module, CommandSender sender, World world, Integer x, Integer z, Integer turns, boolean force, VillageMeta old) {
@@ -77,6 +65,7 @@ final class VillageBuilder extends VillageJob {
 
     @Override
     protected void begin() {
+        writer = new PlanWriter(world, null, null, lib.layout.pathStyles, null);
         Location sp = world.getSpawnLocation();
         if (fx != null) {
             ox = fx;
@@ -187,6 +176,10 @@ final class VillageBuilder extends VillageJob {
                     Log.info("[마을] 짓기 거절: " + (plan == null ? "-" : plan.reason));
                     return true;
                 }
+                PlanWriter w0 = writer;
+                writer = new PlanWriter(world, plan, grid, lib.layout.pathStyles, null);
+                writer.changed = w0.changed;
+                writer.errors = w0.errors;
                 say("<#7fe07f>  계획: " + Text.escape(plan.summary()) + "</#7fe07f>");
                 if (!planNote.isEmpty()) say("<gray>  " + Text.escape(planNote));
                 step = Step.LOAD;
@@ -213,7 +206,7 @@ final class VillageBuilder extends VillageJob {
                 say("<gray>  나무: 원목 " + t.logs() + " · 잎 " + t.leaves() + " · 붙은 것 " + t.parts() + (t.capped() ? " <#ff9a4d>(상한 도달)" : ""));
             }
             case CLEAR -> {
-                BlockData air = Material.AIR.createBlockData();
+                BlockData air = writer.data("minecraft:air");
                 while (cursor < clear.size() && b.more()) {
                     long[] p = clear.get(cursor++);
                     Block blk = world.getBlockAt((int) p[0], (int) p[1], (int) p[2]);
@@ -234,9 +227,9 @@ final class VillageBuilder extends VillageJob {
             }
             case TERRAIN -> {
                 int n = plan.gn * plan.gn;
-                while (cursor < n && b.more()) terrainColumn(cursor++, b);
+                while (cursor < n && b.more()) writer.terrainColumn(cursor++, b);
                 if (cursor >= n) {
-                    say("<gray>  지형 다듬기 완료 (깎기 " + plan.cut + " · 메우기 " + plan.fill + " · 바꾼 블록 " + changed + ")");
+                    say("<gray>  지형 다듬기 완료 (깎기 " + plan.cut + " · 메우기 " + plan.fill + " · 바꾼 블록 " + writer.changed + ")");
                     step = Step.PIECES;
                     cursor = 0;
                     cursor2 = 0;
@@ -246,7 +239,7 @@ final class VillageBuilder extends VillageJob {
                 while (cursor < plan.pieces.size() && b.more()) {
                     Plan.Placed pl = plan.pieces.get(cursor);
                     int total = pl.bp.w * pl.bp.h * pl.bp.d;
-                    while (cursor2 < total && b.more()) pieceCell(pl, cursor2++, b);
+                    while (cursor2 < total && b.more()) writer.pieceCell(pl, cursor2++, b);
                     if (cursor2 >= total) {
                         cursor++;
                         cursor2 = 0;
@@ -261,7 +254,7 @@ final class VillageBuilder extends VillageJob {
             case PATHS -> {
                 while (cursor < plan.paths.size() && b.more()) {
                     Plan.PathPlan pp = plan.paths.get(cursor);
-                    while (cursor2 < pp.cells.size() && b.more()) pathCell(pp, pp.cells.get(cursor2++), b);
+                    while (cursor2 < pp.cells.size() && b.more()) writer.pathCell(pp, pp.cells.get(cursor2++), b);
                     if (cursor2 >= pp.cells.size()) {
                         cursor++;
                         cursor2 = 0;
@@ -270,7 +263,8 @@ final class VillageBuilder extends VillageJob {
                 if (cursor >= plan.paths.size()) step = Step.POST;
             }
             case POST -> {
-                post();
+                int[] sb = writer.post();
+                say("<gray>  표지판 " + sb[0] + " · 깃발 " + sb[1] + (writer.errors > 0 ? " <#ff9a4d>· 문제 " + writer.errors + "건 (서버 로그)" : ""));
                 step = Step.META;
             }
             case META -> {
@@ -359,301 +353,17 @@ final class VillageBuilder extends VillageJob {
         return cursor3 >= n;
     }
 
-    // ── 지형 ─────────────────────────────────────────────────────────────
+    // ── 칸 일은 PlanWriter (구역 짓기와 같이 씀) ─────────────────────────
 
-    BlockData data(String state) {
-        return dataCache.computeIfAbsent(state, s -> {
-            try {
-                return Bukkit.createBlockData(s);
-            } catch (IllegalArgumentException e) {
-                errors++;
-                Log.warn("[마을] 블록 문자열 오류: " + s);
-                return Material.STONE.createBlockData();
-            }
-        });
-    }
+    private void set(Block blk, String state, Budget b) { writer.set(blk, state, b); }
 
-    private void set(Block blk, String state, Budget b) {
-        BlockData d = data(state);
-        if (blk.getBlockData().matches(d)) return;
-        blk.setBlockData(d, false);
-        b.use(1);
-        changed++;
-    }
-
-    /** 옹벽·기초 블록: 그 칸을 덮는 조각의 foundation_mix (+ 아래쪽은 이끼 섞기), 없으면 첫 조각(광장) 것. */
-    private String foundation(int x, int y, int z) {
-        Blueprint src = plan.pieces.get(0).bp;
-        for (Plan.Placed pl : plan.pieces) {
-            if (x >= pl.x0 - 1 && x <= pl.x0 + pl.w2 && z >= pl.z0 - 1 && z <= pl.z0 + pl.d2) {
-                src = pl.bp;
-                break;
-            }
-        }
-        long h = Blueprint.hash(x, y, z);
-        String f = src.foundationAt(h);
-        if (Math.floorMod(h >>> 7, 5) == 0) {
-            String id = Nature.key(f);
-            String mossy = id.equals("cobblestone") ? "mossy_cobblestone" : id.endsWith("stone_bricks") && !id.startsWith("mossy") ? "mossy_stone_bricks" : null;
-            if (mossy != null) return "minecraft:" + mossy;
-        }
-        return f;
-    }
-
-    private boolean replaceableTerrain(Material m) {
-        Nature.Kind k = Scan.kind(m);
-        return k == Nature.Kind.AIR || k == Nature.Kind.PLANT || k == Nature.Kind.GROUND || k == Nature.Kind.LEAVES
-                || k == Nature.Kind.LOG || k == Nature.Kind.TREE_PART;
-    }
-
-    private void terrainColumn(int i, Budget b) {
-        int lx = i % plan.gn, lz = i / plan.gn;
-        int x = plan.gx0 + lx, z = plan.gz0 + lz;
-        double dist = Math.hypot(x - plan.cx, z - plan.cz);
-        int reach = lib.planner.reach();
-        if (dist > reach || !grid.has(x, z)) return;
-        int g = plan.ground[i], t = plan.field.target()[i];
-        boolean colChanged = t != g;
-        byte src = plan.fixedSrc[i];
-        int exposed = plan.field.exposed()[i];
-        String surf = grid.surface(x, z);
-        String top = Nature.topFor(surf), sub = Nature.subsurface(surf);
-        // 손대는 칸 = 고정 칸(조각·여유·정문 앞·길·추가 단)과 그 둘레 2칸, 높이가 바뀐 칸, 옹벽 칸.
-        // 그 밖(R 안이라도 그대로인 땅)의 풀·꽃·눈은 남긴다 — 마을 둘레에 동그랗게 깎인 자국이 생기지 않게.
-        boolean tidy = src != 0 || colChanged || exposed > 0 || nearFixed(lx, lz, 2);
-        if (!tidy) return;
-        boolean snowy = grid.flag(x, z, Terrain.SNOW) && src != 3 && src != 4 && src != 5;
-        // 1. 목표보다 위: 공기 (식물·눈 포함, 위로 뻗은 자연 지형 덩어리까지) — 그대로인 눈 덮인 칸은 눈 유지
-        int clearTop = Math.max(g, t) + 2;
-        for (int y = t + 1; y <= clearTop + 14; y++) {
-            Block blk = world.getBlockAt(x, y, z);
-            Material m = blk.getType();
-            if (m.isAir()) {
-                if (y > clearTop) break;
-                continue;
-            }
-            Nature.Kind k = Scan.kind(m);
-            boolean go = y <= g ? replaceableTerrain(m) : (k == Nature.Kind.PLANT || k == Nature.Kind.GROUND || k == Nature.Kind.LIQUID);
-            if (m == Material.SNOW && snowy && !colChanged && y == t + 1) go = false;
-            if (!go) {
-                if (y > clearTop) break;
-                continue;
-            }
-            blk.setBlockData(data("minecraft:air"), false);
-            b.use(1);
-            changed++;
-        }
-        boolean footprint = src == 5;
-        if (colChanged || exposed > 0) {
-            // 2. 깎은 칸: 새 맨 윗블록 + 그 아래 두 칸 / 메운 칸: 원래 땅 위로 목표까지 (묻힌 잔디는 흙으로)
-            //    옹벽 칸: 드러난 높이만큼 기초 블록(foundation_mix + 이끼)
-            int lo = t < g ? t - 2 : t > g ? g : t;
-            if (exposed > 0) lo = Math.min(lo, t - exposed + 1);
-            for (int y = lo; y <= t; y++) {
-                String want = exposed > 0 && y > t - exposed ? foundation(x, y, z) : y == t ? top : sub;
-                Block blk = world.getBlockAt(x, y, z);
-                if (!replaceableTerrain(blk.getType())) continue;
-                set(blk, want, b);
-            }
-        } else if (!footprint) {
-            return; // R 안 그대로인 칸: 식물만 지움
-        }
-        // 3. 바뀐 칸 바로 아래 빈칸 막기 (얇은 껍질 위에 서지 않게), 발자국은 6칸까지 기초로 (§0 동굴)
-        int depth = footprint ? Planner.CAVE_DEPTH : 3;
-        for (int k = 1; k <= depth; k++) {
-            Block blk = world.getBlockAt(x, t - k, z);
-            Nature.Kind kk = Scan.kind(blk.getType());
-            if (kk == Nature.Kind.AIR || kk == Nature.Kind.LIQUID) set(blk, footprint ? foundation(x, t - k, z) : sub, b);
-        }
-        // 4. 원래 눈 덮였던 바뀐 칸은 눈 한 겹 되살림 (길·정문 앞·조각 발자국 제외) — 눈 덮인 들판 가운데 초록 원판이 생기지 않게
-        if (snowy && colChanged && exposed == 0) {
-            Block above = world.getBlockAt(x, t + 1, z);
-            if (above.getType().isAir()) {
-                Block topBlk = world.getBlockAt(x, t, z);
-                if (topBlk.getType() == Material.GRASS_BLOCK) set(topBlk, "minecraft:grass_block[snowy=true]", b);
-                set(above, "minecraft:snow[layers=1]", b);
-            }
-        }
-    }
-
-    /** 마을이 손대는 칸인가: 고정 칸(조각·여유·정문 앞·길·추가 단)과 그 둘레 2칸, 높이가 바뀐 칸. 나무·풀·눈은 이 칸에서만 치운다. */
-    boolean tidy(int x, int z) {
-        if (!plan.inGrid(x, z)) return false;
-        int i = plan.idx(x, z);
-        return plan.fixedSrc[i] != 0 || plan.field.changed()[i] || plan.field.exposed()[i] > 0 || nearFixed(x - plan.gx0, z - plan.gz0, 2);
-    }
-
-    /** 격자 칸 (lx, lz) 둘레 r 칸 안에 고정 칸이 있는가. */
-    private boolean nearFixed(int lx, int lz, int r) {
-        for (int dz = -r; dz <= r; dz++) {
-            for (int dx = -r; dx <= r; dx++) {
-                int ax = lx + dx, az = lz + dz;
-                if (ax < 0 || az < 0 || ax >= plan.gn || az >= plan.gn) continue;
-                if (plan.fixedSrc[az * plan.gn + ax] != 0) return true;
-            }
-        }
-        return false;
-    }
-
-    // ── 조각 ─────────────────────────────────────────────────────────────
-
-    /** 회전한 팔레트 블록 (BlockData#rotate). */
-    BlockData pieceData(Plan.Placed pl, int cp) {
-        String key = pl.index() + ":" + cp;
-        return pieceCache.computeIfAbsent(key, k -> {
-            String st = pl.bp.state(cp);
-            BlockData d = data(st).clone();
-            d.rotate(Rot.of(pl.turns));
-            return d;
-        });
-    }
-
-    private void pieceCell(Plan.Placed pl, int k, Budget b) {
-        Blueprint bp = pl.bp;
-        int x = k % bp.w, z = (k / bp.w) % bp.d, y = k / (bp.w * bp.d);
-        int cp = bp.cell(x, y, z);
-        if (cp == Blueprint.KEEP) return;
-        int[] w = pl.world(x, z);
-        Block blk = world.getBlockAt(w[0], pl.worldY(y), w[1]);
-        if (cp == Blueprint.AIR) {
-            if (!blk.getType().isAir()) {
-                blk.setBlockData(data("minecraft:air"), false);
-                b.use(1);
-            }
-            return;
-        }
-        blk.setBlockData(pieceData(pl, cp), false);
-        b.use(1);
-    }
-
-    // ── 길 ───────────────────────────────────────────────────────────────
-
-    /** 길 블록의 반블록 (돌 벽돌 → 돌 벽돌 반블록 …), 없으면 null. */
-    static String slabOf(String block) {
-        String id = Nature.key(block).replace("cracked_", "");
-        String slab;
-        if (id.endsWith("bricks")) slab = id.substring(0, id.length() - 1) + "_slab";
-        else if (id.endsWith("tiles")) slab = id.substring(0, id.length() - 1) + "_slab";
-        else if (id.endsWith("planks")) slab = id.replace("_planks", "_slab");
-        else slab = id + "_slab";
-        Material m = Material.matchMaterial("minecraft:" + slab);
-        return m != null && m.isBlock() && m.createBlockData() instanceof Slab ? "minecraft:" + slab + "[type=bottom,waterlogged=false]" : null;
-    }
-
-    private void pathCell(Plan.PathPlan pp, int[] c, Budget b) {
-        int x = c[0], z = c[1], y = c[2];
-        List<Blueprint.Weighted> style = lib.layout.pathStyles.getOrDefault(pp.def.style(), List.of());
-        String block = Blueprint.pick(style, Blueprint.hash(x, 0, z), "minecraft:dirt_path");
-        set(world.getBlockAt(x, y, z), block, b);
-        for (int dy = 1; dy <= 2; dy++) {
-            Block above = world.getBlockAt(x, y + dy, z);
-            Nature.Kind k = Scan.kind(above.getType());
-            if (k == Nature.Kind.PLANT || k == Nature.Kind.GROUND) set(above, "minecraft:air", b);
-        }
-        // 이웃 길이 1 높으면 반블록으로 반 칸 계단
-        boolean higher = false;
-        for (int[] d : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
-            int h = pathHeight(x + d[0], z + d[1]);
-            if (h == y + 1) higher = true;
-        }
-        if (higher) {
-            String slab = slabOf(block);
-            if (slab == null && !style.isEmpty()) slab = slabOf(style.get(0).block());
-            if (slab != null) set(world.getBlockAt(x, y + 1, z), slab, b);
-        }
-    }
-
-    private Map<Long, Integer> pathIndex;
-
-    private int pathHeight(int x, int z) {
-        if (pathIndex == null) {
-            pathIndex = new HashMap<>();
-            for (Plan.PathPlan pp : plan.paths) for (int[] c : pp.cells) pathIndex.putIfAbsent(PathRaster.key(c[0], c[1]), c[2]);
-        }
-        return pathIndex.getOrDefault(PathRaster.key(x, z), Integer.MIN_VALUE);
-    }
-
-    // ── 표지판·깃발 ──────────────────────────────────────────────────────
-
-    private void post() {
-        int signs = 0, banners = 0;
-        for (Markers.Placed mk : Markers.all(plan)) {
-            int[] w = mk.first();
-            if (w == null) continue;
-            Block blk = world.getBlockAt(w[0], w[1], w[2]);
-            try {
-                if (mk.marker().type().equals("sign")) {
-                    BlockState st = blk.getState();
-                    if (!(st instanceof Sign sign)) {
-                        Log.warn("[마을] 표지판 마커 자리에 표지판이 없음: " + mk.piece().bp.id + " " + blk.getType());
-                        errors++;
-                        continue;
-                    }
-                    writeSide(sign.getSide(Side.FRONT), mk.marker().lines(), mk.marker().glow());
-                    if (!mk.marker().back().isEmpty()) writeSide(sign.getSide(Side.BACK), mk.marker().back(), mk.marker().glow());
-                    sign.setWaxed(true);
-                    sign.update(true, false);
-                    signs++;
-                } else if (mk.marker().type().equals("banner")) {
-                    BlockState st = blk.getState();
-                    if (!(st instanceof Banner banner)) {
-                        Log.warn("[마을] 깃발 마커 자리에 깃발이 없음: " + mk.piece().bp.id + " " + blk.getType());
-                        errors++;
-                        continue;
-                    }
-                    List<Pattern> pats = new ArrayList<>();
-                    var reg = io.papermc.paper.registry.RegistryAccess.registryAccess().getRegistry(io.papermc.paper.registry.RegistryKey.BANNER_PATTERN);
-                    for (String[] p : mk.marker().patterns()) {
-                        PatternType type = reg.get(Key.key(p[0].contains(":") ? p[0] : "minecraft:" + p[0]));
-                        DyeColor color;
-                        try {
-                            color = DyeColor.valueOf(p[1].toUpperCase(java.util.Locale.ROOT));
-                        } catch (IllegalArgumentException e) {
-                            color = null;
-                        }
-                        if (type == null || color == null) {
-                            Log.warn("[마을] 깃발 무늬 오류: " + p[0] + " " + p[1]);
-                            errors++;
-                            continue;
-                        }
-                        pats.add(new Pattern(color, type));
-                    }
-                    banner.setPatterns(pats);
-                    banner.update(true, false);
-                    banners++;
-                }
-            } catch (Throwable t) {
-                errors++;
-                Log.error("[마을] 후처리 오류 (" + mk.marker().type() + ")", t);
-            }
-        }
-        say("<gray>  표지판 " + signs + " · 깃발 " + banners + (errors > 0 ? " <#ff9a4d>· 문제 " + errors + "건 (서버 로그)" : ""));
-    }
-
-    private static void writeSide(SignSide side, List<String> lines, boolean glow) {
-        for (int i = 0; i < 4; i++) side.line(i, Text.mm(i < lines.size() ? lines.get(i) : ""));
-        side.setGlowingText(glow);
-    }
+    /** 마을이 손대는 칸인가 (나무 치우기 범위) — PlanWriter#tidy. */
+    boolean tidy(int x, int z) { return writer.tidy(x, z); }
 
     // ── 메타데이터 ───────────────────────────────────────────────────────
 
-    /** 발 칸 보정: 발·머리 칸이 막혔으면 위로, 발밑이 비었으면 아래로 (최대 3칸). */
-    static VillageMeta.Pos standable(World w, VillageMeta.Pos p) {
-        int x = (int) Math.floor(p.x()), z = (int) Math.floor(p.z()), y = (int) Math.floor(p.y());
-        for (int i = 0; i < 4; i++) {
-            Block feet = w.getBlockAt(x, y, z);
-            if (!feet.isPassable() || !feet.getRelative(0, 1, 0).isPassable()) {
-                y++;
-                continue;
-            }
-            if (feet.getRelative(0, -1, 0).isPassable() && i < 3) {
-                y--;
-                continue;
-            }
-            break;
-        }
-        return new VillageMeta.Pos(p.x(), y, p.z(), p.yaw());
-    }
+    /** 발 칸 보정 (PlanWriter#standable). */
+    static VillageMeta.Pos standable(World w, VillageMeta.Pos p) { return PlanWriter.standable(w, p); }
 
     private void finishMeta() throws Exception {
         VillageMeta m = Markers.meta(plan, lib.layout);
@@ -677,8 +387,8 @@ final class VillageBuilder extends VillageJob {
         svc.load();
         svc.applyIfNew(true);
         say("<#7fe07f><b>마을을 지었습니다</b></#7fe07f> <gray>(" + elapsedSec() + "초 · 조각 " + plan.pieces.size() + " · 길 칸 "
-                + plan.paths.stream().mapToInt(p -> p.cells.size()).sum() + " · 바꾼 블록 " + changed
-                + (errors > 0 ? " · <#ff9a4d>문제 " + errors + "건</#ff9a4d>" : "") + ")");
+                + plan.paths.stream().mapToInt(p -> p.cells.size()).sum() + " · 바꾼 블록 " + writer.changed
+                + (writer.errors > 0 ? " · <#ff9a4d>문제 " + writer.errors + "건</#ff9a4d>" : "") + ")");
         say("<gray>  메타데이터: <white>" + Text.escape(f.getPath()) + "</white> · 스폰 = 광장 · 확인: <white>/labadmin village selftest</white>");
         Log.info("[마을] 짓기 완료: " + plan.summary());
     }
