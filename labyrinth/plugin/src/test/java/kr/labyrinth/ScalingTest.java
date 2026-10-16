@@ -448,10 +448,11 @@ class ScalingTest {
 
     @Test
     void settingsStarterKitDefaultsAndDisable() throws Exception {
-        // 키가 없으면 코드 기본값 (수련생 4종 + 하급 치유 물약 10 · 마나 물약 5 · 귀환 주문서 2)
+        // 키가 없으면 코드 기본값 (수련생 4종 + 하급 치유 물약 10 · 마나 물약 5 · 귀환 주문서 2 + 구리 곡괭이 1 — 0.3.6)
         List<Settings.KitItem> def = new Settings(new YamlConfiguration()).starterKit();
         assertEquals(Settings.DEFAULT_STARTER_KIT, def);
-        assertEquals(7, def.size());
+        assertEquals(8, def.size());
+        assertEquals(new Settings.KitItem("copper_pickaxe", 1), def.get(7));
         assertEquals(new Settings.KitItem("minor_healing_potion", 10), def.get(4));
         assertEquals(List.of("novice_cap", "novice_tunic", "novice_trousers", "novice_boots"),
                 def.subList(0, 4).stream().map(Settings.KitItem::item).toList());

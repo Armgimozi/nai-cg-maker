@@ -91,7 +91,8 @@ class LootRollerTest {
             List<LootRoller.Drop> d = roller.roll("floor01_boss", new LootRoller.Request("easy", 0.01, 0, null));
             assertTrue(d.stream().anyMatch(x -> x.itemId().equals("warden_heartwood")));
             LootRoller.Drop moss = d.stream().filter(x -> x.itemId().equals("moss_fiber")).findFirst().orElseThrow();
-            assertTrue(moss.amount() >= 4 && moss.amount() <= 6, "amount [4,6]: " + moss.amount());
+            // 0.3.6 몹 주제 드롭 (drops_spec): 1층 보스 이끼 섬유 [6,9]
+            assertTrue(moss.amount() >= 6 && moss.amount() <= 9, "amount [6,9]: " + moss.amount());
         }
     }
 

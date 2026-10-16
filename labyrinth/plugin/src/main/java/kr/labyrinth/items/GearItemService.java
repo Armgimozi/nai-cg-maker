@@ -42,7 +42,9 @@ import org.bukkit.persistence.PersistentDataType;
  *   <li>방어구: EQUIPPABLE(slot) + assetId labyrinth:&lt;set&gt;. <b>투구는 assetId 없이</b> → 3D 아이템 모델이 머리에 렌더링</li>
  *   <li>바닐라 속성 수정치 비움(공격력·공속은 StatService), 활은 BOW + 무한(숨김) + 파괴 불가</li>
  *   <li>물약류: CONSUMABLE(마시기 0.8초) + USE_COOLDOWN(cooldown_group 공유, 클라이언트 쿨다운 표시)</li>
- *   <li>최대 개수: 재료 64 · 소모품 16 · 장비·열쇠 1 (GDD §11.6)</li>
+ *   <li>최대 개수: 재료 64 · 소모품 16 · 장비·열쇠·도구 1 (GDD §11.6)</li>
+ *   <li>도구(0.3.6 곡괭이, type: tool): 바탕 PAPER 그대로(마법 부여·모루로 속도가 깨지지 않게) · 굴림 없음 · 구성요소(Tool 규칙·CAN_BREAK·
+ *       UNBREAKABLE·툴팁 숨김)는 {@code services.mine().applyPickaxe} — 만들 때와 다시 그릴 때(접속·상자 열기) 쓴다</li>
  * </ul>
  */
 public final class GearItemService implements ItemService {
@@ -121,6 +123,23 @@ public final class GearItemService implements ItemService {
             }
         });
         render(s, def);
+        return def.isTool() ? applyTool(services, s, def) : s;
+    }
+
+    /**
+     * 곡괭이 구성요소 (Q1 {@code MineApi.applyPickaxe} — Tool 규칙 · CAN_BREAK · UNBREAKABLE · 툴팁 숨김). 광산이 꺼져 있으면(Noop) 그대로.
+     * 돌려받은 것이 다른 객체면 그 구성요소를 이 아이템으로 옮긴다 (부르는 쪽 아이템이 그대로 바뀌게).
+     */
+    static ItemStack applyTool(Services services, ItemStack s, ItemDef def) {
+        if (def == null || !def.isTool()) return s;
+        ItemStack r;
+        try {
+            r = services.mine().applyPickaxe(s, def);
+        } catch (RuntimeException e) {
+            kr.labyrinth.core.Log.warnOnce("apply-pickaxe", "[곡괭이] 구성요소를 쓰지 못했습니다: " + e);
+            return s;
+        }
+        if (r != null && r != s) s.copyDataFrom(r, t -> true);
         return s;
     }
 
@@ -214,6 +233,7 @@ public final class GearItemService implements ItemService {
         defOf(stack).ifPresent(def -> {
             migrate(stack, def);
             render(stack, def);
+            if (def.isTool()) applyTool(services, stack, def);   // 광산 블록 설정이 바뀌었을 수 있다 — 접속 때 다시 쓴다
         });
     }
 

@@ -236,7 +236,9 @@ class SellPricesTest {
         int starters = 0, keys = 0;
         for (ItemDef d : content.items().values()) {
             Quote q = prices.quote(d, 0);
-            if (d.sources().contains("starter")) {
+            if (d.type() == ItemType.TOOL) {
+                assertEquals(Block.TOOL, q.block(), d.id());   // 곡괭이 (0.3.6) — 시작 지급 구리 곡괭이도 '도구' 로 막힘
+            } else if (d.sources().contains("starter")) {
                 assertEquals(Block.STARTER, q.block(), d.id());
                 starters++;
             }
@@ -262,7 +264,8 @@ class SellPricesTest {
     void ordinaryLootIsSellable() {
         // 몬스터·상자·보스·대장간 장비와 재료는 전부 팔 수 있다 (시작 지급·열쇠·전직 제외)
         for (ItemDef d : content.items().values()) {
-            if (d.type() == ItemType.KEY || d.sources().contains("starter") || SellPrices.ALWAYS_UNSELLABLE.contains(d.id())) continue;
+            if (d.type() == ItemType.KEY || d.type() == ItemType.TOOL || d.sources().contains("starter")
+                    || SellPrices.ALWAYS_UNSELLABLE.contains(d.id())) continue;
             assertTrue(prices.quote(d, 0).sellable(), d.id() + " 를 팔 수 있어야 함");
         }
     }

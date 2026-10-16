@@ -159,7 +159,7 @@
  "conversion": {
   "rusted_iron": "iron_ore",
   "slag_ingot": "gold_ore",
-  "ember_shard": "cinder_hide",
+  "ember_shard": "ember_soul",
   "rime_crystal": "gold_ore",
   "amethyst_shard": "gold_ore",
   "prism_dust": "resonant_sinew",
@@ -525,7 +525,7 @@
     "labyrinth_essence": 2
    },
    "new": {
-    "cinder_hide": 12,
+    "ember_soul": 12,
     "silver_ingot": 2,
     "gold_ingot": 3,
     "executioner_edge": 2,
@@ -723,7 +723,7 @@
    },
    "new": {
     "forge_core": 1,
-    "cinder_hide": 10,
+    "ember_soul": 10,
     "gold_ingot": 5,
     "executioner_edge": 1,
     "labyrinth_essence": 1

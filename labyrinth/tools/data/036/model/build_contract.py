@@ -201,6 +201,13 @@ def build_materials(proto, eco):
         items[k] = {'name': d['name'], 'type': 'material', 'kind': 'monster', 'floor': d['floor'], 'rarity': d['rarity'],
                     'sell': 'SellPrices 재료 공식 (uncommon · 그 층)', 'sources': ['drop', 'elite', 'boss', 'chest'],
                     'sources_text': '던전 몬스터·정예·보스·상자 (옛 ' + d['old_ko'] + ' 자리)', 'lore': d['lore'], 'replaces': d['old']}
+    for k, d in P.DROP_PARTS.items():
+        items[k] = {'name': d['name'], 'type': 'material', 'kind': 'monster', 'floor': d['floor'], 'rarity': d['rarity'],
+                    'sell': 'SellPrices 재료 공식 (희귀도 · 그 층)', 'sources': ['drop', 'chest'],
+                    'sources_text': '그 몸을 가진 몬스터 · 그 층 상자 (몹 주제 드롭 — drops_spec)', 'lore': d['lore'],
+                    'texture': {'style': d['style'], 'palette': d['palette']}}
+        if d.get('pre_release'):
+            items[k]['pre_release'] = d['pre_release']
     for m in P.METALS:
         r = m['rank']
         items[m['pickaxe']] = {'name': m['pick_name'], 'type': 'tool', 'kind': 'pickaxe', 'tier': r, 'rarity': m['pick_rarity'],
@@ -243,6 +250,8 @@ def build_materials(proto, eco):
             'equal_to_fresh': '결과는 ItemService 로 새로 만든 아이템과 isSimilar (겹쳐짐) — 시험',
             'guard': '새 id 가 지금 content 에 없으면 바꾸지 않고 시작 때 경고 1줄 · 두 번 해도 같음 · 모르는 id 그대로',
             'pack_alias': '팩은 옛 8개 id 를 새 그림으로 가리키는 별칭을 두 판(0.3.6·0.3.7) 남긴다',
+            'pre_release': {d['pre_release']: k for k, d in P.DROP_PARTS.items() if d.get('pre_release')},
+            'pre_release_note': '배포 전 시험 서버에만 있던 id (Q0 계약 첫 판의 잿불 가죽) — ItemMigration036 이 같이 바꾼다',
             'notice': {'ext': 'mat036.notice', 'text': '<gray>광산이 열렸습니다. 녹슨 철괴·슬래그 주괴 같은 광물 재료는 광석으로, 불씨 조각·프리즘 가루·태엽 용수철은 새 몬스터 재료로 바뀌었습니다. 광석은 제련소나 광산 관리소에서 주괴로 녹이세요.</gray>'}},
         'generator_rules': {
             'owner': 'Q3 (tools/gen_036_materials.py — gen_035_content.generate() 안의 메모리 단계, R §3-18)',
@@ -267,7 +276,13 @@ def build_materials(proto, eco):
                         'S': '그 장비의 주 금속 주괴 (레시피면 가장 많이 드는 주괴, 같으면 윗 금속 · 드롭 장비는 primary_metal(힘)). 개수 = 반올림(S_BASE × P 공급 배율 × ingot_unit), 최소 1',
                         'R_K': '그대로 — 정예 재료·정수·보스 핵 (던전 몫)',
                         'swap': '몬스터 재료가 둘인 층(1·3·4·8·10) = 다른 몬스터 재료를 P 로 / 하나인 층(2·5·6·7·9) = 주괴를 P 로 (P 주괴 개수 × ingot_unit, S 는 몬스터 재료)',
-                        'hard': {2: 'spider_silk', 5: 'cinder_hide', 6: 'grave_bone', 7: 'resonant_sinew', 9: 'clock_oil'},
+                        'hard': {2: 'spider_silk', 5: 'ember_soul', 6: 'grave_bone', 7: 'resonant_sinew', 9: 'clock_oil'},
+                        'drops_stage': {'rule': '몹 주제 드롭 단계 뒤 (§0 결정 4 · drops_spec §8): 드롭 장비의 P = 단단한 장비 hard · 부드러운 장비 soft '
+                                                '(방어구는 겉모습 — 판금·방패 단단, 천 부드러움, 가죽은 슬롯). 겹치면 레시피의 다른 부위 → 그 층 반대쪽 부위 → '
+                                                '(부위 하나뿐인 7층만) 주괴를 P. R 은 지금 enhance.yml 의 것을 먼저. S 주괴 개수 = 반올림(S_BASE × ingot_s_scale[층]), '
+                                                'p_scale 아래 한도 0.25',
+                                        'hard': P.ENH_HARD, 'soft': P.ENH_SOFT,
+                                        'ingot_s_scale': '0.5 × p_scale(재료 단계 뒤 그 층 몬스터 재료 1회 공급 중 큰 값)'},
                         'ingot_unit': P.INGOT_UNIT,
                         'ingot_supply': '주괴 1회 공급량(환산 비교·보스 장비 검사) = 그 금속 곡괭이로 그 금속만 노릴 때 1분당 광석 × 그 층 1회 클리어 분 ÷ 2'},
             'sources': {'kinds': {'mine': '광산', 'smelt': '제련소'}, 'source_order_after': 'hoard',
@@ -295,11 +310,15 @@ def build_materials(proto, eco):
                            'applies': 'materials 규칙 다음 단계로 (gen_036_materials → drops) — 같은 generate() 안',
                            'may_add': ['몹 주제 드롭 재료 id', '상자 모양 미믹 관련 루팅'],
                            'must_keep': ['이 파일의 금속·보석·곡괭이 id 와 규칙', 'mine.json', 'ING_SHARE·던전 광석 per_run (바꾸려면 Q0 계약을 고친다)',
-                                         '새 몬스터 재료 3개 id·이름 (cinder_hide 잿불 가죽 · resonant_sinew 공명 힘줄 · clock_oil 태엽 기름 — 주인 결정 5)',
-                                         '옛 8개 바꿈 표 conversion.map (주인 결정 5 — T §5)'],
+                                         '새 몬스터 재료 3개 id·이름 (ember_soul 불씨 혼 · resonant_sinew 공명 힘줄 · clock_oil 태엽 기름 — §0 결정 4)',
+                                         '몹 몸에 맞는 새 부위 6 (drop_parts — §0 결정 4)',
+                                         '옛 8개 바꿈 표 conversion.map (§0 결정 4 로 불씨 조각 → 불씨 혼)'],
+                           'drop_parts': list(P.DROP_PARTS),
                            'known_conflicts': ['drops_spec 은 옛 T(5금속) 위에서 만들어짐: 거기 적힌 옛 금속 광석(T 의 가장 높은 금속 포함) → 그 층 dungeon_ore.metals 의 금속으로 읽는다',
-                                               'drops_spec 의 cinder_hide → cinder_scale 이름 바꿈 · ember_shard → ember_soul 바꿈은 주인 결정 5 와 다름 — '
-                                               '주인이 따로 승인할 때만, 그것도 params.py(이 계약)를 먼저 고친 뒤 적용']},
+                                               '§0 결정 4 (주인 늦은 결정): 드롭 명세가 재료 id 를 정한다 — 잿불 가죽(cinder_hide) → 잿불 비늘(cinder_scale), '
+                                               '불씨 조각 → 불씨 혼(ember_soul) 을 이 계약에 넣었다',
+                                               'LootRoller 는 guaranteed 의 chance 를 보지 않는다 (늘 지급) — 던전 광석 확률 항목은 entries 맨 끝에 둔다 '
+                                               '(content_p3 loot_tweaks 번호 그대로)']},
         'derived': {'recipes_changed': proto['recipes_changed'], 'mixed_recipes': proto['mixed_recipes'],
                     'single_metal_recipes': proto['single_metal_recipes'],
                     'ingots_by_tier': {str(t): v['ingots'] for t, v in proto['by_tier'].items()},
@@ -329,10 +348,12 @@ ICONS = {
     'topaz': ('gem_shard', ['#3a2404', '#7a4e08', '#d9940f', '#ffd45a', '#ffb21a'], False),
     'sapphire': ('gem', ['#060c2e', '#122a78', '#2e5ad8', '#8fb4ff', '#4a7cff'], False),
     'dragonblood_stone': ('gem_drop', ['#1a0204', '#4a060c', '#a0121c', '#ff4a3a', '#ffb04a'], True),
-    'cinder_hide': ('hide', ['#170c08', '#3a2015', '#663823', '#965836', '#ff7a2a'], False),
+    'ember_soul': ('shard', ['#1a0a06', '#5a1a0a', '#c43c12', '#ff9a2a', '#fff0a0'], False),   # 옛 불씨 조각 그림 (drops_spec 검토 §2-4)
     'resonant_sinew': ('sinew', ['#24162a', '#553858', '#956896', '#d8b2d8', '#c49cff'], False),
     'clock_oil': ('oil_flask', ['#050608', '#11161b', '#1d2731', '#2f3d4a', '#1a2028', '#7ae0c0'], False),
 }
+# 0.3.5 icons.py 에 이미 있는 모양 (새 모양 목록에서 뺀다)
+OLD_ICON_STYLES = {'gem', 'shard', 'scale', 'fang', 'dust'}
 PICKS = {
     'copper_pickaxe': ('copper', ['#3a190c', '#783818', '#bd6630', '#f2a462', '#3fb090'], False, None, 380,
                        '한쪽 뾰족·한쪽 끌, 녹청 점, 나무 자루'),
@@ -367,6 +388,8 @@ def build_visual():
     icons = {}
     for i, (style, pal, new) in ICONS.items():
         icons[i] = {'style': style, 'palette': pal, 'new_style': new, 'shape': 'icon', 'size': 32}
+    for i, d in P.DROP_PARTS.items():   # 몹 주제 새 부위 (§0 결정 4) — 0.3.5 아이콘 모양 그대로
+        icons[i] = {'style': d['style'], 'palette': d['palette'], 'new_style': False, 'shape': 'icon', 'size': 32}
     picks = {}
     for i, (style, pal, anim, eff, budget, look) in PICKS.items():
         picks[i] = {'template': 'pickaxe', 'style': style, 'palette': pal, 'animated': anim, 'effect': eff, 'element_budget': budget,
@@ -391,9 +414,9 @@ def build_visual():
         },
         'levels': lv,
         'icons': icons,
-        'new_icon_styles': sorted({v[0] for k, v in ICONS.items()} - {'gem'}),
+        'new_icon_styles': sorted({v[0] for k, v in ICONS.items()} - OLD_ICON_STYLES),
         'icon_styles_new_in_q0': sorted(s for s, _, new in ICONS.values() if new),
-        'icon_source': 'design036/tools/vis_new_styles.py draw_new (17 모양) + Q0 가 더한 ore_ember·gem_drop (Q4 가 그림)',
+        'icon_source': 'design036/tools/vis_new_styles.py draw_new (16 모양 — hide 는 §0 결정 4 로 빠짐) + Q0 가 더한 ore_ember·gem_drop (Q4 가 그림) · 몹 주제 새 부위 6 은 0.3.5 모양',
         'palette_rule': '0.3.5 Palette: 끝 강조색이 본 램프보다 밝으면 본 램프에 섞인다. 강조색만 쓰려면 그 앞에 어두운 색 하나를 끼운다',
         'pickaxes': picks,
         'gem_nodes': {'entity': 'ItemDisplay', 'models': nodes, 'asset_paths': 'assets/labyrinth/{models/item,items,textures/item}/mine/node_<gem>',

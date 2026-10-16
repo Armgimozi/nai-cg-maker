@@ -1619,7 +1619,7 @@
       "emberforged_boots"
      ],
      "runs": 1.87,
-     "bottleneck": "cinder_hide",
+     "bottleneck": "ember_soul",
      "runs_stone": 2.85,
      "dungeon_min": 39.3,
      "ingots": {
@@ -1655,7 +1655,7 @@
       "emberforged_boots"
      ],
      "runs": 1.63,
-     "bottleneck": "cinder_hide",
+     "bottleneck": "ember_soul",
      "runs_stone": 2.48,
      "dungeon_min": 27.4,
      "ingots": {

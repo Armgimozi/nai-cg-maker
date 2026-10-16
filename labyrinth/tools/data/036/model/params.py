@@ -84,21 +84,49 @@ GEMS = [
 GEM = {g['id']: g for g in GEMS}
 GEM_BY_RANK = {g['rank']: g for g in GEMS}
 
-# 새 몬스터 재료 (T §2 — 5·7·9층 몬스터 칸 광물의 자리)
+# 새 몬스터 재료 (T §2 — 5·7·9층 몬스터 칸 광물의 자리).
+# §0 주인 늦은 결정 4 (몹 몸에 맞는 드롭 — design036/drops/drops_spec 검토판): 5층은 잿불 가죽 대신 불씨 혼 (옛 불씨 조각 1:1).
+# 잿불 가죽(cinder_hide)은 배포 전 이름이라 잿불 비늘(cinder_scale, DROP_PARTS)로 바뀐다.
 MONSTER_NEW = {
-    'cinder_hide': {'name': '잿불 가죽', 'rarity': 'uncommon', 'floor': 5, 'old': 'ember_shard', 'old_ko': '불씨 조각',
-                    'lore': '잿불 드레이크와 풀무 사냥개의 그을린 가죽. 불길 속에서도 타지 않는다.'},
+    'ember_soul': {'name': '불씨 혼', 'rarity': 'uncommon', 'floor': 5, 'old': 'ember_shard', 'old_ko': '불씨 조각',
+                   'lore': '불씨 도깨비와 슬래그 골렘, 풀무 사냥개를 움직이던 작은 불. 손에 쥐면 따뜻하게 뛴다.'},
     'resonant_sinew': {'name': '공명 힘줄', 'rarity': 'uncommon', 'floor': 7, 'old': 'prism_dust', 'old_ko': '프리즘 가루',
-                       'lore': '정동 거한과 수정 용인의 몸속에서 떨던 힘줄. 퉁기면 맑은 음이 난다.'},
+                       'lore': '정동 거한과 수정 용인, 프리즘 켄타우로스의 몸속에서 떨던 힘줄. 퉁기면 맑은 음이 난다.'},
     'clock_oil': {'name': '태엽 기름', 'rarity': 'uncommon', 'floor': 9, 'old': 'mainspring', 'old_ko': '태엽 용수철',
                   'lore': '태엽 짐승들의 관절에서 흘러나온 검은 기름. 식어도 굳지 않는다.'},
 }
+# 몹 몸에 맞는 새 부위 6 (§0 결정 4 — drops_spec 검토판 §2, Q3 생성기가 드롭 단계에서 쓴다). 그림은 있던 아이콘 모양만 쓴다.
+DROP_PARTS = {
+    'moss_scale': {'name': '이끼 비늘', 'rarity': 'common', 'floor': 1, 'style': 'scale',
+                   'palette': ['#14200f', '#2f4a1f', '#5f8a34', '#a8c870'],
+                   'lore': '이끼 새끼용과 가시덩굴 코볼트의 비늘. 틈마다 이끼가 끼어 있다.'},
+    'tunnel_fang': {'name': '갱도 송곳니', 'rarity': 'common', 'floor': 2, 'style': 'fang',
+                    'palette': ['#241c16', '#5a4a3a', '#b8a888', '#efe6d0'],
+                    'lore': '갱도에 사는 것들의 누런 송곳니. 땅굴웜도, 박쥐도, 돌 아가리도 같은 이빨을 가졌다.'},
+    'cinder_scale': {'name': '잿불 비늘', 'rarity': 'uncommon', 'floor': 5, 'style': 'scale',
+                     'palette': ['#0c0a0a', '#1e1a1a', '#363030', '#5a4a44', '#ff7a2a'],
+                     'lore': '잿불 드레이크와 용인 대장장이의 비늘. 틈으로 아직 불씨가 샌다.', 'pre_release': 'cinder_hide'},
+    'rime_talon': {'name': '서리 발톱', 'rarity': 'uncommon', 'floor': 6, 'style': 'fang',
+                   'palette': ['#0a1428', '#1e4a7a', '#4a90d8', '#7cc4ff'],
+                   'lore': '서리 와이번의 갈고리 발톱. 끝에 늘 서리가 앉아 있다.'},
+    'chrono_dust': {'name': '시간 가루', 'rarity': 'uncommon', 'floor': 9, 'style': 'dust',
+                    'palette': ['#1a140c', '#4a3a20', '#b08a40', '#f0d890', '#6ad0b0'],
+                    'lore': '시간 나방의 날갯가루. 흩뿌리면 둘레의 시간이 잠깐 끈적해진다.'},
+    'abyss_scale': {'name': '심연 비늘', 'rarity': 'uncommon', 'floor': 10, 'style': 'scale',
+                    'palette': ['#020306', '#0a1a20', '#1a3c46', '#2fe0d0'],
+                    'lore': '심연 고룡과 심연 용인의 검은 비늘. 가장자리가 청록빛으로 빛난다.'},
+}
+# 강화 P 표 (드롭 장비·겹침 바꿈 — drops_spec §8): 단단한 쪽 / 부드러운 쪽 부위
+ENH_HARD = {1: 'beetle_shell', 2: 'tunnel_fang', 3: 'spore_cap', 4: 'eel_scale', 5: 'cinder_scale', 6: 'rime_talon',
+            7: 'resonant_sinew', 8: 'old_page', 9: 'clock_oil', 10: 'abyss_scale'}
+ENH_SOFT = {1: 'moss_fiber', 2: 'spider_silk', 3: 'hypha_thread', 4: 'brine_pearl', 5: 'ember_soul', 6: 'grave_bone',
+            7: 'resonant_sinew', 8: 'ink_essence', 9: 'chrono_dust', 10: 'sculk_tendril'}
 
 # 옛 광물 재료 8 (T §1). slot: ingot = 주괴가 그 칸을 맡음 (가진 것은 광석 1:1) · monster = 새 몬스터 재료 1:1
 RETIRED = {
     'rusted_iron': {'floor': 2, 'slot': 'ingot'},
     'slag_ingot': {'floor': 5, 'slot': 'ingot'},
-    'ember_shard': {'floor': 5, 'slot': 'monster', 'to': 'cinder_hide'},
+    'ember_shard': {'floor': 5, 'slot': 'monster', 'to': 'ember_soul'},
     'rime_crystal': {'floor': 6, 'slot': 'ingot'},
     'amethyst_shard': {'floor': 7, 'slot': 'ingot'},
     'prism_dust': {'floor': 7, 'slot': 'monster', 'to': 'resonant_sinew'},

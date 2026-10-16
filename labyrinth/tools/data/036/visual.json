@@ -581,14 +581,14 @@
    "shape": "icon",
    "size": 32
   },
-  "cinder_hide": {
-   "style": "hide",
+  "ember_soul": {
+   "style": "shard",
    "palette": [
-    "#170c08",
-    "#3a2015",
-    "#663823",
-    "#965836",
-    "#ff7a2a"
+    "#1a0a06",
+    "#5a1a0a",
+    "#c43c12",
+    "#ff9a2a",
+    "#fff0a0"
    ],
    "new_style": false,
    "shape": "icon",
@@ -620,6 +620,80 @@
    "new_style": false,
    "shape": "icon",
    "size": 32
+  },
+  "moss_scale": {
+   "style": "scale",
+   "palette": [
+    "#14200f",
+    "#2f4a1f",
+    "#5f8a34",
+    "#a8c870"
+   ],
+   "new_style": false,
+   "shape": "icon",
+   "size": 32
+  },
+  "tunnel_fang": {
+   "style": "fang",
+   "palette": [
+    "#241c16",
+    "#5a4a3a",
+    "#b8a888",
+    "#efe6d0"
+   ],
+   "new_style": false,
+   "shape": "icon",
+   "size": 32
+  },
+  "cinder_scale": {
+   "style": "scale",
+   "palette": [
+    "#0c0a0a",
+    "#1e1a1a",
+    "#363030",
+    "#5a4a44",
+    "#ff7a2a"
+   ],
+   "new_style": false,
+   "shape": "icon",
+   "size": 32
+  },
+  "rime_talon": {
+   "style": "fang",
+   "palette": [
+    "#0a1428",
+    "#1e4a7a",
+    "#4a90d8",
+    "#7cc4ff"
+   ],
+   "new_style": false,
+   "shape": "icon",
+   "size": 32
+  },
+  "chrono_dust": {
+   "style": "dust",
+   "palette": [
+    "#1a140c",
+    "#4a3a20",
+    "#b08a40",
+    "#f0d890",
+    "#6ad0b0"
+   ],
+   "new_style": false,
+   "shape": "icon",
+   "size": 32
+  },
+  "abyss_scale": {
+   "style": "scale",
+   "palette": [
+    "#020306",
+    "#0a1a20",
+    "#1a3c46",
+    "#2fe0d0"
+   ],
+   "new_style": false,
+   "shape": "icon",
+   "size": 32
   }
  },
  "new_icon_styles": [
@@ -628,7 +702,6 @@
   "gem_prism",
   "gem_round",
   "gem_shard",
-  "hide",
   "ingot_bar",
   "ingot_patina",
   "ingot_rune",
@@ -647,7 +720,7 @@
   "gem_drop",
   "ore_ember"
  ],
- "icon_source": "design036/tools/vis_new_styles.py draw_new (17 모양) + Q0 가 더한 ore_ember·gem_drop (Q4 가 그림)",
+ "icon_source": "design036/tools/vis_new_styles.py draw_new (16 모양 — hide 는 §0 결정 4 로 빠짐) + Q0 가 더한 ore_ember·gem_drop (Q4 가 그림) · 몹 주제 새 부위 6 은 0.3.5 모양",
  "palette_rule": "0.3.5 Palette: 끝 강조색이 본 램프보다 밝으면 본 램프에 섞인다. 강조색만 쓰려면 그 앞에 어두운 색 하나를 끼운다",
  "pickaxes": {
   "copper_pickaxe": {

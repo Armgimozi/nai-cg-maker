@@ -179,7 +179,7 @@ tables:
     gold: [12, 35]
     entries:
       - {table: potions_t1, chance: 0.5}
-      - {one_of: [moss_fiber, beetle_shell, spider_silk, rusted_iron, spore_cap, hypha_thread], chance: 0.55, amount: [1, 3]}
+      - {one_of: [moss_fiber, beetle_shell, moss_scale, spider_silk, tunnel_fang, spore_cap, hypha_thread], chance: 0.55, amount: [1, 3]}
       - {item: dim_essence, chance: 0.08}
       - {table: scrolls, chance: 0.05}
   maze_chest_iron_1:   # 철 상자 (1~3층 구간) — 장비 없음
@@ -187,7 +187,7 @@ tables:
     gold: [30, 70]
     entries:
       - {table: potions_t1, chance: 0.55}
-      - {one_of: [moss_fiber, beetle_shell, spider_silk, rusted_iron, spore_cap, hypha_thread], chance: 0.6, amount: [2, 4]}
+      - {one_of: [moss_fiber, beetle_shell, moss_scale, spider_silk, tunnel_fang, spore_cap, hypha_thread], chance: 0.6, amount: [2, 4]}
       - {item: dim_essence, chance: 0.2}
       - {table: scrolls, chance: 0.1}
       - {table: tonics, chance: 0.06}
@@ -198,7 +198,7 @@ tables:
       - {item: dim_essence, amount: 1}
     entries:
       - {table: potions_t1, chance: 0.6}
-      - {one_of: [moss_fiber, beetle_shell, spider_silk, rusted_iron, spore_cap, hypha_thread], chance: 0.6, amount: [3, 5]}
+      - {one_of: [moss_fiber, beetle_shell, moss_scale, spider_silk, tunnel_fang, spore_cap, hypha_thread], chance: 0.6, amount: [3, 5]}
       - {item: labyrinth_essence, chance: 0.06}
       - {table: tonics, chance: 0.15}
       - {table: rare_consumables, chance: 0.05}
@@ -207,7 +207,7 @@ tables:
     gold: [50, 110]
     entries:
       - {table: potions_t1, chance: 0.5}
-      - {one_of: [brine_pearl, eel_scale, slag_ingot, ember_shard, rime_crystal, grave_bone], chance: 0.55, amount: [1, 3]}
+      - {one_of: [brine_pearl, eel_scale, cinder_scale, ember_soul, grave_bone, rime_talon], chance: 0.55, amount: [1, 3]}
       - {item: labyrinth_essence, chance: 0.08}
       - {table: scrolls, chance: 0.05}
   maze_chest_iron_2:   # 철 상자 (4~6층 구간) — 장비 없음
@@ -215,7 +215,7 @@ tables:
     gold: [110, 220]
     entries:
       - {table: potions_t2, chance: 0.55}
-      - {one_of: [brine_pearl, eel_scale, slag_ingot, ember_shard, rime_crystal, grave_bone], chance: 0.6, amount: [2, 4]}
+      - {one_of: [brine_pearl, eel_scale, cinder_scale, ember_soul, grave_bone, rime_talon], chance: 0.6, amount: [2, 4]}
       - {item: labyrinth_essence, chance: 0.2}
       - {table: scrolls, chance: 0.1}
       - {table: tonics, chance: 0.06}
@@ -226,7 +226,7 @@ tables:
       - {item: labyrinth_essence, amount: 1}
     entries:
       - {table: potions_t2, chance: 0.6}
-      - {one_of: [brine_pearl, eel_scale, slag_ingot, ember_shard, rime_crystal, grave_bone], chance: 0.6, amount: [3, 5]}
+      - {one_of: [brine_pearl, eel_scale, cinder_scale, ember_soul, grave_bone, rime_talon], chance: 0.6, amount: [3, 5]}
       - {item: radiant_essence, chance: 0.06}
       - {table: tonics, chance: 0.15}
       - {table: rare_consumables, chance: 0.05}
@@ -235,7 +235,7 @@ tables:
     gold: [150, 300]
     entries:
       - {table: potions_t2, chance: 0.5}
-      - {one_of: [amethyst_shard, prism_dust, ink_essence, old_page, brass_gear, mainspring], chance: 0.55, amount: [1, 3]}
+      - {one_of: [resonant_sinew, ink_essence, old_page, clock_oil, chrono_dust], chance: 0.55, amount: [1, 3]}
       - {item: radiant_essence, chance: 0.08}
       - {table: scrolls, chance: 0.05}
   maze_chest_iron_3:   # 철 상자 (7~9층 구간) — 장비 없음
@@ -243,7 +243,7 @@ tables:
     gold: [300, 550]
     entries:
       - {table: potions_t3, chance: 0.55}
-      - {one_of: [amethyst_shard, prism_dust, ink_essence, old_page, brass_gear, mainspring], chance: 0.6, amount: [2, 4]}
+      - {one_of: [resonant_sinew, ink_essence, old_page, clock_oil, chrono_dust], chance: 0.6, amount: [2, 4]}
       - {item: radiant_essence, chance: 0.2}
       - {table: scrolls, chance: 0.1}
       - {table: tonics, chance: 0.06}
@@ -254,7 +254,7 @@ tables:
       - {item: radiant_essence, amount: 1}
     entries:
       - {table: potions_t3, chance: 0.6}
-      - {one_of: [amethyst_shard, prism_dust, ink_essence, old_page, brass_gear, mainspring], chance: 0.6, amount: [3, 5]}
+      - {one_of: [resonant_sinew, ink_essence, old_page, clock_oil, chrono_dust], chance: 0.6, amount: [3, 5]}
       - {item: primordial_essence, chance: 0.06}
       - {table: tonics, chance: 0.15}
       - {table: rare_consumables, chance: 0.05}
@@ -263,7 +263,7 @@ tables:
     gold: [300, 550]
     entries:
       - {table: potions_t3, chance: 0.5}
-      - {one_of: [abyss_ichor, sculk_tendril], chance: 0.55, amount: [1, 3]}
+      - {one_of: [abyss_ichor, sculk_tendril, abyss_scale], chance: 0.55, amount: [1, 3]}
       - {item: primordial_essence, chance: 0.08}
       - {table: scrolls, chance: 0.05}
   maze_chest_iron_4:   # 철 상자 (10층 구간) — 장비 없음
@@ -271,7 +271,7 @@ tables:
     gold: [550, 900]
     entries:
       - {table: potions_t3, chance: 0.55}
-      - {one_of: [abyss_ichor, sculk_tendril], chance: 0.6, amount: [2, 4]}
+      - {one_of: [abyss_ichor, sculk_tendril, abyss_scale], chance: 0.6, amount: [2, 4]}
       - {item: primordial_essence, chance: 0.2}
       - {table: scrolls, chance: 0.1}
       - {table: tonics, chance: 0.06}
@@ -282,7 +282,7 @@ tables:
       - {item: primordial_essence, amount: 1}
     entries:
       - {table: potions_t3, chance: 0.6}
-      - {one_of: [abyss_ichor, sculk_tendril], chance: 0.6, amount: [3, 5]}
+      - {one_of: [abyss_ichor, sculk_tendril, abyss_scale], chance: 0.6, amount: [3, 5]}
       - {item: primordial_essence, chance: 0.06}
       - {table: tonics, chance: 0.15}
       - {table: rare_consumables, chance: 0.05}
@@ -317,8 +317,7 @@ tables:
   moss_crawler:   # 1층 일반 — 이끼 기어다니는 자
     rolls: 1
     entries:
-      - {item: moss_fiber, chance: 0.55, amount: [1, 2]}
-      - {item: beetle_shell, chance: 0.15}
+      - {item: moss_fiber, chance: 0.65, amount: [1, 2]}
       - {item: dim_essence, chance: 0.01}
       - {table: potions_t1, chance: 0.03}
       - {table: mix_f01_drop, chance: 0.0228}
@@ -326,8 +325,7 @@ tables:
   root_shambler:   # 1층 일반 — 뿌리 비틀이
     rolls: 1
     entries:
-      - {item: moss_fiber, chance: 0.55, amount: [1, 2]}
-      - {item: beetle_shell, chance: 0.15}
+      - {item: moss_fiber, chance: 0.65, amount: [1, 2]}
       - {item: dim_essence, chance: 0.01}
       - {table: potions_t1, chance: 0.03}
       - {table: mix_f01_drop, chance: 0.0228}
@@ -335,18 +333,16 @@ tables:
   lantern_wisp:   # 1층 일반 — 회랑 등불 정령
     rolls: 1
     entries:
-      - {item: moss_fiber, chance: 0.55, amount: [1, 2]}
-      - {item: beetle_shell, chance: 0.15}
-      - {item: dim_essence, chance: 0.01}
+      - {item: dim_essence, chance: 0.05}
       - {table: potions_t1, chance: 0.03}
-      - {item: dim_essence, chance: 0.02}
       - {table: mix_f01_drop, chance: 0.0228}
       - {table: enhance_mob_t1, chance: 1.0}
   stone_beetle:   # 1층 일반 — 돌갑충
     rolls: 1
     entries:
-      - {item: beetle_shell, chance: 0.55, amount: [1, 2]}
-      - {item: moss_fiber, chance: 0.15}
+      - {item: beetle_shell, chance: 0.65, amount: [1, 2]}
+      - {item: copper_ore, chance: 0.4872, amount: [1, 2]}
+      - {item: iron_ore, chance: 0.1128, amount: [1, 2]}
       - {item: dim_essence, chance: 0.01}
       - {table: potions_t1, chance: 0.03}
       - {table: mix_f01_drop, chance: 0.0228}
@@ -354,8 +350,7 @@ tables:
   moss_drakeling:   # 1층 일반 — 이끼 새끼용
     rolls: 1
     entries:
-      - {item: beetle_shell, chance: 0.55, amount: [1, 2]}
-      - {item: moss_fiber, chance: 0.15}
+      - {item: moss_scale, chance: 0.65, amount: [1, 2]}
       - {item: dim_essence, chance: 0.01}
       - {table: potions_t1, chance: 0.03}
       - {table: mix_f01_drop, chance: 0.0228}
@@ -363,8 +358,8 @@ tables:
   thorn_kobold:   # 1층 일반 — 가시덩굴 코볼트
     rolls: 1
     entries:
-      - {item: moss_fiber, chance: 0.55, amount: [1, 2]}
-      - {item: beetle_shell, chance: 0.15}
+      - {item: moss_scale, chance: 0.55, amount: [1, 2]}
+      - {item: moss_fiber, chance: 0.15}
       - {item: dim_essence, chance: 0.01}
       - {table: potions_t1, chance: 0.03}
       - {table: mix_f01_drop, chance: 0.0228}
@@ -373,8 +368,7 @@ tables:
     rolls: 1
     entries:
       - {item: alpha_moss_crest, chance: 0.85, amount: [1, 2]}
-      - {item: moss_fiber, chance: 1.0, amount: [3, 5]}
-      - {item: beetle_shell, chance: 0.7, amount: [2, 3]}
+      - {item: moss_fiber, chance: 1.0, amount: [4, 7]}
       - {item: dim_essence, chance: 0.35}
       - {pick: [{table: band_t01_elite, weight: 7}, {table: band_t02_elite, weight: 1}], chance: 1.0}
       - {table: potions_t1, chance: 0.25}
@@ -383,8 +377,7 @@ tables:
     rolls: 1
     guaranteed:
       - {item: warden_heartwood, amount: 1}
-      - {item: moss_fiber, amount: [4, 6]}
-      - {item: beetle_shell, amount: [3, 5]}
+      - {item: moss_fiber, amount: [6, 9]}
       - {item: dim_essence, amount: [1, 2]}
       - {one_of: [grove_warden_maul, grove_rootstring_bow, grove_heartwood_staff, grove_mossguard_helm]}
     entries:
@@ -393,6 +386,8 @@ tables:
       - {item: grove_heartwood_charm, chance: 0.25}
       - {table: potions_t1, chance: 0.5}
       - {table: enhance_boss_t1, chance: 1.0}
+      - {item: copper_ore, chance: 0.4872, amount: 2}
+      - {item: iron_ore, chance: 0.2256}
   treasure_floor_1:   # 1층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [20, 40]
@@ -401,10 +396,12 @@ tables:
     entries:
       - {table: potions_t1, chance: 0.45}
       - {table: scrolls, chance: 0.1}
-      - {item: moss_fiber, chance: 0.3, amount: [2, 4]}
-      - {item: beetle_shell, chance: 0.3, amount: [2, 4]}
+      - {one_of: [moss_fiber, beetle_shell, moss_scale], chance: 0.3, amount: [2, 4]}
+      - {one_of: [moss_fiber, beetle_shell, moss_scale], chance: 0.3, amount: [2, 4]}
       - {item: dim_essence, chance: 0.12}
       - {table: mix_f01_drop, chance: 0.0532}
+      - {item: copper_ore, chance: 0.3248}
+      - {item: iron_ore, chance: 0.0752}
   gimmick_floor_1:   # 1층 기믹방 보상 상자 (성공 시, 개인 루팅)
     rolls: 2
     gold: [32, 64]
@@ -414,17 +411,19 @@ tables:
     entries:
       - {item: dim_essence, chance: 0.6}
       - {item: alpha_moss_crest, chance: 0.15}
-      - {item: moss_fiber, chance: 0.35, amount: [3, 5]}
-      - {item: beetle_shell, chance: 0.35, amount: [3, 5]}
+      - {one_of: [moss_fiber, beetle_shell, moss_scale], chance: 0.35, amount: [3, 5]}
+      - {one_of: [moss_fiber, beetle_shell, moss_scale], chance: 0.35, amount: [3, 5]}
       - {table: potions_t1, chance: 0.35}
       - {item: labyrinth_essence, chance: 0.05}
       - {pick: [{table: band_t01_trial, weight: 7}, {table: band_t02_trial, weight: 1}], chance: 0.143}
+      - {item: copper_ore, chance: 0.3248}
+      - {item: iron_ore, chance: 0.0752}
   maze_chest_wood_f1:   # 1층 미로 나무 상자
     rolls: 1
     gold: [12, 35]
     entries:
       - {table: potions_t1, chance: 0.5}
-      - {one_of: [moss_fiber, beetle_shell], chance: 0.55, amount: [1, 3]}
+      - {one_of: [moss_fiber, beetle_shell, moss_scale], chance: 0.55, amount: [1, 3]}
       - {item: dim_essence, chance: 0.08}
       - {table: scrolls, chance: 0.05}
       - {table: mix_f01_drop, chance: 0.0228}
@@ -433,7 +432,7 @@ tables:
     gold: [30, 70]
     entries:
       - {table: potions_t1, chance: 0.55}
-      - {one_of: [moss_fiber, beetle_shell], chance: 0.6, amount: [2, 4]}
+      - {one_of: [moss_fiber, beetle_shell, moss_scale], chance: 0.6, amount: [2, 4]}
       - {item: dim_essence, chance: 0.2}
       - {table: scrolls, chance: 0.1}
       - {table: tonics, chance: 0.06}
@@ -445,7 +444,7 @@ tables:
       - {item: dim_essence, amount: 1}
     entries:
       - {table: potions_t1, chance: 0.6}
-      - {one_of: [moss_fiber, beetle_shell], chance: 0.6, amount: [3, 5]}
+      - {one_of: [moss_fiber, beetle_shell, moss_scale], chance: 0.6, amount: [3, 5]}
       - {item: alpha_moss_crest, chance: 0.2}
       - {item: labyrinth_essence, chance: 0.06}
       - {table: tonics, chance: 0.15}
@@ -456,8 +455,7 @@ tables:
   tunnel_skitter:   # 2층 일반 — 갱도 거미
     rolls: 1
     entries:
-      - {item: spider_silk, chance: 0.385, amount: [1, 2]}
-      - {item: rusted_iron, chance: 0.105}
+      - {item: spider_silk, chance: 0.455, amount: [1, 2]}
       - {item: dim_essence, chance: 0.007}
       - {table: potions_t1, chance: 0.021}
       - {table: mix_f02_drop, chance: 0.0211}
@@ -465,8 +463,8 @@ tables:
   rusted_miner:   # 2층 일반 — 녹슨 광부
     rolls: 1
     entries:
-      - {item: rusted_iron, chance: 0.55, amount: [1, 2]}
-      - {item: spider_silk, chance: 0.15}
+      - {item: iron_ore, chance: 0.1142, amount: [1, 2]}
+      - {item: copper_ore, chance: 0.0545, amount: [1, 2]}
       - {item: dim_essence, chance: 0.01}
       - {table: potions_t1, chance: 0.03}
       - {table: mix_f02_drop, chance: 0.0301}
@@ -474,8 +472,9 @@ tables:
   ore_mimic:   # 2층 일반 — 광맥 흉내쟁이
     rolls: 1
     entries:
-      - {item: rusted_iron, chance: 0.55, amount: [1, 3]}
-      - {item: spider_silk, chance: 0.15}
+      - {item: tunnel_fang, chance: 0.55, amount: [1, 2]}
+      - {item: iron_ore, chance: 0.0762, amount: [1, 2]}
+      - {item: copper_ore, chance: 0.0363, amount: [1, 2]}
       - {item: dim_essence, chance: 0.01}
       - {table: potions_t1, chance: 0.03}
       - {table: mix_f02_drop, chance: 0.0301}
@@ -483,8 +482,7 @@ tables:
   echo_bat:   # 2층 일반 — 메아리 박쥐
     rolls: 1
     entries:
-      - {item: spider_silk, chance: 0.385, amount: [1, 2]}
-      - {item: rusted_iron, chance: 0.105}
+      - {item: tunnel_fang, chance: 0.455, amount: [1, 2]}
       - {item: dim_essence, chance: 0.007}
       - {table: potions_t1, chance: 0.021}
       - {table: mix_f02_drop, chance: 0.0211}
@@ -492,8 +490,9 @@ tables:
   kobold_sapper:   # 2층 일반 — 코볼트 폭파병
     rolls: 1
     entries:
-      - {item: rusted_iron, chance: 0.55, amount: [1, 2]}
-      - {item: spider_silk, chance: 0.15}
+      - {item: tunnel_fang, chance: 0.55, amount: [1, 2]}
+      - {item: iron_ore, chance: 0.0381, amount: [1, 2]}
+      - {item: copper_ore, chance: 0.0182, amount: [1, 2]}
       - {item: dim_essence, chance: 0.01}
       - {table: potions_t1, chance: 0.03}
       - {table: mix_f02_drop, chance: 0.0301}
@@ -501,8 +500,9 @@ tables:
   tunnel_wyrm:   # 2층 일반 — 갱도 땅굴웜
     rolls: 1
     entries:
-      - {item: rusted_iron, chance: 0.55, amount: [1, 3]}
-      - {item: spider_silk, chance: 0.15}
+      - {item: tunnel_fang, chance: 0.55, amount: [1, 3]}
+      - {item: iron_ore, chance: 0.0571, amount: [1, 3]}
+      - {item: copper_ore, chance: 0.0273, amount: [1, 3]}
       - {item: dim_essence, chance: 0.01}
       - {table: potions_t1, chance: 0.03}
       - {table: mix_f02_drop, chance: 0.0301}
@@ -511,9 +511,9 @@ tables:
     rolls: 1
     entries:
       - {item: foreman_badge, chance: 0.85, amount: [1, 2]}
-      - {item: spider_silk, chance: 1.0, amount: [3, 5]}
-      - {item: rusted_iron, chance: 0.7, amount: [2, 3]}
-      - {item: dim_essence, chance: 0.35}
+      - {item: iron_ore, chance: 0.237}
+      - {item: copper_ore, chance: 0.1131}
+      - {item: dim_essence, chance: 0.6}
       - {pick: [{table: band_t01_elite, weight: 2}, {table: band_t02_elite, weight: 7}, {table: band_t03_elite, weight: 1}], chance: 1.0}
       - {table: potions_t1, chance: 0.25}
       - {table: enhance_elite_t1, chance: 1.0}
@@ -522,7 +522,7 @@ tables:
     guaranteed:
       - {item: silk_queen_spinneret, amount: 1}
       - {item: spider_silk, amount: [4, 6]}
-      - {item: rusted_iron, amount: [3, 5]}
+      - {item: tunnel_fang, amount: [2, 3]}
       - {item: dim_essence, amount: [1, 2]}
     entries:
       - {item: foreman_badge, chance: 0.5}
@@ -532,6 +532,8 @@ tables:
       - {item: silk_queen_bracelet, chance: 0.2}
       - {table: potions_t1, chance: 0.5}
       - {table: enhance_boss_t1, chance: 1.0}
+      - {item: iron_ore, chance: 0.7109}
+      - {item: copper_ore, chance: 0.3392}
   treasure_floor_2:   # 2층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [35, 65]
@@ -540,10 +542,11 @@ tables:
     entries:
       - {table: potions_t1, chance: 0.45}
       - {table: scrolls, chance: 0.1}
-      - {item: spider_silk, chance: 0.3, amount: [2, 4]}
-      - {item: rusted_iron, chance: 0.3, amount: [2, 4]}
+      - {one_of: [spider_silk, tunnel_fang], chance: 0.3, amount: [2, 4]}
       - {item: dim_essence, chance: 0.12}
       - {table: mix_f02_drop, chance: 0.0844}
+      - {item: iron_ore, chance: 0.2073}
+      - {item: copper_ore, chance: 0.0989}
   gimmick_floor_2:   # 2층 기믹방 보상 상자 (성공 시, 개인 루팅)
     rolls: 2
     gold: [56, 104]
@@ -553,17 +556,18 @@ tables:
     entries:
       - {item: dim_essence, chance: 0.6}
       - {item: foreman_badge, chance: 0.15}
-      - {item: spider_silk, chance: 0.35, amount: [3, 5]}
-      - {item: rusted_iron, chance: 0.35, amount: [3, 5]}
+      - {one_of: [spider_silk, tunnel_fang], chance: 0.35, amount: [3, 5]}
       - {table: potions_t1, chance: 0.35}
       - {item: labyrinth_essence, chance: 0.05}
       - {pick: [{table: band_t01_trial, weight: 2}, {table: band_t02_trial, weight: 7}, {table: band_t03_trial, weight: 1}], chance: 0.3}
+      - {item: iron_ore, chance: 0.2073}
+      - {item: copper_ore, chance: 0.0989}
   maze_chest_wood_f2:   # 2층 미로 나무 상자
     rolls: 1
     gold: [12, 35]
     entries:
       - {table: potions_t1, chance: 0.5}
-      - {one_of: [spider_silk, rusted_iron], chance: 0.55, amount: [1, 3]}
+      - {one_of: [spider_silk, tunnel_fang], chance: 0.55, amount: [1, 3]}
       - {item: dim_essence, chance: 0.08}
       - {table: scrolls, chance: 0.05}
       - {table: mix_f02_drop, chance: 0.0362}
@@ -572,7 +576,7 @@ tables:
     gold: [30, 70]
     entries:
       - {table: potions_t1, chance: 0.55}
-      - {one_of: [spider_silk, rusted_iron], chance: 0.6, amount: [2, 4]}
+      - {one_of: [spider_silk, tunnel_fang], chance: 0.6, amount: [2, 4]}
       - {item: dim_essence, chance: 0.2}
       - {table: scrolls, chance: 0.1}
       - {table: tonics, chance: 0.06}
@@ -584,7 +588,7 @@ tables:
       - {item: dim_essence, amount: 1}
     entries:
       - {table: potions_t1, chance: 0.6}
-      - {one_of: [spider_silk, rusted_iron], chance: 0.6, amount: [3, 5]}
+      - {one_of: [spider_silk, tunnel_fang], chance: 0.6, amount: [3, 5]}
       - {item: foreman_badge, chance: 0.2}
       - {item: labyrinth_essence, chance: 0.06}
       - {table: tonics, chance: 0.15}
@@ -606,6 +610,7 @@ tables:
     entries:
       - {item: hypha_thread, chance: 0.55, amount: [1, 2]}
       - {item: spore_cap, chance: 0.15}
+      - {item: iron_ore, chance: 0.45, amount: [1, 2]}
       - {item: dim_essence, chance: 0.01}
       - {table: potions_t1, chance: 0.03}
       - {table: mix_f03_drop, chance: 0.0209}
@@ -622,8 +627,7 @@ tables:
   glowcap_moth:   # 3층 일반 — 빛갓 나방
     rolls: 1
     entries:
-      - {item: spore_cap, chance: 0.55, amount: [1, 2]}
-      - {item: hypha_thread, chance: 0.15}
+      - {item: spore_cap, chance: 0.65, amount: [1, 2]}
       - {item: dim_essence, chance: 0.01}
       - {table: potions_t1, chance: 0.03}
       - {table: mix_f03_drop, chance: 0.0209}
@@ -631,8 +635,7 @@ tables:
   spore_harpy:   # 3층 일반 — 포자 하피
     rolls: 1
     entries:
-      - {item: spore_cap, chance: 0.55, amount: [1, 2]}
-      - {item: hypha_thread, chance: 0.15}
+      - {item: spore_cap, chance: 0.65, amount: [1, 2]}
       - {item: dim_essence, chance: 0.01}
       - {table: potions_t1, chance: 0.03}
       - {table: mix_f03_drop, chance: 0.0209}
@@ -674,6 +677,7 @@ tables:
       - {table: tonics, chance: 0.2}
       - {table: enhance_boss_t1, chance: 1.0}
       - {table: enhance_preview_t2, chance: 1.0}
+      - {item: iron_ore, chance: 0.525, amount: 2}
   treasure_floor_3:   # 3층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [55, 100]
@@ -682,11 +686,12 @@ tables:
     entries:
       - {table: potions_t1, chance: 0.45}
       - {table: scrolls, chance: 0.1}
-      - {item: spore_cap, chance: 0.3, amount: [2, 4]}
-      - {item: hypha_thread, chance: 0.3, amount: [2, 4]}
+      - {one_of: [spore_cap, hypha_thread], chance: 0.3, amount: [2, 4]}
+      - {one_of: [spore_cap, hypha_thread], chance: 0.3, amount: [2, 4]}
       - {item: dim_essence, chance: 0.12}
       - {table: tonics, chance: 0.08}
       - {table: mix_f03_drop, chance: 0.0586}
+      - {item: iron_ore, chance: 0.35}
   gimmick_floor_3:   # 3층 기믹방 보상 상자 (성공 시, 개인 루팅)
     rolls: 2
     gold: [88, 160]
@@ -696,12 +701,13 @@ tables:
     entries:
       - {item: dim_essence, chance: 0.6}
       - {item: brood_core, chance: 0.15}
-      - {item: spore_cap, chance: 0.35, amount: [3, 5]}
-      - {item: hypha_thread, chance: 0.35, amount: [3, 5]}
+      - {one_of: [spore_cap, hypha_thread], chance: 0.35, amount: [3, 5]}
+      - {one_of: [spore_cap, hypha_thread], chance: 0.35, amount: [3, 5]}
       - {table: potions_t1, chance: 0.35}
       - {item: labyrinth_essence, chance: 0.05}
       - {table: tonics, chance: 0.12}
       - {pick: [{table: band_t02_trial, weight: 2}, {table: band_t03_trial, weight: 7}, {table: band_t04_trial, weight: 1}], chance: 0.217}
+      - {item: iron_ore, chance: 0.35}
   maze_chest_wood_f3:   # 3층 미로 나무 상자
     rolls: 1
     gold: [12, 35]
@@ -739,8 +745,8 @@ tables:
   sluice_drowner:   # 4층 일반 — 수문 익사자
     rolls: 1
     entries:
-      - {item: eel_scale, chance: 0.55, amount: [1, 2]}
-      - {item: brine_pearl, chance: 0.15}
+      - {item: brine_pearl, chance: 0.65, amount: [1, 2]}
+      - {item: silver_ore, chance: 0.4, amount: [1, 2]}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t1, chance: 0.03}
       - {table: mix_f04_drop, chance: 0.015}
@@ -748,8 +754,7 @@ tables:
   brine_spitter:   # 4층 일반 — 소금물 뿜개
     rolls: 1
     entries:
-      - {item: brine_pearl, chance: 0.55, amount: [1, 2]}
-      - {item: eel_scale, chance: 0.15}
+      - {item: brine_pearl, chance: 0.65, amount: [1, 2]}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t1, chance: 0.03}
       - {table: mix_f04_drop, chance: 0.015}
@@ -757,8 +762,7 @@ tables:
   rust_eel:   # 4층 일반 — 녹물 장어
     rolls: 1
     entries:
-      - {item: eel_scale, chance: 0.55, amount: [1, 2]}
-      - {item: brine_pearl, chance: 0.15}
+      - {item: eel_scale, chance: 0.65, amount: [1, 2]}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t1, chance: 0.03}
       - {table: mix_f04_drop, chance: 0.015}
@@ -766,8 +770,7 @@ tables:
   bubble_jelly:   # 4층 일반 — 거품 해파리
     rolls: 1
     entries:
-      - {item: brine_pearl, chance: 0.55, amount: [1, 2]}
-      - {item: eel_scale, chance: 0.15}
+      - {item: brine_pearl, chance: 0.65, amount: [1, 2]}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t1, chance: 0.03}
       - {table: mix_f04_drop, chance: 0.015}
@@ -775,8 +778,7 @@ tables:
   bog_drake:   # 4층 일반 — 늪 드레이크
     rolls: 1
     entries:
-      - {item: eel_scale, chance: 0.55, amount: [1, 2]}
-      - {item: brine_pearl, chance: 0.15}
+      - {item: eel_scale, chance: 0.65, amount: [1, 2]}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t1, chance: 0.03}
       - {table: mix_f04_drop, chance: 0.015}
@@ -784,8 +786,8 @@ tables:
   tide_naga:   # 4층 일반 — 조류의 나가
     rolls: 1
     entries:
-      - {item: brine_pearl, chance: 0.55, amount: [1, 2]}
-      - {item: eel_scale, chance: 0.15}
+      - {item: eel_scale, chance: 0.55, amount: [1, 2]}
+      - {item: brine_pearl, chance: 0.15}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t1, chance: 0.03}
       - {table: mix_f04_drop, chance: 0.015}
@@ -794,8 +796,8 @@ tables:
     rolls: 1
     entries:
       - {item: verdigris_plate, chance: 0.85, amount: [1, 2]}
-      - {item: brine_pearl, chance: 1.0, amount: [3, 5]}
-      - {item: eel_scale, chance: 0.7, amount: [2, 3]}
+      - {item: brine_pearl, chance: 1.0, amount: [4, 6]}
+      - {item: silver_ore, chance: 0.4}
       - {item: labyrinth_essence, chance: 0.35}
       - {pick: [{table: band_t03_elite, weight: 2}, {table: band_t04_elite, weight: 7}, {table: band_t05_elite, weight: 1}], chance: 1.0}
       - {table: potions_t1, chance: 0.25}
@@ -805,8 +807,7 @@ tables:
     rolls: 1
     guaranteed:
       - {item: floodgate_key, amount: 1}
-      - {item: brine_pearl, amount: [4, 6]}
-      - {item: eel_scale, amount: [3, 5]}
+      - {item: brine_pearl, amount: [6, 9]}
       - {item: labyrinth_essence, amount: [1, 2]}
     entries:
       - {item: verdigris_plate, chance: 0.5}
@@ -818,6 +819,7 @@ tables:
       - {table: potions_t1, chance: 0.5}
       - {table: tonics, chance: 0.2}
       - {table: enhance_boss_t2, chance: 1.0}
+      - {item: silver_ore, chance: 0.6, amount: 2}
   treasure_floor_4:   # 4층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [85, 150]
@@ -826,11 +828,12 @@ tables:
     entries:
       - {table: potions_t1, chance: 0.45}
       - {table: scrolls, chance: 0.1}
-      - {item: brine_pearl, chance: 0.3, amount: [2, 4]}
-      - {item: eel_scale, chance: 0.3, amount: [2, 4]}
+      - {one_of: [brine_pearl, eel_scale], chance: 0.3, amount: [2, 4]}
+      - {one_of: [brine_pearl, eel_scale], chance: 0.3, amount: [2, 4]}
       - {item: labyrinth_essence, chance: 0.12}
       - {table: tonics, chance: 0.08}
       - {table: mix_f04_drop, chance: 0.0524}
+      - {item: silver_ore, chance: 0.35}
   gimmick_floor_4:   # 4층 기믹방 보상 상자 (성공 시, 개인 루팅)
     rolls: 2
     gold: [136, 240]
@@ -840,13 +843,14 @@ tables:
     entries:
       - {item: labyrinth_essence, chance: 0.6}
       - {item: verdigris_plate, chance: 0.15}
-      - {item: brine_pearl, chance: 0.35, amount: [3, 5]}
-      - {item: eel_scale, chance: 0.35, amount: [3, 5]}
+      - {one_of: [brine_pearl, eel_scale], chance: 0.35, amount: [3, 5]}
+      - {one_of: [brine_pearl, eel_scale], chance: 0.35, amount: [3, 5]}
       - {table: potions_t1, chance: 0.35}
       - {item: radiant_essence, chance: 0.05}
       - {table: rare_consumables, chance: 0.06}
       - {table: tonics, chance: 0.12}
       - {pick: [{table: band_t03_trial, weight: 2}, {table: band_t04_trial, weight: 7}, {table: band_t05_trial, weight: 1}], chance: 0.361}
+      - {item: silver_ore, chance: 0.35}
   maze_chest_wood_f4:   # 4층 미로 나무 상자
     rolls: 1
     gold: [50, 110]
@@ -884,8 +888,9 @@ tables:
   slag_golem:   # 5층 일반 — 슬래그 골렘
     rolls: 1
     entries:
-      - {item: slag_ingot, chance: 0.55, amount: [1, 3]}
-      - {item: ember_shard, chance: 0.15}
+      - {item: ember_soul, chance: 0.55, amount: [1, 2]}
+      - {item: gold_ore, chance: 0.0581, amount: [1, 2]}
+      - {item: silver_ore, chance: 0.0478, amount: [1, 2]}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t2, chance: 0.03}
       - {table: mix_f05_drop, chance: 0.0095}
@@ -893,8 +898,7 @@ tables:
   cinder_imp:   # 5층 일반 — 불씨 도깨비
     rolls: 1
     entries:
-      - {item: ember_shard, chance: 0.55, amount: [1, 2]}
-      - {item: slag_ingot, chance: 0.15}
+      - {item: ember_soul, chance: 0.65, amount: [1, 2]}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t2, chance: 0.03}
       - {table: mix_f05_drop, chance: 0.0095}
@@ -902,8 +906,9 @@ tables:
   bellows_hound:   # 5층 일반 — 풀무 사냥개
     rolls: 1
     entries:
-      - {item: ember_shard, chance: 0.55, amount: [1, 2]}
-      - {item: slag_ingot, chance: 0.15}
+      - {item: ember_soul, chance: 0.55, amount: [1, 2]}
+      - {item: gold_ore, chance: 0.0581, amount: [1, 2]}
+      - {item: silver_ore, chance: 0.0478, amount: [1, 2]}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t2, chance: 0.03}
       - {table: mix_f05_drop, chance: 0.0095}
@@ -911,8 +916,9 @@ tables:
   forge_acolyte:   # 5층 일반 — 용광로 시종
     rolls: 1
     entries:
-      - {item: slag_ingot, chance: 0.55, amount: [1, 2]}
-      - {item: ember_shard, chance: 0.15}
+      - {item: ember_soul, chance: 0.45, amount: [1, 2]}
+      - {item: gold_ore, chance: 0.0407, amount: [1, 2]}
+      - {item: silver_ore, chance: 0.0334, amount: [1, 2]}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t2, chance: 0.03}
       - {table: mix_f05_drop, chance: 0.0095}
@@ -920,8 +926,7 @@ tables:
   ember_drake:   # 5층 일반 — 잿불 드레이크
     rolls: 1
     entries:
-      - {item: ember_shard, chance: 0.55, amount: [1, 2]}
-      - {item: slag_ingot, chance: 0.15}
+      - {item: cinder_scale, chance: 0.65, amount: [1, 2]}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t2, chance: 0.03}
       - {table: mix_f05_drop, chance: 0.0095}
@@ -929,8 +934,9 @@ tables:
   forge_dragonkin:   # 5층 일반 — 용인 대장장이
     rolls: 1
     entries:
-      - {item: slag_ingot, chance: 0.55, amount: [1, 3]}
-      - {item: ember_shard, chance: 0.15}
+      - {item: cinder_scale, chance: 0.55, amount: [1, 3]}
+      - {item: gold_ore, chance: 0.0305, amount: [1, 3]}
+      - {item: silver_ore, chance: 0.0251, amount: [1, 3]}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t2, chance: 0.03}
       - {table: mix_f05_drop, chance: 0.0095}
@@ -939,8 +945,9 @@ tables:
     rolls: 1
     entries:
       - {item: executioner_edge, chance: 0.85, amount: [1, 2]}
-      - {item: slag_ingot, chance: 1.0, amount: [3, 5]}
-      - {item: ember_shard, chance: 0.7, amount: [2, 3]}
+      - {item: ember_soul, chance: 0.7, amount: [2, 3]}
+      - {item: gold_ore, chance: 0.2196}
+      - {item: silver_ore, chance: 0.1804}
       - {item: labyrinth_essence, chance: 0.35}
       - {pick: [{table: band_t04_elite, weight: 2}, {table: band_t05_elite, weight: 7}, {table: band_t06_elite, weight: 1}], chance: 1.0}
       - {table: potions_t2, chance: 0.25}
@@ -950,8 +957,7 @@ tables:
     rolls: 1
     guaranteed:
       - {item: forge_core, amount: 1}
-      - {item: slag_ingot, amount: [4, 6]}
-      - {item: ember_shard, amount: [3, 5]}
+      - {item: ember_soul, amount: [4, 6]}
       - {item: labyrinth_essence, amount: [1, 2]}
     entries:
       - {item: executioner_edge, chance: 0.5}
@@ -962,6 +968,8 @@ tables:
       - {table: potions_t2, chance: 0.5}
       - {table: tonics, chance: 0.2}
       - {table: enhance_boss_t2, chance: 1.0}
+      - {item: gold_ore, chance: 0.6588}
+      - {item: silver_ore, chance: 0.5412}
   treasure_floor_5:   # 5층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [130, 230]
@@ -970,11 +978,12 @@ tables:
     entries:
       - {table: potions_t2, chance: 0.45}
       - {table: scrolls, chance: 0.1}
-      - {item: slag_ingot, chance: 0.3, amount: [2, 4]}
-      - {item: ember_shard, chance: 0.3, amount: [2, 4]}
+      - {one_of: [cinder_scale, ember_soul], chance: 0.3, amount: [2, 4]}
       - {item: labyrinth_essence, chance: 0.12}
       - {table: tonics, chance: 0.08}
       - {table: mix_f05_drop, chance: 0.0334}
+      - {item: gold_ore, chance: 0.1922}
+      - {item: silver_ore, chance: 0.1578}
   gimmick_floor_5:   # 5층 기믹방 보상 상자 (성공 시, 개인 루팅)
     rolls: 2
     gold: [208, 368]
@@ -984,19 +993,20 @@ tables:
     entries:
       - {item: labyrinth_essence, chance: 0.6}
       - {item: executioner_edge, chance: 0.15}
-      - {item: slag_ingot, chance: 0.35, amount: [3, 5]}
-      - {item: ember_shard, chance: 0.35, amount: [3, 5]}
+      - {one_of: [cinder_scale, ember_soul], chance: 0.35, amount: [3, 5]}
       - {table: potions_t2, chance: 0.35}
       - {item: radiant_essence, chance: 0.05}
       - {table: rare_consumables, chance: 0.06}
       - {table: tonics, chance: 0.12}
       - {pick: [{table: band_t04_trial, weight: 2}, {table: band_t05_trial, weight: 7}, {table: band_t06_trial, weight: 1}], chance: 0.217}
+      - {item: gold_ore, chance: 0.1922}
+      - {item: silver_ore, chance: 0.1578}
   maze_chest_wood_f5:   # 5층 미로 나무 상자
     rolls: 1
     gold: [50, 110]
     entries:
       - {table: potions_t2, chance: 0.5}
-      - {one_of: [slag_ingot, ember_shard], chance: 0.55, amount: [1, 3]}
+      - {one_of: [cinder_scale, ember_soul], chance: 0.55, amount: [1, 3]}
       - {item: labyrinth_essence, chance: 0.08}
       - {table: scrolls, chance: 0.05}
       - {table: mix_f05_drop, chance: 0.0143}
@@ -1005,7 +1015,7 @@ tables:
     gold: [110, 220]
     entries:
       - {table: potions_t2, chance: 0.55}
-      - {one_of: [slag_ingot, ember_shard], chance: 0.6, amount: [2, 4]}
+      - {one_of: [cinder_scale, ember_soul], chance: 0.6, amount: [2, 4]}
       - {item: labyrinth_essence, chance: 0.2}
       - {table: scrolls, chance: 0.1}
       - {table: tonics, chance: 0.06}
@@ -1017,7 +1027,7 @@ tables:
       - {item: labyrinth_essence, amount: 1}
     entries:
       - {table: potions_t2, chance: 0.6}
-      - {one_of: [slag_ingot, ember_shard], chance: 0.6, amount: [3, 5]}
+      - {one_of: [cinder_scale, ember_soul], chance: 0.6, amount: [3, 5]}
       - {item: executioner_edge, chance: 0.2}
       - {item: radiant_essence, chance: 0.06}
       - {table: tonics, chance: 0.15}
@@ -1028,17 +1038,14 @@ tables:
   rime_mourner:   # 6층 일반 — 서리 곡하는 자
     rolls: 1
     entries:
-      - {item: rime_crystal, chance: 0.55, amount: [1, 2]}
-      - {item: grave_bone, chance: 0.15}
-      - {item: labyrinth_essence, chance: 0.008}
+      - {item: labyrinth_essence, chance: 0.04}
       - {table: potions_t2, chance: 0.03}
       - {table: mix_f06_drop, chance: 0.0048}
       - {table: enhance_mob_t2, chance: 1.0}
   crypt_hound:   # 6층 일반 — 얼음 묘지견
     rolls: 1
     entries:
-      - {item: grave_bone, chance: 0.55, amount: [1, 2]}
-      - {item: rime_crystal, chance: 0.15}
+      - {item: grave_bone, chance: 0.65, amount: [1, 2]}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t2, chance: 0.03}
       - {table: mix_f06_drop, chance: 0.0048}
@@ -1046,8 +1053,8 @@ tables:
   frozen_knight:   # 6층 일반 — 얼어붙은 묘지기사
     rolls: 1
     entries:
-      - {item: grave_bone, chance: 0.55, amount: [1, 3]}
-      - {item: rime_crystal, chance: 0.15}
+      - {item: grave_bone, chance: 0.65, amount: [1, 3]}
+      - {item: gold_ore, chance: 0.22, amount: [1, 3]}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t2, chance: 0.03}
       - {table: mix_f06_drop, chance: 0.0048}
@@ -1055,17 +1062,14 @@ tables:
   icicle_wraith:   # 6층 일반 — 고드름 원령
     rolls: 1
     entries:
-      - {item: rime_crystal, chance: 0.55, amount: [1, 2]}
-      - {item: grave_bone, chance: 0.15}
-      - {item: labyrinth_essence, chance: 0.008}
+      - {item: labyrinth_essence, chance: 0.04}
       - {table: potions_t2, chance: 0.03}
       - {table: mix_f06_drop, chance: 0.0048}
       - {table: enhance_mob_t2, chance: 1.0}
   frost_wyvern:   # 6층 일반 — 서리 와이번
     rolls: 1
     entries:
-      - {item: rime_crystal, chance: 0.55, amount: [1, 2]}
-      - {item: grave_bone, chance: 0.15}
+      - {item: rime_talon, chance: 0.65, amount: [1, 2]}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t2, chance: 0.03}
       - {table: mix_f06_drop, chance: 0.0048}
@@ -1073,8 +1077,8 @@ tables:
   barrow_lich:   # 6층 일반 — 고분의 리치
     rolls: 1
     entries:
-      - {item: grave_bone, chance: 0.55, amount: [1, 2]}
-      - {item: rime_crystal, chance: 0.15}
+      - {item: grave_bone, chance: 0.65, amount: [1, 2]}
+      - {item: gold_ore, chance: 0.1467, amount: [1, 2]}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t2, chance: 0.03}
       - {table: mix_f06_drop, chance: 0.0048}
@@ -1083,8 +1087,8 @@ tables:
     rolls: 1
     entries:
       - {item: funeral_bell_shard, chance: 0.85, amount: [1, 2]}
-      - {item: rime_crystal, chance: 1.0, amount: [3, 5]}
-      - {item: grave_bone, chance: 0.7, amount: [2, 3]}
+      - {item: grave_bone, chance: 1.0, amount: [3, 5]}
+      - {item: gold_ore, chance: 0.55}
       - {item: labyrinth_essence, chance: 0.35}
       - {pick: [{table: band_t05_elite, weight: 2}, {table: band_t06_elite, weight: 7}, {table: band_t07_elite, weight: 1}], chance: 1.0}
       - {table: potions_t2, chance: 0.25}
@@ -1094,8 +1098,7 @@ tables:
     rolls: 1
     guaranteed:
       - {item: frozen_crown_shard, amount: 1}
-      - {item: rime_crystal, amount: [4, 6]}
-      - {item: grave_bone, amount: [3, 5]}
+      - {item: grave_bone, amount: [4, 6]}
       - {item: labyrinth_essence, amount: [1, 2]}
     entries:
       - {item: funeral_bell_shard, chance: 0.5}
@@ -1107,6 +1110,7 @@ tables:
       - {table: tonics, chance: 0.2}
       - {table: rare_consumables, chance: 0.08}
       - {table: enhance_boss_t2, chance: 1.0}
+      - {item: gold_ore, chance: 0.55, amount: 3}
   treasure_floor_6:   # 6층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [190, 330]
@@ -1115,12 +1119,12 @@ tables:
     entries:
       - {table: potions_t2, chance: 0.45}
       - {table: scrolls, chance: 0.1}
-      - {item: rime_crystal, chance: 0.3, amount: [2, 4]}
-      - {item: grave_bone, chance: 0.3, amount: [2, 4]}
+      - {one_of: [grave_bone, rime_talon], chance: 0.3, amount: [2, 4]}
       - {item: labyrinth_essence, chance: 0.12}
       - {table: tonics, chance: 0.08}
       - {table: rare_consumables, chance: 0.03}
       - {table: mix_f06_drop, chance: 0.0208}
+      - {item: gold_ore, chance: 0.4812}
   gimmick_floor_6:   # 6층 기믹방 보상 상자 (성공 시, 개인 루팅)
     rolls: 2
     gold: [304, 528]
@@ -1130,19 +1134,19 @@ tables:
     entries:
       - {item: labyrinth_essence, chance: 0.6}
       - {item: funeral_bell_shard, chance: 0.15}
-      - {item: rime_crystal, chance: 0.35, amount: [3, 5]}
-      - {item: grave_bone, chance: 0.35, amount: [3, 5]}
+      - {one_of: [grave_bone, rime_talon], chance: 0.35, amount: [3, 5]}
       - {table: potions_t2, chance: 0.35}
       - {item: radiant_essence, chance: 0.05}
       - {table: rare_consumables, chance: 0.06}
       - {table: tonics, chance: 0.12}
       - {pick: [{table: band_t05_trial, weight: 2}, {table: band_t06_trial, weight: 7}, {table: band_t07_trial, weight: 1}], chance: 0.217}
+      - {item: gold_ore, chance: 0.4812}
   maze_chest_wood_f6:   # 6층 미로 나무 상자
     rolls: 1
     gold: [50, 110]
     entries:
       - {table: potions_t2, chance: 0.5}
-      - {one_of: [rime_crystal, grave_bone], chance: 0.55, amount: [1, 3]}
+      - {one_of: [grave_bone, rime_talon], chance: 0.55, amount: [1, 3]}
       - {item: labyrinth_essence, chance: 0.08}
       - {table: scrolls, chance: 0.05}
       - {table: mix_f06_drop, chance: 0.0089}
@@ -1151,7 +1155,7 @@ tables:
     gold: [110, 220]
     entries:
       - {table: potions_t2, chance: 0.55}
-      - {one_of: [rime_crystal, grave_bone], chance: 0.6, amount: [2, 4]}
+      - {one_of: [grave_bone, rime_talon], chance: 0.6, amount: [2, 4]}
       - {item: labyrinth_essence, chance: 0.2}
       - {table: scrolls, chance: 0.1}
       - {table: tonics, chance: 0.06}
@@ -1163,7 +1167,7 @@ tables:
       - {item: labyrinth_essence, amount: 1}
     entries:
       - {table: potions_t2, chance: 0.6}
-      - {one_of: [rime_crystal, grave_bone], chance: 0.6, amount: [3, 5]}
+      - {one_of: [grave_bone, rime_talon], chance: 0.6, amount: [3, 5]}
       - {item: funeral_bell_shard, chance: 0.2}
       - {item: radiant_essence, chance: 0.06}
       - {table: tonics, chance: 0.15}
@@ -1174,8 +1178,8 @@ tables:
   shard_skitterer:   # 7층 일반 — 파편 갑충
     rolls: 1
     entries:
-      - {item: amethyst_shard, chance: 0.55, amount: [1, 2]}
-      - {item: prism_dust, chance: 0.15}
+      - {item: gold_ore, chance: 0.0824, amount: [1, 2]}
+      - {item: mithril_ore, chance: 0.0474, amount: [1, 2]}
       - {item: radiant_essence, chance: 0.006}
       - {table: potions_t2, chance: 0.03}
       - {table: mix_f07_drop, chance: 0.0067}
@@ -1183,8 +1187,8 @@ tables:
   prism_sentinel:   # 7층 일반 — 프리즘 파수석
     rolls: 1
     entries:
-      - {item: prism_dust, chance: 0.55, amount: [1, 2]}
-      - {item: amethyst_shard, chance: 0.15}
+      - {item: gold_ore, chance: 0.0824, amount: [1, 2]}
+      - {item: mithril_ore, chance: 0.0474, amount: [1, 2]}
       - {item: radiant_essence, chance: 0.006}
       - {table: potions_t2, chance: 0.03}
       - {table: mix_f07_drop, chance: 0.0067}
@@ -1192,17 +1196,16 @@ tables:
   echo_wisp:   # 7층 일반 — 메아리 정령
     rolls: 1
     entries:
-      - {item: prism_dust, chance: 0.55, amount: [1, 2]}
-      - {item: amethyst_shard, chance: 0.15}
-      - {item: radiant_essence, chance: 0.006}
+      - {item: radiant_essence, chance: 0.03}
       - {table: potions_t2, chance: 0.03}
       - {table: mix_f07_drop, chance: 0.0067}
       - {table: enhance_mob_t2, chance: 1.0}
   geode_brute:   # 7층 일반 — 정동 거한
     rolls: 1
     entries:
-      - {item: amethyst_shard, chance: 0.55, amount: [1, 3]}
-      - {item: prism_dust, chance: 0.15}
+      - {item: resonant_sinew, chance: 0.45, amount: [1, 2]}
+      - {item: gold_ore, chance: 0.0824, amount: [1, 2]}
+      - {item: mithril_ore, chance: 0.0474, amount: [1, 2]}
       - {item: radiant_essence, chance: 0.006}
       - {table: potions_t2, chance: 0.03}
       - {table: mix_f07_drop, chance: 0.0067}
@@ -1210,8 +1213,9 @@ tables:
   crystal_dragonkin:   # 7층 일반 — 수정 용인 창기사
     rolls: 1
     entries:
-      - {item: amethyst_shard, chance: 0.55, amount: [1, 3]}
-      - {item: prism_dust, chance: 0.15}
+      - {item: resonant_sinew, chance: 0.55, amount: [1, 3]}
+      - {item: gold_ore, chance: 0.0432, amount: [1, 3]}
+      - {item: mithril_ore, chance: 0.0249, amount: [1, 3]}
       - {item: radiant_essence, chance: 0.006}
       - {table: potions_t2, chance: 0.03}
       - {table: mix_f07_drop, chance: 0.0067}
@@ -1219,8 +1223,7 @@ tables:
   prism_centaur:   # 7층 일반 — 프리즘 켄타우로스
     rolls: 1
     entries:
-      - {item: prism_dust, chance: 0.55, amount: [1, 2]}
-      - {item: amethyst_shard, chance: 0.15}
+      - {item: resonant_sinew, chance: 0.65, amount: [1, 2]}
       - {item: radiant_essence, chance: 0.006}
       - {table: potions_t2, chance: 0.03}
       - {table: mix_f07_drop, chance: 0.0067}
@@ -1229,8 +1232,9 @@ tables:
     rolls: 1
     entries:
       - {item: tuning_fork_core, chance: 0.85, amount: [1, 2]}
-      - {item: amethyst_shard, chance: 1.0, amount: [3, 5]}
-      - {item: prism_dust, chance: 0.7, amount: [2, 3]}
+      - {item: resonant_sinew, chance: 1.0, amount: [3, 5]}
+      - {item: gold_ore, chance: 0.381}
+      - {item: mithril_ore, chance: 0.219}
       - {item: radiant_essence, chance: 0.35}
       - {pick: [{table: band_t06_elite, weight: 2}, {table: band_t07_elite, weight: 7}, {table: band_t08_elite, weight: 1}], chance: 1.0}
       - {table: potions_t2, chance: 0.25}
@@ -1240,8 +1244,6 @@ tables:
     rolls: 1
     guaranteed:
       - {item: dyad_heart, amount: 1}
-      - {item: amethyst_shard, amount: [4, 6]}
-      - {item: prism_dust, amount: [3, 5]}
       - {item: radiant_essence, amount: [1, 2]}
     entries:
       - {item: tuning_fork_core, chance: 0.5}
@@ -1254,6 +1256,8 @@ tables:
       - {table: rare_consumables, chance: 0.08}
       - {table: enhance_boss_t2, chance: 1.0}
       - {table: enhance_preview_t3, chance: 1.0}
+      - {item: gold_ore, chance: 0.5715, amount: 2}
+      - {item: mithril_ore, chance: 0.657}
   treasure_floor_7:   # 7층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [270, 470]
@@ -1262,12 +1266,13 @@ tables:
     entries:
       - {table: potions_t2, chance: 0.45}
       - {table: scrolls, chance: 0.1}
-      - {item: amethyst_shard, chance: 0.3, amount: [2, 4]}
-      - {item: prism_dust, chance: 0.3, amount: [2, 4]}
+      - {item: resonant_sinew, chance: 0.3, amount: [2, 4]}
       - {item: radiant_essence, chance: 0.12}
       - {table: tonics, chance: 0.08}
       - {table: rare_consumables, chance: 0.03}
       - {table: mix_f07_drop, chance: 0.0292}
+      - {item: gold_ore, chance: 0.1905}
+      - {item: mithril_ore, chance: 0.1095}
   gimmick_floor_7:   # 7층 기믹방 보상 상자 (성공 시, 개인 루팅)
     rolls: 2
     gold: [432, 752]
@@ -1277,19 +1282,20 @@ tables:
     entries:
       - {item: radiant_essence, chance: 0.6}
       - {item: tuning_fork_core, chance: 0.15}
-      - {item: amethyst_shard, chance: 0.35, amount: [3, 5]}
-      - {item: prism_dust, chance: 0.35, amount: [3, 5]}
+      - {item: resonant_sinew, chance: 0.35, amount: [3, 5]}
       - {table: potions_t2, chance: 0.35}
       - {item: primordial_essence, chance: 0.05}
       - {table: rare_consumables, chance: 0.06}
       - {table: tonics, chance: 0.12}
       - {pick: [{table: band_t06_trial, weight: 2}, {table: band_t07_trial, weight: 7}, {table: band_t08_trial, weight: 1}], chance: 0.286}
+      - {item: gold_ore, chance: 0.1905}
+      - {item: mithril_ore, chance: 0.1095}
   maze_chest_wood_f7:   # 7층 미로 나무 상자
     rolls: 1
     gold: [150, 300]
     entries:
       - {table: potions_t2, chance: 0.5}
-      - {one_of: [amethyst_shard, prism_dust], chance: 0.55, amount: [1, 3]}
+      - {item: resonant_sinew, chance: 0.55, amount: [1, 3]}
       - {item: radiant_essence, chance: 0.08}
       - {table: scrolls, chance: 0.05}
       - {table: mix_f07_drop, chance: 0.0125}
@@ -1298,7 +1304,7 @@ tables:
     gold: [300, 550]
     entries:
       - {table: potions_t2, chance: 0.55}
-      - {one_of: [amethyst_shard, prism_dust], chance: 0.6, amount: [2, 4]}
+      - {item: resonant_sinew, chance: 0.6, amount: [2, 4]}
       - {item: radiant_essence, chance: 0.2}
       - {table: scrolls, chance: 0.1}
       - {table: tonics, chance: 0.06}
@@ -1310,7 +1316,7 @@ tables:
       - {item: radiant_essence, amount: 1}
     entries:
       - {table: potions_t2, chance: 0.6}
-      - {one_of: [amethyst_shard, prism_dust], chance: 0.6, amount: [3, 5]}
+      - {item: resonant_sinew, chance: 0.6, amount: [3, 5]}
       - {item: tuning_fork_core, chance: 0.2}
       - {item: primordial_essence, chance: 0.06}
       - {table: tonics, chance: 0.15}
@@ -1321,8 +1327,7 @@ tables:
   ink_wraith:   # 8층 일반 — 먹물 원령
     rolls: 1
     entries:
-      - {item: ink_essence, chance: 0.55, amount: [1, 2]}
-      - {item: old_page, chance: 0.15}
+      - {item: ink_essence, chance: 0.65, amount: [1, 2]}
       - {item: radiant_essence, chance: 0.006}
       - {table: potions_t3, chance: 0.03}
       - {table: mix_f08_drop, chance: 0.0043}
@@ -1330,8 +1335,7 @@ tables:
   page_swarm:   # 8층 일반 — 흩날리는 책장 떼
     rolls: 1
     entries:
-      - {item: old_page, chance: 0.385, amount: [1, 2]}
-      - {item: ink_essence, chance: 0.105}
+      - {item: old_page, chance: 0.455, amount: [1, 2]}
       - {item: radiant_essence, chance: 0.0042}
       - {table: potions_t3, chance: 0.021}
       - {table: mix_f08_drop, chance: 0.0043}
@@ -1339,8 +1343,7 @@ tables:
   biting_tome:   # 8층 일반 — 물어뜯는 고서
     rolls: 1
     entries:
-      - {item: old_page, chance: 0.55, amount: [1, 2]}
-      - {item: ink_essence, chance: 0.15}
+      - {item: old_page, chance: 0.65, amount: [1, 2]}
       - {item: radiant_essence, chance: 0.006}
       - {table: potions_t3, chance: 0.03}
       - {item: forbidden_seal, chance: 0.01}
@@ -1349,8 +1352,9 @@ tables:
   archive_sentinel:   # 8층 일반 — 서고 감시자
     rolls: 1
     entries:
-      - {item: ink_essence, chance: 0.55, amount: [1, 3]}
-      - {item: old_page, chance: 0.15}
+      - {item: old_page, chance: 0.55, amount: [1, 3]}
+      - {item: ink_essence, chance: 0.15}
+      - {item: mithril_ore, chance: 0.27, amount: [1, 3]}
       - {item: radiant_essence, chance: 0.006}
       - {table: potions_t3, chance: 0.03}
       - {table: mix_f08_drop, chance: 0.0043}
@@ -1358,8 +1362,7 @@ tables:
   ink_naga:   # 8층 일반 — 먹물 나가
     rolls: 1
     entries:
-      - {item: ink_essence, chance: 0.55, amount: [1, 2]}
-      - {item: old_page, chance: 0.15}
+      - {item: ink_essence, chance: 0.65, amount: [1, 2]}
       - {item: radiant_essence, chance: 0.006}
       - {table: potions_t3, chance: 0.03}
       - {table: mix_f08_drop, chance: 0.0043}
@@ -1367,8 +1370,7 @@ tables:
   quill_harpy:   # 8층 일반 — 깃펜 하피
     rolls: 1
     entries:
-      - {item: old_page, chance: 0.55, amount: [1, 2]}
-      - {item: ink_essence, chance: 0.15}
+      - {item: ink_essence, chance: 0.65, amount: [1, 2]}
       - {item: radiant_essence, chance: 0.006}
       - {table: potions_t3, chance: 0.03}
       - {table: mix_f08_drop, chance: 0.0043}
@@ -1379,6 +1381,7 @@ tables:
       - {item: forbidden_seal, chance: 0.85, amount: [1, 2]}
       - {item: ink_essence, chance: 1.0, amount: [3, 5]}
       - {item: old_page, chance: 0.7, amount: [2, 3]}
+      - {item: mithril_ore, chance: 0.55}
       - {item: radiant_essence, chance: 0.35}
       - {pick: [{table: band_t07_elite, weight: 2}, {table: band_t08_elite, weight: 7}, {table: band_t09_elite, weight: 1}], chance: 1.0}
       - {table: potions_t3, chance: 0.25}
@@ -1401,6 +1404,7 @@ tables:
       - {table: tonics, chance: 0.2}
       - {table: rare_consumables, chance: 0.08}
       - {table: enhance_boss_t3, chance: 1.0}
+      - {item: mithril_ore, chance: 0.55, amount: 3}
   treasure_floor_8:   # 8층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [380, 650]
@@ -1409,12 +1413,13 @@ tables:
     entries:
       - {table: potions_t3, chance: 0.45}
       - {table: scrolls, chance: 0.1}
-      - {item: ink_essence, chance: 0.3, amount: [2, 4]}
-      - {item: old_page, chance: 0.3, amount: [2, 4]}
+      - {one_of: [ink_essence, old_page], chance: 0.3, amount: [2, 4]}
+      - {one_of: [ink_essence, old_page], chance: 0.3, amount: [2, 4]}
       - {item: radiant_essence, chance: 0.12}
       - {table: tonics, chance: 0.08}
       - {table: rare_consumables, chance: 0.03}
       - {table: mix_f08_drop, chance: 0.0234}
+      - {item: mithril_ore, chance: 0.275}
   gimmick_floor_8:   # 8층 기믹방 보상 상자 (성공 시, 개인 루팅)
     rolls: 2
     gold: [608, 1040]
@@ -1424,13 +1429,14 @@ tables:
     entries:
       - {item: radiant_essence, chance: 0.6}
       - {item: forbidden_seal, chance: 0.15}
-      - {item: ink_essence, chance: 0.35, amount: [3, 5]}
-      - {item: old_page, chance: 0.35, amount: [3, 5]}
+      - {one_of: [ink_essence, old_page], chance: 0.35, amount: [3, 5]}
+      - {one_of: [ink_essence, old_page], chance: 0.35, amount: [3, 5]}
       - {table: potions_t3, chance: 0.35}
       - {item: primordial_essence, chance: 0.05}
       - {table: rare_consumables, chance: 0.06}
       - {table: tonics, chance: 0.12}
       - {pick: [{table: band_t07_trial, weight: 2}, {table: band_t08_trial, weight: 7}, {table: band_t09_trial, weight: 1}], chance: 0.217}
+      - {item: mithril_ore, chance: 0.275}
   maze_chest_wood_f8:   # 8층 미로 나무 상자
     rolls: 1
     gold: [150, 300]
@@ -1468,8 +1474,9 @@ tables:
   gear_hound:   # 9층 일반 — 톱니 사냥개
     rolls: 1
     entries:
-      - {item: brass_gear, chance: 0.55, amount: [1, 2]}
-      - {item: mainspring, chance: 0.15}
+      - {item: clock_oil, chance: 0.65, amount: [1, 2]}
+      - {item: orichalcum_ore, chance: 0.0678, amount: [1, 2]}
+      - {item: mithril_ore, chance: 0.0238, amount: [1, 2]}
       - {item: primordial_essence, chance: 0.004}
       - {table: potions_t3, chance: 0.03}
       - {table: mix_f09_drop, chance: 0.0043}
@@ -1477,8 +1484,9 @@ tables:
   clockwork_sentry:   # 9층 일반 — 태엽 보초
     rolls: 1
     entries:
-      - {item: brass_gear, chance: 0.55, amount: [1, 2]}
-      - {item: mainspring, chance: 0.15}
+      - {item: clock_oil, chance: 0.65, amount: [1, 2]}
+      - {item: orichalcum_ore, chance: 0.0678, amount: [1, 2]}
+      - {item: mithril_ore, chance: 0.0238, amount: [1, 2]}
       - {item: primordial_essence, chance: 0.004}
       - {table: potions_t3, chance: 0.03}
       - {table: mix_f09_drop, chance: 0.0043}
@@ -1486,8 +1494,9 @@ tables:
   spring_jumper:   # 9층 일반 — 용수철 도약병
     rolls: 1
     entries:
-      - {item: mainspring, chance: 0.55, amount: [1, 2]}
-      - {item: brass_gear, chance: 0.15}
+      - {item: clock_oil, chance: 0.65, amount: [1, 2]}
+      - {item: orichalcum_ore, chance: 0.0678, amount: [1, 2]}
+      - {item: mithril_ore, chance: 0.0238, amount: [1, 2]}
       - {item: primordial_essence, chance: 0.004}
       - {table: potions_t3, chance: 0.03}
       - {table: mix_f09_drop, chance: 0.0043}
@@ -1495,8 +1504,7 @@ tables:
   chrono_moth:   # 9층 일반 — 시간 나방
     rolls: 1
     entries:
-      - {item: mainspring, chance: 0.55, amount: [1, 2]}
-      - {item: brass_gear, chance: 0.15}
+      - {item: chrono_dust, chance: 0.65, amount: [1, 2]}
       - {item: primordial_essence, chance: 0.004}
       - {table: potions_t3, chance: 0.03}
       - {table: mix_f09_drop, chance: 0.0043}
@@ -1504,8 +1512,9 @@ tables:
   clockwork_wyvern:   # 9층 일반 — 태엽 와이번
     rolls: 1
     entries:
-      - {item: brass_gear, chance: 0.55, amount: [1, 2]}
-      - {item: mainspring, chance: 0.15}
+      - {item: clock_oil, chance: 0.65, amount: [1, 2]}
+      - {item: orichalcum_ore, chance: 0.0678, amount: [1, 2]}
+      - {item: mithril_ore, chance: 0.0238, amount: [1, 2]}
       - {item: primordial_essence, chance: 0.004}
       - {table: potions_t3, chance: 0.03}
       - {table: mix_f09_drop, chance: 0.0043}
@@ -1513,8 +1522,9 @@ tables:
   brass_minotaur:   # 9층 일반 — 황동 미노타우로스
     rolls: 1
     entries:
-      - {item: brass_gear, chance: 0.55, amount: [1, 3]}
-      - {item: mainspring, chance: 0.15}
+      - {item: clock_oil, chance: 0.65, amount: [1, 3]}
+      - {item: orichalcum_ore, chance: 0.0509, amount: [1, 3]}
+      - {item: mithril_ore, chance: 0.0179, amount: [1, 3]}
       - {item: primordial_essence, chance: 0.004}
       - {table: potions_t3, chance: 0.03}
       - {table: mix_f09_drop, chance: 0.0043}
@@ -1523,8 +1533,9 @@ tables:
     rolls: 1
     entries:
       - {item: regulator_pendulum, chance: 0.85, amount: [1, 2]}
-      - {item: brass_gear, chance: 1.0, amount: [3, 5]}
-      - {item: mainspring, chance: 0.7, amount: [2, 3]}
+      - {item: clock_oil, chance: 1.0, amount: [3, 5]}
+      - {item: orichalcum_ore, chance: 0.259}
+      - {item: mithril_ore, chance: 0.091}
       - {item: primordial_essence, chance: 0.35}
       - {pick: [{table: band_t08_elite, weight: 2}, {table: band_t09_elite, weight: 7}, {table: band_t10_elite, weight: 1}], chance: 1.0}
       - {table: potions_t3, chance: 0.25}
@@ -1534,8 +1545,8 @@ tables:
     rolls: 1
     guaranteed:
       - {item: clockwork_heart, amount: 1}
-      - {item: brass_gear, amount: [4, 6]}
-      - {item: mainspring, amount: [3, 5]}
+      - {item: clock_oil, amount: [4, 6]}
+      - {item: chrono_dust, amount: [2, 3]}
       - {item: primordial_essence, amount: [1, 2]}
     entries:
       - {item: regulator_pendulum, chance: 0.5}
@@ -1546,6 +1557,8 @@ tables:
       - {table: tonics, chance: 0.2}
       - {table: rare_consumables, chance: 0.08}
       - {table: enhance_boss_t3, chance: 1.0}
+      - {item: orichalcum_ore, chance: 0.518, amount: 3}
+      - {item: mithril_ore, chance: 0.546}
   treasure_floor_9:   # 9층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [520, 900]
@@ -1554,12 +1567,13 @@ tables:
     entries:
       - {table: potions_t3, chance: 0.45}
       - {table: scrolls, chance: 0.1}
-      - {item: brass_gear, chance: 0.3, amount: [2, 4]}
-      - {item: mainspring, chance: 0.3, amount: [2, 4]}
+      - {one_of: [clock_oil, chrono_dust], chance: 0.3, amount: [2, 4]}
       - {item: primordial_essence, chance: 0.12}
       - {table: tonics, chance: 0.08}
       - {table: rare_consumables, chance: 0.03}
       - {table: mix_f09_drop, chance: 0.0234}
+      - {item: orichalcum_ore, chance: 0.259}
+      - {item: mithril_ore, chance: 0.091}
   gimmick_floor_9:   # 9층 기믹방 보상 상자 (성공 시, 개인 루팅)
     rolls: 2
     gold: [832, 1440]
@@ -1569,18 +1583,19 @@ tables:
     entries:
       - {item: primordial_essence, chance: 0.6}
       - {item: regulator_pendulum, chance: 0.15}
-      - {item: brass_gear, chance: 0.35, amount: [3, 5]}
-      - {item: mainspring, chance: 0.35, amount: [3, 5]}
+      - {one_of: [clock_oil, chrono_dust], chance: 0.35, amount: [3, 5]}
       - {table: potions_t3, chance: 0.35}
       - {table: rare_consumables, chance: 0.06}
       - {table: tonics, chance: 0.12}
       - {pick: [{table: band_t08_trial, weight: 2}, {table: band_t09_trial, weight: 7}, {table: band_t10_trial, weight: 1}], chance: 0.3}
+      - {item: orichalcum_ore, chance: 0.259}
+      - {item: mithril_ore, chance: 0.091}
   maze_chest_wood_f9:   # 9층 미로 나무 상자
     rolls: 1
     gold: [150, 300]
     entries:
       - {table: potions_t3, chance: 0.5}
-      - {one_of: [brass_gear, mainspring], chance: 0.55, amount: [1, 3]}
+      - {one_of: [clock_oil, chrono_dust], chance: 0.55, amount: [1, 3]}
       - {item: primordial_essence, chance: 0.08}
       - {table: scrolls, chance: 0.05}
       - {table: mix_f09_drop, chance: 0.01}
@@ -1589,7 +1604,7 @@ tables:
     gold: [300, 550]
     entries:
       - {table: potions_t3, chance: 0.55}
-      - {one_of: [brass_gear, mainspring], chance: 0.6, amount: [2, 4]}
+      - {one_of: [clock_oil, chrono_dust], chance: 0.6, amount: [2, 4]}
       - {item: primordial_essence, chance: 0.2}
       - {table: scrolls, chance: 0.1}
       - {table: tonics, chance: 0.06}
@@ -1601,7 +1616,7 @@ tables:
       - {item: primordial_essence, amount: 1}
     entries:
       - {table: potions_t3, chance: 0.6}
-      - {one_of: [brass_gear, mainspring], chance: 0.6, amount: [3, 5]}
+      - {one_of: [clock_oil, chrono_dust], chance: 0.6, amount: [3, 5]}
       - {item: regulator_pendulum, chance: 0.2}
       - {item: primordial_essence, chance: 0.06}
       - {table: tonics, chance: 0.15}
@@ -1612,8 +1627,7 @@ tables:
   void_stalker:   # 10층 일반 — 심연 추적자
     rolls: 1
     entries:
-      - {item: abyss_ichor, chance: 0.55, amount: [1, 2]}
-      - {item: sculk_tendril, chance: 0.15}
+      - {item: abyss_ichor, chance: 0.65, amount: [1, 2]}
       - {item: primordial_essence, chance: 0.004}
       - {table: potions_t3, chance: 0.03}
       - {table: mix_f10_drop, chance: 0.0034}
@@ -1621,8 +1635,8 @@ tables:
   echo_colossus:   # 10층 일반 — 울림 거상
     rolls: 1
     entries:
-      - {item: sculk_tendril, chance: 0.55, amount: [1, 3]}
-      - {item: abyss_ichor, chance: 0.15}
+      - {item: sculk_tendril, chance: 0.65, amount: [1, 3]}
+      - {item: orichalcum_ore, chance: 0.1721, amount: [1, 3]}
       - {item: primordial_essence, chance: 0.004}
       - {table: potions_t3, chance: 0.03}
       - {table: mix_f10_drop, chance: 0.0034}
@@ -1630,8 +1644,7 @@ tables:
   abyss_eye:   # 10층 일반 — 심연의 눈
     rolls: 1
     entries:
-      - {item: abyss_ichor, chance: 0.55, amount: [1, 2]}
-      - {item: sculk_tendril, chance: 0.15}
+      - {item: abyss_ichor, chance: 0.65, amount: [1, 2]}
       - {item: primordial_essence, chance: 0.004}
       - {table: potions_t3, chance: 0.03}
       - {table: mix_f10_drop, chance: 0.0034}
@@ -1639,8 +1652,7 @@ tables:
   hollow_choir:   # 10층 일반 — 공허 성가대
     rolls: 1
     entries:
-      - {item: sculk_tendril, chance: 0.55, amount: [1, 2]}
-      - {item: abyss_ichor, chance: 0.15}
+      - {item: sculk_tendril, chance: 0.65, amount: [1, 2]}
       - {item: primordial_essence, chance: 0.004}
       - {table: potions_t3, chance: 0.03}
       - {table: mix_f10_drop, chance: 0.0034}
@@ -1648,8 +1660,8 @@ tables:
   void_drake:   # 10층 일반 — 심연 고룡
     rolls: 1
     entries:
-      - {item: abyss_ichor, chance: 0.55, amount: [1, 3]}
-      - {item: sculk_tendril, chance: 0.15}
+      - {item: abyss_scale, chance: 0.55, amount: [1, 3]}
+      - {item: abyss_ichor, chance: 0.15}
       - {item: primordial_essence, chance: 0.004}
       - {table: potions_t3, chance: 0.03}
       - {table: mix_f10_drop, chance: 0.0034}
@@ -1657,8 +1669,9 @@ tables:
   abyss_dragonkin:   # 10층 일반 — 심연 용인 기사
     rolls: 1
     entries:
-      - {item: sculk_tendril, chance: 0.55, amount: [1, 2]}
+      - {item: abyss_scale, chance: 0.55, amount: [1, 2]}
       - {item: abyss_ichor, chance: 0.15}
+      - {item: orichalcum_ore, chance: 0.1606, amount: [1, 2]}
       - {item: primordial_essence, chance: 0.004}
       - {table: potions_t3, chance: 0.03}
       - {table: mix_f10_drop, chance: 0.0034}
@@ -1669,6 +1682,7 @@ tables:
       - {item: gatekeeper_rune, chance: 0.85, amount: [1, 2]}
       - {item: abyss_ichor, chance: 1.0, amount: [3, 5]}
       - {item: sculk_tendril, chance: 0.7, amount: [2, 3]}
+      - {item: orichalcum_ore, chance: 0.325}
       - {item: primordial_essence, chance: 0.35}
       - {pick: [{table: band_t09_elite, weight: 2}, {table: band_t10_elite, weight: 7}], chance: 1.0}
       - {table: potions_t3, chance: 0.25}
@@ -1690,6 +1704,7 @@ tables:
       - {table: tonics, chance: 0.2}
       - {table: rare_consumables, chance: 0.08}
       - {table: enhance_boss_t3, chance: 1.0}
+      - {item: orichalcum_ore, chance: 0.65, amount: 3}
   treasure_floor_10:   # 10층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [700, 1200]
@@ -1698,12 +1713,13 @@ tables:
     entries:
       - {table: potions_t3, chance: 0.45}
       - {table: scrolls, chance: 0.1}
-      - {item: abyss_ichor, chance: 0.3, amount: [2, 4]}
-      - {item: sculk_tendril, chance: 0.3, amount: [2, 4]}
+      - {one_of: [abyss_ichor, sculk_tendril, abyss_scale], chance: 0.3, amount: [2, 4]}
+      - {one_of: [abyss_ichor, sculk_tendril, abyss_scale], chance: 0.3, amount: [2, 4]}
       - {item: primordial_essence, chance: 0.12}
       - {table: tonics, chance: 0.08}
       - {table: rare_consumables, chance: 0.03}
       - {table: mix_f10_drop, chance: 0.0197}
+      - {item: orichalcum_ore, chance: 0.325}
   gimmick_floor_10:   # 10층 기믹방 보상 상자 (성공 시, 개인 루팅)
     rolls: 2
     gold: [1120, 1920]
@@ -1713,18 +1729,19 @@ tables:
     entries:
       - {item: primordial_essence, chance: 0.6}
       - {item: gatekeeper_rune, chance: 0.15}
-      - {item: abyss_ichor, chance: 0.35, amount: [3, 5]}
-      - {item: sculk_tendril, chance: 0.35, amount: [3, 5]}
+      - {one_of: [abyss_ichor, sculk_tendril, abyss_scale], chance: 0.35, amount: [3, 5]}
+      - {one_of: [abyss_ichor, sculk_tendril, abyss_scale], chance: 0.35, amount: [3, 5]}
       - {table: potions_t3, chance: 0.35}
       - {table: rare_consumables, chance: 0.06}
       - {table: tonics, chance: 0.12}
       - {pick: [{table: band_t09_trial, weight: 2}, {table: band_t10_trial, weight: 7}], chance: 0.364}
+      - {item: orichalcum_ore, chance: 0.325}
   maze_chest_wood_f10:   # 10층 미로 나무 상자
     rolls: 1
     gold: [300, 550]
     entries:
       - {table: potions_t3, chance: 0.5}
-      - {one_of: [abyss_ichor, sculk_tendril], chance: 0.55, amount: [1, 3]}
+      - {one_of: [abyss_ichor, sculk_tendril, abyss_scale], chance: 0.55, amount: [1, 3]}
       - {item: primordial_essence, chance: 0.08}
       - {table: scrolls, chance: 0.05}
       - {table: mix_f10_drop, chance: 0.0084}
@@ -1733,7 +1750,7 @@ tables:
     gold: [550, 900]
     entries:
       - {table: potions_t3, chance: 0.55}
-      - {one_of: [abyss_ichor, sculk_tendril], chance: 0.6, amount: [2, 4]}
+      - {one_of: [abyss_ichor, sculk_tendril, abyss_scale], chance: 0.6, amount: [2, 4]}
       - {item: primordial_essence, chance: 0.2}
       - {table: scrolls, chance: 0.1}
       - {table: tonics, chance: 0.06}
@@ -1745,7 +1762,7 @@ tables:
       - {item: primordial_essence, amount: 1}
     entries:
       - {table: potions_t3, chance: 0.6}
-      - {one_of: [abyss_ichor, sculk_tendril], chance: 0.6, amount: [3, 5]}
+      - {one_of: [abyss_ichor, sculk_tendril, abyss_scale], chance: 0.6, amount: [3, 5]}
       - {item: gatekeeper_rune, chance: 0.2}
       - {item: primordial_essence, chance: 0.06}
       - {table: tonics, chance: 0.15}

@@ -24,7 +24,10 @@ import org.bukkit.configuration.ConfigurationSection;
  *       (장비에는 층 글자를 붙이지 않는다, 0.3.5)</li>
  *   <li>소모품: 핀이 파는 것이면 산 값 × consumable_shop_ratio, 아니면 재료 표</li>
  *   <li>핀이 파는 물건은 무엇이든 산 값 × shop_item_cap 이하, 그리고 언제나 산 값보다 1 G 이상 싸다 (사서 되팔아 버는 일 없음)</li>
- *   <li>팔 수 없음: 열쇠류(type: key — 금고 열쇠·직업 문장), 시작 지급품(sources 에 starter), 전직의 두루마리, unsellable 목록</li>
+ *   <li>광산 재료 (0.3.6 — items.yml {@code mine_kind}): 값 = 반올림(sell.mine 의 종류 기본값 × (1 + rank_bonus × (등급 − 1))), 최소 1.
+ *       등급 = {@code mine_level}. 기본값 광석 1 · 주괴 3 · 보석 6 · rank_bonus 0.35 → 녹여 팔면 언제나 손해 (주괴 &lt; 광석 2개 + 제련 골드)</li>
+ *   <li>팔 수 없음: 열쇠류(type: key — 금고 열쇠·직업 문장), 도구(type: tool — 곡괭이), 시작 지급품(sources 에 starter), 전직의 두루마리,
+ *       unsellable 목록</li>
  * </ul>
  */
 public final class SellPrices {
@@ -38,6 +41,7 @@ public final class SellPrices {
         DISABLED("지금은 상인이 물건을 사지 않습니다."),
         NOT_LABYRINTH("미궁 아이템만 팔 수 있습니다."),
         KEY("열쇠·문장 같은 물건은 팔 수 없습니다."),
+        TOOL("도구는 팔 수 없습니다."),
         STARTER("시작 지급품은 팔 수 없습니다."),
         LISTED("이 물건은 상인이 사지 않습니다."),
         NO_PRICE("값을 매길 수 없는 물건입니다.");
@@ -65,7 +69,7 @@ public final class SellPrices {
     public record Config(boolean enabled, Map<Rarity, Integer> materials, double materialFloorBonus,
                          Map<Rarity, Integer> gear, double gearFloorBonus, double enhanceBonus,
                          double consumableShopRatio, double shopItemCap, Rarity confirmRarity, int confirmEnhance,
-                         Set<String> unsellable) {
+                         Set<String> unsellable, Mine mine) {
 
         public static final Map<Rarity, Integer> DEFAULT_MATERIALS = table(2, 5, 15, 40, 120, 300);
         public static final Map<Rarity, Integer> DEFAULT_GEAR = table(10, 25, 60, 150, 400, 1000);
@@ -77,7 +81,16 @@ public final class SellPrices {
         /** {@code sell: false} — 판매 끔 (값은 기본값 그대로). */
         public static final Config DISABLED = DEFAULT.withEnabled(false);
 
+        /** 광산 재료 값이 없던 꼴 (0.3.5) — {@link Mine#DEFAULT}. */
+        public Config(boolean enabled, Map<Rarity, Integer> materials, double materialFloorBonus, Map<Rarity, Integer> gear,
+                      double gearFloorBonus, double enhanceBonus, double consumableShopRatio, double shopItemCap, Rarity confirmRarity,
+                      int confirmEnhance, Set<String> unsellable) {
+            this(enabled, materials, materialFloorBonus, gear, gearFloorBonus, enhanceBonus, consumableShopRatio, shopItemCap,
+                    confirmRarity, confirmEnhance, unsellable, Mine.DEFAULT);
+        }
+
         public Config {
+            if (mine == null) mine = Mine.DEFAULT;
             materials = Collections.unmodifiableMap(new EnumMap<>(materials));
             gear = Collections.unmodifiableMap(new EnumMap<>(gear));
             materialFloorBonus = Math.max(0, materialFloorBonus);
@@ -99,7 +112,7 @@ public final class SellPrices {
         /** 같은 값에 켜기만 바꾼 것. */
         public Config withEnabled(boolean on) {
             return new Config(on, materials, materialFloorBonus, gear, gearFloorBonus, enhanceBonus, consumableShopRatio,
-                    shopItemCap, confirmRarity, confirmEnhance, unsellable);
+                    shopItemCap, confirmRarity, confirmEnhance, unsellable, mine);
         }
 
         /**
@@ -133,7 +146,7 @@ public final class SellPrices {
                     s.getDouble("shop_item_cap", DEFAULT.shopItemCap()),
                     confirm == null ? DEFAULT.confirmRarity() : confirm,
                     s.getInt("confirm_enhance", DEFAULT.confirmEnhance()),
-                    blocked);
+                    blocked, Mine.from(s.getConfigurationSection("mine")));
         }
 
         private static Map<Rarity, Integer> readTable(ConfigurationSection t, Map<Rarity, Integer> def) {
@@ -143,6 +156,43 @@ public final class SellPrices {
                 if (t.contains(r.id())) m.put(r, Math.max(0, t.getInt(r.id(), def.get(r))));
             }
             return m;
+        }
+    }
+
+    /**
+     * config.yml {@code sell.mine} (0.3.6 광산 재료): 종류마다 기본값 · 등급 덤 (계약 tools/data/036/materials.json {@code sell}).
+     * 값 = 반올림(기본값 × (1 + rankBonus × (등급 − 1))), 최소 1.
+     */
+    public record Mine(int ore, int ingot, int gem, double rankBonus) {
+        public static final Mine DEFAULT = new Mine(1, 3, 6, 0.35);
+
+        public Mine {
+            ore = Math.max(0, ore);
+            ingot = Math.max(0, ingot);
+            gem = Math.max(0, gem);
+            rankBonus = Math.max(0, rankBonus);
+        }
+
+        /** 섹션이 없으면 기본값 (기존 서버 config.yml 에는 sell.mine 이 없다). */
+        public static Mine from(ConfigurationSection s) {
+            if (s == null) return DEFAULT;
+            return new Mine(s.getInt("ore", DEFAULT.ore), s.getInt("ingot", DEFAULT.ingot), s.getInt("gem", DEFAULT.gem),
+                    s.getDouble("rank_bonus", DEFAULT.rankBonus));
+        }
+
+        public int base(kr.labyrinth.content.MineKind kind) {
+            return switch (kind) {
+                case ORE -> ore;
+                case INGOT -> ingot;
+                case GEM -> gem;
+            };
+        }
+
+        /** 한 개 값 (등급 1~6, 반올림 — .5 는 올림, 최소 1). 기본값이 0 이면 0 (팔지 않음). */
+        public int value(kr.labyrinth.content.MineKind kind, int level) {
+            int b = base(kind);
+            if (b <= 0) return 0;
+            return (int) Math.max(1, Math.floor(b * (1 + rankBonus * (Math.max(1, level) - 1)) + 0.5 + 1e-9));
         }
     }
 
@@ -188,6 +238,7 @@ public final class SellPrices {
         if (!config.enabled()) return Quote.no(Block.DISABLED);
         if (def == null) return Quote.no(Block.NOT_LABYRINTH);
         if (def.type() == ItemType.KEY) return Quote.no(Block.KEY);
+        if (def.type() == ItemType.TOOL) return Quote.no(Block.TOOL);
         if (def.sources().contains("starter")) return Quote.no(Block.STARTER);
         if (blocked.contains(def.id())) return Quote.no(Block.LISTED);
         Rarity r = def.rarity() == null ? Rarity.COMMON : def.rarity();
@@ -197,6 +248,8 @@ public final class SellPrices {
             int floor = Math.max(1, Math.min(10, EnhanceRules.gearFloor(def)));
             int enh = Math.max(0, enhanceLevel);
             value = config.gear().getOrDefault(r, 0) * (1 + config.gearFloorBonus() * floor) * (1 + config.enhanceBonus() * enh);
+        } else if (def.isMineMaterial()) {
+            value = config.mine().value(def.mineKind(), def.mineLevel());
         } else if (def.type() == ItemType.CONSUMABLE && buy > 0) {
             value = Math.floor(buy * config.consumableShopRatio());
         } else {
@@ -232,9 +285,11 @@ public final class SellPrices {
                 "<gray>장비 <dark_gray>(× 1 + " + pct(c.gearFloorBonus()) + " × 장비 단계 · × 1 + " + pct(c.enhanceBonus()) + " × 강화)",
                 "<white>" + row(c.gear()),
                 "<gray>소모품: 핀이 파는 것은 산 값의 <white>" + pct(c.consumableShopRatio()) + "</white>, 그 밖은 재료 값",
+                "<gray>광석 <white>" + c.mine().ore() + " G</white> · 주괴 <white>" + c.mine().ingot() + " G</white> · 보석 <white>"
+                        + c.mine().gem() + " G</white> 부터 <dark_gray>(귀한 것일수록 비쌈)",
                 "<gray>핀이 파는 물건은 언제나 산 값보다 쌉니다.",
                 "",
-                "<#ff8a8a>팔 수 없음: <gray>시작 지급품 · 열쇠·문장 · 전직의 두루마리",
+                "<#ff8a8a>팔 수 없음: <gray>시작 지급품 · 열쇠·문장 · 도구 · 전직의 두루마리",
                 "<gray>" + c.confirmRarity().displayName() + " 이상" + (c.confirmEnhance() > 0 ? " · 강화 +" + c.confirmEnhance() + " 이상" : "")
                         + " 은 <white>두 번</white> 눌러야 팝니다.");
     }

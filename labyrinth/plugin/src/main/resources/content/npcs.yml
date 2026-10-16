@@ -116,6 +116,40 @@ npcs:
       - {item: silk_antler_staff, price: 2000, level_req: 8}
       - {item: glowcap_twin_bow, price: 2500, level_req: 11}
 
+  # ═══════════════════════════ 광산 마을 NPC (0.3.6 — 광부 브론 → 광산 관리소 메뉴 · 제련공 이그나 → 제련소) ═══════════════════════════
+
+  miner:
+    name: "광부 브론"
+    nameplate: "<gradient:#e8843f:#f0b050>[광부]</gradient>"
+    skin: miner
+    role: miner
+    placement: overworld
+    skin_style:
+      palette: ["#c98e6b", "#3a2a20", "#4a5866", "#8c6a44", "#f0b050", "#2a2a2a"]
+      outfit: miner
+      hair: short_beard
+      accessories: [helmet_lamp, tool_belt, soot_marks]
+    dialogue:
+      - "<gray>곡괭이는 챙겼나? 처음 오는 사람한텐 구리 곡괭이 하나는 그냥 준다네.</gray>"
+      - "<gray>좋은 곡괭이일수록 더 단단한 광석을 캐지. 약한 곡괭이로는 금도 안 가.</gray>"
+      - "<gray>캔 광맥은 시간이 지나면 다시 차. 깊이 내려갈수록 귀한 광석이 섞여 있다네.</gray>"
+
+  smelter:
+    name: "제련공 이그나"
+    nameplate: "<gradient:#ff9a5a:#3fb090>[제련공]</gradient>"
+    skin: smelter
+    role: smelter
+    placement: overworld
+    skin_style:
+      palette: ["#d9a882", "#2a3a3a", "#5a3121", "#8c5a34", "#ff9a5a", "#3fb090"]
+      outfit: apron
+      hair: bun
+      accessories: [goggles_forehead, thick_gloves, tool_belt]
+    dialogue:
+      - "<gray>광석 두 개면 주괴 하나. 불은 내가 볼 테니 골드만 조금 내.</gray>"
+      - "<gray>보석에 미궁 정수를 더하면 강화석을 새겨 줄게. 한 번에 두 개씩.</gray>"
+      - "<gray>쓰던 곡괭이를 가져오면 더 좋은 금속으로 다시 벼려 줄 수 있어.</gray>"
+
   # ═══════════════════════════ 층 안 이야기 NPC (휴식방) ═══════════════════════════
 
   lore_floor2_miner:

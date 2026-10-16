@@ -313,6 +313,8 @@ class DropRateWindowTest {
                 Map<String, Double> y = runYield(w.tier(), false);
                 double mat = 0;
                 for (var m : r.materials().entrySet()) {
+                    ItemDef md = content.item(m.getKey());
+                    if (md != null && md.isMineMaterial()) continue;   // 0.3.6 주괴는 광산·제련소 몫 (계약 §5 표 C — 광산 분)
                     double per = y.getOrDefault(m.getKey(), 0.0);
                     mat = Math.max(mat, per > 0 ? m.getValue() / per : Double.POSITIVE_INFINITY);
                 }

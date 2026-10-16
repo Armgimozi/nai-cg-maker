@@ -30,7 +30,30 @@ import params as P  # noqa: E402
 import mine6  # noqa: E402
 import gen_enhance as GE  # noqa: E402
 
-CONTENT = LAB / 'plugin/src/main/resources/content'
+LIVE_CONTENT = LAB / 'plugin/src/main/resources/content'
+# 시제품은 늘 0.3.5.1 content 위에서 돈다. Q3 가 content 를 0.3.6 으로 바꾼 뒤에는(옛 광물 id 가 없음) 계약 커밋의 content 를
+# git 에서 꺼내 out/base_0351/ 에 둔다 (다시 돌려도 같은 결과).
+BASE_REV = 'f0f731be'          # 0.3.6 Q0 계약 커밋 — content = 0.3.5.1
+BASE_FILES = ('items', 'loot', 'recipes', 'mobs', 'bosses', 'floors', 'npcs', 'enhance', 'titles')
+
+
+def base_content():
+    if 'rusted_iron:' in (LIVE_CONTENT / 'items.yml').read_text(encoding='utf-8'):
+        return LIVE_CONTENT
+    out = HERE / 'out/base_0351/content'
+    if all((out / f'{n}.yml').exists() for n in BASE_FILES):
+        return out
+    import subprocess
+    top = subprocess.run(['git', '-C', str(LAB), 'rev-parse', '--show-toplevel'], capture_output=True, text=True, check=True).stdout.strip()
+    rel = (LIVE_CONTENT.resolve()).relative_to(Path(top).resolve()).as_posix()
+    out.mkdir(parents=True, exist_ok=True)
+    for n in BASE_FILES:
+        r = subprocess.run(['git', '-C', top, 'show', f'{BASE_REV}:{rel}/{n}.yml'], capture_output=True, check=True)
+        (out / f'{n}.yml').write_bytes(r.stdout)
+    return out
+
+
+CONTENT = base_content()
 OUT = HERE / 'out/proto'
 STONES = {'lesser_enhance_stone', 'greater_enhance_stone', 'supreme_enhance_stone', 'enhance_protection_scroll'}
 GEAR = ('weapon', 'armor', 'accessory')
@@ -329,7 +352,10 @@ def dungeon_runs(dun, sup, refine):
 
 # ───────────────────────── 강화 (gen_enhance 규칙 고침) ─────────────────────────
 def patched_enhance(proto_dir, recipes):
-    GE.HARD.update({2: 'spider_silk', 5: 'cinder_hide', 6: 'grave_bone', 7: 'resonant_sinew', 9: 'clock_oil'})
+    GE.MODE036 = False       # 시제품이 아래에서 0.3.6 규칙을 직접 덧씌운다 (gen_enhance 의 드롭 단계 규칙은 쓰지 않음)
+    GE.HARD.clear()
+    GE.HARD.update({1: 'beetle_shell', 2: 'spider_silk', 3: 'spore_cap', 4: 'eel_scale', 5: 'ember_soul', 6: 'grave_bone',
+                    7: 'resonant_sinew', 8: 'old_page', 9: 'clock_oil', 10: 'sculk_tendril'})
     rec_by_result = {r['result']: r for r in recipes.values()}
     orig_cand = GE.candidates
     orig_floor_init = GE.Floor.__init__
