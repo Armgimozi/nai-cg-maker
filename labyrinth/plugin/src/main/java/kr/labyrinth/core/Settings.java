@@ -52,7 +52,7 @@ public final class Settings {
     }
 
     public record Pack(boolean enabled, int port, String bind, String publicHost, int publicPort, String url, String sha1,
-                       boolean required, boolean kickOnDecline, boolean updateFromJar, String prompt) {}
+                       boolean required, boolean kickOnDecline, boolean updateFromJar, String prompt, boolean samePort) {}
 
     /**
      * combat — 0.3.5 게이지 없는 공격 키가 없으면 코드 기본값({@link #DEFAULT}, jar 의 config.yml 과 같음).
@@ -233,7 +233,8 @@ public final class Settings {
                 c.getInt("pack.public_port", 0), c.getString("pack.url", ""),
                 c.getString("pack.sha1", ""), c.getBoolean("pack.required", true),
                 c.getBoolean("pack.kick_on_decline", false), c.getBoolean("pack.update_from_jar", true),
-                c.getString("pack.prompt", "<gray>미궁 라비린스 전용 리소스팩입니다.</gray>"));
+                c.getString("pack.prompt", "<gray>미궁 라비린스 전용 리소스팩입니다.</gray>"),
+                c.getBoolean("pack.same_port", true));
         this.autosaveMinutes = Math.max(1, c.getInt("data.autosave_minutes", 5));
         Combat cd = Combat.DEFAULT;
         this.combat = new Combat(c.getBoolean("combat.damage_numbers", true),

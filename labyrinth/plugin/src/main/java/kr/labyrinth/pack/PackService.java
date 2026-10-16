@@ -48,6 +48,8 @@ public final class PackService implements Module, Listener {
     private final Services services;
     private final Path packFile;
     private final Map<UUID, String> joinHosts = new ConcurrentHashMap<>();
+    private final Map<UUID, Integer> joinPorts = new ConcurrentHashMap<>();
+    private final GamePortPackServer gamePort = new GamePortPackServer(() -> this.packBytes, FILE_NAME);
     private HttpServer server;
     private volatile byte[] packBytes;
     private volatile String sha1 = "";
@@ -78,7 +80,11 @@ public final class PackService implements Module, Listener {
     public void disable() {
         HandlerList.unregisterAll(this);
         stopServer();
+        gamePort.uninstall();
     }
+
+    /** 게임 포트로도 팩을 보내는 중인가 (playit 같은 터널에서 8163 없이 받기). */
+    public boolean gamePortActive() { return gamePort.installed() && packBytes != null; }
 
     private void start() {
         Settings.Pack cfg = services.settings().pack();
@@ -112,6 +118,11 @@ public final class PackService implements Module, Listener {
             packBytes = Files.readAllBytes(packFile);
             sha1 = sha1Hex(packBytes);
             packId = UUID.nameUUIDFromBytes(("labyrinth:" + sha1).getBytes(StandardCharsets.UTF_8));
+            if (cfg.samePort()) {
+                if (gamePort.install()) Log.info("리소스팩을 게임 포트로도 보냅니다 (터널·포트포워딩에 8163 을 따로 열지 않아도 됨)");
+            } else {
+                gamePort.uninstall();
+            }
             server = HttpServer.create(new InetSocketAddress(cfg.bind(), cfg.port()), 16);
             server.createContext("/", this::handle);
             server.setExecutor(Executors.newFixedThreadPool(2, r -> {
@@ -122,9 +133,13 @@ public final class PackService implements Module, Listener {
             server.start();
             Log.info("리소스팩 HTTP 서버 시작: 포트 " + cfg.port() + " (" + packBytes.length / 1024 + " KB, sha1 " + sha1 + ")");
         } catch (IOException e) {
-            Log.error("리소스팩 서버 시작 실패 (포트 " + cfg.port() + " 사용 중?) — 팩 없이 동작합니다", e);
             stopServer();
-            packBytes = null;
+            if (gamePortActive()) {
+                Log.warn("리소스팩 8163 서버 시작 실패 (포트 " + cfg.port() + " 사용 중?) — 게임 포트로만 보냅니다: " + e.getMessage());
+            } else {
+                Log.error("리소스팩 서버 시작 실패 (포트 " + cfg.port() + " 사용 중?) — 팩 없이 동작합니다", e);
+                packBytes = null;
+            }
         }
     }
 
@@ -183,7 +198,11 @@ public final class PackService implements Module, Listener {
         String host;
         int port = cfg.port();
         boolean hasPublic = cfg.publicHost() != null && !cfg.publicHost().isBlank();
-        if (joined != null && isLocalHost(joined)) {
+        Integer joinedPort = joinPorts.get(p.getUniqueId());
+        if (!hasPublic && gamePortActive() && joined != null && !joined.isBlank()) {
+            host = joined;                       // 접속한 주소·포트 그대로 (게임 포트로 팩을 받음 — 터널 하나로 충분)
+            port = joinedPort != null && joinedPort > 0 ? joinedPort : Bukkit.getPort();
+        } else if (joined != null && isLocalHost(joined)) {
             host = joined;                       // 같은 PC·같은 와이파이 → 내장 서버에 바로
         } else if (hasPublic) {
             host = cfg.publicHost().trim();      // 터널(playit.gg 등)·외부 → 설정한 공개 주소:포트
@@ -247,14 +266,27 @@ public final class PackService implements Module, Listener {
         if (host == null) return;
         int nul = host.indexOf('\0');
         if (nul >= 0) host = host.substring(0, nul);
+        int port = -1;
         if (host.startsWith("[")) {
             int end = host.indexOf(']');
+            if (end > 0 && host.length() > end + 2 && host.charAt(end + 1) == ':') port = parsePort(host.substring(end + 2));
             host = end > 0 ? host.substring(1, end) : host;
         } else if (host.chars().filter(c -> c == ':').count() == 1) {
+            port = parsePort(host.substring(host.indexOf(':') + 1));
             host = host.substring(0, host.indexOf(':'));
         }
         if (host.endsWith(".")) host = host.substring(0, host.length() - 1);
+        // 주소 뒤에 포트 없이 SRV 기록으로 들어온 경우(예: playit 의 joinmc.link) → SRV 가 가리키는 진짜 주소·포트로 받게
+        if (gamePortActive() && (port <= 0 || port == 25565) && !isLocalHost(host) && host.contains(".") && !isIpLiteral(host)) {
+            String[] srv = srvLookup(host);
+            if (srv != null) {
+                host = srv[0];
+                port = parsePort(srv[1]);
+            }
+        }
         joinHosts.put(e.getUniqueId(), host);
+        if (port > 0) joinPorts.put(e.getUniqueId(), port);
+        else joinPorts.remove(e.getUniqueId());
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -266,7 +298,47 @@ public final class PackService implements Module, Listener {
     }
 
     @EventHandler
-    public void onQuit(PlayerQuitEvent e) { joinHosts.remove(e.getPlayer().getUniqueId()); }
+    public void onQuit(PlayerQuitEvent e) {
+        joinHosts.remove(e.getPlayer().getUniqueId());
+        joinPorts.remove(e.getPlayer().getUniqueId());
+    }
+
+    static boolean isIpLiteral(String h) {
+        return h.contains(":") || h.chars().allMatch(c -> c == '.' || (c >= '0' && c <= '9'));
+    }
+
+    /** _minecraft._tcp.&lt;host&gt; SRV 기록 → {대상 주소, 포트}. 없거나 실패하면 null (접속 전 비동기 이벤트라 기다려도 됨, 2초 제한). */
+    static String[] srvLookup(String host) {
+        try {
+            java.util.Hashtable<String, String> env = new java.util.Hashtable<>();
+            env.put("java.naming.factory.initial", "com.sun.jndi.dns.DnsContextFactory");
+            env.put("com.sun.jndi.dns.timeout.initial", "1000");
+            env.put("com.sun.jndi.dns.timeout.retries", "1");
+            javax.naming.directory.DirContext ctx = new javax.naming.directory.InitialDirContext(env);
+            try {
+                javax.naming.directory.Attribute a = ctx.getAttributes("_minecraft._tcp." + host, new String[] {"SRV"}).get("SRV");
+                if (a == null || a.size() == 0) return null;
+                String[] parts = String.valueOf(a.get(0)).trim().split("\\s+"); // 우선순위 무게 포트 대상
+                if (parts.length < 4) return null;
+                String target = parts[3].endsWith(".") ? parts[3].substring(0, parts[3].length() - 1) : parts[3];
+                if (target.isBlank() || parsePort(parts[2]) <= 0) return null;
+                return new String[] {target, parts[2]};
+            } finally {
+                ctx.close();
+            }
+        } catch (javax.naming.NamingException | RuntimeException e) {
+            return null;
+        }
+    }
+
+    static int parsePort(String s) {
+        try {
+            int v = Integer.parseInt(s.trim());
+            return v > 0 && v <= 65535 ? v : -1;
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
 
     @EventHandler
     public void onStatus(PlayerResourcePackStatusEvent e) {

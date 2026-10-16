@@ -137,6 +137,9 @@ final class AdminCommands {
             var pack = services.pack();
             Text.send(s, pack.isAvailable() ? "<green>리소스팩 사용 가능</green> <gray>sha1 " + pack.sha1()
                     : "<red>리소스팩 없음</red> <gray>(plugins/Labyrinth/pack/labyrinth-pack.zip)");
+            if (pack.isAvailable()) Text.send(s, pack.gamePortActive()
+                    ? "<gray>게임 포트로도 보내는 중 (터널 하나로 충분)"
+                    : "<gray>게임 포트 전송 꺼짐 — 8163 포트 또는 pack.public_host·url 로만 받음");
             if (s instanceof Player p && pack.isAvailable()) {
                 Text.send(s, "<gray>URL: <white>" + Text.escape(pack.urlFor(p)));
                 pack.send(p);
