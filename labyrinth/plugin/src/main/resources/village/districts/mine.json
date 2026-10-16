@@ -1,0 +1,40 @@
+{
+  "format": 1,
+  "id": "mine",
+  "name": "광산 마을",
+  "order": 10,
+  "mask": {"R": 4, "B": 6},
+  "options": {"max_fill": 4, "foundation_depth": 6, "fill_small_water_max": 0},
+  "safe_margin": 8,
+  "foundation_mix": [["minecraft:stone_bricks", 4], ["minecraft:mossy_stone_bricks", 1], ["minecraft:tuff_bricks", 2], ["minecraft:polished_andesite", 1]],
+  "npcs": {"miner": "광부 브론", "smelter": "제련공 이그나"},
+  "fingerprint": "mine.fp",
+  "frame": "village",
+  "note": "build_all.py 생성물 (tools/village/district_mine.py) — 직접 고치지 마세요. 좌표 = 마을 좌표 (layout.json 과 같은 틀)",
+  "shipped": {"center": [-136, 16], "rotation": "COUNTERCLOCKWISE_90", "turns": 3, "seed": 24680, "build_ids": ["c99c3fb3-4621-4037-b7dd-26f71e3edfce", "a06800d8-7a5d-452d-b3eb-79364ebfac99"]},
+  "path_styles": {"mine_yard": [["minecraft:andesite", 3], ["minecraft:polished_andesite", 2], ["minecraft:tuff", 2], ["minecraft:gravel", 1], ["minecraft:stone", 1]]},
+  "pieces": [
+    {"piece": "mine_headframe", "at": [1, 70], "front": "north"},
+    {"piece": "smelter", "at": [-12, 54], "front": "east"},
+    {"piece": "miners_lodge", "at": [8, 56], "front": "west"},
+    {"piece": "ore_yard", "at": [-13, 72], "front": "east"},
+    {"piece": "signpost_mine", "at": [4, 38], "front": "west"},
+    {"piece": "lamp_post_copper", "at": [5, 41], "front": "west"},
+    {"piece": "lamp_post_copper", "at": [-3, 45], "front": "east"},
+    {"piece": "lamp_post_copper", "at": [-4, 57], "front": "east"},
+    {"piece": "cart", "at": [-9, 45], "front": "east"},
+    {"piece": "bench", "at": [11, 66], "front": "west"},
+    {"piece": "tree_oak", "at": [13, 42], "front": "east"},
+    {"piece": "flower_bed", "at": [6, 45], "front": "east"}
+  ],
+  "paths": [
+    {"points": [[0, 33], [0, 49]], "width": 3, "style": "main"},
+    {"points": [[0, 49], [0, 63]], "width": 5, "style": "mine_yard"},
+    {"points": [[-3, 54], [-6, 54]], "width": 3, "style": "mine_yard"},
+    {"points": [[-3, 63], [-11, 63], [-12, 67]], "width": 2, "style": "lane"}
+  ],
+  "sites": [
+    {"id": "east", "shift": [0, 0]},
+    {"id": "south_east", "shift": [-42, 0], "replace_paths": {"0": [[0, 33], [0, 40], [-34, 40], [-42, 49]]}, "drop": [5, 10, 11]}
+  ]
+}

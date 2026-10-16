@@ -550,8 +550,11 @@ FORBIDDEN = {
 }
 GRAVITY = {"sand", "red_sand", "gravel", "suspicious_sand", "suspicious_gravel", "anvil", "chipped_anvil",
            "damaged_anvil", "dragon_egg", "scaffolding"}
-AMBIENT_FX = ("portal", "embers", "fountain", "magic", "smoke")
-INTERACT_ACTIONS = ("entrance", "blacksmith", "class", "titles", "merchant", "main")
+AMBIENT_FX = ("portal", "embers", "fountain", "magic", "smoke", "dust")
+# 0.3.6 광산 마을: mine_lift(승강장) · smelter(제련소) · mine_info(숙소 게시판) · mine_office(광산 관리소 — 광산 청사진 쪽)
+INTERACT_ACTIONS = ("entrance", "blacksmith", "class", "titles", "merchant", "main", "mine_lift", "mine_office", "smelter", "mine_info")
+# 이름 붙은 서 있을 자리 마커 (spawn·entrance 처럼 발 칸 + face) — 0.3.6 mine_exit = 광산에서 마을로 나오는 자리
+POINT_MARKERS = ("mine_exit",)
 MARKER_FACES = ("front", "back", "left", "right")
 ID_RE = re.compile(r"^[a-z0-9_]+$")
 
@@ -755,6 +758,10 @@ class Piece:
 
     def spawn(self, x, y, z, face="front"):
         self.markers.append({"type": "spawn", "pos": [x, y, z], "face": self._face(face)})
+
+    def point(self, kind, x, y, z, face="front"):
+        """이름 붙은 서 있을 자리 (POINT_MARKERS — 예: mine_exit = 광산에서 마을로 나오는 자리)."""
+        self.markers.append({"type": kind, "pos": [x, y, z], "face": self._face(face)})
 
     def interact(self, action, positions):
         """우클릭 → 메뉴. positions = [(x,y,z), ...] (그 블록들)."""
@@ -1411,7 +1418,7 @@ class Piece:
 
         for m in self.markers:
             t = m.get("type")
-            if t in ("npc", "entrance", "spawn"):
+            if t in ("npc", "entrance", "spawn") + POINT_MARKERS:
                 if not chk_pos(m, m["pos"]):
                     continue
                 if m.get("face") not in MARKER_FACES:

@@ -1,0 +1,86 @@
+{
+  "format": 1,
+  "id": "ore_yard",
+  "name": "광석 하치장",
+  "size": [9, 5, 7],
+  "floor_y": 0,
+  "foundation": "minecraft:stone_bricks",
+  "foundation_mix": [["minecraft:stone_bricks", 3], ["minecraft:tuff_bricks", 1], ["minecraft:polished_andesite", 1]],
+  "anchor": [4, 0],
+  "deco": true,
+  "door": false,
+  "palette": {
+    "c": "minecraft:barrel[facing=north,open=false]",
+    "#": "minecraft:barrel[facing=up,open=false]",
+    "e": "minecraft:barrel[facing=west,open=false]",
+    "d": "minecraft:coarse_dirt",
+    "f": "minecraft:dark_oak_fence[east=false,north=false,south=true,waterlogged=false,west=true]",
+    "F": "minecraft:dark_oak_fence[east=false,north=true,south=false,waterlogged=false,west=false]",
+    "D": "minecraft:dark_oak_fence[east=true,north=false,south=false,waterlogged=false,west=false]",
+    "l": "minecraft:dark_oak_log[axis=y]",
+    "h": "minecraft:fern",
+    "g": "minecraft:grass_block[snowy=false]",
+    "G": "minecraft:grindstone[face=floor,facing=east]",
+    "i": "minecraft:iron_chain[axis=y,waterlogged=false]",
+    "m": "minecraft:packed_mud",
+    "a": "minecraft:polished_andesite",
+    "s": "minecraft:polished_andesite_slab[type=bottom,waterlogged=false]",
+    "r": "minecraft:rail[shape=east_west,waterlogged=false]",
+    "B": "minecraft:raw_copper_block",
+    "R": "minecraft:raw_gold_block",
+    "b": "minecraft:raw_iron_block",
+    "S": "minecraft:short_grass",
+    "t": "minecraft:tuff",
+    "w": "minecraft:waxed_copper_lantern[hanging=true,waterlogged=false]"
+  },
+  "layers": [
+    [
+      "tddaaddmg",
+      "mdmmdddmm",
+      "mmamaamma",
+      "gamtmmdmm",
+      "mmmmadtmm",
+      "dmddmdmtm",
+      "mdmmmdatd"
+    ],
+    [
+      "        h",
+      "rrrrrrrre",
+      "         ",
+      "S  #G    ",
+      " bb   B  ",
+      " bb RBB l",
+      "#c       "
+    ],
+    [
+      "         ",
+      "         ",
+      "         ",
+      "         ",
+      "       w ",
+      " bs   B l",
+      "#        "
+    ],
+    [
+      "         ",
+      "         ",
+      "         ",
+      "         ",
+      "       i ",
+      "        l",
+      "         "
+    ],
+    [
+      "         ",
+      "         ",
+      "         ",
+      "         ",
+      "       Df",
+      "        F",
+      "         "
+    ]
+  ],
+  "markers": [
+    {"type": "light", "pos": [7, 2, 4]}
+  ]
+}

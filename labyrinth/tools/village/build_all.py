@@ -9,6 +9,9 @@
   pieces/<id>.json. PIECES 에 없는 남은 json 은 지운다.
 - tools/village/layout.py 의 LAYOUT → layout.json. 조각 id·발자국 겹침(1칸 여유)·반경·길·정문 앞·마커(spawn/entrance 1개씩,
   npc id 가 npcs.yml 에 있음)를 검사한다.
+- tools/village/district_*.py 의 DISTRICT (0.3.6 광산 마을 …) → districts/<id>.json. 배포 월드 좌표로 쓴 배치를 마을 좌표로 바꾸고,
+  자리(sites)마다 Java 계획기와 같은 규칙(조각 1칸 여유·정문 앞·붙지 않은 길)으로 겹침을 본다. 구역 조각은 광산 블록 12종·빈 광맥
+  블록을 쓰지 않고 구리는 waxed_* 만 (CONTRACT §3.3, visual.json).
 - 오류가 하나라도 있으면 아무것도 쓰지 않고 이유를 출력하고 끝 (종료 코드 1).
 """
 import argparse
@@ -29,6 +32,8 @@ import vlib  # noqa: E402
 
 RES = os.path.join(ROOT, "plugin", "src", "main", "resources", "village")
 PIECES_DIR = os.path.join(RES, "pieces")
+DISTRICT_DIR = os.path.join(RES, "districts")
+VISUAL_JSON = os.path.join(ROOT, "tools", "data", "036", "visual.json")
 NPCS_YML = os.path.join(ROOT, "plugin", "src", "main", "resources", "content", "npcs.yml")
 RENDER_DIR = "/tmp/village_renders"
 VILLAGE_NPCS = ("guide", "blacksmith", "class_master", "title_keeper", "merchant")
@@ -72,6 +77,7 @@ def build_pieces(mods, errors):
             if p.id in pieces:
                 errors.append("조각 id '%s' 가 두 번 (%s, %s)" % (p.id, pieces[p.id][1], label))
                 continue
+            p.origin = name
             pieces[p.id] = (p, label)
     return {k: v[0] for k, v in pieces.items()}
 
@@ -262,6 +268,234 @@ def validate_layout(L, pieces, npcs, errors, warnings):
         warnings.append("마을 NPC 가 아직 없음: %s (selftest npcs=5/5 기준)" % ", ".join(missing))
 
 
+# ─────────────────────────────── 구역 (0.3.6 광산 마을 …) ───────────────────────────────
+
+def load_district_modules(errors):
+    out = []
+    for path in sorted(glob.glob(os.path.join(HERE, "district_*.py"))):
+        name = os.path.splitext(os.path.basename(path))[0]
+        if name == "district_fingerprint":      # 지문 굽는 도구 (배치 아님)
+            continue
+        try:
+            spec = importlib.util.spec_from_file_location(name, path)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+        except Exception as e:  # noqa: BLE001
+            errors.append("%s 불러오기 실패: %s" % (name, e))
+            continue
+        d = getattr(mod, "DISTRICT", None)
+        if not isinstance(d, dict):
+            errors.append("%s: DISTRICT dict 가 없습니다" % name)
+            continue
+        out.append((name, d))
+    return out
+
+
+def _around(x, z, t):
+    """Java Rot.around: 원점 둘레 시계 방향 t 번 (CW90: (x, z) → (−z, x))."""
+    t %= 4
+    return [(x, z), (-z, x), (-x, -z), (z, -x)][t]
+
+
+def banned_district_blocks():
+    """구역 조각에 쓰면 안 되는 블록: 광산 광석·보석 블록 12종 + 층마다 빈 광맥 블록 (visual.json)."""
+    with open(VISUAL_JSON, encoding="utf-8") as f:
+        v = json.load(f)["blocks"]
+    out = {}
+    for group in ("ores", "gems"):
+        for k, e in v[group].items():
+            out[vlib.parse_block(e["block"])[0]] = "광산 %s 블록 (%s)" % ("광석" if group == "ores" else "보석", k)
+    for lvl, b in v["depleted"].items():
+        out.setdefault(vlib.parse_block(b)[0], "빈 광맥 블록 (층 %s)" % lvl)
+    return out
+
+
+def check_district_blocks(pid, p, banned, errors, own=True):
+    """own = 구역 전용 조각 (마을 장식 조각을 빌려 쓸 때는 기초를 구역 foundation_mix 가 대신한다)."""
+    for layer_i, layer in enumerate(p.g):
+        for z, row in enumerate(layer):
+            for x, v in enumerate(row):
+                if v in (" ", "."):
+                    continue
+                bid = vlib.parse_block(v)[0]
+                if bid in banned:
+                    errors.append("구역 조각 %s (%d,%d,%d): %s 는 쓰지 않음 — %s" % (pid, x, layer_i, z, bid, banned[bid]))
+                elif "copper" in bid and not bid.startswith("waxed_") and not bid.startswith("raw_copper"):
+                    errors.append("구역 조각 %s (%d,%d,%d): 구리는 waxed_* 만 (%s 는 녹이 슮)" % (pid, x, layer_i, z, bid))
+    if own:
+        for b, _ in p.foundation_mix:
+            if vlib.parse_block(b)[0] in banned:
+                errors.append("구역 조각 %s: foundation_mix 의 %s 는 쓰지 않음" % (pid, b))
+
+
+def site_world(D, site):
+    """자리 하나의 배포 월드 배치: (조각 목록 [(순번, 항목)], 길 목록 [(순번, 항목)])."""
+    sx, sz = site.get("shift", [0, 0])
+    drop = set(site.get("drop", []))
+    rep = {int(k): v for k, v in site.get("replace_paths", {}).items()}
+    ps = [(i, dict(e, w=[e["w"][0] + sx, e["w"][1] + sz])) for i, e in enumerate(D["pieces"]) if i not in drop]
+    paths = []
+    for i, pth in enumerate(D["paths"]):
+        pts = rep[i] if i in rep else [[q[0] + sx, q[1] + sz] for q in pth["points"]]
+        paths.append((i, dict(pth, points=pts)))
+    return ps, paths
+
+
+def validate_site(tag, ps, paths, pieces, styles, errors, warnings):
+    """Java Planner.overlaps 와 같은 규칙 (배포 월드 좌표, 마을 회전 포함 = 조각 정면 방향 그대로)."""
+    placed = []
+    for i, e in ps:
+        pid = e["piece"]
+        t = "%s pieces[%d] %s" % (tag, i, pid)
+        if pid not in pieces:
+            errors.append("%s: 그런 조각이 없음" % t)
+            continue
+        p = pieces[pid]
+        bp = vlib.Blueprint.of(p)
+        r = vlib.front_rotation(e["front"])
+        w2, d2 = vlib.rotated_size(p.W, p.D, r)
+        x0, z0 = e["w"]
+        b = (x0, z0, x0 + w2 - 1, z0 + d2 - 1)
+        placed.append((t, e, p, bp, r, b, bp.world_columns(r, x0, z0)))
+    for i in range(len(placed)):
+        ta, ring_a = placed[i][0], _ring(placed[i][6])
+        for j in range(i + 1, len(placed)):
+            tb, cols_b = placed[j][0], placed[j][6]
+            hit = ring_a & cols_b
+            if hit:
+                errors.append("%s 와 %s %s (예: %s)" % (ta, tb, "겹침" if placed[i][6] & cols_b else "1칸 여유 없음", sorted(hit)[0]))
+    for t, e, p, bp, r, b, cols in placed:
+        if not bp.door:
+            continue
+        ax, az = p.anchor
+        rx, rz = vlib.rot_xz(ax, az, p.W, p.D, r)
+        wx, wz = b[0] + rx, b[1] + rz
+        dx, dz = vlib.DXZ[vlib.rot_dir("north", r)]
+        while (wx, wz) in cols:
+            wx, wz = wx + dx, wz + dz
+        for t2, _, _, _, _, _, cols2 in placed:
+            if t2 != t and (wx, wz) in _ring(cols2):
+                errors.append("%s: 정문 앞 칸 (%d,%d) 이 %s 에 막힘" % (t, wx, wz, t2))
+    for i, pth in paths:
+        pts, wdt = pth["points"], pth.get("width", 3)
+        if pth.get("style", "main") not in styles:
+            errors.append("%s paths[%d]: style '%s' 없음" % (tag, i, pth.get("style")))
+        att = {_attach(placed, pts[0]), _attach(placed, pts[-1])} - {None}
+        ring = _ring(vlib.path_cells(pts, wdt))
+        for k, (t2, _, _, _, _, _, cols2) in enumerate(placed):
+            if k in att:
+                continue
+            hit = ring & cols2
+            if hit:
+                errors.append("%s paths[%d]: 길이 %s 를 지나가거나 1칸 여유 없이 붙음 (예: %s)" % (tag, i, t2, sorted(hit)[0]))
+    return placed
+
+
+def district_json(D, pieces):
+    """배포 월드 좌표 → 마을 좌표 (layout.json 과 같은 틀). Java DistrictLayout 이 읽는다."""
+    cx, cz = D["shipped"]["center"]
+    t = D["shipped"]["turns"]
+
+    def to_v(x, z):
+        return list(_around(x - cx, z - cz, -t))
+
+    out_p = []
+    for e in D["pieces"]:
+        p = pieces[e["piece"]]
+        rw = vlib.front_rotation(e["front"])
+        w2, d2 = vlib.rotated_size(p.W, p.D, rw)
+        x0, z0 = e["w"]
+        a, b = to_v(x0, z0), to_v(x0 + w2 - 1, z0 + d2 - 1)
+        vx0, vz0 = min(a[0], b[0]), min(a[1], b[1])
+        fv = vlib.DIRS[(vlib.DIRS.index(vlib.norm_dir(e["front"])) - t) % 4]
+        vw, vd = vlib.rotated_size(p.W, p.D, vlib.front_rotation(fv))
+        assert (abs(a[0] - b[0]) + 1, abs(a[1] - b[1]) + 1) == (vw, vd), (e, a, b, vw, vd)
+        q = {"piece": e["piece"], "at": [vx0 + vw // 2, vz0 + vd // 2], "front": fv}
+        for k in ("dy", "slack"):
+            if k in e:
+                q[k] = e[k]
+        out_p.append(q)
+    out_paths = [{"points": [to_v(*q) for q in pth["points"]], "width": pth.get("width", 3), "style": pth.get("style", "main")}
+                 for pth in D["paths"]]
+    sites = []
+    for s in D["sites"]:
+        sx, sz = s.get("shift", [0, 0])
+        q = {"id": s["id"], "shift": list(_around(sx, sz, -t))}
+        if s.get("replace_paths"):
+            q["replace_paths"] = {k: [to_v(*pt) for pt in v] for k, v in s["replace_paths"].items()}
+        if s.get("drop"):
+            q["drop"] = list(s["drop"])
+        sites.append(q)
+    keep = {k: D[k] for k in ("format", "id", "name", "order", "mask", "options", "safe_margin", "foundation_mix", "npcs",
+                              "fingerprint") if k in D}
+    keep["frame"] = "village"
+    keep["note"] = "build_all.py 생성물 (tools/village/district_%s.py) — 직접 고치지 마세요. 좌표 = 마을 좌표 (layout.json 과 같은 틀)" % D["id"]
+    keep["shipped"] = D["shipped"]
+    keep["path_styles"] = D.get("path_styles", {})
+    keep["pieces"] = out_p
+    keep["paths"] = out_paths
+    keep["sites"] = sites
+    return keep
+
+
+def validate_districts(districts, pieces, layout, npcs, errors, warnings):
+    banned = banned_district_blocks()
+    styles = dict(layout.get("path_styles", {})) if layout else {}
+    out = {}
+    for name, D in districts:
+        did = D.get("id")
+        if not did or not re.match(r"^[a-z0-9_]+$", did):
+            errors.append("%s: id 는 소문자·숫자·_" % name)
+            continue
+        st = dict(styles)
+        st.update(D.get("path_styles", {}))
+        for sname, mixl in D.get("path_styles", {}).items():
+            for b, w in mixl:
+                vlib.check_block(b)
+                if vlib.parse_block(b)[0] in banned:
+                    errors.append("구역 %s path_styles.%s: %s 는 쓰지 않음" % (did, sname, b))
+        used = sorted({e["piece"] for e in D["pieces"]})
+        own_ids = {pid for pid in used if getattr(pieces.get(pid), "origin", "") == "pieces_" + did}
+        for b, w in D.get("foundation_mix", []):
+            vlib.check_block(b)
+            if vlib.parse_block(b)[0] in banned:
+                errors.append("구역 %s foundation_mix: %s 는 쓰지 않음" % (did, b))
+        for pid in used:
+            if pid not in pieces:
+                errors.append("구역 %s: 조각 %s 가 없음" % (did, pid))
+                continue
+            check_district_blocks(pid, pieces[pid], banned, errors, own=pid in own_ids)
+            for m in pieces[pid].markers:
+                if m["type"] == "npc" and m["id"] not in npcs:
+                    warnings.append("구역 %s: npc '%s' 가 아직 npcs.yml 에 없음 (Q3 가 넣음 — 없으면 그 NPC 만 안 섬)" % (did, m["id"]))
+        if not D.get("sites"):
+            errors.append("구역 %s: sites 가 없음" % did)
+        for site in D.get("sites", []):
+            ps, paths = site_world(D, site)
+            validate_site("구역 %s/%s" % (did, site["id"]), ps, paths, pieces, st, errors, warnings)
+        if not any(e for e in errors if ("구역 " + did) in e):
+            out[did] = district_json(D, pieces)
+    return out
+
+
+def dump_district(d):
+    dump = lambda v: json.dumps(v, ensure_ascii=False)
+    out = ["{"]
+    keys = list(d.keys())
+    for ki, k in enumerate(keys):
+        v = d[k]
+        comma = "," if ki < len(keys) - 1 else ""
+        if isinstance(v, list) and k in ("pieces", "paths", "sites"):
+            out.append("  %s: [" % dump(k))
+            for i, item in enumerate(v):
+                out.append("    %s%s" % (dump(item), "," if i < len(v) - 1 else ""))
+            out.append("  ]%s" % comma)
+        else:
+            out.append("  %s: %s%s" % (dump(k), dump(v), comma))
+    out.append("}")
+    return "\n".join(out) + "\n"
+
+
 def dump_layout(L):
     d = lambda v: json.dumps(v, ensure_ascii=False)
     out = ["{"]
@@ -335,6 +569,7 @@ def main(argv=None):
     npcs = read_npcs(NPCS_YML)
     if L is not None:
         validate_layout(L, pieces, npcs, errors, warnings)
+    districts = validate_districts(load_district_modules(errors), pieces, L, npcs, errors, warnings)
 
     for w in warnings:
         print("경고:", w)
@@ -355,11 +590,23 @@ def main(argv=None):
                 removed.append(os.path.basename(path))
         with open(os.path.join(RES, "layout.json"), "w", encoding="utf-8") as f:
             f.write(dump_layout(L))
+        os.makedirs(DISTRICT_DIR, exist_ok=True)
+        for did, dj in sorted(districts.items()):
+            with open(os.path.join(DISTRICT_DIR, did + ".json"), "w", encoding="utf-8") as f:
+                f.write(dump_district(dj))
+        order = sorted(districts, key=lambda k: (districts[k].get("order", 100), k))
+        with open(os.path.join(DISTRICT_DIR, "index.json"), "w", encoding="utf-8") as f:
+            f.write(json.dumps({"note": "build_all.py 생성물 — 구역 목록 (짓는 차례)", "districts": order}, ensure_ascii=False) + "\n")
+        for path in glob.glob(os.path.join(DISTRICT_DIR, "*.json")):
+            base = os.path.splitext(os.path.basename(path))[0]
+            if base != "index" and base not in districts:
+                os.remove(path)
+                print("지운 구역 JSON:", os.path.basename(path))
         if removed:
             print("지운 조각 JSON:", ", ".join(sorted(removed)))
     blocks = sum(sum(1 for layer in p.g for row in layer for v in row if v not in (" ", ".")) for p in pieces.values())
-    print("조각 %d개 (%s) · 블록 %d · layout 조각 %d · 경고 %d · 오류 0%s  (%.1fs)" % (
-        len(pieces), ", ".join(sorted(pieces)), blocks, len(L["pieces"]), len(warnings),
+    print("조각 %d개 (%s) · 블록 %d · layout 조각 %d · 구역 %s · 경고 %d · 오류 0%s  (%.1fs)" % (
+        len(pieces), ", ".join(sorted(pieces)), blocks, len(L["pieces"]), ",".join(sorted(districts)) or "-", len(warnings),
         "" if a.check else " → " + os.path.relpath(RES, ROOT), time.time() - t0))
     if a.render:
         only = {s.strip() for s in a.only.split(",") if s.strip()}

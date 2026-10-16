@@ -58,6 +58,8 @@ public final class VillageMeta {
     public Pos spawn;
     public Pos entrance;
     public final Map<String, Pos> npcs = new LinkedHashMap<>();
+    /** 이름 붙은 자리 (0.3.6: mine_exit). */
+    public final Map<String, Pos> points = new LinkedHashMap<>();
     /** "x,y,z" → action. */
     public final Map<String, String> interact = new LinkedHashMap<>();
     public final List<Ambient> ambient = new ArrayList<>();
@@ -91,6 +93,7 @@ public final class VillageMeta {
         if (spawn != null) y.set("spawn", pos(spawn));
         if (entrance != null) y.set("entrance", pos(entrance));
         for (Map.Entry<String, Pos> e : npcs.entrySet()) y.set("npcs." + e.getKey(), pos(e.getValue()));
+        for (Map.Entry<String, Pos> e : points.entrySet()) y.set("points." + e.getKey(), pos(e.getValue()));
         Map<String, Object> inter = new LinkedHashMap<>(interact);
         y.set("interact", inter);
         List<List<Object>> amb = new ArrayList<>();
@@ -174,6 +177,11 @@ public final class VillageMeta {
         if (ns != null) for (String k : ns.getKeys(false)) {
             Pos p = pos(ns.getList(k));
             if (p != null) m.npcs.put(k, p);
+        }
+        ConfigurationSection ptSec = y.getConfigurationSection("points");
+        if (ptSec != null) for (String k : ptSec.getKeys(false)) {
+            Pos p = pos(ptSec.getList(k));
+            if (p != null) m.points.put(k, p);
         }
         ConfigurationSection is = y.getConfigurationSection("interact");
         if (is != null) for (String k : is.getKeys(false)) m.interact.put(k, is.getString(k));
