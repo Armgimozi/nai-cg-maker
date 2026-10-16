@@ -31,7 +31,7 @@ import org.bukkit.inventory.ItemStack;
  * 거르개 (0.3.5, 분류 이름 없음): 무기 = 방식·피해 종류, 방어구 = 겉모습, 둘 다 "지금 낄 수 있는 것만".
  * 목록 순서 = 숨은 내부 레벨 → 희귀도. 배너 가운데(13) = [장비 강화] → 강화 창 (GDD §11.13).
  * 0.3.6: {@code station: blacksmith} 레시피만 (제련·새기기·곡괭이 벼리기는 제련소 {@link SmelterMenu}).
- * 도안 (0.3.6 Q6): 도안을 배우지 않은 희귀 이상 장비는 회색 "(도안 필요)" + 나오는 곳 한 줄, 48 = "배운 것만" 거르개.
+ * 도안 (0.3.6): 목록에는 기본 레시피(도안이 필요 없는 것)와 도안을 배운 레시피만 나온다 — 못 배운 것은 잠긴 채로 보이지 않는다.
  */
 public final class BlacksmithMenu extends Menu {
 
@@ -42,8 +42,8 @@ public final class BlacksmithMenu extends Menu {
     /** 배너 가운데(모루) — 강화 창 버튼. */
     private static final int ENHANCE_SLOT = 13;
 
-    /** 거르개 칸: 47 = 방식(무기) · 겉모습(방어구), 50 = 지금 낄 수 있는 것만, 48 = 배운 것만 (0.3.6 도안). */
-    private static final int FILTER_SLOT = 47, WEARABLE_SLOT = 50, LEARNED_SLOT = 48;
+    /** 거르개 칸: 47 = 방식(무기) · 겉모습(방어구), 50 = 지금 낄 수 있는 것만. */
+    private static final int FILTER_SLOT = 47, WEARABLE_SLOT = 50;
     private static final ArmorLook[] LOOKS = {null, ArmorLook.HEAVY, ArmorLook.LIGHT, ArmorLook.CLOTH, ArmorLook.PLAIN};
 
     private final Services services;
@@ -53,8 +53,6 @@ public final class BlacksmithMenu extends Menu {
     private WeaponFilter weaponFilter = WeaponFilter.ALL;
     private int look;
     private boolean wearableOnly;
-    /** 0.3.6 Q6: 도안을 배운(또는 도안이 필요 없는) 레시피만. */
-    private boolean learnedOnly;
     private Player viewer;
 
     BlacksmithMenu(Services services, LabCraftingService crafting, Player viewer) {
@@ -72,7 +70,7 @@ public final class BlacksmithMenu extends Menu {
             if (!cat.equals(r.category() == null ? "weapon" : r.category())) continue;
             ItemDef def = services.content().item(r.result());
             if (def == null || !passes(def, reqStats)) continue;
-            if (learnedOnly && viewer != null && !crafting.blueprintOk(viewer, r)) continue;
+            if (viewer != null && !crafting.blueprintOk(viewer, r)) continue; // 0.3.6: 못 배운 도안 레시피는 숨김
             out.add(r);
         }
         // 결과 장비의 숨은 내부 레벨(items.yml level_req) → 희귀도 순 — 제작 레벨 제한은 없다
@@ -155,13 +153,15 @@ public final class BlacksmithMenu extends Menu {
         });
         // 아래 줄 = 45 이전 · 47 거르개 · 49 골드·제작 안내 · 50 낄 수 있는 것만 · 51 닫기 · 53 다음
         double disc = services.stats().get(viewer).craftDiscount();
-        deco(49, Button.icon(Material.GOLD_NUGGET, "<#ffd27a>보유 골드 " + Text.num(d.gold()),
-                List.of(disc > 0 ? "<gray>제작 할인 " + Text.pct(Math.min(RecipeCheck.MAX_DISCOUNT, disc)) : "<gray>제작 레벨 제한 없음",
-                        "<dark_gray>재료는 미궁의 몬스터·정예·보스에게서 얻습니다.",
-                        "",
-                        "<gray>레시피를 클릭하면 바로 제작합니다.",
-                        "<gray>모자란 재료·골드는 <#ff6b6b>빨강</#ff6b6b>으로 표시됩니다.",
-                        "<gray>요구 능력치는 입을 때 필요합니다 (제작은 언제나 가능).")));
+        List<String> info = new ArrayList<>(List.of(disc > 0 ? "<gray>제작 할인 " + Text.pct(Math.min(RecipeCheck.MAX_DISCOUNT, disc)) : "<gray>제작 레벨 제한 없음",
+                "<dark_gray>재료는 미궁의 몬스터·정예·보스에게서 얻습니다.",
+                "",
+                "<gray>레시피를 클릭하면 바로 제작합니다.",
+                "<gray>모자란 재료·골드는 <#ff6b6b>빨강</#ff6b6b>으로 표시됩니다.",
+                "<gray>요구 능력치는 입을 때 필요합니다 (제작은 언제나 가능)."));
+        var bp = kr.labyrinth.items.blueprint.BlueprintService.get();
+        if (bp != null && bp.enabled()) info.add("<gray>희귀 이상 장비는 도안을 배우면 목록에 나옵니다.");
+        deco(49, Button.icon(Material.GOLD_NUGGET, "<#ffd27a>보유 골드 " + Text.num(d.gold()), info));
         set(51, Button.icon(Material.OAK_DOOR, "<gray>닫기", List.of()), ctx -> viewer.closeInventory());
     }
 
@@ -182,17 +182,6 @@ public final class BlacksmithMenu extends Menu {
             set(FILTER_SLOT, Button.icon(Material.LEATHER_CHESTPLATE, "<gray>겉모습: " + (l == null ? "<white>전체" : "<" + cfg.color(l) + ">" + cfg.name(l)),
                     List.of("<dark_gray>판금 · 가죽 · 천 · 평상복", "<dark_gray>클릭: 다음 · 우클릭: 전체")), ctx -> {
                 look = ctx.isRight() ? 0 : (look + 1) % LOOKS.length;
-                page = 0;
-                click(viewer);
-                refresh();
-            });
-        }
-        var bp = kr.labyrinth.items.blueprint.BlueprintService.get();
-        if (bp != null && bp.enabled()) {
-            set(LEARNED_SLOT, Button.icon(learnedOnly ? Material.LIME_DYE : Material.GRAY_DYE,
-                    (learnedOnly ? "<#7fe07f>" : "<gray>") + "배운 것만: " + (learnedOnly ? "켜짐" : "꺼짐"),
-                    List.of("<dark_gray>희귀 이상 장비는 도안을 배워야 만듭니다", "<dark_gray>클릭: 켜기/끄기")), ctx -> {
-                learnedOnly = !learnedOnly;
                 page = 0;
                 click(viewer);
                 refresh();
@@ -236,7 +225,6 @@ public final class BlacksmithMenu extends Menu {
 
     private ItemStack recipeIcon(Player p, PlayerData d, Map<Stat, Integer> reqStats, RecipeDef r) {
         ItemDef def = services.content().item(r.result());
-        if (!crafting.blueprintOk(p, r)) return lockedIcon(p, reqStats, r, def);
         List<String> tail = new ArrayList<>();
         tail.add("");
         List<Map.Entry<String, Integer>> plain = new ArrayList<>(), ingots = new ArrayList<>();
@@ -282,19 +270,5 @@ public final class BlacksmithMenu extends Menu {
         String name = "<" + def.rarity().color() + ">" + def.name() + (r.amount() > 1 ? " <gray>×" + r.amount() : "");
         Material base = def.isRanged() ? Material.BOW : Material.PAPER;
         return Button.icon(base, def.id(), name, lore);
-    }
-
-    /** 도안을 아직 배우지 않은 레시피 (0.3.6 Q6) — 회색 이름 · "도안 필요" · 나오는 곳 (층·레벨 이름표 없음). */
-    private ItemStack lockedIcon(Player p, Map<Stat, Integer> reqStats, RecipeDef r, ItemDef def) {
-        List<String> tail = new ArrayList<>();
-        tail.add("");
-        tail.add("<#ff8a8a>🔒 도안 필요");
-        tail.add("<gray>나오는 곳: " + kr.labyrinth.items.blueprint.BlueprintService.SOURCES);
-        if (def.rarity() == kr.labyrinth.content.Rarity.RARE) tail.add("<gray>상인 핀도 희귀 도안을 날마다 바꿔 팝니다.");
-        tail.add("<dark_gray>도안을 우클릭하면 배웁니다.");
-        List<String> lore = new ArrayList<>(ItemTooltip.lines(services.content(), def, null, Map.of(), List.of(), tail.size(), true, reqStats));
-        lore.addAll(tail);
-        Material base = def.isRanged() ? Material.BOW : Material.PAPER;
-        return Button.icon(base, def.id(), "<dark_gray>" + def.name() + " <gray>(도안 필요)", lore);
     }
 }
