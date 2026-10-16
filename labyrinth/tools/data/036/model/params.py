@@ -86,11 +86,11 @@ GEM_BY_RANK = {g['rank']: g for g in GEMS}
 
 # 새 몬스터 재료 (T §2 — 5·7·9층 몬스터 칸 광물의 자리)
 MONSTER_NEW = {
-    'cinder_hide': {'name': '잿불 가죽', 'rarity': 'uncommon', 'floor': 5, 'old': 'ember_shard',
+    'cinder_hide': {'name': '잿불 가죽', 'rarity': 'uncommon', 'floor': 5, 'old': 'ember_shard', 'old_ko': '불씨 조각',
                     'lore': '잿불 드레이크와 풀무 사냥개의 그을린 가죽. 불길 속에서도 타지 않는다.'},
-    'resonant_sinew': {'name': '공명 힘줄', 'rarity': 'uncommon', 'floor': 7, 'old': 'prism_dust',
+    'resonant_sinew': {'name': '공명 힘줄', 'rarity': 'uncommon', 'floor': 7, 'old': 'prism_dust', 'old_ko': '프리즘 가루',
                        'lore': '정동 거한과 수정 용인의 몸속에서 떨던 힘줄. 퉁기면 맑은 음이 난다.'},
-    'clock_oil': {'name': '태엽 기름', 'rarity': 'uncommon', 'floor': 9, 'old': 'mainspring',
+    'clock_oil': {'name': '태엽 기름', 'rarity': 'uncommon', 'floor': 9, 'old': 'mainspring', 'old_ko': '태엽 용수철',
                   'lore': '태엽 짐승들의 관절에서 흘러나온 검은 기름. 식어도 굳지 않는다.'},
 }
 
@@ -115,6 +115,11 @@ GEM_NODE_FACTOR = 1.5          # 보석 노드는 같은 등급 광석의 1.5배
 GEM_CHANCE = 0.022             # 광석 블록마다 같은 등급 보석이 덤으로 나올 확률
 RICH = {'chance': 0.04, 'multiplier': 3}   # 다시 찰 때 그 사람에게만 풍부한 광맥 (×3)
 MIN_SECONDS = 1.0              # 어떤 조합도 이보다 빨리 캐지지 않는다 (검사)
+# 서버 손 닿는 거리 (R §2-8 보강): 바닐라 서버는 블록 부수기를 눈 → 블록 상자 4.5 + 1.0 = 5.5 까지 받는다
+# (ServerPlayerGameMode.handleBlockBreakAction → isWithinBlockInteractionRange(pos, 1.0)). 고친 클라이언트는 5.5 로 캐서
+# 시안 청사진에서도 한 자리 광맥이 12~15 개가 된다. 그래서 광산 BlockBreakEvent 가 4.5 + 0.25 를 넘으면 수확하지 않는다.
+REACH_CLIENT = 4.5
+REACH_SERVER_SLACK = 0.25
 
 # 곡괭이 레시피 (제련소 station: smelter, category: tool — 마을 대장간 없이 광산 관리소에서도 된다). 레벨 조건 없음.
 PICK_RECIPES = {

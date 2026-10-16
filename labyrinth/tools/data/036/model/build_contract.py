@@ -49,7 +49,8 @@ def build_mine(lay, eco):
             'gem_weights': dict(L['gem_w']), 'gem_nodes': [g[3] for g in lv['gem_nodes']],
             'regen_minutes_default': L['regen'], 'gem_node_regen_minutes_default': P.GEM_NODE_REGEN,
             'lift': lv['lift'], 'landing': lv['landing'], 'office': L['n'] == 1,
-            'prototype': {'shape': lv['shape'], 'reach_max': lv['reach_max'], 'loop_blocks': lv['loop_blocks'],
+            'prototype': {'shape': lv['shape'], 'reach_max': lv['reach_max'], 'reach_max_server': lv['reach_max_server'],
+                          'loop_blocks': lv['loop_blocks'],
                           'ascii': f"tools/data/036/model/out/L{L['n']}.txt"},
         })
     ores = {}
@@ -92,7 +93,8 @@ def build_mine(lay, eco):
                             'PvP 끔 (PvpModule.applyWorldRules 가 광산 월드는 늘 끔 — R §2-2)'],
                   'gamemode_rule': '기억 없이 규칙만 (R §2-3): 광산 월드 안 = ADVENTURE · 광산 밖인데 ADVENTURE = SURVIVAL · CREATIVE·SPECTATOR 는 건드리지 않음. '
                                    '접속·월드 이동·리스폰·텔레포트 때 같은 규칙. ext mine.prev_mode 는 없음',
-                  'safety': ['피해 0: DamageService.applyToPlayer·상태 이상 진입점에서 광산 월드면 0 (EntityDamageEvent 취소만으로는 부족 — R §2-2)',
+                  'safety': ['피해 0: DamageService.applyToPlayer·상태 이상 진입점에서 광산 월드면 0 (EntityDamageEvent 취소만으로는 부족 — R §2-2) '
+                             '+ 바닐라 피해 EntityDamageEvent(떨어짐·마그마 블록 = 용혈석 노드·질식·불 등)도 모두 취소',
                              'TargetFilter.inSafeZone(광산 월드) = true',
                              '스폰: EntitySpawnEvent 종류 화이트리스트 MANNEQUIN·ITEM_DISPLAY·BLOCK_DISPLAY·TEXT_DISPLAY·INTERACTION·ITEM 만, 30초마다 Mob 지움 (R §2-4)',
                              '배고픔 안 줄어듦 · 엔더 진주·후렴과 텔레포트·양동이 막음 · 바닥 아래로 떨어지면 그 층 승강장으로',
@@ -106,7 +108,11 @@ def build_mine(lay, eco):
             'seconds': 'base_seconds(광석 tier) ÷ 곡괭이 speed[광석 tier] (보석 노드는 gems.base_seconds). 서버가 Tool 규칙 speed = 30·단단함(Material#getHardness) ÷ (20·초) 로 바꿈, correct_for_drops = TRUE',
             'min_seconds': P.MIN_SECONDS,
             'can_break': '곡괭이 CAN_BREAK = mines 의 블록들 (광산 블록 표에서). 블록 설정이 바뀌면 접속 때 곡괭이 구성요소를 다시 씀',
-            'outside_mine': '광산 월드 밖에서 그 곡괭이로 광산 블록을 부수면 취소 + 안내 (R §3-15)',
+            'outside_mine': '광산 월드 밖(오버월드·네더·엔드·미궁 월드 모두)에서 그 곡괭이로 광산 블록 12종을 부수면 취소 + 안내 1초에 1번 (R §3-15). '
+                            '미궁도 이 블록을 쓴다: 2층 벽 구리·철 광석 · 6·7층 방해석 · 4·6·7층 바다 랜턴 · 5층 마그마 (DungeonManager 가 이미 부수기를 막음 — 안내 글만 더함)',
+            'server_recheck': 'BlockBreakEvent 는 늘 취소하고 서버가 다시 본다: 광산 월드 · 곡괭이 tier ≥ 광석 tier · 그 사람에게 고갈 아님 · '
+                              f'눈 → 블록 상자 거리 ≤ {P.REACH_CLIENT} + {P.REACH_SERVER_SLACK} (바닐라 서버는 5.5 까지 받아 고친 클라이언트가 더 멀리 캠) · 가방 자리. 하나라도 아니면 수확 없음',
+            'pickaxe_item': '바탕 아이템은 지금 방식 그대로 PAPER (ENCHANTABLE 없음 → 효율 마법·모루로 속도 계약이 깨지지 않음) + MAX_STACK_SIZE 1',
             'harvest': {'ore_per_block': 1, 'bonus': '곡괭이 bonus 확률로 +1', 'gem_chance': P.GEM_CHANCE,
                         'gem_rule': '광석 블록마다 gem_chance 로 같은 tier 보석 1개', 'gem_node': '1개, 노드 재생 gem_node_regen_minutes',
                         'rich': {'chance': P.RICH['chance'], 'multiplier': P.RICH['multiplier'], 'shown': '그 사람에게만 반짝임'},
@@ -115,7 +121,10 @@ def build_mine(lay, eco):
                       'resend': '취소한 칸만 1틱 뒤 다시 보냄 (6 이웃 아님 — R §2-13). 다시 보내는 때: PlayerChunkLoadEvent · 텔레포트·승강기 · 우클릭 뒤 · 고갈 칸 BlockDamageEvent',
                       'regen': '개인, 실제 시간 (오프라인에도 흐름), 1초마다 만료 목록 묶어 처리',
                       'ids': '광맥 번호 = 청사진 마커를 (y, z, x) 순으로 정렬한 번호', 'reach_max': layout6.REACH_MAX,
-                      'reach_metric': '발 = 바닥+1, 눈 = 바닥+2.62, 선 자리 아무 곳 (몸 폭 0.6), 눈 → 블록 상자 가장 가까운 점 ≤ 4.5 (R §2-8)'},
+                      'reach_metric': '발 = 바닥+1, 눈 = 바닥+2.62, 선 자리 아무 곳 (몸 폭 0.6), 눈 → 블록 상자 가장 가까운 점 ≤ 4.5 (R §2-8). '
+                                      '밟고 설 수 있는 장식(통·울타리·계단 등) 위도 선 자리로 잰다',
+                      'reach_server': P.REACH_CLIENT + P.REACH_SERVER_SLACK,
+                      'reach_server_metric': '같은 방식, 거리만 4.75 (server_recheck 의 한도) — 여기서도 ≤ reach_max'},
             'stamina': {'max': P.STAMINA['max'], 'regen_per_minute': P.STAMINA['regen_per_min'], 'cost_per_block': P.STAMINA['cost_per_block'],
                         'tired_yield': P.STAMINA['tired_yield'], 'bar_below': P.STAMINA['bar_below'], 'boss_refill': 0, 'offline_regen': True,
                         'note': '하루 단위 소프트 상한 (R §3-11). 보스바는 25% 아래에서만 (광산 월드 안)'},
@@ -127,7 +136,8 @@ def build_mine(lay, eco):
                        'note': '메뉴는 코드로 만든다 — npcs.yml 에 정의가 없어도 열린다 (R §2-1). 구역 NPC 광부·제련공은 같은 메뉴의 얼굴'},
             'teleport': '/미궁 광산 (/lab mine)·메인 메뉴 "광산": 구역이 있으면 승강장으로, 없으면 얕은 갱도 승강장으로. 미궁 안에서는 못 씀. '
                         'village.teleport_command: false 서버는 기본 끔 (R §3-17)',
-            'anti_afk': ['개인 광맥 + 재생', f'한 자리 손 닿는 광맥 ≤ {layout6.REACH_MAX}', '서버 진행 확인 (0.7 미만 거절)', '기력', '가방에 바로',
+            'anti_afk': ['개인 광맥 + 재생', f'한 자리 손 닿는 광맥 ≤ {layout6.REACH_MAX} (4.5 · 서버 한도 4.75 둘 다)', '서버 손 닿는 거리 한도 (server_recheck)',
+                         '서버 진행 확인 (0.7 미만 거절)', '기력', '가방에 바로',
                          '어드벤처 + 보호', '/labadmin mine stats <이름> · 1시간 alert_per_hour 넘으면 로그 1줄'],
         },
         'config_defaults': {'mine': {
@@ -190,7 +200,7 @@ def build_materials(proto, eco):
     for k, d in P.MONSTER_NEW.items():
         items[k] = {'name': d['name'], 'type': 'material', 'kind': 'monster', 'floor': d['floor'], 'rarity': d['rarity'],
                     'sell': 'SellPrices 재료 공식 (uncommon · 그 층)', 'sources': ['drop', 'elite', 'boss', 'chest'],
-                    'sources_text': '옛 ' + d['old'] + ' 의 루팅 자리 그대로', 'lore': d['lore'], 'replaces': d['old']}
+                    'sources_text': '던전 몬스터·정예·보스·상자 (옛 ' + d['old_ko'] + ' 자리)', 'lore': d['lore'], 'replaces': d['old']}
     for m in P.METALS:
         r = m['rank']
         items[m['pickaxe']] = {'name': m['pick_name'], 'type': 'tool', 'kind': 'pickaxe', 'tier': r, 'rarity': m['pick_rarity'],
@@ -278,11 +288,18 @@ def build_materials(proto, eco):
                   'mine_line': '광산 · 많이 나는 곳: <층 이름 둘> (mine.json 무게가 가장 큰 두 곳) — 층 번호·Lv·단계 글자 없음',
                   'smelt_line': '제련소 <재료 ×n>, <골드>G (레시피 amount 가 2 이상이면 끝에 "(n개)")',
                   'pickaxe_line': '캘 수 있는 것: <광석·보석 이름들> · 속도 ×<speed> · 광석 덤 <bonus%> (레벨 줄 없음)',
-                  'enhance_source': '광석·보석 "광산", 주괴 "제련소"'},
-        'drops_reserved': {'spec_dir': 'design036/drops/ (따로 설계 — 아직 없을 수 있음)', 'owner': 'Q3',
+                  'enhance_source': '광석·보석 "광산", 주괴 "제련소"',
+                  'dungeon_line': '광석의 던전 획득처 줄도 층 숫자 없이: CodexMenu 재료 경로가 붙이는 "(9층)"·"지하 9·10층" 을 mine_kind 아이템에는 쓰지 않는다 '
+                                  '(장비처럼 종류 이름만 — "몬스터·상자에서 조금")'},
+        'drops_reserved': {'spec_dir': 'design036/drops/ (따로 설계 — drops_spec.md·json 있음, 이 계약이 앞선다)', 'owner': 'Q3',
                            'applies': 'materials 규칙 다음 단계로 (gen_036_materials → drops) — 같은 generate() 안',
                            'may_add': ['몹 주제 드롭 재료 id', '상자 모양 미믹 관련 루팅'],
-                           'must_keep': ['이 파일의 금속·보석·곡괭이 id 와 규칙', 'mine.json', 'ING_SHARE·던전 광석 per_run (바꾸려면 Q0 계약을 고친다)']},
+                           'must_keep': ['이 파일의 금속·보석·곡괭이 id 와 규칙', 'mine.json', 'ING_SHARE·던전 광석 per_run (바꾸려면 Q0 계약을 고친다)',
+                                         '새 몬스터 재료 3개 id·이름 (cinder_hide 잿불 가죽 · resonant_sinew 공명 힘줄 · clock_oil 태엽 기름 — 주인 결정 5)',
+                                         '옛 8개 바꿈 표 conversion.map (주인 결정 5 — T §5)'],
+                           'known_conflicts': ['drops_spec 은 옛 T(5금속) 위에서 만들어짐: 거기 적힌 옛 금속 광석(T 의 가장 높은 금속 포함) → 그 층 dungeon_ore.metals 의 금속으로 읽는다',
+                                               'drops_spec 의 cinder_hide → cinder_scale 이름 바꿈 · ember_shard → ember_soul 바꿈은 주인 결정 5 와 다름 — '
+                                               '주인이 따로 승인할 때만, 그것도 params.py(이 계약)를 먼저 고친 뒤 적용']},
         'derived': {'recipes_changed': proto['recipes_changed'], 'mixed_recipes': proto['mixed_recipes'],
                     'single_metal_recipes': proto['single_metal_recipes'],
                     'ingots_by_tier': {str(t): v['ingots'] for t, v in proto['by_tier'].items()},
@@ -470,7 +487,8 @@ def build_district():
             'when': 'VillageService 가 마을 메타를 읽은 뒤, <월드>/labyrinth-district-mine.yml 이 없고 mine.district.auto_build: true 면 시작 5초 뒤 한 번',
             'steps': ['1 자리 후보 차례로 (east → south_east): ChunkSnapshot 비동기 조사, 마스크 안',
                       '2 지문 비교 (아래 fingerprint) + 비자연 블록(Nature.kind UNNATURAL, 땅 위 전부 + 땅속 10칸) + 지표 물·용암·얼음 + 깎기/메우기 4칸 넘음 → 막음',
-                      '3 얼린 칸 (막지 않음, 손대지 않음): 마을 보호 상자 · 마을 길 칸 · 마을이 다듬은 칸(meta.terrain) — R §2-5',
+                      '3 얼린 칸 (막지 않음, 높이·지형을 바꾸지 않음 — 깎기·메우기·나무 치우기 없음): 마을 보호 상자 · 마을 길 칸 · 마을이 다듬은 칸(meta.terrain) — R §2-5. '
+                      '구역 길이 얼린 칸을 지나면(큰길 끝 x −103..−101) 겉 블록만 길 블록으로 깐다. 마을 길 칸·보호 상자 안은 겉 블록도 그대로',
                       '4 엔티티 (주 스레드): 갑옷 거치대·액자·그림·수레·보트·끈 매듭·이름표/길들인 동물·주민 → 막음. 그냥 다니는 동물은 조각 상자 밖으로',
                       '5 통과 → 바꿀 칸 원래 블록을 백업에 먼저 → state: building → 나무·지형·조각·길·표지판 (틱 분할) → state: built · NPC 2명',
                       '6 그 자리 플레이어는 짓기 전에 마을 광장으로 (메시지)',

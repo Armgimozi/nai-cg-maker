@@ -25,7 +25,7 @@
   ],
   "gamemode_rule": "기억 없이 규칙만 (R §2-3): 광산 월드 안 = ADVENTURE · 광산 밖인데 ADVENTURE = SURVIVAL · CREATIVE·SPECTATOR 는 건드리지 않음. 접속·월드 이동·리스폰·텔레포트 때 같은 규칙. ext mine.prev_mode 는 없음",
   "safety": [
-   "피해 0: DamageService.applyToPlayer·상태 이상 진입점에서 광산 월드면 0 (EntityDamageEvent 취소만으로는 부족 — R §2-2)",
+   "피해 0: DamageService.applyToPlayer·상태 이상 진입점에서 광산 월드면 0 (EntityDamageEvent 취소만으로는 부족 — R §2-2) + 바닐라 피해 EntityDamageEvent(떨어짐·마그마 블록 = 용혈석 노드·질식·불 등)도 모두 취소",
    "TargetFilter.inSafeZone(광산 월드) = true",
    "스폰: EntitySpawnEvent 종류 화이트리스트 MANNEQUIN·ITEM_DISPLAY·BLOCK_DISPLAY·TEXT_DISPLAY·INTERACTION·ITEM 만, 30초마다 Mob 지움 (R §2-4)",
    "배고픔 안 줄어듦 · 엔더 진주·후렴과 텔레포트·양동이 막음 · 바닥 아래로 떨어지면 그 층 승강장으로",
@@ -124,6 +124,7 @@
    "prototype": {
     "shape": "drifts",
     "reach_max": 10,
+    "reach_max_server": 10,
     "loop_blocks": 190,
     "ascii": "tools/data/036/model/out/L1.txt"
    }
@@ -218,6 +219,7 @@
    "prototype": {
     "shape": "drifts",
     "reach_max": 10,
+    "reach_max_server": 12,
     "loop_blocks": 190,
     "ascii": "tools/data/036/model/out/L2.txt"
    }
@@ -315,6 +317,7 @@
    "prototype": {
     "shape": "drifts",
     "reach_max": 10,
+    "reach_max_server": 11,
     "loop_blocks": 190,
     "ascii": "tools/data/036/model/out/L3.txt"
    }
@@ -416,6 +419,7 @@
    "prototype": {
     "shape": "fault",
     "reach_max": 10,
+    "reach_max_server": 12,
     "loop_blocks": 192,
     "ascii": "tools/data/036/model/out/L4.txt"
    }
@@ -516,6 +520,7 @@
    "prototype": {
     "shape": "geode",
     "reach_max": 9,
+    "reach_max_server": 12,
     "loop_blocks": 184,
     "ascii": "tools/data/036/model/out/L5.txt"
    }
@@ -614,6 +619,7 @@
    "prototype": {
     "shape": "cavern",
     "reach_max": 10,
+    "reach_max_server": 12,
     "loop_blocks": 184,
     "ascii": "tools/data/036/model/out/L6.txt"
    }
@@ -988,7 +994,9 @@
   "seconds": "base_seconds(광석 tier) ÷ 곡괭이 speed[광석 tier] (보석 노드는 gems.base_seconds). 서버가 Tool 규칙 speed = 30·단단함(Material#getHardness) ÷ (20·초) 로 바꿈, correct_for_drops = TRUE",
   "min_seconds": 1.0,
   "can_break": "곡괭이 CAN_BREAK = mines 의 블록들 (광산 블록 표에서). 블록 설정이 바뀌면 접속 때 곡괭이 구성요소를 다시 씀",
-  "outside_mine": "광산 월드 밖에서 그 곡괭이로 광산 블록을 부수면 취소 + 안내 (R §3-15)",
+  "outside_mine": "광산 월드 밖(오버월드·네더·엔드·미궁 월드 모두)에서 그 곡괭이로 광산 블록 12종을 부수면 취소 + 안내 1초에 1번 (R §3-15). 미궁도 이 블록을 쓴다: 2층 벽 구리·철 광석 · 6·7층 방해석 · 4·6·7층 바다 랜턴 · 5층 마그마 (DungeonManager 가 이미 부수기를 막음 — 안내 글만 더함)",
+  "server_recheck": "BlockBreakEvent 는 늘 취소하고 서버가 다시 본다: 광산 월드 · 곡괭이 tier ≥ 광석 tier · 그 사람에게 고갈 아님 · 눈 → 블록 상자 거리 ≤ 4.5 + 0.25 (바닐라 서버는 5.5 까지 받아 고친 클라이언트가 더 멀리 캠) · 가방 자리. 하나라도 아니면 수확 없음",
+  "pickaxe_item": "바탕 아이템은 지금 방식 그대로 PAPER (ENCHANTABLE 없음 → 효율 마법·모루로 속도 계약이 깨지지 않음) + MAX_STACK_SIZE 1",
   "harvest": {
    "ore_per_block": 1,
    "bonus": "곡괭이 bonus 확률로 +1",
@@ -1011,7 +1019,9 @@
    "regen": "개인, 실제 시간 (오프라인에도 흐름), 1초마다 만료 목록 묶어 처리",
    "ids": "광맥 번호 = 청사진 마커를 (y, z, x) 순으로 정렬한 번호",
    "reach_max": 12,
-   "reach_metric": "발 = 바닥+1, 눈 = 바닥+2.62, 선 자리 아무 곳 (몸 폭 0.6), 눈 → 블록 상자 가장 가까운 점 ≤ 4.5 (R §2-8)"
+   "reach_metric": "발 = 바닥+1, 눈 = 바닥+2.62, 선 자리 아무 곳 (몸 폭 0.6), 눈 → 블록 상자 가장 가까운 점 ≤ 4.5 (R §2-8). 밟고 설 수 있는 장식(통·울타리·계단 등) 위도 선 자리로 잰다",
+   "reach_server": 4.75,
+   "reach_server_metric": "같은 방식, 거리만 4.75 (server_recheck 의 한도) — 여기서도 ≤ reach_max"
   },
   "stamina": {
    "max": 1200,
@@ -1047,7 +1057,8 @@
   "teleport": "/미궁 광산 (/lab mine)·메인 메뉴 \"광산\": 구역이 있으면 승강장으로, 없으면 얕은 갱도 승강장으로. 미궁 안에서는 못 씀. village.teleport_command: false 서버는 기본 끔 (R §3-17)",
   "anti_afk": [
    "개인 광맥 + 재생",
-   "한 자리 손 닿는 광맥 ≤ 12",
+   "한 자리 손 닿는 광맥 ≤ 12 (4.5 · 서버 한도 4.75 둘 다)",
+   "서버 손 닿는 거리 한도 (server_recheck)",
    "서버 진행 확인 (0.7 미만 거절)",
    "기력",
    "가방에 바로",

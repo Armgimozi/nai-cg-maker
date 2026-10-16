@@ -274,7 +274,7 @@
     "boss",
     "chest"
    ],
-   "sources_text": "옛 ember_shard 의 루팅 자리 그대로",
+   "sources_text": "던전 몬스터·정예·보스·상자 (옛 불씨 조각 자리)",
    "lore": "잿불 드레이크와 풀무 사냥개의 그을린 가죽. 불길 속에서도 타지 않는다.",
    "replaces": "ember_shard"
   },
@@ -291,7 +291,7 @@
     "boss",
     "chest"
    ],
-   "sources_text": "옛 prism_dust 의 루팅 자리 그대로",
+   "sources_text": "던전 몬스터·정예·보스·상자 (옛 프리즘 가루 자리)",
    "lore": "정동 거한과 수정 용인의 몸속에서 떨던 힘줄. 퉁기면 맑은 음이 난다.",
    "replaces": "prism_dust"
   },
@@ -308,7 +308,7 @@
     "boss",
     "chest"
    ],
-   "sources_text": "옛 mainspring 의 루팅 자리 그대로",
+   "sources_text": "던전 몬스터·정예·보스·상자 (옛 태엽 용수철 자리)",
    "lore": "태엽 짐승들의 관절에서 흘러나온 검은 기름. 식어도 굳지 않는다.",
    "replaces": "mainspring"
   },
@@ -1247,10 +1247,11 @@
   "mine_line": "광산 · 많이 나는 곳: <층 이름 둘> (mine.json 무게가 가장 큰 두 곳) — 층 번호·Lv·단계 글자 없음",
   "smelt_line": "제련소 <재료 ×n>, <골드>G (레시피 amount 가 2 이상이면 끝에 \"(n개)\")",
   "pickaxe_line": "캘 수 있는 것: <광석·보석 이름들> · 속도 ×<speed> · 광석 덤 <bonus%> (레벨 줄 없음)",
-  "enhance_source": "광석·보석 \"광산\", 주괴 \"제련소\""
+  "enhance_source": "광석·보석 \"광산\", 주괴 \"제련소\"",
+  "dungeon_line": "광석의 던전 획득처 줄도 층 숫자 없이: CodexMenu 재료 경로가 붙이는 \"(9층)\"·\"지하 9·10층\" 을 mine_kind 아이템에는 쓰지 않는다 (장비처럼 종류 이름만 — \"몬스터·상자에서 조금\")"
  },
  "drops_reserved": {
-  "spec_dir": "design036/drops/ (따로 설계 — 아직 없을 수 있음)",
+  "spec_dir": "design036/drops/ (따로 설계 — drops_spec.md·json 있음, 이 계약이 앞선다)",
   "owner": "Q3",
   "applies": "materials 규칙 다음 단계로 (gen_036_materials → drops) — 같은 generate() 안",
   "may_add": [
@@ -1260,7 +1261,13 @@
   "must_keep": [
    "이 파일의 금속·보석·곡괭이 id 와 규칙",
    "mine.json",
-   "ING_SHARE·던전 광석 per_run (바꾸려면 Q0 계약을 고친다)"
+   "ING_SHARE·던전 광석 per_run (바꾸려면 Q0 계약을 고친다)",
+   "새 몬스터 재료 3개 id·이름 (cinder_hide 잿불 가죽 · resonant_sinew 공명 힘줄 · clock_oil 태엽 기름 — 주인 결정 5)",
+   "옛 8개 바꿈 표 conversion.map (주인 결정 5 — T §5)"
+  ],
+  "known_conflicts": [
+   "drops_spec 은 옛 T(5금속) 위에서 만들어짐: 거기 적힌 옛 금속 광석(T 의 가장 높은 금속 포함) → 그 층 dungeon_ore.metals 의 금속으로 읽는다",
+   "drops_spec 의 cinder_hide → cinder_scale 이름 바꿈 · ember_shard → ember_soul 바꿈은 주인 결정 5 와 다름 — 주인이 따로 승인할 때만, 그것도 params.py(이 계약)를 먼저 고친 뒤 적용"
   ]
  },
  "derived": {

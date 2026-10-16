@@ -47,6 +47,7 @@
    -26,
    0
   ],
+  "reach_max_server": 10,
   "loop_blocks": 190,
   "veins": [
    [
@@ -449,6 +450,7 @@
    24,
    0
   ],
+  "reach_max_server": 12,
   "loop_blocks": 190,
   "veins": [
    [
@@ -866,6 +868,7 @@
    -13,
    -2
   ],
+  "reach_max_server": 11,
   "loop_blocks": 190,
   "veins": [
    [
@@ -1298,6 +1301,7 @@
    -17,
    -6
   ],
+  "reach_max_server": 12,
   "loop_blocks": 192,
   "veins": [
    [
@@ -1730,6 +1734,7 @@
    -27,
    1
   ],
+  "reach_max_server": 12,
   "loop_blocks": 184,
   "veins": [
    [
@@ -2174,6 +2179,7 @@
    -15,
    -4
   ],
+  "reach_max_server": 12,
   "loop_blocks": 184,
   "veins": [
    [

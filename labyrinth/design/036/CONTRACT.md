@@ -42,6 +42,8 @@ M·T·V 와 달라진 큰 것:
 - 기력: 240 / 1분 4 → 1,200 / 1분 1, 블록마다 0.75 (§2.4).
 - 곡괭이 벼리기: 대장간 → 제련소·관리소 (마을 없이도 진행이 막히지 않게).
 - 보석 판매 base 12 → 6 (광산 골드를 던전의 20% 안으로).
+- R §2-1 의 "대장간 메뉴에도 제련 탭(권장)" 은 두지 않는다 — 관리소가 마을·구역 없이도 열리므로 그것으로 갈음한다.
+- R §2-8 보강: 바닐라 서버는 블록 부수기를 5.5 칸까지 받는다. 그래서 광산이 손 닿는 거리를 서버에서 다시 본다 (§2.3).
 
 ---
 
@@ -60,6 +62,7 @@ M·T·V 와 달라진 큰 것:
 ### 2.2 안전 (R §2-2·2-3·2-4)
 
 - 피해 0: `DamageService.applyToPlayer` 와 상태 이상 진입점에서 광산 월드면 피해를 0 으로. `EntityDamageEvent` 취소만으로는 부족하다(스킬·지속 피해가 `setHealth` 로 들어옴).
+  바닐라 피해 `EntityDamageEvent`(떨어짐·**마그마 블록 = 용혈석 노드**·질식·불 등)도 광산 월드면 모두 취소한다.
 - `TargetFilter.inSafeZone(광산 월드) = true`. `PvpModule.applyWorldRules` 는 광산 월드 PvP 를 늘 끈다.
 - 게임 모드는 **기억 없이 규칙만**: 광산 월드 안 = ADVENTURE, 광산 밖인데 ADVENTURE = SURVIVAL, CREATIVE·SPECTATOR 는 건드리지 않는다. 접속·월드 이동·리스폰·텔레포트 때 같은 규칙. ext `mine.prev_mode` 는 없다.
 - 몹 0: `EntitySpawnEvent` 는 종류 화이트리스트(MANNEQUIN·ITEM_DISPLAY·BLOCK_DISPLAY·TEXT_DISPLAY·INTERACTION·ITEM)만 통과, 30초마다 광산 월드 Mob 을 지운다, selftest `mobs=0`.
@@ -71,13 +74,18 @@ M·T·V 와 달라진 큰 것:
 - 캐는 모습은 바닐라 그대로: 어드벤처 + 곡괭이 `CAN_BREAK` + `Tool` 규칙(블록마다 speed, `correct_for_drops = TRUE`).
 - 초 = 광석 `base_seconds` ÷ 곡괭이 `speed[광석 tier]`. 서버가 `speed = 30·단단함(Material#getHardness) ÷ (20·초)` 로 바꾼다. 보석 노드는 `gems.base_seconds` (같은 등급 광석의 1.5배). 어떤 조합도 1.0초보다 빠르지 않다.
 - **tier 규칙**: 광석·보석 tier ≤ 곡괭이 tier 일 때만 캔다. 아니면 금도 안 가고(CAN_BREAK 밖) 액션바 `곡괭이가 약해 캘 수 없습니다` (1초에 1번, 팔 휘두름 + 5칸 시선 검사).
-- `BlockBreakEvent` 는 취소하고 서버에서 tier 를 다시 본다. 수확은 가방에 바로. 가득 차면 캐지지도 비워지지도 않는다. 바닐라 드롭·경험치 없음.
+- `BlockBreakEvent` 는 늘 취소하고 서버가 다시 본다: 광산 월드 · 곡괭이 tier ≥ 광석 tier · **그 사람에게 고갈이 아님** · **눈 → 블록 상자 거리 ≤ 4.5 + 0.25** · 가방 자리. 하나라도 아니면 수확 없음 (`mine.json` `rules.server_recheck`).
+  - 거리 한도를 두는 까닭: 바닐라 서버는 `isWithinBlockInteractionRange(pos, 1.0)` 으로 5.5 칸까지 받는다(26.3 `ServerPlayerGameMode.handleBlockBreakAction`). 고친 클라이언트로 5.5 에서 캐면 시안 청사진에서도 한 자리 광맥이 12~15개가 된다.
+- 수확은 가방에 바로. 가득 차면 캐지지도 비워지지도 않는다. 바닐라 드롭·경험치 없음.
 - 다시 보내기: **취소한 칸만** 1틱 뒤 (R §2-13, 6 이웃 아님). 그 밖에 `PlayerChunkLoadEvent`·텔레포트·승강기·우클릭 뒤·고갈 칸 `BlockDamageEvent` 때.
 - 수확 = 블록마다 광석 1 + 곡괭이 덤 확률로 +1. 광석 블록마다 2.2% 로 **같은 등급 보석** 1. 보석 노드는 1개, 30분 재생. 풍부한 광맥: 다시 찰 때 4% 로 그 사람에게만 반짝이고 ×3.
 - 재생은 개인·실제 시간(오프라인에도 흐름). 기본 분 = 층 1~6: 8 · 9 · 9 · 10 · 10 · 10 (config 손잡이).
 - 광맥 번호 = 청사진 마커 (y, z, x) 정렬 순. 기록 ext `mine.depleted`.
 - 한 자리 손 닿는 광맥 ≤ 12. 재는 법(R §2-8): 발 = 바닥+1, 눈 = 바닥+2.62, 선 자리 아무 곳(몸 폭 0.6), 눈 → 블록 상자의 가장 가까운 점 ≤ 4.5. 시안 최대 9~10.
-- 광산 밖에서 그 곡괭이로 광산 블록을 부수면 취소 + 안내 (R §3-15).
+  - 같은 방식으로 서버 한도 4.75 에서도 ≤ 12 여야 한다. 시안은 10~12 다.
+  - 밟고 설 수 있는 장식(통·울타리·계단 등) 위도 선 자리로 잰다.
+- 광산 밖에서 그 곡괭이로 광산 블록 12종을 부수면 취소 + 안내 1초에 1번 (R §3-15). "광산 밖" 에는 오버월드·네더·엔드와 **미궁 월드**가 모두 든다.
+  - 미궁도 이 블록을 쓴다: 2층 벽 구리·철 광석 · 6·7층 방해석 · 4·6·7층 바다 랜턴 · 5층 마그마. `DungeonManager` 가 이미 부수기를 막으므로 안내 글만 더한다. 미궁 모양은 바꾸지 않는다 (check_contract 가 겹치는 층을 알려 준다).
 
 ### 2.4 기력 (R §3-11, 주인 결정 5)
 
@@ -96,6 +104,7 @@ M·T·V 와 달라진 큰 것:
 ### 2.6 곡괭이
 
 - `type: tool` (ItemType.TOOL). 장비가 아니다: 능력치·강화·요구 능력치·판매 없음, 한 칸에 1개, 내구도 없음(UNBREAKABLE 숨김).
+- 바탕 아이템은 지금 재료처럼 `PAPER` 다(ENCHANTABLE 없음). 효율 마법·모루로 §3.4 속도표가 깨지지 않게 하려는 것이다. MAX_STACK_SIZE 1.
 - items.yml `tool: {kind: pickaxe, tier, speed: {광석 tier: 배율}, bonus}`. `level_req` 를 적지 않는다.
 - 구성요소(Q1 `MineApi.applyPickaxe`): Tool 규칙(블록마다 speed), CAN_BREAK(tier 이하 광석·보석 블록), UNBREAKABLE, 공격 속성 비움, TOOLTIP_DISPLAY 로 바닐라 줄 숨김. 블록 설정이 바뀌면 접속 때 다시 쓴다.
 - 벼리기 레시피는 **제련소 `station: smelter`, `category: tool`** (마을 대장간이 아님 — 관리소에서도 된다). 앞 곡괭이를 재료로 넣으면 앞 곡괭이는 사라진다.
@@ -176,11 +185,19 @@ M·T·V 와 달라진 큰 것:
 - 광산 줄: "광산 · 많이 나는 곳: <층 이름 둘>" (mine.json 무게가 가장 큰 두 곳). 제련소 줄: "제련소 구리 광석 ×2, 2G" (amount 2 이상이면 끝에 "(2개)").
 - 곡괭이 툴팁: "캘 수 있는 것: <광석·보석 이름들> · 속도 ×1.4 · 광석 덤 4%". **레벨 줄 없음.**
 - 광석·주괴·보석·곡괭이·광산 층의 이름·설명·도감·툴팁 글에 `Lv`·층 번호·단계·띠 글자를 쓰지 않는다. 층은 이름으로만 부른다.
+  - 던전에서 나오는 광석의 도감 줄도 그렇다. 지금 `CodexMenu` 는 재료 획득처에 "(9층)"·"지하 9·10층" 을 붙인다. `mine_kind` 가 있는 아이템에는 붙이지 않고 장비처럼 종류 이름만 쓴다 ("몬스터·상자에서 조금"). `EnhanceMenu.sourceText` 는 floor 가 비어 있어 이미 층 글자가 없다.
 
 ### 2.12 몹 주제 드롭 자리 (주인 결정 7)
 
-- `design036/drops/` 명세(따로 설계, 아직 없을 수 있음)를 Q3 가 같은 `generate()` 안에서 **재료 규칙 다음 단계**로 얹는다.
-- 더할 수 있는 것: 몹 주제 재료 id, 상자 모양 미믹 루팅. 지킬 것: 이 계약의 금속·보석·곡괭이 id·규칙, mine.json, ING_SHARE·던전 광석 1회량 (바꾸려면 Q0 계약을 고친다).
+- `design036/drops/` 명세(따로 설계 — 지금 `drops_spec.md·json` 이 있다)를 Q3 가 같은 `generate()` 안에서 **재료 규칙 다음 단계**로 얹는다.
+- 더할 수 있는 것: 몹 주제 재료 id, 상자 모양 미믹 루팅.
+- 지킬 것 (바꾸려면 Q0 계약 `params.py` 부터 고친다):
+  - 이 계약의 금속·보석·곡괭이 id·규칙, mine.json, ING_SHARE·던전 광석 1회량
+  - 새 몬스터 재료 3개의 id·이름 (`cinder_hide` 잿불 가죽 · `resonant_sinew` 공명 힘줄 · `clock_oil` 태엽 기름 — 주인 결정 5)
+  - 옛 8개 바꿈 표 (§2.10)
+- 지금 드롭 명세는 옛 T(금속 5) 위에서 만들어져 이 계약과 다른 곳이 있다. 이렇게 읽는다.
+  - 거기 적힌 옛 금속 광석 → 그 층 §2.8 표의 금속.
+  - `cinder_hide → cinder_scale` 이름 바꿈과 `ember_shard → ember_soul` 바꿈은 주인 결정 5 와 다르다. 주인이 따로 승인할 때만, 이 계약을 먼저 고친 뒤 적용한다.
 
 ### 2.13 광산 마을 (구역)
 
@@ -192,7 +209,8 @@ M·T·V 와 달라진 큰 것:
 - 기존 월드 적용(R §2-5 + 주인 결정 5): `labyrinth-district-mine.yml` 이 없고 `mine.district.auto_build: true` 면 시작 5초 뒤 한 번.
   1. 자리 후보 차례로 조사 (ChunkSnapshot 비동기, 마스크 = 조각·길 상자 + 4칸, 띠 + 6칸).
   2. **배포 월드 지문** 비교: 칸마다 땅 높이 · 땅속 10칸~위 30칸 블록 해시 · 원목 자리 (jar `village/districts/mine.fp`). 높이 차 > 2 · 땅속 새 공기·물 · 새 원목 · 비자연 블록 → 사람 손으로 보고 막는다. 잔디↔흙·꽃·풀·눈 층은 허용. 두 배포 월드의 지형이 다르면 build_id 마다 지문.
-  3. 얼린 칸(손대지 않음): 마을 보호 상자 · 마을 길 · 마을이 다듬은 칸(meta.terrain).
+  3. 얼린 칸 = 높이·지형을 바꾸지 않음(깎기·메우기·나무 치우기 없음): 마을 보호 상자 · 마을 길 · 마을이 다듬은 칸(meta.terrain).
+     구역 큰길은 큰길 끝 x −103..−101 에서 얼린 칸을 지난다. 그 칸은 겉 블록만 길 블록으로 깐다. 마을 길 칸과 보호 상자 안은 겉 블록도 그대로 둔다.
   4. 엔티티 검사 (갑옷 거치대·액자·그림·수레·보트·끈 매듭·이름표·길들인 동물·주민 → 막음).
   5. 통과 → **백업 먼저** → `state: building` → 짓기(틱 분할, 짓는 동안 상자 보호·사람 밀어냄) → `state: built` + NPC 2명.
   6. 모두 막히면 블록 0칸, `district-mine-blocked.txt` 남기고 관리자에게 하루 한 번 안내. **광산은 관리소로 그대로 된다.**
@@ -352,16 +370,17 @@ starter_kit: ... + {item: copper_pickaxe, amount: 1}    # Q3
 
 `tools/data/036/model/layout6.py` → `model/out/L1..L6.txt`, `layout.json`. Q1 의 최종 청사진은 층마다 광석 종류별 블록 수가 `mine.json` `vein_blocks` 와 같아야 한다 (다르게 하려면 `params.py` 를 고치고 run_all).
 
-| 층 | 모양 | 광맥 블록 (광석별) | 보석 노드 | 손 닿는 최대 | 한 바퀴 |
+| 층 | 모양 | 광맥 블록 (광석별) | 보석 노드 | 손 닿는 최대 (4.5 / 서버 4.75) | 한 바퀴 |
 |---|---|---|---|---|---|
-| 1 얕은 갱도 | 갱도 3갈래 | 구리 35 · 철 17 · 은 4 | 석영·석영·석류석 | 10 | 190칸 |
-| 2 종유 갱도 | 갱도 3갈래 | 구리 20 · 철 26 · 은 9 · 금 3 | 석영·석류석·석류석 | 10 | 190칸 |
-| 3 이끼빛 수맥 | 갱도 3갈래 | 구리 8 · 철 18 · 은 25 · 금 7 · 미스릴 2 | 석류석·월장석·월장석 | 10 | 190칸 |
-| 4 황토 단층 | 어긋난 단층 | 구리 6 · 철 8 · 은 14 · 금 23 · 미스릴 7 · 오리 2 | 월장석·황옥·황옥 | 10 | 192칸 |
-| 5 청록 정동 | 둥근 정동 | 구리 3 · 철 5 · 은 7 · 금 14 · 미스릴 25 · 오리 8 | 황옥·청옥·청옥 | 9 | 184칸 |
-| 6 용의 심연 | 큰 굴 | 구리 3 · 철 5 · 은 6 · 금 9 · 미스릴 15 · 오리 28 | 청옥·용혈석·용혈석 | 10 | 184칸 |
+| 1 얕은 갱도 | 갱도 3갈래 | 구리 35 · 철 17 · 은 4 | 석영·석영·석류석 | 10 / 10 | 190칸 |
+| 2 종유 갱도 | 갱도 3갈래 | 구리 20 · 철 26 · 은 9 · 금 3 | 석영·석류석·석류석 | 10 / 12 | 190칸 |
+| 3 이끼빛 수맥 | 갱도 3갈래 | 구리 8 · 철 18 · 은 25 · 금 7 · 미스릴 2 | 석류석·월장석·월장석 | 10 / 11 | 190칸 |
+| 4 황토 단층 | 어긋난 단층 | 구리 6 · 철 8 · 은 14 · 금 23 · 미스릴 7 · 오리 2 | 월장석·황옥·황옥 | 10 / 12 | 192칸 |
+| 5 청록 정동 | 둥근 정동 | 구리 3 · 철 5 · 은 7 · 금 14 · 미스릴 25 · 오리 8 | 황옥·청옥·청옥 | 9 / 12 | 184칸 |
+| 6 용의 심연 | 큰 굴 | 구리 3 · 철 5 · 은 6 · 금 9 · 미스릴 15 · 오리 28 | 청옥·용혈석·용혈석 | 10 / 12 | 184칸 |
 
 모두 362 블록, 보석 노드 18. 무더기 하나는 광석 한 종류(3~5칸).
+Q0 검사 때 따로 다시 잰 값: 보석 노드까지 세면 4.5 에서 최대 11, 서버 한도 없이 5.5 면 10·14·15·12·14·13 (그래서 §2.3 거리 한도).
 
 ---
 
@@ -489,11 +508,11 @@ Q0 가 이미 넣은 것 (뼈대, 컴파일·기존 시험 통과):
 
 | 패키지 | 맡는 파일 | 하는 일 |
 |---|---|---|
-| **Q1 광산 엔진** | `kr/labyrinth/mine/**` (MineNames·MineApi 이름은 바꾸지 않음, 더하기만) · `content/MineDef` (더하기만) · `content/mine.yml` (`tools/mine/gen_mine.py` 생성) · `resources/mine/levels/L1–L6.json` · `tools/mine/**` · `LabyrinthPlugin` (모듈) · `dungeon/LabyrinthWorld.applyRules` (공용 정적) · `pvp/PvpModule` · `pvp/DefaultTargetFilter` · `combat/DamageService` · 상태 이상 진입점(`classes/LabyrinthStatusEffectService`) · config.yml `mine:` 절 | 월드·승강기·관리소 칸·개인 광맥·재생·다시 보내기 · tier 규칙·액션바 · 기력 · 안전(모드 규칙·피해·PvP·몹 화이트리스트·떨어짐·진주·양동이) · 곡괭이 구성요소(`applyPickaxe`)·광산 밖 막기 · `/미궁 광산`·`/labadmin mine` · `MineApi` 실제 구현 + `services.setMine` |
+| **Q1 광산 엔진** | `kr/labyrinth/mine/**` (MineNames·MineApi 이름은 바꾸지 않음, 더하기만 · MineConfig·NamespacedKey 도 여기) · `content/MineDef` (더하기만, `parse` 포함) · `content/mine.yml` (`tools/mine/gen_mine.py` 생성) · `resources/mine/levels/L1–L6.json` · `tools/mine/**` · `LabyrinthPlugin` (모듈) · `dungeon/LabyrinthWorld.applyRules` (공용 정적) · `pvp/PvpModule` · `pvp/DefaultTargetFilter` · `combat/DamageService` · 상태 이상 진입점(`classes/LabyrinthStatusEffectService`) · config.yml `mine:` 절 | 월드·승강기·관리소 칸·개인 광맥·재생·다시 보내기 · tier 규칙·액션바 · 기력 · 안전(모드 규칙·피해·PvP·몹 화이트리스트·떨어짐·진주·양동이) · 곡괭이 구성요소(`applyPickaxe`)·광산 밖 막기 · `/미궁 광산`·`/labadmin mine` · `MineApi` 실제 구현 + `services.setMine` |
 | **Q2 광산 마을 + 기존 월드** | `village/**` (Planner·HeightField 마스크·얼린 칸, DistrictLibrary·Builder·Meta·Backup·Fingerprint, VillageService 덧씌우기, VillageSelfTest, VillageCommands, Markers, WildService·WildBorder 에 구역 상자) · `pvp/VillageZone` · `tools/village/pieces_mine.py`·`build_all.py`·`district_fingerprint.py` · `resources/village/districts/mine.json`·`mine.fp` · `tools/build_world.sh --base` · `release.sh` | §2.13 전부. 승강장 `mine_lift` → `services.mine().openLift` (이미 연결됨) |
-| **Q3 재료·생성기·바꿈·제련·상점 (+드롭)** | `tools/gen_036_materials.py` (새) · `tools/gen_035_content.py` (generate() 안 단계, SOURCE_ORDER 에 mine·smelt) · `tools/gen_enhance.py` · content `items/loot/recipes/npcs/enhance.yml` (생성물, npcs 스킨 값은 visual.json 에서) · `content/ContentParser`·`ItemDef` (Q0 뒤 더하기) · `core/ContentValidator` (mine.yml ↔ items.yml 맞대기, tool·mine_kind 검사) · `core/ContentLoader` · `items/ItemMigration036` (새) · `items/EquipmentListener` · `items/GearItemService`·`BasicItemService` (TOOL 만들기 → `MineApi.applyPickaxe`, 한 칸 1개) · `items/crafting/*` (station 거르기, SmelterMenu 탭 제련·새기기·곡괭이, ×1·×8·전부, 앞 곡괭이를 재료로, `LabCraftingService.openSmelter`·`openMineShop`) · `mobs/npc/NpcServiceImpl` · `items/sell/SellPrices` (sell.mine, 도구 못 팜) · config.yml `sell.mine`·`starter_kit` · 다음 단계로 `design036/drops/` | §2.7~2.12 · 관리소 메뉴의 곡괭이·제련·새기기·팔기 탭 내용(Q1 의 관리소가 이 메뉴들을 연다) |
+| **Q3 재료·생성기·바꿈·제련·상점 (+드롭)** | `tools/gen_036_materials.py` (새) · `tools/gen_035_content.py` (generate() 안 단계, SOURCE_ORDER 에 mine·smelt) · `tools/gen_enhance.py` · content `items/loot/recipes/npcs/enhance.yml` (생성물, npcs 스킨 값은 visual.json 에서) · `content/ContentParser`·`ItemDef` (Q0 뒤 더하기) · `core/ContentValidator` (mine.yml ↔ items.yml 맞대기, tool·mine_kind 검사) · `core/ContentLoader` · `core/Settings` (starter_kit 옛 기본 목록만) · `core/Keys` · `items/ItemsModule` · `items/ItemMigration036` (새) · `items/EquipmentListener` · `items/GearItemService`·`BasicItemService` (TOOL 만들기 → `MineApi.applyPickaxe`, 한 칸 1개) · `items/crafting/*` (station 거르기, SmelterMenu 탭 제련·새기기·곡괭이, ×1·×8·전부, 앞 곡괭이를 재료로, `LabCraftingService.openSmelter`·`openMineShop`) · `mobs/npc/NpcServiceImpl` · `items/sell/SellPrices` (sell.mine, 도구 못 팜) · config.yml `sell.mine`·`starter_kit` · 다음 단계로 `design036/drops/` | §2.7~2.12 · 관리소 메뉴의 곡괭이·제련·새기기·팔기 탭 내용(Q1 의 관리소가 이 메뉴들을 연다) |
 | **Q4 리소스팩** | `resourcepack/src/icons.py` (모양 19: V 17 + ore_ember·gem_drop) · `src/voxel/weapons.py` (`pickaxe` 틀, 모양 6) · `generate.py` (`build_mine_nodes` 6, 옛 8 id 별칭) · `src/ui.py` + `content/glyphs.yml` (gui_smelter·gui_mine_lift·gui_mine_office) · `src/validate.py` (곡괭이 예산, 결정 ≤300, 블록 덮어쓰기 0) · `tools/check_assets.py` · NPC 스킨 2 (기존 painter) | §3.8. 기댈 것은 visual.json·materials.json 의 id·style 뿐 |
-| **Q5 툴팁·도감·문서** | `items/ItemTooltip` (도구 줄·광산 재료 줄) · `ui/menus/CodexMenu` (광산·제련소 묶음, 도구 탭, 메인 메뉴 광산 버튼) · `items/enhance/EnhanceMenu.sourceText` · `GDD.md`·`ARCHITECTURE.md`·`VILLAGE.md`(§0 정책·§7 광산 마을)·`release/README.txt` · 판 번호 0.3.6 (`build.gradle.kts`) | §2.11 글 규칙. Q1~Q3 를 합친 뒤 |
+| **Q5 툴팁·도감·문서** | `items/ItemTooltip` (도구 줄·광산 재료 줄) · `ui/menus/CodexMenu` (광산·제련소 묶음, 도구 탭) · `ui/menus/MainMenu` (메인 메뉴 광산 버튼) · `items/enhance/EnhanceMenu.sourceText` · `GDD.md`·`ARCHITECTURE.md`·`VILLAGE.md`(§0 정책·§7 광산 마을)·`release/README.txt` · 판 번호 0.3.6 (`build.gradle.kts`) | §2.11 글 규칙. Q1~Q3 를 합친 뒤 |
 
 여럿이 만지는 파일:
 
@@ -507,7 +526,13 @@ Q0 가 이미 넣은 것 (뼈대, 컴파일·기존 시험 통과):
 | VillageService · VillageZone · WildService · WildBorder | Q2 만 |
 | EquipmentListener · NpcServiceImpl · ContentValidator · ContentParser | Q3 만 |
 | MineNames · MineApi · Services | Q0 가 만듦 — 이름·메서드를 바꾸려면 Q0 계약부터 (더하기는 Q1) |
-| ItemTooltip · CodexMenu | Q5 만 (Q0 는 TOOL 줄 하나만 넣음) |
+| content/ToolSpec · content/MineKind | Q0 가 만듦 — 모양을 바꾸려면 Q0 계약부터 (Q1·Q3 은 읽기만) |
+| content/MineDef (+ `MineDef.parse`) | Q1 만 (더하기만). mine.yml 읽기는 `MineDef.parse` 안에서 — ContentParser 는 부르기만 하므로 Q1 이 ContentParser 를 고치지 않는다 |
+| core/Settings | Q3 만 — starter_kit: 0.3.5.1 기본 목록(지금 `DEFAULT_STARTER_KIT` 7줄)을 `LEGACY_STARTER_KIT_0351` 로 더해 새 기본값(+ copper_pickaxe)으로 읽음. 안 하면 기존 서버의 새 플레이어 꾸러미에 곡괭이가 빠진다 |
+| config `mine:` 읽기 | Q1 만, `mine/MineConfig` 에서 (core/Settings 를 건드리지 않음) |
+| core/Keys | Q3 만 (바꿈 깃발 등). Q1 의 `labyrinth:mine_node` 키는 mine 패키지 안에서 만든다 |
+| items/ItemsModule | Q3 만 (ItemMigration036·제련소 리스너·명령 등록). Q1 은 자기 MineModule 에서 등록 (`services.commands()`) |
+| ItemTooltip · CodexMenu · ui/menus/MainMenu | Q5 만 (Q0 는 TOOL 줄 하나만 넣음. 메인 메뉴 "광산" 버튼 = MainMenu → `services.mine().openLift`) |
 
 ## 7. 순서
 
@@ -529,7 +554,7 @@ Q3 의 다음 단계: design036/drops/ 명세가 오면 재료 규칙 뒤에 얹
 모든 패키지 공통: `./gradlew build -q` 통과 (지금 시험 656개 + 새 시험) · `python3 -B tools/data/036/check_contract.py` 오류 0 · 계약 id·이름을 바꾸지 않음.
 
 **Q1**
-- 단위 시험: MineMath (speed↔틱 왕복, 초 표 = mine.json `pickaxes.*.seconds` ±0.01, 좋은 곡괭이일수록 빠름) · TierRule (tier ≤ 곡괭이만, 못 캐면 액션바 문구) · VeinState (만료·직렬화·해시 지움) · Stamina (1,200 · +1/분 · 0.75 · ×0.3 · 보스바 25%) · MineBlueprint (6층, 광석별 블록 수 = `vein_blocks`, 보석 노드 = `gem_nodes`, 손 닿는 최대 ≤ 12 (R §2-8 방식), 모두 이어짐, 장식에 광석·보석·빈 광맥 블록 없음, id 순서) · PickaxeComponent (Tool 규칙·CAN_BREAK·UNBREAKABLE) · MineConfigDefaults (= mine.json `config_defaults`) · MineGameModeRule (기억 없음) · MineSafety (광산 월드 피해 0 — DamageService 경로).
+- 단위 시험: MineMath (speed↔틱 왕복, 초 표 = mine.json `pickaxes.*.seconds` ±0.01, 좋은 곡괭이일수록 빠름) · TierRule (tier ≤ 곡괭이만, 못 캐면 액션바 문구) · VeinState (만료·직렬화·해시 지움) · Stamina (1,200 · +1/분 · 0.75 · ×0.3 · 보스바 25%) · MineBlueprint (6층, 광석별 블록 수 = `vein_blocks`, 보석 노드 = `gem_nodes`, 손 닿는 최대 ≤ 12 (R §2-8 방식 4.5 와 서버 한도 4.75 둘 다, 밟을 수 있는 장식 위 포함), 모두 이어짐, 장식에 광석·보석·빈 광맥 블록 없음, id 순서) · ServerRecheck (4.75 넘는 거리·고갈 칸·약한 곡괭이·가방 가득 = 수확 0) · PickaxeComponent (Tool 규칙·CAN_BREAK·UNBREAKABLE·바탕 PAPER) · MineConfigDefaults (= mine.json `config_defaults`) · MineGameModeRule (기억 없음) · MineSafety (광산 월드 피해 0 — DamageService 경로).
 - 서버: `[광산 자가 진단] … levels=6/6 … gems=18 … reach_max≤12 … lifts=6/6 · office=1 · tool_mismatch=0 · mobs=0`.
 - 손으로: 구리 곡괭이로 구리 2.5초, 철 광석은 금도 안 가고 액션바 · 승강기 6층 모두 열림 · 캔 블록이 나에게만 빈 광맥 · 재생 · 가방 가득 · `require_near_entrance: false` 에서 광산 → 미궁 → 돌아와 마을로 나가면 서바이벌 · PvP 켬 서버에서 광산 안 피해 0.
 
@@ -539,7 +564,7 @@ Q3 의 다음 단계: design036/drops/ 명세가 오면 재료 규칙 뒤에 얹
 
 **Q3**
 - `python3 tools/gen_035_content.py --check && python3 tools/gen_enhance.py --check`.
-- 시험: NoRetiredIds · GearRecipeIngot (금속 = §2.7 힘 규칙, 이웃 두 금속까지, 개수 = 0.20 규칙) · MineLadder (제련 6 · 새기기 6 · 곡괭이 5 사다리 · 레벨 조건 0) · SellMine (표 값·녹여 팔면 손해·도구 못 팜) · EnhanceIngot (mid·high 에 주 금속 주괴, R·K 그대로) · DungeonOrePerRun (층마다 §2.8 표 ±10%) · ItemMigration036 (isSimilar·셜커·꾸러미·엔더 상자·모르는 id·새 id 없음·두 번) · ContentMineContract (items.yml mine_level·mine_kind·tool = mine.json) · NoLevelLabels · 기존 데이터 시험 (DropRateWindow·LootHomes·BandDiversity·EnhanceMaterialsTest 등).
+- 시험: NoRetiredIds · GearRecipeIngot (금속 = §2.7 힘 규칙, 이웃 두 금속까지, 개수 = 0.20 규칙) · MineLadder (제련 6 · 새기기 6 · 곡괭이 5 사다리 · 레벨 조건 0) · SellMine (표 값·녹여 팔면 손해·도구 못 팜) · EnhanceIngot (mid·high 에 주 금속 주괴, R·K 그대로) · DungeonOrePerRun (층마다 §2.8 표 ±10%) · ItemMigration036 (isSimilar·셜커·꾸러미·엔더 상자·모르는 id·새 id 없음·두 번) · ContentMineContract (items.yml mine_level·mine_kind·tool = mine.json) · NoLevelLabels · StarterKit0351 (0.3.5.1 기본 목록 → 새 기본값 + 구리 곡괭이) · 기존 데이터 시험 (DropRateWindow·LootHomes·BandDiversity·EnhanceMaterialsTest 등).
 - 레시피 187 → 204, 새 아이템 27, 옛 8개 id 가 content 어디에도 없음.
 
 **Q4**
@@ -561,5 +586,6 @@ Q3 의 다음 단계: design036/drops/ 명세가 오면 재료 규칙 뒤에 얹
 6. **두 배포 월드 지형이 마스크에서 같은지** (R §2-5) — Q2 가 먼저 확인.
 7. **황토 단층 바이옴 `badlands`** 의 음악·안개가 땅속에서 어울리는지 — 어색하면 `dripstone_caves`·`lush_caves` 로 (mine.yml 값만 바뀜, 띠 경계는 그대로).
 8. **빛 나는 보석 블록**(바다 랜턴·발광석·마그마)을 캔 뒤 그 자리에 빛이 남을 수 있다 (V 의 알려진 흠, 보기만 다름).
-9. **몹 주제 드롭·상자 미믹** (`design036/drops/`) — 명세가 오면 Q3 가 얹는다. 던전 광석 1회량·ING_SHARE 를 건드리면 이 계약을 고친다.
+9. **몹 주제 드롭·상자 미믹** (`design036/drops/`) — 명세가 이제 있다. Q3 가 재료 규칙 뒤에 얹는다. 다만 `cinder_scale`·`ember_soul` 이름 바꿈은 주인 결정 5 와 달라 주인 확인이 필요하다 (§2.12). 던전 광석 1회량·ING_SHARE 를 건드리면 이 계약을 고친다.
 10. NPC 자리는 ±2칸 (Q2 조각 마커로 확정).
+11. **미궁 층이 광산 블록을 쓴다** (2층 벽 구리·철 광석, 6·7층 방해석, 4·6·7층 바다 랜턴, 5층 마그마). 곡괭이를 든 채 미궁 벽을 치면 금이 가다가 되돌아가고 "광산 밖" 안내가 뜬다. Q0 는 미궁 모양을 바꾸지 않았다(주인 결정 밖). 헷갈린다는 말이 나오면 floors.yml 2층 벽의 광석 두 개만 바꾸면 된다.

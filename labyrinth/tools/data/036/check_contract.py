@@ -4,9 +4,12 @@
   python3 -B tools/data/036/check_contract.py        # 오류가 있으면 1
 params.py 를 읽지 않는다 (JSON 만 본다) — 다만 마지막에 build_contract.py --check 로 JSON 이 params 와 같은지 본다.
 """
+import glob
 import json
 import math
+import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -56,6 +59,24 @@ def hangul(s):
 
 def boxes_overlap(a, b, slack=0):
     return not (a[2] + slack < b[0] or b[2] + slack < a[0] or a[3] + slack < b[1] or b[3] + slack < a[1])
+
+
+def paper_api_names():
+    """paper-api 26.3 jar 의 상수 이름 (javap) → {클래스: set(이름)}. jar·javap 가 없으면 None (검사 건너뜀)."""
+    jars = sorted(glob.glob(os.path.expanduser('~/.gradle/caches/modules-2/files-2.1/io.papermc.paper/paper-api/26.3*/*/paper-api-*.jar')))
+    javap = shutil.which('javap') or next((j for j in (os.path.join(os.environ.get('JAVA_HOME', ''), 'bin/javap'), '/opt/jdk25/bin/javap')
+                                           if j and os.path.exists(j)), None)
+    if not jars or not javap:
+        return None
+    out = {}
+    for cls in ('org.bukkit.block.BlockType', 'org.bukkit.block.Biome', 'org.bukkit.Particle', 'org.bukkit.Sound',
+                'org.bukkit.entity.EntityType', 'org.bukkit.potion.PotionEffectType'):
+        r = subprocess.run([javap, '-cp', jars[-1], cls], capture_output=True, text=True)
+        if r.returncode:
+            return None
+        out[cls.rsplit('.', 1)[1]] = set(re.findall(r'static final \S+ ([A-Z0-9_]+);', r.stdout))
+    out['_jar'] = os.path.basename(jars[-1])
+    return out
 
 
 def gdd_closed_lists():
@@ -158,6 +179,8 @@ def main():
         need(set(x['vein_blocks']) == set(w), f"{x['n']} 청사진 광석 종류 ≠ 무게")
         need(all(g in GEMS for g in x['gem_nodes']) and len(x['gem_nodes']) >= 2, f"{x['n']} 보석 노드")
         need(x['prototype']['reach_max'] <= mine['rules']['veins']['reach_max'], f"{x['n']} 손 닿는 광맥 {x['prototype']['reach_max']}")
+        need(x['prototype'].get('reach_max_server', 99) <= mine['rules']['veins']['reach_max'],
+             f"{x['n']} 서버 한도 {mine['rules']['veins'].get('reach_server')} 에서 손 닿는 광맥 {x['prototype'].get('reach_max_server')}")
         need(x['office'] == (x['n'] == 1), f"{x['n']} 관리소 자리")
     share = lambda x, o: x['ore_weights'].get(o, 0)
     need(share(lv[0], 'copper_ore') + share(lv[0], 'iron_ore') >= 80 and 0 < share(lv[0], 'silver_ore') <= 15, '맨 위층: 구리·철 많고 은 조금')
@@ -263,6 +286,8 @@ def main():
         need(dor['per_run'][f] > 0, f'던전 광석 {f}층 0')
     need(abs(sum(dor['split'].values()) - 1) < 1e-9, '던전 광석 집 비율 합')
     need('drops_reserved' in mat and mat['drops_reserved']['owner'] == 'Q3', '몹 주제 드롭 자리 (Q3)')
+    keep = ' '.join(mat['drops_reserved'].get('must_keep', []))
+    need(all(k in keep for k in MONSTER) and 'conversion.map' in keep, '드롭 단계가 지킬 것에 새 몬스터 재료 3·바꿈 표 (주인 결정 5)')
 
     # ── 8. 판매 ──
     t = mat['sell']['table']
@@ -366,6 +391,43 @@ def main():
             need(abs(got - tgt) <= max(1.0, 0.1 * tgt), f'{f}층 던전 광석 {got} ≠ 목표 {tgt}')
         need(pj['enhance']['collisions'] == 0 and not pj['enhance']['problems'] and not pj['enhance']['no_ingot_mid_high'], '강화 시제품 문제')
         need(all(v == 0 for v in pj['enhance']['cheaper'].values()), '보스 장비가 더 싼 단계')
+
+    # ── 13b. 이름이 Paper 26.3 API 에 있는가 (javap — jar 가 없으면 건너뜀) ──
+    api = paper_api_names()
+    if api is None:
+        notes.append('Paper API 이름 검사 건너뜀 (paper-api 26.3 jar 또는 javap 없음)')
+    else:
+        blocks_used = set(allb) | set(forb) | {x['depleted_block'] for x in lv}
+        for x in lv:
+            pal = x['palette']
+            blocks_used |= {'minecraft:' + u.split('@')[0] for u in
+                            set(pal['wall']) | set(pal['floor']) | {pal['post'], pal['beam']} | set(pal['decor']) | set(x['lighting']['sources'])}
+        for b in sorted(blocks_used):
+            need(b.split(':', 1)[1].upper() in api['BlockType'], f'블록이 26.3 에 없음: {b}')
+        for x in lv:
+            need(x['biome'].split(':', 1)[1].upper() in api['Biome'], f"바이옴이 26.3 에 없음: {x['biome']}")
+            need(x['regen_fx'] in api['Particle'], f"입자가 26.3 에 없음: {x['regen_fx']}")
+        fb = vis['feedback']
+        sounds = {fb['harvest']['sound'][0]} | {sd[0] for sd in fb['lift']['sounds']} | {v['regen_fx']['sound'] for v in vis['levels'].values()}
+        for sd in sorted(sounds):
+            need(sd in api['Sound'], f'소리가 26.3 에 없음: {sd}')
+        for e in ('MANNEQUIN', 'ITEM_DISPLAY', 'BLOCK_DISPLAY', 'TEXT_DISPLAY', 'INTERACTION', 'ITEM'):
+            need(e in api['EntityType'] and e in ' '.join(mine['world']['safety']), f'스폰 화이트리스트 {e}')
+        for ef in ('HASTE', 'CONDUIT_POWER', 'BLINDNESS'):
+            need(ef in api['PotionEffectType'], f'효과가 26.3 에 없음: {ef}')
+        notes.append(f"Paper API 이름 검사: 블록 {len(blocks_used)} · 바이옴 6 · 입자 · 소리 {len(sounds)} ({api['_jar']})")
+    # 미궁 층이 같은 블록을 쓰는 곳 (오류 아님 — outside_mine 안내가 덮음, CONTRACT §2.3)
+    floors = (yaml.safe_load(open(CONTENT / 'floors.yml', encoding='utf-8')) or {}).get('floors') or {}
+    hits = []
+    for fno, f in floors.items():
+        palette = (f or {}).get('palette') or {}
+        used = {('minecraft:' + str(b).lower()) for v in palette.values() if isinstance(v, list) for b in v}
+        both = sorted(b.split(':')[1] for b in used & set(allb))
+        if both:
+            hits.append(f"{fno}층 {'·'.join(both)}")
+    if hits:
+        notes.append('미궁 층이 쓰는 광산 블록 (광산 밖 안내로 덮음): ' + ' / '.join(hits))
+        need('미궁' in mine['rules']['outside_mine'], '미궁 층이 광산 블록을 쓰는데 outside_mine 규칙이 미궁을 말하지 않음')
 
     # ── 14. JSON 이 params 와 같은가 ──
     r = subprocess.run([sys.executable, '-B', str(HERE / 'model/build_contract.py'), '--check'], capture_output=True, text=True)

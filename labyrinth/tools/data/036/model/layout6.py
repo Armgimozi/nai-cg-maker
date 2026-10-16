@@ -5,6 +5,7 @@
 광맥 = 벽 블록 무더기 3~5칸, 무더기 하나는 광석 한 종류. 층의 광석 수 = 광맥 수 × 섞임 무게 (가장 큰 나머지).
 손 닿는 범위 (R §2-8 바른 방식): 발 = 바닥+1, 눈 = 바닥+2.62, 선 자리 아무 곳(0.1칸 격자, 몸 폭 0.6),
 눈 → 블록 상자의 가장 가까운 점 ≤ 4.5. 한도 REACH_MAX = 12.
+서버 한도 (보강): 바닐라 서버는 5.5 까지 받으므로 광산이 4.5 + 0.25 를 넘는 부수기는 수확하지 않는다 → 그 거리(4.75)에서도 ≤ 12 인지 잰다.
 결과: out/L<n>.txt (ASCII) · out/layout.json (Q1 tools/mine/ 이 최종 청사진을 만들 때의 출발점).
 
   python3 -B layout6.py
@@ -25,7 +26,8 @@ OUT = HERE / 'out'
 OUT.mkdir(exist_ok=True)
 SZ = 61
 C = SZ // 2
-REACH = 4.5
+REACH = P.REACH_CLIENT
+REACH_SERVER = P.REACH_CLIENT + P.REACH_SERVER_SLACK
 REACH_MAX = 12
 EYE = 2.62
 LETTER = {'copper': 'c', 'iron': 'i', 'silver': 's', 'gold': 'g', 'mithril': 'm', 'orichalcum': 'o'}
@@ -124,10 +126,10 @@ def stand_points(g, x, z, fine):
             yield (lo_x + (hi_x - lo_x) * i / k, EYE, lo_z + (hi_z - lo_z) * j / k)
 
 
-def reach_at(g, x, z, veins, fine):
+def reach_at(g, x, z, veins, fine, reach=REACH):
     best = 0
     for e in stand_points(g, x, z, fine):
-        n = sum(1 for (px, py, pz, _) in veins if near_box(e, (px, py, pz)) <= REACH)
+        n = sum(1 for (px, py, pz, _) in veins if near_box(e, (px, py, pz)) <= reach)
         best = max(best, n)
     return best
 
@@ -201,15 +203,16 @@ def lint(g, veins):
                 dist[(nx, nz)] = dist[(x, z)] + 1
                 q.append((nx, nz))
     floor = [(x, z) for z in range(SZ) for x in range(SZ) if walkable(g, x, z)]
-    worst, at = 0, None
+    worst, at, worst_srv = 0, None, 0
     for (x, z) in floor:
         r = reach_at(g, x, z, veins, True)
         if r > worst:
             worst, at = r, (x - C, z - C)
+        worst_srv = max(worst_srv, reach_at(g, x, z, veins, True, REACH_SERVER))
     ends = [min(seen, key=lambda p: (p[0], p[1])), max(seen, key=lambda p: (p[0], -p[1])), max(seen, key=lambda p: (p[1], p[0]))]
     loop = sum(2 * dist.get(e, 0) for e in ends)
     return {'floor_cells': len(floor), 'unreached': len(floor) - len(seen), 'reach_max': worst, 'reach_max_at': at,
-            'loop_blocks': loop}
+            'reach_max_server': worst_srv, 'loop_blocks': loop}
 
 
 def ascii_map(g, veins, gems):
@@ -248,7 +251,7 @@ def main():
                + f"  ·  한 바퀴 {li['loop_blocks']}칸"]
         (OUT / f"L{n}.txt").write_text('\n'.join(hdr + ascii_map(g, veins, gems)) + '\n', encoding='utf-8')
         print(n, L['name'], counts, 'short', res[n]['short'], 'gems', [x[3] for x in res[n]['gem_nodes']], 'reach', li['reach_max'],
-              li['reach_max_at'], 'loop', li['loop_blocks'], 'unreached', li['unreached'])
+              li['reach_max_at'], 'reach@server', li['reach_max_server'], 'loop', li['loop_blocks'], 'unreached', li['unreached'])
     (OUT / 'layout.json').write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding='utf-8')
 
 
