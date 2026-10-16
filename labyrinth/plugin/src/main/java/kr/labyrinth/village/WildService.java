@@ -152,6 +152,18 @@ final class WildService implements Listener {
 
     WildBorder.Action lastAction() { return lastAction; }
 
+    /**
+     * 지금 월드 경계를 플러그인이 마을(+구역)에 맞춰 정하는가 (wild.border 켬 + 경계가 바닐라 기본이거나 우리가 놓은 것).
+     * false = 관리자가 /worldborder 로 정한 경계, 또는 wild.border 끔 — 구역을 지어도 경계가 넓어지지 않는다 (0.3.6.1 광산 마을 자리 검사).
+     */
+    boolean borderOurs() {
+        if (!active() || !cfg().border()) return false;
+        WildBorder.Square cur = current();
+        if (cur.vanillaDefault()) return true;
+        WildBorder.Record rec = loadRecord();
+        return rec != null && cur.same(rec.ours());
+    }
+
     private static boolean insideBorder(Location l) {
         return l != null && l.getWorld() != null && l.getWorld().getWorldBorder().isInside(l);
     }

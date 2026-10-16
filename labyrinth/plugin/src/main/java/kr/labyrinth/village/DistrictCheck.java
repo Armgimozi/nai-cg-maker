@@ -116,6 +116,29 @@ public final class DistrictCheck {
         return new Result(checked, same, allowed, uncovered, out);
     }
 
+    /**
+     * 큰길과 만나는 얼린 칸 (마을이 다듬은 칸 — 위 {@link #check} 는 보지 않는다) 위 구역 길 칸 [x, z, y] 검사 (0.3.6.1 리뷰):
+     * 구역 길은 겉 블록(y)을 깔고 그 위 두 칸의 풀을 치운다. 지문과 열이 같으면 그대로(마을이 놓은 블록뿐), 다르면 y ~ y+2 에
+     * 비자연 블록이 있으면 사람 손으로 보고 막는다. 지문이 없는 월드도 같은 비자연 검사.
+     */
+    public static List<Problem> junction(DistrictFingerprint.World fp, int under, int above, Live live, Iterable<int[]> cells, int maxProblems) {
+        List<Problem> out = new ArrayList<>();
+        for (int[] c : cells) {
+            int x = c[0], z = c[1], y = c[2];
+            if (!live.has(x, z)) continue;
+            DistrictFingerprint.Column f = fp == null ? null : fp.at(x, z);
+            if (f != null && liveHash(live, x, z, f.h(), under, above) == f.hash()) continue;
+            for (int dy = 0; dy <= 2; dy++) {
+                String id = live.block(x, y + dy, z);
+                if (id == null || id.equals("void") || Nature.kind(id) != Nature.Kind.UNNATURAL) continue;
+                out.add(new Problem(x, y + dy, z, "큰길과 만나는 자리에 사람이 놓은 블록 " + Nature.key(id)));
+                break;
+            }
+            if (out.size() >= maxProblems) break;
+        }
+        return out;
+    }
+
     private static int yOf(String note, int def) {
         if (note == null) return def;
         int at = note.indexOf('@');

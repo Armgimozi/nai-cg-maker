@@ -199,11 +199,56 @@ class DistrictLayoutTest {
         assertTrue(east.reason.contains("oak_planks"), east.reason);
         Plan se = plan(e, e.layout().site("south_east"), v, g);
         assertTrue(se.ok(), se.reason);
+        // 라이브 시험 c-A 의 흔적 (east 숙소 자리 북쪽 판자 집 x −88..−84 z −3..1 · 흙 기둥 (−96, 0)) — east 만 막고 south_east 는 그대로
+        //  (0.3.6.1: south_east 갈림길 길잡이를 큰길 북쪽에 두었더니 south_east 영역이 여기까지 넓어져 둘 다 막혔던 것)
+        TerrainGrid g2 = terrain(v);
+        for (int x = -88; x <= -84; x++) for (int z = -3; z <= 1; z++) g2.addFlags(x, z, Terrain.UNNATURAL, "oak_planks@68");
+        g2.addFlags(-96, 0, Terrain.UNNATURAL, "dirt@68");
+        assertFalse(plan(e, e.layout().site("east"), v, g2).ok(), "east 는 막힘");
+        Plan se2 = plan(e, e.layout().site("south_east"), v, g2);
+        assertTrue(se2.ok(), "south_east 는 통과: " + se2.reason);
         // 물 웅덩이도 막는다 (구역 영역 안 지표 물 — fill_small_water_max 0)
         TerrainGrid wet = terrain(v);
         wet.addFlags(-80, 30, Terrain.WATER, "water@66");
         Plan w = plan(e, e.layout().site("east"), v, wet);
         assertEquals(Planner.Fail.WATER, w.fail);
+    }
+
+    /**
+     * 정문 앞 칸에서 한 걸음 안에 길 (0.3.6.1 놀이 리뷰 #1): 숙소 문이 마당보다 두 칸 낮은 도랑으로 열리던 것 — 정문 앞 칸이 길 칸이고
+     * 그 길이 이웃 길과 높이 차 ≤ 1, 마당이 숙소 앞보다 불룩 솟지 않음 (follow 0). 두 자리 모두. 덤: 구역 길 칸 높이 차는 모두 ≤ 1.
+     */
+    @Test
+    void doorsOpenOntoPathsWithinOneStep() throws Exception {
+        DistrictLibrary.Entry e = library().get("mine");
+        VillageMeta v = shipped();
+        for (String sid : List.of("east", "south_east")) {
+            Plan p = plan(e, e.layout().site(sid), v, terrain(v));
+            assertTrue(p.ok(), sid + ": " + p.reason);
+            Map<Long, Integer> ph = new java.util.HashMap<>();
+            for (Plan.PathPlan pp : p.paths) for (int[] c : pp.cells) ph.putIfAbsent(PathRaster.key(c[0], c[1]), c[2]);
+            for (Plan.Placed pl : p.pieces) {
+                if (!pl.bp.door) continue;
+                int[] f = pl.doorFront();
+                Integer at = ph.get(PathRaster.key(f[0], f[1]));
+                assertNotNull(at, sid + " " + pl.bp.id + " 정문 앞 (" + f[0] + ", " + f[1] + ") 이 길 칸");
+                assertTrue(Math.abs(at - pl.floor) <= 1, sid + " " + pl.bp.id + " 정문 앞 길 높이 " + at + " / 바닥 " + pl.floor);
+                for (int[] d : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+                    Integer h = ph.get(PathRaster.key(f[0] + d[0], f[1] + d[1]));
+                    if (h != null) assertTrue(Math.abs(h - at) <= 1, sid + " " + pl.bp.id + " 정문 앞에서 이웃 길 높이 차 " + Math.abs(h - at));
+                }
+            }
+            // 숙소 앞 줄(정문 앞 줄)과 마당 사이 높이 차 ≤ 1 (도랑 없음)
+            Plan.Placed lodge = byId(p, "miners_lodge");
+            int fz = lodge.doorFront()[1];
+            for (int x = lodge.x0; x < lodge.x0 + lodge.w2; x++) {
+                Integer yard = ph.get(PathRaster.key(x, fz + 1));
+                if (yard == null || !p.inGrid(x, fz)) continue;
+                int strip = p.field.target()[p.idx(x, fz)];
+                assertTrue(Math.abs(yard - strip) <= 1, sid + " 숙소 앞 (" + x + ", " + fz + ") " + strip + " ↔ 마당 " + yard);
+            }
+            assertTrue(p.skipped.isEmpty(), sid + " 빠진 장식: " + p.skipped);
+        }
     }
 
     /** here: 길 0 첫 점이 고른 자리, 방향을 돌리면 같은 모양이 돈다. */

@@ -65,6 +65,7 @@
   큰길 동쪽 끝에는 광산 마을이 있습니다 (0.3.6.1) — 길잡이 표지판 '광산 마을 →' 을 따라가세요.
     · 광산 승강장 (나무 탑)            승강기 문을 우클릭 → 광산 어느 층으로든 내려갑니다. 광산에서 "마을로" 를 누르면 여기로 올라옵니다.
     · 광부 숙소                        광부 브론 · 현관의 '광산 관리소' 표지판 — 곡괭이·제련·새기기·벼리기·팔기 · '광부 게시판' — 광맥 현황
+                                       (승강장 앞의 브론 메뉴 가운데 줄 = 층 1~6 · 승강기 — 눌러서 바로 내려갑니다)
     · 제련소 (초록 구리 지붕·굴뚝)     제련공 이그나 · 안의 용광로·모루·작업대 — 제련(광석 2 → 주괴 1)·새기기·곡괭이
     · 광석 하치장 · 구리 가로등 · 수레
   마을은 보호 구역입니다: 블록을 부수거나 놓을 수 없습니다 (관리자도 크리에이티브일 때만). 광산 마을도 같고, 그 둘레에서도 PvP 가 안 됩니다.
@@ -335,9 +336,11 @@
   · 마을 상태 점검 → 서버 창에 labadmin village selftest (블록·NPC·입구가 제자리인지), labadmin village info.
     NPC 나 입구가 엉뚱한 곳에 있으면 labadmin village apply 로 마을 자리에 다시 놓습니다.
   · 광산 마을이 안 생김 → 서버 창에 labadmin village district info. 막힘 기록이 있으면
-    plugins/Labyrinth/village/district-mine-blocked.txt 에 이유가 있습니다 (그 자리에 사람이 만든 것 · 서버팩 월드가 아님).
-    만든 것을 치웠으면 서버를 다시 켜면 다시 살펴봅니다. 다른 자리에 지으려면 게임 안에서 그 자리에 서서
+    plugins/Labyrinth/village/district-mine-blocked.txt 의 '이유:' 줄을 보세요 (그 자리에 사람이 만든 것 · 서버팩 월드가 아님 ·
+    월드 경계 밖). 방해물을 치우거나 경계를 넓힌 뒤 다시 켜면 다시 살펴봅니다. 다른 자리에 지으려면 게임 안에서 그 자리에 서서
     /labadmin village district preview mine here east → /labadmin village district build mine here east
+  · '짓다가 멈춘 광산 마을을 되돌릴 백업 파일이 없거나 깨졌습니다' → 백업(world/labyrinth-district-mine.backup.gz)을 지운 경우입니다.
+    서버 창에 labadmin village district remove mine force 를 치면 지은 블록은 그대로 두고 기록만 지웁니다 (남은 블록은 손으로 치움).
   · 마을 밖으로 못 나감 · 몹이 안 나옴 → 야생 막기입니다 (config.yml 의 wild). 상태는 labadmin wild,
     점검은 labadmin wild selftest. 경계를 넓히려면 wild: border_margin, 끄려면 border: false 로 바꾸고 /labadmin reload.
 
@@ -426,6 +429,8 @@
   · 광부 브론(광산 관리소)과 제련공 이그나(제련소)가 있습니다. NPC 가 없어도(npcs.yml 을 고친 서버) 숙소의 '광산 관리소' 표지판과
     제련소 안 용광로를 우클릭하면 같은 메뉴가 열립니다.
   · 광산 마을도 보호 구역이고 PvP 가 안 됩니다. 마을 경계도 그만큼 넓어집니다.
+  · 안전: 그 자리에 사람이 만든 것이 있거나, 관리자가 /worldborder 로 좁힌 경계 밖이면 짓지 않습니다. 다 지으면 바로 디스크에 저장하고,
+    짓다가 멈추면 백업으로 되돌립니다. 되돌리기(remove)는 놀다가 열고 닫은 문·덧문까지 원래대로 돌립니다.
   · 새 서버팩의 world 에는 미리 지어져 있습니다. 이미 돌리던 서버는 처음 켤 때 저절로 지어집니다 (아래 [업데이트 방법]).
 
   [광산 손보기]
@@ -524,14 +529,18 @@
      · 리소스팩 주소가 저절로 맞춰집니다 (위 [광산 손보기]). pack: url · sha1 을 손으로 고칠 필요 없습니다.
   · 죽음 페널티를 끄려면 config.yml 의 death: 아래에 penalty: false 한 줄을 넣고 /labadmin reload.
     새로 받은 config.yml 에는 penalty: 블록이 이미 있으니, 그 블록을 통째로 penalty: false 한 줄로 바꾸세요.
-  · content 파일 중 items · recipes · mine · classes 가 바뀌었습니다. 고친 적이 없으면 저절로 새 판이 됩니다.
+  · content 파일 중 items · recipes · mine · classes · npcs 가 바뀌었습니다. 고친 적이 없으면 저절로 새 판이 됩니다.
     고친 적이 있으면 위 [설정·콘텐츠 파일] 처럼 새 파일을 받으세요 (recipes.yml 이 예전 것이면 새 곡괭이 레시피가 안 들어갑니다).
   · 광산 마을 자리에 누가 무엇을 지었거나 땅을 팠으면(판자·흙집·구덩이·심은 나무·갑옷 거치대 등) 블록을 하나도 바꾸지 않습니다.
     남쪽 옆 자리(south_east)를 살펴보고, 거기도 막히면 짓지 않고 plugins/Labyrinth/village/district-mine-blocked.txt 에 이유와
     좌표를 남깁니다. 관리자(op)가 들어오면 하루 한 번 알려 줍니다. 광산은 /미궁 광산 으로 그대로 쓸 수 있습니다.
     다른 곳에 지으려면 게임 안에서 큰길에서 이어질 자리에 서서 /labadmin village district preview mine here east
     (미리 보기, 안 바꿈) → /labadmin village district build mine here east (east 대신 north·south·west 도 됨).
-  · 짓다가 서버가 꺼지면 다음에 켤 때 백업으로 되돌린 뒤 처음부터 다시 짓습니다.
+  · 관리자가 /worldborder 로 경계를 좁혀 둔 서버에서 그 자리가 경계 밖이면 짓지 않습니다 (이유: 월드 경계 밖).
+    광산은 예전처럼 /미궁 광산 으로 1층에 바로 갑니다. 경계를 넓힌 뒤 서버를 다시 켜면 다시 살펴봅니다.
+  · 다 지으면 바뀐 블록을 바로 디스크에 저장한 뒤 '[광산 마을] 지었습니다' 를 알립니다 (그 뒤 창을 닫아도 안전).
+  · 짓다가 서버가 꺼지거나 짓기가 멈추면(labadmin village cancel 등) 백업으로 되돌립니다 (꺼졌으면 다음에 켤 때,
+    그 뒤 처음부터 다시 짓습니다).
   · 저절로 짓지 않으려면 업데이트 전에 config.yml 의 mine: 아래에 district: {auto_build: false} 를 적으세요.
   · 상태 보기: labadmin village district info · 점검: labadmin village selftest (마을과 광산 마을 두 줄)
 

@@ -158,14 +158,26 @@ public final class DistrictBackup {
     public enum Decision { APPLY, SAME, SKIP }
 
     /**
-     * 칸 하나: 지금 == 원래 → 이미 같음. DIFF: 지금 == 놓은 것 → 되돌림, 그 밖 → 건너뜀(사람이 바꿈).
+     * 칸 하나: 지금 == 원래 → 이미 같음. DIFF: 지금이 놓은 것과 <b>같은 블록 종류</b>면 되돌림 (열고 닫은 문·덧문, 켜진 레버,
+     * 눈 덮인 잔디, 잎 거리처럼 상태만 바뀐 칸 — 보호 상자 안이라 사람이 블록을 바꿀 수는 없고 쓰기만 한다), 놓은 잔디가 흙이 된 칸
+     * (또는 그 반대)도 되돌림. 그 밖 → 건너뜀(그 뒤 바뀐 칸).
      * BEFORE (짓다 꺼짐): 지금 ≠ 원래 인 칸은 모두 되돌림 (짓는 동안 구역 상자는 보호되어 사람이 바꾼 칸이 없다).
      */
     public Decision decide(Entry e, String now) {
         if (now != null && now.equals(e.before())) return Decision.SAME;
-        if (phase == Phase.BEFORE || (now != null && now.equals(e.after()))) return Decision.APPLY;
+        if (phase == Phase.BEFORE) return Decision.APPLY;
+        if (now != null && e.after() != null && sameBlock(now, e.after())) return Decision.APPLY;
         return Decision.SKIP;
     }
+
+    /** 같은 블록 종류인가 (속성 무시) — 잔디 ↔ 흙 은 같은 것으로 본다 (무작위 틱). */
+    static boolean sameBlock(String a, String b) {
+        String ka = Nature.key(a), kb = Nature.key(b);
+        if (ka.equals(kb)) return true;
+        return soil(ka) && soil(kb);
+    }
+
+    private static boolean soil(String k) { return k.equals("grass_block") || k.equals("dirt"); }
 
     /** 되돌리기 계획 ({@link #decide} 를 칸마다, 같은 칸이 두 번 있으면 처음 것). */
     public Restore restorePlan(Lookup current) {

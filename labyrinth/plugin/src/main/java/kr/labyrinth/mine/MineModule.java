@@ -408,7 +408,7 @@ public final class MineModule implements Module, MineApi {
     /** 광산에서 "마을로": 구역 승강장 mine_exit → 마을 광장 → 주 월드 스폰. */
     Location exitLocation() {
         MineLinks.District d = MineLinks.district();
-        if (d != null && d.exit() != null) return d.exit();
+        if (MineLinks.usable(d)) return d.exit();
         try {
             var v = kr.labyrinth.village.VillageService.get();
             if (v != null && v.spawn() != null) return v.spawn();
@@ -463,11 +463,11 @@ public final class MineModule implements Module, MineApi {
         boolean villageTp = services.plugin().getConfig().getBoolean("village.teleport_command", true);
         MineLinks.District d = MineLinks.district();
         if (!config.teleportAllowed(villageTp) && !p.hasPermission(CommandService.PERM_ADMIN)) {
-            Text.error(p, d != null ? "이 서버에서는 광산 텔레포트를 쓰지 않습니다. 광산 마을 승강장을 이용하세요."
+            Text.error(p, MineLinks.usable(d) ? "이 서버에서는 광산 텔레포트를 쓰지 않습니다. 광산 마을 승강장을 이용하세요."
                     : "이 서버에서는 광산 텔레포트를 쓰지 않습니다. (config mine.teleport_command)");
             return;
         }
-        if (d != null && d.exit() != null) {
+        if (MineLinks.usable(d)) {
             if (MineLinks.nearLift(p.getLocation(), 12)) {
                 lift.open(p);
                 return;

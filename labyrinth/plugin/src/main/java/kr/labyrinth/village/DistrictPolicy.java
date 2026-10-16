@@ -46,7 +46,7 @@ public final class DistrictPolicy {
     public static String canBuild(DistrictMeta.State state, boolean villagePresent) {
         if (!villagePresent) return "이 월드에는 마을이 없습니다 — 광산 마을은 마을 큰길 끝에 붙여 짓습니다";
         if (state == DistrictMeta.State.BUILT) return "이미 지어져 있습니다 (다시 지으려면 먼저 remove)";
-        if (state == DistrictMeta.State.BUILDING) return "짓다가 멈춘 기록이 있습니다 — 다음 시작 때 되돌리거나 remove 로 먼저 되돌리세요";
+        if (state == DistrictMeta.State.BUILDING) return "짓다가 멈춘 기록이 있습니다 — remove 로 먼저 되돌리세요 (백업이 없으면 remove <id> force)";
         return null;
     }
 
@@ -54,7 +54,7 @@ public final class DistrictPolicy {
     public static String canRemove(DistrictMeta.State state, boolean backupExists) {
         if (state == null) return "지은 기록이 없습니다";
         if (state == DistrictMeta.State.REMOVED) return "이미 지웠습니다";
-        if (!backupExists) return "되돌리기 백업 파일이 없습니다 — 손으로 지워야 합니다";
+        if (!backupExists) return "되돌리기 백업 파일이 없습니다 — 블록을 그대로 두고 기록만 지우려면 remove <id> force (남은 블록은 손으로 치움)";
         return null;
     }
 

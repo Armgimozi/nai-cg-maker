@@ -24,14 +24,27 @@ PIECES = [
     {"piece": "bench", "w": [-72, 5], "front": "south"},                # 9 벤치 (승강장 북쪽)
     {"piece": "tree_oak", "w": [-98, -1], "front": "north", "slack": 2},      # 10 참나무
     {"piece": "flower_bed", "w": [-93, 9], "front": "north"},           # 11 화단
+    # 0.3.6.1 놀이 리뷰: 밤에 어두운 곳 — 마당 서쪽 끝(숙소 앞)·하치장 골목에 가로등
+    {"piece": "lamp_post_copper", "w": [-87, 11], "front": "south"},    # 12 가로등 (마당 서쪽 끝 북쪽)
+    {"piece": "lamp_post_copper", "w": [-70, 24], "front": "west"},     # 13 가로등 (하치장 골목 동쪽)
+    # south_east 자리에만 (east 는 drop) — 좌표는 z −42 해 둔 것 (그 자리가 z +42 로 옮기므로 실제 = 큰길 끝·남쪽 길가)
+    # 14 갈림길 길잡이 — 꺾는 곳 안쪽(남동) 실제 x −93..−91 z 18..20. 큰길 북쪽에 두면 south_east 영역이 east 자리 북쪽(숙소 자리)까지
+    #    넓어져, east 를 막은 흔적이 south_east 까지 막는다 (c-A 시험) — 그래서 남쪽에 둔다.
+    {"piece": "signpost_mine_turn", "w": [-93, 18 - 42], "front": "west", "slack": 1},
+    {"piece": "lamp_post_copper", "w": [-93, 24 - 42], "front": "west"},     # 15 남쪽 길 가로등 (실제 z 24)
+    {"piece": "lamp_post_copper", "w": [-93, 34 - 42], "front": "west"},     # 16 (실제 z 34)
+    {"piece": "lamp_post_copper", "w": [-93, 44 - 42], "front": "west"},     # 17 (실제 z 44)
 ]
 
 # 길 (배포 월드)
 PATHS = [
     {"points": [[-103, 16], [-87, 16]], "width": 3, "style": "main"},                  # 0 큰길 — 마을 큰길 끝(-104,16)에 붙음
-    {"points": [[-87, 16], [-73, 16]], "width": 5, "style": "mine_yard"},              # 1 광산 마당 (승강장 정문)
+    # 1 광산 마당 (승강장 정문) — follow 0: 양 끝(큰길 끝 · 승강장 바닥) 사이를 곧게 (지형을 따라 불룩 솟아 숙소 앞이 도랑이 되지 않게)
+    {"points": [[-87, 16], [-73, 16]], "width": 5, "style": "mine_yard", "follow": 0},
     {"points": [[-82, 19], [-82, 22]], "width": 3, "style": "mine_yard"},              # 2 제련소 문 앞
-    {"points": [[-73, 19], [-73, 27], [-69, 28]], "width": 2, "style": "lane"},       # 3 하치장 골목
+    {"points": [[-73, 19], [-73, 27], [-69, 28]], "width": 2, "style": "mine_lane"},  # 3 하치장 골목 (흙길 + 한 칸 턱은 응회암 반블록)
+    # 4 숙소 문 앞 (0.3.6.1 놀이 리뷰 — 숙소 문 앞 칸이 마당과 한 칸 차이로 이어지게: 반블록 계단). 양 끝 모두 숙소에 붙음.
+    {"points": [[-80, 13], [-80, 14]], "width": 3, "style": "mine_yard"},
 ]
 
 DISTRICT = {
@@ -54,6 +67,8 @@ DISTRICT = {
     "path_styles": {
         "mine_yard": [["minecraft:andesite", 3], ["minecraft:polished_andesite", 2], ["minecraft:tuff", 2],
                       ["minecraft:gravel", 1], ["minecraft:stone", 1]],
+        # 마을 lane(흙길)과 같은 느낌 + 맨 앞 응회암 = 높이 한 칸 턱에 놓는 반블록 (흙길은 반블록이 없어 턱이 그대로 남던 것, 0.3.6.1 놀이 리뷰 #7)
+        "mine_lane": [["minecraft:tuff", 1], ["minecraft:dirt_path", 5], ["minecraft:coarse_dirt", 1], ["minecraft:gravel", 1]],
     },
     # 배포 월드 (좌표 바꾸기 기준)
     "shipped": {"center": [-136, 16], "rotation": "COUNTERCLOCKWISE_90", "turns": 3, "seed": 24680,
@@ -61,11 +76,13 @@ DISTRICT = {
     "pieces": PIECES,
     "paths": PATHS,
     "sites": [
-        {"id": "east", "shift": [0, 0]},
+        {"id": "east", "shift": [0, 0],
+         # south_east 에만 쓰는 갈림길 길잡이·남쪽 길 가로등
+         "drop": [14, 15, 16, 17]},
         {"id": "south_east", "shift": [0, 42],
          # 큰길을 마을 큰길 끝에서 남쪽으로 (옮기지 않은 배포 월드 좌표)
          "replace_paths": {"0": [[-103, 16], [-96, 16], [-96, 50], [-87, 58]]},
-         # 돌린 큰길과 겹치는 장식 (참나무·화단·가로등 하나)
-         "drop": [5, 10, 11]},
+         # 돌린 큰길과 겹치는 장식 (참나무·화단·가로등 하나) + 하치장 골목 가로등 (이 자리는 골목이 짧고 하치장에 붙어 자리가 없음)
+         "drop": [5, 10, 11, 13]},
     ],
 }

@@ -124,7 +124,8 @@ public final class DistrictLayout {
                 continue;
             }
             int width = p.has("width") ? p.get("width").getAsInt() : 3;
-            paths.add(new Layout.PathDef(paths.size(), pts, Math.max(1, Math.min(9, width)), Blueprint.str(p, "style", "main")));
+            int follow = p.has("follow") ? Math.max(0, Math.min(Planner.PATH_FOLLOW, p.get("follow").getAsInt())) : Planner.PATH_FOLLOW;
+            paths.add(new Layout.PathDef(paths.size(), pts, Math.max(1, Math.min(9, width)), Blueprint.str(p, "style", "main"), follow));
         }
         Map<String, List<Blueprint.Weighted>> styles = new LinkedHashMap<>();
         if (o.has("path_styles") && o.get("path_styles").isJsonObject()) {
@@ -240,7 +241,7 @@ public final class DistrictLayout {
             List<int[]> pts = new ArrayList<>();
             for (int[] q : wpaths.get(i)) pts.add(new int[] {q[0] - ox, q[1] - oz});
             Layout.PathDef def = paths.get(i);
-            lp.add(new Layout.PathDef(i, pts, def.width(), def.style()));
+            lp.add(new Layout.PathDef(i, pts, def.width(), def.style(), def.follow()));
         }
         Map<String, List<Blueprint.Weighted>> st = new LinkedHashMap<>(styles == null ? Map.of() : styles);
         st.putAll(pathStyles);

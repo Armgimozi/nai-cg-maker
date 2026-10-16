@@ -12,7 +12,7 @@
   "frame": "village",
   "note": "build_all.py 생성물 (tools/village/district_mine.py) — 직접 고치지 마세요. 좌표 = 마을 좌표 (layout.json 과 같은 틀)",
   "shipped": {"center": [-136, 16], "rotation": "COUNTERCLOCKWISE_90", "turns": 3, "seed": 24680, "build_ids": ["c99c3fb3-4621-4037-b7dd-26f71e3edfce", "a06800d8-7a5d-452d-b3eb-79364ebfac99"]},
-  "path_styles": {"mine_yard": [["minecraft:andesite", 3], ["minecraft:polished_andesite", 2], ["minecraft:tuff", 2], ["minecraft:gravel", 1], ["minecraft:stone", 1]]},
+  "path_styles": {"mine_yard": [["minecraft:andesite", 3], ["minecraft:polished_andesite", 2], ["minecraft:tuff", 2], ["minecraft:gravel", 1], ["minecraft:stone", 1]], "mine_lane": [["minecraft:tuff", 1], ["minecraft:dirt_path", 5], ["minecraft:coarse_dirt", 1], ["minecraft:gravel", 1]]},
   "pieces": [
     {"piece": "mine_headframe", "at": [1, 70], "front": "north", "slack": 0},
     {"piece": "smelter", "at": [-12, 54], "front": "east", "slack": 1},
@@ -25,16 +25,23 @@
     {"piece": "cart", "at": [-9, 45], "front": "east"},
     {"piece": "bench", "at": [11, 66], "front": "west"},
     {"piece": "tree_oak", "at": [13, 42], "front": "east", "slack": 2},
-    {"piece": "flower_bed", "at": [6, 45], "front": "east"}
+    {"piece": "flower_bed", "at": [6, 45], "front": "east"},
+    {"piece": "lamp_post_copper", "at": [5, 49], "front": "west"},
+    {"piece": "lamp_post_copper", "at": [-8, 67], "front": "north"},
+    {"piece": "signpost_mine_turn", "at": [39, 44], "front": "north", "slack": 1},
+    {"piece": "lamp_post_copper", "at": [34, 44], "front": "north"},
+    {"piece": "lamp_post_copper", "at": [24, 44], "front": "north"},
+    {"piece": "lamp_post_copper", "at": [14, 44], "front": "north"}
   ],
   "paths": [
     {"points": [[0, 33], [0, 49]], "width": 3, "style": "main"},
-    {"points": [[0, 49], [0, 63]], "width": 5, "style": "mine_yard"},
+    {"points": [[0, 49], [0, 63]], "width": 5, "style": "mine_yard", "follow": 0},
     {"points": [[-3, 54], [-6, 54]], "width": 3, "style": "mine_yard"},
-    {"points": [[-3, 63], [-11, 63], [-12, 67]], "width": 2, "style": "lane"}
+    {"points": [[-3, 63], [-11, 63], [-12, 67]], "width": 2, "style": "mine_lane"},
+    {"points": [[3, 56], [2, 56]], "width": 3, "style": "mine_yard"}
   ],
   "sites": [
-    {"id": "east", "shift": [0, 0]},
-    {"id": "south_east", "shift": [-42, 0], "replace_paths": {"0": [[0, 33], [0, 40], [-34, 40], [-42, 49]]}, "drop": [5, 10, 11]}
+    {"id": "east", "shift": [0, 0], "drop": [14, 15, 16, 17]},
+    {"id": "south_east", "shift": [-42, 0], "replace_paths": {"0": [[0, 33], [0, 40], [-34, 40], [-42, 49]]}, "drop": [5, 10, 11, 13]}
   ]
 }

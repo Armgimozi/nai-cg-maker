@@ -415,7 +415,8 @@ def district_json(D, pieces):
             if k in e:
                 q[k] = e[k]
         out_p.append(q)
-    out_paths = [{"points": [to_v(*q) for q in pth["points"]], "width": pth.get("width", 3), "style": pth.get("style", "main")}
+    out_paths = [dict({"points": [to_v(*q) for q in pth["points"]], "width": pth.get("width", 3), "style": pth.get("style", "main")},
+                      **({"follow": pth["follow"]} if "follow" in pth else {}))
                  for pth in D["paths"]]
     sites = []
     for s in D["sites"]:

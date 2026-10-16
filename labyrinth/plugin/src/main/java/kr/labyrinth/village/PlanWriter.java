@@ -243,13 +243,16 @@ final class PlanWriter {
         int x = c[0], z = c[1], y = c[2];
         List<Blueprint.Weighted> style = styles.getOrDefault(pp.def.style(), List.of());
         String block = Blueprint.pick(style, Blueprint.hash(x, 0, z), "minecraft:dirt_path");
-        set(world.getBlockAt(x, y, z), block, b);
+        boolean frozenCell = plan.isFrozen(x, z);
+        Block surf = world.getBlockAt(x, y, z);
+        // 얼린 칸(마을이 다듬은 칸, 큰길과 만나는 곳): 자연 땅·풀일 때만 길 블록으로, 그 위는 풀만 치운다 — 사람이 놓은 블록은 그대로 (0.3.6.1)
+        if (!frozenCell || naturalGround(surf.getType())) set(surf, block, b);
         for (int dy = 1; dy <= 2; dy++) {
             Block above = world.getBlockAt(x, y + dy, z);
             Nature.Kind k = Scan.kind(above.getType());
-            if (k == Nature.Kind.PLANT || k == Nature.Kind.GROUND) set(above, "minecraft:air", b);
+            if (k == Nature.Kind.PLANT || (k == Nature.Kind.GROUND && !frozenCell)) set(above, "minecraft:air", b);
         }
-        if (plan.isFrozen(x, z)) return; // 얼린 칸(마을이 다듬은 칸): 겉 블록만
+        if (frozenCell) return; // 얼린 칸(마을이 다듬은 칸): 겉 블록만
         // 이웃 길이 1 높으면 반블록으로 반 칸 계단
         boolean higher = false;
         for (int[] d : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
@@ -261,6 +264,15 @@ final class PlanWriter {
             if (slab == null && !style.isEmpty()) slab = slabOf(style.get(0).block());
             if (slab != null) set(world.getBlockAt(x, y + 1, z), slab, b);
         }
+    }
+
+    /** 얼린 칸 겉 블록을 길 블록으로 바꿔도 되는가: 자연 땅·풀·공기 또는 이미 길 블록 (마을 길 스타일 포함). */
+    private boolean naturalGround(Material m) {
+        Nature.Kind k = Scan.kind(m);
+        if (k == Nature.Kind.GROUND || k == Nature.Kind.PLANT || k == Nature.Kind.AIR || m == Material.DIRT_PATH) return true;
+        String id = Scan.id(m);
+        for (List<Blueprint.Weighted> st : styles.values()) for (Blueprint.Weighted w : st) if (Nature.key(w.block()).equals(id)) return true;
+        return false;
     }
 
     private int pathHeight(int x, int z) {
