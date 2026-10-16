@@ -332,6 +332,8 @@ final class MechanicsEngine {
 
         void push(LivingEntity t, Location origin, double strength) {
             if (strength <= 0 || c.services.effects().isKnockbackImmune(t)) return;
+            strength *= c.services.damage().knockbackScale(t, pl); // PvP: 맞는 쪽 밀려남 저항
+            if (strength <= 1e-6) return;
             Vector d = t.getLocation().toVector().subtract(origin.toVector()).setY(0);
             if (d.lengthSquared() < 1e-4) d = c.flatLook();
             d.normalize().multiply(Math.min(2.5, strength));

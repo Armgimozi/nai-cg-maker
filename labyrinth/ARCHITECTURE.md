@@ -237,6 +237,9 @@ labyrinth/
     `.knockback(s)`, `.noCrit()`... 결과(`dealt/crit/evaded/blocked/killed`)는 ctx 에. 치유는 `services.damage().heal(target, amount, true)`.
   - 피해 가로채기: `services.damage().addInterceptor(DamageInterceptor)` — 회피되지 않은 최종 피해를 적용 직전에 바꾼다
     (0 = "막음"). items 가 무기 스킬 무적·보호막(`LabWeaponSkillService#shield`)·방어 자세·자동 부활 소모품에 쓴다. 직업 보호막도 이걸로.
+    순서: `addInterceptor(i, order)` — 작은 값부터(기본 0) → 천 마나 보호막 `ORDER_MANA_SHIELD`(50) → 자동 부활 `ORDER_LAST`(100).
+  - 밀쳐내기: 플레이어를 미는 곳은 `services.damage().knockbackScale(target, from)` 을 곱한다 (1 − 밀려남 저항 = 힘 + 판금 4부위 버팀 +
+    넉백 면역, 보스가 민 것은 1). DamageContext.knockback·상태이상 knockback·몹 스킬 push·무기 스킬 push·함정 톱날이 쓴다.
   - 커스텀 몹·보스 HP: `combat.HealthPool` 계약(`applyDamage` 에 최종 피해가 온다, HP 0 이면 구현이 사망 처리). 바닐라 근접·화살 → 몹,
     몹의 바닐라 공격 → 플레이어 연결은 core `CombatListener` 가 이미 한다(`MobService.byEntity`/`BossService.byEntity` 로 판별).
   - 플레이어 HP: 바닐라 체력 = min(최대 HP, 1024), 하트는 10칸 고정 표시. 직접 만지지 말고 `services.stats().currentHp/heal/setHp`.
@@ -277,7 +280,14 @@ items/   ItemDef, Rarity, ItemService(정의→ItemStack, ItemStack→정의/굴
          들고 있을 때 파티클 + ItemDisplay 링 이펙트, 플레이어 수·거리 기반 LOD)
          구현: GearItemService(기반 재질 PAPER, 활만 BOW+무한·파괴불가 — 활을 들면 '미궁 화살' 1개 자동 지급),
          ItemRolls(굴림·PDC 형식 "key=value;…"), ItemTooltip, EquipRules(레벨·직업 미달 = 스탯/무기 스킬 없음, 방어구는 착용 즉시 반환),
-         EquipmentListener(장비 StatContributor + 세트 효과), ConsumableListener, ItemGuardListener(바닐라 제작·화로·모루·거래 차단)
+         EquipmentListener(장비 StatContributor + 세트 효과 + 겉모습 수 `look.<id>`·`look_body.<id>`), ConsumableListener,
+         ItemGuardListener(바닐라 제작·화로·모루·거래 차단)
+         방어구 겉모습 (0.3.5, look_spec): content/ArmorLook(heavy·light·cloth·plain·any, `ItemDef.armorLook()` — 파서가 단품 look →
+         방패 판금 → 세트 look(look_effects: false 면 평상복) 순으로 정함) · 설정 core/ArmorLooks(config armor_looks) · 숨은 효과·4부위
+         판정 stats/ArmorLookMath(순수, StatCalculator 가 부름 → DerivedStats lookCounts·fullLook·cooldownMult·ccResist·밀려남 저항) ·
+         4부위 런타임 ArmorLookService(창구 `LookEffects` = `services.looks()`: 가죽 구르기 — 순수 TumbleInput, 구르는 동안
+         DamageService 가 회피 100% · 천 마나 보호막 — 순수 ManaShield, 가로채기 50) · 판금 버팀은 combat/CrowdControl(순수).
+         데이터 tools/data/035/armor_looks.json → tools/gen_035_looks.py (방어구 요구 짝 · 스탯 줄 이름 · look · look_effects)
 items/weaponskills/ LabWeaponSkillService(입력: LEFT = PlayerArmSwingEvent, RIGHT = 우클릭, 쿨다운·마나·침묵),
          WeaponTargeting(무기 스킬 대상 선택의 단일 도형 헬퍼 — 적/아군 판정은 TargetFilter),
          SkillCast(공통 키 처리), Fx(ItemDisplay 이펙트), 17종 구현 = Projectile/Movement/Area/SupportSkills,

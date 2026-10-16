@@ -201,8 +201,8 @@ public final class LabWeaponSkillService implements WeaponSkillService, Listener
             player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 0.5f, 0.6f);
             return false;
         }
-        double cdr = services.stats().get(player).cooldownReduction();
-        double cd = s.cooldown() * (1.0 - cdr);
+        var ds = services.stats().get(player);
+        double cd = s.cooldown() * (1.0 - ds.cooldownReduction()) * ds.cooldownMult(); // × 겉모습 재사용 대기 배율
         if (services.effects().has(player, "cooldown_slow")) cd *= 1.3;
         long end = System.currentTimeMillis() + Math.round(cd * 1000);
         cooldowns.computeIfAbsent(player.getUniqueId(), u -> new ConcurrentHashMap<>()).put(key(def.id(), input), end);
@@ -212,6 +212,7 @@ public final class LabWeaponSkillService implements WeaponSkillService, Listener
             Log.error("무기 스킬 실행 오류: " + s.id() + " (" + def.id() + ")", t);
         }
         services.unique().onSkill(player); // 고유 효과 과부하: 스킬을 쓰면 다음 기본 공격이 폭발
+        services.looks().onSkill(player); // 웅크린 채 쓴 조합 스킬 뒤 잠깐 구르기 막음
         if (s.cooldown() >= 2.0) {
             if (services.hud().skillMessages()) bar(player, "<#ffd27a>◆ " + Text.escape(s.name()) + " <dark_gray>· " + ItemTooltip.inputName(def, input.name())
                     + " · 재사용 " + String.format("%.1f", cd) + "초", 30);

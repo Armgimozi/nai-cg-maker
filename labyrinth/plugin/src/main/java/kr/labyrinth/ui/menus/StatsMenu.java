@@ -3,6 +3,8 @@ package kr.labyrinth.ui.menus;
 import java.util.ArrayList;
 import java.util.List;
 import kr.labyrinth.Services;
+import kr.labyrinth.content.ArmorLook;
+import kr.labyrinth.core.ArmorLooks;
 import kr.labyrinth.core.Text;
 import kr.labyrinth.data.PlayerData;
 import kr.labyrinth.stats.DerivedStats;
@@ -84,9 +86,10 @@ public final class StatsMenu extends LabMenu {
         der.add("<gray>최대 HP <#ff5f6d>" + Text.num(s.maxHp()) + "  <gray>최대 MP <#6fc3ff>" + Text.num(s.maxMp()));
         der.add("<gray>방어 <white>" + Text.num(s.defense()) + "  <gray>피해 감소 <white>" + Text.pct(s.damageReduction()));
         der.add("<gray>치명타 <white>" + Text.pct(s.critChance()) + " <gray>× <white>" + String.format("%.2f", s.critDamage()));
-        der.add("<gray>회피 <white>" + Text.pct(s.evasion()) + "  <gray>재사용 감소 <white>" + Text.pct(s.cooldownReduction()));
+        der.add("<gray>회피 <white>" + Text.pct(s.evasion()) + "  <gray>재사용 감소 <white>" + Text.pct(s.cooldownReduction())
+                + (Math.abs(s.cooldownMult() - 1) > 1e-9 ? "  <gray>재사용 대기 <white>×" + String.format(java.util.Locale.ROOT, "%.2f", s.cooldownMult()) : ""));
         der.add("<gray>스킬 피해 <white>+" + Text.pct(s.skillDamage()) + "  <gray>치유량 <white>+" + Text.pct(s.healPower()));
-        der.add("<gray>이동 속도 <white>+" + Text.pct(s.moveSpeed()));
+        der.add("<gray>이동 속도 <white>" + signedPct(s.moveSpeed()));
         der.add("<gray>경험치 <white>+" + Text.pct(s.xpBonus()) + "  <gray>골드 <white>+" + Text.pct(s.goldBonus()));
         kr.labyrinth.pvp.PvpConfig pc = services.targets().pvpConfig();
         if (pc.enabled()) {
@@ -98,6 +101,7 @@ public final class StatsMenu extends LabMenu {
                     + " <dark_gray>(최대 HP + " + Text.num(buffer) + ")");
         }
         deco(22, Button.icon(Material.BOOK, "<#7fd8ff><b>능력치 요약</b>", der));
+        drawLook(p, s);
 
         boolean free = services.data().get(p).counter(FREE_RESET_KEY) == 0;
         boolean armed = System.currentTimeMillis() < resetArmedUntil;
@@ -109,6 +113,101 @@ public final class StatsMenu extends LabMenu {
         set(49, UiTheme.glint(model(RESET_ITEM, Material.PAPER, (armed ? "<#ff6b6b>" : "<#c79bff>") + "<b>스탯 초기화</b>", rl), armed),
                 ctx -> reset(ctx.player()));
         backButton(45, MainMenu::reopen);
+    }
+
+    /**
+     * 겉모습 칸 (look_spec §6.2): "겉모습 판금 4 · 방패 1 → 버팀" + 지금 받는 숨은 효과 합. 가죽 4부위면 구르기 켜기/끄기 단추.
+     */
+    private void drawLook(Player p, DerivedStats s) {
+        ArmorLooks cfg = services.settings().armorLooks();
+        int shield = Math.max(0, s.lookCount(ArmorLook.HEAVY) - s.bodyLooks().getOrDefault(ArmorLook.HEAVY, 0));
+        String line = lookSummary(cfg, s.bodyLooks(), shield, s.fullLook());
+        List<String> lore = new ArrayList<>();
+        lore.add(line);
+        if (!cfg.enabled()) {
+            lore.add("<dark_gray>이 서버는 겉모습 효과를 껐습니다");
+        } else {
+            for (ArmorLook l : ArmorLook.REAL) {
+                int n = s.lookCount(l);
+                if (n <= 0) continue;
+                lore.add("<" + cfg.color(l) + ">" + cfg.name(l) + " " + n + "<gray>: " + pieceText(cfg.look(l), n));
+            }
+            if (s.fullLook() != null) {
+                lore.add("<" + cfg.color(s.fullLook()) + ">4부위 · " + cfg.fullName(s.fullLook()) + "<gray> — " + fullText(cfg, s.fullLook()));
+            }
+        }
+        deco(31, Button.icon(Material.LEATHER_CHESTPLATE, "<#c9a46a><b>겉모습</b>", lore));
+        if (cfg.enabled() && s.full(ArmorLook.LIGHT)) {
+            PlayerData d = services.data().get(p);
+            boolean off = d.tumbleOff();
+            set(40, Button.icon(off ? Material.GRAY_DYE : Material.RABBIT_FOOT,
+                    (off ? "<gray>" : "<#c9a46a>") + "<b>" + cfg.tumble().name() + " " + (off ? "꺼짐" : "켜짐") + "</b>",
+                    List.of("<gray>웅크리기 두 번 → 구르며 피함", "<#ffd36b>클릭: " + (off ? "켜기" : "끄기"))), ctx -> {
+                PlayerData dd = services.data().get(ctx.player());
+                dd.tumbleOff(!dd.tumbleOff());
+                click(ctx.player());
+                refresh();
+            });
+        }
+    }
+
+    /** "겉모습 판금 4 · 방패 1 → 버팀" · "겉모습 판금 2 · 가죽 2" · "겉모습 없음". */
+    public static String lookSummary(ArmorLooks cfg, java.util.Map<ArmorLook, Integer> body, int shield, ArmorLook full) {
+        List<String> parts = new ArrayList<>();
+        for (ArmorLook l : ArmorLook.REAL) {
+            int n = body.getOrDefault(l, 0);
+            if (n > 0) parts.add(cfg.name(l) + " " + n);
+        }
+        int any = body.getOrDefault(ArmorLook.ANY, 0);
+        if (any > 0) parts.add("왕관 " + any);
+        if (shield > 0) parts.add("방패 " + shield);
+        if (parts.isEmpty()) return "<gray>겉모습 없음";
+        return "<gray>겉모습 <white>" + String.join(" · ", parts) + (full != null ? " <gray>→ <white>" + cfg.fullName(full) : "");
+    }
+
+    /** 숨은 효과 합 한 줄 ("방어 +16% · 받는 피해 −2% · 이동 속도 −8% …"). */
+    static String pieceText(ArmorLooks.Look look, int n) {
+        if (look == null) return "";
+        List<String> t = new ArrayList<>();
+        // 받는 피해 감소는 '받는 피해 −0.5%' 로 (더 적게 받음)
+        look.piece().forEach((k, v) -> t.add(keyName(k) + " " + signedPct(k.equals("damage_reduction") ? -v * n : v * n)
+                + (k.equals("evasion") || k.equals("crit_chance") ? "p" : "")));
+        return String.join(" · ", t);
+    }
+
+    static String keyName(String k) {
+        return switch (k) {
+            case "defense_pct" -> "방어";
+            case "hp_pct" -> "최대 HP";
+            case "mana_regen_pct" -> "MP 재생";
+            case "cooldown_pct" -> "재사용 대기";
+            case "damage_reduction" -> "받는 피해";
+            case "move_speed" -> "이동 속도";
+            case "evasion" -> "회피";
+            case "crit_chance" -> "치명";
+            case "attack_speed" -> "공격 속도";
+            case "skill_damage" -> "스킬 피해";
+            default -> k;
+        };
+    }
+
+    static String fullText(ArmorLooks cfg, ArmorLook l) {
+        return switch (l) {
+            case HEAVY -> "밀려남 −" + Text.pct(cfg.steadfast().knockbackResist()) + " · 기절·속박·빙결 −" + Text.pct(cfg.steadfast().ccResist())
+                    + " (보스 제외)";
+            case LIGHT -> "웅크리기 두 번 → " + fmt(cfg.tumble().distance()) + "칸 구르며 피함 (" + fmt(cfg.tumble().cooldown()) + "초)";
+            case CLOTH -> "받는 피해 " + Text.pct(cfg.manaShield().absorb()) + "를 MP로 받음 (MP 1 = 피해 " + fmt(cfg.manaShield().damagePerMp()) + ")";
+            default -> "";
+        };
+    }
+
+    private static String fmt(double v) {
+        return v == Math.rint(v) ? String.valueOf((long) v) : String.format(java.util.Locale.ROOT, "%.1f", v);
+    }
+
+    /** 부호 붙인 퍼센트 ("+4%" · "−8%"). */
+    public static String signedPct(double v) {
+        return (v < 0 ? "−" : "+") + Text.pct(Math.abs(v));
     }
 
     /** 초당 횟수 — 소수 한 자리 ("1.5"). */

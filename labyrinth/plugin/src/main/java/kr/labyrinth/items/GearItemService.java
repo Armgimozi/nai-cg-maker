@@ -157,13 +157,14 @@ public final class GearItemService implements ItemService {
             default -> null; // 방패(offhand)는 보조손에 직접 놓는다
         };
         if (slot == null) return;
-        ItemSetDef set = def.setBonus() == null ? null : services.content().sets().get(def.setBonus());
-        String look = set == null ? "light" : set.look();
-        String sound = switch (look) {
-            case "heavy" -> "item.armor.equip_iron";
-            case "cloth" -> "item.armor.equip_generic";
-            default -> "item.armor.equip_leather";
-        };
+        // 장착 소리 = 그 부위의 겉모습 (세트 없는 투구·평상복도 — 평상복은 세트 텍스처의 look 으로)
+        kr.labyrinth.content.ArmorLook l = def.armorLook();
+        if (l == null || !l.real()) {
+            ItemSetDef set = def.setBonus() == null ? null : services.content().sets().get(def.setBonus());
+            l = set == null ? null : kr.labyrinth.content.ArmorLook.byId(set.look());
+        }
+        String sound = l == kr.labyrinth.content.ArmorLook.HEAVY ? "item.armor.equip_iron"
+                : l == kr.labyrinth.content.ArmorLook.CLOTH ? "item.armor.equip_generic" : "item.armor.equip_leather";
         Equippable.Builder eb = Equippable.equippable(slot)
                 .equipSound(Key.key("minecraft", sound))
                 .damageOnHurt(false)

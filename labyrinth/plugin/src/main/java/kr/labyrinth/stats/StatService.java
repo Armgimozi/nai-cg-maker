@@ -79,6 +79,14 @@ public final class StatService implements Module, Listener {
         if (task != null) task.cancel();
         HandlerList.unregisterAll(this);
         cache.clear();
+        // 이동 속도는 기본값을 바꾸는 방식이라 플러그인을 끄면 마지막 값이 남는다 — 바닐라 0.1 로 되돌린다 (겉모습 판금 −2%/부위 등)
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            try {
+                setBase(p, Attribute.MOVEMENT_SPEED, BASE_MOVE_SPEED);
+            } catch (Throwable ignored) {
+                // 끄는 중 — 무시
+            }
+        }
     }
 
     @Override
@@ -161,7 +169,7 @@ public final class StatService implements Module, Listener {
             Log.error("손에 든 무기 공격 방식 계산 오류", t);
         }
         DerivedStats s = StatCalculator.compute(cls, d.level(), d.allocated(), bonus, cc.baseCritChance(), cc.baseCritDamage(),
-                attack, mid, cc.attackIntervalMin());
+                attack, mid, cc.attackIntervalMin(), services.settings().armorLooks());
         DerivedStats old = cache.put(p.getUniqueId(), s);
         dirty.remove(p.getUniqueId());
         applyAttributes(p, s, old);

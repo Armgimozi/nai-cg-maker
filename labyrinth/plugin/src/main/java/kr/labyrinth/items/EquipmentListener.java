@@ -10,12 +10,14 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import kr.labyrinth.Services;
+import kr.labyrinth.content.ArmorLook;
 import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.ItemSetDef;
 import kr.labyrinth.content.ItemType;
 import kr.labyrinth.core.Keys;
 import kr.labyrinth.core.Text;
 import kr.labyrinth.data.PlayerData;
+import kr.labyrinth.stats.ArmorLookMath;
 import kr.labyrinth.stats.Stat;
 import kr.labyrinth.stats.StatBlock;
 import kr.labyrinth.stats.StatContributor;
@@ -54,7 +56,8 @@ import org.bukkit.persistence.PersistentDataType;
 /**
  * 장비 → StatService 기여 + 착용 조건(요구 능력치) + 활 화살.
  * <ul>
- *   <li>주손 무기(피해 포함 전 스탯) · 방어구 4칸 · 보조손 방패 · 장신구 2칸(PlayerData) · 세트 효과(착용 개수 이상 누적)</li>
+ *   <li>주손 무기(피해 포함 전 스탯) · 방어구 4칸 · 보조손 방패 · 장신구 2칸(PlayerData) · 세트 효과(착용 개수 이상 누적)
+ *       · 방어구 겉모습 수({@link #addLook} — 요구를 맞춘 부위만, 숨은 효과·4부위 효과는 StatCalculator)</li>
  *   <li>요구 능력치({@link EquipRules}, 판정 = 직업 기본 + 분배 + 칭호)를 못 맞춘 방어구·방패는 <b>입는 동작을 막는다</b>
  *       (방어구 칸·보조손 칸에 놓기, 숫자키·F 바꾸기, Shift 클릭 자동 착용, 우클릭 착용, 끌어 놓기, 꾸러미에서 꺼내 놓기, 발사기).
  *       바닐라가 실제로 그 칸에 넣는 경우만 막는다 — 방어구는 제 부위 칸(armor_slot), 방패는 보조손.
@@ -109,6 +112,7 @@ final class EquipmentListener implements Listener, StatContributor {
                 if (EquipRules.usable(def, req)) {
                     block.addAll(items.rolledStats(it));
                     if (def.setBonus() != null) setCounts.merge(def.setBonus(), 1, Integer::sum);
+                    addLook(block, def.armorLook(), true);
                 } else {
                     unmet.put(slot.name() + ":" + def.id(), def);
                 }
@@ -120,6 +124,7 @@ final class EquipmentListener implements Listener, StatContributor {
             if (EquipRules.usable(def, req)) {
                 block.addAll(items.rolledStats(off));
                 if (def.setBonus() != null) setCounts.merge(def.setBonus(), 1, Integer::sum);
+                addLook(block, services.settings().armorLooks().shieldCountsAs(), false); // 방패 = 판금 한 부위 (4부위 수에는 안 듦)
             } else {
                 unmet.put("OFF_HAND:" + def.id(), def);
             }
@@ -141,6 +146,16 @@ final class EquipmentListener implements Listener, StatContributor {
             set.bonuses().headMap(count, true).values().forEach(block::addAll);
         });
         warnUnmet(p, unmet, req);
+    }
+
+    /**
+     * 겉모습 수 (look_spec §1.2, {@link kr.labyrinth.stats.ArmorLookMath}): 요구를 맞춘 부위마다 {@code look.<id>} +1,
+     * 머리·몸·다리·발이면 {@code look_body.<id>} +1. 평상복은 아무것도 안 더하고, any(악몽의 왕관)는 {@code look_body.any} 만.
+     */
+    static void addLook(StatBlock block, ArmorLook look, boolean body) {
+        if (look == null || look == ArmorLook.PLAIN) return;
+        if (look.real()) block.add(ArmorLookMath.countKey(look), 1);
+        if (body) block.add(ArmorLookMath.bodyKey(look), 1);
     }
 
     /**

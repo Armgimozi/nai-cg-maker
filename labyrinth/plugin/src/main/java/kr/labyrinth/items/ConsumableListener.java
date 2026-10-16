@@ -59,7 +59,8 @@ final class ConsumableListener implements Listener, DamageInterceptor {
 
     void start() {
         Bukkit.getPluginManager().registerEvents(this, services.plugin());
-        services.damage().addInterceptor(this);
+        // 자동 부활은 마지막 가로채기 — 무적·보호막·마나 보호막이 다 막은 뒤에도 남은 피해가 HP 를 넘을 때만
+        services.damage().addInterceptor(this, kr.labyrinth.combat.DamageService.ORDER_LAST);
     }
 
     void stop() {

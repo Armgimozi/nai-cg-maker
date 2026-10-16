@@ -2,6 +2,7 @@ package kr.labyrinth.stats;
 
 import java.util.Map;
 import kr.labyrinth.combat.DamageKind;
+import kr.labyrinth.content.ArmorLook;
 import kr.labyrinth.combat.WeaponAttack;
 
 /**
@@ -21,6 +22,12 @@ import kr.labyrinth.combat.WeaponAttack;
  * @param skillPower     스킬 위력 (직업 스킬·무기 스킬·지속 피해의 기준)
  * @param attackInterval 실제 공격 주기(초) — 근접·시전 = 간격 ÷ (1 + 공속), 활 = 당김 + 0.15 (하한 적용)
  * @param magicDamage    마법 피해 가산 (사제 은총 등, 마법 종류 피해에만)
+ * @param knockbackResistance 밀려남 저항 = 힘(최대 50%) + 판금 4부위 버팀, 상한 85% (보스가 미는 것에는 안 듬)
+ * @param lookCounts     겉모습별 부위 수 (요구를 맞춘 것만, 방패 = 판금 한 부위 — look_spec §1.2)
+ * @param bodyLooks      머리·몸·다리·발 겉모습 수 (any 포함, 방패 제외)
+ * @param fullLook       4부위 효과가 켜진 겉모습 (판금 버팀 · 가죽 구르기 · 천 마나 보호막, 없으면 null)
+ * @param cooldownMult   직업·무기 스킬 재사용 대기 배율 (판금 +2%/부위 · 천 −1.5%/부위, 재사용 감소와 따로 곱함, ≥ 0.5)
+ * @param ccResist       기절·속박·빙결 시간 감소 (판금 4부위, 보스가 건 것 제외)
  */
 public record DerivedStats(
         Map<Stat, Integer> stats,
@@ -55,7 +62,24 @@ public record DerivedStats(
         double weaponMidDamage,
         double skillPower,
         double attackInterval,
-        double magicDamage) {
+        double magicDamage,
+        Map<ArmorLook, Integer> lookCounts,
+        Map<ArmorLook, Integer> bodyLooks,
+        ArmorLook fullLook,
+        double cooldownMult,
+        double ccResist) {
+
+    public DerivedStats {
+        lookCounts = lookCounts == null ? Map.of() : lookCounts;
+        bodyLooks = bodyLooks == null ? Map.of() : bodyLooks;
+        if (Double.isNaN(cooldownMult) || cooldownMult <= 0) cooldownMult = 1.0;
+    }
+
+    /** 그 겉모습 부위 수 (방패 포함). */
+    public int lookCount(ArmorLook l) { return lookCounts.getOrDefault(l, 0); }
+
+    /** 4부위 효과가 그 겉모습인가. */
+    public boolean full(ArmorLook l) { return l != null && l == fullLook; }
 
     public int stat(Stat s) { return stats.getOrDefault(s, 0); }
 

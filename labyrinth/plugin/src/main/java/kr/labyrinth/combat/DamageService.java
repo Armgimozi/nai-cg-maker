@@ -29,8 +29,17 @@ public final class DamageService implements Module {
     private final RandomGenerator rng = RandomGenerator.getDefault();
     /** 우리가 직접 바닐라 피해를 줄 때 CombatListener 가 다시 가로채지 않게 하는 표시. */
     private boolean applyingVanilla;
-    /** 피해 적용 직전 가로채기 (items: 무기 스킬 보호막·방어 자세·무적, 자동 부활). */
-    private final java.util.List<DamageInterceptor> interceptors = new java.util.concurrent.CopyOnWriteArrayList<>();
+    /**
+     * 피해 적용 직전 가로채기 (items: 무기 스킬 보호막·방어 자세·무적 → 천 마나 보호막 → 자동 부활). 순서 값이 작은 것부터,
+     * 같으면 등록 순서대로 ({@link #ORDER_MANA_SHIELD} · {@link #ORDER_LAST}).
+     */
+    private final java.util.List<Ordered> interceptors = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private record Ordered(int order, DamageInterceptor interceptor) {}
+
+    /** 천 4부위 마나 보호막 — 무적·보호막 가로채기 뒤, 자동 부활 앞 (review2 C3: 무적이면 MP 가 안 빠지고, 막을 수 있으면 부활하지 않게). */
+    public static final int ORDER_MANA_SHIELD = 50;
+    /** 마지막 (자동 부활 — 남은 피해가 HP 를 넘을 때만). */
+    public static final int ORDER_LAST = 100;
 
     private final List<Hook> hooks = new CopyOnWriteArrayList<>();
 
@@ -94,10 +103,23 @@ public final class DamageService implements Module {
 
     public DamageNumbers numbers() { return numbers; }
 
-    /** 피해 적용 직전 가로채기 등록 ({@link DamageInterceptor}). */
-    public void addInterceptor(DamageInterceptor i) { interceptors.add(i); }
+    /** 피해 적용 직전 가로채기 등록 ({@link DamageInterceptor}, 순서 0). */
+    public void addInterceptor(DamageInterceptor i) { addInterceptor(i, 0); }
 
-    public void removeInterceptor(DamageInterceptor i) { interceptors.remove(i); }
+    /** 순서를 정해 등록 — 작은 값이 먼저 (같으면 등록 순서). */
+    public synchronized void addInterceptor(DamageInterceptor i, int order) {
+        java.util.Objects.requireNonNull(i);
+        int at = interceptors.size();
+        for (int k = 0; k < interceptors.size(); k++) {
+            if (interceptors.get(k).order() > order) {
+                at = k;
+                break;
+            }
+        }
+        interceptors.add(at, new Ordered(order, i));
+    }
+
+    public void removeInterceptor(DamageInterceptor i) { interceptors.removeIf(o -> o.interceptor() == i); }
 
     /** 지금 우리가 직접 바닐라 피해(사망 처리 등)를 주는 중인가 — 다른 리스너가 그 피해를 다시 가로채지 않게. */
     public boolean isApplyingVanilla() { return applyingVanilla; }
@@ -176,6 +198,8 @@ public final class DamageService implements Module {
             defense = def.defense();
             dr = def.damageReduction();
             evasion = def.evasion();
+            // 가죽 4부위 구르기: 구르는 동안 피할 수 있는 공격은 모두 회피 (지속 피해·보스 패턴은 원래 못 피함)
+            if (ctx.canEvade() && services.looks().tumbling(targetPlayer)) evasion = 1.0;
             taken = def.damageTaken();
             if (ctx.canBlock() && def.blockChance() > 0 && isFacing(targetPlayer, ctx.attacker()) && holdsShield(targetPlayer)) {
                 block = def.blockChance();
@@ -225,9 +249,9 @@ public final class DamageService implements Module {
         }
         // 가로채기 (items: 무기 스킬 보호막·방어 자세·무적·자동 부활)
         if (!interceptors.isEmpty() && finalDamage > 0) {
-            for (DamageInterceptor i : interceptors) {
+            for (Ordered o : interceptors) {
                 try {
-                    finalDamage = Math.max(0, i.intercept(ctx, finalDamage));
+                    finalDamage = Math.max(0, o.interceptor().intercept(ctx, finalDamage));
                 } catch (Throwable t) {
                     kr.labyrinth.core.Log.error("DamageInterceptor 오류", t);
                 }
@@ -391,7 +415,21 @@ public final class DamageService implements Module {
         return look.normalize().dot(to.normalize()) >= Math.cos(Math.toRadians(60));
     }
 
-    private static void knockback(LivingEntity target, LivingEntity from, double strength) {
+    /**
+     * 플레이어가 밀려나는 세기 배율 = 1 − 밀려남 저항 (힘 + 판금 4부위 버팀 + 넉백 면역, 바닐라 속성 값). 보스가 민 것·플레이어가 아닌 대상은 1.
+     * 몬스터 스킬·상태이상 밀쳐내기·무기 스킬 밀어내기·함정이 같은 값을 쓴다 (look_spec §1.3).
+     */
+    public double knockbackScale(LivingEntity target, LivingEntity from) {
+        if (!(target instanceof Player p)) return 1.0;
+        boolean boss = from != null && services.bosses().byEntity(from).isPresent();
+        var a = p.getAttribute(org.bukkit.attribute.Attribute.KNOCKBACK_RESISTANCE);
+        double resist = a == null ? services.stats().get(p).knockbackResistance() : a.getValue();
+        return CrowdControl.knockback(1.0, Math.max(0, Math.min(1, resist)), boss);
+    }
+
+    private void knockback(LivingEntity target, LivingEntity from, double strength) {
+        strength *= knockbackScale(target, from);
+        if (strength <= 1e-6) return;
         Vector dir = target.getLocation().toVector().subtract(from.getLocation().toVector()).setY(0);
         if (dir.lengthSquared() < 1e-6) return;
         dir.normalize().multiply(0.4 * strength).setY(Math.min(0.5, 0.15 + 0.1 * strength));

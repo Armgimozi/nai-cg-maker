@@ -56,6 +56,13 @@ public class ChatMenuService implements MenuService {
         p.sendMessage(Text.mm("<gray>치명타 <white>" + Text.pct(s.critChance()) + "</white> ×" + String.format("%.2f", s.critDamage())
                 + " · 회피 <white>" + Text.pct(s.evasion()) + "</white> · 피해감소 <white>" + Text.pct(s.damageReduction())
                 + "</white> · 재사용감소 <white>" + Text.pct(s.cooldownReduction()) + "</white>"));
+        // 겉모습 (look_spec §6.2): 판금·가죽·천 부위 수 → 4부위 효과 · 이동 속도 · 재사용 대기 배율
+        var looks = services.settings().armorLooks();
+        int shield = Math.max(0, s.lookCount(kr.labyrinth.content.ArmorLook.HEAVY)
+                - s.bodyLooks().getOrDefault(kr.labyrinth.content.ArmorLook.HEAVY, 0));
+        p.sendMessage(Text.mm(kr.labyrinth.ui.menus.StatsMenu.lookSummary(looks, s.bodyLooks(), shield, s.fullLook())
+                + " <gray>· 이동 속도 <white>" + kr.labyrinth.ui.menus.StatsMenu.signedPct(s.moveSpeed())
+                + "</white> · 재사용 대기 <white>×" + String.format(java.util.Locale.ROOT, "%.2f", s.cooldownMult()) + "</white>"));
     }
 
     @Override

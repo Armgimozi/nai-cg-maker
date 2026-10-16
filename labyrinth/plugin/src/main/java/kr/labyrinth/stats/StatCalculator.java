@@ -7,6 +7,7 @@ import kr.labyrinth.combat.CombatMath;
 import kr.labyrinth.combat.DamageKind;
 import kr.labyrinth.combat.WeaponAttack;
 import kr.labyrinth.content.ClassDef;
+import kr.labyrinth.core.ArmorLooks;
 
 /**
  * 스탯 → 파생 능력치 순수 계산 (GDD §3, §11.7 상한). Bukkit 의존 없음 — 단위 테스트 대상.
@@ -64,6 +65,21 @@ public final class StatCalculator {
     public static DerivedStats compute(ClassDef cls, int level, Map<Stat, Integer> allocated, StatBlock bonus,
                                        double baseCrit, double baseCritDamage, WeaponAttack attack, double midDamage,
                                        double minInterval) {
+        return compute(cls, level, allocated, bonus, baseCrit, baseCritDamage, attack, midDamage, minInterval, ArmorLooks.OFF);
+    }
+
+    /**
+     * 파생 능력치 + 방어구 겉모습 (look_spec §1.2). bonus 의 {@code look.*}·{@code look_body.*} 수({@link ArmorLookMath})로
+     * 숨은 효과를 더하고(더하는 키는 장비 스탯처럼, 상한 그대로), 방어·최대 HP·MP 재생에 곱하고, 재사용 대기 배율·4부위 효과를 정한다.
+     * 밀려남 저항 = clamp(min(0.5, 0.003 × 힘) + 버팀, 0, 0.85).
+     * @param looks 겉모습 설정 (null·꺼짐 = 효과 없음, 수만 셈)
+     */
+    public static DerivedStats compute(ClassDef cls, int level, Map<Stat, Integer> allocated, StatBlock bonusIn,
+                                       double baseCrit, double baseCritDamage, WeaponAttack attack, double midDamage,
+                                       double minInterval, ArmorLooks looks) {
+        ArmorLookMath.Result look = ArmorLookMath.compute(bonusIn, looks);
+        StatBlock bonus = bonusIn;
+        if (!look.additive().isEmpty()) bonus = new StatBlock().addAll(bonusIn).addAll(look.additive());
         int lv = Math.max(1, level);
         Map<Stat, Integer> s = new EnumMap<>(Stat.class);
         for (Stat st : Stat.values()) {
@@ -85,17 +101,17 @@ public final class StatCalculator {
         double baseMp = cls == null ? BASE_MP_NO_CLASS : cls.baseMp();
         double hpPer = cls == null ? 8 : cls.hpPerLevel();
         double mpPer = cls == null ? 2 : cls.mpPerLevel();
-        double maxHp = Math.max(1, baseHp + hpPer * (lv - 1) + vit * 8.0 + bonus.get("hp"));
+        double maxHp = Math.max(1, (baseHp + hpPer * (lv - 1) + vit * 8.0 + bonus.get("hp")) * look.hpMult());
         double maxMp = Math.max(0, baseMp + mpPer * (lv - 1) + intel * 3.0 + wis * 2.0 + bonus.get("mp"));
 
-        double defense = Math.max(0, vit * 0.5 + bonus.get("defense"));
+        double defense = Math.max(0, vit * 0.5 + bonus.get("defense")) * look.defenseMult();
         double crit = clamp(baseCrit + dex * CombatMath.DEX_CRIT + luk * CombatMath.LUK_CRIT + bonus.get("crit_chance"), 0, CAP_CRIT);
         double critDmg = Math.max(1.0, baseCritDamage + bonus.get("crit_damage"));
         double atkSpeed = CombatMath.attackSpeed(dex, bonus.get("attack_speed"));
         double moveSpeed = clamp(bonus.get("move_speed"), -0.6, CAP_MOVE_SPEED);
         double cdr = clamp(Math.min(CAP_CDR_INT, intel * 0.002) + bonus.get("cooldown_reduction"), 0, CAP_CDR);
         double skillDmg = bonus.get("skill_damage");
-        double manaRegen = Math.max(0, (cls == null ? 1.0 : cls.manaRegen()) + wis * 0.05 + bonus.get("mana_regen"));
+        double manaRegen = Math.max(0, (cls == null ? 1.0 : cls.manaRegen()) + wis * 0.05 + bonus.get("mana_regen")) * look.manaRegenMult();
         double hpRegen = Math.max(0, bonus.get("hp_regen"));
         double healPower = Math.max(0, wis * 1.5 + bonus.get("heal_power"));
         double lifesteal = clamp(bonus.get("lifesteal"), 0, CAP_LIFESTEAL);
@@ -106,7 +122,7 @@ public final class StatCalculator {
         double xp = Math.max(-0.9, bonus.get("xp_bonus"));
         double craft = clamp(bonus.get("craft_discount"), 0, CAP_CRAFT);
         double debuff = clamp(wis * 0.005, 0, CAP_DEBUFF);
-        double kb = clamp(str * 0.003, 0, 0.5);
+        double kb = ArmorLookMath.knockbackResistance(str, look.knockbackResist());
         double dmgMult = Math.max(-0.9, bonus.get("damage_mult"));
         double dmgTaken = Math.max(-0.9, bonus.get("damage_taken"));
         double magicDmg = Math.max(-0.9, bonus.get("magic_damage"));
@@ -115,7 +131,8 @@ public final class StatCalculator {
 
         return new DerivedStats(Collections.unmodifiableMap(s), weapon, attackPower, maxHp, maxMp, defense, crit,
                 critDmg, atkSpeed, moveSpeed, cdr, skillDmg, manaRegen, hpRegen, healPower, lifesteal, dr, evasion,
-                block, gold, xp, craft, debuff, kb, dmgMult, dmgTaken, physical, magic, wa, mid, skillPower, cycle, magicDmg);
+                block, gold, xp, craft, debuff, kb, dmgMult, dmgTaken, physical, magic, wa, mid, skillPower, cycle, magicDmg,
+                look.counts(), look.body(), look.full(), look.cooldownMult(), look.ccResist());
     }
 
     static double clamp(double v, double min, double max) {

@@ -36,6 +36,7 @@ public final class Settings {
     private final int starterGold;
     private final Death death;
     private final ClassChange classChange;
+    private final ArmorLooks armorLooks;
 
     public record Entrance(String mode, String world, double x, double y, double z, float yaw, float pitch, double radius) {
         public boolean isSet() { return world != null && !world.isBlank(); }
@@ -201,6 +202,9 @@ public final class Settings {
                 c.getBoolean("death.keep_level", Death.DEFAULT.keepLevel()));
         this.classChange = Boolean.FALSE.equals(c.get("class_change")) ? ClassChange.NONE
                 : classChange(c.getConfigurationSection("class_change"));
+        // 0.3.5 방어구 겉모습 장단점 (look_spec §7) — 키가 없으면 코드 기본값 (예전 서버 config 도 그대로 켜진다)
+        this.armorLooks = Boolean.FALSE.equals(c.get("armor_looks")) ? ArmorLooks.OFF
+                : ArmorLooks.read(c.getConfigurationSection("armor_looks"));
     }
 
     /**
@@ -323,6 +327,9 @@ public final class Settings {
 
     /** 직업 변경 제한 (전직의 두루마리·대기 시간). */
     public ClassChange classChange() { return classChange; }
+
+    /** 방어구 겉모습 장단점 (판금·가죽·천 숨은 효과 · 4부위 효과). */
+    public ArmorLooks armorLooks() { return armorLooks; }
 
     /** 맨손 초당 공격 횟수 (config weapon_attack_speed.none). 무기는 저마다 items.yml attack.interval. */
     public double unarmedAttackSpeed() { return unarmedAttackSpeed; }

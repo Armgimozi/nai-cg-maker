@@ -151,6 +151,10 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
         if (target instanceof Player p && EffectStack.harmful(id) && !id.equals("stun") && !id.equals("frozen")) {
             dur *= 1.0 - services.stats().get(p).debuffReduction();
         }
+        // 판금 4부위 버팀: 기절·속박·빙결 시간 −40% (정신 감소와 따로 곱함, 보스가 건 것은 그대로 — look_spec §1.3)
+        if (target instanceof Player p && kr.labyrinth.combat.CrowdControl.HARD.contains(id)) {
+            dur = kr.labyrinth.combat.CrowdControl.duration(dur, services.stats().get(p).ccResist(), isBoss(source));
+        }
         // PvP (pvp_spec §9): 다른 파티 플레이어가 건 것만 — 정신 감소 다음에 종류별 배율 → 상한 → 줄어듦 → 면역. 기절은 기절 그대로
         boolean pvpCc = false;
         if (target instanceof Player p && source instanceof Player && !source.equals(p) && EffectStack.harmful(id)) {
@@ -326,6 +330,9 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
             SkillFx.burst(target.getLocation().add(0, 1, 0), Particle.ENCHANTED_HIT, 8, 0.3, 0.1, null);
             return;
         }
+        // 플레이어: 밀려남 저항(힘 + 판금 버팀)만큼 약하게 — 보스가 민 것은 그대로
+        strength *= services.damage().knockbackScale(target, source);
+        if (strength <= 1e-6) return;
         Vector dir = source == null ? target.getLocation().getDirection().multiply(-1)
                 : target.getLocation().toVector().subtract(source.getLocation().toVector());
         dir.setY(0);

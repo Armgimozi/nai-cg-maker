@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import kr.labyrinth.content.ArmorLook;
 import kr.labyrinth.content.BossDef;
 import kr.labyrinth.content.ClassDef;
 import kr.labyrinth.content.Content;
@@ -35,9 +36,9 @@ import org.junit.jupiter.api.Test;
 
 /**
  * 장비 데이터 — 착용 요구 능력치(items.yml {@code requires} · {@code requires_any})와 영웅 이상 무기 획득처 1곳.
- * 요구 능력치 = ceil(2.5 × (숨은 아이템 레벨 − 1)), 2 이하면 없음. 무기는 무기마다 정한다(종류 없음 — 모두 채워야 하는 AND,
- * 물리 무기는 힘·민첩, 마법 무기는 지능·정신 중 하나 이상), 방어구는 겉모습으로 정한다
- * (판금·방패 VIT · 가죽 DEX · 천 INT 또는 WIS · 모든 직업용은 주 능력치 하나). '내 능력치' = 직업 기본 + 분배 포인트 (+ 칭호).
+ * 무기 요구 능력치 = ceil(2.5 × (숨은 아이템 레벨 − 1)), 2 이하면 없음 — 무기마다 정한다(종류 없음 — 모두 채워야 하는 AND,
+ * 물리 무기는 힘·민첩, 마법 무기는 지능·정신 중 하나 이상). 방어구·방패 규칙(0.3.5 겉모습 — 합 ceil(2.75(L−1)), 두 능력치)은
+ * {@code items.ArmorRequirementsDataTest}. '내 능력치' = 직업 기본 + 분배 포인트 (+ 칭호).
  * 파서가 아직 요구 능력치를 따로 읽지 않아도 되게 {@link ItemDef#raw()} 에서 직접 읽는다.
  */
 class GearRequirementsDataTest {
@@ -52,13 +53,8 @@ class GearRequirementsDataTest {
     static final Map<kr.labyrinth.combat.DamageKind, Set<String>> WEAPON_DAMAGE_STATS = Map.of(
             kr.labyrinth.combat.DamageKind.PHYSICAL, Set.of("STR", "DEX"), kr.labyrinth.combat.DamageKind.MAGIC, Set.of("INT", "WIS"),
             kr.labyrinth.combat.DamageKind.HYBRID, Set.of("STR", "DEX", "INT", "WIS"));
-    /** 겉모습: 세트는 흉갑 모양, 단품 투구는 투구 모양. */
-    static final Map<String, String> LOOK = Map.ofEntries(Map.entry("chestplate", "heavy"), Map.entry("leather_vest", "light"),
-            Map.entry("robe_top", "cloth"), Map.entry("helm_knight", "heavy"), Map.entry("helm_horned", "heavy"),
-            Map.entry("helm_winged", "heavy"), Map.entry("hood", "light"), Map.entry("half_mask", "light"),
-            Map.entry("circlet", "cloth"), Map.entry("crown", "cloth"), Map.entry("wizard_hat", "cloth"));
-    static final Map<String, Set<String>> LOOK_CLASSES = Map.of("heavy", Set.of("guardian", "berserker"),
-            "light", Set.of("hunter", "shadow"), "cloth", Set.of("arcanist", "priest"));
+    static final Map<ArmorLook, Set<String>> LOOK_CLASSES = Map.of(ArmorLook.HEAVY, Set.of("guardian", "berserker"),
+            ArmorLook.LIGHT, Set.of("hunter", "shadow"), ArmorLook.CLOTH, Set.of("arcanist", "priest"));
 
     @BeforeAll
     static void load() {
@@ -83,31 +79,6 @@ class GearRequirementsDataTest {
         return r > 2 ? r : 0;
     }
 
-    static String look(ItemDef d) {
-        if (d.isShield()) return "shield";
-        if (d.armorSet() != null) {
-            for (ItemDef o : content.items().values()) {
-                if (d.armorSet().equals(o.armorSet()) && "chest".equals(o.armorSlot())) return LOOK.get(o.model().str("shape"));
-            }
-        }
-        return LOOK.get(d.model().str("shape"));
-    }
-
-    /** 방어구: 규칙대로라면 → [requires, requires_any]. */
-    static List<Map<String, Integer>> expected(ItemDef d) {
-        Map<String, Integer> all = new LinkedHashMap<>(), any = new LinkedHashMap<>();
-        int r = value(d.levelReq());
-        if (r > 0) {
-            if (d.classes().isEmpty()) for (String s : MAIN) any.put(s, r);
-            else switch (look(d)) {
-                case "heavy", "shield" -> all.put("VIT", r);
-                case "light" -> all.put("DEX", r);
-                default -> { any.put("INT", r); any.put("WIS", r); }
-            }
-        }
-        return List.of(all, any);
-    }
-
     @Test
     void everyGearRequirementFollowsTheRule() {
         int with = 0;
@@ -129,12 +100,11 @@ class GearRequirementsDataTest {
                     Set<String> dmg = WEAPON_DAMAGE_STATS.get(d.attack().kind());
                     assertTrue(all.keySet().stream().anyMatch(dmg::contains), d.id() + " " + d.attack().kind() + " 무기인데 요구 " + all);
                 }
-            } else {
-                assertEquals(expected(d), List.of(all, any), d.id() + " 요구 능력치 (아이템 레벨 " + d.levelReq() + ")");
             }
+            // 방어구·방패 요구 규칙은 ArmorRequirementsDataTest
             if (!all.isEmpty() || !any.isEmpty()) with++;
-            if (!d.isWeapon() && !d.isShield() && !d.classes().isEmpty()) {
-                assertTrue(LOOK_CLASSES.get(look(d)).containsAll(d.classes()), d.id() + " 겉모습 " + look(d) + " 인데 classes " + d.classes());
+            if (!d.isWeapon() && !d.isShield() && !d.classes().isEmpty() && d.armorLook().real()) {
+                assertTrue(LOOK_CLASSES.get(d.armorLook()).containsAll(d.classes()), d.id() + " 겉모습 " + d.armorLook() + " 인데 classes " + d.classes());
             }
         }
         assertTrue(with >= 200, "요구 능력치가 붙은 장비 " + with);
@@ -173,6 +143,8 @@ class GearRequirementsDataTest {
             int f1 = 0;
             for (ItemDef d : content.items().values()) {
                 if (!(d.isWeapon() || d.type() == ItemType.ARMOR) || d.floor() != 1 || !d.suitedFor(c.id())) continue;
+                // 방어구는 평상복만 Lv.1 에 (겉모습 방어구는 그 아이템 레벨에서 — 1층 보스 투구 Lv5, ownFloorKit… 이 본다)
+                if (d.type() == ItemType.ARMOR && d.armorLook() != ArmorLook.PLAIN) continue;
                 f1++;
                 assertTrue(pointsFor(c, d) <= startPoints, c.id() + " Lv.1 에서 1층 " + d.id() + " 에 포인트 " + pointsFor(c, d) + " > " + startPoints);
             }

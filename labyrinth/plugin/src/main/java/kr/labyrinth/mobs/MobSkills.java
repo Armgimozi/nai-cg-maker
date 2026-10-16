@@ -175,7 +175,7 @@ final class MobSkills {
         if (effect == null || effect.isBlank() || p == null) return;
         String e = effect.toLowerCase(Locale.ROOT);
         switch (e) {
-            case "knockback" -> push(p, from, amount <= 0 ? 0.8 : amount);
+            case "knockback" -> push(m, p, from, amount <= 0 ? 0.8 : amount);
             case "damage" -> hit(m, p, m.damage() * (amount <= 0 ? 0.25 : amount), DamageType.TRUE, "aura", 0);
             default -> {
                 double a = amount > 0 ? amount : switch (e) {
@@ -189,7 +189,10 @@ final class MobSkills {
         }
     }
 
-    static void push(LivingEntity e, Location from, double strength) {
+    /** 밀쳐내기 — 플레이어는 밀려남 저항(힘 + 판금 4부위 버팀)만큼 약하게 (look_spec §1.3). */
+    static void push(LabMob m, LivingEntity e, Location from, double strength) {
+        strength *= m.services.damage().knockbackScale(e, m.entity.isValid() ? m.entity : null);
+        if (strength <= 1e-6) return;
         Vector d = e.getLocation().toVector().subtract(from.toVector()).setY(0);
         if (d.lengthSquared() < 1e-4) d = new Vector(ThreadLocalRandom.current().nextDouble() - 0.5, 0, ThreadLocalRandom.current().nextDouble() - 0.5);
         d.normalize().multiply(0.6 * strength).setY(Math.min(0.6, 0.25 + 0.12 * strength));
@@ -513,7 +516,7 @@ final class MobSkills {
             for (LivingEntity e : m.victimsNear(at, r + 1)) {
                 if (!shape.contains(e.getLocation())) continue;
                 hit(m, e, dmg, DamageType.MAGIC, "blast", 0);
-                if (kb > 0) push(e, at, kb * 2);
+                if (kb > 0) push(m, e, at, kb * 2);
             }
         }));
     }

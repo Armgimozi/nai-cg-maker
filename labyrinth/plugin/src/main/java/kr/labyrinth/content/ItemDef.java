@@ -15,6 +15,10 @@ import kr.labyrinth.combat.WeaponAttack;
  * <p>
  * {@code unique} (0.3.5, unique_spec): 무기 고유 효과 하나 ({@link UniqueDef}). 무기가 아니면 null. 무기인데 null 로 만들면
  * raw 의 unique 블록을 읽는다 (없으면 null — 효과 없음).
+ * <p>
+ * {@code look} (0.3.5, look_spec §1.1): 방어구 겉모습 ({@link ArmorLook}). 방어구가 아니면 null. 파서가 정한다 —
+ * items.yml {@code look}(세트 없는 투구) → 방패면 판금 → 세트 {@code look}(세트에 {@code look_effects: false} 면 평상복) → 없으면 평상복.
+ * null 로 만들면 raw 의 look 키 → 방패면 판금 순으로 읽고, 그래도 없으면 null (파서가 세트에서 채운다, 시험용 정의는 평상복으로 다룸).
  */
 public record ItemDef(
         String id,
@@ -39,7 +43,8 @@ public record ItemDef(
         Params texture,
         String lore,
         Params raw,
-        UniqueDef unique) {
+        UniqueDef unique,
+        ArmorLook look) {
 
     /**
      * 무기 스킬. input = LEFT | RIGHT | SNEAK_LEFT | SNEAK_RIGHT.
@@ -62,6 +67,21 @@ public record ItemDef(
             if (attack == null) attack = WeaponAttack.parse(raw);
             if (unique == null) unique = UniqueDef.parse(raw);
         }
+        if (type != ItemType.ARMOR) {
+            look = null;
+        } else if (look == null) {
+            look = raw == null ? null : ArmorLook.byId(raw.str("look"));
+            if (look == null && "offhand".equals(armorSlot)) look = ArmorLook.HEAVY;
+        }
+    }
+
+    /** 겉모습을 raw·방패에서 읽는다 (0.3.5 P1 까지의 꼴). */
+    public ItemDef(String id, String name, ItemType type, WeaponAttack attack, String armorSlot, String armorSet,
+                   Rarity rarity, int levelReq, StatRequirement requires, List<String> classes, Map<String, Range> stats,
+                   String setBonus, String aura, List<WeaponSkillDef> weaponSkills, int floor, boolean pool,
+                   List<String> sources, Params use, Params model, Params texture, String lore, Params raw, UniqueDef unique) {
+        this(id, name, type, attack, armorSlot, armorSet, rarity, levelReq, requires, classes, stats, setBonus, aura,
+                weaponSkills, floor, pool, sources, use, model, texture, lore, raw, unique, null);
     }
 
     /** 고유 효과를 raw 에서 읽는다 (0.3.4 까지의 꼴 — 시험·도구용). */
@@ -70,7 +90,7 @@ public record ItemDef(
                    String setBonus, String aura, List<WeaponSkillDef> weaponSkills, int floor, boolean pool,
                    List<String> sources, Params use, Params model, Params texture, String lore, Params raw) {
         this(id, name, type, attack, armorSlot, armorSet, rarity, levelReq, requires, classes, stats, setBonus, aura,
-                weaponSkills, floor, pool, sources, use, model, texture, lore, raw, null);
+                weaponSkills, floor, pool, sources, use, model, texture, lore, raw, null, null);
     }
 
     /**
@@ -89,6 +109,12 @@ public record ItemDef(
     public boolean isGear() { return type.isGear(); }
     public boolean isShield() { return "offhand".equals(armorSlot); }
 
+    /** 방어구 겉모습 (방어구가 아니면 null, 정하지 못했으면 평상복). */
+    public ArmorLook armorLook() {
+        if (type != ItemType.ARMOR) return null;
+        return look == null ? ArmorLook.PLAIN : look;
+    }
+
     /** 활처럼 당겨 쏘는 무기 ({@code attack.style: ranged}). */
     public boolean isRanged() { return attack != null && attack.ranged(); }
 
@@ -103,7 +129,13 @@ public record ItemDef(
     /** 요구 능력치만 바꾼 사본 (시험·도구용). */
     public ItemDef withRequires(StatRequirement r) {
         return new ItemDef(id, name, type, attack, armorSlot, armorSet, rarity, levelReq, r == null ? StatRequirement.NONE : r,
-                classes, stats, setBonus, aura, weaponSkills, floor, pool, sources, use, model, texture, lore, raw, unique);
+                classes, stats, setBonus, aura, weaponSkills, floor, pool, sources, use, model, texture, lore, raw, unique, look);
+    }
+
+    /** 겉모습만 바꾼 사본 (파서가 세트 겉모습을 정할 때). */
+    public ItemDef withLook(ArmorLook l) {
+        return new ItemDef(id, name, type, attack, armorSlot, armorSet, rarity, levelReq, requires, classes, stats, setBonus,
+                aura, weaponSkills, floor, pool, sources, use, model, texture, lore, raw, unique, l);
     }
 
     /** 직업 제한 없음 — 어느 직업이든(직업 없음 포함) 모든 장비를 쓴다 (GDD §4.4). */

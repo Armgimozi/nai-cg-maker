@@ -22,6 +22,14 @@ public record StatRequirement(Map<Stat, Integer> all, Map<Stat, Integer> any) {
 
     public static final StatRequirement NONE = new StatRequirement(Map.of(), Map.of());
 
+    /**
+     * 0.3.5 요구 합 T(L) = ceil(2.75 × (L − 1)), L ≤ 2 이면 0 (review2 A3 — 무기·방어구 같은 식). 두 능력치면 60 : 40,
+     * 세 능력치면 50 : 30 : 20 (L ≥ 12). L = 숨은 아이템 레벨(items.yml level_req).
+     */
+    public static int budget(int level) {
+        return level <= 2 ? 0 : (int) Math.ceil(2.75 * (level - 1) - 1e-9);
+    }
+
     /** 충족 색 (툴팁·대장간·도감). */
     public static final String MET_COLOR = "#9be89b";
     /** 미달 색. */

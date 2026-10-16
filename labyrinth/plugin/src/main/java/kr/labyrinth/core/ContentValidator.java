@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import kr.labyrinth.content.AchievementDef;
+import kr.labyrinth.content.ArmorLook;
 import kr.labyrinth.content.AuraDef;
 import kr.labyrinth.content.BossDef;
 import kr.labyrinth.content.ClassDef;
@@ -106,6 +107,7 @@ public final class ContentValidator {
         loot();
         recipes();
         requirements();
+        armorLooks();
         gearHomes();
         titles();
         npcs();
@@ -292,6 +294,54 @@ public final class ContentValidator {
                 warn("items." + weapon.id(), "직업 " + cls.id() + " 의 시작 무기인데 Lv.1 에 쓸 수 없음 (" + weapon.requirement().text()
                         + " — 시작 포인트 " + START_POINTS + " 로 " + need + " 필요)");
             }
+        }
+    }
+
+    /**
+     * 방어구 겉모습 (look_spec §1.1·§3.1, review2 A3): 모든 방어구가 겉모습을 갖는다 (세트 없는 투구는 {@code look}, 방패는 적지 않음 —
+     * 언제나 판금). 요구 능력치는 '모두 채움'만, 합 = T(L) = ceil(2.75(L−1)), 판금·가죽·천은 두 능력치(앞 = 겉모습 능력치 — 판금·방패
+     * 체력 · 가죽 민첩 · 천 지능 또는 정신, 가장 큰 몫 60% 안팎), 평상복·any 는 능력치 1~3개 자유. 어긋나면 경고 (게임은 돌아감).
+     */
+    private void armorLooks() {
+        for (ItemDef d : c.items().values()) {
+            if (d.type() != ItemType.ARMOR) continue;
+            String w = "items." + d.id();
+            boolean hasLook = d.raw() != null && d.raw().has("look");
+            boolean setless = (d.setBonus() == null || !c.sets().containsKey(d.setBonus()))
+                    && (d.armorSet() == null || !c.sets().containsKey(d.armorSet()));
+            if (d.isShield() && hasLook) warn(w, "방패에는 look 을 적지 않는다 (언제나 판금)");
+            else if (setless && !d.isShield() && !hasLook) warn(w, "세트 없는 방어구인데 look 이 없음 — 평상복(겉모습 효과 없음)으로 다룸");
+            else if (!setless && hasLook && !d.isShield()) warn(w, "세트 방어구인데 look 이 적혀 있음 — 세트 겉모습 대신 이 값을 씀");
+            armorRequirement(w, d, d.armorLook());
+        }
+        for (ItemSetDef s : c.sets().values()) {
+            ArmorLook l = ArmorLook.byId(s.look());
+            if (l == null || !l.real()) err("sets." + s.id(), "look 은 heavy | light | cloth: " + s.look());
+        }
+    }
+
+    private void armorRequirement(String w, ItemDef d, ArmorLook look) {
+        StatRequirement r = d.requirement();
+        if (!r.any().isEmpty()) warn(w, "방어구 요구는 '모두 채움'만 — requires_any('… 중 하나')는 0.3.5 부터 쓰지 않음");
+        int t = StatRequirement.budget(d.levelReq());
+        int sum = r.all().values().stream().mapToInt(Integer::intValue).sum();
+        if (t == 0) {
+            if (sum > 0) warn(w, "아이템 레벨 " + d.levelReq() + " 은 요구 없음인데 " + r.text());
+            return;
+        }
+        if (sum != t) warn(w, "요구 합 " + sum + " ≠ " + t + " (아이템 레벨 " + d.levelReq() + ", T = ceil(2.75(L−1)))");
+        int n = r.all().size();
+        if (look != null && look.real() ? n != 2 : (n < 1 || n > 3)) {
+            warn(w, "요구 능력치 " + n + "개 — " + (look != null && look.real() ? "판금·가죽·천은 두 능력치" : "1~3개"));
+        }
+        if (look == null || !look.real() || r.all().isEmpty()) return;
+        Map.Entry<Stat, Integer> lead = null;
+        for (Map.Entry<Stat, Integer> e : r.all().entrySet()) if (lead == null || e.getValue() > lead.getValue()) lead = e;
+        if (!look.leadStats().contains(lead.getKey())) {
+            warn(w, look.id() + " 인데 가장 큰 요구가 " + lead.getKey().displayName() + " — 판금·방패 체력 · 가죽 민첩 · 천 지능 또는 정신");
+        }
+        if (lead.getValue() > Math.ceil(0.6 * sum) || lead.getValue() * 2 < sum) {
+            warn(w, "요구 나눔 " + r.text() + " — 앞 능력치가 합의 50~60%");
         }
     }
 

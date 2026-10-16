@@ -58,6 +58,8 @@ public final class ContentParser {
         });
         Map<String, ItemSetDef> sets = new LinkedHashMap<>();
         itemsRoot.sub("sets").children().forEach((id, p) -> sets.put(id, parseSet(id, p)));
+        // 방어구 겉모습 (look_spec §1.1): 단품 look → 방패 판금 → 세트 look (look_effects: false 면 평상복) → 평상복
+        items.replaceAll((id, d) -> d.type() == ItemType.ARMOR && d.look() == null ? d.withLook(lookFromSet(d, sets)) : d);
 
         Map<String, MobDef> mobs = new LinkedHashMap<>();
         mobsRoot.sub("mobs").children().forEach((id, p) -> mobs.put(id, parseMob(id, p)));
@@ -208,11 +210,21 @@ public final class ContentParser {
                 if (unique == null) problem("items.yml", id, "unique.id 가 없음");
             }
         }
+        // 0.3.5 겉모습 (look_spec §1.1): 세트 없는 투구만 적는다 — heavy | light | cloth | any
+        ArmorLook look = null;
+        if (p.has("look")) {
+            look = ArmorLook.byId(p.str("look"));
+            if (type != ItemType.ARMOR) problem("items.yml", id, "look 은 방어구만 — " + type.id() + " 에는 무시됨");
+            else if (look == null || look == ArmorLook.PLAIN) {
+                problem("items.yml", id, "look 은 heavy | light | cloth | any: " + p.str("look"));
+                look = null;
+            }
+        }
         return new ItemDef(id, p.str("name", id), type, attack, p.str("armor_slot"),
                 p.str("armor_set"), rarity, p.integer("level_req", 1), req, p.strings("classes"),
                 Collections.unmodifiableMap(stats), p.str("set_bonus"), p.str("aura"), List.copyOf(ws),
                 p.integer("floor", 0), p.bool("pool", true), p.strings("sources"), p.sub("use"), p.sub("model"),
-                p.sub("texture"), p.str("lore", ""), p, unique);
+                p.sub("texture"), p.str("lore", ""), p, unique, look);
     }
 
     /** requires / requires_any: {STR: 30, ...} — 키는 STR DEX INT VIT WIS LUK, 값은 0 이상 정수 (0 = 요구 없음). */
@@ -238,6 +250,14 @@ public final class ContentParser {
         return out;
     }
 
+    /** 세트에서 정하는 겉모습 (set_bonus → armor_set 순, 세트가 없거나 look 을 모르면 평상복). */
+    static ArmorLook lookFromSet(ItemDef d, Map<String, ItemSetDef> sets) {
+        ItemSetDef set = d.setBonus() == null ? null : sets.get(d.setBonus());
+        if (set == null && d.armorSet() != null) set = sets.get(d.armorSet());
+        ArmorLook l = set == null ? null : set.armorLook();
+        return l == null ? ArmorLook.PLAIN : l;
+    }
+
     private ItemSetDef parseSet(String id, Params p) {
         NavigableMap<Integer, Map<String, Double>> bonuses = new TreeMap<>();
         p.sub("bonuses").children().forEach((count, b) -> {
@@ -249,8 +269,11 @@ public final class ContentParser {
                 problem("items.yml", "sets." + id, "bonuses 키는 착용 개수(숫자)여야 함: " + count);
             }
         });
-        return new ItemSetDef(id, p.str("name", id), p.str("look", "light"), p.strings("pieces"),
-                Collections.unmodifiableNavigableMap(bonuses));
+        String look = p.str("look", "light");
+        ArmorLook l = ArmorLook.byId(look);
+        if (l == null || !l.real()) problem("items.yml", "sets." + id, "look 은 heavy | light | cloth: " + look);
+        return new ItemSetDef(id, p.str("name", id), look, p.strings("pieces"),
+                Collections.unmodifiableNavigableMap(bonuses), p.bool("look_effects", true));
     }
 
     // ── mobs / bosses ─────────────────────────────────────────────────────

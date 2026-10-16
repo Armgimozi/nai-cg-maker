@@ -13,7 +13,6 @@ import kr.labyrinth.core.Keys;
 import kr.labyrinth.mobs.CustomMob;
 import kr.labyrinth.pvp.PvpSources;
 import org.bukkit.attribute.Attribute;
-import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Arrow;
@@ -248,7 +247,7 @@ final class CombatListener implements Listener {
         // 바닐라 넉백: 맞으면 기본 0.4, 꽉 찬 공격의 달리기 +1·밀치기 레벨당 +1 (×0.5) → DamageService 단위(0.4 = 1)
         double kb = sweep ? 1.0 : 1.0 + 1.25 * ((cd > 0.9f && attacker.isSprinting() ? 1 : 0) + level(weapon, Enchantment.KNOCKBACK));
         DamageContext ctx = damage.deal(DamageContext.attack(attacker, victim, meleeMult(attacker, be), DamageType.MELEE)
-                .knockback(kb * (1.0 - knockbackResistance(victim))));
+                .knockback(kb)); // 맞는 쪽 밀려남 저항(힘·버팀·넉백 면역)은 DamageService 가 곱한다
         if (landed(ctx) && !sweep) {
             int fire = level(weapon, Enchantment.FIRE_ASPECT);
             if (fire > 0) igniteLater(victim, fire * 80);
@@ -264,7 +263,7 @@ final class CombatListener implements Listener {
         }
         double kb = arrow instanceof Trident ? 1.0 : 0.6 + 1.5 * punch;
         DamageContext ctx = damage.deal(DamageContext.attack(shooter, victim, rangedMult(shooter, arrow, critical), DamageType.RANGED)
-                .knockback(kb * (1.0 - knockbackResistance(victim))));
+                .knockback(kb)); // 맞는 쪽 밀려남 저항(힘·버팀·넉백 면역)은 DamageService 가 곱한다
         if (landed(ctx)) {
             if (arrow.getFireTicks() > 0) igniteLater(victim, 100);
             if (arrow instanceof Arrow tipped) applyTipped(tipped, victim);
@@ -303,8 +302,4 @@ final class CombatListener implements Listener {
         return it == null || it.getType().isAir() ? 0 : it.getEnchantmentLevel(ench);
     }
 
-    private static double knockbackResistance(LivingEntity e) {
-        AttributeInstance a = e.getAttribute(Attribute.KNOCKBACK_RESISTANCE);
-        return a == null ? 0 : Math.max(0, Math.min(1, a.getValue()));
-    }
 }

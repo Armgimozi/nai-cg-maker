@@ -29,6 +29,7 @@ import kr.labyrinth.items.NoopCraftingService;
 import kr.labyrinth.items.NoopLootService;
 import kr.labyrinth.items.NoopWeaponSkillService;
 import kr.labyrinth.items.WeaponSkillService;
+import kr.labyrinth.items.LookEffects;
 import kr.labyrinth.items.unique.UniqueEffects;
 import kr.labyrinth.mobs.MobService;
 import kr.labyrinth.mobs.NoopMobService;
@@ -79,6 +80,7 @@ public final class Services {
     private volatile CraftingService crafting;
     private volatile WeaponSkillService weaponSkills;
     private volatile UniqueEffects unique = UniqueEffects.NONE;
+    private volatile LookEffects looks = LookEffects.NONE;
     private volatile ClassService classes;
     private volatile StatusEffectService effects;
     private volatile TargetFilter targets;
@@ -139,6 +141,7 @@ public final class Services {
             Log.info("config.yml weapon_attack_speed 의 " + String.join(", ", settings.ignoredWeaponSpeedKeys())
                     + " 는 0.3.5 부터 읽지 않습니다 (무기마다 공격 간격이 있음). none(맨손)만 씁니다.");
         }
+        for (String w : settings.armorLooks().warnings()) Log.warn("[config] " + w);
     }
 
     /** config.yml 수정 + 저장 + 다시 읽기 (난이도 설정 등). */
@@ -202,6 +205,8 @@ public final class Services {
     public WeaponSkillService weaponSkills() { return weaponSkills; }
     /** 무기 고유 효과 (items 담당, 기본 = 효과 없음). */
     public UniqueEffects unique() { return unique; }
+    /** 방어구 겉모습 4부위 효과 (구르기·마나 보호막) — items 모듈이 켬. */
+    public LookEffects looks() { return looks; }
     public ClassService classes() { return classes; }
     public StatusEffectService effects() { return effects; }
     public TargetFilter targets() { return targets; }
@@ -221,6 +226,7 @@ public final class Services {
     public void setCrafting(CraftingService s) { crafting = Objects.requireNonNull(s); }
     public void setWeaponSkills(WeaponSkillService s) { weaponSkills = Objects.requireNonNull(s); }
     public void setUnique(UniqueEffects s) { unique = Objects.requireNonNull(s); }
+    public void setLooks(LookEffects s) { looks = Objects.requireNonNull(s); }
     public void setClasses(ClassService s) { classes = Objects.requireNonNull(s); }
     public void setEffects(StatusEffectService s) { effects = Objects.requireNonNull(s); }
     public void setTargets(TargetFilter s) { targets = Objects.requireNonNull(s); }

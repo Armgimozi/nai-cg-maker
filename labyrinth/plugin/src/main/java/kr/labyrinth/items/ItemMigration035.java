@@ -14,7 +14,11 @@ import kr.labyrinth.content.Range;
  *   <li>강화 단계·다른 스탯 굴림·시드는 그대로.</li>
  *   <li>새 범위 = 지금 items.yml. 범위가 같으면 아무것도 안 바뀐다.</li>
  * </ul>
- * 같은 깃발로 다른 0.3.5 옮기기(방어구 스탯 줄 이름 등)를 더할 때는 {@link #migrate} 안에 단계를 덧붙인다 — 깃발은 한 번만 찍힌다.
+ * <ul>
+ *   <li>방어구 스탯 줄 이름 (look_spec §3.3 + review2 A2): 요구 능력치 짝에 맞춰 세트의 스탯 줄 이름만 바꾼다 —
+ *       굴린 값·강화·시드는 그대로, PDC 의 키만 ({@link #ARMOR_RENAME}, 0.3.4 에 있던 8세트).</li>
+ * </ul>
+ * 같은 깃발로 다른 0.3.5 옮기기를 더할 때는 {@link #migrate} 안에 단계를 덧붙인다 — 깃발은 한 번만 찍힌다.
  */
 public final class ItemMigration035 {
 
@@ -155,6 +159,20 @@ public final class ItemMigration035 {
             Map.entry("viper_fang", new Range(47, 53)),
             Map.entry("eclipse_blade", new Range(53, 58)));
 
+    /**
+     * 세트 id → {옛 스탯 키 → 새 스탯 키} (tools/data/035/armor_looks.json stats_rename 중 0.3.4 에 있던 세트).
+     * 0.3.5 에 새로 들어오는 세트(균사 갑각·수로 잠수부·색인 방벽·잿불 성가자)는 처음부터 새 이름이라 옮길 것이 없다.
+     */
+    public static final Map<String, Map<String, String>> ARMOR_RENAME = Map.of(
+            "verdigris_guard", Map.of("STR", "WIS"),
+            "rimefang", Map.of("LUK", "STR"),
+            "shard_dancer", Map.of("LUK", "STR"),
+            "inkveil", Map.of("LUK", "INT"),
+            "spore_sage", Map.of("INT", "VIT"),
+            "lorekeeper", Map.of("WIS", "VIT"),
+            "abyss_walker", Map.of("LUK", "STR"),
+            "starless_choir", Map.of("WIS", "VIT"));
+
     private ItemMigration035() {}
 
     /** 옮길 것이 있는가 (깃발이 35 보다 낮은 장비). */
@@ -165,12 +183,30 @@ public final class ItemMigration035 {
     /** 옛 굴림값 → 0.3.5 굴림값 (바뀐 것이 없으면 같은 내용의 새 맵). */
     public static Map<String, Double> migrate(ItemDef def, Map<String, Double> rolls) {
         Map<String, Double> out = new LinkedHashMap<>(rolls);
+        if (def != null && def.type() == kr.labyrinth.content.ItemType.ARMOR) return renameArmor(def, out);
         if (def == null || !def.isWeapon()) return out;
         Double v = rolls.get("damage");
         Range old = OLD_DAMAGE.get(def.id());
         Range now = def.stats().get("damage");
         if (v == null || old == null || now == null) return out;
         out.put("damage", (double) migrateDamage(v, old, now));
+        return out;
+    }
+
+    /**
+     * 방어구 스탯 줄 이름 바꾸기: 옛 키가 굴림에 있고, 새 키는 지금 정의에만 있고(옛 키는 없음) 굴림에는 아직 없을 때만 —
+     * 값은 그대로, 줄 순서도 그대로.
+     */
+    static Map<String, Double> renameArmor(ItemDef def, Map<String, Double> rolls) {
+        String set = def.setBonus() != null ? def.setBonus() : def.armorSet();
+        Map<String, String> ren = set == null ? null : ARMOR_RENAME.get(set);
+        if (ren == null) return rolls;
+        Map<String, Double> out = new LinkedHashMap<>();
+        rolls.forEach((k, v) -> {
+            String to = ren.get(k);
+            boolean move = to != null && !rolls.containsKey(to) && def.stats().containsKey(to) && !def.stats().containsKey(k);
+            out.put(move ? to : k, v);
+        });
         return out;
     }
 

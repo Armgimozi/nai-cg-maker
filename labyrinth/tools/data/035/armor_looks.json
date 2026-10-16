@@ -1,0 +1,609 @@
+{
+ "_about": "0.3.5 P2 방어구 겉모습 데이터 — look_spec.json(look-b1) + review2 A2(심연 보행자·별 없는 성가대·잿불 성가자 요구 짝) + A3(요구 합 T(L) = ceil(2.75(L−1)), L ≤ 2 이면 없음) + 주인 결정 D1(구르기 5초). tools/gen_035_looks.py 가 items.yml 에 넣는다. P3 생성기(gen_035_content.py)는 새 세트(new_sets)도 이 표로 만든다.",
+ "budget": "T(L) = ceil(2.75 × (L − 1)), L ≤ 2 이면 0",
+ "split": "두 능력치: 앞 = ceil(0.6 T), 뒤 = T − 앞 · 세 능력치(L ≥ 12): ceil(0.5 T) · round(0.3 T) · 나머지",
+ "plain_sets": [
+  "novice",
+  "wayfarer"
+ ],
+ "item_looks": {
+  "grove_mossguard_helm": "heavy",
+  "silkqueen_veil": "light",
+  "mycelking_spore_crown": "cloth",
+  "osric_sluice_helm": "heavy",
+  "nightmare_crown": "any"
+ },
+ "set_pairs": {
+  "pit_foreman": {
+   "pair": [
+    "VIT",
+    "STR"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "bulwark",
+   "why": "광부 감독관 — 힘으로 버티는 판금"
+  },
+  "mycel_carapace": {
+   "pair": [
+    "VIT",
+    "WIS"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "regen",
+   "why": "균사가 금을 메우는 갑각 — 회복·정신 (gear_spec 안)"
+  },
+  "verdigris_guard": {
+   "pair": [
+    "VIT",
+    "WIS"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "templar",
+   "why": "수문 신전 경비 — 정신 판금: 사제·탱커 겸용"
+  },
+  "emberforged": {
+   "pair": [
+    "VIT",
+    "STR"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "bulwark",
+   "why": "용광로 담금질 — 힘 판금"
+  },
+  "forge_warden": {
+   "pair": [
+    "VIT",
+    "STR"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "bulwark",
+   "why": "모루왕 친위대 (보스) — 힘 판금"
+  },
+  "geode_bastion": {
+   "pair": [
+    "VIT",
+    "STR"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "bulwark",
+   "why": "정동 거한의 껍질 — 힘 판금"
+  },
+  "index_bulwark": {
+   "pair": [
+    "VIT",
+    "INT"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "runeplate",
+   "why": "금서 서가 수호자 — 지능 판금 (gear_spec 안)"
+  },
+  "clockwork_juggernaut": {
+   "pair": [
+    "VIT",
+    "STR"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "bulwark",
+   "why": "태엽 거신 — 힘 판금"
+  },
+  "webrunner": {
+   "pair": [
+    "DEX",
+    "STR"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "bleed_crit",
+   "why": "거미줄 잠행자 — 힘 가죽: 피하며 베는 전사도"
+  },
+  "hypha_stalker": {
+   "pair": [
+    "DEX",
+    "LUK"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "ambush",
+   "why": "소리 없는 균사 사냥꾼 — 행운 가죽"
+  },
+  "sluice_diver": {
+   "pair": [
+    "DEX",
+    "VIT"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "survivor",
+   "why": "잠수부 — 체력 가죽: 오래 버티는 사수 (gear_spec 안)"
+  },
+  "rimefang": {
+   "pair": [
+    "DEX",
+    "STR"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "bleed_crit",
+   "why": "송곳니 사냥복 — 힘 가죽"
+  },
+  "rime_stalker": {
+   "pair": [
+    "DEX",
+    "LUK"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "ambush",
+   "why": "발자국 하나로 쫓는 추적자 — 행운 가죽 (gear_spec 안)"
+  },
+  "shard_dancer": {
+   "pair": [
+    "DEX",
+    "STR"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "bleed_crit",
+   "why": "빛으로 눈을 속이고 베어 드는 무희 — 힘 가죽"
+  },
+  "inkveil": {
+   "pair": [
+    "DEX",
+    "INT"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "spellblade",
+   "why": "먹물 분신 (보스) — 지능 가죽: 빠른 마법 검사"
+  },
+  "abyss_walker": {
+   "pair": [
+    "DEX",
+    "STR"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "bleed_crit",
+   "why": "빛을 삼키는 가죽 — 힘 가죽 (review2 A2: 행운 줄 → 힘)"
+  },
+  "silkweaver": {
+   "pair": [
+    "INT",
+    "WIS"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "mana_flow",
+   "why": "마력이 실을 타고 — 지능 천"
+  },
+  "spore_sage": {
+   "pair": [
+    "WIS",
+    "VIT"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "support",
+   "why": "포자 현자 — 정신·체력 천: 버티는 지원"
+  },
+  "cinder_cantor": {
+   "pair": [
+    "INT",
+    "VIT"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "battlemage",
+   "why": "잿불 성가자 — 지능·체력 천 (review2 A2: 정신 줄 → 체력, gear_spec 새 세트)"
+  },
+  "crypt_mourner": {
+   "pair": [
+    "INT",
+    "WIS"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "mana_flow",
+   "why": "묘역 애도자 — 지능 천 (사제에게도 지능은 피해)"
+  },
+  "frost_regalia": {
+   "pair": [
+    "INT",
+    "WIS"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "mana_flow",
+   "why": "얼음관 여제 (보스) — 지능 천"
+  },
+  "lorekeeper": {
+   "pair": [
+    "INT",
+    "VIT"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "battlemage",
+   "why": "서고지기 — 지능·체력 천: 스킬로 싸우는 누구나"
+  },
+  "clock_astrologer": {
+   "pair": [
+    "WIS",
+    "INT"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "mana_flow",
+   "why": "태엽 점성술사 (gear_spec 안)"
+  },
+  "starless_choir": {
+   "pair": [
+    "INT",
+    "VIT"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "battlemage",
+   "why": "별 없는 성가대 — 지능·체력 천 (review2 A2: 정신 줄 → 체력)"
+  },
+  "novice": {
+   "pair": [],
+   "shares": [],
+   "identity": "plain",
+   "why": "시작 지급 — 요구 없음"
+  },
+  "wayfarer": {
+   "pair": [
+    "VIT",
+    "DEX"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "plain",
+   "why": "모든 직업 — 직업 기본 능력치로 거의 다 찬다"
+  }
+ },
+ "item_pairs": {
+  "oak_round_shield": {
+   "pair": [],
+   "shares": [],
+   "identity": "bulwark",
+   "why": "Lv1 — 요구 없음"
+  },
+  "ironbound_kite_shield": {
+   "pair": [
+    "VIT",
+    "STR"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "bulwark",
+   "why": "갱도 철판"
+  },
+  "sporecap_round_shield": {
+   "pair": [
+    "VIT",
+    "WIS"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "regen",
+   "why": "포자갓 — 회복"
+  },
+  "verdigris_tower_shield": {
+   "pair": [
+    "VIT",
+    "STR"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "bulwark",
+   "why": "집게 등딱지"
+  },
+  "anvil_face_shield": {
+   "pair": [
+    "VIT",
+    "STR"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "bulwark",
+   "why": "모루 윗면"
+  },
+  "frostgrave_tower_shield": {
+   "pair": [
+    "VIT",
+    "WIS"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "templar",
+   "why": "묘비 — 정신"
+  },
+  "prism_aegis": {
+   "pair": [
+    "VIT",
+    "INT"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "runeplate",
+   "why": "빛과 어둠의 껍질 (보스) — 지능"
+  },
+  "inkbound_kite_shield": {
+   "pair": [
+    "VIT",
+    "INT"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "runeplate",
+   "why": "금서 표지 — 지능 (재사용 감소 줄)"
+  },
+  "clockwork_bastion": {
+   "pair": [
+    "VIT",
+    "STR"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "bulwark",
+   "why": "대시계 문짝 (보스)"
+  },
+  "void_bulwark_shield": {
+   "pair": [
+    "VIT",
+    "WIS"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "templar",
+   "why": "공허의 문 — 정신"
+  },
+  "grove_mossguard_helm": {
+   "pair": [
+    "VIT",
+    "WIS"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "regen",
+   "why": "이끼 석관 (보스, 모든 직업) — 회복"
+  },
+  "silkqueen_veil": {
+   "pair": [
+    "DEX",
+    "LUK"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "ambush",
+   "why": "여왕의 면사포 (보스)"
+  },
+  "mycelking_spore_crown": {
+   "pair": [
+    "INT",
+    "WIS"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "mana_flow",
+   "why": "균사왕의 관 (보스)"
+  },
+  "osric_sluice_helm": {
+   "pair": [
+    "VIT",
+    "STR"
+   ],
+   "shares": [
+    0.6,
+    0.4
+   ],
+   "identity": "bulwark",
+   "why": "수문 망령의 투구 (보스)"
+  },
+  "nightmare_crown": {
+   "pair": [
+    "VIT",
+    "LUK",
+    "WIS"
+   ],
+   "shares": [
+    0.5,
+    0.3,
+    0.2
+   ],
+   "identity": "any",
+   "why": "악몽의 왕관 (칭호 보상, 모든 직업) — 세 능력치"
+  }
+ },
+ "stats_rename": {
+  "verdigris_guard": {
+   "STR": "WIS"
+  },
+  "index_bulwark": {
+   "STR": "INT"
+  },
+  "rimefang": {
+   "LUK": "STR"
+  },
+  "shard_dancer": {
+   "LUK": "STR"
+  },
+  "inkveil": {
+   "LUK": "INT"
+  },
+  "spore_sage": {
+   "INT": "VIT"
+  },
+  "lorekeeper": {
+   "WIS": "VIT"
+  },
+  "mycel_carapace": {
+   "STR": "WIS"
+  },
+  "sluice_diver": {
+   "LUK": "VIT"
+  },
+  "abyss_walker": {
+   "LUK": "STR"
+  },
+  "starless_choir": {
+   "WIS": "VIT"
+  },
+  "cinder_cantor": {
+   "WIS": "VIT"
+  }
+ },
+ "new_sets": [
+  "mycel_carapace",
+  "index_bulwark",
+  "sluice_diver",
+  "rime_stalker",
+  "cinder_cantor",
+  "clock_astrologer"
+ ],
+ "armor_looks": {
+  "enabled": true,
+  "full_pieces": 4,
+  "shield_counts_as": "heavy",
+  "heavy": {
+   "name": "판금",
+   "color": "#b8c4d6",
+   "piece": {
+    "defense_pct": 0.04,
+    "damage_reduction": 0.005,
+    "move_speed": -0.02,
+    "evasion": -0.01,
+    "cooldown_pct": 0.02
+   },
+   "full": {
+    "id": "steadfast",
+    "name": "버팀",
+    "knockback_resist": 0.6,
+    "cc_resist": 0.4
+   }
+  },
+  "light": {
+   "name": "가죽",
+   "color": "#c9a46a",
+   "piece": {
+    "evasion": 0.015,
+    "crit_chance": 0.01,
+    "attack_speed": 0.015,
+    "move_speed": 0.01,
+    "defense_pct": -0.06
+   },
+   "full": {
+    "id": "tumble",
+    "name": "구르기",
+    "distance": 3.5,
+    "iframe": 0.4,
+    "cooldown": 5.0,
+    "double_tap": 0.3,
+    "back_distance": 2.0,
+    "combo_guard": 0.4,
+    "ready_sound": true
+   }
+  },
+  "cloth": {
+   "name": "천",
+   "color": "#b99cff",
+   "piece": {
+    "skill_damage": 0.02,
+    "cooldown_pct": -0.015,
+    "mana_regen_pct": 0.06,
+    "hp_pct": -0.02
+   },
+   "full": {
+    "id": "mana_shield",
+    "name": "마나 보호막",
+    "absorb": 0.2,
+    "damage_per_mp": 2.0,
+    "off_below": 0.2
+   }
+  }
+ }
+}

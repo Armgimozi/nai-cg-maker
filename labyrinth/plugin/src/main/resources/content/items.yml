@@ -7,20 +7,20 @@
 #                style = melee(근접) | ranged(활 — 당겨 쏘기) | caster(시전)   interval = 기본 공격 간격(초, 민첩 전 · 활은 당김 + 0.15초)
 #                kind = physical(힘이 키움) | magic(지능이 키움)   (선택) skill_power_mult = 스킬 위력 배율 (시전 기본 1.05)
 #  armor_slot  : head | chest | legs | feet | offhand(방패 — 보조손)
+#  look        : 세트 없는 투구의 겉모습 heavy(판금) | light(가죽) | cloth(천) | any(어느 겉모습이든 — 악몽의 왕관). 세트 방어구는
+#                sets.<id>.look 을 쓰고, 방패는 언제나 판금 (적지 않는다). 겉모습마다 숨은 장단점 = config.yml armor_looks (0.3.5)
 #  armor_set   : 장비 에셋 id(labyrinth:<set>). 투구는 플러그인이 assetId 를 넣지 않고 3D 모델을 머리에 씌운다
 #  rarity      : common < uncommon < rare < epic < legendary < mythic (GDD §11.1)
 #  level_req   : 장비(무기·방어구·방패·장신구) = 숨은 아이템 레벨 (그 층 레벨 구간 안) — 정렬·강화 골드·층 구간 계산에만 쓴다.
 #                툴팁에 안 보이고 착용을 막지 않는다 (착용 조건은 아래 requires). 소모품 = 사용 레벨 (그대로 막는다)
 #  floor       : 이 장비가 속한 층(1~10) — 장비는 그 층의 루팅 테이블·레시피에서만 나온다
-#  requires    : 착용 요구 능력치 {STAT: n, ...} — 모두 채워야 한다.   requires_any : {STAT: n, ...} — 하나만 채우면 된다
+#  requires    : 착용 요구 능력치 {STAT: n, ...} — 모두 채워야 한다 (requires_any '… 중 하나' 는 0.3.5 부터 쓰지 않음)
 #                STAT = STR DEX INT VIT WIS LUK. 없거나 비우면 요구 없음. 무기·방어구·방패만 (장신구·재료·소모품은 없음)
 #                내 능력치 = 직업 기본(classes.yml base_stats) + 분배한 포인트 + 장착 칭호 보너스 (장비 스탯은 세지 않는다)
-#                값 = ceil(2.5 × (level_req − 1)), 2 이하면 요구 없음 (수련생 · Lv1 장비)
-#                능력치: 무기마다 정함 (물리 무기 STR·DEX, 마법 무기 INT·WIS 가 주) · 방패 VIT
-#                        방어구는 겉모습 — 판금(흉갑 chestplate 세트 · helm_* 단품 투구) VIT · 가죽(leather_vest 세트 · 두건·가면 단품) DEX ·
-#                        천(robe_top 세트 · 관 단품) INT 또는 WIS (requires_any) · 모든 직업용(classes 비움)은 STR·DEX·INT·VIT·WIS 중 하나 (requires_any)
+#                무기: 값 = ceil(2.5 × (level_req − 1)), 2 이하면 요구 없음, 무기마다 능력치를 정함 (물리 무기 STR·DEX, 마법 무기 INT·WIS 가 주)
+#                방어구·방패 (0.3.5, tools/gen_035_looks.py): 합 = ceil(2.75 × (level_req − 1)), 2 이하면 없음, 두 능력치 60 : 40 —
+#                        앞 = 겉모습(판금·방패 VIT · 가죽 DEX · 천 INT 또는 WIS), 뒤 = 세트 정체성 (평상복·악몽의 왕관은 자유)
 #  classes     : 어울리는 직업 (비우면 모두) — 착용 제한이 아니다. 드롭 직업 편향(loot.yml own_class_bias)에만 쓴다 (툴팁·대장간에 표시 안 함)
-#                (요구 능력치는 겉모습으로 정하지만, 비운 장비는 어느 직업이든 주 능력치 하나로 낄 수 있게 requires_any)
 #  stats       : 키 = GDD §11.7 닫힌 목록. 값 [최소, 최대] 를 드롭·제작 순간 굴려 PDC 에 저장
 #                damage = 무기 한 방 피해(공격력의 기반 — 간격마다 온전히 들어감) · 백분율 키는 0~1 (0.05 = 5%)
 #  set_bonus   : sets: 의 세트 id.   aura : fx.yml auras id (전설·신화 무기)
@@ -3422,7 +3422,7 @@ items:
     armor_slot: offhand
     rarity: uncommon
     level_req: 6
-    requires: {VIT: 13}
+    requires: {VIT: 9, STR: 5}
     floor: 2
     classes: [guardian]
     stats: {defense: [2, 3], block_chance: [0.057, 0.07], VIT: [1, 2]}
@@ -3437,7 +3437,7 @@ items:
     armor_slot: offhand
     rarity: rare
     level_req: 12
-    requires: {VIT: 28}
+    requires: {VIT: 19, WIS: 12}
     floor: 3
     classes: [guardian]
     stats: {defense: [4, 5], block_chance: [0.073, 0.09], VIT: [2, 3], hp_regen: [0.4, 0.6]}
@@ -3452,7 +3452,7 @@ items:
     armor_slot: offhand
     rarity: rare
     level_req: 15
-    requires: {VIT: 35}
+    requires: {VIT: 24, STR: 15}
     floor: 4
     classes: [guardian]
     stats: {defense: [5, 6], block_chance: [0.078, 0.096], VIT: [2, 3], hp: [26, 35]}
@@ -3467,7 +3467,7 @@ items:
     armor_slot: offhand
     rarity: epic
     level_req: 25
-    requires: {VIT: 60}
+    requires: {VIT: 40, STR: 26}
     floor: 5
     classes: [guardian]
     stats: {defense: [8, 10], block_chance: [0.104, 0.127], VIT: [3, 4], hp: [51, 69], damage_reduction: [0.015, 0.021]}
@@ -3482,7 +3482,7 @@ items:
     armor_slot: offhand
     rarity: epic
     level_req: 28
-    requires: {VIT: 68}
+    requires: {VIT: 45, WIS: 30}
     floor: 6
     classes: [guardian]
     stats: {defense: [9, 10], block_chance: [0.109, 0.133], VIT: [4, 5], hp: [57, 77], damage_reduction: [0.016, 0.022]}
@@ -3497,7 +3497,7 @@ items:
     armor_slot: offhand
     rarity: legendary
     level_req: 35
-    requires: {VIT: 85}
+    requires: {VIT: 57, INT: 37}
     floor: 7
     classes: [guardian]
     stats: {defense: [12, 14], block_chance: [0.135, 0.165], VIT: [5, 7], hp: [85, 115], damage_reduction: [0.023, 0.032], hp_regen: [1.5, 2.0]}
@@ -3512,7 +3512,7 @@ items:
     armor_slot: offhand
     rarity: epic
     level_req: 38
-    requires: {VIT: 93}
+    requires: {VIT: 62, INT: 40}
     floor: 8
     classes: [guardian]
     stats: {defense: [12, 14], block_chance: [0.127, 0.155], VIT: [5, 7], hp: [76, 103], cooldown_reduction: [0.027, 0.037]}
@@ -3527,7 +3527,7 @@ items:
     armor_slot: offhand
     rarity: legendary
     level_req: 44
-    requires: {VIT: 108}
+    requires: {VIT: 72, STR: 47}
     floor: 9
     classes: [guardian]
     stats: {defense: [15, 17], block_chance: [0.151, 0.184], VIT: [7, 9], hp: [106, 144], damage_reduction: [0.027, 0.036], hp_regen: [1.8, 2.4]}
@@ -3542,7 +3542,7 @@ items:
     armor_slot: offhand
     rarity: epic
     level_req: 46
-    requires: {VIT: 113}
+    requires: {VIT: 75, WIS: 49}
     floor: 10
     classes: [guardian]
     stats: {defense: [14, 16], block_chance: [0.141, 0.172], VIT: [6, 8], hp: [92, 124], damage_reduction: [0.023, 0.031]}
@@ -3557,9 +3557,10 @@ items:
     name: "그로브의 이끼 투구"
     type: armor
     armor_slot: head
+    look: heavy
     rarity: rare
     level_req: 5
-    requires_any: {STR: 10, DEX: 10, INT: 10, VIT: 10, WIS: 10}
+    requires: {VIT: 7, WIS: 4}
     floor: 1
     classes: []
     stats: {defense: [1, 2], VIT: [1, 2], hp: [8, 10], hp_regen: [0.2, 0.3]}
@@ -3572,9 +3573,10 @@ items:
     name: "베셀라의 은실 면사포"
     type: armor
     armor_slot: head
+    look: light
     rarity: epic
     level_req: 10
-    requires: {DEX: 23}
+    requires: {DEX: 15, LUK: 10}
     floor: 2
     classes: [hunter, shadow]
     stats: {defense: [2, 3], DEX: [1, 2], evasion: [0.008, 0.011], crit_chance: [0.009, 0.013]}
@@ -3587,9 +3589,10 @@ items:
     name: "무르노크의 포자관"
     type: armor
     armor_slot: head
+    look: cloth
     rarity: epic
     level_req: 15
-    requires_any: {INT: 35, WIS: 35}
+    requires: {INT: 24, WIS: 15}
     floor: 3
     classes: [arcanist, priest]
     stats: {defense: [2, 3], INT: [2, 3], WIS: [1, 2], mana_regen: [0.2, 0.3], hp_regen: [0.5, 0.6]}
@@ -3602,9 +3605,10 @@ items:
     name: "오스릭의 수문 투구"
     type: armor
     armor_slot: head
+    look: heavy
     rarity: epic
     level_req: 20
-    requires: {VIT: 48}
+    requires: {VIT: 32, STR: 21}
     floor: 4
     classes: [guardian, berserker]
     stats: {defense: [5, 6], VIT: [2, 3], STR: [1, 2], hp: [33, 44], damage_reduction: [0.011, 0.015]}
@@ -3680,7 +3684,7 @@ items:
     texture: {style: leather, palette: ["#2b2420", "#4d4036", "#7a6a58", "#b8a68a", "#e2d6bd"]}
     lore: "바닥에 징을 박은 가벼운 신발. 젖은 이끼 위에서도 잘 미끄러지지 않는다."
 
-  # ═════════ 방어구 세트 · 미궁 길잡이 (wayfarer) — 공용(모든 직업), 1층 정예 + 제작, Lv3 · 요구 힘·민첩·지능·체력·정신 중 하나 5 ═════════
+  # ═════════ 방어구 세트 · 미궁 길잡이 (wayfarer) — 공용(모든 직업), 1층 정예 + 제작, Lv3 · 요구 체력 4 · 민첩 2 ═════════
   wayfarer_helm:
     name: "길잡이 두건"
     type: armor
@@ -3688,7 +3692,7 @@ items:
     armor_set: wayfarer
     rarity: uncommon
     level_req: 3
-    requires_any: {STR: 5, DEX: 5, INT: 5, VIT: 5, WIS: 5}
+    requires: {VIT: 4, DEX: 2}
     floor: 1
     classes: []
     stats: {defense: [1, 2], VIT: [1, 2], hp: [3, 5]}
@@ -3705,7 +3709,7 @@ items:
     armor_set: wayfarer
     rarity: uncommon
     level_req: 3
-    requires_any: {STR: 5, DEX: 5, INT: 5, VIT: 5, WIS: 5}
+    requires: {VIT: 4, DEX: 2}
     floor: 1
     classes: []
     stats: {defense: [1, 2], VIT: [1, 2], hp: [6, 8]}
@@ -3722,7 +3726,7 @@ items:
     armor_set: wayfarer
     rarity: uncommon
     level_req: 3
-    requires_any: {STR: 5, DEX: 5, INT: 5, VIT: 5, WIS: 5}
+    requires: {VIT: 4, DEX: 2}
     floor: 1
     classes: []
     stats: {defense: [1, 2], VIT: [1, 2], hp: [5, 6]}
@@ -3739,7 +3743,7 @@ items:
     armor_set: wayfarer
     rarity: uncommon
     level_req: 3
-    requires_any: {STR: 5, DEX: 5, INT: 5, VIT: 5, WIS: 5}
+    requires: {VIT: 4, DEX: 2}
     floor: 1
     classes: []
     stats: {defense: [1, 2], VIT: [1, 2], move_speed: [0.009, 0.011]}
@@ -3750,7 +3754,7 @@ items:
     texture: {style: leather, palette: ["#2a1d16", "#5a3a26", "#8c5a34", "#c9a46a", "#7fa043"]}
     lore: "미궁 입구 마을의 길잡이들이 첫 원정대에게 맞춰 주는 차림. 질기고 가벼워 어디든 걸어갈 수 있다."
 
-  # ═════════ 방어구 세트 · 갱도 감독관 (pit_foreman) — 판금(수호기사·광전사), 2층 정예 + 제작, Lv8 · 요구 체력 18 ═════════
+  # ═════════ 방어구 세트 · 갱도 감독관 (pit_foreman) — 판금(수호기사·광전사), 2층 정예 + 제작, Lv8 · 요구 체력 12 · 힘 8 ═════════
   pit_foreman_helm:
     name: "감독관의 갱도 투구"
     type: armor
@@ -3758,7 +3762,7 @@ items:
     armor_set: pit_foreman
     rarity: uncommon
     level_req: 8
-    requires: {VIT: 18}
+    requires: {VIT: 12, STR: 8}
     floor: 2
     classes: [guardian, berserker]
     stats: {defense: [2, 3], VIT: [1, 2], hp: [8, 11]}
@@ -3775,7 +3779,7 @@ items:
     armor_set: pit_foreman
     rarity: uncommon
     level_req: 8
-    requires: {VIT: 18}
+    requires: {VIT: 12, STR: 8}
     floor: 2
     classes: [guardian, berserker]
     stats: {defense: [3, 4], VIT: [1, 2], STR: [1, 2], hp: [14, 18]}
@@ -3792,7 +3796,7 @@ items:
     armor_set: pit_foreman
     rarity: uncommon
     level_req: 8
-    requires: {VIT: 18}
+    requires: {VIT: 12, STR: 8}
     floor: 2
     classes: [guardian, berserker]
     stats: {defense: [3, 4], VIT: [1, 2], STR: [1, 2], hp: [11, 14]}
@@ -3809,7 +3813,7 @@ items:
     armor_set: pit_foreman
     rarity: uncommon
     level_req: 8
-    requires: {VIT: 18}
+    requires: {VIT: 12, STR: 8}
     floor: 2
     classes: [guardian, berserker]
     stats: {defense: [2, 3], VIT: [1, 2], move_speed: [0.01, 0.013]}
@@ -3820,7 +3824,7 @@ items:
     texture: {style: rusted_iron, palette: ["#1f1611", "#4a3121", "#8c5a34", "#b8743c", "#e8c27a"]}
     lore: "바닥에 징을 박아 젖은 갱도에서도 미끄러지지 않는다."
 
-  # ═════════ 방어구 세트 · 거미줄 잠행자 (webrunner) — 가죽(사냥꾼·그림자), 2층 정예 + 제작, Lv8 · 요구 민첩 18 ═════════
+  # ═════════ 방어구 세트 · 거미줄 잠행자 (webrunner) — 가죽(사냥꾼·그림자), 2층 정예 + 제작, Lv8 · 요구 민첩 12 · 힘 8 ═════════
   webrunner_helm:
     name: "잠행자의 거미줄 두건"
     type: armor
@@ -3828,7 +3832,7 @@ items:
     armor_set: webrunner
     rarity: uncommon
     level_req: 8
-    requires: {DEX: 18}
+    requires: {DEX: 12, STR: 8}
     floor: 2
     classes: [hunter, shadow]
     stats: {defense: [1, 2], DEX: [1, 2], crit_chance: [0.005, 0.006]}
@@ -3845,7 +3849,7 @@ items:
     armor_set: webrunner
     rarity: uncommon
     level_req: 8
-    requires: {DEX: 18}
+    requires: {DEX: 12, STR: 8}
     floor: 2
     classes: [hunter, shadow]
     stats: {defense: [2, 3], DEX: [1, 2], evasion: [0.007, 0.01]}
@@ -3862,7 +3866,7 @@ items:
     armor_set: webrunner
     rarity: uncommon
     level_req: 8
-    requires: {DEX: 18}
+    requires: {DEX: 12, STR: 8}
     floor: 2
     classes: [hunter, shadow]
     stats: {defense: [2, 3], DEX: [1, 2], attack_speed: [0.01, 0.014]}
@@ -3879,7 +3883,7 @@ items:
     armor_set: webrunner
     rarity: uncommon
     level_req: 8
-    requires: {DEX: 18}
+    requires: {DEX: 12, STR: 8}
     floor: 2
     classes: [hunter, shadow]
     stats: {defense: [1, 2], DEX: [1, 2], move_speed: [0.01, 0.013]}
@@ -3890,7 +3894,7 @@ items:
     texture: {style: leather, palette: ["#1a1c22", "#3b404c", "#8d95a8", "#dfe6f2", "#a070f0"]}
     lore: "바닥에 거미 발털을 붙인 신. 벽을 타고 오를 때 손보다 발이 먼저 붙는다."
 
-  # ═════════ 방어구 세트 · 은실 직조사 (silkweaver) — 천(비전술사·사제), 2층 정예 + 제작, Lv8 · 요구 지능 또는 정신 18 ═════════
+  # ═════════ 방어구 세트 · 은실 직조사 (silkweaver) — 천(비전술사·사제), 2층 정예 + 제작, Lv8 · 요구 지능 12 · 정신 8 ═════════
   silkweaver_helm:
     name: "직조사의 은실 관"
     type: armor
@@ -3898,7 +3902,7 @@ items:
     armor_set: silkweaver
     rarity: uncommon
     level_req: 8
-    requires_any: {INT: 18, WIS: 18}
+    requires: {INT: 12, WIS: 8}
     floor: 2
     classes: [arcanist, priest]
     stats: {defense: [1, 2], INT: [1, 2], mana_regen: [0.1, 0.2]}
@@ -3915,7 +3919,7 @@ items:
     armor_set: silkweaver
     rarity: uncommon
     level_req: 8
-    requires_any: {INT: 18, WIS: 18}
+    requires: {INT: 12, WIS: 8}
     floor: 2
     classes: [arcanist, priest]
     stats: {defense: [1, 2], INT: [1, 2], WIS: [1, 2], mp: [7, 10]}
@@ -3932,7 +3936,7 @@ items:
     armor_set: silkweaver
     rarity: uncommon
     level_req: 8
-    requires_any: {INT: 18, WIS: 18}
+    requires: {INT: 12, WIS: 8}
     floor: 2
     classes: [arcanist, priest]
     stats: {defense: [1, 2], WIS: [1, 2], heal_power: [3, 4]}
@@ -3949,7 +3953,7 @@ items:
     armor_set: silkweaver
     rarity: uncommon
     level_req: 8
-    requires_any: {INT: 18, WIS: 18}
+    requires: {INT: 12, WIS: 8}
     floor: 2
     classes: [arcanist, priest]
     stats: {defense: [1, 2], INT: [1, 2], move_speed: [0.01, 0.013]}
@@ -3960,7 +3964,7 @@ items:
     texture: {style: silk, palette: ["#14161c", "#2e3240", "#6a7088", "#c0c8dc", "#f4f8ff"]}
     lore: "은실을 겹겹이 감아 만든 신. 거미줄 위를 걸어도 줄이 끊어지지 않는다."
 
-  # ═════════ 방어구 세트 · 녹청 수문 경비 (verdigris_guard) — 판금(수호기사·광전사), 4층 정예 + 제작, Lv19 · 요구 체력 45 ═════════
+  # ═════════ 방어구 세트 · 녹청 수문 경비 (verdigris_guard) — 판금(수호기사·광전사), 4층 정예 + 제작, Lv19 · 요구 체력 30 · 정신 20 ═════════
   verdigris_guard_helm:
     name: "녹청 수문 투구"
     type: armor
@@ -3968,7 +3972,7 @@ items:
     armor_set: verdigris_guard
     rarity: rare
     level_req: 19
-    requires: {VIT: 45}
+    requires: {VIT: 30, WIS: 20}
     floor: 4
     classes: [guardian, berserker]
     stats: {defense: [4, 5], VIT: [1, 3], hp: [21, 28]}
@@ -3985,10 +3989,10 @@ items:
     armor_set: verdigris_guard
     rarity: rare
     level_req: 19
-    requires: {VIT: 45}
+    requires: {VIT: 30, WIS: 20}
     floor: 4
     classes: [guardian, berserker]
-    stats: {defense: [8, 9], VIT: [3, 4], STR: [1, 2], hp: [36, 49]}
+    stats: {defense: [8, 9], VIT: [3, 4], WIS: [1, 2], hp: [36, 49]}
     set_bonus: verdigris_guard
     pool: false
     sources: [elite, craft]
@@ -4002,10 +4006,10 @@ items:
     armor_set: verdigris_guard
     rarity: rare
     level_req: 19
-    requires: {VIT: 45}
+    requires: {VIT: 30, WIS: 20}
     floor: 4
     classes: [guardian, berserker]
-    stats: {defense: [5, 6], VIT: [3, 4], STR: [1, 2], hp: [28, 39]}
+    stats: {defense: [5, 6], VIT: [3, 4], WIS: [1, 2], hp: [28, 39]}
     set_bonus: verdigris_guard
     pool: false
     sources: [elite, craft]
@@ -4019,7 +4023,7 @@ items:
     armor_set: verdigris_guard
     rarity: rare
     level_req: 19
-    requires: {VIT: 45}
+    requires: {VIT: 30, WIS: 20}
     floor: 4
     classes: [guardian, berserker]
     stats: {defense: [4, 5], VIT: [1, 3], hp: [19, 26]}
@@ -4030,7 +4034,7 @@ items:
     texture: {style: copper, palette: ["#10241e", "#1f4a3c", "#3f8a6e", "#a8743c", "#c8f0dc"]}
     lore: "잠긴 수로의 수문을 지키던 경비대의 갑옷. 녹청이 덮일수록 단단해진다는 구리 합금으로 지었다."
 
-  # ═════════ 방어구 세트 · 균사 추적자 (hypha_stalker) — 가죽(사냥꾼·그림자), 3층 정예 + 제작, Lv14 · 요구 민첩 33 ═════════
+  # ═════════ 방어구 세트 · 균사 추적자 (hypha_stalker) — 가죽(사냥꾼·그림자), 3층 정예 + 제작, Lv14 · 요구 민첩 22 · 행운 14 ═════════
   hypha_stalker_helm:
     name: "균사 추적자 두건"
     type: armor
@@ -4038,7 +4042,7 @@ items:
     armor_set: hypha_stalker
     rarity: rare
     level_req: 14
-    requires: {DEX: 33}
+    requires: {DEX: 22, LUK: 14}
     floor: 3
     classes: [hunter, shadow]
     stats: {defense: [2, 3], DEX: [1, 2], crit_chance: [0.009, 0.011]}
@@ -4055,7 +4059,7 @@ items:
     armor_set: hypha_stalker
     rarity: rare
     level_req: 14
-    requires: {DEX: 33}
+    requires: {DEX: 22, LUK: 14}
     floor: 3
     classes: [hunter, shadow]
     stats: {defense: [3, 4], DEX: [2, 3], LUK: [1, 2], evasion: [0.011, 0.015]}
@@ -4072,7 +4076,7 @@ items:
     armor_set: hypha_stalker
     rarity: rare
     level_req: 14
-    requires: {DEX: 33}
+    requires: {DEX: 22, LUK: 14}
     floor: 3
     classes: [hunter, shadow]
     stats: {defense: [3, 4], DEX: [2, 3], LUK: [1, 2], attack_speed: [0.015, 0.02]}
@@ -4089,7 +4093,7 @@ items:
     armor_set: hypha_stalker
     rarity: rare
     level_req: 14
-    requires: {DEX: 33}
+    requires: {DEX: 22, LUK: 14}
     floor: 3
     classes: [hunter, shadow]
     stats: {defense: [2, 3], DEX: [1, 2], move_speed: [0.014, 0.02]}
@@ -4100,7 +4104,7 @@ items:
     texture: {style: leather, palette: ["#231a14", "#4a3a2c", "#8a7458", "#d8c8a0", "#d988b8"]}
     lore: "균사로 짠 천은 발소리와 체취를 삼킨다. 동굴의 사냥꾼들은 이 옷을 입고 포자 사이를 소리 없이 걸었다."
 
-  # ═════════ 방어구 세트 · 포자 현자 (spore_sage) — 천(비전술사·사제), 3층 정예 + 제작, Lv14 · 요구 지능 또는 정신 33 ═════════
+  # ═════════ 방어구 세트 · 포자 현자 (spore_sage) — 천(비전술사·사제), 3층 정예 + 제작, Lv14 · 요구 정신 22 · 체력 14 ═════════
   spore_sage_helm:
     name: "포자 현자의 모자"
     type: armor
@@ -4108,10 +4112,10 @@ items:
     armor_set: spore_sage
     rarity: rare
     level_req: 14
-    requires_any: {INT: 33, WIS: 33}
+    requires: {WIS: 22, VIT: 14}
     floor: 3
     classes: [arcanist, priest]
-    stats: {defense: [1, 2], INT: [1, 2], WIS: [1, 2], mana_regen: [0.1, 0.2]}
+    stats: {defense: [1, 2], VIT: [1, 2], WIS: [1, 2], mana_regen: [0.1, 0.2]}
     set_bonus: spore_sage
     pool: false
     sources: [elite, craft]
@@ -4125,10 +4129,10 @@ items:
     armor_set: spore_sage
     rarity: rare
     level_req: 14
-    requires_any: {INT: 33, WIS: 33}
+    requires: {WIS: 22, VIT: 14}
     floor: 3
     classes: [arcanist, priest]
-    stats: {defense: [2, 3], INT: [2, 3], WIS: [2, 3], mp: [15, 20]}
+    stats: {defense: [2, 3], VIT: [2, 3], WIS: [2, 3], mp: [15, 20]}
     set_bonus: spore_sage
     pool: false
     sources: [elite, craft]
@@ -4142,10 +4146,10 @@ items:
     armor_set: spore_sage
     rarity: rare
     level_req: 14
-    requires_any: {INT: 33, WIS: 33}
+    requires: {WIS: 22, VIT: 14}
     floor: 3
     classes: [arcanist, priest]
-    stats: {defense: [2, 3], INT: [1, 2], WIS: [1, 2], heal_power: [6, 8]}
+    stats: {defense: [2, 3], VIT: [1, 2], WIS: [1, 2], heal_power: [6, 8]}
     set_bonus: spore_sage
     pool: false
     sources: [elite, craft]
@@ -4159,10 +4163,10 @@ items:
     armor_set: spore_sage
     rarity: rare
     level_req: 14
-    requires_any: {INT: 33, WIS: 33}
+    requires: {WIS: 22, VIT: 14}
     floor: 3
     classes: [arcanist, priest]
-    stats: {defense: [1, 2], INT: [1, 2], WIS: [1, 2], move_speed: [0.014, 0.02]}
+    stats: {defense: [1, 2], VIT: [1, 2], WIS: [1, 2], move_speed: [0.014, 0.02]}
     set_bonus: spore_sage
     pool: false
     sources: [elite, craft]
@@ -4170,7 +4174,7 @@ items:
     texture: {style: cloth, palette: ["#1e1420", "#4a2a4e", "#8c4a7a", "#d988b8", "#ffe0f0"]}
     lore: "포자의 흐름을 읽어 날씨를 점치던 동굴 현자들의 옷. 소매 끝에서 은은한 포자 빛이 흘러나온다."
 
-  # ═════════ 방어구 세트 · 불씨 단조 (emberforged) — 판금(수호기사·광전사), 5층 정예 + 제작, Lv24 · 요구 체력 58 ═════════
+  # ═════════ 방어구 세트 · 불씨 단조 (emberforged) — 판금(수호기사·광전사), 5층 정예 + 제작, Lv24 · 요구 체력 39 · 힘 25 ═════════
   emberforged_helm:
     name: "불씨 단조 투구"
     type: armor
@@ -4178,7 +4182,7 @@ items:
     armor_set: emberforged
     rarity: rare
     level_req: 24
-    requires: {VIT: 58}
+    requires: {VIT: 39, STR: 25}
     floor: 5
     classes: [guardian, berserker]
     stats: {defense: [5, 6], VIT: [2, 3], hp: [27, 37]}
@@ -4195,7 +4199,7 @@ items:
     armor_set: emberforged
     rarity: rare
     level_req: 24
-    requires: {VIT: 58}
+    requires: {VIT: 39, STR: 25}
     floor: 5
     classes: [guardian, berserker]
     stats: {defense: [9, 10], VIT: [3, 4], STR: [2, 3], hp: [47, 64]}
@@ -4212,7 +4216,7 @@ items:
     armor_set: emberforged
     rarity: rare
     level_req: 24
-    requires: {VIT: 58}
+    requires: {VIT: 39, STR: 25}
     floor: 5
     classes: [guardian, berserker]
     stats: {defense: [7, 8], VIT: [2, 3], STR: [1, 2], hp: [37, 50]}
@@ -4229,7 +4233,7 @@ items:
     armor_set: emberforged
     rarity: rare
     level_req: 24
-    requires: {VIT: 58}
+    requires: {VIT: 39, STR: 25}
     floor: 5
     classes: [guardian, berserker]
     stats: {defense: [4, 5], VIT: [2, 3], hp: [24, 33]}
@@ -4240,7 +4244,7 @@ items:
     texture: {style: dark_iron, palette: ["#141010", "#2e2422", "#5a3a2e", "#d9541c", "#ffb04a"]}
     lore: "용광로 심장부의 불씨로 담금질한 판금. 갈라진 틈마다 붉은 열기가 맥박친다."
 
-  # ═════════ 방어구 세트 · 서리송곳니 (rimefang) — 가죽(사냥꾼·그림자), 6층 정예 + 제작, Lv24 · 요구 민첩 58 ═════════
+  # ═════════ 방어구 세트 · 서리송곳니 (rimefang) — 가죽(사냥꾼·그림자), 6층 정예 + 제작, Lv24 · 요구 민첩 39 · 힘 25 ═════════
   rimefang_helm:
     name: "서리송곳니 가면"
     type: armor
@@ -4248,7 +4252,7 @@ items:
     armor_set: rimefang
     rarity: rare
     level_req: 24
-    requires: {DEX: 58}
+    requires: {DEX: 39, STR: 25}
     floor: 6
     classes: [hunter, shadow]
     stats: {defense: [3, 4], DEX: [2, 3], crit_chance: [0.011, 0.015]}
@@ -4265,10 +4269,10 @@ items:
     armor_set: rimefang
     rarity: rare
     level_req: 24
-    requires: {DEX: 58}
+    requires: {DEX: 39, STR: 25}
     floor: 6
     classes: [hunter, shadow]
-    stats: {defense: [5, 6], DEX: [3, 4], LUK: [2, 3], evasion: [0.015, 0.02]}
+    stats: {defense: [5, 6], DEX: [3, 4], STR: [2, 3], evasion: [0.015, 0.02]}
     set_bonus: rimefang
     pool: false
     sources: [elite, craft]
@@ -4282,10 +4286,10 @@ items:
     armor_set: rimefang
     rarity: rare
     level_req: 24
-    requires: {DEX: 58}
+    requires: {DEX: 39, STR: 25}
     floor: 6
     classes: [hunter, shadow]
-    stats: {defense: [4, 5], DEX: [2, 3], LUK: [1, 2], attack_speed: [0.019, 0.026]}
+    stats: {defense: [4, 5], DEX: [2, 3], STR: [1, 2], attack_speed: [0.019, 0.026]}
     set_bonus: rimefang
     pool: false
     sources: [elite, craft]
@@ -4299,7 +4303,7 @@ items:
     armor_set: rimefang
     rarity: rare
     level_req: 24
-    requires: {DEX: 58}
+    requires: {DEX: 39, STR: 25}
     floor: 6
     classes: [hunter, shadow]
     stats: {defense: [3, 4], DEX: [2, 3], move_speed: [0.019, 0.025]}
@@ -4310,7 +4314,7 @@ items:
     texture: {style: leather, palette: ["#1c2230", "#4a5268", "#9ad0ff", "#c8ccd6", "#f0faff"]}
     lore: "얼음 묘지견의 가죽과 송곳니로 지은 사냥복. 숨결이 닿는 곳마다 서리가 맺힌다."
 
-  # ═════════ 방어구 세트 · 묘역 애도자 (crypt_mourner) — 천(비전술사·사제), 6층 정예 + 제작, Lv24 · 요구 지능 또는 정신 58 ═════════
+  # ═════════ 방어구 세트 · 묘역 애도자 (crypt_mourner) — 천(비전술사·사제), 6층 정예 + 제작, Lv24 · 요구 지능 39 · 정신 25 ═════════
   crypt_mourner_helm:
     name: "애도자의 면사 두건"
     type: armor
@@ -4318,7 +4322,7 @@ items:
     armor_set: crypt_mourner
     rarity: rare
     level_req: 24
-    requires_any: {INT: 58, WIS: 58}
+    requires: {INT: 39, WIS: 25}
     floor: 6
     classes: [arcanist, priest]
     stats: {defense: [2, 3], INT: [1, 2], WIS: [1, 2], mana_regen: [0.2, 0.3]}
@@ -4335,7 +4339,7 @@ items:
     armor_set: crypt_mourner
     rarity: rare
     level_req: 24
-    requires_any: {INT: 58, WIS: 58}
+    requires: {INT: 39, WIS: 25}
     floor: 6
     classes: [arcanist, priest]
     stats: {defense: [4, 5], INT: [3, 4], WIS: [3, 4], mp: [24, 33]}
@@ -4352,7 +4356,7 @@ items:
     armor_set: crypt_mourner
     rarity: rare
     level_req: 24
-    requires_any: {INT: 58, WIS: 58}
+    requires: {INT: 39, WIS: 25}
     floor: 6
     classes: [arcanist, priest]
     stats: {defense: [3, 4], INT: [2, 3], WIS: [2, 3], heal_power: [9, 13]}
@@ -4369,7 +4373,7 @@ items:
     armor_set: crypt_mourner
     rarity: rare
     level_req: 24
-    requires_any: {INT: 58, WIS: 58}
+    requires: {INT: 39, WIS: 25}
     floor: 6
     classes: [arcanist, priest]
     stats: {defense: [2, 3], INT: [1, 2], WIS: [1, 2], move_speed: [0.019, 0.025]}
@@ -4380,7 +4384,7 @@ items:
     texture: {style: silk, palette: ["#14161e", "#34384a", "#6a6e86", "#c8b070", "#e8f4ff"]}
     lore: "서리 묘역에서 망자를 위해 곡을 하던 이들의 상복. 은실로 수놓은 애도문이 냉기를 막아 준다."
 
-  # ═════════ 방어구 세트 · 정동 성채 (geode_bastion) — 판금(수호기사·광전사), 7층 정예 + 제작, Lv34 · 요구 체력 83 ═════════
+  # ═════════ 방어구 세트 · 정동 성채 (geode_bastion) — 판금(수호기사·광전사), 7층 정예 + 제작, Lv34 · 요구 체력 55 · 힘 36 ═════════
   geode_bastion_helm:
     name: "정동 성채 투구"
     type: armor
@@ -4388,7 +4392,7 @@ items:
     armor_set: geode_bastion
     rarity: epic
     level_req: 34
-    requires: {VIT: 83}
+    requires: {VIT: 55, STR: 36}
     floor: 7
     classes: [guardian, berserker]
     stats: {defense: [7, 8], VIT: [3, 4], hp: [46, 62], damage_reduction: [0.012, 0.017]}
@@ -4405,7 +4409,7 @@ items:
     armor_set: geode_bastion
     rarity: epic
     level_req: 34
-    requires: {VIT: 83}
+    requires: {VIT: 55, STR: 36}
     floor: 7
     classes: [guardian, berserker]
     stats: {defense: [13, 15], VIT: [5, 7], STR: [3, 4], hp: [80, 108], damage_reduction: [0.022, 0.029]}
@@ -4422,7 +4426,7 @@ items:
     armor_set: geode_bastion
     rarity: epic
     level_req: 34
-    requires: {VIT: 83}
+    requires: {VIT: 55, STR: 36}
     floor: 7
     classes: [guardian, berserker]
     stats: {defense: [10, 11], VIT: [4, 5], STR: [2, 3], hp: [62, 83], hp_regen: [1.0, 1.4]}
@@ -4439,7 +4443,7 @@ items:
     armor_set: geode_bastion
     rarity: epic
     level_req: 34
-    requires: {VIT: 83}
+    requires: {VIT: 55, STR: 36}
     floor: 7
     classes: [guardian, berserker]
     stats: {defense: [6, 8], VIT: [3, 4], hp: [41, 56], move_speed: [0.028, 0.037]}
@@ -4450,7 +4454,7 @@ items:
     texture: {style: crystal, palette: ["#16141a", "#34303c", "#5a5468", "#9a62e0", "#efd8ff"]}
     lore: "정동 거한의 껍질을 판금처럼 다듬었다. 안쪽에서 자라는 자수정이 금 간 곳을 스스로 메운다."
 
-  # ═════════ 방어구 세트 · 파편 무희 (shard_dancer) — 가죽(사냥꾼·그림자), 7층 정예 + 제작, Lv34 · 요구 민첩 83 ═════════
+  # ═════════ 방어구 세트 · 파편 무희 (shard_dancer) — 가죽(사냥꾼·그림자), 7층 정예 + 제작, Lv34 · 요구 민첩 55 · 힘 36 ═════════
   shard_dancer_helm:
     name: "파편 무희의 가면"
     type: armor
@@ -4458,7 +4462,7 @@ items:
     armor_set: shard_dancer
     rarity: epic
     level_req: 34
-    requires: {DEX: 83}
+    requires: {DEX: 55, STR: 36}
     floor: 7
     classes: [hunter, shadow]
     stats: {defense: [4, 5], DEX: [3, 4], crit_chance: [0.017, 0.022], crit_damage: [0.054, 0.073]}
@@ -4475,10 +4479,10 @@ items:
     armor_set: shard_dancer
     rarity: epic
     level_req: 34
-    requires: {DEX: 83}
+    requires: {DEX: 55, STR: 36}
     floor: 7
     classes: [hunter, shadow]
-    stats: {defense: [8, 9], DEX: [5, 7], LUK: [3, 4], evasion: [0.022, 0.029], crit_damage: [0.094, 0.128]}
+    stats: {defense: [8, 9], DEX: [5, 7], STR: [3, 4], evasion: [0.022, 0.029], crit_damage: [0.094, 0.128]}
     set_bonus: shard_dancer
     pool: false
     sources: [elite, craft]
@@ -4492,10 +4496,10 @@ items:
     armor_set: shard_dancer
     rarity: epic
     level_req: 34
-    requires: {DEX: 83}
+    requires: {DEX: 55, STR: 36}
     floor: 7
     classes: [hunter, shadow]
-    stats: {defense: [6, 7], DEX: [4, 5], LUK: [2, 3], attack_speed: [0.028, 0.038], evasion: [0.017, 0.023]}
+    stats: {defense: [6, 7], DEX: [4, 5], STR: [2, 3], attack_speed: [0.028, 0.038], evasion: [0.017, 0.023]}
     set_bonus: shard_dancer
     pool: false
     sources: [elite, craft]
@@ -4509,7 +4513,7 @@ items:
     armor_set: shard_dancer
     rarity: epic
     level_req: 34
-    requires: {DEX: 83}
+    requires: {DEX: 55, STR: 36}
     floor: 7
     classes: [hunter, shadow]
     stats: {defense: [4, 5], DEX: [3, 4], move_speed: [0.028, 0.037], evasion: [0.011, 0.015]}
@@ -4520,7 +4524,7 @@ items:
     texture: {style: leather, palette: ["#1a1426", "#3a2a5a", "#7a52b8", "#c8a0ff", "#f4ecff"]}
     lore: "파편 갑충의 날개 껍질을 비늘처럼 엮었다. 움직일 때마다 빛이 흩어져 적의 눈을 속인다."
 
-  # ═════════ 방어구 세트 · 서고지기 (lorekeeper) — 천(비전술사·사제), 8층 정예 + 제작, Lv34 · 요구 지능 또는 정신 83 ═════════
+  # ═════════ 방어구 세트 · 서고지기 (lorekeeper) — 천(비전술사·사제), 8층 정예 + 제작, Lv34 · 요구 지능 55 · 체력 36 ═════════
   lorekeeper_helm:
     name: "서고지기의 머리띠"
     type: armor
@@ -4528,10 +4532,10 @@ items:
     armor_set: lorekeeper
     rarity: epic
     level_req: 34
-    requires_any: {INT: 83, WIS: 83}
+    requires: {INT: 55, VIT: 36}
     floor: 8
     classes: [arcanist, priest]
-    stats: {defense: [3, 4], INT: [2, 3], WIS: [2, 3], mana_regen: [0.2, 0.3], cooldown_reduction: [0.017, 0.022]}
+    stats: {defense: [3, 4], INT: [2, 3], VIT: [2, 3], mana_regen: [0.2, 0.3], cooldown_reduction: [0.017, 0.022]}
     set_bonus: lorekeeper
     pool: false
     sources: [elite, craft]
@@ -4545,10 +4549,10 @@ items:
     armor_set: lorekeeper
     rarity: epic
     level_req: 34
-    requires_any: {INT: 83, WIS: 83}
+    requires: {INT: 55, VIT: 36}
     floor: 8
     classes: [arcanist, priest]
-    stats: {defense: [5, 6], INT: [4, 6], WIS: [4, 6], mp: [40, 54], skill_damage: [0.051, 0.069]}
+    stats: {defense: [5, 6], INT: [4, 6], VIT: [4, 6], mp: [40, 54], skill_damage: [0.051, 0.069]}
     set_bonus: lorekeeper
     pool: false
     sources: [elite, craft]
@@ -4562,10 +4566,10 @@ items:
     armor_set: lorekeeper
     rarity: epic
     level_req: 34
-    requires_any: {INT: 83, WIS: 83}
+    requires: {INT: 55, VIT: 36}
     floor: 8
     classes: [arcanist, priest]
-    stats: {defense: [4, 5], INT: [3, 4], WIS: [3, 4], heal_power: [16, 21], mp: [31, 42]}
+    stats: {defense: [4, 5], INT: [3, 4], VIT: [3, 4], heal_power: [16, 21], mp: [31, 42]}
     set_bonus: lorekeeper
     pool: false
     sources: [elite, craft]
@@ -4579,10 +4583,10 @@ items:
     armor_set: lorekeeper
     rarity: epic
     level_req: 34
-    requires_any: {INT: 83, WIS: 83}
+    requires: {INT: 55, VIT: 36}
     floor: 8
     classes: [arcanist, priest]
-    stats: {defense: [3, 4], INT: [2, 3], WIS: [2, 3], move_speed: [0.028, 0.037], mana_regen: [0.2, 0.3]}
+    stats: {defense: [3, 4], INT: [2, 3], VIT: [2, 3], move_speed: [0.028, 0.037], mana_regen: [0.2, 0.3]}
     set_bonus: lorekeeper
     pool: false
     sources: [elite, craft]
@@ -4590,7 +4594,7 @@ items:
     texture: {style: silk, palette: ["#140e0a", "#3a2618", "#6a4a2a", "#c8a060", "#fff0b0"]}
     lore: "망각의 서고를 관리하던 서고지기들의 예복. 옷깃 안쪽에 잊히면 안 될 이름들이 깨알같이 적혀 있다."
 
-  # ═════════ 방어구 세트 · 태엽 거신 (clockwork_juggernaut) — 판금(수호기사·광전사), 9층 정예 + 제작, Lv44 · 요구 체력 108 ═════════
+  # ═════════ 방어구 세트 · 태엽 거신 (clockwork_juggernaut) — 판금(수호기사·광전사), 9층 정예 + 제작, Lv44 · 요구 체력 72 · 힘 47 ═════════
   clockwork_juggernaut_helm:
     name: "태엽 거신 투구"
     type: armor
@@ -4598,7 +4602,7 @@ items:
     armor_set: clockwork_juggernaut
     rarity: legendary
     level_req: 44
-    requires: {VIT: 108}
+    requires: {VIT: 72, STR: 47}
     floor: 9
     classes: [guardian, berserker]
     stats: {defense: [10, 11], VIT: [4, 6], hp: [71, 96], damage_reduction: [0.018, 0.024]}
@@ -4615,7 +4619,7 @@ items:
     armor_set: clockwork_juggernaut
     rarity: legendary
     level_req: 44
-    requires: {VIT: 108}
+    requires: {VIT: 72, STR: 47}
     floor: 9
     classes: [guardian, berserker]
     stats: {defense: [17, 20], VIT: [8, 11], STR: [5, 6], hp: [124, 168], damage_reduction: [0.031, 0.042]}
@@ -4632,7 +4636,7 @@ items:
     armor_set: clockwork_juggernaut
     rarity: legendary
     level_req: 44
-    requires: {VIT: 108}
+    requires: {VIT: 72, STR: 47}
     floor: 9
     classes: [guardian, berserker]
     stats: {defense: [13, 15], VIT: [6, 8], STR: [4, 5], hp: [96, 129], hp_regen: [1.6, 2.2]}
@@ -4649,7 +4653,7 @@ items:
     armor_set: clockwork_juggernaut
     rarity: legendary
     level_req: 44
-    requires: {VIT: 108}
+    requires: {VIT: 72, STR: 47}
     floor: 9
     classes: [guardian, berserker]
     stats: {defense: [9, 10], VIT: [4, 5], hp: [64, 86], move_speed: [0.039, 0.053]}
@@ -4660,7 +4664,7 @@ items:
     texture: {style: clockwork, palette: ["#140e08", "#4a2e16", "#a0622a", "#f0c070", "#7ae0c0"]}
     lore: "대시계 성소를 지키던 태엽 거신의 장갑을 사람 몸에 맞게 다시 짰다. 등 뒤 태엽이 감길수록 단단해진다."
 
-  # ═════════ 방어구 세트 · 심연 보행자 (abyss_walker) — 가죽(사냥꾼·그림자), 10층 정예 + 제작, Lv44 · 요구 민첩 108 ═════════
+  # ═════════ 방어구 세트 · 심연 보행자 (abyss_walker) — 가죽(사냥꾼·그림자), 10층 정예 + 제작, Lv44 · 요구 민첩 72 · 힘 47 ═════════
   abyss_walker_helm:
     name: "심연 보행자 두건"
     type: armor
@@ -4668,7 +4672,7 @@ items:
     armor_set: abyss_walker
     rarity: legendary
     level_req: 44
-    requires: {DEX: 108}
+    requires: {DEX: 72, STR: 47}
     floor: 10
     classes: [hunter, shadow]
     stats: {defense: [6, 7], DEX: [4, 6], crit_chance: [0.024, 0.033], crit_damage: [0.08, 0.108]}
@@ -4685,10 +4689,10 @@ items:
     armor_set: abyss_walker
     rarity: legendary
     level_req: 44
-    requires: {DEX: 108}
+    requires: {DEX: 72, STR: 47}
     floor: 10
     classes: [hunter, shadow]
-    stats: {defense: [11, 12], DEX: [8, 11], LUK: [5, 6], evasion: [0.031, 0.042], crit_damage: [0.14, 0.189]}
+    stats: {defense: [11, 12], DEX: [8, 11], STR: [5, 6], evasion: [0.031, 0.042], crit_damage: [0.14, 0.189]}
     set_bonus: abyss_walker
     pool: false
     sources: [elite, craft]
@@ -4702,10 +4706,10 @@ items:
     armor_set: abyss_walker
     rarity: legendary
     level_req: 44
-    requires: {DEX: 108}
+    requires: {DEX: 72, STR: 47}
     floor: 10
     classes: [hunter, shadow]
-    stats: {defense: [8, 10], DEX: [6, 8], LUK: [4, 5], attack_speed: [0.04, 0.054], evasion: [0.024, 0.033]}
+    stats: {defense: [8, 10], DEX: [6, 8], STR: [4, 5], attack_speed: [0.04, 0.054], evasion: [0.024, 0.033]}
     set_bonus: abyss_walker
     pool: false
     sources: [elite, craft]
@@ -4719,7 +4723,7 @@ items:
     armor_set: abyss_walker
     rarity: legendary
     level_req: 44
-    requires: {DEX: 108}
+    requires: {DEX: 72, STR: 47}
     floor: 10
     classes: [hunter, shadow]
     stats: {defense: [5, 6], DEX: [4, 5], move_speed: [0.039, 0.053], evasion: [0.016, 0.022]}
@@ -4730,7 +4734,7 @@ items:
     texture: {style: abyss, palette: ["#04080a", "#0c1e24", "#134a52", "#29dfd0", "#c8fff8"]}
     lore: "심연 추적자의 껍질처럼 빛을 삼키는 가죽. 어둠 속에선 입은 이의 윤곽조차 보이지 않는다."
 
-  # ═════════ 방어구 세트 · 별 없는 성가대 (starless_choir) — 천(비전술사·사제), 10층 정예 + 제작, Lv44 · 요구 지능 또는 정신 108 ═════════
+  # ═════════ 방어구 세트 · 별 없는 성가대 (starless_choir) — 천(비전술사·사제), 10층 정예 + 제작, Lv44 · 요구 지능 72 · 체력 47 ═════════
   starless_choir_helm:
     name: "별 없는 성가대 모자"
     type: armor
@@ -4738,10 +4742,10 @@ items:
     armor_set: starless_choir
     rarity: legendary
     level_req: 44
-    requires_any: {INT: 108, WIS: 108}
+    requires: {INT: 72, VIT: 47}
     floor: 10
     classes: [arcanist, priest]
-    stats: {defense: [4, 5], INT: [4, 5], WIS: [4, 5], mana_regen: [0.4, 0.5], cooldown_reduction: [0.024, 0.033]}
+    stats: {defense: [4, 5], INT: [4, 5], VIT: [4, 5], mana_regen: [0.4, 0.5], cooldown_reduction: [0.024, 0.033]}
     set_bonus: starless_choir
     pool: false
     sources: [elite, craft]
@@ -4755,10 +4759,10 @@ items:
     armor_set: starless_choir
     rarity: legendary
     level_req: 44
-    requires_any: {INT: 108, WIS: 108}
+    requires: {INT: 72, VIT: 47}
     floor: 10
     classes: [arcanist, priest]
-    stats: {defense: [7, 8], INT: [6, 8], WIS: [6, 8], mp: [62, 85], skill_damage: [0.074, 0.1]}
+    stats: {defense: [7, 8], INT: [6, 8], VIT: [6, 8], mp: [62, 85], skill_damage: [0.074, 0.1]}
     set_bonus: starless_choir
     pool: false
     sources: [elite, craft]
@@ -4772,10 +4776,10 @@ items:
     armor_set: starless_choir
     rarity: legendary
     level_req: 44
-    requires_any: {INT: 108, WIS: 108}
+    requires: {INT: 72, VIT: 47}
     floor: 10
     classes: [arcanist, priest]
-    stats: {defense: [6, 7], INT: [5, 7], WIS: [5, 7], heal_power: [24, 33], mp: [48, 65]}
+    stats: {defense: [6, 7], INT: [5, 7], VIT: [5, 7], heal_power: [24, 33], mp: [48, 65]}
     set_bonus: starless_choir
     pool: false
     sources: [elite, craft]
@@ -4789,10 +4793,10 @@ items:
     armor_set: starless_choir
     rarity: legendary
     level_req: 44
-    requires_any: {INT: 108, WIS: 108}
+    requires: {INT: 72, VIT: 47}
     floor: 10
     classes: [arcanist, priest]
-    stats: {defense: [4, 5], INT: [3, 4], WIS: [3, 4], move_speed: [0.039, 0.053], mana_regen: [0.3, 0.5]}
+    stats: {defense: [4, 5], INT: [3, 4], VIT: [3, 4], move_speed: [0.039, 0.053], mana_regen: [0.3, 0.5]}
     set_bonus: starless_choir
     pool: false
     sources: [elite, craft]
@@ -4800,7 +4804,7 @@ items:
     texture: {style: silk, palette: ["#04060a", "#101c24", "#22404a", "#2fe0d0", "#e8f8f4"]}
     lore: "심연의 핵에서 끝없이 노래하는 공허 성가대의 예복. 별빛 하나 없는 천에 소리만이 수놓여 있다."
 
-  # ═════════ 방어구 세트 · 용광로 수문장 (forge_warden) — 판금(수호기사·광전사), 5층 보스 카르둠 + 제작(보스 핵), Lv25 · 요구 체력 60 ═════════
+  # ═════════ 방어구 세트 · 용광로 수문장 (forge_warden) — 판금(수호기사·광전사), 5층 보스 카르둠 + 제작(보스 핵), Lv25 · 요구 체력 40 · 힘 26 ═════════
   forge_warden_helm:
     name: "용광로 수문장 투구"
     type: armor
@@ -4808,7 +4812,7 @@ items:
     armor_set: forge_warden
     rarity: epic
     level_req: 25
-    requires: {VIT: 60}
+    requires: {VIT: 40, STR: 26}
     floor: 5
     classes: [guardian, berserker]
     stats: {defense: [5, 6], VIT: [2, 3], hp: [34, 46], damage_reduction: [0.01, 0.014]}
@@ -4825,7 +4829,7 @@ items:
     armor_set: forge_warden
     rarity: epic
     level_req: 25
-    requires: {VIT: 60}
+    requires: {VIT: 40, STR: 26}
     floor: 5
     classes: [guardian, berserker]
     stats: {defense: [9, 11], VIT: [4, 5], STR: [2, 3], hp: [59, 80], damage_reduction: [0.018, 0.024]}
@@ -4842,7 +4846,7 @@ items:
     armor_set: forge_warden
     rarity: epic
     level_req: 25
-    requires: {VIT: 60}
+    requires: {VIT: 40, STR: 26}
     floor: 5
     classes: [guardian, berserker]
     stats: {defense: [7, 9], VIT: [3, 4], STR: [2, 3], hp: [46, 62], hp_regen: [0.8, 1.1]}
@@ -4859,7 +4863,7 @@ items:
     armor_set: forge_warden
     rarity: epic
     level_req: 25
-    requires: {VIT: 60}
+    requires: {VIT: 40, STR: 26}
     floor: 5
     classes: [guardian, berserker]
     stats: {defense: [5, 6], VIT: [2, 3], hp: [30, 41], move_speed: [0.023, 0.031]}
@@ -4870,7 +4874,7 @@ items:
     texture: {style: dark_iron, palette: ["#0c0808", "#2a1c18", "#5a3a2a", "#a8a8b0", "#ff6a1a", "#ffd27a"]}
     lore: "모루왕 카르둠의 친위대가 입던 갑옷. 용광로 문을 지키며 쇳물을 뒤집어쓰고도 버텼다."
 
-  # ═════════ 방어구 세트 · 얼음관의 예복 (frost_regalia) — 천(비전술사·사제), 6층 보스 시린 + 제작(보스 핵), Lv28 · 요구 지능 또는 정신 68 ═════════
+  # ═════════ 방어구 세트 · 얼음관의 예복 (frost_regalia) — 천(비전술사·사제), 6층 보스 시린 + 제작(보스 핵), Lv28 · 요구 지능 45 · 정신 30 ═════════
   frost_regalia_helm:
     name: "얼음관의 왕관"
     type: armor
@@ -4878,7 +4882,7 @@ items:
     armor_set: frost_regalia
     rarity: epic
     level_req: 28
-    requires_any: {INT: 68, WIS: 68}
+    requires: {INT: 45, WIS: 30}
     floor: 6
     classes: [arcanist, priest]
     stats: {defense: [3, 4], INT: [2, 3], WIS: [2, 3], mana_regen: [0.2, 0.3], cooldown_reduction: [0.014, 0.019]}
@@ -4895,7 +4899,7 @@ items:
     armor_set: frost_regalia
     rarity: epic
     level_req: 28
-    requires_any: {INT: 68, WIS: 68}
+    requires: {INT: 45, WIS: 30}
     floor: 6
     classes: [arcanist, priest]
     stats: {defense: [4, 5], INT: [3, 5], WIS: [3, 5], mp: [33, 45], skill_damage: [0.044, 0.06]}
@@ -4912,7 +4916,7 @@ items:
     armor_set: frost_regalia
     rarity: epic
     level_req: 28
-    requires_any: {INT: 68, WIS: 68}
+    requires: {INT: 45, WIS: 30}
     floor: 6
     classes: [arcanist, priest]
     stats: {defense: [3, 4], INT: [3, 4], WIS: [3, 4], heal_power: [13, 17], mp: [26, 35]}
@@ -4929,7 +4933,7 @@ items:
     armor_set: frost_regalia
     rarity: epic
     level_req: 28
-    requires_any: {INT: 68, WIS: 68}
+    requires: {INT: 45, WIS: 30}
     floor: 6
     classes: [arcanist, priest]
     stats: {defense: [2, 3], INT: [2, 3], WIS: [2, 3], move_speed: [0.024, 0.033], mana_regen: [0.2, 0.3]}
@@ -4940,7 +4944,7 @@ items:
     texture: {style: frost, palette: ["#101828", "#2a4466", "#6a9ad0", "#bfe6ff", "#ffffff", "#c8b4ff"]}
     lore: "얼음관의 여제 시린이 잠들기 전 마지막으로 입었던 예복. 옷자락에 맺힌 서리는 천 년 동안 녹지 않았다."
 
-  # ═════════ 방어구 세트 · 먹물 장막 (inkveil) — 가죽(사냥꾼·그림자), 8층 보스 오르벨 + 제작(보스 핵), Lv38 · 요구 민첩 93 ═════════
+  # ═════════ 방어구 세트 · 먹물 장막 (inkveil) — 가죽(사냥꾼·그림자), 8층 보스 오르벨 + 제작(보스 핵), Lv38 · 요구 민첩 62 · 지능 40 ═════════
   inkveil_helm:
     name: "먹물 장막 가면"
     type: armor
@@ -4948,7 +4952,7 @@ items:
     armor_set: inkveil
     rarity: legendary
     level_req: 38
-    requires: {DEX: 93}
+    requires: {DEX: 62, INT: 40}
     floor: 8
     classes: [hunter, shadow]
     stats: {defense: [5, 6], DEX: [4, 5], crit_chance: [0.022, 0.029], crit_damage: [0.071, 0.096]}
@@ -4965,10 +4969,10 @@ items:
     armor_set: inkveil
     rarity: legendary
     level_req: 38
-    requires: {DEX: 93}
+    requires: {DEX: 62, INT: 40}
     floor: 8
     classes: [hunter, shadow]
-    stats: {defense: [9, 11], DEX: [7, 9], LUK: [4, 6], evasion: [0.028, 0.038], crit_damage: [0.124, 0.168]}
+    stats: {defense: [9, 11], DEX: [7, 9], INT: [4, 6], evasion: [0.028, 0.038], crit_damage: [0.124, 0.168]}
     set_bonus: inkveil
     pool: false
     sources: [boss, craft]
@@ -4982,10 +4986,10 @@ items:
     armor_set: inkveil
     rarity: legendary
     level_req: 38
-    requires: {DEX: 93}
+    requires: {DEX: 62, INT: 40}
     floor: 8
     classes: [hunter, shadow]
-    stats: {defense: [7, 8], DEX: [5, 7], LUK: [3, 4], attack_speed: [0.036, 0.049], evasion: [0.022, 0.03]}
+    stats: {defense: [7, 8], DEX: [5, 7], INT: [3, 4], attack_speed: [0.036, 0.049], evasion: [0.022, 0.03]}
     set_bonus: inkveil
     pool: false
     sources: [boss, craft]
@@ -4999,7 +5003,7 @@ items:
     armor_set: inkveil
     rarity: legendary
     level_req: 38
-    requires: {DEX: 93}
+    requires: {DEX: 62, INT: 40}
     floor: 8
     classes: [hunter, shadow]
     stats: {defense: [5, 6], DEX: [4, 5], move_speed: [0.036, 0.048], evasion: [0.015, 0.02]}
@@ -5340,9 +5344,10 @@ items:
     name: "악몽의 왕관"
     type: armor
     armor_slot: head
+    look: any
     rarity: mythic
     level_req: 48
-    requires_any: {STR: 118, DEX: 118, INT: 118, VIT: 118, WIS: 118}
+    requires: {VIT: 65, LUK: 39, WIS: 26}
     floor: 10
     classes: []
     stats: {defense: [11, 13], STR: [6, 8], DEX: [6, 8], INT: [6, 8], VIT: [6, 8], WIS: [6, 8], LUK: [6, 8], hp: [140, 189], skill_damage: [0.109, 0.148]}
@@ -5945,11 +5950,13 @@ sets:
   novice:
     name: "미궁 수련생"
     look: light
+    look_effects: false
     back: pack
     pieces: [novice_cap, novice_tunic, novice_trousers, novice_boots]
   wayfarer:
     name: "미궁 길잡이"
     look: light
+    look_effects: false
     back: pack
     pieces: [wayfarer_helm, wayfarer_chest, wayfarer_legs, wayfarer_boots]
     bonuses: {2: {hp: 25, move_speed: 0.03}, 4: {VIT: 3, hp_regen: 0.8}}

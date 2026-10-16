@@ -494,7 +494,9 @@ public final class Traps {
             if (dx * dx + dz * dz < 0.75 * 0.75 && dy > -0.6 && dy < 1.2) {
                 if (hitThrottled(p, spot, s, t, 14)) {
                     Vector kb = new Vector(dx, 0, dz);
-                    if (kb.lengthSquared() > 1e-4) p.setVelocity(kb.normalize().multiply(0.5).setY(0.2));
+                    if (kb.lengthSquared() > 1e-4) {
+                        p.setVelocity(kb.normalize().multiply(0.5 * fs.services().damage().knockbackScale(p, null)).setY(0.2));
+                    }
                 }
             }
         }

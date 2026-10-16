@@ -109,6 +109,61 @@ combat:
   jump_crit: 1.2               # 떨어지며 친 근접 공격
   bow_full_draw_cue: true      # 활을 끝까지 당기면 작은 '탁' 소리 (본인만)
 
+# 방어구 겉모습 장단점 (0.3.5) — 판금·가죽·천이 부위마다 같은 숨은 효과를 갖는다 (굴리지 않음, 희귀도·레벨·강화와 상관없음).
+#   두 부위면 두 배, 판금 2 + 가죽 2 처럼 섞으면 반씩. 요구 능력치를 못 맞춘 부위는 숨은 효과도 4부위 수도 없다.
+#   머리·몸·다리·발이 모두 같은 겉모습이면 4부위 효과 (방패는 판금 한 부위지만 4부위 수에는 안 든다).
+#   수련생·길잡이 옷은 평상복 — 겉모습 효과가 없다. 악몽의 왕관은 어느 겉모습과도 4부위를 이룬다.
+#   piece 키: 장비 스탯 키(더하기, 상한 그대로) 또는 defense_pct · hp_pct · mana_regen_pct · cooldown_pct (× (1 + 합)).
+#   키가 없으면 아래 값. false 로 두면 겉모습 효과·4부위 효과가 모두 꺼진다 (요구 능력치는 그대로).
+armor_looks:
+  enabled: true
+  full_pieces: 4
+  shield_counts_as: heavy
+  heavy:
+    name: "판금"
+    color: "#b8c4d6"
+    piece:
+      defense_pct: 0.04          # 최종 방어 × (1 + 합)
+      damage_reduction: 0.005    # 받는 피해 감소 (상한 50% 그대로)
+      move_speed: -0.02          # 이동 속도
+      evasion: -0.01             # 회피 (0 아래로 안 내려감)
+      cooldown_pct: 0.02         # 직업·무기 스킬 재사용 대기 × (1 + 합) — 재사용 감소와 따로 곱함
+    full:
+      name: "버팀"
+      knockback_resist: 0.60     # 몬스터·함정·다른 플레이어에게 밀려나는 세기 −60% (힘의 저항과 더함, 상한 85%, 보스는 그대로)
+      cc_resist: 0.40            # 기절·속박·빙결 시간 −40% (보스가 건 것은 그대로)
+  light:
+    name: "가죽"
+    color: "#c9a46a"
+    piece:
+      evasion: 0.015
+      crit_chance: 0.01
+      attack_speed: 0.015        # 공격 속도 (합계 상한 +75% 안)
+      move_speed: 0.01
+      defense_pct: -0.06
+    full:
+      name: "구르기"
+      double_tap: 0.30           # 웅크리기 키를 이 시간 안에 두 번 (누름-뗌-누름)
+      distance: 3.5              # 움직이던 방향으로 (블록)
+      back_distance: 2.0         # 방향 키를 안 누르고 있으면 뒤로
+      iframe: 0.40               # 이 시간 동안 피할 수 있는 공격은 모두 회피 (보스 패턴·지속 피해는 못 피함)
+      cooldown: 5.0              # 재사용 대기 (초)
+      combo_guard: 0.40          # 웅크리기 조합 스킬을 쓴 뒤 이 시간 안이면 안 구름
+      ready_sound: true          # 다시 쓸 수 있으면 본인에게만 작은 소리
+  cloth:
+    name: "천"
+    color: "#b99cff"
+    piece:
+      skill_damage: 0.02
+      cooldown_pct: -0.015
+      mana_regen_pct: 0.06       # 초당 MP 재생 × (1 + 합)
+      hp_pct: -0.02              # 최대 HP × (1 + 합)
+    full:
+      name: "마나 보호막"
+      absorb: 0.20               # 받는 최종 피해의 20% 를 MP 가 대신 받는다 (지속 피해·고정 피해도)
+      damage_per_mp: 2.0         # MP 1 = 피해 2
+      off_below: 0.20            # MP 가 최대의 20% 아래면 쉰다 (스킬 쓸 MP 를 남김)
+
 # 플레이어끼리 싸우기 (PvP) — 따로 신청하는 대전 없이 규칙 하나:
 #   같은 파티원끼리는 야생·마을·미궁 어디서든 서로 피해를 줄 수 없고, 그 밖의 플레이어끼리는 피해를 줄 수 있다.
 #   근접·화살·삼지창·직업 스킬·무기 스킬·장판·투척/잔류 물약·불·TNT·엔드 수정·길들인 늑대·낚싯대 모두 같은 규칙.

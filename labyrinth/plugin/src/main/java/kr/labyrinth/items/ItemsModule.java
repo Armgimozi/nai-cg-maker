@@ -29,7 +29,8 @@ import org.bukkit.entity.Player;
 
 /**
  * items 담당 모듈 진입점: ItemService(굴림·툴팁·장비 컴포넌트) · LootService(개인 루팅) · CraftingService(대장장이 GUI) ·
- * WeaponSkillService(17종 무기 스킬) · UniqueEffects(무기 고유 효과 26종, {@link UniqueEffectService}) · AuraService(전설·신화 아우라) · 장비 StatContributor(+세트 효과) · 소모품 · 바닐라 가공 차단 ·
+ * WeaponSkillService(17종 무기 스킬) · UniqueEffects(무기 고유 효과 26종, {@link UniqueEffectService}) · AuraService(전설·신화 아우라) · 장비 StatContributor(+세트 효과 · 겉모습 수) ·
+ * 겉모습 4부위 효과({@link ArmorLookService} — 가죽 구르기 · 천 마나 보호막) · 소모품 · 바닐라 가공 차단 ·
  * 강화(enhance/EnhanceService — 대장간 [강화], +10 빛) · 어깨·등 3D 장식({@link ArmorCosmetics} — 상의 세트별 탑승 디스플레이).
  * 명령: /미궁 강화|enhance (강화 창) ·
  * /미궁 장식 내화면|self [켜기|끄기] (내 장식을 내 화면에도). 관리: /labadmin blacksmith [플레이어] · /labadmin loot &lt;테이블&gt; [플레이어] ·
@@ -46,6 +47,7 @@ public final class ItemsModule implements Module {
     private EnhanceService enhance;
     private ArmorCosmetics cosmetics;
     private UniqueEffectService unique;
+    private ArmorLookService looks;
 
     public ItemsModule(Services services) { this.services = services; }
 
@@ -77,6 +79,10 @@ public final class ItemsModule implements Module {
         unique.start();
         consumables = new ConsumableListener(services, weaponSkills);
         consumables.start();
+        // 방어구 겉모습 4부위 효과: 가죽 구르기 · 천 마나 보호막 (판금 버팀은 파생 능력치로)
+        looks = new ArmorLookService(services);
+        services.setLooks(looks);
+        looks.start();
         auras = new AuraService(services);
         auras.start();
         enhance.start();
@@ -98,6 +104,10 @@ public final class ItemsModule implements Module {
             services.setUnique(UniqueEffects.NONE);
         }
         if (consumables != null) consumables.stop();
+        if (looks != null) {
+            looks.stop();
+            services.setLooks(LookEffects.NONE);
+        }
         if (equipment != null) services.stats().removeContributor(equipment);
     }
 

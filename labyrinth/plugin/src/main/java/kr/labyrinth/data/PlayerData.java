@@ -135,6 +135,18 @@ public final class PlayerData {
     /** 모듈 확장 데이터. 수정 후 markDirty() 호출. */
     public Map<String, Object> ext() { return ext; }
 
+    /** ext 키: 가죽 4부위 구르기를 끔 (/스탯 단추, 사람마다 — 기본 false = 켜짐). */
+    public static final String TUMBLE_OFF_KEY = "look.tumble_off";
+
+    /** 구르기를 껐는가. */
+    public boolean tumbleOff() { return Boolean.TRUE.equals(ext.get(TUMBLE_OFF_KEY)); }
+
+    public void tumbleOff(boolean off) {
+        if (off) ext.put(TUMBLE_OFF_KEY, true);
+        else ext.remove(TUMBLE_OFF_KEY);
+        dirty = true;
+    }
+
     public long firstJoin() { return firstJoin; }
     public long lastSeen() { return lastSeen; }
     public void touch() { lastSeen = System.currentTimeMillis(); dirty = true; }
