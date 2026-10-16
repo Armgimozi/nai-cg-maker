@@ -491,7 +491,7 @@ public final class PackService implements Module, Listener {
             else if (!ok) again = "다시 보내지 않음 · 공개 사본을 받을 수 없음";
             else if (activeMode == PackUrlChoice.Mode.BUILTIN) again = "공개 사본으로 한 번 더 보냄";
             else again = packBytes != null ? "내장 주소로 한 번 더 보냄" : "다시 보내지 않음 · 내장 서버 없음";
-            out.add("<gray>" + (activeMode == PackUrlChoice.Mode.BUILTIN ? "내장 주소" : "공개 사본") + "를 받지 못하면: <white>" + again);
+            out.add("<gray>" + (activeMode == PackUrlChoice.Mode.BUILTIN ? "내장 주소를" : "공개 사본을") + " 받지 못하면: <white>" + again);
         }
         return out;
     }
