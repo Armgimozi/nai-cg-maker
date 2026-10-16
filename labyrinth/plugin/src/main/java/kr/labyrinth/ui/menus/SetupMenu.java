@@ -86,8 +86,12 @@ public final class SetupMenu extends LabMenu {
                 // 기본: 난이도마다 배율 한 벌 — 1층부터 마지막 층까지 같은 값
                 lore.add("<gray>몬스터 HP <white>×" + Difficulty.mult(d.hp()) + "  <gray>피해 <white>×" + Difficulty.mult(d.damage()));
             }
-            lore.add("<gray>드롭 <white>×" + Difficulty.mult(d.drop()) + "  <gray>경험치 <white>×" + Difficulty.mult(d.xp())
-                    + (d.rampsAtFloor1() ? " <dark_gray>(1층부터)" : ""));
+            if (d.drop() != 1.0 || d.xp() != 1.0) {
+                lore.add("<gray>드롭 <white>×" + Difficulty.mult(d.drop()) + "  <gray>경험치 <white>×" + Difficulty.mult(d.xp())
+                        + (d.rampsAtFloor1() ? " <dark_gray>(1층부터)" : ""));
+            } else {
+                lore.add("<gray>드롭·경험치는 난이도와 상관없이 같음");
+            }
             lore.add("<gray>경고 시간 <white>" + d.telegraphText());
             if (!d.rampsAtFloor1()) lore.add("<dark_gray>1층부터 모든 층 같은 배율");
             lore.add("");

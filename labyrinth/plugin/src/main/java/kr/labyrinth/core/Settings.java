@@ -320,6 +320,20 @@ public final class Settings {
      * </ul>
      */
     static Difficulty difficulty(String id, ConfigurationSection d, Difficulty def) {
+        return upgradeRewards(id, difficultyRaw(id, d, def), def);
+    }
+
+    /** 0.3.5.2: 예전 jar 기본 보상 배율(쉬움 0.8 · 어려움 1.3 · 악몽 1.8/1.7) 그대로면 새 기본값(1.0). 직접 고친 값은 그대로. */
+    static Difficulty upgradeRewards(String id, Difficulty x, Difficulty def) {
+        double[] old = Difficulty.legacyRewards(id);
+        if (old == null) return x;
+        double drop = upgrade(x.drop(), def.drop(), old[0]);
+        double xp = upgrade(x.xp(), def.xp(), old[1]);
+        if (drop == x.drop() && xp == x.xp()) return x;
+        return new Difficulty(x.id(), x.name(), x.hp(), x.damage(), drop, xp, x.telegraph(), x.ramp());
+    }
+
+    private static Difficulty difficultyRaw(String id, ConfigurationSection d, Difficulty def) {
         Difficulty read = new Difficulty(id, d.getString("name", def.name()), d.getDouble("hp", def.hp()),
                 d.getDouble("damage", def.damage()), d.getDouble("drop", def.drop()),
                 d.getDouble("xp", def.xp()), d.getDouble("telegraph", def.telegraph()));

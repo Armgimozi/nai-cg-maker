@@ -118,7 +118,7 @@ public class ChatMenuService implements MenuService {
             String ramp = d.ramp() == null ? "" : " (지하 " + d.ramp().fullFloor() + "층부터 최대)";
             sb.append(button("<yellow>[" + d.name() + "]</yellow>", "/lab difficulty " + d.id(),
                     "몹 HP ×" + range(first.hp(), d.hp()) + " · 피해 ×" + range(first.damage(), d.damage()) + ramp
-                            + " · 드롭 ×" + num(d.drop()))).append("  ");
+                            + (d.drop() != 1.0 ? " · 드롭 ×" + num(d.drop()) : ""))).append("  ");
         }
         p.sendMessage(Text.mm(sb.toString()));
     }

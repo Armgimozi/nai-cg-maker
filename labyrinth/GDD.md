@@ -1858,10 +1858,10 @@ effect 프리셋 동작 (frames 동안 한 주기, 루프):
 ### 15.3 config.yml 권장 키 (Settings)
 ```yaml
 difficulties:           # 모든 층 같은 배율 (§2.4). ramp 는 관리자가 직접 적을 때만. 고친 적 없는 예전 값은 읽을 때 새 값으로
-  easy:      {name: "쉬움",   hp: 0.7, damage: 0.6, drop: 0.8, xp: 0.8, telegraph: 1.3}
+  easy:      {name: "쉬움",   hp: 0.7, damage: 0.6, drop: 1.0, xp: 1.0, telegraph: 1.3}
   normal:    {name: "보통",   hp: 1.0, damage: 1.0, drop: 1.0, xp: 1.0, telegraph: 1.0}
-  hard:      {name: "어려움", hp: 1.45, damage: 1.3, drop: 1.3, xp: 1.3, telegraph: 0.9}
-  nightmare: {name: "악몽",   hp: 1.8, damage: 1.6, drop: 1.8, xp: 1.7, telegraph: 0.85}
+  hard:      {name: "어려움", hp: 1.45, damage: 1.3, drop: 1.0, xp: 1.0, telegraph: 0.9}   # 0.3.5.2: 드롭·경험치는 모든 난이도 1.0
+  nightmare: {name: "악몽",   hp: 1.8, damage: 1.6, drop: 1.0, xp: 1.0, telegraph: 0.85}
 difficulty: ""          # 서버 난이도. 비어 있으면 첫 관리자 접속 시 초기 설정 GUI
 party: {max_size: 5, hp_per_member: 0.6, dmg_per_member: 0.08, reward_per_member: 0.05,
         solo_hp: 0.85, solo_damage: 0.85}          # 솔로 보정 (§2.5, 끄기 1.0)

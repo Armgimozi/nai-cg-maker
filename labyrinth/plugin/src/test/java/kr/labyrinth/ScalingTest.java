@@ -41,9 +41,11 @@ class ScalingTest {
         // 0.3.3: 난이도마다 배율 한 벌 — 1층부터 마지막 층까지 같은 값, 보스 기믹 진행도도 1
         assertRamp(Difficulty.HARD, 1.45, 1.3, 0.9); // 0.3.5: 어려움 HP 1.4 → 1.45
         assertRamp(Difficulty.NIGHTMARE, 1.8, 1.6, 0.85);
-        assertEquals(1.3, Difficulty.HARD.drop(), 1e-9);
-        assertEquals(1.8, Difficulty.NIGHTMARE.drop(), 1e-9);
-        assertEquals(1.7, Difficulty.NIGHTMARE.xp(), 1e-9);
+        // 0.3.5.2: 보상은 난이도와 상관없이 1.0
+        for (Difficulty d : List.of(Difficulty.EASY, Difficulty.NORMAL, Difficulty.HARD, Difficulty.NIGHTMARE)) {
+            assertEquals(1.0, d.drop(), 1e-9, d.id());
+            assertEquals(1.0, d.xp(), 1e-9, d.id());
+        }
         for (Difficulty d : List.of(Difficulty.EASY, Difficulty.NORMAL, Difficulty.HARD, Difficulty.NIGHTMARE)) {
             assertNull(d.ramp(), d.id());
             assertSame(d, d.atFloor(1));
@@ -108,8 +110,8 @@ class ScalingTest {
             InstanceContext solo = InstanceContext.adhoc(floor, 1, Difficulty.NIGHTMARE, PartyScaling.DEFAULT);
             assertEquals(1.8 * 0.85, solo.hpMultiplier(), 1e-9, "층 " + floor);
             assertEquals(1.6 * 0.85, solo.damageMultiplier(), 1e-9);
-            assertEquals(1.8, solo.dropMultiplier(), 1e-9);
-            assertEquals(1.7, solo.xpMultiplier(), 1e-9);
+            assertEquals(1.0, solo.dropMultiplier(), 1e-9);   // 0.3.5.2: 보상은 난이도와 상관없이 1.0
+            assertEquals(1.0, solo.xpMultiplier(), 1e-9);
             assertEquals(0.85, solo.windup(1.0), 1e-9);
             assertEquals(1.0, solo.rampProgress(), 1e-9);
             assertSame(Difficulty.NIGHTMARE, solo.difficulty());
@@ -154,8 +156,8 @@ class ScalingTest {
         assertEquals(4, ctx.partySize());
         assertEquals(1.45 * (1 + 0.6 * 3), ctx.hpMultiplier(), 1e-9);
         assertEquals(1.3 * (1 + 0.08 * 3), ctx.damageMultiplier(), 1e-9);
-        assertEquals(1.3 * (1 + 0.05 * 3), ctx.dropMultiplier(), 1e-9);
-        assertEquals(1.3, ctx.xpMultiplier(), 1e-9);
+        assertEquals(1.0 * (1 + 0.05 * 3), ctx.dropMultiplier(), 1e-9);   // 난이도 보상 1.0 × 인원
+        assertEquals(1.0, ctx.xpMultiplier(), 1e-9);
         assertEquals(0.9, ctx.windup(1.0), 1e-9);
         // 최소 0.5초 보장
         assertEquals(0.5, InstanceContext.adhoc(1, 1, Difficulty.NIGHTMARE, PartyScaling.DEFAULT).windup(0.5), 1e-9);
@@ -186,7 +188,9 @@ class ScalingTest {
         Settings s = new Settings(y);
         assertFalse(s.isDifficultySet());
         assertEquals("normal", s.difficulty().id());
-        assertEquals(new Difficulty("hard", "어려움", 1.6, 1.35, 1.3, 1.3, 0.8), s.difficulty("hard")); // 직접 고친 값 그대로
+        // 직접 고친 값 그대로 — drop·xp 1.3 은 예전 jar 기본값이라 1.0 으로 올라감 (0.3.5.2)
+        assertEquals(new Difficulty("hard", "어려움", 1.6, 1.35, 1.0, 1.0, 0.8), s.difficulty("hard"));
+        assertEquals(1.5, new Settings(yaml("difficulties: {hard: {drop: 1.5, xp: 1.2}}")).difficulty("hard").drop(), 1e-9, "다른 값은 그대로");
         assertEquals(0.6, s.difficulty("easy").damage(), 1e-9); // 기본 프리셋 유지
         assertEquals(8, s.party().maxSize()); // 직접 고친 값 그대로
         assertEquals(0.5, s.party().hpPerMember(), 1e-9);
@@ -379,7 +383,7 @@ class ScalingTest {
                   nightmare: {name: "지옥", hp: 3.0, damage: 2.0, drop: 2.5, xp: 1.7, telegraph: 0.7,
                               ramp: {from_floor: 1, full_floor: 6, start: {hp: 1.8, damage: 1.6, telegraph: 0.85}}}
                 """)).difficulty("nightmare");
-        assertEquals(new Difficulty("nightmare", "지옥", 3.0, 1.6, 2.5, 1.7, 0.85), mixed);
+        assertEquals(new Difficulty("nightmare", "지옥", 3.0, 1.6, 2.5, 1.0, 0.85), mixed); // xp 1.7 = 예전 기본값 → 1.0
         // 직접 고친 램프(시작 hp 1.5)는 따르고 숫자도 적힌 그대로
         Difficulty hand = new Settings(yaml("""
                 difficulties:

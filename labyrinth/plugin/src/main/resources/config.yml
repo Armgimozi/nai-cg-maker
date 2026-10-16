@@ -17,10 +17,10 @@ difficulty: ""
 #   (선택) ramp: {from_floor: 1, full_floor: 5, start: {hp: 1.2, damage: 1.1, telegraph: 0.95}} 처럼 직접 적으면 층 램프를 쓸 수 있다
 #         — from_floor 층에서 start 값으로 시작해 full_floor 층부터 위의 값 (hp·damage·telegraph 와 보스 패턴 배율만, 보상은 1층부터).
 difficulties:
-  easy:      {name: "쉬움",   hp: 0.7, damage: 0.6, drop: 0.8, xp: 0.8, telegraph: 1.3}
+  easy:      {name: "쉬움",   hp: 0.7, damage: 0.6, drop: 1.0, xp: 1.0, telegraph: 1.3}
   normal:    {name: "보통",   hp: 1.0, damage: 1.0, drop: 1.0, xp: 1.0, telegraph: 1.0}
-  hard:      {name: "어려움", hp: 1.45, damage: 1.3, drop: 1.3, xp: 1.3, telegraph: 0.9}
-  nightmare: {name: "악몽",   hp: 1.8, damage: 1.6, drop: 1.8, xp: 1.7, telegraph: 0.85}
+  hard:      {name: "어려움", hp: 1.45, damage: 1.3, drop: 1.0, xp: 1.0, telegraph: 0.9}
+  nightmare: {name: "악몽",   hp: 1.8, damage: 1.6, drop: 1.0, xp: 1.0, telegraph: 0.85}
 
 # 파티 — 인원 n 명일 때 몹 HP ×(1 + hp_per_member×(n−1)), 피해 ×(1 + dmg_per_member×(n−1)),
 #         골드·드롭 ×(1 + reward_per_member×(n−1))
