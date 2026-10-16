@@ -138,8 +138,14 @@ public final class EntranceMenu extends LabMenu {
             deco(MEMBER_SLOTS[idx++], MainMenu.head(m, (lead ? "<#ffd36b>★ " : "<white>") + Text.escape(m.getName()), lore));
         }
         if (services.dungeon().currentInstance(p).isPresent()) {
-            set(53, Button.icon(Material.RECOVERY_COMPASS, "<#ff9a4d><b>귀환</b>", List.of("<gray>미궁을 나와 입구로 돌아갑니다.")),
-                    ctx -> { click(ctx.player()); ctx.player().closeInventory(); services.dungeon().leave(ctx.player()); });
+            List<String> back = new ArrayList<>(List.of("<gray>미궁을 나와 입구로 돌아갑니다."));
+            double cast = services.settings().deathPenalty().combatExitSeconds();
+            if (cast > 0 && kr.labyrinth.core.DeathPenaltyRules.plan(services.settings().deathPenalty(),
+                    kr.labyrinth.core.DeathPenaltyRules.Where.DUNGEON_RUN, false).any()) {
+                back.add("<dark_gray>싸우는 중이면 " + kr.labyrinth.core.DeathPenaltyRules.seconds(cast) + "초 걸립니다.");
+            }
+            set(53, Button.icon(Material.RECOVERY_COMPASS, "<#ff9a4d><b>귀환</b>", back),
+                    ctx -> { click(ctx.player()); ctx.player().closeInventory(); services.dungeon().leaveByChoice(ctx.player()); });
         }
         set(49, Button.icon(Material.CAKE, "<#c9a2ff>파티 관리", List.of("<gray>파티 메뉴로 이동")),
                 ctx -> { click(ctx.player()); services.menus().openParty(ctx.player()); });

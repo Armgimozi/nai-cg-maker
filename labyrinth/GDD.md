@@ -119,12 +119,25 @@
   갑옷 36~39 · 보조손 40 · 장신구(PlayerData, 가방 밖)는 후보가 아니다. 후보가 모자라면 있는 만큼. 칸 고르기는 부분 피셔-예이츠(칸마다 같은 확률).
   고르기 전에 열린 창을 닫아(커서·2×2 제작 칸·판매 바구니 → 가방) 같은 규칙으로 고른다.
 - **언제나 안전**: items.yml `type: key`(직업 문장 · 층 금고 열쇠 — 금고는 파티 몫이라 한 사람이 쓰러져 잃으면 남은 파티원도 막힘),
-  미궁 활 무한 화살(PDC `lab_arrow`, 진짜 물건 아님), config `safe_items`. 그 밖은 잃을 수 있다: 안 배운 도안 · 전직의 두루마리(핀이 팜) ·
-  구리 곡괭이(광부 50G, 레시피 재료) · 귀환 주문서 · 셜커 상자(한 칸 — 따로 지켜 주면 다 넣어 피할 수 있다).
+  `type: tool` 광산 곡괭이(구리~오리하르콘 — 미궁에서 쓸 데가 없고 팔 수도 없는 광산 성장. 오리하르콘까지 제련 5단계(골드·주괴·보석)를
+  미궁 죽음 하나로 되돌리지 않는다. 한 칸에 1개라 다른 물건을 숨기는 구멍도 안 됨), 미궁 활 무한 화살(PDC `lab_arrow`, 진짜 물건 아님),
+  config `safe_items`. 그 밖은 잃을 수 있다: 안 배운 도안(우클릭이면 영구로 배우므로 안 배우고 들고 다닌 것만) · 전직의 두루마리(핀이 팜) ·
+  귀환 주문서(`/미궁 퇴장` 이 늘 있어 갇히지 않음) · 가방 속 셜커 상자(안에 든 것까지 한 칸 — 따로 지켜 주면 다 넣어 피할 수 있다).
+  손·보조손의 셜커 상자는 주인 규칙(손에 든 칸·보조손은 안전)대로 안에 든 것까지 안전 — 받아들인 틈(엔드 셜커가 있어야 하고, 손·보조손 두 칸뿐).
+  기믹 10종은 블록·레버로 풀고 가방 아이템이 필요한 방이 없어, 열쇠 말고는 잃어서 공략이 막히는 물건이 없다.
 - 안내: 미궁 쓰러짐은 바로, 밖의 죽음은 부활한 뒤(`PlayerPostRespawnEvent`) 채팅 한두 줄 — "죽어서 잃었습니다: 철 주괴 ×13, 하급 치유 물약 ×5" ·
-  "이번 레벨 경험치가 처음으로 돌아갔습니다. (-N XP)". 잃은 것이 없으면 말 없음. 미궁 첫 입장 때 한 번 규칙 안내(ext `death.penalty_notice`).
-  콘솔에 `[죽음 페널티] 이름 (곳) 잃은 물건 id×n … · 경험치 -n`.
-- 예외 규칙: 토템·부활 물약 = 죽음 없음 → 페널티 없음. 미궁 밖 keep_inventory false = 바닐라 드롭만(더 지우지 않음).
+  "이번 레벨 경험치가 처음으로 돌아갔습니다. (-N XP)". 잃은 것이 없으면 말 없음. 이름 없는 바닐라 물건은 보이는 이름의 번역 키
+  (`effectiveName()` = 빈 글 + 희귀도 색 + 이름 하나라 껍데기를 벗겨, 인자 없는 번역 글이면 그 키 — 물약은 "치유의 물약",
+  `translationKey()` 만 쓰면 모두 "물약").
+  미궁 첫 입장 때 한 번 규칙 안내(ext `death.penalty_notice`, 물건 잃기를 꺼도 경험치 규칙은 안내). 메인 메뉴 'PvP 규칙' 에도 죽음 두 줄
+  (PvP 를 꺼도 나옴: "미궁 밖에서 쓰러져도 소지품과 바닐라 경험치(초록 막대)는 그대로입니다." · 페널티 한 줄).
+  콘솔에 `[죽음 페널티] 이름 (곳) 잃은 물건 id×n … · 경험치 -n` — 칸을 고르고 이름을 만든 뒤, **지우기 전에** 남긴다
+  (중간에 예외가 나도 기록 없이 사라지는 일이 없게. 고르기에서 실패하면 아무것도 안 지움).
+- **전투 중 퇴장 = 시전** (`dungeon.ExitCast`, 규칙 `DeathPenaltyRules.exitCastSeconds`, config `death.penalty.combat_exit_seconds` 기본 5, 0 = 바로):
+  공략 중 살아 있고 10초 안에 피해를 받았으면 `/미궁 퇴장`·`/미궁 귀환`·입구 메뉴 '귀환'(`DungeonService.leaveByChoice`)도 귀환 주문서처럼
+  5초 시전, 피해를 받으면 끊김. 페널티가 생겨 "죽기 직전 퇴장" 이 언제나 이득이 된 틈을 막는다 (벌칙이 아니라 탈출 시간).
+  쓰러진 사람·전투 밖·관리자 시험 입장·페널티를 모두 끈 서버는 0.3.6 처럼 바로. 귀환 주문서 시전은 그대로 따로.
+- 예외 규칙: 토템·불사조 깃털(`phoenix_feather`, 자동 부활) = 죽음 없음 → 페널티 없음. 미궁 밖 keep_inventory false = 바닐라 드롭만(더 지우지 않음).
   미궁 월드의 공략 밖 죽음(관전 중 /kill 등) = 경험치만. 관리자 시험 입장(`/labadmin tpfloor`) = 경험치만.
   보스·미믹·함정·공허·/kill 모두 같은 쓰러짐 경로라 같은 규칙. 전멸·보스 실패에 추가 손실 없음. 부활(휴식방·보스 처치·부활의 성가)은 되돌려 주지 않는다.
   접속 끊기(전투 중 포함)는 지금처럼 공략에 남았다가 재접속하면 합류 — 쓰러짐이 아니므로 잃지 않는다(새 벌칙 없음).
@@ -1918,7 +1931,7 @@ party: {max_size: 5, hp_per_member: 0.6, dmg_per_member: 0.08, reward_per_member
 starter_kit: {enabled: true, gold: 300, items: [{item: novice_cap, amount: 1}, …, {item: minor_healing_potion, amount: 10}, {item: minor_mana_potion, amount: 5}, {item: return_scroll, amount: 2}]}   # §2.7
 class_change: {require_item: true, item: class_change_scroll, cooldown_hours: 24}   # §4.5 (끄기 class_change: false)
 death: {keep_inventory: true, keep_level: true,     # 인벤세이브 §2.6
-        penalty: {xp_progress_reset: true, dungeon_item_loss: {enabled: true, slots_min: 2, slots_max: 3, safe_items: []}}}   # §2.6.1 (끄기 penalty: false)
+        penalty: {xp_progress_reset: true, combat_exit_seconds: 5, dungeon_item_loss: {enabled: true, slots_min: 2, slots_max: 3, safe_items: []}}}   # §2.6.1 (끄기 penalty: false)
 combat: {base_crit_chance: 0.05, base_crit_damage: 1.5, attack_interval_min: 0.25, early_click_buffer: 0.35, early_click_sound: true,
          click_tolerance_ms: 50, jump_crit: 1.2, bow_full_draw_cue: true, damage_numbers: true}   # §3 (게이지 없음)
 weapon_attack_speed: {none: 1.6}   # 0.3.5 부터 맨손(none)만 읽는다 — 무기 간격은 items.yml attack.interval
@@ -2230,8 +2243,10 @@ m(L) = 2.0 × min(1, (20 ÷ L)^2.35) × damage_multiplier      B(L) = 42 × min(
 ### 18.5 미궁 안
 - 미궁은 파티 인스턴스라 보통 다른 파티가 없다. 파티를 나간 사람이 같은 인스턴스에 남으면 규칙대로 적.
 - PvP 로 쓰러져도 몹에게 쓰러진 것과 똑같이 처리된다: 관전 → 휴식방·보스 처치로 부활, 살아 있는 인스턴스 멤버가 없으면 전멸.
-  관전·쓰러진 사람은 무적이라 적이 아니다. 부활의 성가는 같은 파티원만 일으킨다. 아이템 손실 없음.
-- 야생·마을·네더·엔드에서 PvP 로 죽어도 소지품·경험치 레벨을 잃지 않는다 (인벤세이브 §2.6, config `death`). 끄면 바닐라 규칙(게임 규칙 keepInventory)대로.
+  관전·쓰러진 사람은 무적이라 적이 아니다. 부활의 성가는 같은 파티원만 일으킨다.
+  죽음 페널티(§2.6.1)도 몹에게 쓰러진 것과 같다: 이번 레벨 경험치 0 + 가방 2~3칸.
+- 야생·마을·네더·엔드에서 PvP 로 죽어도 소지품·바닐라 경험치 레벨을 떨구지 않는다 (인벤세이브 §2.6, config `death`). 끄면 바닐라 규칙(게임 규칙 keepInventory)대로.
+  미궁 레벨의 이번 레벨 경험치는 잃는다 (§2.6.1).
 
 ### 18.6 PvP 상태이상 (config `pvp.cc`, `pvp/PvpCc`)
 플레이어가 다른 파티 플레이어에게 건 것만. 몹·보스가 건 것, 몹에게 건 것은 그대로. **기절은 기절 그대로** — 시간만 줄인다.

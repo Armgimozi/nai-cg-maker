@@ -543,9 +543,13 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
     정하기 전까지 미궁 입장을 막는다(안내 메시지). 이후 변경은 `/labadmin difficulty <난이도>` 또는 config 수정 후 reload
     (진행 중인 인스턴스에는 다음 입장부터 적용). 콘솔에서도 `/labadmin setup <난이도>` 가능.
     (층 해금은 그대로 유지: 처음엔 1층, 깬 층의 다음 층까지 입장 가능.)
-  - 사망: 파티원이 있으면 관전 모드 → 휴식방 도달/보스 처치 시 부활. 전멸 시 인스턴스 실패·귀환. 아이템 손실 없음.
+  - 사망: 파티원이 있으면 관전 모드 → 휴식방 도달/보스 처치 시 부활. 전멸 시 인스턴스 실패·귀환. 전멸 자체의 추가 손실은 없다.
   - 미궁 밖 사망(야생·마을·네더·엔드, PvP 포함) = 인벤세이브 `core.DeathKeep`(config.yml `death: {keep_inventory, keep_level}`, 키 없으면 둘 다 true):
     소지품·바닐라 경험치 레벨 유지, 드롭·경험치 구슬 0. false 면 그 부분만 바닐라. 미궁 월드는 DungeonManager 가 같은 `DeathKeep.apply` 로 언제나 보존.
+  - 0.3.6.1 죽음 페널티 (GDD §2.6.1, config `death.penalty`): 규칙 `core.DeathPenaltyRules`(순수) · 적용 `core.DeathPenalty`.
+    어디서 죽든 미궁 레벨의 이번 레벨 경험치 → 0 (취소 안 된 죽음 = `DeathKeep` MONITOR, 안내는 부활 뒤). 미궁 공략 중 쓰러짐
+    (`Run.onMemberDeath`)은 경험치 + 가방 2~3칸 지움(손에 든 칸·갑옷·보조손·장신구·열쇠·광산 곡괭이 안전, 콘솔 기록을 지우기 전에).
+    공략 중 전투 중 퇴장은 `dungeon.ExitCast` 가 5초 시전 (`DungeonService.leaveByChoice` — 명령·입구 메뉴).
 - **PvP = 파티 규칙 하나** (대전·투기장·매치·레이팅 없음, GDD §18): 같은 파티원끼리는 야생·마을·미궁 어디서든 서로 피해를 줄 수 없고,
   그 밖의 플레이어끼리는 피해를 줄 수 있다. 근접·화살·스킬·무기 스킬·장판·물약·불·TNT·늑대·낚싯대 모두 같은 규칙. 플레이어끼리
   피해는 `pvp/PvpDamage`(기준 배율 m(L) · 직업 보정 · 스킬 pvp_mult · 강인함 · 완충 체력, 방어 대신 강인함, 치명 추가 피해 ×0.6,

@@ -39,7 +39,7 @@ final class DungeonCommands {
         CommandService cmd = services.commands();
         for (String name : new String[] {"return", "귀환"}) {
             cmd.addSubcommand("lab", Commands.literal(name).executes(ctx -> run(ctx,
-                    () -> CommandService.withPlayer(CommandService.sender(ctx), p -> manager.leave(p)))));
+                    () -> CommandService.withPlayer(CommandService.sender(ctx), p -> manager.leaveByChoice(p)))));
         }
         for (String name : new String[] {"map", "지도"}) {
             cmd.addSubcommand("lab", Commands.literal(name).executes(ctx -> run(ctx,

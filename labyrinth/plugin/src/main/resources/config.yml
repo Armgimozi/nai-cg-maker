@@ -278,13 +278,16 @@ class_change:
 # penalty — 죽음 페널티 (0.3.6.1). 이 블록이 없어도 아래 값으로 켜진다. 모두 끄기: penalty: false
 #   xp_progress_reset: 어디서 죽든 지금 레벨에서 모은 경험치가 0 으로 (레벨은 안 내려감, 최고 레벨이면 그대로)
 #   dungeon_item_loss: 미궁 공략 중 쓰러지면 가방(단축 칸 포함) slots_min ~ slots_max 칸을 통째로 잃는다. 떨어뜨리지 않고 사라진다.
-#     손에 든 칸·입은 갑옷·장신구·보조손은 안전. 열쇠·문장도 잃지 않는다. 끄기: dungeon_item_loss: false
+#     손에 든 칸·입은 갑옷·장신구·보조손은 안전. 열쇠·문장·광산 곡괭이도 잃지 않는다. 끄기: dungeon_item_loss: false
 #     safe_items: 잃지 않을 아이템을 더 적는다 (items.yml id 나 바닐라 이름, 예: [return_scroll, totem_of_undying])
+#   combat_exit_seconds: 미궁 공략 중 싸우는 중(10초 안에 맞음)에 /미궁 퇴장·메뉴 '귀환' 을 쓰면 이 초만큼 기다렸다 나간다.
+#     그동안 맞으면 끊긴다 (귀환 주문서와 같음). 죽기 직전에 나가서 페널티를 피하지 못하게. 0 = 예전처럼 바로 나감.
 death:
   keep_inventory: true
   keep_level: true
   penalty:
     xp_progress_reset: true
+    combat_exit_seconds: 5
     dungeon_item_loss:
       enabled: true
       slots_min: 2

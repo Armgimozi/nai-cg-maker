@@ -34,6 +34,12 @@ public interface DungeonService {
     /** 인스턴스에서 나가 입구로 귀환. */
     void leave(Player player);
 
+    /**
+     * 플레이어가 스스로 나가기 (/미궁 퇴장·귀환, 입구 메뉴 '귀환'). 0.3.6.1: 공략 중 전투 중이면 귀환 주문서처럼 시전한 뒤
+     * {@link #leave} (config death.penalty.combat_exit_seconds). 기본 구현은 바로 나감.
+     */
+    default void leaveByChoice(Player player) { leave(player); }
+
     /** 관리자 강제 종료. */
     void endInstance(String instanceId);
 

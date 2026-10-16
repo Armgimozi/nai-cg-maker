@@ -139,16 +139,17 @@ public final class MainMenu extends LabMenu {
             lore.add("<gray>PvP 중 회복 <white>" + Text.pct(pc.healing()) + "</white> · 물약 <white>"
                     + Text.pct(pc.healing() * pc.potion()) + "</white> <dark_gray>(오래 싸우면 더 줄어듦)");
             if (pc.partyNameColor()) lore.add("<gray>내 파티원 이름은 <#7fe07f>초록색</#7fe07f>으로 보입니다.");
-            var death = services.settings().death();
-            if (death.keepInventory()) {
-                lore.add("<gray>미궁 밖에서 쓰러지면 소지품" + (death.keepLevel() ? "·경험치 레벨" : "") + "은 지킵니다.");
-            }
-            String penalty = kr.labyrinth.core.DeathPenaltyRules.menuLine(services.settings().deathPenalty());
-            if (penalty != null) lore.add("<gray>" + penalty);
         } else {
             lore.add("<gray>이 서버는 PvP 가 꺼져 있어");
             lore.add("<gray>플레이어끼리는 서로 다치지 않습니다.");
         }
+        // 죽음 규칙은 PvP 를 꺼도 알려 준다 (0.3.6.1 죽음 페널티 — 어디서든 이번 레벨 경험치)
+        var death = services.settings().death();
+        if (death.keepInventory()) {
+            lore.add("<gray>미궁 밖에서 쓰러져도 소지품" + (death.keepLevel() ? "과 바닐라 경험치(초록 막대)는" : "은") + " 그대로입니다.");
+        }
+        String penalty = kr.labyrinth.core.DeathPenaltyRules.menuLine(services.settings().deathPenalty());
+        if (penalty != null) lore.add("<gray>" + penalty);
         lore.add("");
         lore.add("<#ffd36b>클릭: 파티 관리");
         return lore;

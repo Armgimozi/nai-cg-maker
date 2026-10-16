@@ -67,7 +67,7 @@ final class PlayerCommands {
         for (String leave : new String[] {"leave", "퇴장"}) {
             cmd.addSubcommand("lab", Commands.literal(leave).executes(ctx -> {
                 CommandService.safeRun(ctx, () -> CommandService.withPlayer(CommandService.sender(ctx),
-                        p -> services.dungeon().leave(p)));
+                        p -> services.dungeon().leaveByChoice(p)));
                 return Command.SINGLE_SUCCESS;
             }));
         }
