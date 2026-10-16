@@ -75,6 +75,8 @@ public final class DungeonManager implements DungeonService, Listener {
     private final Set<Particle> badParticles = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Long> enterCooldown = new HashMap<>();
     private BukkitTask ticker;
+    /** 0.3.6.1 전투 중 퇴장 시전 (죽음 페널티 보완). */
+    private ExitCast exitCast;
     private long tick;
     private int runSeq;
     /** 플러그인 세션마다 다른 토큰 — runSeq 는 재시작하면 0부터라, 재시작 뒤 같은 run id(금고 열쇠 새김)가 다시 나오지 않게. */
@@ -132,6 +134,8 @@ public final class DungeonManager implements DungeonService, Listener {
         placer = new BlockPlacer(services.plugin(), config.blocksPerTick());
         placer.start();
         Bukkit.getPluginManager().registerEvents(this, services.plugin());
+        exitCast = new ExitCast(this);
+        exitCast.start();
         ticker = Bukkit.getScheduler().runTaskTimer(services.plugin(), this::tickAll, 2L, 2L);
         if (labWorld.world() == null) Log.warn("미궁 월드를 만들지 못했습니다 — 입장이 불가능합니다.");
         else Log.info("미궁 월드 준비: " + labWorld.world().getName() + (labWorld.dirtySlots().isEmpty() ? ""
@@ -149,6 +153,7 @@ public final class DungeonManager implements DungeonService, Listener {
         SelfTest.abort();
         services.damage().removeHook(trialHurtHook);
         if (ticker != null) ticker.cancel();
+        if (exitCast != null) exitCast.stop();
         HandlerList.unregisterAll(this);
         for (Run r : new ArrayList<>(runs.values())) {
             for (UUID u : r.members()) {
@@ -382,6 +387,14 @@ public final class DungeonManager implements DungeonService, Listener {
         }
         World main = Bukkit.getWorlds().get(0);
         return main.getSpawnLocation();
+    }
+
+    /** 스스로 나가기 (/미궁 퇴장·귀환, 입구 메뉴 '귀환'). 공략 중 전투 중이면 먼저 시전 ({@link ExitCast}). */
+    @Override
+    public void leaveByChoice(Player player) {
+        Run r = byPlayer.get(player.getUniqueId());
+        if (r != null && exitCast != null && exitCast.tryBegin(player, r)) return;
+        leave(player);
     }
 
     @Override

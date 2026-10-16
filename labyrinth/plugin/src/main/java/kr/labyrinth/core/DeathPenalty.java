@@ -14,6 +14,8 @@ import kr.labyrinth.core.DeathPenaltyRules.Plan;
 import kr.labyrinth.core.DeathPenaltyRules.Where;
 import kr.labyrinth.data.PlayerData;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.TranslatableComponent;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -37,18 +39,34 @@ public final class DeathPenalty {
     /** PlayerData ext: 미궁 첫 입장 안내를 봤는지. */
     static final String NOTICE_FLAG = "death.penalty_notice";
 
-    /** 미궁 공략 중 쓰러짐. 실패해도 쓰러짐 처리는 그대로 이어지게 예외를 삼킨다. */
+    /**
+     * 미궁 공략 중 쓰러짐. 실패해도 쓰러짐 처리는 그대로 이어지게 예외를 삼킨다.
+     * 순서: 칸 고르기·이름 (여기서 실패하면 아무것도 안 지움) → 경험치 → 콘솔 기록 → 지우기 → 채팅.
+     * 기록을 지우기 앞에 남겨, 중간에 무슨 일이 나도 서버장이 콘솔을 보고 되돌려 줄 수 있게 한다.
+     */
     public static void onDungeonDown(Services s, Player p, boolean adminTest) {
         try {
             Config c = s.settings().deathPenalty();
             Plan plan = DeathPenaltyRules.plan(c, Where.DUNGEON_RUN, adminTest);
             if (!plan.any()) return;
-            List<Lost> lost = new ArrayList<>();
-            List<String> ids = new ArrayList<>();
-            if (plan.destroySlots()) destroySlots(s, p, c, ThreadLocalRandom.current(), lost, ids);
+            List<Pick> picks = List.of();
+            if (plan.destroySlots()) {
+                try {
+                    picks = pick(s, p, c, ThreadLocalRandom.current());
+                } catch (Throwable t) {
+                    Log.error("죽음 페널티 칸 고르기 실패 — 물건은 안 지움 (" + p.getName() + ")", t);
+                }
+            }
             long xp = plan.resetXp() ? resetXp(s, p) : 0;
-            for (String line : DeathPenaltyRules.lines(lost, xp)) Text.send(p, line);
+            List<Lost> lost = new ArrayList<>(picks.size());
+            List<String> ids = new ArrayList<>(picks.size());
+            for (Pick k : picks) {
+                lost.add(k.lost());
+                ids.add(k.id());
+            }
             log(p, "미궁", ids, xp);
+            remove(p, picks);
+            for (String line : DeathPenaltyRules.lines(lost, xp)) Text.send(p, line);
         } catch (Throwable t) {
             Log.error("죽음 페널티 처리 실패 (" + p.getName() + ")", t);
         }
@@ -104,8 +122,13 @@ public final class DeathPenalty {
         return lost;
     }
 
-    /** 가방 칸 지우기. 열린 창(판매 바구니·커서·2×2 제작 칸)을 먼저 닫아 그 물건도 가방으로 돌려놓고 같은 규칙으로 고른다. */
-    static void destroySlots(Services s, Player p, Config c, RandomGenerator rng, List<Lost> lost, List<String> ids) {
+    /** 지울 한 칸: 칸 번호 · 채팅 줄 · 콘솔 기록 (id×개수). */
+    record Pick(int slot, Lost lost, String id) {}
+
+    /**
+     * 지울 칸 고르기 (아직 안 지움). 열린 창(커서·2×2 제작 칸)을 먼저 닫아 그 물건도 가방으로 돌려놓고 같은 규칙으로 고른다.
+     */
+    static List<Pick> pick(Services s, Player p, Config c, RandomGenerator rng) {
         p.closeInventory();
         PlayerInventory inv = p.getInventory();
         ItemStack[] storage = inv.getStorageContents();
@@ -115,12 +138,19 @@ public final class DeathPenalty {
             eligible[i] = it != null && !it.isEmpty() && !safe(s, it, c);
         }
         int[] slots = DeathPenaltyRules.pickSlots(eligible, inv.getHeldItemSlot(), c.slotsMin(), c.slotsMax(), rng);
+        List<Pick> out = new ArrayList<>(slots.length);
         for (int slot : slots) {
             ItemStack it = storage[slot];
-            lost.add(new Lost(nameOf(it, s.items().defOf(it).isPresent()), it.getAmount()));
-            ids.add(idOf(s, it) + "×" + it.getAmount());
-            inv.setItem(slot, null);
+            out.add(new Pick(slot, new Lost(nameOf(it, s.items().defOf(it).isPresent()), it.getAmount()),
+                    idOf(s, it) + "×" + it.getAmount()));
         }
+        return out;
+    }
+
+    /** 고른 칸 지우기 — 떨구지 않는다. */
+    private static void remove(Player p, List<Pick> picks) {
+        PlayerInventory inv = p.getInventory();
+        for (Pick k : picks) inv.setItem(k.slot(), null);
     }
 
     static boolean safe(Services s, ItemStack it, Config c) {
@@ -145,7 +175,39 @@ public final class DeathPenalty {
         Component custom = it.getData(DataComponentTypes.CUSTOM_NAME);
         Component c = custom != null ? custom : labItem ? it.effectiveName() : null;
         String plain = c == null ? "" : Text.plain(c);
-        return plain.isBlank() ? "<lang:" + it.translationKey() + ">" : Text.escape(plain);
+        return plain.isBlank() ? "<lang:" + vanillaKey(it) + ">" : Text.escape(plain);
+    }
+
+    /**
+     * 바닐라 이름 키. {@code translationKey()} 는 아이템 종류 키라 물약·화살·수상한 스튜가 모두 "물약"·"화살" 이 되므로,
+     * 보이는 이름이 인자 없는 번역 글이면 그 키를 쓴다 (예: item.minecraft.potion.effect.healing = "치유의 물약").
+     */
+    static String vanillaKey(ItemStack it) {
+        try {
+            String k = translatableKey(it.effectiveName());
+            if (k != null) return k;
+        } catch (Throwable ignored) {
+            // 아래 기본 키
+        }
+        return it.translationKey();
+    }
+
+    /**
+     * 이름 글의 번역 키 (인자 없는 번역 글일 때만, 아니면 null). Paper {@code effectiveName()} 은 빈 글에 희귀도 색을 입히고
+     * 그 안에 진짜 이름을 하나 붙인 모양({@code getStyledHoverName}: "" + [translate …])이라, 빈 껍데기는 벗겨 본다.
+     */
+    static String translatableKey(Component c) {
+        for (int depth = 0; c != null && depth < 4; depth++) {
+            if (c instanceof TranslatableComponent t) {
+                return t.arguments().isEmpty() && t.children().isEmpty() && !t.key().isBlank() ? t.key() : null;
+            }
+            if (c instanceof TextComponent tc && tc.content().isEmpty() && tc.children().size() == 1) {
+                c = tc.children().get(0);
+                continue;
+            }
+            return null;
+        }
+        return null;
     }
 
     private static void log(Player p, String where, List<String> ids, long xp) {

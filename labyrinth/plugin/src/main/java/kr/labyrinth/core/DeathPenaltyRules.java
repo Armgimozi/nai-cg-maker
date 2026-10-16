@@ -19,7 +19,9 @@ import org.bukkit.configuration.ConfigurationSection;
  *   <li>미궁 공략 중 쓰러졌을 때만 가방 칸 slotsMin ~ slotsMax 개(고르게)를 통째로 잃는다. 단축 칸 + 가방 36칸 중
  *       손에 든 칸은 빼고, 입은 갑옷·보조손·장신구(가방 밖)는 애초에 후보가 아니다. 빈 칸은 세지 않고, 후보가 모자라면 있는 만큼.
  *       잃은 물건은 지워진다 (떨구지 않음).</li>
- *   <li>열쇠·문장(items.yml type key), 미궁 활의 무한 화살, config safe_items 는 언제나 안전.</li>
+ *   <li>열쇠·문장(items.yml type key), 광산 곡괭이(type tool), 미궁 활의 무한 화살, config safe_items 는 언제나 안전.</li>
+ *   <li>공략 중 살아 있고 전투 중(10초 안에 피해 — 귀환 주문서와 같은 판정)이면 /미궁 퇴장·입구 메뉴 '귀환' 도
+ *       {@code combat_exit_seconds}초 시전, 맞으면 끊김 ({@link #exitCastSeconds}) — 죽기 직전 퇴장으로 페널티를 피하지 못하게.</li>
  * </ul>
  * config: {@code death.penalty} (키가 없으면 {@link Config#DEFAULT} — 예전 config.yml 도 jar 만 바꾸면 켜진다).
  */
@@ -29,18 +31,30 @@ public final class DeathPenaltyRules {
 
     /** 단축 칸 0~8 + 가방 9~35 ({@code PlayerInventory#getStorageContents}). 갑옷 36~39 · 보조손 40 은 넣지 않는다. */
     public static final int STORAGE_SLOTS = 36;
+    /** 전투 중 퇴장 시전 기본값 (초) = 귀환 주문서 cast_time. */
+    public static final double COMBAT_EXIT_SECONDS = 5;
+    /** 전투 중 판정: 마지막 피해에서 이만큼 안 (= 귀환 주문서 ConsumableListener 와 같은 10초). */
+    public static final long COMBAT_MS = 10_000;
 
     /**
      * config.yml {@code death.penalty}. 끄기: {@code penalty: false} (전부) · {@code dungeon_item_loss: false} (물건만).
      *
      * @param safeItems 잃지 않는 아이템 — items.yml id 또는 바닐라 이름(diamond 처럼), 소문자
+     * @param combatExitSeconds 공략 중 전투 중에 스스로 나갈 때 시전 시간 (0 = 0.3.6 처럼 바로)
      */
-    public record Config(boolean xpProgressReset, boolean itemLoss, int slotsMin, int slotsMax, Set<String> safeItems) {
-        public static final Config DEFAULT = new Config(true, true, 2, 3, Set.of());
-        public static final Config OFF = new Config(false, false, 2, 3, Set.of());
+    public record Config(boolean xpProgressReset, boolean itemLoss, int slotsMin, int slotsMax, Set<String> safeItems,
+                         double combatExitSeconds) {
+        public static final Config DEFAULT = new Config(true, true, 2, 3, Set.of(), COMBAT_EXIT_SECONDS);
+        public static final Config OFF = new Config(false, false, 2, 3, Set.of(), 0);
 
         public Config {
             safeItems = safeItems == null ? Set.of() : Set.copyOf(safeItems);
+            combatExitSeconds = Double.isFinite(combatExitSeconds) ? Math.max(0, Math.min(30, combatExitSeconds)) : 0;
+        }
+
+        /** 퇴장 시전은 기본값 ({@link #COMBAT_EXIT_SECONDS}). */
+        public Config(boolean xpProgressReset, boolean itemLoss, int slotsMin, int slotsMax, Set<String> safeItems) {
+            this(xpProgressReset, itemLoss, slotsMin, slotsMax, safeItems, COMBAT_EXIT_SECONDS);
         }
 
         /**
@@ -53,6 +67,7 @@ public final class DeathPenaltyRules {
             if (!(raw instanceof ConfigurationSection p)) return DEFAULT;
             Config d = DEFAULT;
             boolean xp = p.getBoolean("xp_progress_reset", d.xpProgressReset());
+            double exit = p.getDouble("combat_exit_seconds", d.combatExitSeconds());
             boolean on = d.itemLoss();
             int min = d.slotsMin(), max = d.slotsMax();
             Set<String> safe = d.safeItems();
@@ -68,7 +83,7 @@ public final class DeathPenaltyRules {
             }
             min = Math.max(0, Math.min(STORAGE_SLOTS, min));
             max = Math.max(min, Math.min(STORAGE_SLOTS, max));
-            return new Config(xp, on, min, max, safe);
+            return new Config(xp, on, min, max, safe, exit);
         }
     }
 
@@ -101,14 +116,33 @@ public final class DeathPenaltyRules {
 
     /**
      * 언제나 안전한 물건인가. 열쇠·문장(type key: 직업 문장 · 층 금고 열쇠 — 금고는 파티 모두의 몫이라 한 사람이 쓰러져 잃으면
-     * 남은 파티원까지 막힌다), 미궁 활이 넣어 주는 무한 화살(진짜 물건이 아니고 다시 생김), config safe_items.
+     * 남은 파티원까지 막힌다), 광산 곡괭이(type tool: 미궁에서 쓸 데가 없고 팔 수도 없는 광산 성장 — 오리하르콘까지 제련 5단계를
+     * 미궁 죽음 하나로 되돌리지 않는다. 한 칸에 1개라 다른 물건을 숨길 수도 없다), 미궁 활이 넣어 주는 무한 화살(진짜 물건이
+     * 아니고 다시 생김), config safe_items.
      *
      * @param type   미궁 아이템 종류 (바닐라 아이템이면 null)
      * @param itemId items.yml id 또는 바닐라 이름 (소문자)
      */
     public static boolean alwaysSafe(ItemType type, String itemId, boolean labArrow, Set<String> safeItems) {
-        if (labArrow || type == ItemType.KEY) return true;
+        if (labArrow || type == ItemType.KEY || type == ItemType.TOOL) return true;
         return itemId != null && safeItems != null && safeItems.contains(itemId.toLowerCase(Locale.ROOT));
+    }
+
+    /**
+     * 공략 중 스스로 나갈 때(/미궁 퇴장·귀환, 입구 메뉴 '귀환') 기다릴 초. 0 = 바로 나감.
+     * 페널티가 하나라도 켜져 있고, 관리자 시험 입장이 아니고, 살아 있고(쓰러져 관전 중이면 바로), 전투 중일 때만.
+     *
+     * @param sinceHurtMs 마지막으로 피해를 받은 뒤 지난 ms (받은 적 없으면 음수)
+     */
+    public static double exitCastSeconds(Config c, boolean adminTest, boolean alive, long sinceHurtMs) {
+        if (c == null || adminTest || !alive || c.combatExitSeconds() <= 0) return 0;
+        if (!plan(c, Where.DUNGEON_RUN, false).any()) return 0;
+        return sinceHurtMs >= 0 && sinceHurtMs < COMBAT_MS ? c.combatExitSeconds() : 0;
+    }
+
+    /** 5 → "5", 2.5 → "2.5". */
+    public static String seconds(double s) {
+        return s == Math.rint(s) ? Long.toString(Math.round(s)) : String.format(Locale.ROOT, "%.1f", s);
     }
 
     /** 잃을 칸 수: min ~ max 고르게 (max ≤ min 이면 min). */
@@ -175,7 +209,7 @@ public final class DeathPenaltyRules {
         return out;
     }
 
-    /** 메인 메뉴 PvP 설명 한 줄 (페널티가 모두 꺼져 있으면 null). */
+    /** 메인 메뉴 'PvP 규칙' 설명 한 줄 — PvP 를 꺼도 나온다 (페널티가 모두 꺼져 있으면 null). */
     public static String menuLine(Config c) {
         if (c == null) return null;
         boolean items = c.itemLoss() && c.slotsMax() > 0;
@@ -190,12 +224,20 @@ public final class DeathPenaltyRules {
         return c.slotsMin() == c.slotsMax() ? c.slotsMax() + "칸" : c.slotsMin() + "~" + c.slotsMax() + "칸";
     }
 
-    /** 미궁에 처음 들어갈 때 한 번 보여 주는 안내 (물건 잃기가 꺼져 있으면 null). */
+    /** 미궁에 처음 들어갈 때 한 번 보여 주는 안내 (페널티가 모두 꺼져 있으면 null). */
     public static String notice(Config c) {
-        if (c == null || !c.itemLoss() || c.slotsMax() <= 0) return null;
+        if (c == null) return null;
+        if (!c.itemLoss() || c.slotsMax() <= 0) {
+            return c.xpProgressReset() ? "<#ffb27a>쓰러지면 이번 레벨 경험치가 처음으로 돌아갑니다.</#ffb27a> <gray>미궁 밖에서도 같습니다." : null;
+        }
         String slots = slotsText(c);
         String xp = c.xpProgressReset() ? "사라지고, 이번 레벨 경험치도 처음으로 돌아갑니다." : "사라집니다.";
         return "<#ffb27a>미궁 안에서 쓰러지면 가방 속 물건 " + slots + "이 " + xp
-                + "</#ffb27a> <gray>손에 든 것·입은 장비·장신구·보조손은 안전합니다.";
+                + "</#ffb27a> <gray>손에 든 것·입은 장비·장신구·보조손·열쇠·곡괭이는 안전합니다.";
+    }
+
+    /** 전투 중에 나가려 할 때 (시전 시작). */
+    public static String exitCastText(double seconds) {
+        return "<gray>싸우는 중이라 <white>" + seconds(seconds) + "초</white> 뒤에 나갑니다. 그동안 맞으면 끊깁니다.";
     }
 }

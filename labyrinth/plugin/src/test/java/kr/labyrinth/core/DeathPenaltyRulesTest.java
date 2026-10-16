@@ -126,11 +126,19 @@ class DeathPenaltyRulesTest {
         Set<String> none = Set.of();
         assertFalse(DeathPenaltyRules.alwaysSafe(ItemType.BLUEPRINT, "blueprint", false, none), "안 배운 도안");
         assertFalse(DeathPenaltyRules.alwaysSafe(ItemType.MATERIAL, "class_change_scroll", false, none), "전직의 두루마리 (핀이 팜)");
-        assertFalse(DeathPenaltyRules.alwaysSafe(ItemType.TOOL, "copper_pickaxe", false, none), "구리 곡괭이 (광부 50G)");
         assertFalse(DeathPenaltyRules.alwaysSafe(ItemType.CONSUMABLE, "return_scroll", false, none));
         assertFalse(DeathPenaltyRules.alwaysSafe(ItemType.WEAPON, "corridor_longsword", false, none));
         assertFalse(DeathPenaltyRules.alwaysSafe(ItemType.MATERIAL, "iron_ingot", false, none));
         assertFalse(DeathPenaltyRules.alwaysSafe(null, "shulker_box", false, none), "셜커 상자도 한 칸");
+    }
+
+    @Test
+    void minePickaxesAreSafe() {
+        // 광산 곡괭이(type tool)는 미궁에서 쓸 데가 없는 광산 성장 — 미궁 죽음으로 되돌리지 않는다
+        for (String id : List.of("copper_pickaxe", "iron_pickaxe", "silver_pickaxe", "gold_pickaxe", "mithril_pickaxe", "orichalcum_pickaxe")) {
+            assertTrue(DeathPenaltyRules.alwaysSafe(ItemType.TOOL, id, false, Set.of()), id);
+        }
+        assertFalse(DeathPenaltyRules.alwaysSafe(null, "diamond_pickaxe", false, Set.of()), "바닐라 곡괭이는 보통 물건");
     }
 
     @Test
@@ -150,7 +158,13 @@ class DeathPenaltyRulesTest {
             assertEquals("key", items.getString("items." + id + ".type"), id);
         }
         assertEquals("material", items.getString("items.class_change_scroll.type"), "전직의 두루마리 = 보통 물건 (잃을 수 있음)");
-        assertEquals("tool", items.getString("items.copper_pickaxe.type"));
+        for (String id : List.of("copper_pickaxe", "iron_pickaxe", "silver_pickaxe", "gold_pickaxe", "mithril_pickaxe", "orichalcum_pickaxe")) {
+            assertEquals("tool", items.getString("items." + id + ".type"), id + " = 광산 곡괭이 (안전)");
+        }
+        // type tool 은 광산 곡괭이뿐이어야 '도구는 안전' 이 곡괭이 규칙과 같다
+        for (String id : items.getConfigurationSection("items").getKeys(false)) {
+            if ("tool".equals(items.getString("items." + id + ".type"))) assertTrue(id.endsWith("_pickaxe"), id);
+        }
     }
 
     // ── 경험치 ───────────────────────────────────────────────────────────
@@ -296,9 +310,47 @@ class DeathPenaltyRulesTest {
         String n = DeathPenaltyRules.notice(Config.DEFAULT);
         assertNotNull(n);
         assertEquals("미궁 안에서 쓰러지면 가방 속 물건 2~3칸이 사라지고, 이번 레벨 경험치도 처음으로 돌아갑니다. "
-                + "손에 든 것·입은 장비·장신구·보조손은 안전합니다.", Text.strip(n));
+                + "손에 든 것·입은 장비·장신구·보조손·열쇠·곡괭이는 안전합니다.", Text.strip(n));
         assertTrue(Text.strip(DeathPenaltyRules.notice(new Config(false, true, 2, 2, Set.of()))).contains("물건 2칸이 사라집니다."));
         assertNull(DeathPenaltyRules.notice(Config.OFF));
-        assertNull(DeathPenaltyRules.notice(new Config(true, false, 2, 3, Set.of())));
+        assertEquals("쓰러지면 이번 레벨 경험치가 처음으로 돌아갑니다. 미궁 밖에서도 같습니다.",
+                Text.strip(DeathPenaltyRules.notice(new Config(true, false, 2, 3, Set.of()))), "물건을 꺼도 경험치 규칙은 알려 줌");
+        assertNull(DeathPenaltyRules.notice(new Config(false, false, 2, 3, Set.of())));
+    }
+
+    // ── 전투 중 퇴장 ─────────────────────────────────────────────────────
+
+    @Test
+    void combatExitCastsOnlyWhenAliveAndHurtRecently() {
+        Config c = Config.DEFAULT;
+        assertEquals(5.0, c.combatExitSeconds());
+        assertEquals(5.0, DeathPenaltyRules.exitCastSeconds(c, false, true, 0), "막 맞음");
+        assertEquals(5.0, DeathPenaltyRules.exitCastSeconds(c, false, true, 9_999));
+        assertEquals(0.0, DeathPenaltyRules.exitCastSeconds(c, false, true, 10_000), "10초 지나면 바로");
+        assertEquals(0.0, DeathPenaltyRules.exitCastSeconds(c, false, true, -1), "맞은 적 없음");
+        assertEquals(0.0, DeathPenaltyRules.exitCastSeconds(c, false, false, 0), "쓰러져 관전 중이면 바로");
+        assertEquals(0.0, DeathPenaltyRules.exitCastSeconds(c, true, true, 0), "관리자 시험 입장");
+        assertEquals(0.0, DeathPenaltyRules.exitCastSeconds(Config.OFF, false, true, 0), "페널티 끔 = 0.3.6 처럼 바로");
+        assertEquals(0.0, DeathPenaltyRules.exitCastSeconds(null, false, true, 0));
+        Config xpOnly = new Config(true, false, 2, 3, Set.of());
+        assertEquals(5.0, DeathPenaltyRules.exitCastSeconds(xpOnly, false, true, 0), "경험치만 켜도 피하는 길은 막음");
+        Config instant = new Config(true, true, 2, 3, Set.of(), 0);
+        assertEquals(0.0, DeathPenaltyRules.exitCastSeconds(instant, false, true, 0), "combat_exit_seconds: 0");
+    }
+
+    @Test
+    void combatExitSecondsFromConfig() {
+        assertEquals(0.0, new Settings(WildConfigTest.yaml("death:\n  penalty:\n    combat_exit_seconds: 0\n")).deathPenalty()
+                .combatExitSeconds());
+        assertEquals(2.5, new Settings(WildConfigTest.yaml("death:\n  penalty:\n    combat_exit_seconds: 2.5\n")).deathPenalty()
+                .combatExitSeconds());
+        assertEquals(0.0, new Settings(WildConfigTest.yaml("death:\n  penalty:\n    combat_exit_seconds: -4\n")).deathPenalty()
+                .combatExitSeconds());
+        assertEquals(30.0, new Settings(WildConfigTest.yaml("death:\n  penalty:\n    combat_exit_seconds: 600\n")).deathPenalty()
+                .combatExitSeconds());
+        assertEquals(5.0, new Settings(WildConfigTest.yaml("death:\n  penalty:\n    xp_progress_reset: true\n")).deathPenalty()
+                .combatExitSeconds(), "키가 없으면 5초");
+        assertEquals("싸우는 중이라 5초 뒤에 나갑니다. 그동안 맞으면 끊깁니다.", Text.strip(DeathPenaltyRules.exitCastText(5)));
+        assertEquals("2.5", DeathPenaltyRules.seconds(2.5));
     }
 }
