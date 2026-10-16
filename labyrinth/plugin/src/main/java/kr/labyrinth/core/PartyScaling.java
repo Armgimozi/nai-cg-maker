@@ -10,7 +10,7 @@ public record PartyScaling(int maxSize, double hpPerMember, double dmgPerMember,
 
     /** 솔로 보정 코드 기본값 (= jar 의 config.yml party.solo_hp / solo_damage). */
     public static final double DEFAULT_SOLO = 0.85;
-    public static final PartyScaling DEFAULT = new PartyScaling(10, 0.6, 0.08, 0.05, DEFAULT_SOLO, DEFAULT_SOLO);
+    public static final PartyScaling DEFAULT = new PartyScaling(5, 0.6, 0.08, 0.05, DEFAULT_SOLO, DEFAULT_SOLO);
 
     /** 솔로 보정 없음 (×1.0). */
     public PartyScaling(int maxSize, double hpPerMember, double dmgPerMember, double rewardPerMember) {

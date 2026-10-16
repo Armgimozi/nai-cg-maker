@@ -95,7 +95,7 @@
 - 몹 피해 ×(1 + `dmg_per_member`×(n−1)) — 권장 `dmg_per_member: 0.08`
 - 보상: 골드·드롭 확률 ×(1 + 0.05×(n−1)). 루팅은 개인별(각자 따로 굴림).
 - 기믹 요구량은 각 보스 YAML 의 `*_base` + `*_per_member` 규칙(§8.4).
-- 최대 인원: config `party.max_size` 기본 10.
+- 최대 인원: config `party.max_size` 기본 5 (0.3.6 — 5 대 5 파티 대전 기준. 예전 기본값 10 이 config 에 남아 있으면 5 로 읽음).
 - **솔로 보정** (`party.solo_hp` · `party.solo_damage`, 기본 0.85): 혼자(1명)일 때만 몹·보스 HP ×0.85, 피해 ×0.85. 보상은 그대로.
   2명 이상은 위 공식 그대로. 끄기 = 둘 다 1.0. 몹 수 보정(§2.7)과는 따로 곱한다.
 
@@ -1830,7 +1830,7 @@ difficulties:           # 모든 층 같은 배율 (§2.4). ramp 는 관리자�
   hard:      {name: "어려움", hp: 1.45, damage: 1.3, drop: 1.3, xp: 1.3, telegraph: 0.9}
   nightmare: {name: "악몽",   hp: 1.8, damage: 1.6, drop: 1.8, xp: 1.7, telegraph: 0.85}
 difficulty: ""          # 서버 난이도. 비어 있으면 첫 관리자 접속 시 초기 설정 GUI
-party: {max_size: 10, hp_per_member: 0.6, dmg_per_member: 0.08, reward_per_member: 0.05,
+party: {max_size: 5, hp_per_member: 0.6, dmg_per_member: 0.08, reward_per_member: 0.05,
         solo_hp: 0.85, solo_damage: 0.85}          # 솔로 보정 (§2.5, 끄기 1.0)
 starter_kit: {enabled: true, gold: 300, items: [{item: novice_cap, amount: 1}, …, {item: minor_healing_potion, amount: 10}, {item: minor_mana_potion, amount: 5}, {item: return_scroll, amount: 2}]}   # §2.7
 class_change: {require_item: true, item: class_change_scroll, cooldown_hours: 24}   # §4.5 (끄기 class_change: false)
