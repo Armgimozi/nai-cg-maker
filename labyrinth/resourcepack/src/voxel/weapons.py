@@ -24,7 +24,7 @@ THEME_KEYS = (
     ('abyss', ('abyss', 'void', 'nightshade', 'eclipse', 'viper')),
     ('web', ('skitter', 'silk', 'fang', 'webrun')),
     ('water', ('brine', 'tide', 'eel', 'drowned', 'sluice', 'verdigris')),
-    ('forge', ('ember', 'cinder', 'slag', 'anvil', 'bellows', 'forge', 'minewarden', 'miners', 'ore_')),
+    ('forge', ('ember', 'cinder', 'slag', 'anvil', 'bellows', 'forge', 'minewarden', 'miners', 'ore_', 'pit_')),
     ('frost', ('rime', 'frost', 'soulflame')),
     ('crystal', ('crystal', 'geode', 'amethyst', 'prism', 'resonan', 'shardglass', 'twin_light')),
     ('ink', ('ink', 'index', 'lore')),

@@ -1,13 +1,12 @@
-"""Extra item definitions merged into items.yml for the pack build (0.3.5 new gear, before P3 lands).
+"""Extra item definitions merged into items.yml for a pack build — previewing designed gear before it lands.
 
-The pack reads item ids, model shapes and palettes from the plugin's content/items.yml.  The 0.3.5 weapons
-(106) and armour sets (6 sets, 24 pieces) are designed in `labyrinth/tools/data/035/gear_spec.json` and reach
-items.yml only through P3's content generator.  Until then this module feeds their model/texture blocks to the
-pack so every new id already has its item model, palette, equipment layer and helmet.
+The pack reads item ids, model shapes and palettes from the plugin's content/items.yml, and since 0.3.5 P3 the
+new gear (`labyrinth/tools/data/035/gear_spec.json` → tools/gen_035_content.py) is in items.yml, so the default
+is off: items.yml is the single source.  This module stays for design loops — feed a spec's model/texture
+blocks to the pack (item model, palette, equipment layer, helmet) without touching items.yml.
 
-    generate.py --extra-items auto       (default) merge only while items.yml has none of the extra ids;
-                                         once P3 wrote them, items.yml is the single source again (no-op)
-    generate.py --extra-items off        items.yml only
+    generate.py --extra-items off        (default) items.yml only
+    generate.py --extra-items auto       merge gear_spec.json only while items.yml has none of its ids (no-op now)
     generate.py --extra-items FILE[,..]  always merge FILE (ids missing from items.yml; items.yml wins)
 
 FILE is either gear_spec.json (`weapons` + `armor_sets.<id>.pieces_items`) or a YAML/JSON document in
@@ -53,10 +52,10 @@ def load(path: str) -> tuple[dict, dict]:
     return items, sets
 
 
-def merge(items: dict, sets: dict, mode: str = 'auto') -> dict:
+def merge(items: dict, sets: dict, mode: str = 'off') -> dict:
     """Merge extra definitions into `items` / `sets` in place.  → report {source, added, sets, skipped, note}."""
     rep = {'source': None, 'added': [], 'sets': [], 'skipped': 0, 'note': ''}
-    mode = (mode or 'auto').strip()
+    mode = (mode or 'off').strip()
     if mode == 'off':
         rep['note'] = 'off'
         return rep

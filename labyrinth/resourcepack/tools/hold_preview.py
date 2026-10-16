@@ -3,7 +3,7 @@
 
     python tools/hold_preview.py [--shapes war_scythe,sickle] [--items rootbound_scythe] [--out DIR]
                                  [--tag before] [--override FILE.json] [--vanilla-dir DIR] [--jobs N]
-                                 [--extra-items auto|off|FILE,...]
+                                 [--extra-items off|auto|FILE,...]
     python tools/hold_preview.py --selftest
 
 For every weapon shape in items.yml it builds two real items (lowest and highest rarity) through the pack
@@ -21,8 +21,8 @@ end on screen, and which way the sideways head points (head_fp_toward_camera: +1
 
 --override FILE.json  {"<shape or item id>": {"firstperson_righthand": {...}, "thirdperson_righthand": {...}}}
                       replaces those display transforms before rendering (prototype a fix without regenerating).
---extra-items         like generate.py: auto (default) also offers the 0.3.5 gear of tools/data/035/gear_spec.json
-                      while items.yml lacks it (src/extra_items.py), off = items.yml only, or FILE,...
+--extra-items         like generate.py: off (default) = items.yml only, FILE,... = also offer those designed items,
+                      auto = the 0.3.5 gear of tools/data/035/gear_spec.json while items.yml lacks it (src/extra_items.py)
 --vanilla-dir DIR     DIR/iron_sword.png, iron_axe.png, bow.png (vanilla textures you extract locally from the
                       client jar; never committed) for the reference rows; without them original stand-in
                       sprites with the same pixel layout are drawn.
@@ -893,7 +893,7 @@ def main():
     ap.add_argument('--vanilla-dir', default='')
     ap.add_argument('--jobs', type=int, default=max(1, min(8, (os.cpu_count() or 2) - 1)))
     ap.add_argument('--selftest', action='store_true', help='check the transform chain and exit')
-    ap.add_argument('--extra-items', default='auto', help='auto | off | FILE,... (see src/extra_items.py)')
+    ap.add_argument('--extra-items', default='off', help='off | auto | FILE,... (see src/extra_items.py)')
     a = ap.parse_args()
     if a.selftest:
         sys.exit(0 if selftest() else 1)

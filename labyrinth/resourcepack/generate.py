@@ -2,13 +2,14 @@
 """Labyrinth (미궁 라비린스) resource-pack generator.
 
     python3 generate.py [--content DIR] [--out DIR] [--no-preview] [--only-mobs ID,ID,...] [--compare]
-                        [--extra-items auto|off|FILE,...]
+                        [--extra-items off|auto|FILE,...]
 
 --only-mobs builds just those mobs/bosses (fast design loop: no items/fx/UI, no zip, mob checks only) and
 writes preview_mobs.png; --compare adds compare_mobs.png (old box model vs voxel design side by side).
 
---extra-items (default auto) adds item definitions items.yml does not have yet — the 0.3.5 gear in
-labyrinth/tools/data/035/gear_spec.json until P3 writes it into items.yml (src/extra_items.py).
+--extra-items (default off) adds item definitions items.yml does not have yet, for previewing designed gear
+before it lands in items.yml (src/extra_items.py): FILE,... (gear_spec.json or items.yml form) or auto (the
+0.3.5 gear_spec.json, only while items.yml has none of its ids).  items.yml is the single source by default.
 
 Reads the plugin's content YAML (single source of truth), procedurally generates every model,
 texture, icon, animation and equipment layer (all original — nothing copied from vanilla or third
@@ -400,9 +401,9 @@ def main(argv=None):
                     help='comma-separated mob/boss ids: build only those (mob previews + mob checks, no zip)')
     ap.add_argument('--compare', action='store_true',
                     help='also write compare_mobs.png: old box model vs voxel design for every built mob')
-    ap.add_argument('--extra-items', default='auto',
-                    help='auto (default: 0.3.5 gear from tools/data/035/gear_spec.json while items.yml lacks it), '
-                         'off, or comma-separated files (gear_spec.json or items.yml form)')
+    ap.add_argument('--extra-items', default='off',
+                    help='off (default: items.yml only), auto (0.3.5 gear from tools/data/035/gear_spec.json while '
+                         'items.yml lacks it), or comma-separated files (gear_spec.json or items.yml form)')
     args = ap.parse_args(argv)
     t0 = time.time()
     only = None
@@ -416,8 +417,8 @@ def main(argv=None):
     ex = extra_items.merge(ctx.content['items'], ctx.content['sets'], args.extra_items)
     ctx.stats['extra_items'] = len(ex['added'])
     ctx.stats['extra_sets'] = len(ex['sets'])
-    if ex['note']:
-        print('extra items:', ex['note'])
+    if ex['added'] or (ex['note'] and ex['note'] != 'off'):
+        print('extra items:', ex['note'] or f"{len(ex['added'])} from {ex['source']}")
     if only is not None:
         return _main_only_mobs(ctx, only, t0)
     for b in BUILDERS:

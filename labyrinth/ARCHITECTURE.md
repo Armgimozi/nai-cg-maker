@@ -179,9 +179,8 @@ labyrinth/
   `preview_mobs.png`(몹·보스를 YAML pivot 에 조립한 정면 3/4 렌더)·`preview_mob_atlases.png`·`preview_npcs.png`·
   `preview_ui.png`(GUI 배경 15종 + 실제 슬롯 격자, HUD 액션바 조합 모의, 글리프 전체)·
   `preview_vanilla_gui.png`(바닐라 화면 테마·등급별 툴팁·보스바·버튼·핫바, 안내 글 + 시전 막대가 얹힌 HUD 모의).
-  `--extra-items auto|off|FILE,...` (기본 auto): items.yml 에 아직 없는 장비 정의를 팩에만 더한다 — 0.3.5 새 장비
-  (`labyrinth/tools/data/035/gear_spec.json` 의 무기 106 · 방어구 6세트)를 P3 가 items.yml 에 넣기 전까지. items.yml 에 그 id 가
-  하나라도 생기면 auto 는 아무것도 더하지 않는다(items.yml 이 다시 유일한 원본, `src/extra_items.py`).
+  `--extra-items off|auto|FILE,...` (기본 off = items.yml 만): 설계 중인 장비 정의(gear_spec.json 또는 items.yml 꼴)를 팩에만 더해
+  미리 본다(`src/extra_items.py`). 0.3.5 새 장비는 모두 items.yml 에 들어갔으므로(`tools/gen_035_content.py`) 평소에는 쓰지 않는다.
   손에 든 모습 확인: `python tools/hold_preview.py --shapes <모양들>` (같은 --extra-items) — 시트·metrics 를 같은 무게 기존 모양과 비교.
   생성기는 `generate.py` 의 `BUILDERS` 레지스트리(공유 `Ctx` → `ctx.add(path, bytes)`)로 확장한다: 몹·UI 글리프·NPC 스킨·나머지 fx 스타일
   단계는 자기 모듈을 `src/` 에 두고 BUILDERS 에 추가. 3D 모델 엔진 `src/model.py`(Model/El/bake/UV 아틀라스/display 맞춤),
