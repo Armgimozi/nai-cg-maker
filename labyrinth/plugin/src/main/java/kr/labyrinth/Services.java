@@ -186,6 +186,7 @@ public final class Services {
     /** /labadmin reload: 설정·콘텐츠 다시 읽고 모든 모듈 reload(). */
     public ContentValidator.Report reload() {
         loadSettings();
+        kr.labyrinth.core.ServerSetup.enforceLock(this);
         ContentValidator.Report report = loadContent();
         plugin.reloadModules();
         return report;

@@ -52,7 +52,7 @@ public final class Settings {
     }
 
     public record Pack(boolean enabled, int port, String bind, String publicHost, int publicPort, String url, String sha1,
-                       boolean required, boolean kickOnDecline, boolean updateFromJar, String prompt) {}
+                       boolean required, boolean kickOnDecline, boolean updateFromJar, String prompt, boolean samePort) {}
 
     /**
      * combat — 0.3.5 게이지 없는 공격 키가 없으면 코드 기본값({@link #DEFAULT}, jar 의 config.yml 과 같음).
@@ -187,7 +187,7 @@ public final class Settings {
             new KitItem("novice_tunic", 1), new KitItem("novice_trousers", 1), new KitItem("novice_boots", 1),
             new KitItem("minor_healing_potion", 10), new KitItem("minor_mana_potion", 5), new KitItem("return_scroll", 2),
             new KitItem("minecraft:bread", 16));
-    /** 파티 최대 인원 기본값 (0.3.6 부터 5명 — 5 대 5 파티 대전에 맞춤). */
+    /** 파티 최대 인원 기본값 (0.3.5.1 부터 5명 — 5 대 5 파티 대전에 맞춤). */
     public static final int DEFAULT_PARTY_MAX = 5;
     /** 0.3.5 까지의 기본값. config.yml 에 그대로 남아 있으면 손대지 않은 것으로 보고 새 기본값으로 읽는다. */
     public static final int LEGACY_PARTY_MAX = 10;
@@ -233,7 +233,8 @@ public final class Settings {
                 c.getInt("pack.public_port", 0), c.getString("pack.url", ""),
                 c.getString("pack.sha1", ""), c.getBoolean("pack.required", true),
                 c.getBoolean("pack.kick_on_decline", false), c.getBoolean("pack.update_from_jar", true),
-                c.getString("pack.prompt", "<gray>미궁 라비린스 전용 리소스팩입니다.</gray>"));
+                c.getString("pack.prompt", "<gray>미궁 라비린스 전용 리소스팩입니다.</gray>"),
+                c.getBoolean("pack.same_port", true));
         this.autosaveMinutes = Math.max(1, c.getInt("data.autosave_minutes", 5));
         Combat cd = Combat.DEFAULT;
         this.combat = new Combat(c.getBoolean("combat.damage_numbers", true),
@@ -319,6 +320,20 @@ public final class Settings {
      * </ul>
      */
     static Difficulty difficulty(String id, ConfigurationSection d, Difficulty def) {
+        return upgradeRewards(id, difficultyRaw(id, d, def), def);
+    }
+
+    /** 0.3.5.2: 예전 jar 기본 보상 배율(쉬움 0.8 · 어려움 1.3 · 악몽 1.8/1.7) 그대로면 새 기본값(1.0). 직접 고친 값은 그대로. */
+    static Difficulty upgradeRewards(String id, Difficulty x, Difficulty def) {
+        double[] old = Difficulty.legacyRewards(id);
+        if (old == null) return x;
+        double drop = upgrade(x.drop(), def.drop(), old[0]);
+        double xp = upgrade(x.xp(), def.xp(), old[1]);
+        if (drop == x.drop() && xp == x.xp()) return x;
+        return new Difficulty(x.id(), x.name(), x.hp(), x.damage(), drop, xp, x.telegraph(), x.ramp());
+    }
+
+    private static Difficulty difficultyRaw(String id, ConfigurationSection d, Difficulty def) {
         Difficulty read = new Difficulty(id, d.getString("name", def.name()), d.getDouble("hp", def.hp()),
                 d.getDouble("damage", def.damage()), d.getDouble("drop", def.drop()),
                 d.getDouble("xp", def.xp()), d.getDouble("telegraph", def.telegraph()));

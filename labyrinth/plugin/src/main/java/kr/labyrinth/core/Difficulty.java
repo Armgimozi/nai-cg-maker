@@ -11,11 +11,23 @@ package kr.labyrinth.core;
 public record Difficulty(String id, String name, double hp, double damage, double drop, double xp, double telegraph, Ramp ramp) {
 
     // 기본 배율 (= jar 의 config.yml). 어려움·악몽은 밸런스 시뮬레이터로 고른 통합 값 — 악몽 1층 솔로 숙련 클리어율 ≈ 50%
-    public static final Difficulty EASY = new Difficulty("easy", "쉬움", 0.7, 0.6, 0.8, 0.8, 1.3);
+    // 0.3.5.2: 보상(드롭·경험치)은 난이도와 상관없이 1.0 — 난이도는 어려움만 바꾼다 (예전 0.8 / 1.3 / 1.8·1.7 은 Settings 가 1.0 으로 올림)
+    public static final Difficulty EASY = new Difficulty("easy", "쉬움", 0.7, 0.6, 1.0, 1.0, 1.3);
     public static final Difficulty NORMAL = new Difficulty("normal", "보통", 1.0, 1.0, 1.0, 1.0, 1.0);
     /** 어려움 HP 1.4 → 1.45 (0.3.5): 게이지가 없어져 1층이 쉬워진 만큼 되돌린다 (combat_spec §9.5). */
-    public static final Difficulty HARD = new Difficulty("hard", "어려움", 1.45, 1.3, 1.3, 1.3, 0.9);
-    public static final Difficulty NIGHTMARE = new Difficulty("nightmare", "악몽", 1.8, 1.6, 1.8, 1.7, 0.85);
+    public static final Difficulty HARD = new Difficulty("hard", "어려움", 1.45, 1.3, 1.0, 1.0, 0.9);
+    public static final Difficulty NIGHTMARE = new Difficulty("nightmare", "악몽", 1.8, 1.6, 1.0, 1.0, 0.85);
+
+    /** 0.3.5.1 까지 jar 기본 보상 배율 {드롭, 경험치} — config.yml 에 그대로 남아 있으면 안 고친 값이므로 새 기본값(1.0)으로 올린다. */
+    public static double[] legacyRewards(String id) {
+        if (id == null) return null;
+        return switch (id) {
+            case "easy" -> new double[] {0.8, 0.8};
+            case "hard" -> new double[] {1.3, 1.3};
+            case "nightmare" -> new double[] {1.8, 1.7};
+            default -> null;
+        };
+    }
 
     /** 예전 판(0.3.2)이 config.yml 에 적어 둔 어려움·악몽 값 — 손대지 않은 값이므로 새 기본값으로 올린다 ({@code Settings}). */
     public static final Difficulty LEGACY_HARD_032 = new Difficulty("hard", "어려움", 1.5, 1.4, 1.3, 1.3, 0.85);

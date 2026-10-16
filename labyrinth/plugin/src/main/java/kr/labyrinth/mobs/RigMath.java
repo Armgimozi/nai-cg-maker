@@ -77,6 +77,73 @@ public final class RigMath {
     /** 피격 때 몸 전체가 젖혀지는 각(도) · 옆 밀림(블록). */
     static final double HURT_TILT = 5, HURT_SHIFT = 0.03;
 
+    // ── 뚜껑 턱 (anim lid — 미믹) · 깡충 걸음 ──
+    /** 뚜껑이 쉴 때 살짝 벌어진 각 · 물 때 · 스킬 준비(시전) 때 · 공중(도약) 때 크게 벌린 각(도). */
+    static final double LID_REST = 6, LID_BITE = 62, LID_CAST = 44, LID_AIR = 50;
+    /** 깡충 한 번에 가는 거리(블록, scale 1) · 높이(블록) · 공중 비율 · 박자 범위(틱) · 이 속도(블록/틱)부터 온 높이. */
+    static final double HOP_LEN = 1.2, HOP_HEIGHT = 0.25, HOP_AIR = 0.72, HOP_TICKS_MIN = 8, HOP_TICKS_MAX = 16,
+            HOP_FULL_SPEED = 0.06;
+    /** 깡충 뛸 때 앞뒤로 젖히는 각(도): 뛰어오를 때 앞이 들리고 내려앉을 때 숙인다. */
+    static final double HOP_PITCH = 8;
+
+    /**
+     * 뚜껑 턱(anim {@code lid}, 경첩 = 뒤 위 모서리)이 벌어진 각(도, + = 열림).
+     * <ul>
+     *   <li>사망: 마지막으로 한 번 벌렸다가(0~3틱) 쾅 닫히고(3~6틱) 닫힌 채 쓰러진다.</li>
+     *   <li>공격(기본 공격·도약 시작·내려찍기): 0~2.5틱 크게 벌림 → 4틱에 쾅 닫힘(기본 공격 피해 = 3틱 뒤) → 살짝 튕긴 뒤 쉼.</li>
+     *   <li>공중(도약 중): 크게 벌리고 날아든다(내려앉으면 닫힘 = 덥석).</li>
+     *   <li>스킬 준비(시전 16틱): 벌린 채 덜덜 떤다.</li>
+     *   <li>깡충 걸음: 뛰어오를 때 덜컥 열리고 내려앉을 때 닫힌다.</li>
+     *   <li>대상이 있으면 30틱마다 세 번 딱딱 씹고, 없으면 천천히 들썩이다 가끔 한 번 딱.</li>
+     * </ul>
+     * @param hopPhase 깡충 위상(주기 0~1) · hopAmp 깡충 세기(0 = 서 있음)
+     */
+    static double lidAngle(AnimState s, double hopPhase, double hopAmp) {
+        long t = s.tick();
+        if (s.deathTicks() >= 0) {
+            int d = s.deathTicks();
+            if (d <= 3) return LID_REST + (30 - LID_REST) * d / 3.0;
+            if (d <= 6) return 30 * (1 - (d - 3) / 3.0);
+            return 0;
+        }
+        if (s.attackTicks() >= 0 && s.attackTicks() <= ATTACK_TICKS + 2) {
+            double a = s.attackTicks();
+            if (a <= 2.5) {
+                double u = a / 2.5;
+                return LID_REST + (LID_BITE - LID_REST) * u * u * (3 - 2 * u);
+            }
+            if (a <= 4) return LID_BITE * (1 - (a - 2.5) / 1.5);
+            return LID_REST * (a - 4) / 4.0 + 6 * Math.sin(Math.PI * (a - 4) / 4.0);
+        }
+        if (s.airborne() && s.hasTarget()) return LID_AIR;
+        if (s.castTicks() >= 0 && s.castTicks() < 16) return LID_CAST + 4 * wave(t, 3, 0);
+        double ph = seedPhase(s);
+        double deg = LID_REST;
+        if (hopAmp > 0) {
+            double q = frac(hopPhase);
+            deg += 16 * hopAmp * (q < HOP_AIR ? Math.sin(Math.PI * q / HOP_AIR) : 0);
+        }
+        long period = s.hasTarget() ? 30 : 90;
+        double u = ((t + (long) (ph * 10)) % period) / 12.0;
+        int bites = s.hasTarget() ? 3 : 1;
+        if (u < 1) deg += 14 * Math.abs(Math.sin(Math.PI * u * bites));
+        else if (!s.hasTarget()) deg += 3 * Math.max(0, wave(t, 60, ph));
+        return deg;
+    }
+
+    /** 깡충 높이(블록, scale 1): 공중 비율 동안 반원, 나머지는 땅. */
+    static double hopHeight(double phase, double amp) {
+        double q = frac(phase);
+        return q < HOP_AIR ? HOP_HEIGHT * amp * Math.sin(Math.PI * q / HOP_AIR) : 0;
+    }
+
+    /** 깡충 앞뒤 젖힘(도, + = 앞 숙임): 뛰어오를 때 −, 내려앉을 때 +, 땅에서 다시 웅크리며 −로. */
+    static double hopPitch(double phase, double amp) {
+        double q = frac(phase);
+        if (q < HOP_AIR) return -HOP_PITCH * amp * Math.cos(Math.PI * q / HOP_AIR);
+        return HOP_PITCH * amp * Math.cos(Math.PI * (q - HOP_AIR) / (1 - HOP_AIR));
+    }
+
     private static float rad(double deg) { return (float) Math.toRadians(deg); }
 
     private static double wave(long tick, double periodTicks, double phase) {
@@ -221,6 +288,7 @@ public final class RigMath {
                 double deg = open ? 30 : 3 * Math.max(0, wave(t, 60, ph));
                 rot.rotateX(rad(lowerJaw ? deg : -deg));
             }
+            case "lid" -> rot.rotateX(rad(-lidAngle(s, 0, 0)));   // 깡충 위상은 Skeleton.solve 가 따로 넘긴다
             case "spin" -> rot.rotateY(rad((t * 4.5) % 360.0));
             case "orbit" -> rot.rotateX(rad(15)).rotateY(rad((-t * 2.25) % 360.0));
             case "float" -> off.y = (float) (0.1 * wave(t, 60, ph));
@@ -435,6 +503,11 @@ public final class RigMath {
         private final double armPhaseRight;
         private final boolean biped;
         private final double phaseLeft;
+        /** 다리 없이 뚜껑 턱(anim lid)이 있는 몹(미믹) — 걸음 = 깡충 뛰기. */
+        private final boolean hopper;
+        /** 깡충 몹 몸통(anim body)의 앞뒤 반 길이 · 바닥 높이 (블록, scale 1) — 젖힐 때 모서리가 땅에 묻히지 않게. */
+        private final double hopHalfDepth;
+        private final double hopBottom;
 
         public Skeleton(List<ModelDef.Part> parts) {
             this(parts, 1.0);
@@ -535,6 +608,17 @@ public final class RigMath {
                 }
             }
             walkLegs = legs;
+            boolean lid = false;
+            for (ModelDef.Part p : this.parts) if ("lid".equals(p.anim())) lid = true;
+            hopper = lid && legs == 0;
+            double hd = 0, hb = Double.MAX_VALUE;
+            for (ModelDef.Part p : this.parts) {
+                if (!"body".equals(p.anim())) continue;
+                hd = Math.max(hd, Math.abs(p.pivotZ()) + p.sizeZ() / 32.0);
+                hb = Math.min(hb, p.pivotY() - p.sizeY() / 32.0);
+            }
+            hopHalfDepth = hd;
+            hopBottom = hb == Double.MAX_VALUE ? 0 : hb;
             restLow = legs > 0 ? low : 0;
             hangGait = hangs > 0;
             swing = hangs <= 2 ? SWING_BIPED : SWING_QUAD;
@@ -607,6 +691,20 @@ public final class RigMath {
         /** 걷는 다리 수 (0 = 다리 없음 · 걸음 위상 없이 예전 틱 흔들기). */
         public int walkingLegs() { return walkLegs; }
 
+        /** 깡충 뛰는 몹인가 (다리 없음 + anim lid 파트 — 미믹). 걸음 위상 = 깡충 위상. */
+        public boolean hopper() { return hopper; }
+
+        /**
+         * 깡충 젖힘 보정(블록, scale 1): 몸 가운데(높이 절반)를 축으로 pitch 도 젖히면 앞뒤 아래 모서리 하나가 내려간다 —
+         * 그만큼(뜬 높이 hop 을 빼고) 몸 전체를 들어 올려 모서리가 땅에 묻히지 않게 한다.
+         */
+        double hopTiltLift(double pitchDeg, double hop) {
+            double th = Math.toRadians(pitchDeg);
+            double half = height * 0.5;
+            double lowest = half + (hopBottom + hop - half) * Math.cos(th) - hopHalfDepth * Math.abs(Math.sin(th));
+            return Math.max(0, hopBottom - lowest);
+        }
+
         /** 다리 i 의 위상 φ0 (주기, 걷는 다리가 아니면 0). */
         public double phase0(int i) { return phase0[i]; }
 
@@ -627,6 +725,13 @@ public final class RigMath {
          * 보폭을 줄이고(멈추면 0), 10틱보다 빠르면 보폭을 키운다(최대 각까지 — 그 너머는 미끄러짐).
          */
         public Cadence cadence(double speed, int interval) {
+            if (hopper) {
+                // 깡충: 한 번에 HOP_LEN 만큼 (빠르면 박자가 빨라지고, 느리면 낮게 뜀), 범위 [max(8, 4·간격), 16]틱
+                if (speed < 0.004) return new Cadence(HOP_TICKS_MAX, 0);
+                double tmin = Math.max(HOP_TICKS_MIN, 4.0 * Math.max(1, interval));
+                double tt = clamp(HOP_LEN * scale / speed, tmin, Math.max(tmin, HOP_TICKS_MAX));
+                return new Cadence(tt, Math.min(1, speed / HOP_FULL_SPEED));
+            }
             if (walkLegs == 0) return new Cadence(14, walkFactor(speed));
             if (speed < 0.004) return new Cadence(CYCLE_MAX, 0);
             double d1 = stride * scale;
@@ -700,7 +805,8 @@ public final class RigMath {
                             if (!Double.isNaN(ap)) arm = -armAmp * Math.cos(2 * Math.PI * (gp + ap));
                         }
                         AnimState st = "neck".equals(a) ? neckState : headGroup[i] || i == head ? headState : s;
-                        common(a, st, side[i], chainIndex[i], walk, ph, arm, lowerJaw[i], pendulum[i], rot, off, sc);
+                        if ("lid".equals(a)) rot.rotateX(rad(-lidAngle(st, gp, hopper ? k : 0)));
+                        else common(a, st, side[i], chainIndex[i], walk, ph, arm, lowerJaw[i], pendulum[i], rot, off, sc);
                     }
                 }
                 if (ov != null) {
@@ -759,7 +865,7 @@ public final class RigMath {
             if (breathes) ob.y = (float) (0.02 * wave(t, 40, ph) * gw);
             if (biped) rb.rotateZ(rad(-2.5 * ke * footStance(gp + phaseLeft, duty) * gw
                     + 2.5 * ke * footStance(gp + phaseLeft + 0.5, duty) * gw));
-            else if (walkLegs == 0 && breathes && walk > 0) rb.rotateZ(rad(3 * walk * wave(t, 12, ph) * gw));
+            else if (walkLegs == 0 && !hopper && breathes && walk > 0) rb.rotateZ(rad(3 * walk * wave(t, 12, ph) * gw));
             for (int i = 0; i < n; i++) {
                 if (kind[i] != OTHER) continue;
                 place(jw[i], rw[i], rb, centre, 1f, ob);
@@ -768,6 +874,7 @@ public final class RigMath {
             Vector3f zero = new Vector3f();
             Vector3f o = new Vector3f(0, lift, 0);
             if (floatGlobal >= 0) o.y += (float) (0.1 * wave(t, 60, ph));
+            if (hopper && k > 0) o.y += (float) hopHeight(gp, k);
             all(jw, rw, sw, new Quaternionf(), zero, 1f, o);
             if (ov != null) {
                 Quaternionf gr = new Quaternionf();
@@ -782,10 +889,12 @@ public final class RigMath {
                         new Vector3f((float) (HURT_SHIFT * kh * sg), 0, 0));
             }
             float pitch = s.bodyPitch();
+            if (hopper && k > 0) pitch += (float) hopPitch(gp, k);
             float rise = 0;
             if (s.emergeTicks() >= 0 && s.emergeTicks() < EMERGE_TICKS) {
                 rise = -(1f - s.emergeTicks() / (float) EMERGE_TICKS) * (height + 0.2f);
             }
+            if (hopper && k > 0) rise += (float) hopTiltLift(pitch, hopHeight(gp, k));
             if (Math.abs(pitch) > 0.01f || rise != 0) {
                 all(jw, rw, sw, new Quaternionf().rotationX(rad(pitch)), new Vector3f(0, height * 0.5f, 0), 1f,
                         new Vector3f(0, rise, 0));

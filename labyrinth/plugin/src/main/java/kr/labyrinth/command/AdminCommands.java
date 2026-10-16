@@ -99,7 +99,10 @@ final class AdminCommands {
                         CommandSender s = ctx.getSource().getSender();
                         Text.send(s, "<gray>현재 서버 난이도: <white>" + (services.settings().isDifficultySet()
                                 ? services.settings().difficulty().name() : "미설정"));
-                        if (s instanceof Player p) services.menus().openSetup(p);
+                        if (kr.labyrinth.core.ServerSetup.lockedDifficulty() != null)
+                            Text.send(s, "<dark_gray>한 번 정한 난이도는 바꿀 수 없습니다."
+                                    + (s instanceof Player ? "" : " (꼭 바꿔야 하면 labadmin difficulty unlock)"));
+                        else if (s instanceof Player p) services.menus().openSetup(p);
                     }))
                     .then(Commands.argument("difficulty", StringArgumentType.word()).suggests(difficulties())
                             .executes(ctx -> run(ctx, () -> setDifficulty(ctx.getSource().getSender(),
@@ -137,6 +140,9 @@ final class AdminCommands {
             var pack = services.pack();
             Text.send(s, pack.isAvailable() ? "<green>리소스팩 사용 가능</green> <gray>sha1 " + pack.sha1()
                     : "<red>리소스팩 없음</red> <gray>(plugins/Labyrinth/pack/labyrinth-pack.zip)");
+            if (pack.isAvailable()) Text.send(s, pack.gamePortActive()
+                    ? "<gray>게임 포트로도 보내는 중 (터널 하나로 충분)"
+                    : "<gray>게임 포트 전송 꺼짐 — 8163 포트 또는 pack.public_host·url 로만 받음");
             if (s instanceof Player p && pack.isAvailable()) {
                 Text.send(s, "<gray>URL: <white>" + Text.escape(pack.urlFor(p)));
                 pack.send(p);

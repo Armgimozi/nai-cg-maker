@@ -35,11 +35,11 @@ settings:
   luck_per_point: 0.005       # LUK 1점당 드롭 확률 +0.5% (GDD §3)
   party_bonus_per_member: 0.05   # 파티원 1명 추가마다 드롭 확률 +5% (config party.reward_per_member 가 있으면 그쪽 우선)
   max_chance: 1.0
-  rarity_weight:              # 난이도별 장비 희귀도 확률 배율 (config difficulties.drop 에 추가로 곱함). 없는 칸 = 1.0
-    easy:      {rare: 0.9, epic: 0.8, legendary: 0.7}
+  rarity_weight:              # 난이도별 장비 희귀도 확률 배율. 없는 칸 = 1.0 — 0.3.5.2: 보상은 난이도와 상관없이 같음 (모두 1.0)
+    easy:      {}
     normal:    {}
-    hard:      {epic: 1.1, legendary: 1.2}
-    nightmare: {epic: 1.2, legendary: 1.4}          # 신화는 rarity_weight 없음 (min_difficulty + 난이도 drop 배율만)
+    hard:      {}
+    nightmare: {}
   announce_rarity: legendary  # 이 희귀도 이상을 얻으면 파티 채팅 + 효과음 (신화는 서버 방송)
 
 tables:
@@ -1684,8 +1684,8 @@ tables:
     entries:
       - {item: gatekeeper_rune, chance: 0.5}
       - {one_of: [abyss_sentinel_longsword, aurora_scepter, viper_fang], chance: 0.34}   # 고유 무기(전설, 보스만) — 그 무기 요구에 맞춘 빌드(own_build_bias) 처치당 15~26%
-      - {one_of: [celestial_oathkeeper, bloodmoon_reaver, tempest_bow, voidheart_staff, seraph_scepter, eclipse_blade], chance: 0.04, min_difficulty: hard}
-      - {item: heart_of_nelkar, chance: 0.025, min_difficulty: hard}
+      - {one_of: [celestial_oathkeeper, bloodmoon_reaver, tempest_bow, voidheart_staff, seraph_scepter, eclipse_blade], chance: 0.04}
+      - {item: heart_of_nelkar, chance: 0.025}
       - {table: potions_t3, chance: 0.5}
       - {table: tonics, chance: 0.2}
       - {table: rare_consumables, chance: 0.08}

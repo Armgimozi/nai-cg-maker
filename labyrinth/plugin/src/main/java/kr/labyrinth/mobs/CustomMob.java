@@ -61,4 +61,16 @@ public interface CustomMob extends HealthPool {
 
     /** 마지막으로 피해를 준 플레이어 (모르면 null). */
     default UUID lastHitPlayer() { return null; }
+
+    /**
+     * 정말로 쓰러졌나 (HP 가 0 이 되어 죽음). 보상 없이 지워진 것({@link #remove()} · 히트박스 유실 · 공허 낙하)은 false.
+     * 기록하지 않는 구현은 false.
+     */
+    default boolean killed() { return false; }
+
+    /**
+     * 부드러운 줄 ({@link Leash}): centre 에서 radius 칸(수평)보다 먼 대상은 줄 끝까지만 쫓고, 밖으로 밀려나면 걸어서 돌아온다.
+     * centre = null 이면 줄 없음. 지원하지 않는 구현은 무시.
+     */
+    default void leash(Location centre, double radius) {}
 }

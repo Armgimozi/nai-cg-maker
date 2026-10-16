@@ -67,7 +67,7 @@ public final class SetupMenu extends LabMenu {
         deco(4, Button.icon(Material.COMMAND_BLOCK, "<#ff6b6b><b>서버 초기 설정</b>",
                 List.of("<gray>미궁 전체에 적용되는 <white>서버 난이도</white>를 정합니다.",
                         "<gray>플레이어는 입장할 때 난이도를 고르지 않습니다.",
-                        "<gray>나중에 <white>/labadmin difficulty</white> 로 바꿀 수 있습니다.",
+                        "<#ff9a4d>한 번 정하면 다시 바꿀 수 없습니다.",
                         "",
                         "<gray>현재: " + (s.isDifficultySet() ? "<white>" + s.difficulty().name() : "<#ff6b6b>미설정 (미궁 입장이 막혀 있음)"))));
         int i = 0;
@@ -86,8 +86,12 @@ public final class SetupMenu extends LabMenu {
                 // 기본: 난이도마다 배율 한 벌 — 1층부터 마지막 층까지 같은 값
                 lore.add("<gray>몬스터 HP <white>×" + Difficulty.mult(d.hp()) + "  <gray>피해 <white>×" + Difficulty.mult(d.damage()));
             }
-            lore.add("<gray>드롭 <white>×" + Difficulty.mult(d.drop()) + "  <gray>경험치 <white>×" + Difficulty.mult(d.xp())
-                    + (d.rampsAtFloor1() ? " <dark_gray>(1층부터)" : ""));
+            if (d.drop() != 1.0 || d.xp() != 1.0) {
+                lore.add("<gray>드롭 <white>×" + Difficulty.mult(d.drop()) + "  <gray>경험치 <white>×" + Difficulty.mult(d.xp())
+                        + (d.rampsAtFloor1() ? " <dark_gray>(1층부터)" : ""));
+            } else {
+                lore.add("<gray>드롭·경험치는 난이도와 상관없이 같음");
+            }
             lore.add("<gray>경고 시간 <white>" + d.telegraphText());
             if (!d.rampsAtFloor1()) lore.add("<dark_gray>1층부터 모든 층 같은 배율");
             lore.add("");

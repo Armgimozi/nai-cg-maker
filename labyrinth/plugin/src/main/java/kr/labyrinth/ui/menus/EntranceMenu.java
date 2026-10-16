@@ -61,7 +61,7 @@ public final class EntranceMenu extends LabMenu {
             // 기본은 모든 층 같은 배율 한 벌. 관리자가 층 램프를 직접 적었을 때만 1층 값→원래 값 범위 (층마다 실제 값은 아래 층 아이콘)
             Difficulty first = d.atFloor(1);
             info.add("<dark_gray>몬스터 HP ×" + range(first.hp(), d.hp()) + " · 피해 ×" + range(first.damage(), d.damage())
-                    + " · 드롭 ×" + MainMenu.decimal(d.drop()));
+                    + (d.drop() != 1.0 ? " · 드롭 ×" + MainMenu.decimal(d.drop()) : ""));
             info.add(d.ramp() != null ? "<dark_gray>깊이 내려갈수록 강해져 지하 " + d.ramp().fullFloor() + "층부터 최대"
                     : "<dark_gray>1층부터 모든 층 같은 배율");
         }

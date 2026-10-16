@@ -2,6 +2,7 @@ package kr.labyrinth;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
@@ -96,21 +97,19 @@ class LootRollerTest {
     }
 
     @Test
-    void minDifficultyGatesMythic() {
+    void mythicDropsOnEveryDifficulty() {
+        // 0.3.5.2: 10층 보스 신화는 난이도와 상관없이 (min_difficulty 없음)
         LootRoller roller = new LootRoller(content, new Random(5));
-        for (int i = 0; i < 4000; i++) {
-            for (LootRoller.Drop d : roller.roll("floor10_boss", new LootRoller.Request("normal", 50.0, 0, null))) {
-                ItemDef def = content.item(d.itemId());
-                assertFalse(def.rarity() == Rarity.MYTHIC, "보통 난이도에서 신화가 나오면 안 됨: " + d.itemId());
+        for (String diff : List.of("easy", "normal", "hard", "nightmare")) {
+            boolean mythic = false;
+            for (int i = 0; i < 400 && !mythic; i++) {
+                for (LootRoller.Drop d : roller.roll("floor10_boss", new LootRoller.Request(diff, 50.0, 0, null))) {
+                    if (content.item(d.itemId()).rarity() == Rarity.MYTHIC) mythic = true;
+                }
             }
+            assertTrue(mythic, diff + " 난이도에서도 신화가 나와야 함");
         }
-        boolean mythic = false;
-        for (int i = 0; i < 400 && !mythic; i++) {
-            for (LootRoller.Drop d : roller.roll("floor10_boss", new LootRoller.Request("hard", 50.0, 0, null))) {
-                if (content.item(d.itemId()).rarity() == Rarity.MYTHIC) mythic = true;
-            }
-        }
-        assertTrue(mythic, "어려움 + 큰 배율이면 신화가 나와야 함");
+        for (LootTable.Entry e : content.lootTable("floor10_boss").entries()) assertNull(e.minDifficulty(), "10층 보스 표에 난이도 제한 없음");
     }
 
     @Test

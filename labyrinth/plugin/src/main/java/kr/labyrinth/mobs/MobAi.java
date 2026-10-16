@@ -56,8 +56,16 @@ final class MobAi {
             case "turret" -> { }
             default -> {
                 if (!m.flying && !rooted) {
-                    if (dist > reach(m) * 0.8) moveTo(m, tl, now);
-                    else stop(m);
+                    Leash.Move mv = m.leashCentre == null ? Leash.Move.CHASE
+                            : Leash.decide(m.fromLeash(loc), m.fromLeash(tl), m.leashRadius);
+                    switch (mv) {
+                        case RETURN -> moveTo(m, m.leashCentre, now);     // 줄 밖으로 밀려남 → 걸어서 돌아옴
+                        case HOLD -> stop(m);                             // 대상이 줄 밖 → 줄 끝에서 보고 버팀
+                        default -> {
+                            if (dist > reach(m) * 0.8) moveTo(m, tl, now);
+                            else stop(m);
+                        }
+                    }
                 } else if (rooted) stop(m);
             }
         }
@@ -198,6 +206,10 @@ final class MobAi {
         } else if (m.flying) {
             Location want = m.home.clone().add(0, 1.2 + 0.4 * Math.sin(now / 30.0 + m.seed), 0);
             steer(m, want);
+        } else if (m.leashCentre != null) {
+            // 묶인 몹(미믹): 대상이 없으면 줄 가운데(상자 자리)로 돌아가 기다린다
+            if (m.fromLeash(m.entity.getLocation()) > 1.5) moveTo(m, m.leashCentre, now);
+            else if (m.lastPathGoal != null) stop(m);
         } else if (m.entity.getLocation().distanceSquared(m.home) > 16 * 16) {
             moveTo(m, m.home, now);
         } else if (m.lastPathGoal != null && m.entity.getLocation().distanceSquared(m.home) < 4) {

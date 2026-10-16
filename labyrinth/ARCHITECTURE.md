@@ -376,6 +376,18 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   같은 함수로 실제로 굴릴 표를 고른다. + 철·금 상자 강화석 `maze_enhance_<iron|gold>_t<1~3>`(강화석 구간 1~3·4~7·8~10, 상자마다 따로 한 번), items.yml `vault_key`(type key,
   PDC "런id#층" — `Run.restore`·`Run.begin`(입장자)·`DungeonManager.recoverStranded`·다음 층 첫 도착 때 지움). titles.yml 조건 `TREASURE {kind: chest|gold_chest|vault|mimic, count}` —
   카운터 `titles.treasure.<kind>`. PlayerData 카운터 `dungeon.traps_disarmed`. 자가 진단 결과에 `traps=·chests=·vaults=·secret_rooms=·mimics=`.
+  **미믹 (0.3.5.1)**: `treasure.MimicSpec`(순수 — mobs.yml `mimic:` 블록이 있는 몹 고르기 `forFloor`·`companion`, 층 수치 사본 `scaled` = 그 층 일반 몹 평균 × 배율,
+  `pack(content, 층)` = 큰 미믹 + 있으면 새끼 하나) + `treasure.MimicEncounter`(런타임 — 미로 `Treasures` 와 보물방 `rooms.TreasureRoom` 공용:
+  상자 블록·띠를 지운 자리에 `FloorState.spawnMob(MobDef, …)`(→ `MobService.spawnDef`, 정예 변종 없음, ctx 배율 그대로)로 세우고 2틱마다 `tick` —
+  부드러운 줄 `LEASH` 8칸(`CustomMob.leash` → `LabMob.leashCentre`, 순수 `mobs.Leash.decide` = CHASE/HOLD/RETURN — `MobAi` 근접·떼 이동과
+  대기, 돌진 스킬 leap·charge·blink 는 `Leash.canLunge` 일 때만), 순간이동은 마지막 수단(`HARD_LEASH` 12칸 · 높이 · 줄 밖 `STUCK_MS`),
+  닿는 거리(`REACH` 11칸)에 아무도 없으면 상처 아묾, 달아날 시간 = 순수 `MimicClock`(근처 `PRESENCE` 12칸에 살아 있는 파티원이 있을 때만 흐름 ·
+  맞으면 `ENGAGED_MS` 까지 미룸), `State.DEFEATED`(큰 미믹 `CustomMob.killed()`)/`FLED`). 끝나면 부르는 쪽이 `finish(restore)` 한 번 —
+  남은 미믹이 달아나는 몸짓(`FLEE_TICKS`) 뒤에 상자를 다시 놓는다(미로 = 한 단계 좋게, 쓰러뜨렸을 때만 `titles.treasure.mimic`).
+  mobs.yml 에 미믹이 없으면 `legacy` — 예전처럼 층 일반 몹 `treasure.mimic_mobs` 마리. 자가 진단 `mimic_mobs=`(층마다 1 또는 2)·`mimic_restored=`·
+  `mimic_leashed=`·`mimic_defeated=`·`mimic_clock_paused=` + 보물방 `room_mimic_mobs=`·`room_mimic_restored=`(`TreasureRoom.selfTestMimic`).
+  리그: anim `lid`(뚜껑 턱) + 다리 없는 lid 몹 = 깡충 걸음(`RigMath.Skeleton.hopper()`, `lidAngle`·`hopHeight`·`hopPitch`) — GDD §14.3.
+  모델 = `resourcepack/src/mobvox/mimic.py`(세 미믹 공용 설계). 미리보기: `RIG_DUMP=… RIG_MOBS=chest_mimic,gilded_mimic,mimic_whelp` → `tools/rig_preview.py`.
 - **TitleService** 실제 구현 `titles.LabTitleService`. 기본 메서드 추가: `setBonusSuppressed(p, on)`(칭호 스탯 보너스 잠시 끄기 — 지금은 부르는 곳 없음),
   `progress(p, id)`. 판정은 `titles.AchievementRules`(순수, 테스트), 카운터 갱신은 `titles.TitleCounters` —
   카운터 키 `titles.*` 목록은 AchievementRules 문서가 원본. 서버 기록 키: `first_clear.floor_<n>`(층 최초 돌파 파티 전원),
@@ -756,6 +768,8 @@ hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100,
   form `wing`·`neck`·`segment`, anim `wings_flap`·`neck`·`tail_chain`, shape `drake`·`wyvern`·`dragonkin`·`naga`·`centaur`·`harpy`·`minotaur`·`lich`·`worm`.
   0.3.2 추가 키: 몹 최상위 `attack_interval`(기본 공격 간격 초, 없으면 1.2 — 떼 ×0.85, 원거리 기본탄 +0.8초, `MobAi.attackInterval`; 1층 몹 1.5 · 2층 몹 1.35),
   `summon` 스킬 params `solo_count`·`solo_max_alive`(1인일 때 count·max_alive 대신, 2인 이상은 원래 값 — `Params.scaledInt`, GDD §8.4·§2.7).
+  0.3.5.1 추가 키: `floor: 0`(= 어느 층에나 — 미믹만), `mimic: {floors: [처음, 끝], hp, damage, defense, xp, gold, companion}`(미믹 — 수치는 그 층 일반 몹 평균 ×
+  배율, `dungeon.treasure.MimicSpec`), anim `lid`(뚜껑 턱 · 다리 없으면 깡충), `pull` params `color`(끌어오는 줄 색 "#rrggbb").
 - **bosses.yml**: `core`(핵심 기믹 키, 보스마다 다름), `description`, `speed`, `flying`, `bossbar`(BossBar 색),
   `lines: {intro, phase2, phase3, death}`, `rotation: {페이즈번호: [패턴키…]}`, `sounds`, `arena` 에 보스별 배치 키
   (pillars/nests/platforms/valves/anchors/pylons/rune_shelves/corridor_length …). 패턴 params 공통 규칙(`*_base`·`*_per_member`·

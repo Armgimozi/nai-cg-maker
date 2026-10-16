@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "kr.labyrinth"
-version = "0.3.5.1"
+version = "0.3.5.3"
 
 repositories {
     maven("https://repo.papermc.io/repository/maven-public/")
@@ -12,6 +12,13 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:26.3.build.181-stable")
+    // 리소스팩을 게임 포트로 보내기 (GamePortPackServer) — Paper 서버에 들어 있는 Netty 를 그대로 쓴다 (jar 에 넣지 않음)
+    compileOnly("io.netty:netty-transport:4.2.16.Final")
+    compileOnly("io.netty:netty-buffer:4.2.16.Final")
+    compileOnly("io.netty:netty-common:4.2.16.Final")
+    testImplementation("io.netty:netty-transport:4.2.16.Final")
+    testImplementation("io.netty:netty-buffer:4.2.16.Final")
+    testImplementation("io.netty:netty-common:4.2.16.Final")
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("io.papermc.paper:paper-api:26.3.build.181-stable")
