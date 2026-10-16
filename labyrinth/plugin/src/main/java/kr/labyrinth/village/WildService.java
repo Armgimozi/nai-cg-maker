@@ -1,10 +1,12 @@
 package kr.labyrinth.village;
 
+import com.destroystokyo.paper.event.entity.EntityZapEvent;
 import com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +32,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.SpawnCategory;
 import org.bukkit.entity.Tameable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -42,6 +45,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -49,10 +53,12 @@ import org.bukkit.scheduler.BukkitTask;
  * 야생 막기 (config wild, 0.3.5.1) — 마을이 있는 주 월드에서만, 마을 기능이 켜져 있을 때만 (VillageService 가 소유).
  * <ul>
  *   <li>월드 경계: 마을 둘레 정사각형 ({@link WildBorder}) 을 주 월드의 바닐라 WorldBorder 로. 우리가 정한 것은
- *       plugins/Labyrinth/wild-border.yml 에 적고, 끌 때는 아직 우리 것일 때만 되돌린다 (관리자의 /worldborder 는 건드리지 않음).
+ *       월드 폴더(labyrinth-village.yml 옆)의 labyrinth-wild-border.yml 에 적어 경계와 함께 월드를 따라다니게 하고 (배포 world.zip ·
+ *       백업 · 월드 갈아 끼우기), 끌 때는 아직 우리 것일 때만 되돌린다 (관리자의 /worldborder 는 건드리지 않음).
  *       경계 밖에서 발견된 플레이어(접속·리스폰·월드 이동·순간이동·차원문으로 돌아옴·2초마다)는 광장으로.</li>
- *   <li>스폰: 이벤트로만 막는다 ({@link WildSpawns}) — 게임 규칙은 바꾸지 않아, 끄면 바로 바닐라. 켤 때·청크를 불러올 때
- *       바닐라 적대 몹을 치운다 (동물은 그대로). 미궁 월드·네더·엔드·플러그인 엔티티는 건드리지 않는다.</li>
+ *   <li>스폰: 이벤트로 막는다 ({@link WildSpawns}) — 게임 규칙은 바꾸지 않아, 끄면 바로 바닐라. 성능을 위해 막는 분류의 자연 스폰 상한을
+ *       실행 중에만 0 으로 묶는다 (끌 때·모드를 바꿀 때 되돌림, 저장되지 않음). 켤 때·청크를 불러올 때 바닐라 적대 몹을 치운다
+ *       (동물은 그대로). 미궁 월드·네더·엔드·플러그인 엔티티는 건드리지 않는다.</li>
  *   <li>네더·엔드: 막지 않는다 (바닐라 그대로). 차원문·엔드 출구·리스폰으로 주 월드에 돌아올 때 경계 밖이면 광장으로만 옮긴다.</li>
  * </ul>
  */
@@ -68,6 +74,17 @@ final class WildService implements Listener {
     private long blockedSpawns, blockedTransforms, removedExisting, movedPlayers;
     /** 자가 진단이 한 틱 안에서 시험 몹을 들이는 동안 — 정보의 '막은 스폰' 수에 더하지 않음. */
     private boolean selfTest;
+    /** 자가 진단의 번개 시험 돼지 — zap·변신 이벤트가 실제로 왔는지 (번개가 맞았는지) 기록. 수에 더하지 않음. */
+    private UUID probe;
+    private boolean probeHit;
+    /**
+     * 막은 변신을 몹마다 한 번만 세려고 — 번개는 사는 몇 틱 동안 매 틱 다시 맞히고(막으면 몹이 남아 또 맞음),
+     * 주민 → 마녀는 변신 이벤트와 zap 이벤트가 둘 다 온다. 몹 → 마지막으로 센 틱 (100틱 지나면 다시 셈).
+     */
+    private final Map<UUID, Integer> recentTransforms = new HashMap<>();
+    /** 우리가 0 으로 묶은 자연 스폰 상한과 그 전 값 (실행 중에만 — 서버는 이 값을 저장하지 않는다). */
+    private final Map<SpawnCategory, Integer> limits = new EnumMap<>(SpawnCategory.class);
+    private World limitsWorld;
 
     WildService(VillageModule module, VillageService village) {
         this.module = module;
@@ -85,6 +102,11 @@ final class WildService implements Listener {
         HandlerList.unregisterAll(this);
         if (task != null) task.cancel();
         task = null;
+        try {
+            restoreLimits();
+        } catch (Throwable t) {
+            Log.warn("[야생] 자연 스폰 상한 되돌리기 실패: " + t);
+        }
     }
 
     // ── 상태 ─────────────────────────────────────────────────────────────
@@ -141,7 +163,10 @@ final class WildService implements Listener {
 
     /** 켤 때 · village apply · labadmin reload · 마을 메타데이터가 바뀔 때. */
     void refresh(String why) {
-        if (!active()) return;
+        if (!active()) {
+            restoreLimits();
+            return;
+        }
         Settings.Wild w = cfg();
         target = WildBorder.compute(village.meta(), w.borderMargin());
         String border;
@@ -150,6 +175,11 @@ final class WildService implements Listener {
         } catch (Throwable t) {
             Log.error("[야생] 월드 경계 적용 실패", t);
             border = "오류";
+        }
+        try {
+            syncLimits(w.spawns());
+        } catch (Throwable t) {
+            Log.error("[야생] 자연 스폰 상한 정하기 실패", t);
         }
         int removed = 0;
         if (w.spawns() != Settings.Wild.Spawns.NONE) {
@@ -166,13 +196,37 @@ final class WildService implements Listener {
 
     // ── 월드 경계 ────────────────────────────────────────────────────────
 
-    private File recordFile() { return new File(module.plugin().getDataFolder(), "wild-border.yml"); }
+    /** 기록 파일 이름 — 주 월드 폴더(labyrinth-village.yml 옆, 바닐라 경계 데이터와 같은 곳). */
+    static final String RECORD_FILE = "labyrinth-wild-border.yml";
+
+    /**
+     * 기록은 월드 폴더에 둔다 — 경계(world_border)와 함께 world.zip·백업·월드 갈아 끼우기를 따라가야 한다.
+     * 플러그인 폴더에 두면 새로 지어 배포한 마을 월드처럼 '경계는 있는데 기록은 없는' 서버가 생겨, 끌 수도 넓힐 수도 없게 된다.
+     * uid 는 보지 않는다 (배포 world.zip 에는 uid.dat 이 없어 서버마다 달라진다 — 파일 자리가 곧 그 월드).
+     */
+    File recordFile() { return new File(main().getWorldFolder(), RECORD_FILE); }
+
+    /** 0.3.5.1 시험판이 쓰던 자리 (plugins/Labyrinth/wild-border.yml) — 같은 월드 uid 일 때만 한 번 옮겨 온다. */
+    private File legacyRecordFile() { return new File(module.plugin().getDataFolder(), "wild-border.yml"); }
 
     WildBorder.Record loadRecord() {
         File f = recordFile();
-        if (!f.isFile()) return null;
-        YamlConfiguration y = YamlConfiguration.loadConfiguration(f);
+        if (f.isFile()) return readRecord(YamlConfiguration.loadConfiguration(f));
+        File old = legacyRecordFile();
+        if (!old.isFile()) return null;
+        YamlConfiguration y = YamlConfiguration.loadConfiguration(old);
         if (!main().getUID().toString().equals(y.getString("world_uid", ""))) return null; // 다른 월드의 기록
+        WildBorder.Record r = readRecord(y);
+        if (r == null) return null;
+        saveRecord(r);
+        if (f.isFile()) {
+            if (!old.delete()) Log.warn("[야생] " + old.getName() + " 지우기 실패");
+            Log.info("[야생] 경계 기록을 월드 폴더로 옮겼습니다 (" + RECORD_FILE + ")");
+        }
+        return r;
+    }
+
+    private static WildBorder.Record readRecord(YamlConfiguration y) {
         if (!y.isConfigurationSection("ours") || !y.isConfigurationSection("previous")) return null;
         return new WildBorder.Record(square(y, "ours"), square(y, "previous"));
     }
@@ -190,14 +244,14 @@ final class WildService implements Listener {
         }
         YamlConfiguration y = new YamlConfiguration();
         y.options().setHeader(List.of("미궁 라비린스 — 플러그인이 정한 바닐라 월드 경계 (config wild.border). 직접 고치지 마세요.",
-                "ours = 플러그인이 놓은 경계, previous = 그 전 경계 (wild.border: false 로 끄면, 경계가 아직 ours 일 때만 previous 로 되돌림)"));
+                "ours = 플러그인이 놓은 경계, previous = 그 전 경계 (wild.border: false 로 끄면, 경계가 아직 ours 일 때만 previous 로 되돌림)",
+                "월드와 함께 다닙니다 (이 월드 폴더를 옮기거나 백업할 때 같이)"));
         y.set("world_uid", main().getUID().toString());
         y.set("world", main().getName());
         put(y, "ours", r.ours());
         put(y, "previous", r.previous());
         y.set("saved_at", java.time.Instant.now().toString());
         try {
-            module.plugin().getDataFolder().mkdirs();
             y.save(f);
         } catch (IOException e) {
             Log.warn("[야생] " + f.getName() + " 저장 실패: " + e.getMessage());
@@ -236,9 +290,10 @@ final class WildService implements Listener {
             case ADMIN -> {
                 Log.warn("[야생] 관리자가 정한 월드 경계(" + WildBorder.describe(cur) + ")가 있어 그대로 둡니다 — 마을 경계("
                         + WildBorder.describe(tgt) + ")로 바꾸려면 labadmin wild border apply");
-                yield "관리자 경계 그대로: " + WildBorder.describe(cur);
+                yield "그대로 (관리자가 정함: " + WildBorder.describe(cur) + ")";
             }
-            case NONE -> w.border() ? "그대로: " + WildBorder.describe(cur) : "끔";
+            case NONE -> w.border() ? "그대로: " + WildBorder.describe(cur)
+                    : cur.vanillaDefault() ? "끔" : "끔 — 지금 경계(" + WildBorder.describe(cur) + ")는 플러그인 기록에 없어 그대로 둠";
         };
     }
 
@@ -311,9 +366,14 @@ final class WildService implements Listener {
         redirect(e);
     }
 
-    /** 네더·엔드에서 주 월드로 나오는 차원문 (PlayerPortalEvent 는 PlayerTeleportEvent 와 핸들러 목록이 따로다). 막지는 않는다. */
+    /**
+     * 엔드에서 주 월드로 나오는 차원문 (PlayerPortalEvent 는 PlayerTeleportEvent 와 핸들러 목록이 따로다). 막지는 않는다.
+     * 네더 차원문은 건드리지 않는다 — Paper 는 getTo() 를 차원문 찾기·만들기의 중심으로 쓰므로 광장으로 바꾸면 광장에 차원문이 생긴다.
+     * 바닐라가 이벤트 전에 출구를 경계 안으로 당기고, 그래도 밖이면 도착 뒤 {@link #onWorldChange} 가 광장으로 옮긴다.
+     */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPortal(PlayerPortalEvent e) {
+        if (e.getCause() == TeleportCause.NETHER_PORTAL) return;
         redirect(e);
     }
 
@@ -345,6 +405,8 @@ final class WildService implements Listener {
         if (c == null) return;
         if (!WildSpawns.blockSpawn(mode, e.getReason(), Mob.class.isAssignableFrom(c), Enemy.class.isAssignableFrom(c))) return;
         e.setCancelled(true);
+        // 자연 스폰은 이 자리의 무리 시도를 통째로 그만두게 (막힌 시도마다 이벤트가 다시 오지 않게)
+        if (e.getReason() == CreatureSpawnEvent.SpawnReason.NATURAL) e.setShouldAbortSpawn(true);
         blockedSpawns++;
     }
 
@@ -389,11 +451,101 @@ final class WildService implements Listener {
         for (Entity t : e.getTransformedEntities()) {
             if (WildSpawns.blockTransform(mode, e.getTransformReason(), t instanceof Mob, t instanceof Enemy)) {
                 e.setCancelled(true);
-                if (!selfTest) blockedTransforms++;
+                countTransform(e.getEntity());
                 return;
             }
         }
     }
+
+    /**
+     * 번개 변신 — Paper 26.3 의 돼지 → 좀비 피글린은 EntityTransformEvent 없이 PigZapEvent 만 온다 (Pig#thunderHit 가
+     * convertTo(…, null, null) 뒤 addFreshEntity(LIGHTNING) 하고, 그 스폰을 막아도 돼지를 지운다). PigZapEvent 는 EntityZapEvent 의
+     * 핸들러 목록을 쓰고 EntityTransformEvent 와는 따로라 여기서 받는다. zap 을 막으면 thunderHit 가 일찍 끝나 돼지가 그대로 남는다
+     * (불·피해도 없음). 주민 → 마녀는 이것과 EntityTransformEvent 가 둘 다 오는데 한 번만 센다.
+     */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onZap(EntityZapEvent e) {
+        Settings.Wild.Spawns mode = spawnMode();
+        Entity src = e.getEntity();
+        if (mode == Settings.Wild.Spawns.NONE || !isMain(src.getWorld()) || pluginTagged(src)) return;
+        Entity r = e.getReplacementEntity();
+        if (!WildSpawns.blockTransform(mode, EntityTransformEvent.TransformReason.LIGHTNING, r instanceof Mob, r instanceof Enemy)) return;
+        e.setCancelled(true);
+        countTransform(src);
+    }
+
+    private void countTransform(Entity src) {
+        if (selfTest || src.getUniqueId().equals(probe)) return;
+        int tick = Bukkit.getCurrentTick();
+        if (recentTransforms.size() > 64) recentTransforms.values().removeIf(t -> tick - t > 100);
+        Integer last = recentTransforms.put(src.getUniqueId(), tick);
+        if (last != null && tick - last <= 100) return;
+        blockedTransforms++;
+    }
+
+    /** 자가 진단: 시험 돼지에 번개가 실제로 맞았나 (막혔든 아니든, 다른 플러그인이 막았어도). */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onZapSeen(EntityZapEvent e) {
+        if (probe != null && probe.equals(e.getEntity().getUniqueId())) probeHit = true;
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onTransformSeen(EntityTransformEvent e) {
+        if (probe != null && probe.equals(e.getEntity().getUniqueId())) probeHit = true;
+    }
+
+    /** 자가 진단의 번개 시험 돼지 (null = 그만 지켜봄). */
+    void probe(UUID id) {
+        probe = id;
+        probeHit = false;
+    }
+
+    boolean probeHit() { return probeHit; }
+
+    // ── 자연 스폰 상한 (성능) ────────────────────────────────────────────
+
+    /**
+     * 막는 분류의 주 월드 자연 스폰 상한을 0 으로 (NaturalSpawner 가 그 분류를 건너뜀 — 막힌 시도마다 이벤트가 오지 않게).
+     * 막을지는 여전히 이벤트가 정한다. 서버가 저장하지 않는 실행 중 값이라 꺼지면 사라지고, 끌 때·모드를 바꿀 때 되돌린다.
+     * 이미 0 인 분류(관리자가 정함)와 그 사이 누가 바꾼 분류는 우리 것이 아니라 건드리지 않는다.
+     */
+    void syncLimits(Settings.Wild.Spawns mode) {
+        World w = main();
+        if (w == null) return;
+        if (limitsWorld != null && !limitsWorld.equals(w)) restoreLimits();
+        for (SpawnCategory c : SpawnCategory.values()) {
+            boolean want = WildSpawns.limitCategory(mode, c);
+            Integer prev = limits.get(c);
+            if (want && prev == null) {
+                int now = w.getSpawnLimit(c);
+                if (now == 0) continue;
+                limits.put(c, now);
+                limitsWorld = w;
+                w.setSpawnLimit(c, 0);
+            } else if (want && w.getSpawnLimit(c) != 0) {
+                limits.remove(c); // 그 사이 누가 바꿈 — 그 값을 따름
+            } else if (!want && prev != null) {
+                restoreLimit(w, c, prev);
+            }
+        }
+    }
+
+    private void restoreLimit(World w, SpawnCategory c, int prev) {
+        limits.remove(c);
+        if (w.getSpawnLimit(c) != 0) return;
+        w.setSpawnLimit(c, -1); // 서버 기본(bukkit.yml spawn-limits)을 따르게
+        if (w.getSpawnLimit(c) != prev) w.setSpawnLimit(c, prev);
+    }
+
+    void restoreLimits() {
+        World w = limitsWorld;
+        if (w != null) for (Map.Entry<SpawnCategory, Integer> e : new EnumMap<>(limits).entrySet()) restoreLimit(w, e.getKey(), e.getValue());
+        limits.clear();
+        limitsWorld = null;
+    }
+
+    /** 0 으로 묶은 분류 수 (정보·자가 진단). */
+    int limitedCategories() { return limits.size(); }
 
     /** 청크의 엔티티를 불러올 때 — 바닐라 적대 몹 치우기 (다음 틱에, 불러오는 도중에는 지우지 않음). */
     @EventHandler(priority = EventPriority.NORMAL)
@@ -471,6 +623,7 @@ final class WildService implements Listener {
             case MONSTERS -> "(적대 몹만)";
             case NONE -> "(막지 않음" + (module.blockMobSpawns() ? " — village.block_mob_spawns 로 마을 둘레 적대만)" : ")");
         } + " · 막은 스폰 " + blockedSpawns + " · 막은 변신 " + blockedTransforms + " · 치운 적대 몹 " + removedExisting));
+        if (!limits.isEmpty()) s.sendMessage(Text.mm(" <gray>자연 스폰 상한 0 (실행 중에만, 끄면 되돌림): <white>" + limits.size() + "분류</white>"));
         s.sendMessage(Text.mm(" <gray>네더·엔드: <white>열림</white> (막지 않음) · 경계 밖이라 광장으로 옮긴 횟수 " + movedPlayers));
     }
 
@@ -490,7 +643,4 @@ final class WildService implements Listener {
 
     /** 자가 진단 시험 몹은 정보의 수에 넣지 않는다 (한 틱 안에서 켜고 끈다). */
     void selfTest(boolean on) { selfTest = on; }
-
-    /** 자가 진단의 번개 시험으로 막은 변신 하나를 수에서 뺀다. */
-    void uncountTransform() { if (blockedTransforms > 0) blockedTransforms--; }
 }

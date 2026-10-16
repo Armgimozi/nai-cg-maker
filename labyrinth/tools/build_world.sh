@@ -37,7 +37,14 @@ for d in libraries cache versions config .paper; do
 done
 cp "$JAR" "$WORK/plugins/Labyrinth.jar"
 # 리소스팩 HTTP 는 끈다 (8163 포트를 다른 서버와 다투지 않게)
-sed '/^pack:/,/^[a-z]/ s/^  enabled: true/  enabled: false/' plugin/src/main/resources/config.yml > "$WORK/plugins/Labyrinth/config.yml"
+# 야생 막기(wild)도 끈다 — 배포 월드에 우리 경계(world_border)가 구워지지 않게, pregen 하는 청크에 동물(CHUNK_GEN)이 생기게.
+#   경계는 서버장 서버가 처음 켤 때 정하고 기록(월드 폴더 labyrinth-wild-border.yml)을 남긴다.
+sed -e '/^pack:/,/^[a-z]/ s/^  enabled: true/  enabled: false/' \
+    -e '/^wild:/,/^[a-z]/ s/^  border: true/  border: false/' \
+    -e '/^wild:/,/^[a-z]/ s/^  spawns: all/  spawns: none/' \
+    plugin/src/main/resources/config.yml > "$WORK/plugins/Labyrinth/config.yml"
+grep -qE '^  border: false' "$WORK/plugins/Labyrinth/config.yml" && grep -qE '^  spawns: none' "$WORK/plugins/Labyrinth/config.yml" \
+  || { echo "config.yml 의 wild 를 끄지 못했습니다 (키 모양이 바뀜?) — tools/build_world.sh 를 고치세요"; exit 1; }
 P="$WORK/server.properties"
 touch "$P"
 setprop() { if grep -q "^$1=" "$P"; then sed -i "s|^$1=.*|$1=$2|" "$P"; else echo "$1=$2" >> "$P"; fi; }

@@ -3,6 +3,7 @@ package kr.labyrinth.village;
 import java.util.EnumMap;
 import java.util.Map;
 import kr.labyrinth.core.Settings;
+import org.bukkit.entity.SpawnCategory;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityTransformEvent.TransformReason;
 
@@ -60,12 +61,13 @@ public final class WildSpawns {
             case ENDER_PEARL -> wild("엔더 진주에서 나오는 엔더 진드기");
             case NETHER_PORTAL -> wild("네더 차원문에서 나오는 좀비 피글린");
             case SPELL -> wild("소환사가 부르는 벡스");
-            case POTION_EFFECT -> wild("감염·점액 효과가 낳는 좀벌레·슬라임");
             case DROWNED -> wild("물에 빠진 좀비 → 드라운드 (변신은 따로 막아 좀비가 남음)");
             case FROZEN -> wild("가루눈에 언 스켈레톤 → 스트레이 (변신은 따로 막음)");
             case INFECTION -> wild("좀비에게 진 주민 → 좀비 주민 (변신은 따로 막음 — 주민은 그냥 쓰러짐)");
             case PIGLIN_ZOMBIFIED -> wild("오버월드에 온 피글린·호글린 → 좀비화 (변신은 따로 막음)");
             case BUILD_WITHER -> wild("위더 — 바닐라 보스, 폭발로 마을 둘레 지형을 부숨");
+            // DEFAULT 는 Entity#spawnAt(Location) 의 기본 이유이기도 하다 — 플러그인 코드가 주 월드에 몹을 넣을 때는
+            // spawnAt(loc, CUSTOM) 이나 world.spawn(…, CUSTOM, …) 을 쓸 것 (DEFAULT 로 넣으면 말없이 막힌다. 태그가 먼저 달린 몹은 건너뜀)
             case DEFAULT -> wild("이유 없이 더해지는 바닐라 경로 (삐걱이 심장의 삐걱이·구조물 몹). 플러그인 몹은 CUSTOM");
             // ── 플레이어·관리자·플러그인이 일부러: 허용 ──
             case CUSTOM -> action("플러그인 (이 플러그인의 몬스터·NPC 포함)");
@@ -86,6 +88,7 @@ public final class WildSpawns {
             case DUPLICATION -> action("플레이어가 알레이에게 자수정을 줌");
             case ENCHANTMENT -> action("플레이어 장비의 마법 부여 효과");
             case EXPLOSION -> action("크리퍼·드래곤 화염구의 잔류 구름 — 몹이 아님");
+            case POTION_EFFECT -> action("플레이어가 빚은 점액·감염 물약이 낳는 슬라임·좀벌레 (불길한 시련 쪽은 시련 생성기를 막아 생기지 않음)");
             // ── 이미 있는 몹이 바뀜: 원래 몹이 지워지지 않게 허용 ──
             case CURED -> keep("플레이어가 좀비 주민을 치료");
             case SHEARED -> keep("플레이어가 무시룸 털을 깎음 → 소");
@@ -109,6 +112,21 @@ public final class WildSpawns {
             case ALL -> mob || enemy;
             case MONSTERS -> enemy;
             case NONE -> false;
+        };
+    }
+
+    /**
+     * 주 월드 자연 스폰 상한(World#setSpawnLimit)을 0 으로 묶는 분류 — 성능용. 막을지는 언제나 이벤트({@link #blockSpawn})가 정하고,
+     * 이것은 NaturalSpawner 가 그 분류를 아예 건너뛰게 할 뿐이다 (막힌 시도마다 이벤트가 오지 않게). 실행 중에만 쓰이고 끄면 되돌린다.
+     * all = 자연 스폰 분류 전부 (모두 몹), monsters = MONSTER 만 (기수 없이 남을 탈것 — 낙타 허스크·좀비 앵무조개 — 도 함께 안 나옴),
+     * MISC 는 바닐라가 상한을 받지 않는다. default 없음.
+     */
+    public static boolean limitCategory(Settings.Wild.Spawns mode, SpawnCategory c) {
+        if (mode == null || mode == Settings.Wild.Spawns.NONE || c == null) return false;
+        return switch (c) {
+            case MONSTER -> true;
+            case ANIMAL, WATER_ANIMAL, WATER_AMBIENT, WATER_UNDERGROUND_CREATURE, AMBIENT, AXOLOTL -> mode == Settings.Wild.Spawns.ALL;
+            case MISC -> false;
         };
     }
 
