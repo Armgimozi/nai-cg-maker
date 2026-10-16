@@ -80,7 +80,8 @@ class ContentLoadingTest {
         LootTable t = c.lootTable("floor01_boss");
         assertNotNull(t);
         assertFalse(t.guaranteed().isEmpty());
-        assertTrue(c.lootSettings().rarityWeight("nightmare", Rarity.LEGENDARY) > 1.0);
+        assertEquals(1.0, c.lootSettings().rarityWeight("nightmare", Rarity.LEGENDARY)); // 0.3.5.2: 난이도와 상관없이 같음
+        assertEquals(1.0, c.lootSettings().rarityWeight("easy", Rarity.EPIC));
         assertEquals(1.0, c.lootSettings().rarityWeight("normal", Rarity.LEGENDARY));
     }
 }
