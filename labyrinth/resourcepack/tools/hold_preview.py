@@ -3,6 +3,7 @@
 
     python tools/hold_preview.py [--shapes war_scythe,sickle] [--items rootbound_scythe] [--out DIR]
                                  [--tag before] [--override FILE.json] [--vanilla-dir DIR] [--jobs N]
+                                 [--extra-items auto|off|FILE,...]
     python tools/hold_preview.py --selftest
 
 For every weapon shape in items.yml it builds two real items (lowest and highest rarity) through the pack
@@ -20,6 +21,8 @@ end on screen, and which way the sideways head points (head_fp_toward_camera: +1
 
 --override FILE.json  {"<shape or item id>": {"firstperson_righthand": {...}, "thirdperson_righthand": {...}}}
                       replaces those display transforms before rendering (prototype a fix without regenerating).
+--extra-items         like generate.py: auto (default) also offers the 0.3.5 gear of tools/data/035/gear_spec.json
+                      while items.yml lacks it (src/extra_items.py), off = items.yml only, or FILE,...
 --vanilla-dir DIR     DIR/iron_sword.png, iron_axe.png, bow.png (vanilla textures you extract locally from the
                       client jar; never committed) for the reference rows; without them original stand-in
                       sprites with the same pixel layout are drawn.
@@ -761,9 +764,9 @@ def compose(shape, tag, rows, path):
 
 GRIP = (8.0, 1.0, 8.0)
 BOW_GRIP = (4.5, 6.0, 8.0)
-BOWS = ('longbow', 'recurve_bow', 'composite_bow', 'horn_bow', 'blade_bow')
-# shapes whose working part sticks out sideways from the haft (compared against the vanilla axe as well)
-HEAD_SHAPES = ('war_scythe', 'sickle', 'great_axe', 'cleaver', 'warhammer', 'mace', 'glaive', 'falchion')
+# one source for the hold tables: the pack's own voxel/weapons.py (bows; shapes whose working part sticks out
+# sideways from the haft — compared against the vanilla axe as well)
+from src.voxel.weapons import BOWS, HEAD_SHAPES  # noqa: E402
 
 
 def weapon_shapes(items_doc):
@@ -890,12 +893,17 @@ def main():
     ap.add_argument('--vanilla-dir', default='')
     ap.add_argument('--jobs', type=int, default=max(1, min(8, (os.cpu_count() or 2) - 1)))
     ap.add_argument('--selftest', action='store_true', help='check the transform chain and exit')
+    ap.add_argument('--extra-items', default='auto', help='auto | off | FILE,... (see src/extra_items.py)')
     a = ap.parse_args()
     if a.selftest:
         sys.exit(0 if selftest() else 1)
     with open(a.content, encoding='utf-8') as f:
         doc = yaml.safe_load(f) or {}
     items_doc = doc.get('items', doc)
+    from src import extra_items
+    ex = extra_items.merge(items_doc, dict(doc.get('sets') or {}), a.extra_items)
+    if ex['added']:
+        print(f"extra items: {len(ex['added'])} from {ex['source']}")
     shapes = weapon_shapes(items_doc)
     overrides = {}
     if a.override:

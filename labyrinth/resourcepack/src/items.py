@@ -249,11 +249,13 @@ def build_item(iid: str, it: dict) -> ItemResult:
 
     lv = RARITY_LEVEL.get(rarity, 0)
     theme = VW.theme_of(iid, look.style)
-    vp = VW.P(iid, lv, theme, length, seed, animated)
+    atk = it.get('attack') or {}
+    magic = atk.get('kind') == 'magic' and atk.get('style') in ('melee', 'ranged')   # 마법이 깃든 근접·활
+    vp = VW.P(iid, lv, theme, length, seed, animated, magic)
     if kind == 'weapon' and shape in VW.BOWS:
         for pull, name in [(-1, iid)] + [(k, f'{iid}_pulling_{k}') for k in range(3)]:
             g = Grid(seed)
-            VW.bow(g, VW.P(iid, lv, theme, length, seed, animated), shape, pull)
+            VW.bow(g, VW.P(iid, lv, theme, length, seed, animated, magic), shape, pull)
             _voxel_write(res, name, g, look, theme, tex, animated, seed, 0.5, (W.BOW_GX, W.BOW_GY, 8.0),
                          displays.voxel_bow, max_el=_budget(lv), preview=pull < 0, overlay='bow')
         res.files[f'assets/{NS}/items/{iid}.json'] = jdump(item_definition(iid, bow=True))

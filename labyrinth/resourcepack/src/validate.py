@@ -7,8 +7,10 @@ import re
 
 from PIL import Image
 
-from . import armor_pieces as AP
+from . import equipment as EQ
+from . import shapes_weapons as W2D
 from .materials import norm_style
+from .voxel import weapons as VW
 from .voxel.weapons import BOWS as VW_BOWS
 from .voxel.weapons import theme_of
 
@@ -18,6 +20,7 @@ NS = 'labyrinth'
 class Report:
     def __init__(self):
         self.errors: list[str] = []
+        self.warnings: list[str] = []
         self.checked = 0
         self.stats: dict = {}    # measured values worth printing with the build stats
 
@@ -173,88 +176,70 @@ def validate(files: dict, content: dict, expect_frames: dict, fx_names=()) -> Re
             for layer in ('humanoid', 'humanoid_leggings'):
                 if layer not in layers:
                     rep.err(f'equipment {s}: missing layer {layer}')
+        layers = {}
         for layer in ('humanoid', 'humanoid_leggings'):
             img = _png(files, f'assets/{NS}/textures/entity/equipment/{layer}/{s}.png', rep)
             if img is not None and img.size != (64, 32):
                 rep.err(f'equipment {s} {layer}: size {img.size} != 64x32')
+            elif img is not None:
+                layers[layer] = img.convert('RGBA')
+        if len(layers) == 2:
+            check_equipment_cover(s, ((content.get('sets') or {}).get(s) or {}).get('look'), layers, rep)
+    validate_shapes(items, rep)
     for name in fx_names:
         check_item_definition(files, f'assets/{NS}/items/fx/{name}.json', rep, expect_frames)
-    validate_armor_pieces(files, content, rep, expect_frames, rep.stats)
     validate_mobs_npcs_fx(files, content, rep, expect_frames)
     return rep
 
 
-# head poses the helmet/piece overlap is measured at: (head yaw relative to the body, pitch, stance)
-HELMET_POSES = [(y, 0.0, 'STAND') for y in (0.0, 25.0, -25.0, AP.HEAD_YAW, -AP.HEAD_YAW)] + \
-               [(y, 0.0, 'SNEAK') for y in (0.0, AP.HEAD_YAW, -AP.HEAD_YAW)]
-HELMET_OVERLAP_MAX = 0.25      # px³ — the pack carves pieces CLEAR_MARGIN away, so anything above is a bug
+def check_equipment_cover(sid, look, layers, rep):
+    """빈틈 없는 갑옷: 각 층이 맡은 면(equipment.coverage_regions)의 텍셀이 모두 불투명해야 한다 — 하나라도 비면
+    그 자리로 피부가 비친다 (0.3.4 의 _cover 규칙)."""
+    kind = look if look in ('heavy', 'light', 'cloth') else 'heavy'
+    holes = 0
+    for (layer, part, face), row0 in EQ.coverage_regions(kind).items():
+        img = layers['humanoid' if layer == 'hum' else 'humanoid_leggings']
+        x0, y0, w, h = EQ._rect(part, face)
+        for j in range(row0, h):
+            for i in range(w):
+                if img.getpixel((x0 + i, y0 + j))[3] == 0:
+                    holes += 1
+    rep.checked += 1
+    if holes:
+        rep.err(f'equipment {sid}: {holes} transparent texel(s) on faces the armour must cover (skin shows through)')
 
 
-def validate_armor_pieces(files, content, rep, expect_frames, stats=None):
-    """3D shoulder/back pieces (ArmorPieceLayout model contract): every set with a chest piece has
-    items/armor_piece/<set>/<part>.json for shoulder_l·shoulder_r·back → own model + texture, display.fixed identity
-    (the plugin's Transformation does all the placing), element count within AP.ELEMENT_LIMIT, and no stray sets.
-    sets.<id>.back must be one of AP.BACK_KINDS.  The set's 3D helmet (CustomHeadLayer, display.head identity) and the
-    bare head must not overlap any piece at head yaw 0 / ±25 / ±50 (standing) and 0 / ±50 (sneaking)."""
-    specs = AP.set_specs(content['items'], content.get('sets') or {})
-    for sid, sd in (content.get('sets') or {}).items():
-        b = (sd or {}).get('back')
-        if b is not None and b not in AP.BACK_KINDS:
-            rep.err(f'items.yml sets.{sid}.back: {b!r} (one of {", ".join(AP.BACK_KINDS)})')
-    worst = (0.0, None)
-    for sid, sp in specs.items():
-        helmet = AP.item_models(files, sp['helm']) if sp.get('helm') else []
-        for hm in helmet:
-            hd = (hm.get('display') or {}).get('head') or {}
-            if (hd.get('rotation') or [0, 0, 0]) != [0, 0, 0] or (hd.get('translation') or [0, 0, 0]) != [0, 0, 0] \
-                    or (hd.get('scale') or [1, 1, 1]) != [1, 1, 1]:
-                rep.err(f'{sp["helm"]}: display.head must be identity (armor_pieces head clearance assumes it)')
-        cells = AP._helmet_cells(helmet)
-        for part in AP.PARTS:
-            mpath = f'assets/{NS}/models/armor_piece/{sid}/{part}.json'
-            if mpath not in files:
-                continue
-            ov = AP.overlap_px3(json.loads(files[mpath].decode('utf-8')), part, helmet, HELMET_POSES, cells)
-            pose, vol = max(ov.items(), key=lambda kv: kv[1])
-            if vol > worst[0]:
-                worst = (vol, f'{sid}/{part} {pose}')
-            if vol > HELMET_OVERLAP_MAX:
-                rep.err(f'{mpath}: overlaps the {sp.get("helm") or "bare head"} by {vol:.2f} px³ at head yaw {pose[0]:g}° '
-                        f'pitch {pose[1]:g}° {pose[2]} (armor_pieces head clearance)')
-            rep.checked += 1
-    if stats is not None:
-        stats['armor_piece_helmet_overlap_px3'] = round(worst[0], 3)
-    for sid in specs:
-        for part in AP.PARTS:
-            base = f'armor_piece/{sid}/{part}'
-            ipath = f'assets/{NS}/items/{base}.json'
-            d = _json(files, ipath, rep)
-            if d is None:
-                continue
-            ref = (d.get('model') or {}).get('model')
-            if ref != f'{NS}:{base}':
-                rep.err(f'{ipath}: model {ref!r} != {NS}:{base}')
-                continue
-            check_item_definition(files, ipath, rep, expect_frames)
-            mpath = f'assets/{NS}/models/{base}.json'
-            if mpath not in files:
-                continue
-            m = json.loads(files[mpath].decode('utf-8'))
-            if (m.get('textures') or {}).get('0') != f'{NS}:{base}':
-                rep.err(f'{mpath}: texture #0 must be {NS}:{base}')
-            n = len(m.get('elements') or [])
-            if n > AP.ELEMENT_LIMIT:
-                rep.err(f'{mpath}: {n} elements > {AP.ELEMENT_LIMIT} (keep worn pieces light)')
-            fx = (m.get('display') or {}).get('fixed') or {}
-            if (fx.get('rotation') or [0, 0, 0]) != [0, 0, 0] or (fx.get('translation') or [0, 0, 0]) != [0, 0, 0] \
-                    or (fx.get('scale') or [1, 1, 1]) != [1, 1, 1]:
-                rep.err(f'{mpath}: display.fixed must be identity (ArmorPieceLayout places the piece)')
-    prefix = f'assets/{NS}/items/armor_piece/'
-    for path in files:
-        if path.startswith(prefix):
-            sid, _, part = path[len(prefix):].rpartition('/')
-            if sid not in specs or part[:-5] not in AP.PARTS:
-                rep.err(f'{path}: no chest piece of set {sid!r} / unknown part (stale armour piece)')
+def validate_shapes(items, rep):
+    """손에 드는 표 (voxel/weapons.py): 활·양손·옆 머리·HOLD 가 실제 모양만 가리키는지, 무기마다 모양이 있는지,
+    무기 id 가 테마 키(THEME_KEYS)를 품는지(아니면 texture.style 로 테마가 정해진다 — 경고)."""
+    known = set(VW.TEMPLATES)
+    for name, tab in (('TWO_HANDED', VW.TWO_HANDED), ('HEAD_SHAPES', VW.HEAD_SHAPES), ('HOLD', VW.HOLD)):
+        for sh in tab:
+            if sh not in known:
+                rep.err(f'voxel/weapons.py {name}: {sh!r} is not a weapon template')
+    for sh, h in VW.HOLD.items():
+        bad = set(h) - {'fp_yaw', 'fp_mul'}
+        if bad:
+            rep.err(f'voxel/weapons.py HOLD[{sh!r}]: unknown keys {sorted(bad)}')
+    for sh in VW.BOWS:
+        if sh not in VW.BOW_CURV:
+            rep.err(f'voxel/weapons.py BOWS: {sh!r} has no BOW_CURV entry')
+        if sh in known:
+            rep.err(f'voxel/weapons.py: {sh!r} is both a bow and a melee template')
+    all_shapes = known | set(VW.BOWS) | set(W2D.TEMPLATES) | set(W2D.BOWS)
+    no_theme = []
+    for iid, it in items.items():
+        if it.get('type') != 'weapon':
+            continue
+        shape = (it.get('model') or {}).get('shape')
+        if shape not in all_shapes:
+            rep.err(f'{iid}: weapon model.shape {shape!r} unknown (pack would fall back to longsword)')
+        if not any(VW._key_in(k, iid) for _, keys in VW.THEME_KEYS for k in keys):
+            no_theme.append(iid)
+    rep.stats['weapons_style_theme'] = len(no_theme)
+    if no_theme:
+        rep.warnings.append(f'{len(no_theme)} weapon id(s) carry no THEME_KEYS key (theme from texture.style): '
+                            + ', '.join(sorted(no_theme)[:12]) + (' …' if len(no_theme) > 12 else ''))
 
 
 def _fixed_ok(files, model_ref, rep):

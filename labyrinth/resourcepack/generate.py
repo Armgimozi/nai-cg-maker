@@ -2,9 +2,13 @@
 """Labyrinth (미궁 라비린스) resource-pack generator.
 
     python3 generate.py [--content DIR] [--out DIR] [--no-preview] [--only-mobs ID,ID,...] [--compare]
+                        [--extra-items auto|off|FILE,...]
 
 --only-mobs builds just those mobs/bosses (fast design loop: no items/fx/UI, no zip, mob checks only) and
 writes preview_mobs.png; --compare adds compare_mobs.png (old box model vs voxel design side by side).
+
+--extra-items (default auto) adds item definitions items.yml does not have yet — the 0.3.5 gear in
+labyrinth/tools/data/035/gear_spec.json until P3 writes it into items.yml (src/extra_items.py).
 
 Reads the plugin's content YAML (single source of truth), procedurally generates every model,
 texture, icon, animation and equipment layer (all original — nothing copied from vanilla or third
@@ -26,7 +30,7 @@ from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-from src import armor_pieces, equipment, fx_extra, fx_models, items, mobs, npc_skins, pack, render, ui, validate  # noqa: E402
+from src import equipment, extra_items, fx_extra, fx_models, items, mobs, npc_skins, pack, render, ui, validate  # noqa: E402
 from src import vanilla_gui  # noqa: E402
 from src.materials import Look  # noqa: E402
 from src.util import stable_seed  # noqa: E402
@@ -51,7 +55,6 @@ class Ctx:
         self.fx_previews = []
         self.fx_names: list[str] = []
         self.armor_previews = []   # (label, hum, leg)
-        self.piece_previews = []   # (set id, part, model, faces_uv, frame0, elements)
         self.mob_previews = []     # (id, boss, assembled model, faces_uv, frame0, elements, voxel part count)
         self.npc_previews = []     # (skin id, image)
         self.stats: dict[str, int] = {}
@@ -114,7 +117,7 @@ def build_equipment(ctx: Ctx):
         tex = it.get('texture') or {}
         look = Look(tex.get('palette'), tex.get('style'), it.get('rarity'), stable_seed('set', s))
         kind = (sets.get(s) or {}).get('look') or 'heavy'
-        hum, leg = equipment.paint_set(look, kind, stable_seed('set', s))
+        hum, leg = equipment.paint_set(look, kind, stable_seed('set', s), set_id=s)
         ctx.add(f'assets/{NS}/textures/entity/equipment/humanoid/{s}.png', items.png_bytes(hum))
         ctx.add(f'assets/{NS}/textures/entity/equipment/humanoid_leggings/{s}.png', items.png_bytes(leg))
         ctx.add(f'assets/{NS}/equipment/{s}.json', items.jdump({'layers': {
@@ -123,29 +126,6 @@ def build_equipment(ctx: Ctx):
         }}))
         ctx.armor_previews.append((s, hum, leg))
     ctx.stats['armor_sets'] = len(chest_of)
-
-
-def build_armor_pieces(ctx: Ctx):
-    """3D shoulder/back pieces for every set with a chest piece (src/armor_pieces.py) — the plugin
-    (items.ArmorCosmetics) seats them as ItemDisplays on the wearer: labyrinth:armor_piece/<set>/<part>."""
-    specs = armor_pieces.set_specs(ctx.content['items'], ctx.content.get('sets') or {})
-    nel = worst = 0
-    for sid, sp in specs.items():
-        # the set's own 3D helmet (built by build_items) — pieces are carved clear of it turning / nodding
-        helmet = armor_pieces.item_models(ctx.files, sp['helm']) if sp['helm'] else []
-        if sp['helm'] and not helmet:
-            ctx.warnings.append(f'armor pieces {sid}: helmet model of {sp["helm"]} not found — bare-head clearance only')
-        files, pieces = armor_pieces.build_set(sid, sp['kind'], sp['look'], sp['theme'], sp['level'], items.jdump,
-                                               items.png_bytes, back=sp['back'], helmet_models=helmet)
-        for p, b in files.items():
-            ctx.add(p, b)
-        for part, out in pieces.items():
-            nel += out.elements
-            worst = max(worst, out.elements)
-            ctx.piece_previews.append((sid, part, out.model, out.faces_uv, out.frame, out.elements))
-    ctx.stats['armor_piece_sets'] = len(specs)
-    ctx.stats['armor_piece_elements'] = nel
-    ctx.stats['armor_piece_max_elements'] = worst
 
 
 FX_STYLES = {'slash', 'shockwave', 'orb', 'tether', 'projectile'}
@@ -300,7 +280,7 @@ def build_ui(ctx: Ctx):
     ctx.stats['vanilla_gui'] = len(vimgs)
 
 
-BUILDERS = [build_core, build_items, build_equipment, build_armor_pieces, build_weapon_fx, build_fx_extra, build_mobs,
+BUILDERS = [build_core, build_items, build_equipment, build_weapon_fx, build_fx_extra, build_mobs,
             build_npcs, build_ui]
 
 
@@ -342,10 +322,6 @@ def write_previews(ctx: Ctx):
             cells.append((sheet.resize((256, 256), Image.NEAREST), s))
         render.grid(cells, 4, 256, title='Equipment layers (top: humanoid, bottom: humanoid_leggings)').convert('RGB').save(
             os.path.join(ctx.out_dir, 'preview_armor.png'))
-    if ctx.piece_previews:
-        cells = [(_cell(m, uv, fr), f'{sid} {part} {nel}el') for (sid, part, m, uv, fr, nel) in ctx.piece_previews]
-        render.grid(cells, 12, 96, title='3D shoulder/back pieces (GUI view; worn look: preview_armor.py)').convert(
-            'RGB').save(os.path.join(ctx.out_dir, 'preview_armor_pieces.png'))
     write_mob_previews(ctx)
     if ctx.npc_previews:
         cells = []
@@ -424,6 +400,9 @@ def main(argv=None):
                     help='comma-separated mob/boss ids: build only those (mob previews + mob checks, no zip)')
     ap.add_argument('--compare', action='store_true',
                     help='also write compare_mobs.png: old box model vs voxel design for every built mob')
+    ap.add_argument('--extra-items', default='auto',
+                    help='auto (default: 0.3.5 gear from tools/data/035/gear_spec.json while items.yml lacks it), '
+                         'off, or comma-separated files (gear_spec.json or items.yml form)')
     args = ap.parse_args(argv)
     t0 = time.time()
     only = None
@@ -434,12 +413,18 @@ def main(argv=None):
         ctx.content[name] = ctx.load(name)
     ctx.content['sets'] = ctx.content['items'].get('sets') or {}
     ctx.content['items'] = ctx.content['items'].get('items') or {}
+    ex = extra_items.merge(ctx.content['items'], ctx.content['sets'], args.extra_items)
+    ctx.stats['extra_items'] = len(ex['added'])
+    ctx.stats['extra_sets'] = len(ex['sets'])
+    if ex['note']:
+        print('extra items:', ex['note'])
     if only is not None:
         return _main_only_mobs(ctx, only, t0)
     for b in BUILDERS:
         b(ctx)
     rep = validate.validate(ctx.files, ctx.content, ctx.expect_frames, ctx.fx_names)
     ctx.stats.update(rep.stats)
+    ctx.warnings.extend(rep.warnings)
     rep.errors.extend(ctx.ui_errors)
     validate.validate_ui(ctx.files, ctx.content.get('glyphs') or {}, rep)
     os.makedirs(ctx.out_dir, exist_ok=True)
