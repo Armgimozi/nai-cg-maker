@@ -61,8 +61,32 @@ public final class CasterBoltRules {
         return caster && livingEnemy ? EntityClick.BOLT_STRIKE : EntityClick.VANILLA;
     }
 
+    /**
+     * 시전 무기로 손 닿는 <b>플레이어</b>를 가리키고 눌렀는데 그 플레이어가 적이 아님 (같은 파티·PvP 꺼짐·안전지대):
+     * 그 클릭은 이미 쓴 클릭으로 세지 않는다 — 뒤따르는 휘두름이 그대로 마법탄이 되어 그 플레이어를 지나 뒤의 적에게 간다
+     * (바로 앞에 선 파티원이 마법사의 좌클릭을 먹어 버리지 않게). 다른 기능이 막은 클릭(빙결된 동료 풀기 등)은 그대로 이미 쓴 클릭.
+     * 플레이어가 아닌 것(NPC·주민·동물·갑옷 거치대)은 지금처럼 바닐라 클릭 (NPC 좌클릭 대화 등).
+     */
+    public static boolean throughPlayer(boolean caster, boolean targetIsPlayer, boolean enemy, boolean cancelled) {
+        return caster && targetIsPlayer && !enemy && !cancelled;
+    }
+
     /** 시전 무기(마법탄 켜짐)의 바닐라 근접 피해가 적에게 들어왔다 → 취소만 (피해는 마법탄 한 발). */
     public static boolean cancelMeleeDamage(boolean caster, boolean enemy) { return caster && enemy; }
+
+    /** 26.3 클라이언트가 허공 좌클릭 뒤 다음 좌클릭을 보내지 않는 시간 (Minecraft.startAttack 의 missTime = 10틱). */
+    public static final long CLIENT_AIR_CLICK_GAP_MS = 500;
+
+    /**
+     * 허공 클릭(마법탄)의 기억창 (ms). 설정(combat.early_click_buffer, 기본 0.35초)과 0.5초 가운데 긴 쪽, 설정이 0 이면 끔.
+     * 허공 클릭 뒤 0.5초 동안 클라이언트가 다음 클릭을 보내지 않으므로, 마구 누르는 사람의 다음 클릭은 0.5초 뒤에야 온다 —
+     * 기억창이 0.35초면 간격이 0.85~1.0초인 지팡이(시작 지팡이 0.94초 포함)는 그 클릭이 '너무 이름'으로 버려져 주기가 1.0초가 된다
+     * (최대 −11%). 0.5초면 그 클릭을 기억했다가 제때 쏜다.
+     */
+    public static long airBufferMs(double configuredSeconds) {
+        if (!(configuredSeconds > 0)) return 0;
+        return Math.max(Math.round(configuredSeconds * 1000.0), CLIENT_AIR_CLICK_GAP_MS);
+    }
 
     /** 같은 틱 또는 바로 다음 틱이면 이미 쓴 클릭 (패킷이 틱 경계에 걸려 나뉘어 와도 한 번으로). */
     public static boolean consumed(int consumedTick, int nowTick) {

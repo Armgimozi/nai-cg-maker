@@ -140,6 +140,7 @@ final class AttackClock implements Listener {
 
     /**
      * 시전 무기 좌클릭 하나 (0.3.6.1). 근접·활과 같은 시계: 통과하면 마법탄 한 발, 간격 끝 기억창 안이면 한 번 기억, 더 이르면 '휙'.
+     * 허공 클릭의 기억창은 0.5초 이상 ({@link CasterBoltRules#airBufferMs}) — 클라이언트가 허공 클릭 뒤 0.5초 동안 다음 클릭을 보내지 않아서.
      * @param target 직접 클릭한 손 닿는 적 (바로 맞음), null = 허공·먼 적 (조준선으로)
      */
     void casterClick(Player p, LivingEntity target) {
@@ -148,7 +149,8 @@ final class AttackClock implements Listener {
         Settings.Combat c = cfg();
         long now = System.currentTimeMillis();
         AttackTiming t = clock(p);
-        AttackTiming.Result r = t.click(now, ms(s.attackInterval()), c.clickToleranceMs(), ms(c.earlyClickBuffer()),
+        long buffer = target == null ? CasterBoltRules.airBufferMs(c.earlyClickBuffer()) : ms(c.earlyClickBuffer());
+        AttackTiming.Result r = t.click(now, ms(s.attackInterval()), c.clickToleranceMs(), buffer,
                 target == null ? AttackTiming.AIR : target.getUniqueId(), weaponKey(p));
         switch (r) {
             case ACCEPT -> bolts.fire(p, target);

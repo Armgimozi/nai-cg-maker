@@ -4,7 +4,6 @@ import io.papermc.paper.event.player.PlayerArmSwingEvent;
 import io.papermc.paper.event.player.PrePlayerAttackEntityEvent;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -99,6 +98,8 @@ final class CasterBolts implements Listener {
         final BoltPath path;
         final Shot shot;
         int ticks;
+        /** 목록에서 빠짐 (tick 이 사본을 돌 때 건너뛰게). */
+        boolean removed;
 
         Bolt(UUID shooter, World world, BoltPath path, Shot shot) {
             this.shooter = shooter;
@@ -175,9 +176,20 @@ final class CasterBolts implements Listener {
         return t != null && CasterBoltRules.consumed(t, tickNow());
     }
 
-    /** 몹·엔티티를 직접 클릭 (취소됐든 아니든): 뒤따르는 휘두름은 이미 쓴 클릭. 실제 처리는 {@link AttackClock#onPreAttack}. */
+    /**
+     * 몹·엔티티를 직접 클릭 (취소됐든 아니든): 뒤따르는 휘두름은 이미 쓴 클릭. 실제 처리는 {@link AttackClock#onPreAttack}.
+     * 다만 시전 무기로 손 닿는 아군·PvP 가 안 되는 플레이어를 가리키고 누른 클릭(다른 기능이 막지 않은 것)은 뒤따르는 휘두름이
+     * 그대로 마법탄이 된다 — 마법탄은 그 플레이어를 지나 뒤의 적에게 간다 ({@link CasterBoltRules#throughPlayer}).
+     */
     @EventHandler(priority = EventPriority.MONITOR)
-    public void onPreAttack(PrePlayerAttackEntityEvent e) { consume(e.getPlayer()); }
+    public void onPreAttack(PrePlayerAttackEntityEvent e) {
+        Player p = e.getPlayer();
+        boolean player = e.getAttacked() instanceof Player;
+        if (CasterBoltRules.throughPlayer(player && ready(p), player, player && services.targets().isEnemy(p, e.getAttacked()), e.isCancelled())) {
+            return;
+        }
+        consume(p);
+    }
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onDrop(PlayerDropItemEvent e) { consume(e.getPlayer()); }
@@ -282,8 +294,10 @@ final class CasterBolts implements Listener {
     private void tick() {
         if (flying.isEmpty()) return;
         int maxTicks = cfg.maxTicks();
-        for (Iterator<Bolt> it = flying.iterator(); it.hasNext(); ) {
-            Bolt b = it.next();
+        // 사본을 돈다: 걸음 안의 피해가 죽음·월드 이동·나가기를 부르면 drop() 이 그 자리에서 목록을 고친다
+        // (PvP 에서 상대가 쏜 마법탄이 날던 중에 상대를 쓰러뜨리면 ConcurrentModificationException 이었음)
+        for (Bolt b : List.copyOf(flying)) {
+            if (b.removed) continue; // 이번 틱에 이미 지워짐 (쏜 사람이 쓰러짐 등)
             Player p = Bukkit.getPlayer(b.shooter);
             boolean gone;
             try {
@@ -292,7 +306,10 @@ final class CasterBolts implements Listener {
                 Log.error("마법탄 비행 오류", t);
                 gone = true;
             }
-            if (gone) it.remove();
+            if (gone) {
+                b.removed = true;
+                flying.remove(b);
+            }
         }
     }
 
@@ -398,7 +415,7 @@ final class CasterBolts implements Listener {
     // ── 정리 ──────────────────────────────────────────────────────────────
 
     private void drop(UUID u) {
-        flying.removeIf(b -> b.shooter.equals(u));
+        flying.removeIf(b -> b.shooter.equals(u) && (b.removed = true));
         consumedTick.remove(u);
         firedTick.remove(u);
     }
@@ -418,7 +435,7 @@ final class CasterBolts implements Listener {
         World w = e.getWorld();
         int cx = e.getChunk().getX(), cz = e.getChunk().getZ();
         flying.removeIf(b -> b.world.equals(w) && ((int) Math.floor(b.path.position().getX()) >> 4) == cx
-                && ((int) Math.floor(b.path.position().getZ()) >> 4) == cz);
+                && ((int) Math.floor(b.path.position().getZ()) >> 4) == cz && (b.removed = true));
     }
 
     /** 지금 날고 있는 마법탄 수 (진단용). */

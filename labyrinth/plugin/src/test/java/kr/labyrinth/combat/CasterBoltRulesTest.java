@@ -47,6 +47,15 @@ class CasterBoltRulesTest {
         assertFalse(CasterBoltRules.cancelMeleeDamage(false, true));
     }
 
+    @Test
+    void allyPlayerInFrontDoesNotEatTheClick() {
+        assertTrue(CasterBoltRules.throughPlayer(true, true, false, false), "바로 앞 파티원·안전지대 플레이어 → 휘두름이 마법탄 (지나감)");
+        assertFalse(CasterBoltRules.throughPlayer(true, true, false, true), "빙결된 동료 풀기처럼 다른 기능이 쓴 클릭");
+        assertFalse(CasterBoltRules.throughPlayer(true, true, true, false), "적 플레이어는 직접 한 발 (AttackClock)");
+        assertFalse(CasterBoltRules.throughPlayer(true, false, false, false), "NPC·주민·동물·갑옷 거치대는 바닐라 클릭");
+        assertFalse(CasterBoltRules.throughPlayer(false, true, false, false), "근접 무기");
+    }
+
     // ── 색 ────────────────────────────────────────────────────────────────
 
     @Test
@@ -157,6 +166,34 @@ class CasterBoltRulesTest {
         assertEquals(mob, t.bufferedTarget(), "새 클릭은 대상만 바꿈 — 허공·몹 어느 쪽이든 한 번");
         t.swap(750, 700, 0.5);
         assertFalse(t.hasBuffer(), "무기를 바꾸면 기억한 클릭은 버림");
+    }
+
+    /** 클라이언트가 허공 클릭을 0.5초마다 보낼 때(마구 누름, missTime 10틱) 틱마다 시계를 돌려 평균 주기 (ms). */
+    private static double meanCycleWithClientGap(long interval, long buffer) {
+        AttackTiming t = new AttackTiming();
+        java.util.List<Long> fires = new java.util.ArrayList<>();
+        for (long now = 0; now <= 60_000; now += 50) {
+            if (now % CasterBoltRules.CLIENT_AIR_CLICK_GAP_MS == 0
+                    && t.click(now, interval, TOL, buffer, AttackTiming.AIR, "w") == AttackTiming.Result.ACCEPT) fires.add(now);
+            if (t.bufferReady(now)) {
+                t.fireBuffered(now, interval, TOL);
+                fires.add(now);
+            }
+        }
+        return (fires.get(fires.size() - 1) - fires.get(0)) / (double) (fires.size() - 1);
+    }
+
+    @Test
+    void airBufferCoversTheClientMissTime() {
+        assertEquals(500, CasterBoltRules.airBufferMs(0.35), "기본 0.35초 → 허공은 0.5초");
+        assertEquals(700, CasterBoltRules.airBufferMs(0.7), "설정이 더 길면 설정");
+        assertEquals(0, CasterBoltRules.airBufferMs(0), "0 = 기억 끔");
+        // 시작 지팡이 0.94초 (민첩 2): 기억창 0.35초면 0.5초 클릭이 '너무 이름'으로 버려져 주기 1.0초 — 0.5초면 제 간격
+        assertEquals(1000, meanCycleWithClientGap(940, BUF), 1.0, "0.35초 창: 0.94초 지팡이가 1.0초마다");
+        assertEquals(940, meanCycleWithClientGap(940, CasterBoltRules.airBufferMs(0.35)), 15.0);
+        for (long iv : new long[] {600, 700, 800, 850, 900, 950}) {
+            assertEquals(iv, meanCycleWithClientGap(iv, CasterBoltRules.airBufferMs(0.35)), iv * 0.02, "간격 " + iv + "ms");
+        }
     }
 
     @Test
