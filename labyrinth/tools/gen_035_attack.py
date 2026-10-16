@@ -233,10 +233,22 @@ def verify(before_text, after_text, spec):
     return problems
 
 
+# review2 A8: 지능 활·지능 근접은 attack.kind magic (gear_spec 이 이김, P3 gen_035_content.py 가 넣음)
+GEAR_SPEC = ROOT / "tools/data/035/gear_spec.json"
+
+
+def kind_overrides():
+    if not GEAR_SPEC.exists():
+        return {}
+    gs = json.loads(GEAR_SPEC.read_text(encoding="utf-8"))
+    return {wid: ch["attack"]["kind"] for wid, ch in gs.get("existing_changes", {}).items() if "attack" in ch}
+
+
 def check(text, spec):
-    """옮긴 결과 검사: weapon_type 없음 · attack·damage 가 명세와 같음."""
+    """옮긴 결과 검사: weapon_type 없음 · attack·damage 가 명세와 같음 (피해 종류는 A8 로 gear_spec 이 이김)."""
     items = yaml.safe_load(text)["items"]
     problems = []
+    kinds = kind_overrides()
     for wid, w in spec["weapons"].items():
         if w.get("src") != "existing":
             continue
@@ -247,8 +259,11 @@ def check(text, spec):
         if "weapon_type" in it:
             problems.append(f"{wid}: 아직 weapon_type — 옮기지 않음")
             continue
-        if it.get("attack") != w["items_yml"]["attack"]:
-            problems.append(f"{wid}: attack {it.get('attack')} ≠ 명세 {w['items_yml']['attack']}")
+        want = dict(w["items_yml"]["attack"])
+        if wid in kinds:
+            want["kind"] = kinds[wid]
+        if it.get("attack") != want:
+            problems.append(f"{wid}: attack {it.get('attack')} ≠ 명세 {want}")
         if (it.get("stats") or {}).get("damage") != w["per_hit"]:
             problems.append(f"{wid}: damage {(it.get('stats') or {}).get('damage')} ≠ 명세 {w['per_hit']}")
     for iid, it in items.items():

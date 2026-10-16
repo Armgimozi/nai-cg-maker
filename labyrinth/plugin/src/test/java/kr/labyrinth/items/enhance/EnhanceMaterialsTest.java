@@ -228,7 +228,18 @@ class EnhanceMaterialsTest {
                 if (pc == top) mostUsedFirst++;
             } else {
                 dropped++;
-                assertTrue(home.contains(p) && home.contains(s), d.id() + " P·S 는 그 장비가 나오는 곳의 드롭: " + p + ", " + s + " / " + home);
+                Set<String> commons = floorCommons(d.floor());
+                Set<String> homeCommons = new HashSet<>(home);
+                homeCommons.retainAll(commons);
+                if (homeCommons.isEmpty()) {
+                    // 0.3.5: 나오는 곳(금고·미믹 · 특별 시련 · 단계 풀)이 일반 재료를 주지 않으면 그 층 일반 재료 · 그 층 정수
+                    // (gen_enhance 와 같음 — 그 층에서 얻을 수 있는지는 아래 obtainable 이 본다)
+                    allowed.addAll(commons);
+                    allowed.addAll(ESSENCES);
+                    assertTrue(commons.contains(p) && commons.contains(s), d.id() + " P·S 는 그 층 일반 재료: " + p + ", " + s);
+                } else {
+                    assertTrue(home.contains(p) && home.contains(s), d.id() + " P·S 는 그 장비가 나오는 곳의 드롭: " + p + ", " + s + " / " + home);
+                }
             }
             allowed.addAll(refinedFrom(allowed));
             Set<String> floorMats = floorMaterials(d.floor());
@@ -288,13 +299,14 @@ class EnhanceMaterialsTest {
                 case ITEM -> out.add(e.item());
                 case ONE_OF -> out.addAll(e.oneOf());
                 case TABLE -> out.addAll(expand(e.table(), new HashSet<>(seen)));
+                case PICK -> { for (LootTable.Pick pk : e.pick()) out.addAll(expand(pk.table(), new HashSet<>(seen))); }
                 case RARITY_POOL -> { }
             }
         }
         return out;
     }
 
-    /** 그 층 1회 클리어가 굴리는 테이블 → 집(common | elite | boss). */
+    /** 그 층 1회 클리어가 굴리는 테이블 → 집(common | elite | boss | special | hoard). 장비 층 = 단계(tier). */
     private static Map<String, String> floorRoots(int floor) {
         Map<String, String> out = new LinkedHashMap<>();
         for (MobDef m : content.mobs().values()) {
@@ -304,6 +316,9 @@ class EnhanceMaterialsTest {
         if (b != null) out.put(b.drops(), "boss");
         out.put("treasure_floor_" + floor, "common");
         out.put("gimmick_floor_" + floor, "common");
+        // 0.3.5 (gen_enhance A13): 특별 시련 상자 · 금고·미믹 표도 그 층 1회가 굴린다
+        out.put(String.format("special_trial_f%02d", floor), "special");
+        out.put(String.format("hoard_f%02d", floor), "hoard");
         for (ChestTier tier : ChestTier.values()) out.put("maze_chest_" + tier.id() + "_f" + floor, "common");
         return out;
     }
@@ -319,11 +334,21 @@ class EnhanceMaterialsTest {
         return out;
     }
 
+    /** 그 층 일반 재료 (보스 핵 · 정예 재료(희귀) 아님). */
+    private static Set<String> floorCommons(int floor) {
+        Set<String> out = new HashSet<>();
+        for (ItemDef m : content.items().values()) {
+            if (m.type() == ItemType.MATERIAL && m.floor() == floor && m.rarity() != Rarity.RARE && !cores().contains(m.id())
+                    && !m.id().endsWith("enhance_stone") && !m.id().equals("enhance_protection_scroll")) out.add(m.id());
+        }
+        return out;
+    }
+
     private static Set<String> floorMaterials(int floor) {
         return materialsOf(floorRoots(floor).keySet());
     }
 
-    /** 장비가 나오는 곳의 드롭 재료. 시작 지급 = 1층 몬스터·상자, 칭호 보상 = 그 층 보스, 대장간에서만 = 없음. */
+    /** 장비가 나오는 곳의 드롭 재료. 시작 지급 = 1층 몬스터·상자, 상인 = 그 층 몬스터·상자, 칭호 보상 = 그 층 보스, 대장간에서만 = 없음. */
     private static Set<String> homeMaterials(ItemDef d) {
         Map<String, String> roots = floorRoots(d.floor());
         List<String> homes = new ArrayList<>();
@@ -331,6 +356,10 @@ class EnhanceMaterialsTest {
         if (homes.isEmpty() && d.sources().contains("reward")) homes.add(content.bossOfFloor(d.floor()).drops());
         if (homes.isEmpty() && d.sources().contains("starter")) {
             for (var e : floorRoots(1).entrySet()) if (e.getValue().equals("common")) homes.add(e.getKey());
+        }
+        // 상인 무기 (0.3.5) = 그 단계 층 몬스터·상자 (gen_enhance 와 같음)
+        if (homes.isEmpty() && d.sources().contains("shop")) {
+            for (var e : roots.entrySet()) if (e.getValue().equals("common")) homes.add(e.getKey());
         }
         assertFalse(homes.isEmpty() && !d.sources().equals(List.of("craft")), d.id() + " 이 나오는 곳이 없다 " + d.sources());
         return materialsOf(homes);

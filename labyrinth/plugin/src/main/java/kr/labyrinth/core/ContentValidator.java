@@ -191,7 +191,10 @@ public final class ContentValidator {
             if (d.aura() != null && !c.auras().containsKey(d.aura())) err(w, "없는 아우라 '" + d.aura() + "'");
             for (String cls : d.classes()) if (!c.classes().containsKey(cls)) err(w, "없는 직업 '" + cls + "'");
             for (String k : d.stats().keySet()) if (!ITEM_STAT_KEYS.contains(k)) err(w, "알 수 없는 스탯 키 '" + k + "'");
-            if (d.isGear() && (d.floor() < 0 || d.floor() > 10)) err(w, "floor 는 1~10");
+            if (d.isGear() && (d.tier() < 0 || d.tier() > 10)) err(w, "tier 는 1~10");
+            if (d.isGear() && d.raw() != null && d.raw().has("floor") && !d.raw().has("tier")) {
+                warn(w, "장비의 floor 는 0.3.5 부터 tier (숨은 단계) — 같은 값으로 읽음");
+            }
             Set<String> inputs = new HashSet<>();
             for (ItemDef.WeaponSkillDef s : d.weaponSkills()) {
                 String sw = w + ".weapon_skills." + s.id();
@@ -211,7 +214,7 @@ public final class ContentValidator {
                 warn(w, "전설/신화 무기인데 aura 가 없음");
             }
             if (d.requires() != null && !d.requires().isEmpty() && d.requirement().isEmpty()) {
-                warn(w, "requires/requires_any 는 무기·방어구·방패만 — " + d.type().id() + " 에는 무시됨");
+                warn(w, "requires 는 무기·방어구·방패만 — " + d.type().id() + " 에는 무시됨");
             }
         }
     }
@@ -277,14 +280,17 @@ public final class ContentValidator {
     public static final int START_POINTS = 5;
 
     /**
-     * 요구 능력치 (items.yml requires / requires_any): 시작 지급 장비는 요구 없음, 직업마다 처음 받는 시작 무기
+     * 요구 능력치 (items.yml requires — 0.3.5 '그리고'만): 시작 지급 장비는 요구 없음, 직업마다 처음 받는 시작 무기
      * (classes.yml {@code starter_weapon})는 Lv.1 에 직업 기본 능력치 + 시작 포인트 {@value #START_POINTS} 로 쓸 수 있어야 한다.
+     * 무기 (gear_spec §3.1): 합 = T(L) = ceil(2.75(L−1)), L ≤ 2 이면 없음, 능력치 2~3개(셋은 L ≥ 12), 나눔 60/40 · 50/30/20 (±1),
+     * 물리 무기는 STR 또는 DEX, 마법 무기는 INT 또는 WIS 하나 이상. 어긋나면 경고 (게임은 돌아감).
      */
     private void requirements() {
         for (ItemDef d : c.items().values()) {
             if (d.isGear() && d.sources().contains("starter") && !d.requirement().isEmpty()) {
                 warn("items." + d.id(), "시작 지급 장비인데 요구 능력치가 있음 (" + d.requirement().text() + ")");
             }
+            if (d.isWeapon()) weaponRequirement("items." + d.id(), d);
         }
         for (ClassDef cls : c.classes().values()) {
             ItemDef weapon = cls.starterWeapon() == null ? null : c.item(cls.starterWeapon());
@@ -295,6 +301,38 @@ public final class ContentValidator {
                         + " — 시작 포인트 " + START_POINTS + " 로 " + need + " 필요)");
             }
         }
+    }
+
+    /** 무기 요구 능력치 규칙 (경고) — {@link #requirements()}. */
+    private void weaponRequirement(String w, ItemDef d) {
+        StatRequirement r = d.requirement();
+        int t = StatRequirement.budget(d.levelReq());
+        int sum = r.total();
+        if (t == 0) {
+            if (sum > 0) warn(w, "아이템 레벨 " + d.levelReq() + " 은 요구 없음인데 " + r.text());
+            return;
+        }
+        if (sum != t) warn(w, "요구 합 " + sum + " ≠ " + t + " (아이템 레벨 " + d.levelReq() + ", T = ceil(2.75(L−1)))");
+        int n = r.all().size();
+        if (n < 2 || n > 3 || (n == 3 && d.levelReq() < 12)) {
+            warn(w, "요구 능력치 " + n + "개 — 무기는 2~3개 (셋은 아이템 레벨 12 부터)");
+        } else if (!splitOk(r, t)) {
+            warn(w, "요구 나눔 " + r.text() + " — 60 : 40 또는 50 : 30 : 20 (±1)");
+        }
+        boolean magic = d.attack() != null && d.attack().kind() == kr.labyrinth.combat.DamageKind.MAGIC;
+        boolean ok = magic ? r.all().containsKey(Stat.INT) || r.all().containsKey(Stat.WIS)
+                : r.all().containsKey(Stat.STR) || r.all().containsKey(Stat.DEX);
+        if (!ok) warn(w, (magic ? "마법 무기인데 지능·정신" : "물리 무기인데 힘·민첩") + " 요구가 없음 (" + r.text() + ")");
+    }
+
+    /** 요구 나눔이 60/40 또는 50/30/20 (각 몫 ±1) 인가. */
+    public static boolean splitOk(StatRequirement r, int total) {
+        List<Integer> v = new ArrayList<>();
+        for (Map.Entry<Stat, Integer> e : r.ordered()) v.add(e.getValue());
+        double[] shares = v.size() == 2 ? new double[] {0.6, 0.4} : v.size() == 3 ? new double[] {0.5, 0.3, 0.2} : null;
+        if (shares == null) return v.size() == 1;
+        for (int i = 0; i < v.size(); i++) if (Math.abs(v.get(i) - shares[i] * total) > 1.0 + 1e-9) return false;
+        return true;
     }
 
     /**
@@ -322,7 +360,6 @@ public final class ContentValidator {
 
     private void armorRequirement(String w, ItemDef d, ArmorLook look) {
         StatRequirement r = d.requirement();
-        if (!r.any().isEmpty()) warn(w, "방어구 요구는 '모두 채움'만 — requires_any('… 중 하나')는 0.3.5 부터 쓰지 않음");
         int t = StatRequirement.budget(d.levelReq());
         int sum = r.all().values().stream().mapToInt(Integer::intValue).sum();
         if (t == 0) {
@@ -498,6 +535,13 @@ public final class ContentValidator {
                 for (String id : e.oneOf()) requireItem(w + ".one_of", id);
             }
             case TABLE -> requireTable(w + ".table", e.table());
+            case PICK -> {
+                if (e.pick().isEmpty()) err(w, "pick 이 비어 있음");
+                for (LootTable.Pick p : e.pick()) {
+                    requireTable(w + ".pick", p.table());
+                    if (p.weight() <= 0) err(w + ".pick", "weight 는 1 이상: " + p.table() + " " + p.weight());
+                }
+            }
             case RARITY_POOL -> {
                 if (c.poolCandidates(e.floor(), e.rarityPool()).isEmpty()) {
                     warn(w, "rarity_pool " + e.rarityPool().id() + " floor " + e.floor() + " 후보 장비가 없음");
@@ -532,37 +576,52 @@ public final class ContentValidator {
         if (!stack.add(id)) return true;
         LootTable t = c.lootTable(id);
         if (t != null) {
-            for (LootTable.Entry e : t.entries()) {
+            List<LootTable.Entry> all = new ArrayList<>(t.entries());
+            all.addAll(t.guaranteed());
+            for (LootTable.Entry e : all) {
                 if (e.kind() == LootTable.Kind.TABLE && hasCycle(e.table(), stack)) return true;
+                if (e.kind() == LootTable.Kind.PICK) for (LootTable.Pick p : e.pick()) if (hasCycle(p.table(), stack)) return true;
             }
         }
         stack.remove(id);
         return false;
     }
 
-    // ── 장비 획득처 구조 (GDD §11 — 장비 하나는 자기 층에만, 집은 최대 2곳) ──────────────
+    // ── 장비 획득처 구조 (0.3.5 gear_spec §4 — 단계 tier, 레벨 창 = 이웃 층 셋, 영웅 이상 무기는 획득처 종류 1개) ──────────────
 
-    /** 집 이름 (경고 문구용). */
-    private static final Map<String, String> HOME_NAMES = Map.of("common", "몬스터·상자", "elite", "정예", "boss", "보스",
-            "craft", "제작", "reward", "칭호 보상", "shop", "상점", "starter", "시작 지급");
+    /** 획득처 종류 이름 (경고 문구용). drop·chest 는 한 종류 '몬스터·상자'. */
+    public static final Map<String, String> KIND_NAMES = Map.ofEntries(Map.entry("common", "몬스터·상자"), Map.entry("elite", "정예"),
+            Map.entry("boss", "보스"), Map.entry("trial", "시련방"), Map.entry("special", "특별 시련"), Map.entry("hoard", "금고·미믹"),
+            Map.entry("craft", "대장간"), Map.entry("reward", "칭호 보상"), Map.entry("shop", "상인"), Map.entry("starter", "시작 지급"));
+    private static final List<String> KIND_ORDER = List.of("common", "elite", "boss", "trial", "special", "hoard", "craft", "shop",
+            "reward", "starter");
+
+    /** items.yml sources 꼬리표 → 획득처 종류 (drop·chest = common). */
+    public static String kindOf(String source) {
+        return switch (source) {
+            case "drop", "chest" -> "common";
+            default -> source;
+        };
+    }
 
     /**
-     * 층에 묶인 테이블 하나 — 집(common·elite·boss), items.yml sources 꼬리표(drop·chest·elite·boss), 층(-1 = 여러 층이 같이 씀).
-     * 한 테이블을 몹·보스·상자가 같이 쓰면 집·꼬리표를 모두 모은다 (나중에 묶은 쪽만 남지 않게).
+     * 층에 묶인 테이블 하나 — 종류(common·elite·boss·trial·special·hoard), items.yml sources 꼬리표, 층(-1 = 여러 층이 같이 씀).
+     * 한 테이블을 몹·보스·상자가 같이 쓰면 종류·꼬리표를 모두 모은다 (나중에 묶은 쪽만 남지 않게).
      */
-    private record FloorTable(Set<String> homes, Set<String> tags, int floor) {}
+    private record FloorTable(Set<String> kinds, Set<String> tags, int floor) {}
 
-    private static void bind(Map<String, FloorTable> out, String table, String home, String tag, int floor) {
+    private static void bind(Map<String, FloorTable> out, String table, String kind, String tag, int floor) {
         FloorTable prev = out.get(table);
         FloorTable ft = prev == null ? new FloorTable(new HashSet<>(), new HashSet<>(), floor)
-                : prev.floor() == floor ? prev : new FloorTable(prev.homes(), prev.tags(), -1);
-        ft.homes().add(home);
+                : prev.floor() == floor ? prev : new FloorTable(prev.kinds(), prev.tags(), -1);
+        ft.kinds().add(kind);
         ft.tags().add(tag);
         out.put(table, ft);
     }
 
     /**
-     * 층에 묶인 테이블(몹·정예·보스·보물방·기믹방·미로 상자)을 펼쳐 (a) 다른 층 장비, (b) 집이 3곳 이상인 장비,
+     * 층에 묶인 테이블(몹·정예·보스·보물방·시련방·특별 시련·금고·미믹·미로 상자)을 펼쳐 (a) 레벨 창 밖 장비 (보스가 아닌 장비는
+     * 단계 ±1 층, 보스 장비는 그 층 보스만), (b) 획득처 종류가 3개 이상인 장비 · 영웅 이상인데 2개 이상인 무기,
      * (c) items.yml sources(툴팁·도감 표시)가 실제와 다른 장비, (d) 루팅·제작에도 나오는 시작 지급 장비를 경고한다.
      */
     private void gearHomes() {
@@ -574,67 +633,82 @@ public final class ContentValidator {
             if (b.drops() != null) bind(bound, b.drops(), "boss", "boss", b.floor());
         }
         for (FloorDef f : c.floors().values()) {
-            List<String> chests = new ArrayList<>(List.of("treasure_floor_" + f.number(), "gimmick_floor_" + f.number()));
+            int n = f.number();
+            List<String> chests = new ArrayList<>(List.of("treasure_floor_" + n));
             int bracket = kr.labyrinth.dungeon.treasure.ChestSettings.of(f.raw().sub("chests")).bracket();
             for (kr.labyrinth.dungeon.treasure.ChestTier tier : kr.labyrinth.dungeon.treasure.ChestTier.values()) {
-                chests.add(tier.table(f.number(), bracket, c.lootTables()::containsKey)); // Treasures 가 실제로 굴리는 표
+                chests.add(tier.table(n, bracket, c.lootTables()::containsKey)); // Treasures 가 실제로 굴리는 표
             }
-            for (String t : chests) if (c.lootTables().containsKey(t)) bind(bound, t, "common", "chest", f.number());
+            for (String t : chests) if (c.lootTables().containsKey(t)) bind(bound, t, "common", "chest", n);
+            String g = "gimmick_floor_" + n;
+            if (c.lootTables().containsKey(g)) bind(bound, g, "trial", "trial", n);
+            String sp = String.format(java.util.Locale.ROOT, "special_trial_f%02d", n);
+            if (c.lootTables().containsKey(sp)) bind(bound, sp, "special", "special", n);
+            String h = kr.labyrinth.dungeon.treasure.Treasures.hoardTable(n);
+            if (c.lootTables().containsKey(h)) bind(bound, h, "hoard", "hoard", n);
         }
-        Map<String, Set<String>> homes = new HashMap<>();
+        Map<String, Set<String>> kinds = new HashMap<>();
         Map<String, Set<String>> tags = new HashMap<>();
         bound.forEach((t, ft) -> {
             List<String> leaks = new ArrayList<>();
             for (String id : expand(t)) {
                 ItemDef d = c.item(id);
                 if (d == null || !d.isGear()) continue;
-                homes.computeIfAbsent(id, k -> new HashSet<>()).addAll(ft.homes());
+                kinds.computeIfAbsent(id, k -> new HashSet<>()).addAll(ft.kinds());
                 tags.computeIfAbsent(id, k -> new HashSet<>()).addAll(ft.tags());
-                if (ft.floor() == -1 || (ft.floor() > 0 && d.floor() != ft.floor())) leaks.add(id + "(" + d.floor() + "층)");
+                if (ft.floor() == -1 || (ft.floor() > 0 && d.tier() > 0 && !inWindow(d, ft))) leaks.add(id + "(단계 " + d.tier() + ")");
             }
             if (!leaks.isEmpty()) {
-                warn("loot." + t, (ft.floor() == -1 ? "여러 층이 같이 쓰는 표인데 장비 " : "지하 " + ft.floor() + "층 표인데 다른 층 장비 ")
+                warn("loot." + t, (ft.floor() == -1 ? "여러 층이 같이 쓰는 표인데 장비 " : "지하 " + ft.floor() + "층 표인데 레벨 창 밖 장비 ")
                         + leaks.size() + "종 (예: " + String.join(", ", leaks.subList(0, Math.min(3, leaks.size()))) + ")");
             }
         });
         for (RecipeDef r : c.recipes().values()) {
-            homes.computeIfAbsent(r.result(), k -> new HashSet<>()).add("craft");
+            kinds.computeIfAbsent(r.result(), k -> new HashSet<>()).add("craft");
             tags.computeIfAbsent(r.result(), k -> new HashSet<>()).add("craft");
         }
         for (AchievementDef a : c.achievements().values()) {
             for (String id : a.rewardItems().keySet()) {
-                homes.computeIfAbsent(id, k -> new HashSet<>()).add("reward");
+                kinds.computeIfAbsent(id, k -> new HashSet<>()).add("reward");
                 tags.computeIfAbsent(id, k -> new HashSet<>()).add("reward");
             }
         }
         for (NpcDef n : c.npcs().values()) {
             for (NpcDef.ShopEntry s : n.shop()) {
-                homes.computeIfAbsent(s.item(), k -> new HashSet<>()).add("shop");
+                kinds.computeIfAbsent(s.item(), k -> new HashSet<>()).add("shop");
                 tags.computeIfAbsent(s.item(), k -> new HashSet<>()).add("shop");
             }
         }
         for (ItemDef d : c.items().values()) {
             if (!d.isGear()) continue;
             String w = "items." + d.id();
-            Set<String> h = new HashSet<>(homes.getOrDefault(d.id(), Set.of()));
+            Set<String> h = new HashSet<>(kinds.getOrDefault(d.id(), Set.of()));
             Set<String> tg = new HashSet<>(tags.getOrDefault(d.id(), Set.of()));
             if (d.sources().contains("starter")) {
-                if (!h.isEmpty()) warn(w, "시작 지급 장비인데 " + homeNames(h) + "에서도 나옴");
+                if (!h.isEmpty()) warn(w, "시작 지급 장비인데 " + kindNames(h) + "에서도 나옴");
                 h.add("starter");
                 tg.add("starter");
             }
-            if (h.size() > 2) warn(w, "획득처가 " + h.size() + "곳 (" + homeNames(h) + ") — 장비는 최대 2곳 권장");
+            if (d.isWeapon() && d.rarity().atLeast(Rarity.EPIC) && h.size() > 1) {
+                warn(w, "영웅 이상 무기인데 획득처 종류가 " + h.size() + "개 (" + kindNames(h) + ") — 1개여야 함");
+            } else if (h.size() > 2) {
+                warn(w, "획득처 종류가 " + h.size() + "개 (" + kindNames(h) + ") — 장비는 최대 2개 권장");
+            }
             if (!tg.isEmpty() && !tg.equals(new HashSet<>(d.sources()))) {
                 warn(w, "sources " + d.sources() + " 가 실제 획득처 " + new TreeSet<>(tg) + " 와 다름 (툴팁·도감 표시가 틀림)");
             }
         }
     }
 
-    private static String homeNames(Set<String> homes) {
+    /** 층 표가 그 장비의 레벨 창 안인가 — 보스 표는 그 단계 층만, 그 밖은 단계 ±1 층 (gear_spec §4.1). */
+    private static boolean inWindow(ItemDef d, FloorTable ft) {
+        if (ft.kinds().contains("boss")) return d.tier() == ft.floor();
+        return Math.abs(d.tier() - ft.floor()) <= 1;
+    }
+
+    private static String kindNames(Set<String> kinds) {
         List<String> out = new ArrayList<>();
-        for (String k : List.of("common", "elite", "boss", "craft", "reward", "shop", "starter")) {
-            if (homes.contains(k)) out.add(HOME_NAMES.get(k));
-        }
+        for (String k : KIND_ORDER) if (kinds.contains(k)) out.add(KIND_NAMES.get(k));
         return String.join("·", out);
     }
 
@@ -654,6 +728,7 @@ public final class ContentValidator {
                 case ITEM -> { if (e.item() != null) out.add(e.item()); }
                 case ONE_OF -> out.addAll(e.oneOf());
                 case TABLE -> expand(c.lootTable(e.table()), out, visiting);
+                case PICK -> { for (LootTable.Pick p : e.pick()) expand(c.lootTable(p.table()), out, visiting); }
                 case RARITY_POOL -> {
                     if (e.rarityPool() != null) for (ItemDef d : c.poolCandidates(e.floor(), e.rarityPool())) out.add(d.id());
                 }

@@ -10,7 +10,7 @@
 #  level_req  : 결과 장비의 숨은 아이템 레벨 (정렬·표시용 — 제작을 레벨로 막지 않는다)
 #  amount     : 결과 개수 (기본 1, 정수 정제용)
 # 제작 결과 장비의 stats 는 드롭과 같은 [최소, 최대] 범위에서 굴린다. 재료 경제 설계 = GDD §11.11
-# 재료는 그 장비 층(items.yml floor)의 몹 재료 · 정예 재료 · 보스 핵 · 그 층 등급 정수만 쓴다 (다른 층 재료 금지).
+# 재료는 그 장비 단계 층(items.yml tier)의 몹 재료 · 정예 재료 · 보스 핵 · 그 층 등급 정수만 쓴다 (다른 층 재료 금지).
 # 보스 핵은 그 보스 고유 장비 전용이다 — 1~4층 보스 장비는 핵 2개, 5층 이상 보스 장비는 핵 1개 + 재료. 정예 장비에는 핵을 쓰지 않는다.
 # 레시피가 없는 장비: 1층 Lv1 공용 무기 · 몬스터·상자 전용 공용 무기(2·3·4·5·7층) · 영웅 이상 보스 고유 무기(2~10층, 보스만 — 핵은 보스 방어구·장신구·강화에)
 #                   · 신화 · 넬카르의 심장 · 칭호 보상 · 수련생(시작 지급).  6·8·9·10층 공용 무기(영웅)는 대장간 전용 (몹·상자에서 안 나옴)
@@ -91,42 +91,42 @@ recipes:
     category: weapon
     station: blacksmith
     materials: {spider_silk: 10, rusted_iron: 8, foreman_badge: 1, dim_essence: 1}
-    gold: 280
+    gold: 400
     level_req: 8
   silkspan_glaive:   # 은실 언월도
     result: silkspan_glaive
     category: weapon
     station: blacksmith
     materials: {spider_silk: 10, rusted_iron: 8, foreman_badge: 1, dim_essence: 1}
-    gold: 280
+    gold: 400
     level_req: 8
   skitter_bladebow:   # 갱도 거미 날활
     result: skitter_bladebow
     category: weapon
     station: blacksmith
     materials: {spider_silk: 10, rusted_iron: 8, foreman_badge: 1, dim_essence: 1}
-    gold: 280
+    gold: 400
     level_req: 8
   miners_fork_staff:   # 광부의 갈래 지팡이
     result: miners_fork_staff
     category: weapon
     station: blacksmith
     materials: {spider_silk: 10, rusted_iron: 8, foreman_badge: 1, dim_essence: 1}
-    gold: 280
+    gold: 400
     level_req: 8
   miners_bell_scepter:   # 갱도 경보종 홀
     result: miners_bell_scepter
     category: weapon
     station: blacksmith
     materials: {spider_silk: 10, rusted_iron: 8, foreman_badge: 1, dim_essence: 1}
-    gold: 280
+    gold: 400
     level_req: 8
   silk_sickle:   # 은실 낫
     result: silk_sickle
     category: weapon
     station: blacksmith
     materials: {spider_silk: 10, rusted_iron: 8, foreman_badge: 1, dim_essence: 1}
-    gold: 280
+    gold: 400
     level_req: 8
   # ── 지하 3층 ──
   sporecap_warhammer:   # 포자갓 망치
@@ -134,42 +134,42 @@ recipes:
     category: weapon
     station: blacksmith
     materials: {spore_cap: 12, hypha_thread: 10, brood_core: 1, dim_essence: 2}
-    gold: 700
+    gold: 1050
     level_req: 14
   mycel_scythe:   # 균사 큰낫
     result: mycel_scythe
     category: weapon
     station: blacksmith
     materials: {spore_cap: 12, hypha_thread: 10, brood_core: 1, dim_essence: 2}
-    gold: 700
+    gold: 1050
     level_req: 14
   mycel_hornbow:   # 균사 각궁
     result: mycel_hornbow
     category: weapon
     station: blacksmith
     materials: {spore_cap: 12, hypha_thread: 10, brood_core: 1, dim_essence: 2}
-    gold: 700
+    gold: 1050
     level_req: 14
   glowcap_spiral_staff:   # 빛갓 소용돌이 지팡이
     result: glowcap_spiral_staff
     category: weapon
     station: blacksmith
     materials: {spore_cap: 12, hypha_thread: 10, brood_core: 1, dim_essence: 2}
-    gold: 700
+    gold: 1050
     level_req: 14
   bloom_chalice:   # 공생꽃 성배
     result: bloom_chalice
     category: weapon
     station: blacksmith
     materials: {spore_cap: 12, hypha_thread: 10, brood_core: 1, dim_essence: 2}
-    gold: 700
+    gold: 1050
     level_req: 14
   spore_katar:   # 포자 주먹칼
     result: spore_katar
     category: weapon
     station: blacksmith
     materials: {spore_cap: 12, hypha_thread: 10, brood_core: 1, dim_essence: 2}
-    gold: 700
+    gold: 1050
     level_req: 14
   # ── 지하 4층 ──
   sluice_breaker_mace:   # 수문 부수개
@@ -177,42 +177,42 @@ recipes:
     category: weapon
     station: blacksmith
     materials: {brine_pearl: 10, eel_scale: 10, verdigris_plate: 1, labyrinth_essence: 1}
-    gold: 1200
+    gold: 1800
     level_req: 17
   drowned_anchor_cleaver:   # 익사한 닻날
     result: drowned_anchor_cleaver
     category: weapon
     station: blacksmith
     materials: {brine_pearl: 10, eel_scale: 10, verdigris_plate: 1, labyrinth_essence: 1}
-    gold: 1200
+    gold: 1800
     level_req: 17
   eelbone_recurve:   # 장어뼈 만곡궁
     result: eelbone_recurve
     category: weapon
     station: blacksmith
     materials: {brine_pearl: 10, eel_scale: 10, verdigris_plate: 1, labyrinth_essence: 1}
-    gold: 1200
+    gold: 1800
     level_req: 17
   brine_orb_staff:   # 소금물 구슬 지팡이
     result: brine_orb_staff
     category: weapon
     station: blacksmith
     materials: {brine_pearl: 10, eel_scale: 10, verdigris_plate: 1, labyrinth_essence: 1}
-    gold: 1200
+    gold: 1800
     level_req: 17
   tidebell_censer:   # 조수종 향로
     result: tidebell_censer
     category: weapon
     station: blacksmith
     materials: {brine_pearl: 10, eel_scale: 10, verdigris_plate: 1, labyrinth_essence: 1}
-    gold: 1200
+    gold: 1800
     level_req: 17
   eel_kris:   # 녹물 장어 크리스
     result: eel_kris
     category: weapon
     station: blacksmith
     materials: {brine_pearl: 10, eel_scale: 10, verdigris_plate: 1, labyrinth_essence: 1}
-    gold: 1200
+    gold: 1800
     level_req: 17
   # ── 지하 5층 ──
   anvil_oath_broadsword:   # 모루 서약 넓은검
@@ -220,42 +220,42 @@ recipes:
     category: weapon
     station: blacksmith
     materials: {slag_ingot: 14, ember_shard: 12, executioner_edge: 2, labyrinth_essence: 2}
-    gold: 3200
+    gold: 4800
     level_req: 24
   slagforged_greatsword:   # 슬래그 단조 대검
     result: slagforged_greatsword
     category: weapon
     station: blacksmith
     materials: {slag_ingot: 14, ember_shard: 12, executioner_edge: 2, labyrinth_essence: 2}
-    gold: 3200
+    gold: 4800
     level_req: 24
   bellows_composite_bow:   # 풀무 복합궁
     result: bellows_composite_bow
     category: weapon
     station: blacksmith
     materials: {slag_ingot: 14, ember_shard: 12, executioner_edge: 2, labyrinth_essence: 2}
-    gold: 3200
+    gold: 4800
     level_req: 24
   cinder_crystal_staff:   # 불씨 수정 지팡이
     result: cinder_crystal_staff
     category: weapon
     station: blacksmith
     materials: {slag_ingot: 14, ember_shard: 12, executioner_edge: 2, labyrinth_essence: 2}
-    gold: 3200
+    gold: 4800
     level_req: 24
   embersong_scepter:   # 불씨노래 홀
     result: embersong_scepter
     category: weapon
     station: blacksmith
     materials: {slag_ingot: 14, ember_shard: 12, executioner_edge: 2, labyrinth_essence: 2}
-    gold: 3200
+    gold: 4800
     level_req: 24
   cinder_fang:   # 불씨 송곳니
     result: cinder_fang
     category: weapon
     station: blacksmith
     materials: {slag_ingot: 14, ember_shard: 12, executioner_edge: 2, labyrinth_essence: 2}
-    gold: 3200
+    gold: 4800
     level_req: 24
   # ── 지하 6층 ──
   frostgrave_mace:   # 서리 묘지기의 철퇴
@@ -263,42 +263,42 @@ recipes:
     category: weapon
     station: blacksmith
     materials: {rime_crystal: 16, grave_bone: 12, funeral_bell_shard: 1, labyrinth_essence: 2}
-    gold: 3800
+    gold: 5700
     level_req: 27
   rime_reaper_scythe:   # 서리 수확자의 큰낫
     result: rime_reaper_scythe
     category: weapon
     station: blacksmith
     materials: {rime_crystal: 16, grave_bone: 12, funeral_bell_shard: 1, labyrinth_essence: 2}
-    gold: 3800
+    gold: 5700
     level_req: 27
   frostbone_longbow:   # 얼음뼈 장궁
     result: frostbone_longbow
     category: weapon
     station: blacksmith
     materials: {rime_crystal: 16, grave_bone: 12, funeral_bell_shard: 1, labyrinth_essence: 2}
-    gold: 3800
+    gold: 5700
     level_req: 27
   rimebell_staff:   # 서리방울 고리 지팡이
     result: rimebell_staff
     category: weapon
     station: blacksmith
     materials: {rime_crystal: 16, grave_bone: 12, funeral_bell_shard: 1, labyrinth_essence: 2}
-    gold: 3800
+    gold: 5700
     level_req: 27
   frost_vigil_censer:   # 서리 철야 향로
     result: frost_vigil_censer
     category: weapon
     station: blacksmith
     materials: {rime_crystal: 16, grave_bone: 12, funeral_bell_shard: 1, labyrinth_essence: 2}
-    gold: 3800
+    gold: 5700
     level_req: 27
   gravefrost_katar:   # 묘역 서리 주먹칼
     result: gravefrost_katar
     category: weapon
     station: blacksmith
     materials: {rime_crystal: 16, grave_bone: 12, funeral_bell_shard: 1, labyrinth_essence: 2}
-    gold: 3800
+    gold: 5700
     level_req: 27
   # ── 지하 7층 ──
   amethyst_falchion:   # 자수정 팔시온
@@ -306,42 +306,42 @@ recipes:
     category: weapon
     station: blacksmith
     materials: {amethyst_shard: 16, prism_dust: 12, tuning_fork_core: 1, radiant_essence: 1}
-    gold: 5600
+    gold: 8400
     level_req: 34
   geode_scythe:   # 정동 큰낫
     result: geode_scythe
     category: weapon
     station: blacksmith
     materials: {amethyst_shard: 16, prism_dust: 12, tuning_fork_core: 1, radiant_essence: 1}
-    gold: 5600
+    gold: 8400
     level_req: 34
   prism_hornbow:   # 프리즘 각궁
     result: prism_hornbow
     category: weapon
     station: blacksmith
     materials: {amethyst_shard: 16, prism_dust: 12, tuning_fork_core: 1, radiant_essence: 1}
-    gold: 5600
+    gold: 8400
     level_req: 34
   resonant_fork_staff:   # 공명 소리굽쇠 지팡이
     result: resonant_fork_staff
     category: weapon
     station: blacksmith
     materials: {amethyst_shard: 16, prism_dust: 12, tuning_fork_core: 1, radiant_essence: 1}
-    gold: 5600
+    gold: 8400
     level_req: 34
   crystal_bell_scepter:   # 수정 종 홀
     result: crystal_bell_scepter
     category: weapon
     station: blacksmith
     materials: {amethyst_shard: 16, prism_dust: 12, tuning_fork_core: 1, radiant_essence: 1}
-    gold: 5600
+    gold: 8400
     level_req: 34
   shardglass_sickle:   # 파편유리 낫
     result: shardglass_sickle
     category: weapon
     station: blacksmith
     materials: {amethyst_shard: 16, prism_dust: 12, tuning_fork_core: 1, radiant_essence: 1}
-    gold: 5600
+    gold: 8400
     level_req: 34
   # ── 지하 8층 ──
   inkseal_warhammer:   # 금서 봉인 망치
@@ -349,42 +349,42 @@ recipes:
     category: weapon
     station: blacksmith
     materials: {ink_essence: 18, old_page: 14, forbidden_seal: 1, radiant_essence: 2}
-    gold: 8000
+    gold: 12000
     level_req: 38
   lore_glaive:   # 금서 언월도
     result: lore_glaive
     category: weapon
     station: blacksmith
     materials: {ink_essence: 18, old_page: 14, forbidden_seal: 1, radiant_essence: 2}
-    gold: 8000
+    gold: 12000
     level_req: 38
   inkquill_hornbow:   # 깃펜 각궁
     result: inkquill_hornbow
     category: weapon
     station: blacksmith
     materials: {ink_essence: 18, old_page: 14, forbidden_seal: 1, radiant_essence: 2}
-    gold: 8000
+    gold: 12000
     level_req: 38
   ink_spiral_staff:   # 먹물 소용돌이 지팡이
     result: ink_spiral_staff
     category: weapon
     station: blacksmith
     materials: {ink_essence: 18, old_page: 14, forbidden_seal: 1, radiant_essence: 2}
-    gold: 8000
+    gold: 12000
     level_req: 38
   ink_chalice:   # 먹물 잔 홀
     result: ink_chalice
     category: weapon
     station: blacksmith
     materials: {ink_essence: 18, old_page: 14, forbidden_seal: 1, radiant_essence: 2}
-    gold: 8000
+    gold: 12000
     level_req: 38
   lorekeeper_katar:   # 금서지기의 주먹칼
     result: lorekeeper_katar
     category: weapon
     station: blacksmith
     materials: {ink_essence: 18, old_page: 14, forbidden_seal: 1, radiant_essence: 2}
-    gold: 8000
+    gold: 12000
     level_req: 38
   # ── 지하 9층 ──
   clockguard_mace:   # 태엽 수비 철퇴
@@ -392,42 +392,42 @@ recipes:
     category: weapon
     station: blacksmith
     materials: {brass_gear: 16, mainspring: 12, regulator_pendulum: 1, primordial_essence: 1}
-    gold: 9500
+    gold: 14250
     level_req: 41
   regulator_greatsword:   # 조율기 대검
     result: regulator_greatsword
     category: weapon
     station: blacksmith
     materials: {brass_gear: 16, mainspring: 12, regulator_pendulum: 1, primordial_essence: 1}
-    gold: 9500
+    gold: 14250
     level_req: 41
   springloaded_bow:   # 용수철 연발궁
     result: springloaded_bow
     category: weapon
     station: blacksmith
     materials: {brass_gear: 16, mainspring: 12, regulator_pendulum: 1, primordial_essence: 1}
-    gold: 9500
+    gold: 14250
     level_req: 41
   orrery_staff:   # 태엽 천구 지팡이
     result: orrery_staff
     category: weapon
     station: blacksmith
     materials: {brass_gear: 16, mainspring: 12, regulator_pendulum: 1, primordial_essence: 1}
-    gold: 9500
+    gold: 14250
     level_req: 41
   pendulum_censer:   # 진자 향로
     result: pendulum_censer
     category: weapon
     station: blacksmith
     materials: {brass_gear: 16, mainspring: 12, regulator_pendulum: 1, primordial_essence: 1}
-    gold: 9500
+    gold: 14250
     level_req: 41
   mainspring_dagger:   # 태엽 단검
     result: mainspring_dagger
     category: weapon
     station: blacksmith
     materials: {brass_gear: 16, mainspring: 12, regulator_pendulum: 1, primordial_essence: 1}
-    gold: 9500
+    gold: 14250
     level_req: 41
   # ── 지하 10층 ──
   void_falchion:   # 공허 팔시온
@@ -435,42 +435,42 @@ recipes:
     category: weapon
     station: blacksmith
     materials: {abyss_ichor: 18, sculk_tendril: 14, gatekeeper_rune: 1, primordial_essence: 2}
-    gold: 12000
+    gold: 18000
     level_req: 46
   void_scythe:   # 공허의 큰낫
     result: void_scythe
     category: weapon
     station: blacksmith
     materials: {abyss_ichor: 18, sculk_tendril: 14, gatekeeper_rune: 1, primordial_essence: 2}
-    gold: 12000
+    gold: 18000
     level_req: 46
   abyss_bladebow:   # 심연 날활
     result: abyss_bladebow
     category: weapon
     station: blacksmith
     materials: {abyss_ichor: 18, sculk_tendril: 14, gatekeeper_rune: 1, primordial_essence: 2}
-    gold: 12000
+    gold: 18000
     level_req: 46
   void_fork_staff:   # 공허 갈래 지팡이
     result: void_fork_staff
     category: weapon
     station: blacksmith
     materials: {abyss_ichor: 18, sculk_tendril: 14, gatekeeper_rune: 1, primordial_essence: 2}
-    gold: 12000
+    gold: 18000
     level_req: 46
   abyss_bell_scepter:   # 심연 울림종 홀
     result: abyss_bell_scepter
     category: weapon
     station: blacksmith
     materials: {abyss_ichor: 18, sculk_tendril: 14, gatekeeper_rune: 1, primordial_essence: 2}
-    gold: 12000
+    gold: 18000
     level_req: 46
   abyss_sickle:   # 심연 낫
     result: abyss_sickle
     category: weapon
     station: blacksmith
     materials: {abyss_ichor: 18, sculk_tendril: 14, gatekeeper_rune: 1, primordial_essence: 2}
-    gold: 12000
+    gold: 18000
     level_req: 46
 
   # ═════════ 방어구·방패 ═════════
@@ -1285,3 +1285,89 @@ recipes:
     gold: 3000
     level_req: 38
     amount: 1
+
+  # ═════════ 0.3.5 새 방어구 (균사 갑각 · 수로 잠수부 · 색인 방벽 — 대장간 + 정예/시련방) ═════════
+  mycel_carapace_helm:   # 균사 갑각 투구
+    result: mycel_carapace_helm
+    category: armor
+    station: blacksmith
+    materials: {hypha_thread: 6, spore_cap: 8, dim_essence: 1}
+    gold: 490
+    level_req: 14
+  mycel_carapace_chest:   # 균사 갑각 흉갑
+    result: mycel_carapace_chest
+    category: armor
+    station: blacksmith
+    materials: {hypha_thread: 8, spore_cap: 12, dim_essence: 1, brood_core: 1}
+    gold: 700
+    level_req: 14
+  mycel_carapace_legs:   # 균사 갑각 각반
+    result: mycel_carapace_legs
+    category: armor
+    station: blacksmith
+    materials: {hypha_thread: 7, spore_cap: 10, dim_essence: 1, brood_core: 1}
+    gold: 600
+    level_req: 14
+  mycel_carapace_boots:   # 균사 갑각 장화
+    result: mycel_carapace_boots
+    category: armor
+    station: blacksmith
+    materials: {hypha_thread: 5, spore_cap: 7, dim_essence: 1}
+    gold: 420
+    level_req: 14
+  sluice_diver_helm:   # 잠수부의 물안경
+    result: sluice_diver_helm
+    category: armor
+    station: blacksmith
+    materials: {eel_scale: 8, brine_pearl: 6, labyrinth_essence: 1}
+    gold: 490
+    level_req: 19
+  sluice_diver_chest:   # 잠수부의 가죽 조끼
+    result: sluice_diver_chest
+    category: armor
+    station: blacksmith
+    materials: {eel_scale: 12, brine_pearl: 8, labyrinth_essence: 1, verdigris_plate: 1}
+    gold: 700
+    level_req: 19
+  sluice_diver_legs:   # 잠수부의 바지
+    result: sluice_diver_legs
+    category: armor
+    station: blacksmith
+    materials: {eel_scale: 10, brine_pearl: 7, labyrinth_essence: 1, verdigris_plate: 1}
+    gold: 600
+    level_req: 19
+  sluice_diver_boots:   # 잠수부의 물갈퀴 장화
+    result: sluice_diver_boots
+    category: armor
+    station: blacksmith
+    materials: {eel_scale: 7, brine_pearl: 5, labyrinth_essence: 1}
+    gold: 420
+    level_req: 19
+  index_bulwark_helm:   # 색인 방벽 투구
+    result: index_bulwark_helm
+    category: armor
+    station: blacksmith
+    materials: {old_page: 14, ink_essence: 9, radiant_essence: 1}
+    gold: 4800
+    level_req: 38
+  index_bulwark_chest:   # 색인 방벽 흉갑
+    result: index_bulwark_chest
+    category: armor
+    station: blacksmith
+    materials: {old_page: 20, ink_essence: 13, radiant_essence: 1, forbidden_seal: 1}
+    gold: 6900
+    level_req: 38
+  index_bulwark_legs:   # 색인 방벽 각반
+    result: index_bulwark_legs
+    category: armor
+    station: blacksmith
+    materials: {old_page: 17, ink_essence: 11, radiant_essence: 1, forbidden_seal: 1}
+    gold: 5900
+    level_req: 38
+  index_bulwark_boots:   # 색인 방벽 철장화
+    result: index_bulwark_boots
+    category: armor
+    station: blacksmith
+    materials: {old_page: 12, ink_essence: 8, radiant_essence: 1}
+    gold: 4100
+    level_req: 38

@@ -250,12 +250,15 @@ public final class CodexMenu extends LabMenu {
 
     /** 층 공용 무기 묶음 {@code gear_fNN_common} 의 층 (아니면 -1). 몬스터·보물방·기믹방·미로 상자가 함께 굴리는 한 집이다. */
     static int commonFloor(String tableId) {
-        if (tableId == null || !tableId.startsWith("gear_f") || !tableId.endsWith("_common")) return -1;
+        if (tableId == null) return -1;
         try {
-            return Integer.parseInt(tableId.substring(6, tableId.length() - 7));
+            // 0.3.5: 층 몬스터·상자 표 = mix_fNN_drop (이웃 단계 풀 PICK) · 옛 gear_fNN_common 도 같은 뜻으로
+            if (tableId.startsWith("mix_f") && tableId.endsWith("_drop")) return Integer.parseInt(tableId.substring(5, tableId.length() - 5));
+            if (tableId.startsWith("gear_f") && tableId.endsWith("_common")) return Integer.parseInt(tableId.substring(6, tableId.length() - 7));
         } catch (NumberFormatException e) {
             return -1;
         }
+        return -1;
     }
 
     /**
@@ -275,6 +278,7 @@ public final class CodexMenu extends LabMenu {
                     if (commonFloor(e.table()) > 0) commons.add(e.table());
                     else collectItems(c, c.lootTable(e.table()), out, commons, visiting);
                 }
+                case PICK -> { for (LootTable.Pick p : e.pick()) collectItems(c, c.lootTable(p.table()), out, commons, visiting); }
                 case RARITY_POOL -> {
                     if (e.rarityPool() != null) for (ItemDef d : c.poolCandidates(e.floor(), e.rarityPool())) out.add(d.id());
                 }
@@ -287,10 +291,10 @@ public final class CodexMenu extends LabMenu {
      * 획득처 종류 (표시 순서). 장비는 보스 · 정예 · 몬스터·상자 · 제작 · 칭호 보상 · 시작 지급 중 1~2곳이고,
      * 보물 상자 · 기믹 방 · 몬스터 는 재료·소모품용으로 남긴다.
      */
-    private static final List<String> SOURCE_GROUPS = List.of("보스", "정예", "몬스터·상자", "보물 상자", "기믹 방", "제작", "상점",
-            "칭호 보상", "시작 지급", "몬스터");
+    private static final List<String> SOURCE_GROUPS = List.of("보스", "정예", "몬스터·상자", "보물 상자", "기믹 방", "특별 시련",
+            "금고·미믹", "제작", "상점", "칭호 보상", "시작 지급", "몬스터");
     /** 층만 모아 "지하 9·10층" 으로 적는 묶음. */
-    private static final Set<String> FLOOR_GROUPS = Set.of("몬스터·상자", "보물 상자", "기믹 방");
+    private static final Set<String> FLOOR_GROUPS = Set.of("몬스터·상자", "보물 상자", "기믹 방", "특별 시련", "금고·미믹");
     // 제작 = 대장장이 (재료 ×개수 · … · 골드)
     private static final Map<String, String> SOURCE_COLORS = Map.of("보스", "#ff6b6b", "정예", "#ffb52e", "제작", "#7fd8ff",
             "상점", "#7fe07f", "칭호 보상", "#c9a2ff", "시작 지급", "#9be89b");
@@ -327,6 +331,10 @@ public final class CodexMenu extends LabMenu {
                 tableLabels.computeIfAbsent(tid, k -> new ArrayList<>()).add(new Src("보물 상자", tid.substring(15)));
             } else if (tid.startsWith("gimmick_floor_")) {
                 tableLabels.computeIfAbsent(tid, k -> new ArrayList<>()).add(new Src("기믹 방", tid.substring(14)));
+            } else if (tid.matches("special_trial_f\\d+")) {
+                tableLabels.computeIfAbsent(tid, k -> new ArrayList<>()).add(new Src("특별 시련", String.valueOf(Integer.parseInt(tid.substring(15)))));
+            } else if (tid.matches("hoard_f\\d+")) {
+                tableLabels.computeIfAbsent(tid, k -> new ArrayList<>()).add(new Src("금고·미믹", String.valueOf(Integer.parseInt(tid.substring(7)))));
             }
         }
         // 미로 상자 — Treasures·검사기와 같은 규칙으로 실제로 굴리는 표 (층별 maze_chest_<tier>_f<층>, floors.yml

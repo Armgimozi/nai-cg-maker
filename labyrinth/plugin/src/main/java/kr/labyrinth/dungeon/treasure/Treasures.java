@@ -98,6 +98,16 @@ public final class Treasures {
     public boolean vaultOpen() { return vaultOpen; }
     public int opens() { return opens; }
 
+    /** 금고·미믹 표 이름 (loot.yml {@code hoard_fNN}, 0.3.5). */
+    public static String hoardTable(int floor) { return String.format(java.util.Locale.ROOT, "hoard_f%02d", floor); }
+
+    /** 금고·미믹 상자인가 — 열쇠 금고 안 상자이거나 길들인 미믹 (순수). */
+    public static boolean isHoard(TreasurePlan plan, TreasurePlan.Chest c, boolean tamed) {
+        if (tamed) return true;
+        TreasurePlan.Vault v = plan == null ? null : plan.vault();
+        return v != null && c != null && v.contains(c.x(), c.z());
+    }
+
     // ── 생성 ──────────────────────────────────────────────────────────────
 
     public void prepare(BlockList list, Palette palette) {
@@ -262,6 +272,11 @@ public final class Treasures {
         fs.loot(t.table(fs.floor(), bracket(), id -> fs.services().content().lootTable(id) != null), List.of(p), at, "chest");
         String et = t.enhanceTable(fs.floor());   // 강화석은 층 기준 등급으로 따로 한 번 (철·금만)
         if (et != null) fs.loot(et, List.of(p), at, "chest");
+        // 0.3.5 금고·미믹 (gear_spec §4.3): 금고 안 상자이거나 길들인 미믹이면 층 표 hoard_fNN 을 한 번 더 (칭호 카운터는 그대로)
+        if (isHoard(plan, c, tamed[i])) {
+            String ht = hoardTable(fs.floor());
+            if (fs.services().content().lootTable(ht) != null) fs.loot(ht, List.of(p), at, "chest");
+        }
         p.playSound(at, Sound.BLOCK_CHEST_OPEN, 0.8f, t == ChestTier.GOLD ? 0.8f : 1.1f);
         p.spawnParticle(t == ChestTier.GOLD ? Particle.TOTEM_OF_UNDYING : Particle.HAPPY_VILLAGER, at, t == ChestTier.GOLD ? 24 : 10,
                 0.3, 0.3, 0.3, 0.15);

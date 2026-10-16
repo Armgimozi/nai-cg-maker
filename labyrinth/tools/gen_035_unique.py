@@ -136,10 +136,24 @@ def do_import(src):
     print(f"썼음: {DATA.relative_to(ROOT)} — 무기 {len(out)}개 (bash_stun {sum(1 for e in out.values() if e['effect'] == 'bash_stun')}, B3 {len(B3)})")
 
 
+P3 = ROOT / "tools/data/035/content_p3.json"
+
+
 def load():
     """배정 파일 → {무기 id: 항목} (_meta 뺌)."""
     d = json.loads(DATA.read_text(encoding="utf-8"))
     return {k: v for k, v in d.items() if not k.startswith("_")}
+
+
+def p3_blocks():
+    """0.3.5 P3 가 바꾸거나 새로 넣은 무기의 unique 블록 (content_p3.json — B1 고침 · 31–35 승격 · B2 새 무기 · 활로 바뀐 7개)
+    와 없어진 무기 id."""
+    if not P3.exists():
+        return {}, set()
+    d = json.loads(P3.read_text(encoding="utf-8"))
+    out = {wid: w["unique"] for wid, w in (d.get("weapons") or {}).items() if "unique" in w}
+    out.update({wid: p["unique"] for wid, p in (d.get("existing_patch") or {}).items() if "unique" in p})
+    return out, set(d.get("remove_weapons") or {})
 
 
 def unique_block(entry):
@@ -187,12 +201,17 @@ def check():
     have = {k: v["unique"] for k, v in items.items() if v.get("type") == "weapon" and "unique" in v}
     if not have:
         print(f"items.yml 에는 아직 unique 블록 없음 (P3 에서 넣음) — 배정 {len(data)}개 검사 {'통과' if not bad else '실패'}")
+    p3, removed = p3_blocks()
     for wid, b in have.items():
-        want = unique_block(data[wid]) if wid in data else None
+        want = p3[wid] if wid in p3 else unique_block(data[wid]) if wid in data else None
         if want != b:
             print(f"✗ items.{wid}.unique 가 배정 파일과 다름: {b} ≠ {want}")
             bad += 1
-    missing = [k for k, v in items.items() if v.get("type") == "weapon" and k not in data]
+    gone = [k for k in data if k not in items and k not in removed]
+    if gone and have:
+        print(f"✗ 배정 파일에는 있는데 items.yml 에 없는 무기 {len(gone)}개: {', '.join(gone[:10])}")
+        bad += len(gone)
+    missing = [k for k, v in items.items() if v.get("type") == "weapon" and k not in data and k not in p3]
     if missing:
         print(f"✗ 배정 파일에 없는 무기 {len(missing)}개: {', '.join(missing[:10])}")
         bad += len(missing)

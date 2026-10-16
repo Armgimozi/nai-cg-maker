@@ -197,7 +197,9 @@ public final class ContentParser {
                     s.str("input", "RIGHT").toUpperCase(), s.dbl("cooldown", 0), s.dbl("mana", 0), sp,
                     s.str("description", ""), s.dbl("pvp_mult", 1.0)));
         }
-        StatRequirement req = StatRequirement.of(requirementStats(id, p, "requires"), requirementStats(id, p, "requires_any"));
+        // 0.3.5: 요구는 '그리고'만 (requires). 예전 requires_any('… 중 하나')는 문제로 알리고 무시한다
+        StatRequirement req = StatRequirement.of(requirementStats(id, p, "requires"));
+        if (p.has("requires_any")) problem("items.yml", id, "requires_any 는 0.3.5 에서 없어짐 — requires 로 (모두 채워야 함, 무시됨)");
         // 0.3.5: 무기 종류 없음 — 무기마다 attack 블록 (예전 weapon_type 만 있으면 그때 주기로 대신, ContentValidator 가 경고)
         WeaponAttack attack = type == ItemType.WEAPON ? WeaponAttack.parse(p) : null;
         // 0.3.5 고유 효과 (unique_spec §7): unique: {id, name, 수치…} — 무기만 (닫힌 목록·범위 검사는 ContentValidator)
@@ -220,14 +222,17 @@ public final class ContentParser {
                 look = null;
             }
         }
+        // 0.3.5: 장비의 층 = tier (숨은 단계, 표시 안 함). 예전 floor 도 같은 값으로 읽는다 (ContentValidator 가 경고).
+        // 재료는 floor 그대로 (그 층 재료 — 레시피·강화 재료 검사).
+        int tier = type.isGear() && p.has("tier") ? p.integer("tier", 0) : p.integer("floor", 0);
         return new ItemDef(id, p.str("name", id), type, attack, p.str("armor_slot"),
                 p.str("armor_set"), rarity, p.integer("level_req", 1), req, p.strings("classes"),
                 Collections.unmodifiableMap(stats), p.str("set_bonus"), p.str("aura"), List.copyOf(ws),
-                p.integer("floor", 0), p.bool("pool", true), p.strings("sources"), p.sub("use"), p.sub("model"),
+                tier, p.bool("pool", true), p.strings("sources"), p.sub("use"), p.sub("model"),
                 p.sub("texture"), p.str("lore", ""), p, unique, look);
     }
 
-    /** requires / requires_any: {STR: 30, ...} — 키는 STR DEX INT VIT WIS LUK, 값은 0 이상 정수 (0 = 요구 없음). */
+    /** requires: {STR: 30, ...} — 키는 STR DEX INT VIT WIS LUK, 값은 0 이상 정수 (0 = 요구 없음). */
     private Map<Stat, Integer> requirementStats(String id, Params p, String key) {
         if (!p.has(key)) return Map.of();
         if (!(p.get(key) instanceof Map<?, ?>)) {
@@ -387,7 +392,24 @@ public final class ContentParser {
         if (e.has("table")) {
             return new LootTable.Entry(LootTable.Kind.TABLE, null, null, 0, List.of(), e.str("table"), chance, amount, minDiff);
         }
-        problem("loot.yml", table, "항목 종류를 알 수 없음(item/rarity_pool/one_of/table): " + e);
+        if (e.has("pick")) {
+            // 0.3.5 PICK: {pick: [{table: id, weight: n}, …], chance} — 무게대로 하위 테이블 하나 (gear_spec §4.2)
+            List<LootTable.Pick> picks = new ArrayList<>();
+            for (Params x : e.maps("pick")) {
+                String t = x.str("table");
+                if (t == null || t.isBlank()) {
+                    problem("loot.yml", table, "pick 항목에 table 이 없음: " + x.asMap());
+                    continue;
+                }
+                picks.add(new LootTable.Pick(t, x.integer("weight", 1)));
+            }
+            if (picks.isEmpty()) {
+                problem("loot.yml", table, "pick 이 비어 있음: " + e);
+                return null;
+            }
+            return new LootTable.Entry(LootTable.Kind.PICK, null, null, 0, List.of(), null, chance, amount, minDiff, picks);
+        }
+        problem("loot.yml", table, "항목 종류를 알 수 없음(item/rarity_pool/one_of/table/pick): " + e);
         return null;
     }
 
@@ -417,7 +439,9 @@ public final class ContentParser {
         Params rwp = s.sub("rarity_weight");
         for (String k : rwp.keys()) rw.putIfAbsent(k, Map.of()); // normal: {} 처럼 빈 맵
         Rarity ann = Rarity.byId(s.str("announce_rarity", "legendary"));
-        return new LootTable.Settings(s.dbl("own_class_bias", 0.65), s.dbl("luck_per_point", 0.005),
+        // 0.3.5: own_class_bias → own_build_bias (요구 능력치 편향 — 예전 키도 같은 값으로 읽는다)
+        double bias = s.has("own_build_bias") ? s.dbl("own_build_bias", 0.65) : s.dbl("own_class_bias", 0.65);
+        return new LootTable.Settings(bias, s.dbl("luck_per_point", 0.005),
                 s.dbl("party_bonus_per_member", 0.05), s.dbl("max_chance", 1.0), Collections.unmodifiableMap(rw),
                 ann == null ? Rarity.LEGENDARY : ann);
     }

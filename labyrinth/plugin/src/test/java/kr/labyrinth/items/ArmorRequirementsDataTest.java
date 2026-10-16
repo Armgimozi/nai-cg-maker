@@ -32,12 +32,18 @@ class ArmorRequirementsDataTest {
 
     static Content content;
     static JsonObject spec;
+    /** 0.3.5 새 방어구 세트 6개 (gear_spec armor_sets — P3 가 items.yml 에 넣음). */
+    static java.util.Set<String> NEW_SETS;
 
     @BeforeAll
     static void load() throws IOException {
         content = ContentLoader.load(Path.of("src/main/resources/content")).content();
         spec = JsonParser.parseString(Files.readString(Path.of("../tools/data/035/armor_looks.json"), StandardCharsets.UTF_8))
                 .getAsJsonObject();
+        NEW_SETS = JsonParser.parseString(Files.readString(Path.of("../tools/data/035/gear_spec.json"), StandardCharsets.UTF_8))
+                .getAsJsonObject().getAsJsonObject("armor_sets").keySet();
+        assertEquals(6, NEW_SETS.size());
+        for (String set : NEW_SETS) assertNotNull(content.sets().get(set), "0.3.5 새 세트 " + set);
     }
 
     @Test
@@ -91,7 +97,7 @@ class ArmorRequirementsDataTest {
         int checked = 0;
         for (String set : ren.keySet()) {
             var s = content.sets().get(set);
-            if (s == null) continue; // 0.3.5 새 세트 (P3)
+            assertNotNull(s, set + " 세트가 items.yml 에 없음");
             JsonObject m = ren.getAsJsonObject(set);
             for (String id : s.pieces()) {
                 ItemDef d = content.item(id);
@@ -101,6 +107,7 @@ class ArmorRequirementsDataTest {
                     assertTrue(d.requirement().all().containsKey(Stat.byKey(now)), id + " 바꾼 줄 " + now + " 이 요구 짝에 없음");
                 }
             }
+            if (NEW_SETS.contains(set)) continue; // 0.3.5 새 세트 (P3) — 0.3.4 에 가진 사람이 없어 옮길 것 없음
             checked++;
             // 가진 아이템 옮기기(ItemMigration035)와 같은 표
             Map<String, String> mig = ItemMigration035.ARMOR_RENAME.get(set);

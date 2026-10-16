@@ -40,11 +40,15 @@ class WeaponIntervalDataTest {
 
     static Content content;
     static JsonObject weapons;
+    static JsonObject changes;
+    static final Path GEAR_SPEC = Path.of("../tools/data/035/gear_spec.json");
 
     @BeforeAll
     static void load() throws IOException {
         content = ContentLoader.load(Path.of("src/main/resources/content")).content();
         weapons = JsonParser.parseString(Files.readString(SPEC, StandardCharsets.UTF_8)).getAsJsonObject().getAsJsonObject("weapons");
+        changes = JsonParser.parseString(Files.readString(GEAR_SPEC, StandardCharsets.UTF_8)).getAsJsonObject()
+                .getAsJsonObject("existing_changes");
     }
 
     private static List<ItemDef> all() {
@@ -85,7 +89,10 @@ class WeaponIntervalDataTest {
             JsonObject a = w.getAsJsonObject("items_yml").getAsJsonObject("attack");
             assertEquals(a.get("style").getAsString(), d.raw().sub("attack").str("style"), id);
             assertEquals(a.get("interval").getAsDouble(), d.attack().interval(), 1e-9, id);
-            assertEquals(a.get("kind").getAsString(), d.raw().sub("attack").str("kind"), id);
+            // 0.3.5 A8: gear_spec existing_changes 가 피해 종류를 바꾼 무기(지능·정신 요구로 마법이 된 활 등)는 그 값
+            JsonObject change = changes.has(id) ? changes.getAsJsonObject(id).getAsJsonObject("attack") : null;
+            String kind = change != null ? change.get("kind").getAsString() : a.get("kind").getAsString();
+            assertEquals(kind, d.raw().sub("attack").str("kind"), id);
             var ph = w.getAsJsonArray("per_hit");
             assertEquals(new Range(ph.get(0).getAsDouble(), ph.get(1).getAsDouble()), d.stats().get("damage"), id + " 새 한 방 피해");
             // 가진 무기 굴림 옮기기(ItemMigration035)의 옛 범위 = 명세의 옛 범위

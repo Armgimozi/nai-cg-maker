@@ -61,11 +61,11 @@ public record Content(
         return f == null ? null : bosses.get(f.boss());
     }
 
-    /** rarity_pool 후보: floor 일치·희귀도 일치·pool != false·장비. */
-    public List<ItemDef> poolCandidates(int floor, Rarity rarity) {
+    /** rarity_pool 후보: 단계(tier) 일치·희귀도 일치·pool != false·장비 (loot.yml 의 rarity_pool 항목 floor 값 = 단계). */
+    public List<ItemDef> poolCandidates(int tier, Rarity rarity) {
         List<ItemDef> out = new ArrayList<>();
         for (ItemDef d : items.values()) {
-            if (d.floor() == floor && d.rarity() == rarity && d.pool() && d.isGear()) out.add(d);
+            if (d.isGear() && d.tier() == tier && d.rarity() == rarity && d.pool()) out.add(d);
         }
         return out;
     }

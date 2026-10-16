@@ -6,6 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -28,7 +33,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * 고유 효과 닫힌 목록과 배정 데이터 (unique_spec §7·§8·§9.8, review2 A6·A11·A12, 주인 결정 B3).
- * 데이터 = {@link UniqueData} (무기 237개). items.yml 에 들어가는 것은 P3 — 여기서는 같은 꼴(unique 블록)로 읽어 검사한다.
+ * 데이터 = {@link UniqueData} (무기 237개). items.yml 에는 P3 (tools/gen_035_content.py) 가 넣었다.
  */
 class UniqueEffectCatalogTest {
 
@@ -88,18 +93,40 @@ class UniqueEffectCatalogTest {
     }
 
     @Test
-    void everyBundledWeaponHasAnAssignmentMatchingItsAttack() {
-        int n = 0;
+    void everyBundledWeaponHasAUniqueMatchingItsAssignment() throws IOException {
+        // P3 가 items.yml 무기 245개 모두에 unique 블록을 넣었다 — 배정(237) 그대로, 단 P3 설계(content_p3.json weapons:
+        // B1 근접 → 활 7 · B2 새 무기 8 · 고침·영웅 올림)는 그 정의가 이긴다. 활로 바뀐 옛 무기 7개는 items.yml 에 없다.
+        JsonObject p3 = JsonParser.parseString(Files.readString(Path.of("../tools/data/035/content_p3.json"), StandardCharsets.UTF_8))
+                .getAsJsonObject();
+        Set<String> p3Weapons = p3.getAsJsonObject("weapons").keySet();
+        int n = 0, existing = 0, assigned = 0;
         for (ItemDef d : content.items().values()) {
             if (!d.isWeapon()) continue;
             n++;
+            assertNotNull(d.unique(), d.id() + " 고유 효과 없음");
+            UniqueCatalog.Check c = UniqueCatalog.check(d.unique(), d.attack());
+            assertTrue(c.errors().isEmpty(), d.id() + " " + c.errors());
             UniqueData.Entry e = data.get(d.id());
-            assertNotNull(e, d.id() + " 배정 없음");
-            assertFalse(e.isNew(), d.id());
+            if (e == null) {
+                assertTrue(p3Weapons.contains(d.id()), d.id() + " 배정도 P3 정의도 없음");
+                continue;
+            }
+            assigned++;
+            if (!e.isNew()) existing++;
             assertEquals(d.attack().style(), e.attack().style(), d.id() + " 방식");
             assertEquals(d.attack().interval(), e.attack().interval(), 1e-9, d.id() + " 간격");
+            if (!p3Weapons.contains(d.id())) {
+                assertEquals(e.effect(), d.unique().id(), d.id());
+                assertEquals(e.name(), d.unique().name(), d.id());
+            }
         }
-        assertEquals(131, n);
+        for (String old : p3.getAsJsonObject("remove_weapons").keySet()) {
+            assertNull(content.item(old), old + " 은 활로 바뀌었다");
+            assertTrue(data.containsKey(old), old);
+        }
+        assertEquals(245, n);
+        assertEquals(131, existing);
+        assertEquals(230, assigned, "배정 237 − 활로 바뀐 7");
         assertEquals(237, data.size(), "기존 131 + 새 106");
         assertEquals(106, data.values().stream().filter(UniqueData.Entry::isNew).count());
     }

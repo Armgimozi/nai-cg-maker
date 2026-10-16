@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * 피해 종류 꼬리표 (combat_spec §4) — 직업 스킬 24개(classes.yml kind)와 무기 스킬 전부(데이터에서 {@link SkillKinds} 로 계산)가
- * 명세 JSON {@code skill_kinds} 와 같다. 실제 피해(SkillCast·MechanicsEngine·SkillContext)가 같은 규칙을 쓴다.
+ * 명세 JSON {@code skill_kinds} (+ 0.3.5 P3 content_p3.json {@code skill_kinds}) 와 같다. 실제 피해(SkillCast·MechanicsEngine·SkillContext)가 같은 규칙을 쓴다.
  */
 class SkillKindTagsTest {
 
@@ -40,6 +40,11 @@ class SkillKindTagsTest {
         content = ContentLoader.load(Path.of("src/main/resources/content")).content();
         kinds = JsonParser.parseString(Files.readString(Path.of("../tools/data/035/combat_spec.json"), StandardCharsets.UTF_8))
                 .getAsJsonObject().getAsJsonObject("skill_kinds");
+        // 0.3.5 P3 (tools/data/035/content_p3.json skill_kinds): 새 무기·B1 활·B2 무기·영웅 올림 스킬 + gear_spec A8 종류 바뀜이 위에 덮인다
+        JsonObject p3 = JsonParser.parseString(Files.readString(Path.of("../tools/data/035/content_p3.json"), StandardCharsets.UTF_8))
+                .getAsJsonObject().getAsJsonObject("skill_kinds");
+        JsonObject weapon = kinds.getAsJsonObject("weapon_skills");
+        for (String k : p3.keySet()) weapon.add(k, p3.get(k));
     }
 
     @Test

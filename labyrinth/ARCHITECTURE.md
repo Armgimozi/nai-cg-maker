@@ -352,8 +352,8 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   classes.yml weapon_types = **추천 무기**: 들면 직업 스킬 재사용 대기 −10%, 직업 스킬 피해는 무기 종류 배율을 추천 무기 기준으로 환산
   (`SkillContext.damage`·`dotRatio` 가 자동 적용 — 새 직업 스킬은 피해를 `c.damage(...)`, 지속 피해 potency 를 `c.dotRatio(...)` 로 낼 것).
   규칙 원본 = `content.WeaponTypes`(순수, GDD §4.4). 명령: `/직업 선택|choose <직업>`, `/직업 정보|info`, `/직업 스킬|skills`.
-- **장비 직업 제한 없음**: `ItemDef.usableBy` 는 항상 true, `EquipRules` 는 레벨만 본다. items.yml `classes` = 추천 직업 →
-  `ItemDef.suitedFor(직업)` (드롭 직업 편향·시작 무기 고르기에만 — 대장간 필터·툴팁 표시는 없어짐). 다른 모듈도 착용 가능 여부를 직업으로 막지 말 것.
+- **장비 직업 제한 없음**: `ItemDef.usableBy` 는 항상 true, `EquipRules` 는 요구 능력치만 본다. 0.3.5 부터 장비에는 `classes` 가 없다
+  (`ItemDef.suitedFor` 는 늘 true) — 드롭 편향은 요구 능력치로 (`LootRoller` own_build_bias). 다른 모듈도 착용 가능 여부를 직업으로 막지 말 것.
 
 ### 4.2 ui+titles 단계에서 추가된 계약 (다른 모듈이 쓰는 것)
 - **MenuService** 실제 구현 `ui.LabMenuService`(상자 GUI, `ui/menus/*`; 열다가 오류 나면 채팅 메뉴로 대체). 기본 메서드 추가:
@@ -494,7 +494,8 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   피해(분노 임계)·처치(사망 스킬) → 소환물·허수아비 정리. 자가 진단은 플레이어가 없으면 스킬을 한 번도 안 쓰므로, **새 몹·새 스킬은 이걸로 확인**.
   로그 `[몹 훈련] 결과: 예외 0 · 몹 n/n · 시전 … · 허수아비 적중 …`. 스킬 대상은 `LivingEntity`(플레이어 또는 허수아비) — 광역 판정은 `LabMob.victimsNear`.
 - **도감** `/codex` = `/도감` = `/미궁 도감` (`ui.menus.CodexMenu`): 종류·희귀도별 아이템(실제 툴팁 + 획득처: 몹/보스 드롭·보물 상자·기믹 방·
-  제작 재료·상점·칭호 보상·시작 지급 — loot 테이블 중첩까지 계산. 하위 테이블 `gear_fNN_common` 은 따라 들어가지 않고 "몬스터·상자 지하 N층" 한 줄,
+  제작 재료·상점·칭호 보상·시작 지급 — loot 테이블 중첩·PICK 까지 계산. 층 섞음 표 `mix_fNN_drop`(0.3.4 `gear_fNN_common`)은 따라 들어가지 않고 "몬스터·상자 지하 N층" 한 줄,
+  `special_trial_fNN`·`hoard_fNN` 은 "특별 시련"·"금고·미믹" 묶음 (0.3.5 P3 임시 — P6 가 층 없는 글로 바꿈),
   층별 미로 상자는 `ChestTier` 규칙으로 실제로 굴리는 표를 보물 상자로), 몬스터·보스(모델 머리 아이콘·능력치·드롭, 수치는 "(보통·보정 전)").
   획득처 그룹 순서(장비) = 보스 · 정예 · 몬스터·상자 · 제작 · 칭호 보상.
 - **config.yml** 추가 키: `mobs.elite_variant_chance`(기본 0.06), `mobs.model_yaw_offset`(도, 기본 0).
@@ -512,8 +513,9 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   각 직업 스킬 4개(3 + 궁극기), 레벨에 따라 해금. 직업마다 추천 무기 타입(장비 제한은 없음 — 누구나 모든 장비).
 - 희귀도: 일반(흰) < 고급(초록) < 희귀(파랑) < 영웅(보라) < 전설(금, 아우라) < 신화(빨강, 애니메이션 아우라).
   **전설·신화 무기 텍스처는 프레임 애니메이션(.mcmeta, GIF 처럼 움직임)** + 들고 있을 때 파티클/링 아우라.
-- 장비 획득 루트 (GDD §11.3): **장비 하나 = 한 층, 집은 최대 2곳** — 몬스터·상자(그 층 `gear_fNN_common`) / 정예(그 층 방어구·방패·장신구) /
-  보스(그 보스 고유 장비, 핵으로 대장간) / 대장장이 제작(그 층 재료만) / 칭호 보상 / 시작 지급(수련생 장비). 다른 층 테이블에 장비를 넣지 않는다.
+- 장비 획득 루트 (GDD §11.3, 0.3.5): 장비는 숨은 단계 `tier` 를 갖고, 보스가 아닌 장비는 단계 풀 `band_tNN_<종류>` 를 이웃 층 셋이 PICK 2 : 7 : 1 로
+  나눠 준다 — 몬스터·상자(`mix_fNN_drop`) / 시련방 / 특별 시련(`special_trial_fNN`) / 금고·미믹(`hoard_fNN`, `Treasures.open`) / 정예 /
+  보스(그 보스 고유 장비만, 핵으로 대장간) / 대장장이 제작 / 상인 / 칭호 보상 / 시작 지급. 획득처 종류 1~2개, 영웅 이상 무기는 1개.
 - 미궁: 지하 1~10층. 층마다 테마·몹 3~4종·엘리트·고유 보스(페이즈 2~3, 고유 기믹). 보스 처치 → 다음 층 계단.
   - 해금: 처음엔 1층만. 층을 깨면 다음 층 해금. 파티는 **파티원 중 최소 해금층**까지 선택 가능.
   - 솔로 입장 또는 파티 입장(파티원 모두 입구 근처, 파티장만 시작).
@@ -573,8 +575,8 @@ items:
     armor_set: null           # 방어구면 장비 에셋 세트 id
     rarity: legendary
     level_req: 25
-    classes: [berserker]      # 어울리는 직업 (비우면 모두) — 착용 제한·표시 아님, 드롭 직업 편향(own_class_bias)에만
-    floor: 5                  # 장비가 속한 층 — 그 층 테이블·레시피에서만 나온다
+    requires: {STR: 33, VIT: 20, INT: 13}   # 0.3.5: '모두 채움' 요구 능력치 (합 ceil(2.75(L−1)), 2~3개) — classes 는 장비에 없다
+    tier: 5                   # 0.3.5 숨은 단계 (Lv 5N−5~5N, 옛 floor) — 보스가 아니면 이웃 층 셋이 단계 풀로 나눠 준다
     pool: false               # rarity_pool 미사용 (장비는 전부 false)
     sources: [boss, craft]    # 획득처 (툴팁·도감) — 집 최대 2곳, GDD §11.3
     stats: {damage: [38, 44], STR: [6, 9], crit_chance: [0.04, 0.06]}   # [최소, 최대] 굴림
@@ -665,15 +667,19 @@ floors:
 
 # loot.yml
 tables:
-  gear_f01_common:            # 그 층 공용 무기 (몬스터·상자 한 집) — 하위 테이블
+  band_t01_drop:              # 0.3.5 단계 풀 (단계 1 몬스터·상자 무기) — 이웃 층이 PICK 으로 나눠 굴린다
     rolls: 1
     entries:
       - {one_of: [corridor_longsword, rootcutter_greatsword, ...], chance: 1.0}
+  mix_f01_drop:               # 1층 몬스터·상자 = 단계 1 : 2 = 7 : 1 (2~9층은 f−1 : f : f+1 = 2 : 7 : 1)
+    rolls: 1
+    entries:
+      - {pick: [{table: band_t01_drop, weight: 7}, {table: band_t02_drop, weight: 1}], chance: 1.0}
   moss_crawler:
     rolls: 1
     entries:
       - {item: moss_fiber, chance: 0.55, amount: [1, 2]}
-      - {table: gear_f01_common, chance: 0.03}           # 장비는 이름으로만 (rarity_pool 은 쓰지 않음)
+      - {table: mix_f01_drop, chance: 0.0228}            # 장비는 이름으로만 (rarity_pool 은 쓰지 않음)
       - {table: enhance_mob_t1, chance: 1.0}
 
 # recipes.yml
@@ -765,14 +771,16 @@ hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100,
 모두 **추가** 필드이며 닫힌 목록과 해석은 GDD.md 에 있다(§번호 표기). 생략한 필드 = null / 기본값.
 
 - **items.yml**
-  - `floor`(1~10): 장비가 속한 층 — **장비는 그 층의 루팅 테이블·레시피에서만 나온다**(GDD §11.3, 검사기가 다른 층 테이블의 장비를 경고).
-    강화석 등급(`enhance.stones.max_floor`)도 이 값으로 고른다. 재료는 정보용(획득 층).
+  - `tier`(1~10, 0.3.5 — 장비): 숨은 단계 = 레벨 구간 Lv 5N−5~5N (`ItemDef.tier()`, 레코드 필드는 `floor` 그대로). 보스가 아닌 장비는 단계 N−1·N·N+1
+    층 표에서만 나온다(검사기 경고 "레벨 창 밖"). 옛 `floor` 도 같은 값으로 읽고 경고. 강화석 등급(`enhance.stones.max_floor`)도 이 값.
+    재료의 `floor` 는 그대로(획득 층). 장비 생성기 = `tools/gen_035_content.py` (입력 `tools/data/035/`, 손으로 고치지 말 것).
   - `pool`(기본 true): false 면 rarity_pool 이 뽑지 않음. loot.yml 은 rarity_pool 을 쓰지 않으므로 장비는 **전부 false**(실수로 풀을 다시 써도 안전).
-  - `sources`: 획득처 목록 `drop | chest | elite | boss | craft | reward | shop | starter` (툴팁 "획득처"·도감용, loot/recipes/titles/npcs/config `starter_kit` 에서
-    계산해 적음). `drop`+`chest` = 그 층 몬스터·상자 한 집(`gear_fNN_common`), `starter` = 시작 지급(몹·상자·대장간에서 안 나옴). **장비 하나 = 집 최대 2곳**
-    (몬스터·상자 / 정예 / 보스 / 대장간 / 칭호 / 시작 지급). 실제 획득처와 다르면 검사기 경고. 툴팁 한 줄 = `ItemTooltip.sourceLine`
+  - `sources`: 획득처 목록 `drop | chest | elite | boss | trial | special | hoard | craft | reward | shop | starter` (툴팁 "획득처"·도감용,
+    gen_035_content 가 loot/recipes/titles/npcs/config `starter_kit` 에서 계산해 적음). `drop`+`chest` = 몬스터·상자 한 종류(`mix_fNN_drop`),
+    `trial` 시련방 · `special` 특별 시련 · `hoard` 금고·미믹, `starter` = 시작 지급(몹·상자·대장간에서 안 나옴). **획득처 종류 1~2개, 영웅 이상 무기는 1개**.
+    실제 획득처와 다르면 검사기 경고. 툴팁 한 줄 = `ItemTooltip.sourceLine`
     ("보스 테오라(9층) · 대장간", "정예 <이름>(N층)", "지하 N층 몬스터·상자", "시작 지급" — 이름은 주는 보스·정예가 하나뿐일 때만, 콘텐츠를 다시 읽을 때 계산).
-  - `classes`: 어울리는 직업 — 착용 제한도 툴팁·대장간 표시도 아니다. `ItemDef.suitedFor` = 드롭 직업 편향(`own_class_bias`)·시작 무기 고르기에만.
+  - `classes`: 0.3.5 부터 장비에는 없다 (드롭 편향은 `requires` 로 — loot.yml `own_build_bias`). `requires_any` 도 없어졌다(파서가 문제로 알리고 무시).
   - `armor_slot: offhand` = 방패(수호기사). 보조손에 있을 때만 스탯 적용, `block_chance` 로 막기(GDD §11.2).
   - `stats` 키 = GDD §11.7 닫힌 목록 26개(`damage`, 스탯 6종, hp, mp, defense, crit_chance, crit_damage, attack_speed, move_speed,
     cooldown_reduction, skill_damage, mana_regen, hp_regen, heal_power, lifesteal, damage_reduction, evasion, block_chance, gold_bonus,
@@ -791,16 +799,20 @@ hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100,
     생성기 = `resourcepack/src/voxel/weapons.py`(복셀 전용, 옛 상자 템플릿 없음). 플러그인은 shape 를 읽지 않는다(활 여부는 weapon_type).
   - `sets.<id>.look`: heavy | light | cloth — 장비 에셋 레이어 실루엣(GDD §14.7). `bonuses` 키 = 착용 개수(이상).
 - **loot.yml**
-  - 최상위 `settings: {own_class_bias, luck_per_point, party_bonus_per_member, max_chance, rarity_weight: {난이도: {희귀도: 배율}}, announce_rarity}`.
+  - 최상위 `settings: {own_build_bias, luck_per_point, party_bonus_per_member, max_chance, rarity_weight: {난이도: {희귀도: 배율}}, announce_rarity}`.
+    `own_build_bias`(0.3.5, 옛 `own_class_bias` 도 읽음) = one_of 로 장비를 고를 때 그 확률로 "요구치 1위 능력치가 줍는 사람 능력치
+    (`StatService.requirementStats` 상위 2개) 안" 인 후보만 (`LootRoller.Request.stats`, `fitsBuild`).
   - 테이블 `guaranteed: [{item, amount}]`(배율 무관 확정 지급 — `one_of`·`table` 도 가능), `gold: [min, max]`(상자 골드).
-  - 항목 종류 추가: `{one_of: [id…], chance}`, `{table: id, chance}`(순환 금지). 공통 선택 키 `min_difficulty`. 해석 = GDD §11.10.
-  - **장비 배치 테이블 (0.3.2, GDD §11.3)**: `gear_f01_common` … `gear_f10_common` = 그 층 공용 무기 `one_of`(chance 1.0) 하나 — 그 층 일반 몹·`treasure_floor_N`·
-    `gimmick_floor_N`·층별 미로 상자가 `{table: gear_fNN_common, chance: p}` 로 굴린다(p 에 난이도·파티·LUK 배율, 안쪽 one_of 는 배율 없이 1개 + 직업 편향).
-    정예·보스 장비는 그 층 정예·`floorNN_boss` 테이블에 `one_of`/`item` 으로 직접. `rarity_pool` 항목은 쓰지 않는다(검사기 경고).
-  - **미로 상자 표**: 층별 `maze_chest_<wood|iron|gold>_f<N>`(그 층 재료·`gear_fNN_common`·금 상자는 그 층 정예 재료) 가 **우선**이고, floors.yml `chests.bracket`
+  - 항목 종류 추가: `{one_of: [id…], chance}`, `{table: id, chance}`(순환 금지), `{pick: [{table, weight}, …], chance}`(0.3.5 — 무게대로 하위 표 하나,
+    `LootTable.Kind.PICK`, 하위 표 없음·무게 ≤ 0·순환은 검사기 오류). 공통 선택 키 `min_difficulty`. 해석 = GDD §11.10.
+  - **장비 배치 테이블 (0.3.5, GDD §11.3)**: 단계 풀 `band_tNN_<drop|trial|special|hoard|elite>` · 층 섞음 `mix_fNN_drop`(일반 몹·`treasure_floor_N`·
+    층별 미로 상자가 `{table: mix_fNN_drop, chance: p}`) · `gimmick_floor_N`·정예 표의 PICK · `hoard_fNN`(금고 안 상자·길들인 미믹 — `Treasures.open`
+    이 강화 표 다음에 한 번 더) · `special_trial_fNN`(P4 특별 시련 성공 상자). 보스 장비는 `floorNN_boss` 에 `one_of`/`item` 으로 직접.
+    `rarity_pool` 항목은 쓰지 않는다(검사기 경고). 0.3.4 의 `gear_fNN_common` 은 없어졌다.
+  - **미로 상자 표**: 층별 `maze_chest_<wood|iron|gold>_f<N>`(그 층 재료·`mix_fNN_drop`·금 상자는 그 층 정예 재료 — 장비 직접 금지) 가 **우선**이고, floors.yml `chests.bracket`
     강제(> 0)나 층별 표가 없을 때만 구간 표 `maze_chest_<tier>_<1~4>`(장비 없음). 판정 = `dungeon.treasure.ChestTier.table(floor, bracket, exists)`.
-  - 검사기(`ContentValidator`) 경고: rarity_pool 사용 · 층에 묶인 테이블이 다른 층 장비를 줌 · 장비 집 3곳 이상 · items.yml `sources` 불일치 ·
-    시작 지급 장비가 루팅·제작에서도 나옴 (한 테이블을 몹·정예·보스·상자가 같이 쓰면 집을 모두 모은다).
+  - 검사기(`ContentValidator`) 경고: rarity_pool 사용 · 층 표가 레벨 창(단계 ±1, 보스는 같은 단계) 밖 장비를 줌 · 획득처 종류 3개 이상 ·
+    영웅 이상 무기 획득처 종류 2개 이상 · items.yml `sources` 불일치 · 시작 지급 장비가 루팅·제작에서도 나옴 · 요구 능력치 규칙(합·나눔·피해 능력치).
 - **recipes.yml**: `category`(weapon | armor | accessory | material — 대장장이 GUI 탭), `amount`(결과 개수, 기본 1).
   레시피 재료는 그 층 것만(그 층 일반 재료 + 그 층 정예 재료 + 그 층 정수 등급, 보스 장비는 + 그 보스 핵 — 정예 장비에는 핵을 넣지 않는다). 대장간 GUI 에 직업 필터는 없다.
 - **titles.yml**: (0.3.4) 모든 칭호가 서버에서 1명만 — 예전 선택 키 `server_first` 는 무시.

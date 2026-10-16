@@ -16,13 +16,18 @@ import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.LootTable;
 import kr.labyrinth.content.MobDef;
 import kr.labyrinth.content.Rarity;
+import kr.labyrinth.content.StatRequirement;
 import kr.labyrinth.core.ContentLoader;
 import kr.labyrinth.core.ContentValidator;
 import kr.labyrinth.items.loot.LootRoller;
+import kr.labyrinth.stats.Stat;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-/** 루팅 확률 공식·독립 판정·확정 지급·min_difficulty·직업 편향 (GDD §11.10) · 장비 획득처 검사기 경고. */
+/**
+ * 루팅 확률 공식·독립 판정·확정 지급·min_difficulty·빌드 편향(own_build_bias)·PICK (GDD §11.10, gear_spec §4.2)
+ * · 장비 획득처 검사기 경고. (gear_spec §12 의 PickEntryTest 가 여기 있다.)
+ */
 class LootRollerTest {
 
     static Content content;
@@ -83,7 +88,7 @@ class LootRollerTest {
     void guaranteedAlwaysDrops() {
         LootRoller roller = new LootRoller(content, new Random(3));
         for (int i = 0; i < 500; i++) {
-            List<LootRoller.Drop> d = roller.roll("floor01_boss", new LootRoller.Request("easy", 0.01, 0, "guardian"));
+            List<LootRoller.Drop> d = roller.roll("floor01_boss", new LootRoller.Request("easy", 0.01, 0, null));
             assertTrue(d.stream().anyMatch(x -> x.itemId().equals("warden_heartwood")));
             LootRoller.Drop moss = d.stream().filter(x -> x.itemId().equals("moss_fiber")).findFirst().orElseThrow();
             assertTrue(moss.amount() >= 4 && moss.amount() <= 6, "amount [4,6]: " + moss.amount());
@@ -109,23 +114,109 @@ class LootRollerTest {
     }
 
     @Test
-    void classBiasPrefersOwnClass() {
-        // 1층 공용 무기 묶음(gear_f01_common 의 one_of, 6종 × 2단계): 광전사에 어울리는 무기(대검) 비율이 1/6 보다 훨씬 높아야 함
+    void buildBiasPrefersOwnBuild() {
+        // 1단계 몬스터·상자 풀(band_t01_drop, one_of chance 1.0): 힘·체력 빌드가 주우면 요구치 1위가 힘·체력인 무기 비율이
+        // 0.65 + 0.35 × (맞는 수 / 전체) — items.yml classes 는 보지 않는다
+        LootTable t = content.lootTable("band_t01_drop");
+        List<String> pool = t.entries().get(0).oneOf();
+        Map<Stat, Integer> build = Map.of(Stat.STR, 30, Stat.VIT, 20, Stat.DEX, 5);
+        List<Stat> top = StatRequirement.top(build, 2);
+        assertEquals(List.of(Stat.STR, Stat.VIT), top);
+        long fit = pool.stream().filter(id -> LootRoller.fitsBuild(content.item(id), top)).count();
+        assertTrue(fit > 0 && fit < pool.size(), "맞는 무기 " + fit + " / " + pool.size());
         LootRoller roller = new LootRoller(content, new Random(9));
-        int weapons = 0;
-        int own = 0;
-        for (int i = 0; i < 3000; i++) {
-            for (LootRoller.Drop d : roller.roll("gear_f01_common", new LootRoller.Request("normal", 100.0, 0, "berserker"))) {
-                ItemDef def = content.item(d.itemId());
-                if (def.isWeapon()) {
-                    weapons++;
-                    if (def.suitedFor("berserker")) own++;
-                }
+        int n = 20000, own = 0;
+        for (int i = 0; i < n; i++) {
+            for (LootRoller.Drop d : roller.roll(t.id(), new LootRoller.Request("normal", 1.0, 0, build))) {
+                if (LootRoller.fitsBuild(content.item(d.itemId()), top)) own++;
             }
         }
-        double ratio = own / (double) weapons;
-        // 기대값 ≈ 0.65 + 0.35 × (2/12) ≈ 0.71
-        assertTrue(ratio > 0.55 && ratio < 0.9, "직업 편향 비율 " + ratio);
+        double want = 0.65 + 0.35 * fit / pool.size();
+        assertEquals(want, own / (double) n, 0.02, "빌드 편향 비율");
+        // 능력치를 모르면 편향 없음
+        int plain = 0;
+        for (int i = 0; i < n; i++) {
+            for (LootRoller.Drop d : roller.roll(t.id(), normal())) if (LootRoller.fitsBuild(content.item(d.itemId()), top)) plain++;
+        }
+        assertEquals(fit / (double) pool.size(), plain / (double) n, 0.02);
+        // 요구 없는 장비(Lv1)는 어느 빌드에도 '맞는' 쪽이 아니다
+        assertFalse(LootRoller.fitsBuild(content.item("corridor_longsword"), top));
+    }
+
+    // ── PICK (gear_spec §4.2 · §12 PickEntryTest) ───────────────────────────
+
+    private static Content withTables(Map<String, LootTable> extra) {
+        Map<String, LootTable> tables = new HashMap<>(content.lootTables());
+        tables.putAll(extra);
+        Content c = content;
+        return new Content(c.classes(), c.items(), c.sets(), c.mobs(), c.bosses(), c.floors(), Map.copyOf(tables), c.lootSettings(),
+                c.recipes(), c.achievements(), c.npcs(), c.auras(), c.fxModels(), c.glyphs(), c.spaces());
+    }
+
+    private static LootTable single(String id, String item) {
+        return new LootTable(id, 1, List.of(new LootTable.Entry(LootTable.Kind.ITEM, item, null, 0, List.of(), null, 1.0, IntRange.ONE, null)),
+                List.of(), IntRange.ZERO);
+    }
+
+    private static LootTable.Entry pick(double chance, Object... tw) {
+        List<LootTable.Pick> p = new ArrayList<>();
+        for (int i = 0; i < tw.length; i += 2) p.add(new LootTable.Pick((String) tw[i], (Integer) tw[i + 1]));
+        return new LootTable.Entry(LootTable.Kind.PICK, null, null, 0, List.of(), null, chance, IntRange.ONE, null, p);
+    }
+
+    private static Map<String, LootTable> abc(LootTable.Entry entry, boolean guaranteed) {
+        Map<String, LootTable> m = new HashMap<>();
+        m.put("t_a", single("t_a", "minor_healing_potion"));
+        m.put("t_b", single("t_b", "minor_mana_potion"));
+        m.put("t_c", single("t_c", "return_scroll"));
+        m.put("t_pick", new LootTable("t_pick", 1, guaranteed ? List.of() : List.of(entry), guaranteed ? List.of(entry) : List.of(),
+                IntRange.ZERO));
+        return m;
+    }
+
+    @Test
+    void pickFollowsWeights() {
+        Content c = withTables(abc(pick(1.0, "t_a", 7, "t_b", 2, "t_c", 1), false));
+        LootRoller roller = new LootRoller(c, new Random(21));
+        Map<String, Integer> got = new HashMap<>();
+        int n = 10000;
+        for (int i = 0; i < n; i++) {
+            List<LootRoller.Drop> d = roller.roll("t_pick", normal());
+            assertEquals(1, d.size(), "PICK 은 하위 표 하나만");
+            got.merge(d.get(0).itemId(), 1, Integer::sum);
+        }
+        assertEquals(0.7, got.getOrDefault("minor_healing_potion", 0) / (double) n, 0.02);
+        assertEquals(0.2, got.getOrDefault("minor_mana_potion", 0) / (double) n, 0.02);
+        assertEquals(0.1, got.getOrDefault("return_scroll", 0) / (double) n, 0.02);
+    }
+
+    @Test
+    void pickChanceZeroNeverAndGuaranteedAlways() {
+        LootRoller never = new LootRoller(withTables(abc(pick(0.0, "t_a", 1, "t_b", 1), false)), new Random(4));
+        for (int i = 0; i < 2000; i++) assertTrue(never.roll("t_pick", normal()).isEmpty());
+        LootRoller always = new LootRoller(withTables(abc(pick(0.0, "t_a", 1, "t_b", 1), true)), new Random(4));
+        for (int i = 0; i < 2000; i++) assertEquals(1, always.roll("t_pick", new LootRoller.Request("easy", 0.0, 0, null)).size());
+        // 무게 0 인 표는 뽑히지 않는다
+        LootRoller zero = new LootRoller(withTables(abc(pick(1.0, "t_a", 0, "t_b", 3), false)), new Random(8));
+        for (int i = 0; i < 2000; i++) assertEquals("minor_mana_potion", zero.roll("t_pick", normal()).get(0).itemId());
+    }
+
+    @Test
+    void validatorChecksPick() {
+        Map<String, LootTable> m = abc(pick(1.0, "t_a", 1, "t_missing", 1, "t_b", 0), false);
+        m.put("t_loop", new LootTable("t_loop", 1, List.of(pick(1.0, "t_loop2", 1)), List.of(), IntRange.ZERO));
+        m.put("t_loop2", new LootTable("t_loop2", 1, List.of(pick(1.0, "t_loop", 1)), List.of(), IntRange.ZERO));
+        String errors = String.join("\n", ContentValidator.validate(withTables(m)).errors());
+        assertTrue(errors.contains("loot.t_pick.pick: 없는 루팅 테이블 't_missing'"), errors);
+        assertTrue(errors.contains("weight 는 1 이상: t_b 0"), errors);
+        assertTrue(errors.contains("loot.t_loop: table 참조가 순환함"), errors);
+        // 번들 데이터의 PICK 은 모두 올바르다
+        assertTrue(ContentValidator.validate(content).errors().stream().noneMatch(e -> e.contains(".pick")),
+                ContentValidator.validate(content).errors().toString());
+        long picks = content.lootTables().values().stream()
+                .flatMap(t -> java.util.stream.Stream.concat(t.entries().stream(), t.guaranteed().stream()))
+                .filter(e -> e.kind() == LootTable.Kind.PICK).count();
+        assertEquals(50, picks, "PICK 항목 (층마다 mix · 시련방 · 정예 · 금고 · 특별 시련)");
     }
 
     @Test
@@ -136,10 +227,11 @@ class LootRollerTest {
         assertEquals(List.of(), now);
 
         Map<String, LootTable> tables = new HashMap<>(content.lootTables());
-        // (a) rarity_pool · (b) 1층 몹이 2층 무기 · (c) 1층 정예 방패가 보스에서도(3곳) · (d) 수련생 장비가 몹에서
+        // (a) rarity_pool · (b) 1층 몹이 3단계 무기(레벨 창 밖 — 1층은 단계 1·2) · (c) 1단계 정예 방패가 보스에서도(종류 3개)
+        // · (d) 수련생 장비가 몹에서
         tables.put("moss_crawler", with(tables.get("moss_crawler"),
                 new LootTable.Entry(LootTable.Kind.RARITY_POOL, null, Rarity.COMMON, 1, List.of(), null, 0.01, IntRange.ONE, null),
-                item("minewarden_mace"), item("novice_cap")));
+                item("capsplitter_cleaver"), item("minewarden_mace"), item("novice_cap")));
         tables.put("floor01_boss", with(tables.get("floor01_boss"), item("oak_round_shield")));
         Content c = content;
         Content mixed = new Content(c.classes(), c.items(), c.sets(), c.mobs(), c.bosses(), c.floors(), Map.copyOf(tables), c.lootSettings(),
@@ -147,8 +239,9 @@ class LootRollerTest {
         List<String> w = ContentValidator.validate(mixed).warnings();
         String all = String.join("\n", w);
         assertTrue(all.contains("loot.moss_crawler: rarity_pool 항목 1개"), all);
-        assertTrue(all.contains("loot.moss_crawler: 지하 1층 표인데 다른 층 장비") && all.contains("minewarden_mace(2층)"), all);
-        assertTrue(all.contains("items.oak_round_shield: 획득처가 3곳 (정예·보스·제작)"), all);
+        assertTrue(all.contains("loot.moss_crawler: 지하 1층 표인데 레벨 창 밖 장비 1종") && all.contains("capsplitter_cleaver(단계 3)"), all);
+        assertFalse(all.contains("minewarden_mace(단계 2)"), "이웃 단계는 레벨 창 안");
+        assertTrue(all.contains("items.oak_round_shield: 획득처 종류가 3개 (정예·보스·대장간)"), all);
         assertTrue(all.contains("items.oak_round_shield: sources [elite, craft] 가 실제 획득처 [boss, craft, elite] 와 다름"), all);
         assertTrue(all.contains("items.novice_cap: 시작 지급 장비인데 몬스터·상자에서도 나옴"), all);
 
@@ -160,9 +253,10 @@ class LootRollerTest {
         Content shared = new Content(c.classes(), c.items(), c.sets(), Map.copyOf(mobs), c.bosses(), c.floors(), c.lootTables(), c.lootSettings(),
                 c.recipes(), c.achievements(), c.npcs(), c.auras(), c.fxModels(), c.glyphs(), c.spaces());
         String sw = String.join("\n", ContentValidator.validate(shared).warnings());
-        assertTrue(sw.contains("items.mycelking_spore_crown: 획득처가 3곳 (몬스터·상자·보스·제작)"), sw);
+        assertTrue(sw.contains("items.mycelking_spore_crown: 획득처 종류가 3개 (몬스터·상자·보스·대장간)"), sw);
         assertTrue(sw.contains("items.mycelking_spore_crown: sources [boss, craft] 가 실제 획득처 [boss, craft, drop] 와 다름"), sw);
         assertTrue(sw.contains("items.mycelking_guard_blade: sources [boss] 가 실제 획득처 [boss, drop] 와 다름"), sw);
+        assertTrue(sw.contains("items.mycelking_guard_blade: 영웅 이상 무기인데 획득처 종류가 2개 (몬스터·상자·보스)"), sw);
     }
 
     private static LootTable.Entry item(String id) {

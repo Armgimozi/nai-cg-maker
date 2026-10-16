@@ -15,9 +15,7 @@ import kr.labyrinth.content.Content;
 import kr.labyrinth.content.IntRange;
 import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.LootTable;
-import kr.labyrinth.content.MobDef;
 import kr.labyrinth.core.ContentLoader;
-import kr.labyrinth.core.Text;
 import kr.labyrinth.items.enhance.EnhanceRules;
 import kr.labyrinth.items.enhance.Enhancement;
 import kr.labyrinth.ui.menus.CodexMenu;
@@ -95,8 +93,8 @@ class TooltipFitTest {
                 boss++;
             }
             if (d.sources().contains("elite")) {
-                MobDef m = content.mob(content.floor(d.floor()).elite());
-                assertTrue(line.contains("정예 " + Text.strip(m.name()).trim() + "(" + d.floor() + "층)"), d.id() + ": " + line);
+                // 0.3.5: 정예 장비는 이웃 층 정예 둘·셋이 나눠 준다 (band_tNN_elite) — 하나뿐일 때만 이름
+                assertTrue(line.contains("정예"), d.id() + ": " + line);
                 elite++;
             }
             if (d.sources().contains("drop")) {
@@ -124,8 +122,9 @@ class TooltipFitTest {
             assertFalse(s.isEmpty(), d.id() + " 도감 획득처 없음");
             String all = String.join("\n", s);
             if (d.sources().contains("drop")) {
-                // 몹 6종·보물방·기믹방 이름이 줄줄이 붙지 않고 "몬스터·상자 지하 N층" 한 줄
-                assertTrue(s.get(0).contains("몬스터·상자") && s.get(0).endsWith("지하 " + d.floor() + "층"), d.id() + ": " + all);
+                // 몹 6종·보물방·기믹방 이름이 줄줄이 붙지 않고 "몬스터·상자 지하 N·N+1층" 한 줄 (0.3.5 — 이웃 층 mix_fNN_drop 이 나눠 줌)
+                assertTrue(s.get(0).contains("몬스터·상자") && s.get(0).endsWith("층") && s.get(0).matches(".*[ ·]" + d.tier() + "[·층].*"),
+                        d.id() + ": " + all);
                 assertFalse(all.contains("보물 상자") || all.contains("기믹 방") || all.contains("(" + d.floor() + "층)"), d.id() + ": " + all);
             }
             if (d.sources().contains("starter")) assertTrue(s.size() == 1 && s.get(0).contains("시작 지급"), d.id() + ": " + all);

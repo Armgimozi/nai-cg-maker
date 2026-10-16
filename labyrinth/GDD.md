@@ -213,8 +213,8 @@
 - 혼자서도 각 직업이 클리어 가능하도록 모든 직업에 생존기(보호막·흡혈·회피·순간이동·회복)가 하나 이상 있다.
 
 ### 4.4 장비 제한 없음 · 추천 무기 (`content.WeaponTypes`)
-- **착용 제한 없음**: 착용 조건은 요구 레벨뿐(`EquipRules`). `items.yml classes` 는 **추천 직업**으로만 남아 드롭 직업 편향(§11.10)·
-  시작 무기 고르기에만 쓰인다 (대장간 필터·툴팁 "추천 직업" 표시는 없어졌다). 직업이 없어도 장비는 다 쓴다.
+- **착용 제한 없음**: 착용 조건은 요구 능력치뿐(`EquipRules`). 0.3.5 부터 장비에는 `classes` 가 없다 — 드롭 편향은 요구 능력치로
+  (`own_build_bias`, §11.10). 대장간 필터·툴팁 "추천 직업" 표시는 없다. 직업이 없어도 장비는 다 쓴다.
 - **직업 스킬 입력**: 손에 **미궁 무기**(`type: weapon`)를 들고 있으면 종류와 상관없이 F/Q 가 직업 스킬. 그 밖의 손(맨손·방패·재료·
   **바닐라 칼·도끼·활**)은 F/Q 가 바닐라 그대로(손 바꾸기·버리기). 바닐라 무기는 기본 공격만 된다 — 바닐라 도끼·곡괭이에도 공격력이
   있어 F/Q 를 가로채면 평소 플레이(보조손 바꾸기·버리기)가 깨지고, 바닐라 무기는 1층 수준(`stats.VanillaWeapon`: 다이아 칼 7 ≈ 1층 일반 장검)이라 직업 스킬 기반으로 삼지 않는다.
@@ -873,8 +873,23 @@ SLIME(덩어리), RAVAGER(넓은 체형), VINDICATOR(인간형 대형). 피글�
 - **방패**: `type: armor`, `armor_slot: offhand`, 누구나(수호기사 추천). 보조손에 있을 때만 스탯 적용. **막기**: 정면 120° 안에서 받은 피해가
   `block_chance` 확률로 막힘 → 그 피해 ×0.4 + 피해 숫자 대신 "막음". 보스 패턴 중 `*_pct` 피해·장판 지속 피해는 막을 수 없다.
 
-### 11.3 획득 루트 — 장비는 한 층, 집은 최대 2곳 (0.3.2)
-**원칙**: 장비 하나는 자기 층(`items.yml floor`)에만 속하고 **획득처(집)는 최대 2곳**이다. 다른 층의 몹·정예·보스·상자 테이블은 그 장비를 주지 않고,
+### 11.3 획득 루트 — 단계 풀을 이웃 층이 나눠 준다 (0.3.5)
+**0.3.5 (gear_spec §4, `tools/gen_035_content.py`)** — 장비에 층 이름표가 없다:
+- 장비는 숨은 **단계** `items.yml tier` N 을 갖는다 = 그 장비를 만든 레벨 구간 Lv 5N−5 ~ 5N (예전 `floor` 값, 파서는 옛 `floor` 도 같은 값으로 읽고 경고).
+  재료의 `floor` 는 그대로(그 층 재료).
+- 보스가 아닌 장비는 **단계 풀** `band_tNN_<drop|trial|special|hoard|elite>` 에 들어가고, 레벨 창이 겹치는 이웃 층 셋(N−1 · N · N+1)이 나눠 준다 —
+  층 f 는 새 루팅 항목 `{pick: [{table, weight}, …], chance}` 로 단계 f−1 : f : f+1 = **2 : 7 : 1** (특별 시련 1 : 8 : 1, 없는 단계는 빼고 다시 나눔).
+- 획득처 종류: **몬스터·상자** `mix_fNN_drop` (일반 몹·보물방·미로 상자가 `{table:}` 로 굴림) · **시련방** `gimmick_floor_N` 의 PICK ·
+  **특별 시련** `special_trial_fNN` (P4 가 조건까지 지킨 시련방 성공에 굴림) · **금고·미믹** `hoard_fNN` (금고 안 상자 · 길들인 미믹 상자를 열 때 한 번 더 —
+  `Treasures.open`) · **정예** 정예 표의 PICK (방어구 세트 · 방패 · 장신구 · 정예 무기) · **보스** 그 보스 표만 · **대장간** · 상인 · 칭호 보상 · 시작 지급.
+- 장비 하나의 획득처 종류는 1~2개, **영웅 이상 무기는 1개** (보스 32 · 대장간 36 · 몬스터·상자 21 · 금고·미믹 19 · 특별 시련 18 · 시련방 15 · 정예 15).
+- 착용 요구 = `requires` 만 ('모두 채움', `requires_any` 없음) — 합 T(L) = ceil(2.75(L−1)), 능력치 2~3개 60:40 · 50:30:20 (§11.2·§2.5).
+- 무기 245 (0.3.4 131 + 새 106 − 활로 바뀐 근접 7 + 활 7 + 주인 결정 B2 8) · 새 방어구 6세트 24부위. 무기 레시피 골드 ×1.5.
+- 드롭 편향 `own_build_bias` 0.65 (§11.10) · 기대 회차 창(그 무기 요구에 맞춘 빌드가 자기 단계 층을 돌 때): 몬스터·상자 1~5.5 ·
+  시련방 2.5~7 · 금고·미믹 2.5~9 · 정예 3~7 · 특별 시련 2.5~9 (DropRateWindowTest).
+- 아래 표·확률은 0.3.4 까지의 판(층 공용 무기 `gear_fNN_common` 은 없어졌다) — 0.3.5 확률은 loot.yml 이 정본이다.
+
+**0.3.4 까지의 원칙**: 장비 하나는 자기 층(`items.yml floor`)에만 속하고 **획득처(집)는 최대 2곳**이다. 다른 층의 몹·정예·보스·상자 테이블은 그 장비를 주지 않고,
 레시피도 그 층 재료 + 그 층 정예 재료 + 그 층 정수 등급(+ 보스 장비는 그 보스 핵)만 쓴다. 층·희귀도로 후보를 모으던 `rarity_pool` 은 쓰지 않는다 —
 장비는 테이블에 이름으로만 넣는다(§11.10). "보스마다 고유 장비와 재료": 보스 핵은 그 보스 장비를 대장간에서 벼리는 재료이자 +9·+10 강화 재료(§11.13)다.
 
@@ -915,8 +930,8 @@ SLIME(덩어리), RAVAGER(넓은 체형), VINDICATOR(인간형 대형). 피글�
   정예 = 정예 재료 85% 1~2개 + 층 재료 묶음 + 그 층 정수 35%. 보스 = `guaranteed` 보스 핵 1 + 층 재료 4~6·3~5 + 그 층 정수 1~2,
   확률로 그 층 정예 재료 50% · 다음 등급 정수 15%(1~8층). 보물방·기믹방·미로 상자 = 그 층 재료·정수·물약·주문서 + 공용 무기(위 표),
   기믹방은 정수 1개 확정 + 정예 재료 15%, 미로 금 상자는 정수 확정 + 정예 재료 20%. 상인 핀 = 물약 6종 + 귀환·망각·전직 두루마리 + 하급 강화석(`npcs.yml shop`).
-- **직업 편향**(`settings.own_class_bias` 0.65): `one_of` 로 장비 하나를 고를 때 65% 는 루팅한 사람 직업에 어울리는(`classes`) 후보만 — 공용 무기는
-  약 70% 가 내 무기 종류로 나온다. 나머지 35% 는 전체 후보(파티원에게 건네줄 장비).
+- **빌드 편향**(0.3.5 `settings.own_build_bias` 0.65 — 예전 `own_class_bias`): `one_of` 로 장비 하나를 고를 때 65% 는 "요구치 가장 큰 능력치가
+  줍는 사람 능력치(직업 기본 + 분배 + 칭호) 상위 2개 안" 인 후보만(없으면 전체). 나머지 35% 는 전체 후보(파티원에게 건네줄 장비). 장비에는 `classes` 가 없다.
 - **`sources` 와 표시**: items.yml `sources` 는 위 집을 실제 테이블·레시피·칭호·상점·시작 꾸러미에서 계산해 적은 값(`drop`·`chest` = 몬스터·상자 한 집 ·
   `elite` · `boss` · `craft` · `reward` · `shop` · `starter`). 툴팁 "획득처" 한 줄 = "지하 3층 몬스터·상자" · "정예 대시계 집행관(9층) · 대장간" ·
   "보스 테오라(9층) · 대장간" · "칭호 보상" · "시작 지급" — 보스·정예 이름은 그 아이템을 주는 보스·정예가 하나뿐일 때만 붙이고, 줄이 넘치면 이름을 뺀다
@@ -1172,11 +1187,15 @@ LOD: 보는 사람이 24칸 밖이면 입자 절반, 48칸 밖이면 링만. 같
 ### 11.10 루팅 규칙 (LootService)
 - **개인 루팅**: 처치 기여자(파티원) 각자가 따로 굴리고, 결과는 그 사람에게만 보이는 드롭(또는 바로 인벤토리)으로 준다.
 - 테이블 = `rolls` 번 굴림. 한 번 굴릴 때 `entries` 각 항목이 **독립적으로** 자기 확률을 판정(여러 개 동시 가능). `guaranteed` 는 항상 1번.
-- 항목 종류(닫힌 목록): `item` · `rarity_pool` · `one_of` · `table`. 공통 선택 키 `min_difficulty`.
+- 항목 종류(닫힌 목록): `item` · `rarity_pool` · `one_of` · `table` · `pick`(0.3.5). 공통 선택 키 `min_difficulty`.
+- **pick** (0.3.5): `{pick: [{table: id, weight: n}, …], chance}` — chance 를 넘으면 무게대로 하위 표 하나를 골라 통째로 굴린다(`guaranteed` 에도 둘 수 있음,
+  장비 항목이 아니라 `rarity_weight` 없음). 하위 표가 없거나 무게 ≤ 0 이면 검사기 오류, 순환 금지. 층마다 이웃 단계 풀을 2 : 7 : 1 로 섞을 때 쓴다(§11.3).
 - **rarity_pool**: `items.yml` 에서 `floor == N` · `rarity` 일치 · `pool != false` · type ∈ weapon/armor/accessory 인 장비 중 하나.
   코드는 남아 있지만 **콘텐츠는 쓰지 않는다**(0.3.2 — 층·경로가 섞여서, §11.3). 장비는 전부 `pool: false` 이고, 쓰면 검사기가 경고한다.
   층 공용 무기는 `{table: gear_fNN_common, chance: p}` 한 줄, 정예·보스 장비는 테이블 안에 `one_of`/`item` 으로 직접 넣는다.
-- **직업 편향**(`settings.own_class_bias` 0.65): one_of(·rarity_pool)로 장비를 고를 때 65% 확률로 "루팅한 사람 직업에 어울리는 장비(`classes`)"만
+- **빌드 편향**(0.3.5 `settings.own_build_bias` 0.65, 예전 `own_class_bias` 도 같은 값으로 읽음): one_of(·rarity_pool)로 장비를 고를 때 65% 확률로
+  "요구치 1위 능력치가 줍는 사람 능력치 상위 2개 안" 인 장비만 (아래 0.3.4 설명의 직업 편향을 대신한다).
+- (0.3.4) 직업 편향(`settings.own_class_bias` 0.65): one_of(·rarity_pool)로 장비를 고를 때 65% 확률로 "루팅한 사람 직업에 어울리는 장비(`classes`)"만
   남긴다(없으면 전체). 나머지 35% 는 전체 후보 — 파티원에게 건네줄 장비가 나오는 재미. `classes` 는 착용 제한도 표시도 아니고 이 편향에만 쓴다.
 - **최종 확률** = min(1, `chance` × 난이도 `drop` × 파티 보상(1 + 0.05×(n−1)) × (1 + LUK × 0.005) × `rarity_weight[난이도][희귀도]`).
   `rarity_weight` 는 장비 항목(item 이 장비이거나 rarity_pool·one_of)에만 곱하고, one_of 는 후보 중 가장 높은 희귀도를 쓴다.
@@ -1701,7 +1720,8 @@ effect 프리셋 동작 (frames 동안 한 주기, 루프):
 - 일반·엘리트 몹 50종: 테이블 id = 몹 id (`mobs.yml drops`). 소환물(`rank: add`)은 `drops: null`.
 - 보스: `floor01_boss` … `floor10_boss`.
 - 방: `treasure_floor_1` … `treasure_floor_10`, `gimmick_floor_1` … `gimmick_floor_10`.
-- 층 공용 무기: `gear_f01_common` … `gear_f10_common` (그 층 몹·보물방·기믹방·미로 상자가 `{table:}` 로 굴림, §11.3).
+- 단계 풀 (0.3.5, §11.3): `band_t01_drop` … `band_t10_elite` (종류 drop·trial·special·hoard·elite) · 층 섞음 `mix_f01_drop` … `mix_f10_drop` ·
+  금고·미믹 `hoard_f01` … `hoard_f10` · 특별 시련 `special_trial_f01` … `special_trial_f10`. (0.3.4 의 `gear_fNN_common` 은 없어짐)
 - 미로 상자: 층별 `maze_chest_<wood|iron|gold>_f1` … `_f10`(우선) + 구간 `maze_chest_<tier>_<1~4>`(chests.bracket 강제·층별 표가 없을 때, 장비 없음) +
   강화석 `maze_enhance_<iron|gold>_t<1~3>`. 검사기는 `ChestTier.table` 과 같은 규칙으로 실제로 굴릴 표를 요구한다.
 
@@ -1742,8 +1762,8 @@ dungeon.yml 의 초반 완화 키(`party_mob_count`·`party_mob_reward`·`room_c
 ### 15.5 아이템·루팅 단계 Java 구현 키 (이 문서가 원본)
 - 무기 스킬 구현 id 17개(§17.2) + 조합형 `mechanics`(§17.5): `slash_wave` `dash_strike` `leap_slam` `nova` `fissure` `missile` `beam` `chain_bolt` `rain_zone`
   `whirlwind` `shadow_step` `empower` `sanctuary` `mend` `riposte` `vortex` `blade_orbit`
-- 아이템 스탯 키 26개 + 버프 키 10개(§11.7), 소모품 action 8개(§11.9), 방패 막기(§11.2), 장비 floor/pool/sources(§11.10)
-- 루팅 항목 4종 `item` `rarity_pool` `one_of` `table` + `guaranteed` · `gold` · `min_difficulty` · `settings`(§11.10) — `rarity_pool` 은 콘텐츠에서 쓰지 않음(검사기 경고)
+- 아이템 스탯 키 26개 + 버프 키 10개(§11.7), 소모품 action 8개(§11.9), 방패 막기(§11.2), 장비 tier(0.3.5, 옛 floor)/pool/sources(§11.10)
+- 루팅 항목 5종 `item` `rarity_pool` `one_of` `table` `pick`(0.3.5) + `guaranteed` · `gold` · `min_difficulty` · `settings`(§11.10) — `rarity_pool` 은 콘텐츠에서 쓰지 않음(검사기 경고)
 - 장비별 강화 재료 `enhance.yml` `{version, bands: {low, mid, high}, items: {<장비 id>: {low|mid|high: {재료: 개수 | [단계별 개수]}}}}`(§11.13)
 - 레시피 `category` · `amount`(§11.11), 세트 `bonuses`(착용 개수 이상) · `look`(§14.7)
 - 칭호는 모두 서버에서 1명만 (0.3.4 — 예전 키 `server_first` 무시), 조건 `ENHANCE {level}`

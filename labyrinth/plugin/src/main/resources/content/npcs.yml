@@ -112,6 +112,9 @@ npcs:
       - {item: stat_reset_scroll, price: 2000}
       - {item: class_change_scroll, price: 3000}
       - {item: lesser_enhance_stone, price: 60}
+      - {item: wayfarer_sabre, price: 1500, level_req: 3}
+      - {item: silk_antler_staff, price: 2000, level_req: 8}
+      - {item: glowcap_twin_bow, price: 2500, level_req: 11}
 
   # ═══════════════════════════ 층 안 이야기 NPC (휴식방) ═══════════════════════════
 

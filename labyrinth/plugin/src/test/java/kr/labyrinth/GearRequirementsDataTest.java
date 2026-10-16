@@ -8,38 +8,37 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import kr.labyrinth.content.ArmorLook;
+import kr.labyrinth.combat.DamageKind;
 import kr.labyrinth.content.BossDef;
 import kr.labyrinth.content.ClassDef;
 import kr.labyrinth.content.Content;
 import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.ItemType;
 import kr.labyrinth.content.LootTable;
-import kr.labyrinth.content.MobDef;
 import kr.labyrinth.content.Params;
-import kr.labyrinth.content.RecipeDef;
 import kr.labyrinth.content.Rarity;
+import kr.labyrinth.content.RecipeDef;
+import kr.labyrinth.content.StatRequirement;
 import kr.labyrinth.core.ContentLoader;
-import kr.labyrinth.dungeon.treasure.ChestTier;
+import kr.labyrinth.core.ContentValidator;
+import kr.labyrinth.items.loot.LootRoller;
 import kr.labyrinth.stats.Stat;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
- * 장비 데이터 — 착용 요구 능력치(items.yml {@code requires} · {@code requires_any})와 영웅 이상 무기 획득처 1곳.
- * 무기 요구 능력치 = ceil(2.5 × (숨은 아이템 레벨 − 1)), 2 이하면 없음 — 무기마다 정한다(종류 없음 — 모두 채워야 하는 AND,
- * 물리 무기는 힘·민첩, 마법 무기는 지능·정신 중 하나 이상). 방어구·방패 규칙(0.3.5 겉모습 — 합 ceil(2.75(L−1)), 두 능력치)은
- * {@code items.ArmorRequirementsDataTest}. '내 능력치' = 직업 기본 + 분배 포인트 (+ 칭호).
- * 파서가 아직 요구 능력치를 따로 읽지 않아도 되게 {@link ItemDef#raw()} 에서 직접 읽는다.
+ * 장비 착용 요구 능력치 (0.3.5, gear_spec §2 — items.yml {@code requires} 만, '모두 채움'). 무기·방어구·방패 모두
+ * 합 = T(L) = ceil(2.75 × (L − 1)), L ≤ 2 면 없음, 능력치 2~3개 60 : 40 · 50 : 30 : 20 (셋은 L ≥ 12). 물리 무기는 STR·DEX,
+ * 마법 무기는 INT·WIS 가 하나 이상. 획득처 종류 1개인 영웅 이상 무기 · 보스 고유 무기 처치당 확률(own_build_bias) ·
+ * 직업마다 띠마다 세금 ≤ 15% 한 벌 (g2_check 와 같은 계산, {@link GearModel}).
+ * 방어구 겉모습별 규칙(앞 능력치 = 겉모습 능력치)은 {@code items.ArmorRequirementsDataTest}.
  */
 class GearRequirementsDataTest {
 
@@ -47,14 +46,6 @@ class GearRequirementsDataTest {
     static int startPoints;
     static int pointsPerLevel;
     static List<String> starterKit = new ArrayList<>();
-
-    static final List<String> MAIN = List.of("STR", "DEX", "INT", "VIT", "WIS");
-    /** 무기 피해 종류 → 요구에 하나 이상 들어 있어야 하는 능력치. */
-    static final Map<kr.labyrinth.combat.DamageKind, Set<String>> WEAPON_DAMAGE_STATS = Map.of(
-            kr.labyrinth.combat.DamageKind.PHYSICAL, Set.of("STR", "DEX"), kr.labyrinth.combat.DamageKind.MAGIC, Set.of("INT", "WIS"),
-            kr.labyrinth.combat.DamageKind.HYBRID, Set.of("STR", "DEX", "INT", "WIS"));
-    static final Map<ArmorLook, Set<String>> LOOK_CLASSES = Map.of(ArmorLook.HEAVY, Set.of("guardian", "berserker"),
-            ArmorLook.LIGHT, Set.of("hunter", "shadow"), ArmorLook.CLOTH, Set.of("arcanist", "priest"));
 
     @BeforeAll
     static void load() {
@@ -65,204 +56,209 @@ class GearRequirementsDataTest {
         for (Map<?, ?> m : cfg.getMapList("starter_kit.items")) starterKit.add(String.valueOf(m.get("item")));
     }
 
+    static boolean gear(ItemDef d) { return d.isWeapon() || d.type() == ItemType.ARMOR; }
+
     // ── 요구 능력치 ─────────────────────────────────────────────
 
-    static Map<String, Integer> read(ItemDef d, String key) {
-        Map<String, Integer> out = new LinkedHashMap<>();
-        Params p = d.raw().sub(key);
-        for (String k : p.keys()) out.put(k, p.integer(k, 0));
-        return out;
-    }
-
-    static int value(int level) {
-        int r = (int) Math.ceil(2.5 * (level - 1));
-        return r > 2 ? r : 0;
+    @Test
+    void noRequiresAnyAnywhere() {
+        for (ItemDef d : content.items().values()) {
+            assertFalse(d.raw() != null && d.raw().has("requires_any"), d.id() + " 에 requires_any (0.3.5 에서 없어짐)");
+            Params p = d.raw() == null ? Params.EMPTY : d.raw().sub("requires");
+            for (String k : p.keys()) assertNotNull(Stat.byKey(k), d.id() + " 모르는 능력치 " + k);
+        }
     }
 
     @Test
     void everyGearRequirementFollowsTheRule() {
         int with = 0;
         for (ItemDef d : content.items().values()) {
-            Map<String, Integer> all = read(d, "requires"), any = read(d, "requires_any");
-            for (String k : all.keySet()) assertNotNull(Stat.byKey(k), d.id() + " 모르는 능력치 " + k);
-            for (String k : any.keySet()) assertNotNull(Stat.byKey(k), d.id() + " 모르는 능력치 " + k);
-            boolean gear = d.isWeapon() || d.type() == ItemType.ARMOR;
-            if (!gear) {
-                assertTrue(all.isEmpty() && any.isEmpty(), d.id() + " (" + d.type() + ") 에는 요구 능력치가 없다");
+            StatRequirement r = d.requirement();
+            if (!gear(d)) {
+                assertTrue(r.isEmpty(), d.id() + " (" + d.type() + ") 에는 요구 능력치가 없다");
                 continue;
             }
+            int t = StatRequirement.budget(d.levelReq());
+            if (t == 0) {
+                assertTrue(r.isEmpty(), d.id() + " Lv" + d.levelReq() + " 은 요구 없음");
+                continue;
+            }
+            with++;
+            int n = r.all().size();
+            assertTrue(n >= 2 && n <= 3, d.id() + " 요구 능력치 " + n + "개 " + r.all());
+            if (n == 3) assertTrue(d.levelReq() >= 12, d.id() + " 세 능력치는 Lv12 부터 (Lv" + d.levelReq() + ")");
+            assertEquals(t, r.total(), d.id() + " 요구 합 (Lv" + d.levelReq() + ")");
+            assertTrue(ContentValidator.splitOk(r, t), d.id() + " 나눔이 60/40 · 50/30/20 이 아님 " + r.all());
             if (d.isWeapon()) {
-                // 무기: 종류 없이 무기마다 — 모두 채워야 함(AND), 합 = 규칙 값, 피해 종류의 능력치가 하나 이상
-                assertTrue(any.isEmpty(), d.id() + " 무기 요구는 '모두 채움'만 (requires_any 없음)");
-                int r = value(d.levelReq());
-                assertEquals(r, all.values().stream().mapToInt(Integer::intValue).sum(), d.id() + " 요구 합 (아이템 레벨 " + d.levelReq() + ")");
-                if (r > 0) {
-                    Set<String> dmg = WEAPON_DAMAGE_STATS.get(d.attack().kind());
-                    assertTrue(all.keySet().stream().anyMatch(dmg::contains), d.id() + " " + d.attack().kind() + " 무기인데 요구 " + all);
-                }
-            }
-            // 방어구·방패 요구 규칙은 ArmorRequirementsDataTest
-            if (!all.isEmpty() || !any.isEmpty()) with++;
-            if (!d.isWeapon() && !d.isShield() && !d.classes().isEmpty() && d.armorLook().real()) {
-                assertTrue(LOOK_CLASSES.get(d.armorLook()).containsAll(d.classes()), d.id() + " 겉모습 " + d.armorLook() + " 인데 classes " + d.classes());
+                Set<Stat> dmg = d.attack().kind() == DamageKind.MAGIC ? Set.of(Stat.INT, Stat.WIS) : Set.of(Stat.STR, Stat.DEX);
+                assertTrue(r.all().keySet().stream().anyMatch(dmg::contains), d.id() + " " + d.attack().kind() + " 무기인데 요구 " + r.all());
             }
         }
-        assertTrue(with >= 200, "요구 능력치가 붙은 장비 " + with);
+        assertTrue(with >= 330, "요구 능력치가 붙은 장비 " + with);
     }
-
-    /** 그 장비를 끼려고 직업 기본 능력치 위에 더 찍어야 하는 포인트. */
-    static int pointsFor(ClassDef c, Map<String, Integer> need, List<Map<String, Integer>> anyOf) {
-        Map<String, Integer> target = new HashMap<>(need);
-        for (Map<String, Integer> any : anyOf) {
-            if (any.isEmpty()) continue;
-            boolean met = any.entrySet().stream().anyMatch(e -> Math.max(target.getOrDefault(e.getKey(), 0), base(c, e.getKey())) >= e.getValue());
-            if (met) continue;
-            String cheapest = any.keySet().stream().min((a, b) -> Integer.compare(
-                    any.get(a) - Math.max(target.getOrDefault(a, 0), base(c, a)), any.get(b) - Math.max(target.getOrDefault(b, 0), base(c, b)))).orElseThrow();
-            target.merge(cheapest, any.get(cheapest), Math::max);
-        }
-        int pts = 0;
-        for (var e : target.entrySet()) pts += Math.max(0, e.getValue() - base(c, e.getKey()));
-        return pts;
-    }
-
-    static int base(ClassDef c, String stat) { return c.baseStat(Stat.byKey(stat)); }
-
-    static int pointsFor(ClassDef c, ItemDef d) { return pointsFor(c, read(d, "requires"), List.of(read(d, "requires_any"))); }
 
     @Test
-    void everyClassWearsItsStarterGearFreeAndFloorOneGearWithStartPoints() {
+    void damageStatlessWeaponsAreFewPerBand() {
+        // 피해 능력치(물리 STR · 마법 INT)를 요구하지 않는 무기 — 띠 3~10 에서 띠마다 3개 이하 (1·2 띠는 요구 합 ≤ 25 라 제외)
+        Map<Integer, List<String>> byBand = new TreeMap<>();
+        for (ItemDef d : content.items().values()) {
+            if (!d.isWeapon() || d.requirement().isEmpty()) continue;
+            Stat dmg = d.attack().kind() == DamageKind.MAGIC ? Stat.INT : Stat.STR;
+            if (!d.requirement().all().containsKey(dmg)) byBand.computeIfAbsent(GearModel.band(d.levelReq()), k -> new ArrayList<>()).add(d.id());
+        }
+        for (var e : byBand.entrySet()) {
+            if (e.getKey() >= 3) assertTrue(e.getValue().size() <= 3, "띠 " + e.getKey() + " 피해 능력치 없는 무기 " + e.getValue());
+        }
+    }
+
+    @Test
+    void setPiecesShareTheirRequirementAndNoviceIsFree() {
+        Map<String, StatRequirement> sets = new TreeMap<>();
+        for (ItemDef d : content.items().values()) {
+            if (d.type() != ItemType.ARMOR || d.isShield() || d.setBonus() == null) continue;
+            StatRequirement prev = sets.putIfAbsent(d.setBonus(), d.requirement());
+            if (prev != null) assertEquals(prev, d.requirement(), d.id() + " 세트 " + d.setBonus() + " 네 부위 요구가 다름");
+        }
+        assertTrue(sets.size() >= 25, "세트 " + sets.size());
+        assertTrue(sets.get("novice").isEmpty(), "시작 지급(novice)은 요구 없음");
+        for (String id : starterKit) {
+            ItemDef d = content.item(id);
+            if (d != null) assertTrue(d.requirement().isEmpty(), "시작 꾸러미 " + id + " 에 요구 " + d.requirement().all());
+        }
+    }
+
+    @Test
+    void starterWeaponsFree() {
+        assertEquals(6, content.classes().size());
         for (ClassDef c : content.classes().values()) {
-            ItemDef starter = content.item(c.starterWeapon());
-            assertNotNull(starter, c.id() + " starter_weapon " + c.starterWeapon());
-            assertEquals(0, pointsFor(c, starter), c.id() + " 시작 무기 " + starter.id());
-            for (String id : starterKit) {
-                ItemDef d = content.item(id);
-                if (d != null && d.isGear()) assertEquals(0, pointsFor(c, d), c.id() + " 시작 꾸러미 " + id);
-            }
-            int f1 = 0;
-            for (ItemDef d : content.items().values()) {
-                if (!(d.isWeapon() || d.type() == ItemType.ARMOR) || d.floor() != 1 || !d.suitedFor(c.id())) continue;
-                // 방어구는 평상복만 Lv.1 에 (겉모습 방어구는 그 아이템 레벨에서 — 1층 보스 투구 Lv5, ownFloorKit… 이 본다)
-                if (d.type() == ItemType.ARMOR && d.armorLook() != ArmorLook.PLAIN) continue;
-                f1++;
-                assertTrue(pointsFor(c, d) <= startPoints, c.id() + " Lv.1 에서 1층 " + d.id() + " 에 포인트 " + pointsFor(c, d) + " > " + startPoints);
-            }
-            assertTrue(f1 >= 10, c.id() + " 1층 장비 " + f1);
+            ItemDef w = content.item(c.starterWeapon());
+            assertNotNull(w, c.id() + " starter_weapon " + c.starterWeapon());
+            assertTrue(w.requirement().isEmpty(), c.id() + " 시작 무기 " + w.id() + " 요구 " + w.requirement().all());
+            assertEquals(1, w.levelReq(), w.id());
         }
     }
+
+    // ── 획득처 ─────────────────────────────────────────────
+
+    static String kind(String tag) { return tag.equals("drop") || tag.equals("chest") ? "common" : tag; }
+
+    static boolean top(ItemDef d) { return d.isWeapon() && d.rarity().atLeast(Rarity.EPIC); }
 
     @Test
-    void ownFloorKitFitsTheStatPointsAtItsLevel() {
-        // 그 층 내 무기(가장 높은 것) + 내 겉모습 방어구 부위별 가장 높은 것 (+ 수호기사 방패) — 그 장비 레벨에서 받은 포인트로 다 낄 수 있다
-        for (ClassDef c : content.classes().values()) {
-            for (int f = 1; f <= content.maxFloor(); f++) {
-                Map<String, ItemDef> best = new HashMap<>();
-                for (ItemDef d : content.items().values()) {
-                    if (d.floor() != f) continue;
-                    String slot = null;
-                    if (d.isWeapon() && d.classes().contains(c.id())) slot = "weapon";
-                    else if (d.isShield() && c.id().equals("guardian")) slot = "offhand";
-                    else if (!d.isWeapon() && !d.isShield() && d.type() == ItemType.ARMOR && !d.classes().isEmpty() && d.classes().contains(c.id())) slot = d.armorSlot();
-                    if (slot == null) continue;
-                    best.merge(slot, d, (a, b) -> a.levelReq() >= b.levelReq() ? a : b);
-                }
-                Map<String, Integer> need = new HashMap<>();
-                List<Map<String, Integer>> any = new ArrayList<>();
-                int level = 1;
-                for (ItemDef d : best.values()) {
-                    read(d, "requires").forEach((k, v) -> need.merge(k, v, Math::max));
-                    any.add(read(d, "requires_any"));
-                    level = Math.max(level, d.levelReq());
-                }
-                int pts = pointsFor(c, need, any), have = startPoints + pointsPerLevel * (level - 1);
-                assertTrue(pts <= have, c.id() + " " + f + "층 한 벌 " + best.keySet() + " Lv" + level + ": 포인트 " + pts + " > " + have);
-            }
-        }
-    }
-
-    // ── 영웅 이상 무기 획득처 1곳 ─────────────────────────────────
-
-    private static Set<String> expand(String tableId, Set<String> seen) {
-        Set<String> out = new HashSet<>();
-        LootTable t = content.lootTable(tableId);
-        if (t == null || !seen.add(tableId)) return out;
-        List<LootTable.Entry> all = new ArrayList<>(t.entries());
-        all.addAll(t.guaranteed());
-        for (LootTable.Entry e : all) {
-            switch (e.kind()) {
-                case ITEM -> out.add(e.item());
-                case ONE_OF -> out.addAll(e.oneOf());
-                case TABLE -> out.addAll(expand(e.table(), new HashSet<>(seen)));
-                case RARITY_POOL -> { }
-            }
-        }
-        return out;
-    }
-
-    /** 장비 → 집 (common = 몬스터·상자 · elite · boss · craft · reward · shop). */
-    static Map<String, Set<String>> homes() {
-        Map<String, Set<String>> h = new HashMap<>();
-        Map<String, String> tables = new LinkedHashMap<>();
-        for (MobDef m : content.mobs().values()) if (m.drops() != null) tables.put(m.drops(), m.isElite() ? "elite" : "common");
-        for (BossDef b : content.bosses().values()) tables.put(b.drops(), "boss");
-        for (int f = 1; f <= content.maxFloor(); f++) {
-            tables.put("treasure_floor_" + f, "common");
-            tables.put("gimmick_floor_" + f, "common");
-            for (ChestTier t : ChestTier.values()) tables.put("maze_chest_" + t.id() + "_f" + f, "common");
-        }
-        tables.forEach((t, home) -> {
-            for (String id : expand(t, new HashSet<>())) h.computeIfAbsent(id, k -> new TreeSet<>()).add(home);
-        });
-        for (RecipeDef r : content.recipes().values()) h.computeIfAbsent(r.result(), k -> new TreeSet<>()).add("craft");
-        content.achievements().values().forEach(a -> a.rewardItems().keySet().forEach(id -> h.computeIfAbsent(id, k -> new TreeSet<>()).add("reward")));
-        content.npcs().values().forEach(n -> n.shop().forEach(s -> h.computeIfAbsent(s.item(), k -> new TreeSet<>()).add("shop")));
-        return h;
-    }
-
-    static boolean top(ItemDef d) { return d.isWeapon() && d.rarity().ordinal() >= Rarity.EPIC.ordinal(); }
-
-    @Test
-    void topWeaponsHaveExactlyOneHome() {
-        Map<String, Set<String>> h = homes();
-        Map<String, Integer> byHome = new TreeMap<>();
+    void topWeaponsHaveExactlyOneSourceKind() {
         Set<String> recipeResults = new HashSet<>();
         for (RecipeDef r : content.recipes().values()) recipeResults.add(r.result());
+        Map<String, Integer> byKind = new TreeMap<>();
         for (ItemDef d : content.items().values()) {
             if (!top(d)) continue;
-            Set<String> got = h.getOrDefault(d.id(), Set.of());
-            assertEquals(1, got.size(), d.id() + " (" + d.rarity().id() + ") 획득처 " + got);
-            byHome.merge(got.iterator().next(), 1, Integer::sum);
-            if (d.sources().contains("boss")) {
-                assertEquals(List.of("boss"), d.sources(), d.id());
-                assertFalse(recipeResults.contains(d.id()), d.id() + " 보스 고유 무기에 제작법");
-            }
+            Set<String> kinds = new TreeSet<>();
+            for (String s : d.sources()) kinds.add(kind(s));
+            assertEquals(1, kinds.size(), d.id() + " (" + d.rarity().id() + ") 획득처 종류 " + kinds);
+            byKind.merge(kinds.iterator().next(), 1, Integer::sum);
+            if (d.sources().contains("boss")) assertFalse(recipeResults.contains(d.id()), d.id() + " 보스 고유 무기에 제작법");
             if (d.sources().contains("craft")) assertEquals(List.of("craft"), d.sources(), d.id() + " 대장간 무기가 드롭에도 있음");
         }
-        // 보스 고유(2~10층 전설·영웅 + 신화) · 대장간(4·5·6·8·9·10층) · 5층 몬스터·상자
-        assertEquals(Map.of("boss", 32, "craft", 36, "common", 6), byHome, "영웅 이상 무기 집별 수");
+        // gear_spec §12 (보스 32 · 대장간 36 · 몬스터·상자 21 · 금고·미믹 16 · 특별 시련 15 · 시련방 11 · 정예 10)
+        // + B2 영웅 7 (시련방 2 · 정예 3 · 금고·미믹 1 · 특별 시련 1) + 31~35 영웅 올림 8 (금고·미믹 2 · 특별 시련 2 · 시련방 2 · 정예 2)
+        assertEquals(Map.of("boss", 32, "craft", 36, "common", 21, "hoard", 19, "special", 18, "trial", 15, "elite", 15), byKind,
+                "영웅 이상 무기 획득처 종류별 수");
     }
 
     @Test
-    void bossUniqueWeaponsDropOftenEnoughWithoutACraftFallback() {
-        // 보통·솔로·LUK 0 에서 처치 1번당 '내 직업' 고유 무기 확률 = chance × (편향 + (1 − 편향) / 묶음 수) — 제작으로 메울 수 없으니
-        // 영웅 30% 이상 · 전설 15% 이상 (신화는 어려움 이상 10층 전용 — 따로)
-        double bias = content.lootSettings().ownClassBias();
+    void bossUniqueWeaponsDropOftenEnough() {
+        // 보통·솔로·LUK 0 에서 처치 1번당 '그 무기 요구에 맞춘 빌드'(능력치 상위 2개 = 그 무기 요구 위 두 능력치) 확률
+        // = chance × (편향 ÷ 빌드에 맞는 후보 수 + (1 − 편향) ÷ 묶음 수) — LootRoller.pick 과 같은 규칙. 제작으로 메울 수 없으니
+        // 영웅 30% 이상 · 전설 15% 이상 · 55% 이하 (신화는 어려움 이상 10층 전용 — 따로)
+        double bias = content.lootSettings().ownBuildBias();
+        assertEquals(0.65, bias, 1e-9);
         int checked = 0;
         for (BossDef b : content.bosses().values()) {
-            for (LootTable.Entry e : content.lootTable(b.drops()).entries()) {
+            LootTable t = content.lootTable(b.drops());
+            List<LootTable.Entry> all = new ArrayList<>(t.entries());
+            all.addAll(t.guaranteed());
+            for (LootTable.Entry e : all) {
                 List<String> ids = e.kind() == LootTable.Kind.ONE_OF ? e.oneOf() : e.kind() == LootTable.Kind.ITEM ? List.of(e.item()) : List.of();
+                double chance = t.guaranteed().contains(e) ? 1.0 : e.chance();
                 for (String id : ids) {
                     ItemDef d = content.item(id);
                     if (d == null || !top(d) || d.rarity() == Rarity.MYTHIC) continue;
-                    double own = e.chance() * (ids.size() > 1 ? bias + (1 - bias) / ids.size() : 1.0);
+                    List<Stat> build = new ArrayList<>();
+                    for (var r : d.requirement().ordered()) if (build.size() < LootRoller.BUILD_TOP) build.add(r.getKey());
+                    double own;
+                    if (ids.size() == 1) own = chance;
+                    else {
+                        int fit = 0;
+                        for (String o : ids) if (LootRoller.fitsBuild(content.item(o), build)) fit++;
+                        own = chance * (bias / fit + (1 - bias) / ids.size());
+                    }
                     double min = d.rarity() == Rarity.EPIC ? 0.30 : 0.15;
-                    assertTrue(own >= min, d.id() + " 처치당 내 직업 확률 " + own);
-                    assertTrue(own <= 0.5, d.id() + " 너무 흔함 " + own);
+                    assertTrue(own >= min, d.id() + " 처치당 내 빌드 확률 " + own);
+                    // 2·3층 영웅 셋 묶음은 둘이 주 능력치를 나눠 써서 묶음 확률을 0.68 로 올렸다 — 혼자인 하나가 0.52
+                    assertTrue(own <= 0.55, d.id() + " 너무 흔함 " + own);
                     checked++;
                 }
             }
         }
         assertEquals(26, checked, "영웅·전설 보스 고유 무기 수");
+    }
+
+    // ── 직업마다 끼는 한 벌 ─────────────────────────────────────
+
+    @Test
+    void bandOneEarly() {
+        // Lv3 (포인트 15) 에 직업마다 띠 1 무기 3개 이상 + 길손(wayfarer) 한 벌을 함께 낀다
+        int lv = 3, pts = startPoints + pointsPerLevel * (lv - 1);
+        assertEquals(15, pts);
+        Map<Stat, Integer> wayfarer = null;
+        for (ItemDef d : content.items().values()) if ("wayfarer".equals(d.setBonus()) && d.type() == ItemType.ARMOR) wayfarer = d.requirement().all();
+        assertNotNull(wayfarer, "wayfarer 세트");
+        for (ClassDef c : content.classes().values()) {
+            Map<Stat, Integer> base = GearModel.base(c);
+            List<String> ok = new ArrayList<>();
+            for (ItemDef w : content.items().values()) {
+                if (!w.isWeapon() || w.levelReq() > lv || w.rarity() == Rarity.MYTHIC) continue;
+                Map<Stat, Integer> kit = GearModel.kit(List.of(w.requirement().all(), wayfarer));
+                int need = 0;
+                for (var e : kit.entrySet()) need += Math.max(0, e.getValue() - base.getOrDefault(e.getKey(), 0));
+                if (need <= pts) ok.add(w.id());
+            }
+            assertTrue(ok.size() >= 3, c.id() + " Lv3 무기 + 길손 한 벌 " + ok);
+        }
+    }
+
+    @Test
+    void everyClassHasAKitEveryBand() {
+        // 직업마다 띠마다 (포인트 = 5 × 띠 끝 레벨, 칭호 없음) 그 띠 무기(피해 종류 맞음) + 방어구 세트 (+ 수호기사 방패) 를
+        // 세금 ≤ 15% 로 끼는 무기가 3개 이상
+        List<String> short_ = new ArrayList<>();
+        for (int b = 1; b <= 10; b++) {
+            for (String c : GearModel.CLASSES) {
+                List<String> good = GearModel.goodWeapons(content, c, b, false);
+                if (good.size() < 3) short_.add(c + "|" + b + " " + good);
+            }
+        }
+        assertTrue(short_.isEmpty(), "알맞은 한 벌이 3개 미만: " + short_);
+    }
+
+    @Test
+    void noOrphanWeapon() {
+        // 모든 무기는 직업 기본 분배 또는 다른 빌드 5종(치명·마검사·전투 사제·민첩 시전·방벽 시전) 중 하나로 자기 레벨 + 2 에서 세금 ≤ 15%
+        List<String> orphans = new ArrayList<>();
+        for (ItemDef w : content.items().values()) {
+            if (!w.isWeapon() || w.requirement().isEmpty()) continue;
+            int p = w.levelReq() + 2;
+            boolean ok = false;
+            for (ClassDef c : content.classes().values()) {
+                Map<Stat, Integer> base = GearModel.base(c);
+                List<Map<Stat, Double>> ratios = new ArrayList<>(List.of(GearModel.SPREAD.get(c.id())));
+                ratios.addAll(GearModel.ARCH.values());
+                for (Map<Stat, Double> ratio : ratios) {
+                    GearModel.Tax t = GearModel.tax(base, ratio, p, w.requirement().all());
+                    if (t.feasible() && t.extra() / GearModel.pointsAt(p) <= GearModel.TAX_OK + 1e-9) ok = true;
+                }
+            }
+            if (!ok) orphans.add(w.id());
+        }
+        assertTrue(orphans.isEmpty(), "어떤 빌드로도 알맞게 못 끼는 무기 " + orphans);
     }
 }

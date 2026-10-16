@@ -1,0 +1,4331 @@
+{
+ "_about": "0.3.5 P3 설계 입력 (P3 설계 계산 결과 — 칸 판정은 ClassBandChoiceTest · GearModel 과 같은 식): review2 §1.B B1 고침 23개 (요구 짝 8 · 무기 스킬 +1 8 · 근접 → 활 7) + 31–35 새 희귀 8개 영웅 승격(무기 스킬 1개) + 주인 결정 B2 새 무기 8개(245개). tools/gen_035_content.py 가 gear_spec.json · unique_assign.json 위에 덮어쓴다.",
+ "cells": {
+  "pass": 55,
+  "fail": {
+   "hunter|7": {
+    "dom": null,
+    "viable": [
+     "prismstring_longbow",
+     "galewing_bow"
+    ]
+   },
+   "arcanist|7": {
+    "dom": null,
+    "viable": [
+     "twin_light_scepter"
+    ]
+   },
+   "priest|7": {
+    "dom": null,
+    "viable": [
+     "twin_light_scepter",
+     "resonance_chime_rod"
+    ]
+   },
+   "priest|8": {
+    "dom": null,
+    "viable": [
+     "inkwell_staff"
+    ]
+   },
+   "shadow|9": {
+    "dom": "doomclock_executioner",
+    "viable": [
+     "clockguard_mace",
+     "regulator_greatsword",
+     "doomclock_executioner",
+     "clock_greatsword",
+     "clock_broadsword",
+     "clock_bone_bow"
+    ]
+   }
+  }
+ },
+ "remove_weapons": {
+  "pit_war_spear": "pit_bone_bow",
+  "glowcap_rapier": "glowcap_twin_bow",
+  "sluice_morning_star": "sluice_bone_bow",
+  "ember_tanto": "ember_twin_bow",
+  "ink_flamberge": "ink_twin_bow",
+  "clock_katar": "clock_bone_bow",
+  "void_tanto": "void_bone_bow"
+ },
+ "weapons": {
+  "rootgnaw_tanto": {
+   "name": "뿌리 갉는 탄토",
+   "type": "weapon",
+   "attack": {
+    "style": "melee",
+    "interval": 0.5,
+    "kind": "physical"
+   },
+   "rarity": "rare",
+   "level_req": 5,
+   "tier": 1,
+   "requires": {
+    "STR": 7,
+    "LUK": 4
+   },
+   "stats": {
+    "damage": [
+     8,
+     9
+    ],
+    "STR": [
+     2,
+     3
+    ],
+    "lifesteal": [
+     0.011,
+     0.015
+    ],
+    "crit_damage": [
+     0.038,
+     0.052
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "hoard"
+   ],
+   "unique": {
+    "id": "berserk",
+    "name": "갉아먹는 뿌리",
+    "pct": 0.03,
+    "ls": 0.06,
+    "thr": 0.3
+   },
+   "model": {
+    "shape": "tanto",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "moss",
+    "palette": [
+     "#1e2a14",
+     "#3c5a22",
+     "#6f9a3a",
+     "#b8d880",
+     "#f0ffd0"
+    ]
+   },
+   "lore": "뿌리 속에 박혀 자란 짧은 칼. 뽑아 든 손에 뿌리가 먼저 감긴다."
+  },
+  "miners_lamp_crook": {
+   "name": "광부의 등롱 지팡이",
+   "type": "weapon",
+   "attack": {
+    "style": "caster",
+    "interval": 0.91,
+    "kind": "magic"
+   },
+   "rarity": "uncommon",
+   "level_req": 8,
+   "tier": 2,
+   "requires": {
+    "INT": 12,
+    "WIS": 8
+   },
+   "stats": {
+    "damage": [
+     15,
+     16
+    ],
+    "INT": [
+     2,
+     3
+    ],
+    "cooldown_reduction": [
+     0.012,
+     0.016
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "drop",
+    "chest"
+   ],
+   "unique": {
+    "id": "siphon",
+    "name": "등롱 기름",
+    "mp": 0.12,
+    "cdr": 1.2
+   },
+   "model": {
+    "shape": "lamp_crook",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "rusted_iron",
+    "palette": [
+     "#2a1a10",
+     "#5a3a1e",
+     "#9a6a3a",
+     "#e0b070",
+     "#fff0c0"
+    ]
+   },
+   "lore": "갱도 끝까지 들고 다니던 등롱 막대. 불꽃이 꺼진 적이 없다고 한다.",
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "은실 연쇄 섬광",
+     "input": "RIGHT",
+     "cooldown": 10.0,
+     "mana": 14,
+     "description": "적 사이를 튀는 섬광을 쏘고 MP 를 조금 되찾는다.",
+     "params": {
+      "damage_type": "magic"
+     },
+     "mechanics": [
+      {
+       "type": "chain",
+       "jumps": 3,
+       "range": 10,
+       "falloff": 0.8,
+       "effects": [
+        {
+         "damage": 1.37
+        }
+       ]
+      },
+      {
+       "type": "self",
+       "effects": [
+        {
+         "mana": 8
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "pit_bone_bow": {
+   "name": "감독관의 뼈 활",
+   "type": "weapon",
+   "attack": {
+    "style": "ranged",
+    "interval": 1.15,
+    "kind": "physical"
+   },
+   "rarity": "uncommon",
+   "level_req": 8,
+   "tier": 2,
+   "requires": {
+    "DEX": 12,
+    "STR": 8
+   },
+   "stats": {
+    "damage": [
+     21,
+     23
+    ],
+    "DEX": [
+     2,
+     3
+    ],
+    "damage_reduction": [
+     0.01,
+     0.014
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "elite"
+   ],
+   "unique": {
+    "id": "bash_stun",
+    "name": "입구 막기",
+    "n": 2,
+    "stun": 1.5,
+    "pct": 0.45,
+    "vuln": 0.14
+   },
+   "model": {
+    "shape": "bone_bow",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "rusted_iron",
+    "palette": [
+     "#2a1a10",
+     "#5a3a1e",
+     "#9a6a3a",
+     "#e0b070",
+     "#fff0c0"
+    ]
+   },
+   "lore": "갱도 감독관이 입구를 지키며 쓰던 활. 광차 바퀴살을 이어 붙인 활채가 묵직하다."
+  },
+  "silk_chime_rod": {
+   "name": "은실 풍경 홀",
+   "type": "weapon",
+   "attack": {
+    "style": "caster",
+    "interval": 0.71,
+    "kind": "magic"
+   },
+   "rarity": "uncommon",
+   "level_req": 8,
+   "tier": 2,
+   "requires": {
+    "WIS": 12,
+    "INT": 8
+   },
+   "stats": {
+    "damage": [
+     11,
+     13
+    ],
+    "WIS": [
+     2,
+     3
+    ],
+    "cooldown_reduction": [
+     0.012,
+     0.016
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "special"
+   ],
+   "unique": {
+    "id": "overcharge",
+    "name": "은실 울림",
+    "pct": 2.6,
+    "window": 5,
+    "radius": 2.5
+   },
+   "model": {
+    "shape": "chime_rod",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "silk",
+    "palette": [
+     "#1a1a20",
+     "#3a3a46",
+     "#7a7a8a",
+     "#c8ccd8",
+     "#ffffff"
+    ]
+   },
+   "lore": "은실에 작은 쇠관을 매단 홀. 바람이 없어도 가끔 저 혼자 운다."
+  },
+  "silkknot_bell_scepter": {
+   "name": "은실 매듭 종 홀",
+   "type": "weapon",
+   "attack": {
+    "style": "caster",
+    "interval": 0.77,
+    "kind": "magic"
+   },
+   "rarity": "uncommon",
+   "level_req": 8,
+   "tier": 2,
+   "requires": {
+    "WIS": 12,
+    "VIT": 8
+   },
+   "stats": {
+    "damage": [
+     12,
+     14
+    ],
+    "WIS": [
+     2,
+     3
+    ],
+    "damage_reduction": [
+     0.01,
+     0.014
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "trial"
+   ],
+   "model": {
+    "shape": "bell_scepter",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "silk",
+    "palette": [
+     "#1a1622",
+     "#3a3248",
+     "#7a6e8e",
+     "#cfc6e0",
+     "#fbf8ff"
+    ]
+   },
+   "lore": "은실 매듭을 종 안에 매단 홀. 흔들면 실이 떨며 낮게 운다.",
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "은실 버티기",
+     "input": "RIGHT",
+     "cooldown": 16.0,
+     "mana": 18,
+     "description": "보호막을 두르고 주위 적을 3초 도발한다.",
+     "params": {
+      "damage_type": "magic"
+     },
+     "mechanics": [
+      {
+       "type": "self",
+       "effects": [
+        {
+         "absorption": {
+          "amount": 0.12,
+          "seconds": 5
+         }
+        }
+       ]
+      },
+      {
+       "type": "nova",
+       "radius": 4,
+       "display": "nightshade_burst",
+       "effects": [
+        {
+         "damage": 0.72
+        },
+        {
+         "taunt": 3
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "unique": {
+    "id": "bash_stun",
+    "name": "종 울림",
+    "n": 3,
+    "stun": 1.5,
+    "pct": 0.68,
+    "vuln": 0.14
+   }
+  },
+  "skitter_longbow": {
+   "name": "거미줄 장궁",
+   "type": "weapon",
+   "attack": {
+    "style": "ranged",
+    "interval": 1.25,
+    "kind": "physical"
+   },
+   "rarity": "uncommon",
+   "level_req": 8,
+   "tier": 2,
+   "requires": {
+    "DEX": 12,
+    "STR": 8
+   },
+   "stats": {
+    "damage": [
+     23,
+     25
+    ],
+    "DEX": [
+     2,
+     3
+    ],
+    "crit_chance": [
+     0.012,
+     0.016
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "trial"
+   ],
+   "unique": {
+    "id": "first_strike",
+    "name": "소리 없는 줄",
+    "pct": 1.0,
+    "cc": 0.2,
+    "window": 10
+   },
+   "model": {
+    "shape": "longbow",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "bone",
+    "palette": [
+     "#141418",
+     "#2e2a30",
+     "#5a4a52",
+     "#a08a98",
+     "#f0e0f0"
+    ]
+   },
+   "lore": "시위 대신 거미줄을 세 겹 꼬아 건 장궁. 쏘는 소리가 거의 없다."
+  },
+  "glowcap_twin_bow": {
+   "name": "빛갓 쌍현 활",
+   "type": "weapon",
+   "attack": {
+    "style": "ranged",
+    "interval": 1.05,
+    "kind": "physical"
+   },
+   "rarity": "rare",
+   "level_req": 11,
+   "tier": 3,
+   "requires": {
+    "DEX": 17,
+    "STR": 11
+   },
+   "stats": {
+    "damage": [
+     24,
+     28
+    ],
+    "DEX": [
+     3,
+     4
+    ],
+    "crit_chance": [
+     0.017,
+     0.023
+    ],
+    "move_speed": [
+     0.013,
+     0.018
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "shop"
+   ],
+   "unique": {
+    "id": "backstab",
+    "name": "어둠 찌르기",
+    "pct": 0.6
+   },
+   "model": {
+    "shape": "twin_bow",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "silver",
+    "palette": [
+     "#10201a",
+     "#204a3a",
+     "#3a8a6a",
+     "#7ae0b0",
+     "#e0fff0"
+    ]
+   },
+   "lore": "빛갓 줄기 두 가닥을 겹쳐 맨 활. 어둠 속에서 시위가 희미하게 빛난다."
+  },
+  "spore_warden_mace": {
+   "name": "포자 수호자의 철퇴",
+   "type": "weapon",
+   "attack": {
+    "style": "melee",
+    "interval": 0.71,
+    "kind": "physical"
+   },
+   "rarity": "epic",
+   "level_req": 13,
+   "tier": 3,
+   "requires": {
+    "VIT": 20,
+    "STR": 13
+   },
+   "stats": {
+    "damage": [
+     21,
+     24
+    ],
+    "VIT": [
+     4,
+     5
+    ],
+    "heal_power": [
+     12,
+     16
+    ],
+    "mana_regen": [
+     0.3,
+     0.4
+    ],
+    "hp": [
+     45,
+     62
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "elite"
+   ],
+   "model": {
+    "shape": "mace",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "moss",
+    "palette": [
+     "#161e10",
+     "#2e4220",
+     "#5a7a3a",
+     "#a8c870",
+     "#ecf8c8"
+    ]
+   },
+   "lore": "포자 군락을 지키던 수호자의 철퇴. 머리에 핀 버섯이 맞을 때마다 포자를 뿜는다.",
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "포자 돌봄",
+     "input": "RIGHT",
+     "cooldown": 14.0,
+     "mana": 20,
+     "description": "주위 아군을 치유하고 5초간 받는 피해를 줄인다.",
+     "params": {
+      "damage_type": "melee"
+     },
+     "mechanics": [
+      {
+       "type": "party",
+       "radius": 8,
+       "effects": [
+        {
+         "heal": 0.08
+        },
+        {
+         "buff": {
+          "stats": {
+           "damage_reduction": 0.1
+          },
+          "seconds": 5
+         }
+        }
+       ]
+      },
+      {
+       "type": "nova",
+       "radius": 3,
+       "display": "venom_burst",
+       "effects": [
+        {
+         "damage": 0.84
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "unique": {
+    "id": "sanctify",
+    "name": "포자 치유",
+    "pct": 0.095,
+    "radius": 8
+   }
+  },
+  "spore_thurible_rod": {
+   "name": "포자 향로봉",
+   "type": "weapon",
+   "attack": {
+    "style": "caster",
+    "interval": 0.77,
+    "kind": "magic"
+   },
+   "rarity": "rare",
+   "level_req": 14,
+   "tier": 3,
+   "requires": {
+    "WIS": 18,
+    "VIT": 11,
+    "INT": 7
+   },
+   "stats": {
+    "damage": [
+     20,
+     21
+    ],
+    "WIS": [
+     3,
+     5
+    ],
+    "heal_power": [
+     10,
+     14
+    ],
+    "mana_regen": [
+     0.3,
+     0.4
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "hoard"
+   ],
+   "unique": {
+    "id": "ward_aura",
+    "name": "공생 연기",
+    "pct": 0.065,
+    "period": 8,
+    "radius": 8,
+    "duration": 6
+   },
+   "model": {
+    "shape": "thurible_rod",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "wood",
+    "palette": [
+     "#1a1020",
+     "#3e2448",
+     "#7a4a8a",
+     "#c890d0",
+     "#fff0ff"
+    ]
+   },
+   "lore": "향로에 말린 공생꽃을 태운다. 연기가 닿은 곳은 잠시 따뜻해진다.",
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "포자 축복의 원",
+     "input": "RIGHT",
+     "cooldown": 14.0,
+     "mana": 20,
+     "description": "주위 아군을 치유하고 5초간 받는 피해를 줄인다.",
+     "params": {
+      "damage_type": "magic"
+     },
+     "mechanics": [
+      {
+       "type": "party",
+       "radius": 8,
+       "effects": [
+        {
+         "heal": 0.08
+        },
+        {
+         "buff": {
+          "stats": {
+           "damage_reduction": 0.1
+          },
+          "seconds": 5
+         }
+        }
+       ]
+      },
+      {
+       "type": "nova",
+       "radius": 3,
+       "display": "venom_burst",
+       "effects": [
+        {
+         "damage": 0.72
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "drowned_ring_staff": {
+   "name": "익사자의 고리 지팡이",
+   "type": "weapon",
+   "attack": {
+    "style": "caster",
+    "interval": 0.91,
+    "kind": "magic"
+   },
+   "rarity": "epic",
+   "level_req": 17,
+   "tier": 4,
+   "requires": {
+    "INT": 26,
+    "VIT": 18
+   },
+   "stats": {
+    "damage": [
+     29,
+     33
+    ],
+    "INT": [
+     5,
+     7
+    ],
+    "crit_chance": [
+     0.026,
+     0.035
+    ],
+    "move_speed": [
+     0.019,
+     0.026
+    ],
+    "evasion": [
+     0.021,
+     0.028
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "hoard"
+   ],
+   "model": {
+    "shape": "staff_ring",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "crystal",
+    "palette": [
+     "#08141c",
+     "#163040",
+     "#2a5a70",
+     "#78b4c8",
+     "#e0f6ff"
+    ]
+   },
+   "lore": "물에 잠긴 사제가 쥐고 있던 지팡이. 고리 안에서 물방울이 떨어지지 않고 맴돈다.",
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "물살 등 뒤 일격",
+     "input": "RIGHT",
+     "cooldown": 12.0,
+     "mana": 16,
+     "description": "적의 등 뒤로 순간 이동해 찌르고 표식을 남긴다.",
+     "params": {
+      "damage_type": "magic"
+     },
+     "mechanics": [
+      {
+       "type": "blink",
+       "distance": 8,
+       "behind": true
+      },
+      {
+       "type": "cone",
+       "range": 3,
+       "angle": 70,
+       "display": "tide_slash",
+       "effects": [
+        {
+         "damage": 1.8
+        },
+        {
+         "glow": 4
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "unique": {
+    "id": "backstab",
+    "name": "등 뒤 물결",
+    "pct": 0.53
+   }
+  },
+  "sluice_bone_bow": {
+   "name": "수문 뼈 활",
+   "type": "weapon",
+   "attack": {
+    "style": "ranged",
+    "interval": 1.15,
+    "kind": "physical"
+   },
+   "rarity": "epic",
+   "level_req": 17,
+   "tier": 4,
+   "requires": {
+    "DEX": 22,
+    "STR": 13,
+    "VIT": 9
+   },
+   "stats": {
+    "damage": [
+     43,
+     49
+    ],
+    "DEX": [
+     5,
+     7
+    ],
+    "lifesteal": [
+     0.021,
+     0.028
+    ],
+    "hp": [
+     59,
+     79
+    ],
+    "hp_regen": [
+     1.1,
+     1.4
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "hoard"
+   ],
+   "unique": {
+    "id": "feast",
+    "name": "수문 삼킴",
+    "heal": 0.065,
+    "ls": 0.065,
+    "duration": 4
+   },
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "물살 흡혈 화살",
+     "input": "SNEAK_RIGHT",
+     "cooldown": 12.0,
+     "mana": 16,
+     "description": "꿰뚫는 화살을 쏘고 준 피해 일부를 체력으로 되찾는다.",
+     "params": {
+      "damage_type": "ranged"
+     },
+     "mechanics": [
+      {
+       "type": "projectile",
+       "speed": 1.8,
+       "range": 20,
+       "pierce": 2,
+       "display": "proj_brine",
+       "effects": [
+        {
+         "damage": 1.56
+        },
+        {
+         "lifesteal": 0.25
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "model": {
+    "shape": "bone_bow",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "copper",
+    "palette": [
+     "#142018",
+     "#2a4a3a",
+     "#4a7a5a",
+     "#8ac0a0",
+     "#e0f8e8"
+    ]
+   },
+   "lore": "수문 집게 게의 다리뼈로 만든 활. 젖어도 휘지 않는다."
+  },
+  "sluice_hook_spear": {
+   "name": "수문지기의 갈고리창",
+   "type": "weapon",
+   "attack": {
+    "style": "melee",
+    "interval": 0.87,
+    "kind": "physical"
+   },
+   "rarity": "epic",
+   "level_req": 17,
+   "tier": 4,
+   "requires": {
+    "VIT": 26,
+    "STR": 18
+   },
+   "stats": {
+    "damage": [
+     33,
+     38
+    ],
+    "VIT": [
+     5,
+     7
+    ],
+    "crit_chance": [
+     0.026,
+     0.035
+    ],
+    "move_speed": [
+     0.019,
+     0.026
+    ],
+    "evasion": [
+     0.021,
+     0.028
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "trial"
+   ],
+   "model": {
+    "shape": "war_spear",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "steel",
+    "palette": [
+     "#0a1a20",
+     "#1a3a46",
+     "#2e6a7a",
+     "#7ec4c8",
+     "#e2fbf6"
+    ]
+   },
+   "lore": "수문 틈에 숨어 있다가 끌어당겨 찌르던 창. 갈고리 끝에 녹이 슬지 않았다.",
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "물살 그림자 걸음",
+     "input": "RIGHT",
+     "cooldown": 12.0,
+     "mana": 16,
+     "description": "적의 등 뒤로 순간 이동해 찌르고 표식을 남긴다.",
+     "params": {
+      "damage_type": "melee"
+     },
+     "mechanics": [
+      {
+       "type": "blink",
+       "distance": 8,
+       "behind": true
+      },
+      {
+       "type": "cone",
+       "range": 3,
+       "angle": 70,
+       "display": "tide_slash",
+       "effects": [
+        {
+         "damage": 2.17
+        },
+        {
+         "glow": 4
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "unique": {
+    "id": "backstab",
+    "name": "뒤에서 끌기",
+    "pct": 0.59
+   }
+  },
+  "bellows_bone_bow": {
+   "name": "풀무 뼈 활",
+   "type": "weapon",
+   "attack": {
+    "style": "ranged",
+    "interval": 1.15,
+    "kind": "physical"
+   },
+   "rarity": "epic",
+   "level_req": 24,
+   "tier": 5,
+   "requires": {
+    "DEX": 32,
+    "LUK": 19,
+    "STR": 13
+   },
+   "stats": {
+    "damage": [
+     64,
+     74
+    ],
+    "DEX": [
+     6,
+     9
+    ],
+    "crit_chance": [
+     0.032,
+     0.044
+    ],
+    "crit_damage": [
+     0.104,
+     0.141
+    ],
+    "attack_speed": [
+     0.042,
+     0.057
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "special"
+   ],
+   "unique": {
+    "id": "hemorrhage",
+    "name": "뜨거운 숨",
+    "cc": 0.22,
+    "cd": 0.45
+   },
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "불티 가시 화살",
+     "input": "SNEAK_RIGHT",
+     "cooldown": 11.0,
+     "mana": 16,
+     "description": "화살 세 대를 부채꼴로 쏘아 출혈을 건다.",
+     "params": {
+      "damage_type": "ranged"
+     },
+     "mechanics": [
+      {
+       "type": "projectile",
+       "count": 3,
+       "spread": 18,
+       "speed": 1.6,
+       "range": 18,
+       "display": "proj_ember",
+       "effects": [
+        {
+         "damage": 0.91
+        },
+        {
+         "bleed": 3
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "mechanics",
+     "name": "불티 연사",
+     "input": "SNEAK_LEFT",
+     "cooldown": 12.0,
+     "mana": 15,
+     "description": "화살 다섯 대를 빠르게 이어 쏜다.",
+     "params": {
+      "damage_type": "ranged"
+     },
+     "mechanics": [
+      {
+       "type": "projectile",
+       "count": 5,
+       "interval": 3,
+       "speed": 1.8,
+       "range": 18,
+       "display": "proj_ember",
+       "effects": [
+        {
+         "damage": 0.59
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "model": {
+    "shape": "bone_bow",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "ember",
+    "palette": [
+     "#1a0a06",
+     "#5a1a0a",
+     "#c43c12",
+     "#ff9a2a",
+     "#fff0a0"
+    ]
+   },
+   "lore": "풀무 사냥개 갈비뼈로 만든 활. 당기면 뼈 사이로 뜨거운 바람이 샌다."
+  },
+  "ember_twin_bow": {
+   "name": "잿불 쌍현 활",
+   "type": "weapon",
+   "attack": {
+    "style": "ranged",
+    "interval": 1.05,
+    "kind": "physical"
+   },
+   "rarity": "epic",
+   "level_req": 24,
+   "tier": 5,
+   "requires": {
+    "DEX": 32,
+    "STR": 19,
+    "LUK": 13
+   },
+   "stats": {
+    "damage": [
+     59,
+     67
+    ],
+    "DEX": [
+     6,
+     9
+    ],
+    "crit_chance": [
+     0.032,
+     0.044
+    ],
+    "move_speed": [
+     0.022,
+     0.03
+    ],
+    "evasion": [
+     0.025,
+     0.034
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "hoard"
+   ],
+   "unique": {
+    "id": "backstab",
+    "name": "잿속 칼끝",
+    "pct": 0.6
+   },
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "불티 기습 화살",
+     "input": "SNEAK_RIGHT",
+     "cooldown": 12.0,
+     "mana": 16,
+     "description": "아주 빠른 화살로 표식을 남긴다.",
+     "params": {
+      "damage_type": "ranged"
+     },
+     "mechanics": [
+      {
+       "type": "projectile",
+       "speed": 2.2,
+       "range": 26,
+       "display": "proj_ember",
+       "effects": [
+        {
+         "damage": 2.08
+        },
+        {
+         "glow": 4
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "model": {
+    "shape": "twin_bow",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "ember",
+    "palette": [
+     "#1a0a06",
+     "#5a1a0a",
+     "#c43c12",
+     "#ff9a2a",
+     "#fff0a0"
+    ]
+   },
+   "lore": "시위 두 줄이 번갈아 우는 활. 쏠 때마다 재가 흩날린다."
+  },
+  "forge_chime_rod": {
+   "name": "용광로 풍경 홀",
+   "type": "weapon",
+   "attack": {
+    "style": "caster",
+    "interval": 0.71,
+    "kind": "magic"
+   },
+   "rarity": "epic",
+   "level_req": 24,
+   "tier": 5,
+   "requires": {
+    "WIS": 32,
+    "VIT": 19,
+    "INT": 13
+   },
+   "stats": {
+    "damage": [
+     35,
+     39
+    ],
+    "WIS": [
+     6,
+     9
+    ],
+    "heal_power": [
+     21,
+     28
+    ],
+    "mana_regen": [
+     0.5,
+     0.6
+    ],
+    "hp": [
+     81,
+     110
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "hoard"
+   ],
+   "unique": {
+    "id": "ward_aura",
+    "name": "망치 소리",
+    "pct": 0.08,
+    "period": 8,
+    "radius": 8,
+    "duration": 6
+   },
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "불티 축복의 원",
+     "input": "RIGHT",
+     "cooldown": 14.0,
+     "mana": 20,
+     "description": "주위 아군을 치유하고 5초간 받는 피해를 줄인다.",
+     "params": {
+      "damage_type": "magic"
+     },
+     "mechanics": [
+      {
+       "type": "party",
+       "radius": 8,
+       "effects": [
+        {
+         "heal": 0.08
+        },
+        {
+         "buff": {
+          "stats": {
+           "damage_reduction": 0.1
+          },
+          "seconds": 5
+         }
+        }
+       ]
+      },
+      {
+       "type": "nova",
+       "radius": 3,
+       "display": "ember_burst",
+       "effects": [
+        {
+         "damage": 0.66
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "mechanics",
+     "name": "불티 연쇄 섬광",
+     "input": "SNEAK_RIGHT",
+     "cooldown": 10.0,
+     "mana": 14,
+     "description": "적 사이를 튀는 섬광을 쏘고 MP 를 조금 되찾는다.",
+     "params": {
+      "damage_type": "magic"
+     },
+     "mechanics": [
+      {
+       "type": "chain",
+       "jumps": 3,
+       "range": 10,
+       "falloff": 0.8,
+       "effects": [
+        {
+         "damage": 1.08
+        }
+       ]
+      },
+      {
+       "type": "self",
+       "effects": [
+        {
+         "mana": 8
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "model": {
+    "shape": "chime_rod",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "gold",
+    "palette": [
+     "#1a1008",
+     "#4a2a10",
+     "#8a5a20",
+     "#e0a040",
+     "#fff4c0"
+    ]
+   },
+   "lore": "쇠관 대신 작은 집게들을 매단 홀. 부딪힐 때 망치 소리가 난다."
+  },
+  "forge_cleaver": {
+   "name": "단조 참마도",
+   "type": "weapon",
+   "attack": {
+    "style": "melee",
+    "interval": 1.0,
+    "kind": "physical"
+   },
+   "rarity": "epic",
+   "level_req": 24,
+   "tier": 5,
+   "requires": {
+    "STR": 38,
+    "VIT": 26
+   },
+   "stats": {
+    "damage": [
+     57,
+     67
+    ],
+    "STR": [
+     6,
+     9
+    ],
+    "crit_damage": [
+     0.104,
+     0.141
+    ],
+    "skill_damage": [
+     0.057,
+     0.077
+    ],
+    "hp": [
+     81,
+     110
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "elite"
+   ],
+   "unique": {
+    "id": "cleave",
+    "name": "쇠판 쓸기",
+    "pct": 0.7,
+    "radius": 2.5,
+    "targets": 3
+   },
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "불티 폭쇄",
+     "input": "RIGHT",
+     "cooldown": 12.0,
+     "mana": 18,
+     "description": "뛰어올라 내려찍어 주위를 터뜨린다.",
+     "params": {
+      "damage_type": "melee"
+     },
+     "mechanics": [
+      {
+       "type": "leap",
+       "forward": 0.6,
+       "upward": 0.7,
+       "land": [
+        {
+         "type": "nova",
+         "radius": 4,
+         "display": "ember_burst",
+         "effects": [
+          {
+           "damage": 2.35
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "model": {
+    "shape": "cleaver",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "dark_iron",
+    "palette": [
+     "#141210",
+     "#34302a",
+     "#5a524a",
+     "#a09080",
+     "#f0e0c8"
+    ]
+   },
+   "lore": "단조 집행관이 쇠판을 자르던 넓은 칼. 한 번에 여럿을 쓸어 넘긴다."
+  },
+  "rime_chalice": {
+   "name": "서리 잔 홀",
+   "type": "weapon",
+   "attack": {
+    "style": "caster",
+    "interval": 0.77,
+    "kind": "magic"
+   },
+   "rarity": "epic",
+   "level_req": 27,
+   "tier": 6,
+   "requires": {
+    "VIT": 36,
+    "WIS": 22,
+    "INT": 14
+   },
+   "stats": {
+    "damage": [
+     43,
+     51
+    ],
+    "VIT": [
+     7,
+     10
+    ],
+    "heal_power": [
+     23,
+     31
+    ],
+    "mana_regen": [
+     0.5,
+     0.7
+    ],
+    "hp": [
+     91,
+     123
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "hoard"
+   ],
+   "unique": {
+    "id": "sanctify",
+    "name": "얼지 않는 물",
+    "pct": 0.27,
+    "radius": 8
+   },
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "서리 축복의 원",
+     "input": "RIGHT",
+     "cooldown": 14.0,
+     "mana": 20,
+     "description": "주위 아군을 치유하고 5초간 받는 피해를 줄인다.",
+     "params": {
+      "damage_type": "magic"
+     },
+     "mechanics": [
+      {
+       "type": "party",
+       "radius": 8,
+       "effects": [
+        {
+         "heal": 0.08
+        },
+        {
+         "buff": {
+          "stats": {
+           "damage_reduction": 0.1
+          },
+          "seconds": 5
+         }
+        }
+       ]
+      },
+      {
+       "type": "nova",
+       "radius": 3,
+       "display": "rime_burst",
+       "effects": [
+        {
+         "damage": 0.72
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "model": {
+    "shape": "chalice_scepter",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "frost",
+    "palette": [
+     "#101a22",
+     "#1e3a4a",
+     "#3a7a9a",
+     "#90e0f0",
+     "#f0ffff"
+    ]
+   },
+   "lore": "얼지 않는 물을 담은 잔. 마시면 안 된다는 말만 전해진다."
+  },
+  "rime_chime_rod": {
+   "name": "묘역 풍경 홀",
+   "type": "weapon",
+   "attack": {
+    "style": "caster",
+    "interval": 0.71,
+    "kind": "magic"
+   },
+   "rarity": "epic",
+   "level_req": 27,
+   "tier": 6,
+   "requires": {
+    "VIT": 36,
+    "WIS": 22,
+    "INT": 14
+   },
+   "stats": {
+    "damage": [
+     40,
+     46
+    ],
+    "VIT": [
+     7,
+     10
+    ],
+    "damage_reduction": [
+     0.027,
+     0.036
+    ],
+    "hp": [
+     91,
+     123
+    ],
+    "defense": [
+     11,
+     14
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "elite"
+   ],
+   "unique": {
+    "id": "thorns",
+    "name": "종지기의 꾸중",
+    "pct": 0.6
+   },
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "서리 방벽",
+     "input": "RIGHT",
+     "cooldown": 16.0,
+     "mana": 18,
+     "description": "보호막을 두르고 주위 적을 3초 도발한다.",
+     "params": {
+      "damage_type": "magic"
+     },
+     "mechanics": [
+      {
+       "type": "self",
+       "effects": [
+        {
+         "absorption": {
+          "amount": 0.12,
+          "seconds": 5
+         }
+        }
+       ]
+      },
+      {
+       "type": "nova",
+       "radius": 4,
+       "display": "rime_burst",
+       "effects": [
+        {
+         "damage": 0.66
+        },
+        {
+         "taunt": 3
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "mechanics",
+     "name": "서리 돌봄",
+     "input": "SNEAK_RIGHT",
+     "cooldown": 14.0,
+     "mana": 20,
+     "description": "주위 아군을 치유하고 5초간 받는 피해를 줄인다.",
+     "params": {
+      "damage_type": "magic"
+     },
+     "mechanics": [
+      {
+       "type": "party",
+       "radius": 8,
+       "effects": [
+        {
+         "heal": 0.08
+        },
+        {
+         "buff": {
+          "stats": {
+           "damage_reduction": 0.1
+          },
+          "seconds": 5
+         }
+        }
+       ]
+      },
+      {
+       "type": "nova",
+       "radius": 3,
+       "display": "rime_burst",
+       "effects": [
+        {
+         "damage": 0.66
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "model": {
+    "shape": "chime_rod",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "silver",
+    "palette": [
+     "#16161c",
+     "#34343e",
+     "#6a6a7a",
+     "#c0c4d0",
+     "#ffffff"
+    ]
+   },
+   "lore": "종지기가 허리에 차던 작은 종 꾸러미. 흔들면 묘역의 개들이 조용해진다."
+  },
+  "amethyst_executioner_axe": {
+   "name": "자수정 처형 도끼",
+   "type": "weapon",
+   "attack": {
+    "style": "melee",
+    "interval": 1.18,
+    "kind": "physical"
+   },
+   "rarity": "epic",
+   "level_req": 33,
+   "tier": 7,
+   "requires": {
+    "STR": 53,
+    "LUK": 35
+   },
+   "stats": {
+    "damage": [
+     108,
+     124
+    ],
+    "STR": [
+     8,
+     11
+    ],
+    "lifesteal": [
+     0.03,
+     0.041
+    ],
+    "crit_damage": [
+     0.132,
+     0.178
+    ],
+    "attack_speed": [
+     0.051,
+     0.069
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "special"
+   ],
+   "unique": {
+    "id": "berserk",
+    "name": "짙어지는 보석",
+    "pct": 0.055,
+    "ls": 0.12,
+    "thr": 0.3
+   },
+   "model": {
+    "shape": "executioner_axe",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "crystal",
+    "palette": [
+     "#16101e",
+     "#3a2458",
+     "#6a44a8",
+     "#b890ff",
+     "#f4e8ff"
+    ]
+   },
+   "lore": "날 한가운데 자수정이 박힌 도끼. 휘두를수록 자수정이 짙어진다.",
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "수정 광란",
+     "input": "RIGHT",
+     "cooldown": 18.0,
+     "mana": 15,
+     "description": "6초간 공격 속도와 흡혈이 오르고 주위를 친다.",
+     "params": {
+      "damage_type": "melee"
+     },
+     "mechanics": [
+      {
+       "type": "self",
+       "effects": [
+        {
+         "buff": {
+          "stats": {
+           "attack_speed": 0.2,
+           "lifesteal": 0.06
+          },
+          "seconds": 6
+         }
+        }
+       ]
+      },
+      {
+       "type": "nova",
+       "radius": 3,
+       "display": "prism_burst",
+       "effects": [
+        {
+         "damage": 1.56
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "crystal_censer": {
+   "name": "수정 향로",
+   "type": "weapon",
+   "attack": {
+    "style": "caster",
+    "interval": 0.83,
+    "kind": "magic"
+   },
+   "rarity": "epic",
+   "level_req": 33,
+   "tier": 7,
+   "requires": {
+    "WIS": 53,
+    "INT": 35
+   },
+   "stats": {
+    "damage": [
+     63,
+     72
+    ],
+    "WIS": [
+     8,
+     11
+    ],
+    "heal_power": [
+     28,
+     38
+    ],
+    "mana_regen": [
+     0.6,
+     0.8
+    ],
+    "hp": [
+     111,
+     150
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "hoard"
+   ],
+   "unique": {
+    "id": "ward_aura",
+    "name": "수정 막",
+    "pct": 0.09,
+    "period": 8,
+    "radius": 8,
+    "duration": 6
+   },
+   "model": {
+    "shape": "censer_staff",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "gold",
+    "palette": [
+     "#1e1a10",
+     "#4a3e20",
+     "#8a7a3a",
+     "#e0d080",
+     "#fffbe0"
+    ]
+   },
+   "lore": "수정 가루를 태우는 향로. 연기가 닿은 곳에 잠시 얇은 막이 진다.",
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "수정 축복의 원",
+     "input": "RIGHT",
+     "cooldown": 14.0,
+     "mana": 20,
+     "description": "주위 아군을 치유하고 5초간 받는 피해를 줄인다.",
+     "params": {
+      "damage_type": "magic"
+     },
+     "mechanics": [
+      {
+       "type": "party",
+       "radius": 8,
+       "effects": [
+        {
+         "heal": 0.08
+        },
+        {
+         "buff": {
+          "stats": {
+           "damage_reduction": 0.1
+          },
+          "seconds": 5
+         }
+        }
+       ]
+      },
+      {
+       "type": "nova",
+       "radius": 3,
+       "display": "prism_burst",
+       "effects": [
+        {
+         "damage": 0.72
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "geode_great_maul": {
+   "name": "정동 대형 망치",
+   "type": "weapon",
+   "attack": {
+    "style": "melee",
+    "interval": 1.18,
+    "kind": "physical"
+   },
+   "rarity": "epic",
+   "level_req": 33,
+   "tier": 7,
+   "requires": {
+    "VIT": 44,
+    "STR": 26,
+    "WIS": 18
+   },
+   "stats": {
+    "damage": [
+     108,
+     124
+    ],
+    "VIT": [
+     8,
+     11
+    ],
+    "lifesteal": [
+     0.03,
+     0.041
+    ],
+    "hp": [
+     111,
+     150
+    ],
+    "hp_regen": [
+     1.9,
+     2.6
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "trial"
+   ],
+   "unique": {
+    "id": "leech",
+    "name": "결정 이빨",
+    "pct": 0.14,
+    "cap": 0.03
+   },
+   "model": {
+    "shape": "great_maul",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "crystal",
+    "palette": [
+     "#16101e",
+     "#3a2458",
+     "#6a44a8",
+     "#b890ff",
+     "#f4e8ff"
+    ]
+   },
+   "lore": "반으로 쪼갠 정동을 그대로 머리로 쓴 망치. 안쪽 결정이 이빨처럼 박혔다.",
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "수정 피 마시기",
+     "input": "RIGHT",
+     "cooldown": 12.0,
+     "mana": 16,
+     "description": "주위를 휩쓸고 준 피해 일부를 체력으로 되찾는다.",
+     "params": {
+      "damage_type": "melee"
+     },
+     "mechanics": [
+      {
+       "type": "nova",
+       "radius": 3.5,
+       "display": "prism_burst",
+       "effects": [
+        {
+         "damage": 2.25
+        },
+        {
+         "lifesteal": 0.3
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "prism_lamp_crook": {
+   "name": "프리즘 등롱 지팡이",
+   "type": "weapon",
+   "attack": {
+    "style": "caster",
+    "interval": 0.91,
+    "kind": "magic"
+   },
+   "rarity": "epic",
+   "level_req": 33,
+   "tier": 7,
+   "requires": {
+    "INT": 44,
+    "VIT": 26,
+    "DEX": 18
+   },
+   "stats": {
+    "damage": [
+     69,
+     79
+    ],
+    "INT": [
+     8,
+     11
+    ],
+    "skill_damage": [
+     0.071,
+     0.096
+    ],
+    "crit_chance": [
+     0.04,
+     0.055
+    ],
+    "cooldown_reduction": [
+     0.04,
+     0.055
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "trial"
+   ],
+   "unique": {
+    "id": "imbue",
+    "name": "뜨거운 갈래",
+    "chance": 0.34,
+    "pct": 0.22,
+    "duration": 3,
+    "element": "burn"
+   },
+   "model": {
+    "shape": "lamp_crook",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "crystal",
+    "palette": [
+     "#101820",
+     "#24405a",
+     "#4a80b0",
+     "#a0e0ff",
+     "#ffffff"
+    ]
+   },
+   "lore": "등롱 속 수정이 빛을 일곱 갈래로 쪼갠다. 한 갈래는 유난히 뜨겁다.",
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "수정 비",
+     "input": "RIGHT",
+     "cooldown": 13.0,
+     "mana": 18,
+     "description": "바라보는 곳에 여섯 번 쏟아져 상태이상을 건다.",
+     "params": {
+      "damage_type": "magic"
+     },
+     "mechanics": [
+      {
+       "type": "rain",
+       "at": "aim",
+       "range": 14,
+       "count": 6,
+       "radius": 3,
+       "interval": 4,
+       "display": "proj_crystal",
+       "effects": [
+        {
+         "damage": 0.53
+        },
+        {
+         "ignite": 3
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "prism_twin_bow": {
+   "name": "프리즘 쌍현 활",
+   "type": "weapon",
+   "attack": {
+    "style": "ranged",
+    "interval": 1.05,
+    "kind": "magic"
+   },
+   "rarity": "epic",
+   "level_req": 33,
+   "tier": 7,
+   "requires": {
+    "INT": 44,
+    "DEX": 26,
+    "LUK": 18
+   },
+   "stats": {
+    "damage": [
+     92,
+     106
+    ],
+    "INT": [
+     8,
+     11
+    ],
+    "skill_damage": [
+     0.071,
+     0.096
+    ],
+    "crit_chance": [
+     0.04,
+     0.055
+    ],
+    "cooldown_reduction": [
+     0.04,
+     0.055
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "special"
+   ],
+   "unique": {
+    "id": "exploit",
+    "name": "무지개 틈",
+    "pct": 0.35
+   },
+   "model": {
+    "shape": "twin_bow",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "crystal",
+    "palette": [
+     "#101820",
+     "#24405a",
+     "#4a80b0",
+     "#a0e0ff",
+     "#ffffff"
+    ]
+   },
+   "lore": "빛줄기 두 가닥을 시위로 묶은 활. 화살이 무지갯빛 꼬리를 끈다.",
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "수정 화살비",
+     "input": "SNEAK_RIGHT",
+     "cooldown": 13.0,
+     "mana": 18,
+     "description": "바라보는 곳에 화살비를 내려 상태이상을 건다.",
+     "params": {
+      "damage_type": "magic"
+     },
+     "mechanics": [
+      {
+       "type": "rain",
+       "at": "aim",
+       "range": 14,
+       "count": 6,
+       "radius": 3,
+       "interval": 4,
+       "display": "proj_crystal",
+       "effects": [
+        {
+         "damage": 0.65
+        },
+        {
+         "ignite": 3
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "resonance_chime_rod": {
+   "name": "공명 풍경 홀",
+   "type": "weapon",
+   "attack": {
+    "style": "caster",
+    "interval": 0.71,
+    "kind": "magic"
+   },
+   "rarity": "epic",
+   "level_req": 33,
+   "tier": 7,
+   "requires": {
+    "WIS": 53,
+    "INT": 35
+   },
+   "stats": {
+    "damage": [
+     54,
+     62
+    ],
+    "WIS": [
+     8,
+     11
+    ],
+    "cooldown_reduction": [
+     0.04,
+     0.055
+    ],
+    "mp": [
+     56,
+     76
+    ],
+    "mana_regen": [
+     0.6,
+     0.8
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "elite"
+   ],
+   "unique": {
+    "id": "overcharge",
+    "name": "어긋난 음",
+    "pct": 2.6,
+    "window": 5,
+    "radius": 2.5
+   },
+   "model": {
+    "shape": "chime_rod",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "gold",
+    "palette": [
+     "#1e1a10",
+     "#4a3e20",
+     "#8a7a3a",
+     "#e0d080",
+     "#fffbe0"
+    ]
+   },
+   "lore": "조율자가 음을 맞출 때 쓰던 수정관 묶음. 한 관만 음이 어긋나 있다.",
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "수정 연쇄 섬광",
+     "input": "RIGHT",
+     "cooldown": 10.0,
+     "mana": 14,
+     "description": "적 사이를 튀는 섬광을 쏘고 MP 를 조금 되찾는다.",
+     "params": {
+      "damage_type": "magic"
+     },
+     "mechanics": [
+      {
+       "type": "chain",
+       "jumps": 3,
+       "range": 10,
+       "falloff": 0.8,
+       "effects": [
+        {
+         "damage": 1.08
+        }
+       ]
+      },
+      {
+       "type": "self",
+       "effects": [
+        {
+         "mana": 8
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "resonance_rapier": {
+   "name": "공명 레이피어",
+   "type": "weapon",
+   "attack": {
+    "style": "melee",
+    "interval": 0.56,
+    "kind": "physical"
+   },
+   "rarity": "epic",
+   "level_req": 33,
+   "tier": 7,
+   "requires": {
+    "DEX": 53,
+    "STR": 35
+   },
+   "stats": {
+    "damage": [
+     50,
+     57
+    ],
+    "DEX": [
+     8,
+     11
+    ],
+    "attack_speed": [
+     0.051,
+     0.069
+    ],
+    "move_speed": [
+     0.027,
+     0.037
+    ],
+    "crit_chance": [
+     0.04,
+     0.055
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "elite"
+   ],
+   "unique": {
+    "id": "flurry",
+    "name": "네 번째 음",
+    "n": 4,
+    "pct": 1.6
+   },
+   "model": {
+    "shape": "rapier",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "crystal",
+    "palette": [
+     "#101820",
+     "#24405a",
+     "#4a80b0",
+     "#a0e0ff",
+     "#ffffff"
+    ]
+   },
+   "lore": "찌를 때마다 맑은 음이 울리는 가는 칼. 네 번째 음이 가장 크다.",
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "수정 칼바람",
+     "input": "RIGHT",
+     "cooldown": 12.0,
+     "mana": 15,
+     "description": "칼날 셋이 4초 동안 주위를 돈다.",
+     "params": {
+      "damage_type": "melee"
+     },
+     "mechanics": [
+      {
+       "type": "orbit",
+       "count": 3,
+       "radius": 2.2,
+       "duration": 4,
+       "speed": 12,
+       "hit_cooldown": 10,
+       "display": "proj_crystal",
+       "effects": [
+        {
+         "damage": 0.28
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "shardglass_tanto": {
+   "name": "파편유리 탄토",
+   "type": "weapon",
+   "attack": {
+    "style": "melee",
+    "interval": 0.5,
+    "kind": "physical"
+   },
+   "rarity": "epic",
+   "level_req": 33,
+   "tier": 7,
+   "requires": {
+    "DEX": 44,
+    "LUK": 26,
+    "STR": 18
+   },
+   "stats": {
+    "damage": [
+     43,
+     50
+    ],
+    "DEX": [
+     8,
+     11
+    ],
+    "crit_chance": [
+     0.04,
+     0.055
+    ],
+    "move_speed": [
+     0.027,
+     0.037
+    ],
+    "evasion": [
+     0.03,
+     0.041
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "hoard"
+   ],
+   "unique": {
+    "id": "first_strike",
+    "name": "늦은 그림자",
+    "pct": 2.54,
+    "cc": 0.2,
+    "window": 10
+   },
+   "model": {
+    "shape": "tanto",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "crystal",
+    "palette": [
+     "#101820",
+     "#24405a",
+     "#4a80b0",
+     "#a0e0ff",
+     "#ffffff"
+    ]
+   },
+   "lore": "깨진 거울 한 조각을 그대로 날로 쓴 칼. 비친 얼굴이 조금 늦게 움직인다.",
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "수정 그림자 걸음",
+     "input": "RIGHT",
+     "cooldown": 12.0,
+     "mana": 16,
+     "description": "적의 등 뒤로 순간 이동해 찌르고 표식을 남긴다.",
+     "params": {
+      "damage_type": "melee"
+     },
+     "mechanics": [
+      {
+       "type": "blink",
+       "distance": 8,
+       "behind": true
+      },
+      {
+       "type": "cone",
+       "range": 3,
+       "angle": 70,
+       "display": "prism_slash",
+       "effects": [
+        {
+         "damage": 1.19
+        },
+        {
+         "glow": 4
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "ink_great_maul": {
+   "name": "봉인 대형 망치",
+   "type": "weapon",
+   "attack": {
+    "style": "melee",
+    "interval": 1.18,
+    "kind": "physical"
+   },
+   "rarity": "epic",
+   "level_req": 38,
+   "tier": 8,
+   "requires": {
+    "STR": 61,
+    "VIT": 41
+   },
+   "stats": {
+    "damage": [
+     135,
+     155
+    ],
+    "STR": [
+     10,
+     13
+    ],
+    "crit_damage": [
+     0.147,
+     0.199
+    ],
+    "hp": [
+     127,
+     172
+    ],
+    "defense": [
+     15,
+     20
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "drop",
+    "chest"
+   ],
+   "unique": {
+    "id": "armor_break",
+    "name": "거꾸로 도장",
+    "pct": 0.065,
+    "max_stacks": 5,
+    "duration": 5
+   },
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "먹물 짓찧기",
+     "input": "RIGHT",
+     "cooldown": 14.0,
+     "mana": 18,
+     "description": "뛰어올라 내려찍어 4초간 받는 피해를 늘린다.",
+     "params": {
+      "damage_type": "melee"
+     },
+     "mechanics": [
+      {
+       "type": "leap",
+       "forward": 0.5,
+       "upward": 0.8,
+       "land": [
+        {
+         "type": "nova",
+         "radius": 3.5,
+         "display": "inkblot_burst",
+         "effects": [
+          {
+           "damage": 2.42
+          },
+          {
+           "effect": {
+            "id": "vulnerable",
+            "seconds": 4,
+            "potency": 0.1
+           }
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "mechanics",
+     "name": "먹물 폭쇄",
+     "input": "SNEAK_RIGHT",
+     "cooldown": 12.0,
+     "mana": 18,
+     "description": "뛰어올라 내려찍어 주위를 터뜨린다.",
+     "params": {
+      "damage_type": "melee"
+     },
+     "mechanics": [
+      {
+       "type": "leap",
+       "forward": 0.6,
+       "upward": 0.7,
+       "land": [
+        {
+         "type": "nova",
+         "radius": 4,
+         "display": "inkblot_burst",
+         "effects": [
+          {
+           "damage": 2.77
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "model": {
+    "shape": "great_maul",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "shadow",
+    "palette": [
+     "#100a14",
+     "#2a1430",
+     "#5a2a5a",
+     "#a060a0",
+     "#f0d0f0"
+    ]
+   },
+   "lore": "금서의 봉인을 찍던 커다란 도장 망치. 머리에 거꾸로 새긴 글자가 있다."
+  },
+  "ink_recurve": {
+   "name": "먹물 만곡궁",
+   "type": "weapon",
+   "attack": {
+    "style": "ranged",
+    "interval": 1.1,
+    "kind": "magic"
+   },
+   "rarity": "epic",
+   "level_req": 38,
+   "tier": 8,
+   "requires": {
+    "INT": 61,
+    "VIT": 41
+   },
+   "stats": {
+    "damage": [
+     121,
+     139
+    ],
+    "INT": [
+     10,
+     13
+    ],
+    "crit_damage": [
+     0.147,
+     0.199
+    ],
+    "skill_damage": [
+     0.079,
+     0.106
+    ],
+    "hp": [
+     127,
+     172
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "drop",
+    "chest"
+   ],
+   "unique": {
+    "id": "chain_spark",
+    "name": "먹줄 번개",
+    "chance": 0.3,
+    "pct": 1.0,
+    "targets": 4
+   },
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "먹물 폭발 화살",
+     "input": "SNEAK_RIGHT",
+     "cooldown": 12.0,
+     "mana": 18,
+     "description": "맞은 자리에서 터지는 탄을 쏜다.",
+     "params": {
+      "damage_type": "ranged"
+     },
+     "mechanics": [
+      {
+       "type": "projectile",
+       "speed": 1.3,
+       "range": 16,
+       "display": "proj_ink",
+       "explode": {
+        "radius": 3,
+        "display": "inkblot_burst",
+        "effects": [
+         {
+          "damage": 2.08
+         }
+        ]
+       }
+      }
+     ]
+    }
+   ],
+   "model": {
+    "shape": "recurve_bow",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "ink",
+    "palette": [
+     "#04040a",
+     "#0e1224",
+     "#1c2a4c",
+     "#3a5a9a",
+     "#a0b8f0"
+    ]
+   },
+   "lore": "시위에 먹줄을 먹인 활. 화살이 지나간 자리에 번개 같은 획이 남는다."
+  },
+  "ink_twin_bow": {
+   "name": "먹물 쌍현 활",
+   "type": "weapon",
+   "attack": {
+    "style": "ranged",
+    "interval": 1.05,
+    "kind": "physical"
+   },
+   "rarity": "epic",
+   "level_req": 38,
+   "tier": 8,
+   "requires": {
+    "DEX": 51,
+    "STR": 31,
+    "VIT": 20
+   },
+   "stats": {
+    "damage": [
+     116,
+     132
+    ],
+    "DEX": [
+     10,
+     13
+    ],
+    "lifesteal": [
+     0.033,
+     0.045
+    ],
+    "hp": [
+     127,
+     172
+    ],
+    "hp_regen": [
+     2.1,
+     2.9
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "hoard"
+   ],
+   "unique": {
+    "id": "feast",
+    "name": "먹물 삼킴",
+    "heal": 0.1,
+    "ls": 0.1,
+    "duration": 4
+   },
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "먹물 갈증 화살",
+     "input": "SNEAK_RIGHT",
+     "cooldown": 12.0,
+     "mana": 16,
+     "description": "꿰뚫는 화살을 쏘고 준 피해 일부를 체력으로 되찾는다.",
+     "params": {
+      "damage_type": "ranged"
+     },
+     "mechanics": [
+      {
+       "type": "projectile",
+       "speed": 1.8,
+       "range": 20,
+       "pierce": 2,
+       "display": "proj_ink",
+       "effects": [
+        {
+         "damage": 1.56
+        },
+        {
+         "lifesteal": 0.25
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "model": {
+    "shape": "twin_bow",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "ink",
+    "palette": [
+     "#04040a",
+     "#0e1224",
+     "#1c2a4c",
+     "#3a5a9a",
+     "#a0b8f0"
+    ]
+   },
+   "lore": "금서의 책등을 겹쳐 만든 활. 화살이 지나간 자리에 먹물이 번진다."
+  },
+  "clock_bone_bow": {
+   "name": "톱니 뼈 활",
+   "type": "weapon",
+   "attack": {
+    "style": "ranged",
+    "interval": 1.15,
+    "kind": "physical"
+   },
+   "rarity": "epic",
+   "level_req": 41,
+   "tier": 9,
+   "requires": {
+    "DEX": 55,
+    "STR": 33,
+    "LUK": 22
+   },
+   "stats": {
+    "damage": [
+     145,
+     167
+    ],
+    "DEX": [
+     10,
+     14
+    ],
+    "crit_chance": [
+     0.048,
+     0.065
+    ],
+    "move_speed": [
+     0.031,
+     0.042
+    ],
+    "evasion": [
+     0.035,
+     0.048
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "hoard"
+   ],
+   "unique": {
+    "id": "backstab",
+    "name": "소리 없는 톱니",
+    "pct": 0.6
+   },
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "톱니 숨은 화살",
+     "input": "SNEAK_RIGHT",
+     "cooldown": 12.0,
+     "mana": 16,
+     "description": "아주 빠른 화살로 표식을 남긴다.",
+     "params": {
+      "damage_type": "ranged"
+     },
+     "mechanics": [
+      {
+       "type": "projectile",
+       "speed": 2.2,
+       "range": 26,
+       "display": "proj_gear",
+       "effects": [
+        {
+         "damage": 2.08
+        },
+        {
+         "glow": 4
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "model": {
+    "shape": "bone_bow",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "silver",
+    "palette": [
+     "#141418",
+     "#30303a",
+     "#5a5a6a",
+     "#a8a8b8",
+     "#f4f4ff"
+    ]
+   },
+   "lore": "태엽 짐승의 등뼈를 이어 만든 활. 당기면 마디마다 톱니가 맞물린다."
+  },
+  "clock_chime_rod": {
+   "name": "태엽 풍경 홀",
+   "type": "weapon",
+   "attack": {
+    "style": "caster",
+    "interval": 0.71,
+    "kind": "magic"
+   },
+   "rarity": "epic",
+   "level_req": 41,
+   "tier": 9,
+   "requires": {
+    "WIS": 66,
+    "VIT": 44
+   },
+   "stats": {
+    "damage": [
+     76,
+     88
+    ],
+    "WIS": [
+     10,
+     14
+    ],
+    "skill_damage": [
+     0.083,
+     0.112
+    ],
+    "crit_chance": [
+     0.048,
+     0.065
+    ],
+    "cooldown_reduction": [
+     0.048,
+     0.065
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "elite"
+   ],
+   "model": {
+    "shape": "chime_rod",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "gold",
+    "palette": [
+     "#100c06",
+     "#3a2a12",
+     "#7a5a26",
+     "#d0a848",
+     "#fff4c8"
+    ]
+   },
+   "lore": "시간마다 다른 음을 내는 풍경 홀. 엇박이 울리면 적의 발이 꼬인다.",
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "톱니 소나기",
+     "input": "RIGHT",
+     "cooldown": 13.0,
+     "mana": 18,
+     "description": "바라보는 곳에 여섯 번 쏟아져 상태이상을 건다.",
+     "params": {
+      "damage_type": "magic"
+     },
+     "mechanics": [
+      {
+       "type": "rain",
+       "at": "aim",
+       "range": 14,
+       "count": 6,
+       "radius": 3,
+       "interval": 4,
+       "display": "proj_gear",
+       "effects": [
+        {
+         "damage": 0.41
+        },
+        {
+         "ignite": 3
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "unique": {
+    "id": "exploit",
+    "name": "어긋난 박자",
+    "pct": 0.35
+   }
+  },
+  "clock_rime_maul": {
+   "name": "태엽 서리 망치",
+   "type": "weapon",
+   "attack": {
+    "style": "melee",
+    "interval": 1.18,
+    "kind": "physical"
+   },
+   "rarity": "epic",
+   "level_req": 41,
+   "tier": 9,
+   "requires": {
+    "VIT": 66,
+    "STR": 44
+   },
+   "stats": {
+    "damage": [
+     153,
+     176
+    ],
+    "VIT": [
+     10,
+     14
+    ],
+    "skill_damage": [
+     0.083,
+     0.112
+    ],
+    "crit_chance": [
+     0.048,
+     0.065
+    ],
+    "cooldown_reduction": [
+     0.048,
+     0.065
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "trial"
+   ],
+   "model": {
+    "shape": "great_maul",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "dark_iron",
+    "palette": [
+     "#0c1018",
+     "#22304a",
+     "#4a6a90",
+     "#b8a060",
+     "#f6f0d8"
+    ]
+   },
+   "lore": "성소의 냉각 태엽을 머리에 박은 망치. 내려칠 때마다 찬 김이 새어 나온다.",
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "톱니 안개",
+     "input": "RIGHT",
+     "cooldown": 13.0,
+     "mana": 18,
+     "description": "바라보는 곳에 여섯 번 쏟아져 상태이상을 건다.",
+     "params": {
+      "damage_type": "melee"
+     },
+     "mechanics": [
+      {
+       "type": "rain",
+       "at": "aim",
+       "range": 14,
+       "count": 6,
+       "radius": 3,
+       "interval": 4,
+       "display": "proj_gear",
+       "effects": [
+        {
+         "damage": 0.86
+        },
+        {
+         "freeze": {
+          "seconds": 3,
+          "stacks": 1
+         }
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "unique": {
+    "id": "exploit",
+    "name": "굳은 관절",
+    "pct": 0.35
+   }
+  },
+  "abyss_great_maul": {
+   "name": "심연 대형 망치",
+   "type": "weapon",
+   "attack": {
+    "style": "melee",
+    "interval": 1.18,
+    "kind": "physical"
+   },
+   "rarity": "epic",
+   "level_req": 46,
+   "tier": 10,
+   "requires": {
+    "STR": 74,
+    "VIT": 50
+   },
+   "stats": {
+    "damage": [
+     187,
+     213
+    ],
+    "STR": [
+     11,
+     15
+    ],
+    "crit_damage": [
+     0.171,
+     0.232
+    ],
+    "hp": [
+     153,
+     207
+    ],
+    "defense": [
+     17,
+     24
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "drop",
+    "chest"
+   ],
+   "unique": {
+    "id": "armor_break",
+    "name": "늦은 메아리",
+    "pct": 0.08,
+    "max_stacks": 5,
+    "duration": 5
+   },
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "공허 짓찧기",
+     "input": "RIGHT",
+     "cooldown": 14.0,
+     "mana": 18,
+     "description": "뛰어올라 내려찍어 4초간 받는 피해를 늘린다.",
+     "params": {
+      "damage_type": "melee"
+     },
+     "mechanics": [
+      {
+       "type": "leap",
+       "forward": 0.5,
+       "upward": 0.8,
+       "land": [
+        {
+         "type": "nova",
+         "radius": 3.5,
+         "display": "void_burst",
+         "effects": [
+          {
+           "damage": 2.42
+          },
+          {
+           "effect": {
+            "id": "vulnerable",
+            "seconds": 4,
+            "potency": 0.1
+           }
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "mechanics",
+     "name": "공허 폭쇄",
+     "input": "SNEAK_RIGHT",
+     "cooldown": 12.0,
+     "mana": 18,
+     "description": "뛰어올라 내려찍어 주위를 터뜨린다.",
+     "params": {
+      "damage_type": "melee"
+     },
+     "mechanics": [
+      {
+       "type": "leap",
+       "forward": 0.6,
+       "upward": 0.7,
+       "land": [
+        {
+         "type": "nova",
+         "radius": 4,
+         "display": "void_burst",
+         "effects": [
+          {
+           "damage": 2.77
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "model": {
+    "shape": "great_maul",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "abyss",
+    "palette": [
+     "#05060a",
+     "#0e1a20",
+     "#103a3a",
+     "#2ad0c0",
+     "#c0fff8"
+    ]
+   },
+   "lore": "메아리 거상의 주먹 뼈를 머리로 쓴 망치. 내려치면 소리가 한참 늦게 온다."
+  },
+  "abyss_thurible_rod": {
+   "name": "심연 향로봉",
+   "type": "weapon",
+   "attack": {
+    "style": "caster",
+    "interval": 0.77,
+    "kind": "magic"
+   },
+   "rarity": "epic",
+   "level_req": 46,
+   "tier": 10,
+   "requires": {
+    "WIS": 74,
+    "VIT": 50
+   },
+   "stats": {
+    "damage": [
+     101,
+     115
+    ],
+    "WIS": [
+     11,
+     15
+    ],
+    "cooldown_reduction": [
+     0.052,
+     0.071
+    ],
+    "mp": [
+     77,
+     104
+    ],
+    "mana_regen": [
+     0.8,
+     1.1
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "elite"
+   ],
+   "model": {
+    "shape": "thurible_rod",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "shadow",
+    "palette": [
+     "#04060a",
+     "#101a24",
+     "#24405a",
+     "#6ab4c8",
+     "#e6fbff"
+    ]
+   },
+   "lore": "심연의 바닥 향을 피우는 향로봉. 연기를 마신 마력은 다시 채워진다.",
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "공허 순환",
+     "input": "RIGHT",
+     "cooldown": 10.0,
+     "mana": 14,
+     "description": "적 사이를 튀는 섬광을 쏘고 MP 를 조금 되찾는다.",
+     "params": {
+      "damage_type": "magic"
+     },
+     "mechanics": [
+      {
+       "type": "chain",
+       "jumps": 3,
+       "range": 10,
+       "falloff": 0.8,
+       "effects": [
+        {
+         "damage": 1.16
+        }
+       ]
+      },
+      {
+       "type": "self",
+       "effects": [
+        {
+         "mana": 8
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "unique": {
+    "id": "overcharge",
+    "name": "짙은 연기",
+    "pct": 2.6,
+    "window": 5,
+    "radius": 2.5
+   }
+  },
+  "void_bone_bow": {
+   "name": "공허 뼈 활",
+   "type": "weapon",
+   "attack": {
+    "style": "ranged",
+    "interval": 1.15,
+    "kind": "physical"
+   },
+   "rarity": "epic",
+   "level_req": 46,
+   "tier": 10,
+   "requires": {
+    "DEX": 62,
+    "STR": 37,
+    "LUK": 25
+   },
+   "stats": {
+    "damage": [
+     176,
+     201
+    ],
+    "DEX": [
+     11,
+     15
+    ],
+    "crit_chance": [
+     0.052,
+     0.071
+    ],
+    "move_speed": [
+     0.034,
+     0.046
+    ],
+    "evasion": [
+     0.038,
+     0.052
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "hoard"
+   ],
+   "unique": {
+    "id": "first_strike",
+    "name": "보이는 순간",
+    "pct": 1.09,
+    "cc": 0.2,
+    "window": 10
+   },
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "공허 숨은 화살",
+     "input": "SNEAK_RIGHT",
+     "cooldown": 12.0,
+     "mana": 16,
+     "description": "아주 빠른 화살로 표식을 남긴다.",
+     "params": {
+      "damage_type": "ranged"
+     },
+     "mechanics": [
+      {
+       "type": "projectile",
+       "speed": 2.2,
+       "range": 26,
+       "display": "proj_void_orb",
+       "effects": [
+        {
+         "damage": 2.08
+        },
+        {
+         "glow": 4
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "model": {
+    "shape": "bone_bow",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "void",
+    "palette": [
+     "#08040e",
+     "#1a0e2a",
+     "#3a1a5a",
+     "#8a40d0",
+     "#e8c8ff"
+    ]
+   },
+   "lore": "빛을 먹는 뼈로 만든 활. 쏘아도 화살이 보이지 않는다."
+  },
+  "void_spiral_staff": {
+   "name": "공허 소용돌이 지팡이",
+   "type": "weapon",
+   "attack": {
+    "style": "caster",
+    "interval": 0.91,
+    "kind": "magic"
+   },
+   "rarity": "epic",
+   "level_req": 46,
+   "tier": 10,
+   "requires": {
+    "INT": 74,
+    "VIT": 50
+   },
+   "stats": {
+    "damage": [
+     119,
+     137
+    ],
+    "INT": [
+     11,
+     15
+    ],
+    "cooldown_reduction": [
+     0.052,
+     0.071
+    ],
+    "mp": [
+     77,
+     104
+    ],
+    "mana_regen": [
+     0.8,
+     1.1
+    ]
+   },
+   "pool": false,
+   "sources": [
+    "special"
+   ],
+   "model": {
+    "shape": "staff_spiral",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "shadow",
+    "palette": [
+     "#06040e",
+     "#1a1030",
+     "#3a2468",
+     "#9a7cff",
+     "#efe6ff"
+    ]
+   },
+   "lore": "끝이 안쪽으로 말려 들어간 지팡이. 마력이 빠져나가지 않고 돌아온다.",
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "공허 되돌림",
+     "input": "RIGHT",
+     "cooldown": 10.0,
+     "mana": 14,
+     "description": "적 사이를 튀는 섬광을 쏘고 MP 를 조금 되찾는다.",
+     "params": {
+      "damage_type": "magic"
+     },
+     "mechanics": [
+      {
+       "type": "chain",
+       "jumps": 3,
+       "range": 10,
+       "falloff": 0.8,
+       "effects": [
+        {
+         "damage": 1.37
+        }
+       ]
+      },
+      {
+       "type": "self",
+       "effects": [
+        {
+         "mana": 8
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "unique": {
+    "id": "overcharge",
+    "name": "말려 든 힘",
+    "pct": 2.6,
+    "window": 5,
+    "radius": 2.5
+   }
+  }
+ },
+ "existing_patch": {
+  "miners_lamp_censer": {
+   "requires": {
+    "INT": 7,
+    "VIT": 4
+   },
+   "unique": {
+    "id": "imbue",
+    "name": "등불 그을음",
+    "chance": 0.32,
+    "pct": 0.12,
+    "duration": 3,
+    "element": "burn"
+   }
+  },
+  "slagedge_bladebow": {
+   "requires": {
+    "INT": 29,
+    "WIS": 17,
+    "VIT": 12
+   },
+   "unique": {
+    "id": "overcharge",
+    "name": "쇳물 장전",
+    "pct": 2.6,
+    "window": 5,
+    "radius": 2.5
+   },
+   "add_weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "불티 폭발 화살",
+     "input": "SNEAK_LEFT",
+     "cooldown": 12.0,
+     "mana": 18,
+     "description": "맞은 자리에서 터지는 탄을 쏜다.",
+     "params": {
+      "damage_type": "magic"
+     },
+     "mechanics": [
+      {
+       "type": "projectile",
+       "speed": 1.3,
+       "range": 16,
+       "display": "proj_ember",
+       "explode": {
+        "radius": 3,
+        "display": "ember_burst",
+        "effects": [
+         {
+          "damage": 2.08
+         }
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "b2_new": [
+  "silkknot_bell_scepter",
+  "spore_warden_mace",
+  "sluice_hook_spear",
+  "drowned_ring_staff",
+  "clock_rime_maul",
+  "clock_chime_rod",
+  "void_spiral_staff",
+  "abyss_thurible_rod"
+ ],
+ "skill_kinds": {
+  "miners_lamp_crook:RIGHT": "magic",
+  "silkknot_bell_scepter:RIGHT": "magic",
+  "spore_warden_mace:RIGHT": "physical",
+  "spore_thurible_rod:RIGHT": "magic",
+  "drowned_ring_staff:RIGHT": "magic",
+  "sluice_bone_bow:SNEAK_RIGHT": "physical",
+  "sluice_hook_spear:RIGHT": "physical",
+  "slagedge_bladebow:SNEAK_LEFT": "magic",
+  "bellows_bone_bow:SNEAK_LEFT": "physical",
+  "ember_twin_bow:SNEAK_RIGHT": "physical",
+  "forge_chime_rod:SNEAK_RIGHT": "magic",
+  "rime_chime_rod:SNEAK_RIGHT": "magic",
+  "amethyst_executioner_axe:RIGHT": "physical",
+  "crystal_censer:RIGHT": "magic",
+  "geode_great_maul:RIGHT": "physical",
+  "prism_lamp_crook:RIGHT": "magic",
+  "prism_twin_bow:SNEAK_RIGHT": "magic",
+  "resonance_chime_rod:RIGHT": "magic",
+  "resonance_rapier:RIGHT": "physical",
+  "shardglass_tanto:RIGHT": "physical",
+  "ink_great_maul:SNEAK_RIGHT": "physical",
+  "ink_twin_bow:SNEAK_RIGHT": "physical",
+  "clock_bone_bow:SNEAK_RIGHT": "physical",
+  "clock_chime_rod:RIGHT": "magic",
+  "clock_rime_maul:RIGHT": "physical",
+  "abyss_great_maul:SNEAK_RIGHT": "physical",
+  "abyss_thurible_rod:RIGHT": "magic",
+  "void_bone_bow:SNEAK_RIGHT": "physical",
+  "void_spiral_staff:RIGHT": "magic",
+  "lorekeeper_katar:RIGHT": "hybrid",
+  "frost_war_spear:RIGHT": "magic",
+  "ink_recurve:SNEAK_RIGHT": "magic",
+  "abyss_bone_bow:SNEAK_RIGHT": "magic"
+ },
+ "pvp_mult": {},
+ "shop": {
+  "merchant": [
+   {
+    "item": "wayfarer_sabre",
+    "price": 1500,
+    "level_req": 3
+   },
+   {
+    "item": "silk_antler_staff",
+    "price": 2000,
+    "level_req": 8
+   },
+   {
+    "item": "glowcap_twin_bow",
+    "price": 2500,
+    "level_req": 11
+   }
+  ]
+ },
+ "log": {
+  "pair:rootgnaw_tanto": {
+   "old": {
+    "LUK": 7,
+    "STR": 4
+   },
+   "new": {
+    "STR": 7,
+    "LUK": 4
+   }
+  },
+  "pair:miners_lamp_censer": {
+   "old": {
+    "INT": 7,
+    "DEX": 4
+   },
+   "new": {
+    "INT": 7,
+    "VIT": 4
+   }
+  },
+  "pair:skitter_longbow": {
+   "old": {
+    "LUK": 12,
+    "DEX": 8
+   },
+   "new": {
+    "DEX": 12,
+    "STR": 8
+   }
+  },
+  "pair:silk_chime_rod": {
+   "old": {
+    "INT": 12,
+    "WIS": 8
+   },
+   "new": {
+    "WIS": 12,
+    "INT": 8
+   }
+  },
+  "pair:forge_cleaver": {
+   "old": {
+    "STR": 38,
+    "INT": 26
+   },
+   "new": {
+    "STR": 38,
+    "VIT": 26
+   }
+  },
+  "pair:slagedge_bladebow": {
+   "old": {
+    "INT": 29,
+    "WIS": 17,
+    "DEX": 12
+   },
+   "new": {
+    "INT": 29,
+    "WIS": 17,
+    "VIT": 12
+   }
+  },
+  "pair:rime_chalice": {
+   "old": {
+    "WIS": 43,
+    "INT": 29
+   },
+   "new": {
+    "VIT": 36,
+    "WIS": 22,
+    "INT": 14
+   }
+  },
+  "pair:ink_recurve": {
+   "old": {
+    "INT": 51,
+    "STR": 31,
+    "DEX": 20
+   },
+   "new": {
+    "INT": 61,
+    "VIT": 41
+   }
+  },
+  "bow:pit_war_spear→pit_bone_bow": {
+   "interval": 1.15,
+   "damage": [
+    21,
+    23
+   ],
+   "requires": {
+    "DEX": 12,
+    "STR": 8
+   },
+   "strength": 2.8,
+   "unique": {
+    "id": "bash_stun",
+    "name": "입구 막기",
+    "n": 2,
+    "stun": 1.5,
+    "pct": 0.45,
+    "vuln": 0.14
+   }
+  },
+  "bow:glowcap_rapier→glowcap_twin_bow": {
+   "interval": 1.05,
+   "damage": [
+    24,
+    28
+   ],
+   "requires": {
+    "DEX": 17,
+    "STR": 11
+   },
+   "strength": 2.8,
+   "unique": {
+    "id": "backstab",
+    "name": "어둠 찌르기",
+    "pct": 0.6
+   }
+  },
+  "bow:sluice_morning_star→sluice_bone_bow": {
+   "interval": 1.15,
+   "damage": [
+    43,
+    49
+   ],
+   "requires": {
+    "DEX": 22,
+    "STR": 13,
+    "VIT": 9
+   },
+   "strength": 1.62,
+   "unique": {
+    "id": "feast",
+    "name": "수문 삼킴",
+    "heal": 0.065,
+    "ls": 0.065,
+    "duration": 4
+   }
+  },
+  "bow:ember_tanto→ember_twin_bow": {
+   "interval": 1.05,
+   "damage": [
+    59,
+    67
+   ],
+   "requires": {
+    "DEX": 32,
+    "STR": 19,
+    "LUK": 13
+   },
+   "strength": 2.8,
+   "unique": {
+    "id": "backstab",
+    "name": "잿속 칼끝",
+    "pct": 0.6
+   }
+  },
+  "bow:ink_flamberge→ink_twin_bow": {
+   "interval": 1.05,
+   "damage": [
+    116,
+    132
+   ],
+   "requires": {
+    "DEX": 51,
+    "STR": 31,
+    "VIT": 20
+   },
+   "strength": 2.69,
+   "unique": {
+    "id": "feast",
+    "name": "먹물 삼킴",
+    "heal": 0.1,
+    "ls": 0.1,
+    "duration": 4
+   }
+  },
+  "bow:clock_katar→clock_bone_bow": {
+   "interval": 1.15,
+   "damage": [
+    145,
+    167
+   ],
+   "requires": {
+    "DEX": 55,
+    "STR": 33,
+    "LUK": 22
+   },
+   "strength": 2.8,
+   "unique": {
+    "id": "backstab",
+    "name": "소리 없는 톱니",
+    "pct": 0.6
+   }
+  },
+  "bow:void_tanto→void_bone_bow": {
+   "interval": 1.15,
+   "damage": [
+    176,
+    201
+   ],
+   "requires": {
+    "DEX": 62,
+    "STR": 37,
+    "LUK": 25
+   },
+   "strength": 2.8,
+   "unique": {
+    "id": "first_strike",
+    "name": "보이는 순간",
+    "pct": 1.09,
+    "cc": 0.2,
+    "window": 10
+   }
+  },
+  "skill:miners_lamp_crook": {
+   "skill": "은실 연쇄 섬광",
+   "input": "RIGHT",
+   "rarity": "uncommon",
+   "strength": 2.78,
+   "unique": {
+    "id": "siphon",
+    "name": "등롱 기름",
+    "mp": 0.12,
+    "cdr": 1.2
+   }
+  },
+  "rarity:spore_thurible_rod": {
+   "epic_cells": 35,
+   "keep_cells": 36,
+   "chosen": "rare"
+  },
+  "skill:spore_thurible_rod": {
+   "skill": "포자 축복의 원",
+   "input": "RIGHT",
+   "rarity": "rare",
+   "strength": 1.57,
+   "unique": {
+    "id": "ward_aura",
+    "name": "공생 연기",
+    "pct": 0.065,
+    "period": 8,
+    "radius": 8,
+    "duration": 6
+   }
+  },
+  "skill:bellows_bone_bow": {
+   "skill": "불티 연사",
+   "input": "SNEAK_LEFT",
+   "rarity": "epic",
+   "strength": 2.8,
+   "unique": {
+    "id": "hemorrhage",
+    "name": "뜨거운 숨",
+    "cc": 0.22,
+    "cd": 0.45
+   }
+  },
+  "skill:forge_chime_rod": {
+   "skill": "불티 연쇄 섬광",
+   "input": "SNEAK_RIGHT",
+   "rarity": "epic",
+   "strength": 1.99,
+   "unique": {
+    "id": "ward_aura",
+    "name": "망치 소리",
+    "pct": 0.08,
+    "period": 8,
+    "radius": 8,
+    "duration": 6
+   }
+  },
+  "skill:slagedge_bladebow": {
+   "skill": "불티 폭발 화살",
+   "input": "SNEAK_LEFT",
+   "rarity": "epic",
+   "strength": 2.8,
+   "unique": {
+    "id": "overcharge",
+    "name": "쇳물 장전",
+    "pct": 2.6,
+    "window": 5,
+    "radius": 2.5
+   }
+  },
+  "skill:rime_chime_rod": {
+   "skill": "서리 돌봄",
+   "input": "SNEAK_RIGHT",
+   "rarity": "epic",
+   "strength": 2.0,
+   "unique": {
+    "id": "thorns",
+    "name": "종지기의 꾸중",
+    "pct": 0.6
+   }
+  },
+  "skill:ink_great_maul": {
+   "skill": "먹물 폭쇄",
+   "input": "SNEAK_RIGHT",
+   "rarity": "epic",
+   "strength": 1.65,
+   "unique": {
+    "id": "armor_break",
+    "name": "거꾸로 도장",
+    "pct": 0.065,
+    "max_stacks": 5,
+    "duration": 5
+   }
+  },
+  "skill:abyss_great_maul": {
+   "skill": "공허 폭쇄",
+   "input": "SNEAK_RIGHT",
+   "rarity": "epic",
+   "strength": 2.14,
+   "unique": {
+    "id": "armor_break",
+    "name": "늦은 메아리",
+    "pct": 0.08,
+    "max_stacks": 5,
+    "duration": 5
+   }
+  },
+  "promote:geode_great_maul": {
+   "skill": "수정 피 마시기",
+   "strength": 2.8,
+   "unique": {
+    "id": "leech",
+    "name": "결정 이빨",
+    "pct": 0.14,
+    "cap": 0.03
+   }
+  },
+  "promote:prism_lamp_crook": {
+   "skill": "수정 비",
+   "strength": 2.8,
+   "unique": {
+    "id": "imbue",
+    "name": "뜨거운 갈래",
+    "chance": 0.34,
+    "pct": 0.22,
+    "duration": 3,
+    "element": "burn"
+   }
+  },
+  "promote:amethyst_executioner_axe": {
+   "skill": "수정 광란",
+   "strength": 2.8,
+   "unique": {
+    "id": "berserk",
+    "name": "짙어지는 보석",
+    "pct": 0.055,
+    "ls": 0.12,
+    "thr": 0.3
+   }
+  },
+  "promote:prism_twin_bow": {
+   "skill": "수정 화살비",
+   "strength": 2.8,
+   "unique": {
+    "id": "exploit",
+    "name": "무지개 틈",
+    "pct": 0.35
+   }
+  },
+  "promote:crystal_censer": {
+   "skill": "수정 축복의 원",
+   "strength": 2.69,
+   "unique": {
+    "id": "ward_aura",
+    "name": "수정 막",
+    "pct": 0.09,
+    "period": 8,
+    "radius": 8,
+    "duration": 6
+   }
+  },
+  "promote:shardglass_tanto": {
+   "skill": "수정 그림자 걸음",
+   "strength": 2.8,
+   "unique": {
+    "id": "first_strike",
+    "name": "늦은 그림자",
+    "pct": 2.54,
+    "cc": 0.2,
+    "window": 10
+   }
+  },
+  "promote:resonance_chime_rod": {
+   "skill": "수정 연쇄 섬광",
+   "strength": 2.8,
+   "unique": {
+    "id": "overcharge",
+    "name": "어긋난 음",
+    "pct": 2.6,
+    "window": 5,
+    "radius": 2.5
+   }
+  },
+  "promote:resonance_rapier": {
+   "skill": "수정 칼바람",
+   "strength": 2.8,
+   "unique": {
+    "id": "flurry",
+    "name": "네 번째 음",
+    "n": 4,
+    "pct": 1.6
+   }
+  },
+  "b2:silkknot_bell_scepter": {
+   "direction": "bulwark",
+   "effect": "bash_stun",
+   "strength": 2.8,
+   "damage": [
+    12,
+    14
+   ],
+   "requires": {
+    "WIS": 12,
+    "VIT": 8
+   },
+   "cell_ok": [
+    44,
+    true,
+    false,
+    3,
+    1
+   ],
+   "source": "trial"
+  },
+  "b2:spore_warden_mace": {
+   "direction": "support",
+   "effect": "sanctify",
+   "strength": 0.8,
+   "damage": [
+    21,
+    24
+   ],
+   "requires": {
+    "VIT": 20,
+    "STR": 13
+   },
+   "cell_ok": [
+    46,
+    true,
+    true,
+    3,
+    2
+   ],
+   "source": "elite"
+  },
+  "b2:sluice_hook_spear": {
+   "direction": "ambush",
+   "effect": "backstab",
+   "strength": 2.35,
+   "damage": [
+    33,
+    38
+   ],
+   "requires": {
+    "VIT": 26,
+    "STR": 18
+   },
+   "cell_ok": [
+    48,
+    true,
+    true,
+    3,
+    1
+   ],
+   "source": "trial"
+  },
+  "b2:drowned_ring_staff": {
+   "direction": "ambush",
+   "effect": "backstab",
+   "strength": 2.13,
+   "damage": [
+    29,
+    33
+   ],
+   "requires": {
+    "INT": 26,
+    "VIT": 18
+   },
+   "cell_ok": [
+    50,
+    true,
+    true,
+    3,
+    1
+   ],
+   "source": "hoard"
+  },
+  "b2:clock_rime_maul": {
+   "direction": "affliction",
+   "effect": "exploit",
+   "strength": 2.8,
+   "damage": [
+    153,
+    176
+   ],
+   "requires": {
+    "VIT": 66,
+    "STR": 44
+   },
+   "cell_ok": [
+    52,
+    true,
+    true,
+    3,
+    2
+   ],
+   "source": "trial"
+  },
+  "b2:clock_chime_rod": {
+   "direction": "affliction",
+   "effect": "exploit",
+   "strength": 2.8,
+   "damage": [
+    76,
+    88
+   ],
+   "requires": {
+    "WIS": 66,
+    "VIT": 44
+   },
+   "cell_ok": [
+    53,
+    true,
+    true,
+    3,
+    1
+   ],
+   "source": "elite"
+  },
+  "b2:void_spiral_staff": {
+   "direction": "mana_flow",
+   "effect": "overcharge",
+   "strength": 2.8,
+   "damage": [
+    119,
+    137
+   ],
+   "requires": {
+    "INT": 74,
+    "VIT": 50
+   },
+   "cell_ok": [
+    54,
+    true,
+    true,
+    3,
+    2
+   ],
+   "source": "special"
+  },
+  "b2:abyss_thurible_rod": {
+   "direction": "mana_flow",
+   "effect": "overcharge",
+   "strength": 2.8,
+   "damage": [
+    101,
+    115
+   ],
+   "requires": {
+    "WIS": 74,
+    "VIT": 50
+   },
+   "cell_ok": [
+    55,
+    true,
+    true,
+    3,
+    2
+   ],
+   "source": "elite"
+  }
+ },
+ "new_weapon_patch": {
+  "_why": "gear_spec 새 무기를 그대로 쓰되 고칠 것만 (툴팁 줄 폭 330px 등)",
+  "rime_composite_bow": {
+   "skill_names": {
+    "SNEAK_RIGHT": "서리 관통 화살"
+   }
+  }
+ },
+ "loot_tweaks": {
+  "_why": "own_build_bias 는 주 능력치가 줍는 사람 상위 2개 안인 후보를 모두 묶는다 — 같은 능력치를 나눠 쓰는 보스 무기 둘은 편향을 반씩 받으므로 묶음 확률을 올려 처치당 '그 무기 빌드' 확률 영웅 ≥ 0.30 · 전설 ≥ 0.15 를 지킨다 (GearRequirementsDataTest) · B2 새 무기가 들어간 단계 풀은 같은 빌드 무기가 늘어 기대 회차가 창(시련방 2.5~7 · 정예 3~7) 밖으로 나가므로 그 풀/층 PICK 확률을 올린다 (DropRateWindowTest)",
+  "floor02_boss": {
+   "2": {
+    "chance": 0.68,
+    "note": "고유 무기(영웅, 보스만) — 그 무기 요구에 맞춘 빌드(own_build_bias) 처치당 30~52%"
+   }
+  },
+  "floor03_boss": {
+   "2": {
+    "chance": 0.68,
+    "note": "고유 무기(영웅, 보스만) — 그 무기 요구에 맞춘 빌드(own_build_bias) 처치당 30~52%"
+   }
+  },
+  "floor04_boss": {
+   "2": {
+    "chance": 0.5,
+    "note": "고유 무기(영웅, 보스만) — 그 무기 요구에 맞춘 빌드(own_build_bias) 처치당 약 41%"
+   },
+   "3": {
+    "chance": 0.2,
+    "note": "전설 활(보스만) — 처치당 20% (묶음 아님)"
+   }
+  },
+  "floor05_boss": {
+   "2": {
+    "chance": 0.3,
+    "note": "고유 무기(전설, 보스만) — 둘 다 힘이 주 능력치라 편향을 나눔, 처치당 15%"
+   }
+  },
+  "floor06_boss": {
+   "2": {
+    "chance": 0.25,
+    "note": "고유 무기(전설, 보스만) — 그 무기 요구에 맞춘 빌드(own_build_bias) 처치당 약 19%"
+   }
+  },
+  "floor07_boss": {
+   "2": {
+    "chance": 0.25,
+    "note": "고유 무기(전설, 보스만) — 그 무기 요구에 맞춘 빌드(own_build_bias) 처치당 약 19%"
+   }
+  },
+  "floor08_boss": {
+   "2": {
+    "chance": 0.34,
+    "note": "고유 무기(전설, 보스만) — 그 무기 요구에 맞춘 빌드(own_build_bias) 처치당 15~26%"
+   }
+  },
+  "floor09_boss": {
+   "1": {
+    "chance": 0.34,
+    "note": "고유 무기(전설, 보스만) — 그 무기 요구에 맞춘 빌드(own_build_bias) 처치당 15~26%"
+   }
+  },
+  "floor10_boss": {
+   "1": {
+    "chance": 0.34,
+    "note": "고유 무기(전설, 보스만) — 그 무기 요구에 맞춘 빌드(own_build_bias) 처치당 15~26%"
+   }
+  },
+  "gimmick_floor_2": {
+   "6": {
+    "chance": 0.3
+   }
+  },
+  "gimmick_floor_9": {
+   "7": {
+    "chance": 0.3
+   }
+  },
+  "band_t04_trial": {
+   "0": {
+    "chance": 0.85
+   }
+  },
+  "band_t10_elite": {
+   "3": {
+    "chance": 0.22
+   }
+  }
+ }
+}

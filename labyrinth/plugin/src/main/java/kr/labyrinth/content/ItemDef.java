@@ -138,13 +138,19 @@ public record ItemDef(
                 aura, weaponSkills, floor, pool, sources, use, model, texture, lore, raw, unique, l);
     }
 
+    /**
+     * 장비 단계 (0.3.5 items.yml {@code tier}, 숨김) = 그 장비를 만든 레벨 구간 Lv 5N−5 ~ 5N. 보스가 아닌 장비는 이웃 층 셋이
+     * 나눠 주고(loot.yml band_tNN_*), 보스 장비는 그 단계 층 보스만. 화면에는 층이 나오지 않는다. 장비가 아니면 0.
+     * ({@link #floor()} 는 같은 값 — 재료는 그 층 재료라는 뜻으로 그대로 쓴다.)
+     */
+    public int tier() { return isGear() ? floor : 0; }
+
     /** 직업 제한 없음 — 어느 직업이든(직업 없음 포함) 모든 장비를 쓴다 (GDD §4.4). */
     public boolean usableBy(String classId) { return true; }
 
     /**
-     * 그 직업에 어울리는 장비인가 ({@code classes} = 추천 직업, 비우면 모두). 착용 제한이 아니고 대장간 필터도 없다(없어짐) —
-     * 드롭 직업 편향(loot.yml settings.own_class_bias)에만 쓴다.
-     * 툴팁·대장간에는 표시하지 않는다.
+     * {@code classes} 에 그 직업이 있는가 (비우면 모두). 0.3.5 부터 장비에는 classes 가 없다 (직업 문장만) —
+     * 드롭 편향은 요구 능력치로 ({@code loot.yml own_build_bias}, LootRoller). 툴팁·대장간에는 표시하지 않는다.
      */
     public boolean suitedFor(String classId) {
         return classes.isEmpty() || (classId != null && classes.contains(classId));

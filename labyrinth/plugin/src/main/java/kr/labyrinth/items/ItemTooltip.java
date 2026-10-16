@@ -31,8 +31,11 @@ public final class ItemTooltip {
     private static final Map<String, String> SLOTS = Map.of("head", "투구", "chest", "흉갑", "legs", "각반",
             "feet", "장화", "offhand", "방패");
     /** items.yml sources 값 → 획득처 이름 (drop+chest 는 "몬스터·상자" 한 집, 보스·정예는 이름을 붙인다 — {@link #sourceLine}). */
-    private static final Map<String, String> SOURCES = Map.of("drop", "몬스터", "elite", "정예", "boss", "보스",
-            "chest", "보물 상자", "craft", "대장간", "reward", "칭호 보상", "shop", "상인", "starter", "시작 지급");
+    private static final Map<String, String> SOURCES = Map.ofEntries(Map.entry("drop", "몬스터"), Map.entry("elite", "정예"),
+            Map.entry("boss", "보스"), Map.entry("chest", "보물 상자"), Map.entry("craft", "대장간"), Map.entry("reward", "칭호 보상"),
+            Map.entry("shop", "상인"), Map.entry("starter", "시작 지급"),
+            // 0.3.5 새 획득처 (P3 데이터 — 툴팁 줄 정리는 P6)
+            Map.entry("trial", "시련방"), Map.entry("special", "특별 시련"), Map.entry("hoard", "금고·미믹"));
     private static final Map<String, String> BUFFS = Map.of("damage", "주는 피해", "damage_reduction", "받는 피해 감소",
             "attack_speed", "공격 속도", "move_speed", "이동 속도", "crit_chance", "치명타 확률", "crit_damage", "치명타 피해",
             "lifesteal", "흡혈", "evasion", "회피", "cooldown_reduction", "재사용 대기 감소", "skill_damage", "스킬 피해");
@@ -356,6 +359,7 @@ public final class ItemTooltip {
                 case ITEM -> { if (e.item() != null) out.add(e.item()); }
                 case ONE_OF -> { if (e.oneOf() != null) out.addAll(e.oneOf()); }
                 case TABLE -> collect(c, c.lootTable(e.table()), out, visiting);
+                case PICK -> { for (LootTable.Pick p : e.pick()) collect(c, c.lootTable(p.table()), out, visiting); }
                 case RARITY_POOL -> {
                     if (e.rarityPool() != null) for (ItemDef d : c.poolCandidates(e.floor(), e.rarityPool())) out.add(d.id());
                 }

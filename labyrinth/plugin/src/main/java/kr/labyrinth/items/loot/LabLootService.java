@@ -54,8 +54,9 @@ public final class LabLootService implements LootService, Listener {
         double mult = (ctx != null ? ctx.dropMultiplier()
                 : diff.drop() * services.settings().party().reward(services.party().size(looter))) * extraMult;
         int luck = looter == null ? 0 : services.stats().get(looter).stat(Stat.LUK);
-        String cls = looter == null ? null : services.data().get(looter).classId();
-        return new LootRoller.Request(diff.id(), mult, luck, cls);
+        // 빌드 편향(own_build_bias)은 요구치 판정 능력치(직업 기본 + 분배 + 칭호)의 상위 2개로 본다
+        Map<Stat, Integer> build = looter == null ? null : services.stats().requirementStats(looter);
+        return new LootRoller.Request(diff.id(), mult, luck, build);
     }
 
     /** 굴림만 (아이템 id → 개수, 같은 id 는 합침). */

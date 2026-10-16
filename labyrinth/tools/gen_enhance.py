@@ -31,6 +31,10 @@
   python3 tools/gen_enhance.py --spec loot_spec.json # 루팅 명세(new_items·assignments·tables·recipes)를 덮어 계산
   python3 tools/gen_enhance.py --report              # 층별 공급량 · 예상 클리어 수 표 · 보스 장비 검사 · 겹침 수만 출력
   python3 tools/gen_enhance.py --check               # 쓰지 않고, 지금 파일과 같으면 종료 코드 0
+
+0.3.5 (review2 A13): 장비의 층 = items.yml tier (없으면 floor · level_req) · 루팅 {pick: […]} 항목을 무게대로 따라간다 ·
+  1회 클리어에 특별 시련 상자 special_trial_fNN (0.26번) · 금고·미믹 hoard_fNN (2.4~3.4번) 도 굴린다 ·
+  획득처 이름에 시련방 · 특별 시련 · 금고·미믹.
 """
 import argparse
 import collections
@@ -48,6 +52,17 @@ RES = ROOT / "plugin/src/main/resources"
 # 몹 수 = GDD §16.1 표, 미로 상자 수는 층 크기로 추정 (loot_spec §3 과 같은 값).
 # 솔로 몹 수 감소(party_mob_count)는 보상 보정(WP4 B2·B3)으로 드롭 총량이 같다고 본다.
 MOBS_RUN = {1: 24, 2: 28, 3: 28, 4: 36, 5: 40, 6: 45, 7: 45, 8: 55, 9: 55, 10: 60}
+# 0.3.5 (gear_spec §7.1): 특별 시련 상자 = 방문의 39.5%(확정 규칙 포함)가 특별 시련 × 조건까지 지킴 0.65
+SPECIAL_RUN = 0.395 * 0.65
+# 금고 금 상자 2~3개 × 열쇠 0.9 + 길들인 미믹 = (나무 + 철) × 미믹 확률 — 금고·미믹 표 hoard_fNN 을 한 번 더 굴린다
+MIMIC = {1: 0.04, 2: 0.055, 3: 0.07, 4: 0.085, 5: 0.10, 6: 0.115, 7: 0.13, 8: 0.145, 9: 0.16, 10: 0.175}
+
+
+def hoard_runs(f):
+    wood_iron = 4.6 if f <= 3 else 6.7
+    return 2.5 * 0.9 + wood_iron * MIMIC.get(f, 0.1)
+
+
 def maze_chests(f):
     return {'wood': 4, 'iron': 2, 'gold': 3} if f <= 3 else {'wood': 5, 'iron': 2, 'gold': 3} if f <= 7 else {'wood': 6, 'iron': 3, 'gold': 4}
 def stone_tier(f):  # ChestTier.stoneTier 와 같은 구간
@@ -179,6 +194,11 @@ def expect(tables, tid, depth=0):
         elif 'table' in e:
             for k, v in expect(tables, e['table'], depth + 1).items():
                 out[k] += mult * v
+        elif 'pick' in e:
+            tot = sum(max(0, p.get('weight', 1)) for p in e['pick']) or 1
+            for p in e['pick']:
+                for k, v in expect(tables, p['table'], depth + 1).items():
+                    out[k] += mult * v * max(0, p.get('weight', 1)) / tot
     for e in t.get('guaranteed') or []:
         add(e, min(1.0, e.get('chance', 1.0)))
     for e in t.get('entries') or []:
@@ -199,6 +219,8 @@ def floor_roots(f, fd, tables, mobs, bosses):
         roots.append((bosses[fd['boss']]['drops'], 1, 'boss'))
     roots.append((f'treasure_floor_{f}', 3 * rooms.get('treasure', 1), 'chest'))
     roots.append((f'gimmick_floor_{f}', 1, 'chest'))
+    roots.append((f'special_trial_f{f:02d}', SPECIAL_RUN, 'special'))
+    roots.append((f'hoard_f{f:02d}', hoard_runs(f), 'hoard'))
     br = 1 if f <= 3 else 2 if f <= 6 else 3 if f <= 9 else 4
     for tier, n in maze_chests(f).items():
         tid = f'maze_chest_{tier}_f{f}' if f'maze_chest_{tier}_f{f}' in tables else f'maze_chest_{tier}_{br}'
@@ -229,6 +251,9 @@ def expand_items(tables, tid, seen=frozenset()):
             s |= set(e['one_of'])
         elif 'table' in e:
             s |= expand_items(tables, e['table'], seen | {tid})
+        elif 'pick' in e:
+            for p in e['pick']:
+                s |= expand_items(tables, p['table'], seen | {tid})
     return s
 
 
@@ -293,6 +318,9 @@ class Floor:
 
 
 def gear_floor(v):
+    """장비의 층 = 0.3.5 tier (숨은 단계 — 재료·강화석 구간이 그 층), 예전 floor, 둘 다 없으면 level_req 로."""
+    if v.get('tier'):
+        return int(v['tier'])
     if v.get('floor'):
         return int(v['floor'])
     return max(1, min(10, math.ceil(max(1, v.get('level_req', 1)) / 5.0)))
@@ -328,7 +356,7 @@ def homes_of(i, v, fl, tables):
     src = set(v.get('sources') or [])
     found = [(t, n, h) for t, n, h in fl.roots if h != 'enhance' and i in expand_items(tables, t)]
     if found:
-        return found, '·'.join(sorted({h for _, _, h in found}, key=['mob', 'chest', 'elite', 'boss'].index))
+        return found, '·'.join(sorted({h for _, _, h in found}, key=['mob', 'chest', 'elite', 'boss', 'special', 'hoard'].index))
     if 'reward' in src and fl.boss_root:
         return [r for r in fl.roots if r[0] == fl.boss_root], 'reward'
     if 'starter' in src:
@@ -347,6 +375,12 @@ def home_text(v, label):
         parts.append('몬스터·상자')
     if 'elite' in src:
         parts.append('정예')
+    if 'trial' in src:
+        parts.append('시련방')
+    if 'special' in src:
+        parts.append('특별 시련')
+    if 'hoard' in src:
+        parts.append('금고·미믹')
     if 'starter' in src:
         parts.append('시작 지급')
     if 'reward' in src:

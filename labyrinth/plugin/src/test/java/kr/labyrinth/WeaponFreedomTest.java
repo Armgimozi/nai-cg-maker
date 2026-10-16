@@ -83,7 +83,7 @@ class WeaponFreedomTest {
         }
         assertTrue(checked > 1000, "검사 수 " + checked);
         // 능력치 조건은 직업과 상관없이 같다
-        ItemDef ember = content.item("ember_greatsword").withRequires(StatRequirement.of(Map.of(Stat.STR, 60), Map.of()));
+        ItemDef ember = content.item("ember_greatsword").withRequires(StatRequirement.of(Map.of(Stat.STR, 60)));
         assertEquals(EquipRules.Problem.STATS, EquipRules.check(ember, all(59)));
         assertEquals(EquipRules.Problem.NONE, EquipRules.check(ember, all(60)));
     }
@@ -105,7 +105,7 @@ class WeaponFreedomTest {
     void effectiveWeaponNeedsItsRequirement() {
         // 요구 능력치를 못 맞춰 능력치가 안 붙는 무기는 '든 무기 없음' (레벨은 보지 않는다)
         ItemDef stormEye = weapons().stream().filter(w -> w.isRanged() && w.rarity() == Rarity.MYTHIC).findFirst().orElseThrow()
-                .withRequires(StatRequirement.of(Map.of(Stat.DEX, 120), Map.of()));
+                .withRequires(StatRequirement.of(Map.of(Stat.DEX, 120)));
         assertNull(EquipRules.effective(stormEye, all(119)));
         assertEquals(stormEye, EquipRules.effective(stormEye, all(120)));
         ItemDef free = stormEye.withRequires(StatRequirement.NONE);
@@ -210,8 +210,11 @@ class WeaponFreedomTest {
             assertFalse(all.contains("직업 전용"), def.id() + ": " + all);
             if (def.isWeapon()) assertEquals("무기", ItemTooltip.category(def), def.id());
         }
-        // 드롭 직업 편향(items.yml classes)은 그대로 남는다 (P3 에서 요구 능력치 편향으로 바뀜)
+        // 0.3.5 P3: 장비에는 classes 가 없다 — 드롭 편향은 요구 능력치(loot.yml own_build_bias)로
+        for (ItemDef def : content.items().values()) {
+            if (def.isGear()) assertTrue(def.classes().isEmpty(), def.id() + " classes " + def.classes());
+        }
         assertTrue(content.item("ember_greatsword").suitedFor("berserker"));
-        assertFalse(content.item("ember_greatsword").suitedFor("priest"));
+        assertTrue(content.item("ember_greatsword").suitedFor("priest"));
     }
 }

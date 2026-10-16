@@ -27,7 +27,10 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-/** 장비 요구 능력치 (레벨 제한 대신): 판정·문구·툴팁·파서·검사기. 번들 데이터에 requires 가 없어도 돌아가게 만든 사본으로 시험한다. */
+/**
+ * 장비 요구 능력치 (레벨 제한 대신, 0.3.5 '그리고'만): 판정·나눔·문구(요구치 큰 순)·툴팁·파서(requires_any = 문제)·검사기.
+ * 번들 데이터와 상관없이 돌아가게 만든 사본으로 시험한다.
+ */
 class StatRequirementTest {
 
     static Content content;
@@ -41,32 +44,50 @@ class StatRequirementTest {
         return m;
     }
 
-    private static final StatRequirement STR30 = StatRequirement.of(Map.of(Stat.STR, 30), Map.of());
-    private static final StatRequirement CLOTH30 = StatRequirement.of(Map.of(), Map.of(Stat.WIS, 30, Stat.INT, 30));
+    private static final StatRequirement STR30 = StatRequirement.of(Map.of(Stat.STR, 30));
+    private static final StatRequirement CLOTH = StatRequirement.of(Map.of(Stat.WIS, 12, Stat.INT, 18));
 
     // ── 판정 ──────────────────────────────────────────────────────────────
 
     @Test
-    void allAnyAndNone() {
+    void allAndNone() {
         assertTrue(StatRequirement.NONE.met(Map.of()));
-        assertTrue(StatRequirement.of(Map.of(), Map.of()).isEmpty());
-        assertTrue(StatRequirement.of(Map.of(Stat.STR, 0), Map.of()).isEmpty(), "0 = 요구 없음");
+        assertTrue(StatRequirement.of(Map.of()).isEmpty());
+        assertTrue(StatRequirement.of(Map.of(Stat.STR, 0)).isEmpty(), "0 = 요구 없음");
 
         assertFalse(STR30.met(stats(Stat.STR, 29)));
         assertTrue(STR30.met(stats(Stat.STR, 30)));
         assertFalse(STR30.met(Map.of()), "없는 능력치 = 0");
 
-        StatRequirement both = StatRequirement.of(Map.of(Stat.STR, 30, Stat.VIT, 20), Map.of());
+        StatRequirement both = StatRequirement.of(Map.of(Stat.STR, 30, Stat.VIT, 20));
         assertFalse(both.met(stats(Stat.STR, 30, Stat.VIT, 19)), "all = 전부");
         assertTrue(both.met(stats(Stat.STR, 30, Stat.VIT, 20)));
 
-        assertFalse(CLOTH30.met(stats(Stat.INT, 29, Stat.WIS, 29)));
-        assertTrue(CLOTH30.met(stats(Stat.INT, 30)), "any = 하나만");
-        assertTrue(CLOTH30.met(stats(Stat.WIS, 31)));
+        assertFalse(CLOTH.met(stats(Stat.INT, 30)), "하나만 채워서는 안 됨 ('… 중 하나' 없음)");
+        assertFalse(CLOTH.met(stats(Stat.WIS, 31)));
+        assertTrue(CLOTH.met(stats(Stat.INT, 18, Stat.WIS, 12)));
+    }
 
-        StatRequirement mixed = StatRequirement.of(Map.of(Stat.VIT, 10), Map.of(Stat.INT, 30, Stat.WIS, 30));
-        assertFalse(mixed.met(stats(Stat.INT, 40)));
-        assertTrue(mixed.met(stats(Stat.INT, 40, Stat.VIT, 10)));
+    @Test
+    void budgetAndSplit() {
+        assertEquals(0, StatRequirement.budget(1));
+        assertEquals(0, StatRequirement.budget(2));
+        assertEquals(6, StatRequirement.budget(3));
+        assertEquals(20, StatRequirement.budget(8));
+        assertEquals(102, StatRequirement.budget(38));
+        assertEquals(130, StatRequirement.budget(48));
+        assertEquals(StatRequirement.NONE, StatRequirement.split(2, List.of(Stat.STR, Stat.DEX)));
+        assertEquals(Map.of(Stat.DEX, 12, Stat.STR, 8), StatRequirement.split(8, List.of(Stat.DEX, Stat.STR)).all(), "60 : 40");
+        assertEquals(Map.of(Stat.INT, 51, Stat.WIS, 31, Stat.VIT, 20),
+                StatRequirement.split(38, List.of(Stat.INT, Stat.WIS, Stat.VIT)).all(), "50 : 30 : 20");
+        assertEquals(Map.of(Stat.DEX, 12, Stat.STR, 8), StatRequirement.split(8, List.of(Stat.DEX, Stat.STR, Stat.LUK)).all(),
+                "셋째는 Lv12 부터");
+        assertEquals(102, StatRequirement.split(38, List.of(Stat.INT, Stat.WIS, Stat.VIT)).total());
+        // 요구치 큰 순 · 1위 능력치 (같으면 STR→LUK)
+        assertEquals(Stat.INT, CLOTH.primary());
+        assertEquals(Stat.STR, StatRequirement.of(Map.of(Stat.LUK, 5, Stat.STR, 5)).primary());
+        assertEquals(List.of(Stat.WIS, Stat.INT), StatRequirement.top(stats(Stat.WIS, 40, Stat.INT, 12, Stat.VIT, 12), 2));
+        assertEquals(List.of(), StatRequirement.top(stats(), 2));
     }
 
     @Test
@@ -74,11 +95,8 @@ class StatRequirementTest {
         assertEquals(0, STR30.pointsNeeded(stats(Stat.STR, 30)));
         assertEquals(8, STR30.pointsNeeded(stats(Stat.STR, 22)));
         assertEquals(30, STR30.pointsNeeded(Map.of()));
-        // any = 가장 가까운 하나
-        assertEquals(4, CLOTH30.pointsNeeded(stats(Stat.INT, 20, Stat.WIS, 26)));
-        // all 을 채운 뒤 any (같은 능력치면 겹쳐 센다)
-        StatRequirement mixed = StatRequirement.of(Map.of(Stat.INT, 20), Map.of(Stat.INT, 25, Stat.WIS, 30));
-        assertEquals(10 + 5, mixed.pointsNeeded(stats(Stat.INT, 10, Stat.WIS, 10)));
+        // 모자란 만큼의 합
+        assertEquals(0 + 4, CLOTH.pointsNeeded(stats(Stat.INT, 20, Stat.WIS, 8)));
     }
 
     @Test
@@ -100,16 +118,17 @@ class StatRequirementTest {
     @Test
     void texts() {
         assertEquals("요구 힘 30", STR30.text());
-        assertEquals("요구 힘 30 · 체력 20", StatRequirement.of(Map.of(Stat.VIT, 20, Stat.STR, 30), Map.of()).text(), "STR→LUK 순서");
-        assertEquals("요구 지능 또는 정신 30", CLOTH30.text());
-        assertEquals("요구 지능 30 또는 정신 25", StatRequirement.of(Map.of(), Map.of(Stat.INT, 30, Stat.WIS, 25)).text());
+        assertEquals("요구 힘 30 · 체력 20", StatRequirement.of(Map.of(Stat.VIT, 20, Stat.STR, 30)).text(), "요구치 큰 순");
+        assertEquals("요구 민첩 24 · 힘 16", StatRequirement.of(Map.of(Stat.STR, 16, Stat.DEX, 24)).text(), "요구치 큰 순 (STR 보다 DEX 가 앞)");
+        assertEquals("요구 지능 18 · 정신 12", CLOTH.text());
+        assertFalse(CLOTH.text().contains("또는"));
         assertEquals("", StatRequirement.NONE.text());
 
         assertEquals("요구 힘 30 (현재 22)", STR30.shortfall(stats(Stat.STR, 22)));
         assertEquals("", STR30.shortfall(stats(Stat.STR, 30)));
-        assertEquals("요구 지능 또는 정신 30 (현재 지능 22 · 정신 18)", CLOTH30.shortfall(stats(Stat.INT, 22, Stat.WIS, 18)));
+        assertEquals("요구 정신 12 (현재 8)", CLOTH.shortfall(stats(Stat.INT, 22, Stat.WIS, 8)));
         // 맞춘 조건은 빼고 모자란 것만
-        StatRequirement both = StatRequirement.of(Map.of(Stat.STR, 30, Stat.VIT, 20), Map.of());
+        StatRequirement both = StatRequirement.of(Map.of(Stat.STR, 30, Stat.VIT, 20));
         assertEquals("요구 체력 20 (현재 12)", both.shortfall(stats(Stat.STR, 40, Stat.VIT, 12)));
     }
 
@@ -117,7 +136,7 @@ class StatRequirementTest {
     void tooltipLineStaticAndPerViewer() {
         assertNull(StatRequirement.NONE.tooltipLine(null));
         assertEquals("<gray>요구 힘 <white>30</white>", STR30.tooltipLine(null));
-        assertEquals("<gray>요구 지능 또는 정신 <white>30</white>", CLOTH30.tooltipLine(null));
+        assertEquals("<gray>요구 지능 <white>18</white> · 정신 <white>12</white>", CLOTH.tooltipLine(null));
         String met = STR30.tooltipLine(stats(Stat.STR, 31));
         assertTrue(met.contains(StatRequirement.MET_COLOR) && !met.contains(StatRequirement.UNMET_COLOR) && !met.contains("현재"), met);
         String unmet = STR30.tooltipLine(stats(Stat.STR, 22));
@@ -140,7 +159,7 @@ class StatRequirementTest {
         }
         // 방패도 방어구와 같이 본다
         ItemDef shield = content.items().values().stream().filter(ItemDef::isShield).findFirst().orElseThrow()
-                .withRequires(StatRequirement.of(Map.of(Stat.VIT, 30), Map.of()));
+                .withRequires(StatRequirement.of(Map.of(Stat.VIT, 30)));
         assertFalse(EquipRules.usable(shield, stats(Stat.VIT, 29)));
     }
 
@@ -149,7 +168,7 @@ class StatRequirementTest {
     @Test
     void tooltipShowsRequirementInsteadOfLevel() {
         ItemDef sword = content.item("ember_greatsword");
-        ItemDef req = sword.withRequires(StatRequirement.of(Map.of(Stat.STR, 60), Map.of()));
+        ItemDef req = sword.withRequires(StatRequirement.of(Map.of(Stat.STR, 60)));
         String plain = String.join("\n", ItemTooltip.lines(content, req, null));
         assertTrue(plain.contains("<gray>요구 힘 <white>60</white>"), plain);
         assertFalse(plain.contains("요구 레벨"), plain);
@@ -199,21 +218,21 @@ class StatRequirementTest {
         if (d.isWeapon()) {
             Stat s = d.requirement().all().keySet().stream().findFirst()
                     .orElse(d.attack().kind() == kr.labyrinth.combat.DamageKind.MAGIC ? Stat.INT : Stat.STR);
-            return StatRequirement.of(Map.of(s, r), Map.of());
+            return StatRequirement.of(Map.of(s, r));
         }
         ItemSetDef set = c.setOf(d);
         String look = d.isShield() ? "heavy" : set == null ? "light" : set.look();
         return switch (look) {
-            case "heavy" -> StatRequirement.of(Map.of(Stat.VIT, r), Map.of());
-            case "cloth" -> StatRequirement.of(Map.of(), Map.of(Stat.INT, r, Stat.WIS, r));
-            default -> StatRequirement.of(Map.of(Stat.DEX, r), Map.of());
+            case "heavy" -> StatRequirement.of(Map.of(Stat.VIT, r));
+            case "cloth" -> StatRequirement.of(Map.of(Stat.INT, r));
+            default -> StatRequirement.of(Map.of(Stat.DEX, r));
         };
     }
 
     // ── 파서·검사기 ───────────────────────────────────────────────────────
 
     @Test
-    void parserReadsRequiresAndRequiresAny() {
+    void parserReadsRequiresAndRejectsRequiresAny() {
         Map<String, Object> blade = new LinkedHashMap<>();
         blade.put("type", "weapon");
         blade.put("attack", Map.of("style", "melee", "interval", 1.0, "kind", "physical"));
@@ -239,10 +258,11 @@ class StatRequirementTest {
 
         assertEquals(Map.of(Stat.STR, 30), c.item("t_blade").requirement().all());
         assertEquals(13, c.item("t_blade").levelReq(), "level_req 는 내부 레벨로 남는다");
-        assertEquals(Map.of(Stat.INT, 30, Stat.WIS, 30), c.item("t_robe").requirement().any());
+        assertTrue(c.item("t_robe").requirement().isEmpty(), "requires_any 는 무시 (0.3.5)");
         assertTrue(c.item("t_plain").requirement().isEmpty());
         assertTrue(c.item("t_bad").requirement().isEmpty());
         String problems = String.join("\n", parser.problems());
+        assertTrue(problems.contains("[t_robe] requires_any 는 0.3.5 에서 없어짐"), problems);
         assertTrue(problems.contains("requires.POW"), problems);
         assertTrue(problems.contains("requires.DEX"), problems);
         assertTrue(problems.contains("requires.VIT"), problems);
@@ -258,22 +278,22 @@ class StatRequirementTest {
 
         Map<String, ItemDef> items = new LinkedHashMap<>(content.items());
         ItemDef cap = content.item("novice_cap");
-        items.put(cap.id(), cap.withRequires(StatRequirement.of(Map.of(Stat.VIT, 3), Map.of())));
+        items.put(cap.id(), cap.withRequires(StatRequirement.of(Map.of(Stat.VIT, 3))));
         ItemDef acc = content.items().values().stream().filter(d -> d.type() == ItemType.ACCESSORY).findFirst().orElseThrow();
         items.put(acc.id(), acc.withRequires(STR30));
         ClassDef arcanist = content.classDef("arcanist");
         ItemDef staff = content.item(arcanist.starterWeapon());
         int base = arcanist.baseStat(Stat.INT);
-        items.put(staff.id(), staff.withRequires(StatRequirement.of(Map.of(Stat.INT, base + ContentValidator.START_POINTS + 1), Map.of())));
+        items.put(staff.id(), staff.withRequires(StatRequirement.of(Map.of(Stat.INT, base + ContentValidator.START_POINTS + 1))));
         Content c = content;
         Content broken = new Content(c.classes(), Map.copyOf(items), c.sets(), c.mobs(), c.bosses(), c.floors(), c.lootTables(), c.lootSettings(),
                 c.recipes(), c.achievements(), c.npcs(), c.auras(), c.fxModels(), c.glyphs(), c.spaces());
         String all = String.join("\n", ContentValidator.validate(broken).warnings());
         assertTrue(all.contains("items.novice_cap: 시작 지급 장비인데 요구 능력치가 있음 (요구 체력 3)"), all);
-        assertTrue(all.contains("items." + acc.id() + ": requires/requires_any 는 무기·방어구·방패만"), all);
+        assertTrue(all.contains("items." + acc.id() + ": requires 는 무기·방어구·방패만"), all);
         assertTrue(all.contains("items." + staff.id() + ": 직업 arcanist 의 시작 무기인데 Lv.1 에 쓸 수 없음"), all);
         // 시작 포인트로 딱 맞추면 통과
-        items.put(staff.id(), staff.withRequires(StatRequirement.of(Map.of(Stat.INT, base + ContentValidator.START_POINTS), Map.of())));
+        items.put(staff.id(), staff.withRequires(StatRequirement.of(Map.of(Stat.INT, base + ContentValidator.START_POINTS))));
         Content ok = new Content(c.classes(), Map.copyOf(items), c.sets(), c.mobs(), c.bosses(), c.floors(), c.lootTables(), c.lootSettings(),
                 c.recipes(), c.achievements(), c.npcs(), c.auras(), c.fxModels(), c.glyphs(), c.spaces());
         assertFalse(String.join("\n", ContentValidator.validate(ok).warnings()).contains("직업 arcanist 의 시작 무기"));

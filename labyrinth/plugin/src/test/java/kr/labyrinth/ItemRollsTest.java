@@ -104,7 +104,7 @@ class ItemRollsTest {
 
     @Test
     void tooltipHasRequirementsStatsAndSkills() {
-        ItemDef def = content.item("ember_greatsword").withRequires(StatRequirement.of(Map.of(Stat.STR, 60), Map.of()));
+        ItemDef def = content.item("ember_greatsword").withRequires(StatRequirement.of(Map.of(Stat.STR, 60)));
         List<String> lines = ItemTooltip.lines(content, def, ItemRolls.roll(def, 1L));
         String all = String.join("\n", lines);
         assertTrue(all.contains("요구 힘 <white>60"), all);
@@ -119,7 +119,7 @@ class ItemRollsTest {
 
     @Test
     void equipRules() {
-        ItemDef def = content.item("ember_greatsword").withRequires(StatRequirement.of(Map.of(Stat.STR, 60), Map.of()));
+        ItemDef def = content.item("ember_greatsword").withRequires(StatRequirement.of(Map.of(Stat.STR, 60)));
         ClassDef berserker = content.classDef("berserker"), priest = content.classDef("priest");
         Map<Stat, Integer> low = StatRequirement.playerStats(berserker, Map.of(Stat.STR, 40), Map.of());
         assertEquals(EquipRules.Problem.STATS, EquipRules.check(def, low));
@@ -132,7 +132,7 @@ class ItemRollsTest {
         ItemDef mat = content.item("moss_fiber");
         assertEquals(EquipRules.Problem.NONE, EquipRules.check(mat, Map.of()));
         ItemDef acc = content.items().values().stream().filter(d -> d.type() == ItemType.ACCESSORY).findFirst().orElseThrow()
-                .withRequires(StatRequirement.of(Map.of(Stat.LUK, 99), Map.of()));
+                .withRequires(StatRequirement.of(Map.of(Stat.LUK, 99)));
         assertTrue(acc.requirement().isEmpty());
         assertEquals(EquipRules.Problem.NONE, EquipRules.check(acc, Map.of()));
     }
