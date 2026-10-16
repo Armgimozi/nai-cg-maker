@@ -126,6 +126,19 @@ public final class MineLinks {
 
     private static double num(Object o) { return Double.parseDouble(String.valueOf(o)); }
 
+    /**
+     * 구역 승강장 앞(exit)으로 보내도 되는가 — 월드 경계 안 (관리자가 /worldborder 로 좁힌 서버에서 경계 밖이면 야생 막기가 곧바로
+     * 광장으로 되돌리니, 광산 가기·마을로 나가기는 예전처럼 광산 1층·마을 광장으로, 0.3.6.1 리뷰).
+     */
+    public static boolean usable(District d) {
+        if (d == null || d.exit() == null || d.exit().getWorld() == null) return false;
+        try {
+            return d.exit().getWorld().getWorldBorder().isInside(d.exit());
+        } catch (Throwable t) {
+            return true;
+        }
+    }
+
     /** 그 자리가 구역 승강기 가까이(radius 칸)인가. 구역 정보가 없으면 false. */
     public static boolean nearLift(Location at, double radius) {
         District d = district();

@@ -437,7 +437,7 @@
     {"type": "light", "pos": [10, 5, 0]},
     {"type": "interact", "action": "mine_lift", "pos": [[6, 2, 6], [6, 3, 6], [5, 3, 6], [7, 3, 6]]},
     {"type": "ambient", "pos": [6, 2, 7], "fx": "dust"},
-    {"type": "mine_exit", "pos": [6, 2, 4], "face": "front"},
+    {"type": "mine_exit", "pos": [6, 2, 4], "face": "back"},
     {"type": "light", "pos": [3, 5, 4]},
     {"type": "light", "pos": [9, 5, 4]},
     {"type": "light", "pos": [6, 5, 9]},

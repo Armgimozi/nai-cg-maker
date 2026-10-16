@@ -238,6 +238,13 @@ final class VillageSelfTest extends VillageJob {
         } catch (Throwable t) {
             error("길", t);
         }
+        if (district != null) {
+            try {
+                c.put("door_paths", doorPaths(pathH));
+            } catch (Throwable t) {
+                error("정문 길", t);
+            }
+        }
         return c;
     }
 
@@ -428,6 +435,39 @@ final class VillageSelfTest extends VillageJob {
         return bad;
     }
 
+    /**
+     * 구역 (0.3.6.1 놀이 리뷰): 정문 앞 칸에서 한 걸음(높이 차 1 이하) 안에 길 칸이 있는가 — 정문 앞 칸이 길이거나, 이웃 길 칸과
+     * 겉 높이 차 ≤ 1. 숙소 문이 마당보다 두 칸 낮은 도랑에 열리던 것을 잡는다.
+     */
+    private int doorPaths(Map<Long, Integer> pathH) {
+        int bad = 0;
+        for (Plan.Placed pl : pieces) {
+            if (!pl.bp.door) continue;
+            int[] f = pl.doorFront();
+            if (pathH.containsKey(PathRaster.key(f[0], f[1]))) continue;
+            int oy = Integer.MIN_VALUE;
+            for (int y = pl.floor + 3; y >= pl.floor - 4; y--) {
+                if (solid(f[0], y, f[1])) {
+                    oy = y;
+                    break;
+                }
+            }
+            boolean ok = false;
+            if (oy != Integer.MIN_VALUE) {
+                double s0 = surface(f[0], oy, f[1]);
+                for (int[] d : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+                    Integer h = pathH.get(PathRaster.key(f[0] + d[0], f[1] + d[1]));
+                    if (h != null && Math.abs(surface(f[0] + d[0], h, f[1] + d[1]) - s0) <= 1.0) ok = true;
+                }
+            }
+            if (!ok) {
+                bad++;
+                sample(pl.bp.id + " 정문 앞 (" + f[0] + ", " + f[1] + ") 에서 한 걸음 안에 길이 없음");
+            }
+        }
+        return bad;
+    }
+
     /** 길 칸 이웃 걸음 높이 차 (반블록은 0.5). */
     private int pathSteps(Map<Long, Integer> pathH) {
         int bad = 0;
@@ -586,13 +626,15 @@ final class VillageSelfTest extends VillageJob {
                 + " · tree_remnants=" + c.getOrDefault("tree_remnants", -1)
                 + " · blocked_doors=" + c.getOrDefault("blocked_doors", -1)
                 + " · path_steps=" + c.getOrDefault("path_steps", -1)
+                + " · door_paths=" + c.getOrDefault("door_paths", -1)
                 + " · junction=" + (junction ? "ok" : "bad")
                 + " · npcs=" + npcOk + "/" + npcTotal
                 + " · interact=" + interOk + "/" + interTotal
                 + " · rot_mismatch=" + rotMismatch;
         boolean pass = exceptions == 0 && c.getOrDefault("mismatched", 1) == 0 && c.getOrDefault("overlaps", 1) == 0
                 && c.getOrDefault("floating", 1) == 0 && c.getOrDefault("tree_remnants", 1) == 0 && c.getOrDefault("blocked_doors", 1) == 0
-                && c.getOrDefault("path_steps", 1) == 0 && junction && npcOk == npcTotal && interOk == interTotal && rotMismatch == 0;
+                && c.getOrDefault("path_steps", 1) == 0 && c.getOrDefault("door_paths", 1) == 0 && junction && npcOk == npcTotal && interOk == interTotal
+                && rotMismatch == 0;
         Text.send(sender, (pass ? "<#7fe07f><b>광산 마을 자가 진단 통과</b></#7fe07f>" : "<#ff6b6b><b>광산 마을 자가 진단: 문제 있음</b></#ff6b6b>")
                 + " <gray>(" + elapsedSec() + "초)");
         Text.send(sender, "<gray>" + Text.escape(line));

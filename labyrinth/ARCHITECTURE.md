@@ -1067,7 +1067,13 @@ wild:                 # wild: false = 통째로 끔 (Settings.Wild.OFF)
   백업 먼저 → `PlanWriter` (마을 짓기와 같은 칸 일) → DIFF 백업 → built. 되돌리기 = 지금 블록이 우리가 놓은 것인 칸만.
 - 경계·안전지대: `WildService` 경계 = `VillageService.borderTarget` (마을 + 구역 상자). `pvp/VillageZone` 은 구역 기록의 protect + safe_margin 도 읽는다.
 - config `mine.district: {auto_build, sites, blocks_per_tick, notify_admins}` (`MineConfig.District`, 키가 없으면 기본값 true · [east, south_east] · 3000 · true).
-- 명령 `/labadmin village district info|preview|build|remove|selftest mine [east|south_east|here [방향]]` · 자가 진단 줄 `[광산 마을 자가 진단]`.
+- 명령 `/labadmin village district info|preview|build|remove|selftest mine [east|south_east|here [방향]]` · `remove mine force` (백업 없을 때 기록만) ·
+  자가 진단 줄 `[광산 마을 자가 진단]` (… door_paths …).
+- 0.3.6.1 리뷰 반영: 관리자 경계(`WildService.borderOurs` 가 false) 밖 자리 막음 + `MineLinks.usable` (exit 가 경계 밖이면 예전 길) ·
+  built/removed 기록 전·백업 지우기 전 `world.save(true)` · 나무 치우기 영역 밖 제한(`DistrictJob.treeClear`) · 큰길 이음 얼린 칸 검사
+  (`DistrictCheck.junction`) · 짓기 직전 잠깐 보호(`DistrictService.setPending`) + 스냅샷 대조 다시 살펴보기 · 짓다 멈추면 곧바로 RECOVER ·
+  막힘 이유 `DistrictService.Blocked` (player_made · not_shipped · border · backup) · remove 는 같은 블록 종류면 되돌림 (`DistrictBackup.sameBlock`) ·
+  길 `follow` (Layout.PathDef — 광산 마당 0).
 - 새 world.zip: `tools/build_world.sh --base <예전 world.zip> [자리]` (광산 월드·자동 짓기 끔, 켜 둔 동안 random_tick_speed 0 · spawn_mobs false,
   끝나면 게임 규칙 파일은 예전 것으로). release.sh 는 world.zip 에 지은 광산 마을 + 백업이 없거나 labyrinth_mine 이 있으면 실패.
 

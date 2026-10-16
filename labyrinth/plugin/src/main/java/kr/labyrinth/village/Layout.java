@@ -19,8 +19,13 @@ public final class Layout {
     /** 조각 배치 한 줄. dy/slack 은 없으면 null. */
     public record Entry(int index, String piece, int atX, int atZ, Dir front, Integer dy, Integer slack) {}
 
-    /** 길: 꺾은선 점들(마을 좌표), 폭, 스타일. */
-    public record PathDef(int index, List<int[]> points, int width, String style) {}
+    /**
+     * 길: 꺾은선 점들(마을 좌표), 폭, 스타일, follow = 길 높이가 양 끝 직선에서 지형을 따라 벗어날 수 있는 칸
+     * (기본 {@link Planner#PATH_FOLLOW}; 0.3.6.1 광산 마당은 0 — 숙소 앞보다 마당이 불룩 솟지 않게).
+     */
+    public record PathDef(int index, List<int[]> points, int width, String style, int follow) {
+        public PathDef(int index, List<int[]> points, int width, String style) { this(index, points, width, style, Planner.PATH_FOLLOW); }
+    }
 
     /** 추가 단: 가운데 칸 at, 크기 [w, d], 광장 높이 H0 기준 dy. */
     public record Terrace(int atX, int atZ, int w, int d, int dy) {}

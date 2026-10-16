@@ -928,7 +928,7 @@ public final class Planner {
             int[] q = pointAt(pp.points, t, off);
             int g = c.in(q[0], q[1]) ? c.g(q[0], q[1]) : (int) Math.round(lin);
             int li = (int) Math.floor(lin + 0.5);
-            s[i] = Math.max(li - PATH_FOLLOW, Math.min(li + PATH_FOLLOW, g));
+            s[i] = Math.max(li - pp.def.follow(), Math.min(li + pp.def.follow(), g));
         }
         for (int pass = 0; pass < 12; pass++) {
             boolean any = false;

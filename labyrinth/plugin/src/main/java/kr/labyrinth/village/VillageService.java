@@ -175,7 +175,9 @@ public final class VillageService implements Listener {
         boxes.clear();
         interact.clear();
         if (meta == null) return;
-        for (VillageMeta.Box b : protectAll()) {
+        List<VillageMeta.Box> all = protectAll();
+        if (districts != null && districts.pending() != null) all.add(districts.pending()); // 짓기 직전 잠깐 (놓기·부수기만 막음)
+        for (VillageMeta.Box b : all) {
             for (int cx = b.x0() >> 4; cx <= b.x1() >> 4; cx++) {
                 for (int cz = b.z0() >> 4; cz <= b.z1() >> 4; cz++) boxes.computeIfAbsent(Scan.key(cx, cz), k -> new ArrayList<>()).add(b);
             }

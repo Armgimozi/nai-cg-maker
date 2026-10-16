@@ -117,4 +117,31 @@ class DistrictBackupTest {
         assertEquals(Decision.SKIP, dd.decide(d, "minecraft:dirt"));
         assertEquals(Decision.SAME, dd.decide(d, "minecraft:air"));
     }
+    /** 놀다가 열고 닫은 문·덧문, 흙이 된 잔디는 우리 것 — remove 가 되돌린다 (0.3.6.1 놀이 리뷰 #2). 다른 블록으로 바뀐 칸만 건너뜀. */
+    @Test
+    void removeRestoresTouchedDoorsShuttersAndDecayedGrass() {
+        Entry door = new Entry(-80, 67, 11, "minecraft:air", "minecraft:spruce_door[facing=south,half=upper,hinge=left,open=false,powered=false]");
+        Entry shutter = new Entry(-84, 70, 23, "minecraft:air", "minecraft:spruce_trapdoor[facing=north,half=top,open=true,powered=false,waterlogged=false]");
+        Entry grass = new Entry(-90, 66, 16, "minecraft:air", "minecraft:grass_block[snowy=false]");
+        Entry dirt = new Entry(-90, 65, 16, "minecraft:stone", "minecraft:dirt");
+        DistrictBackup d = new DistrictBackup("mine", Phase.DIFF, List.of(door, shutter, grass, dirt));
+        assertEquals(Decision.APPLY, d.decide(door, "minecraft:spruce_door[facing=south,half=upper,hinge=left,open=true,powered=false]"));
+        assertEquals(Decision.APPLY, d.decide(shutter, "minecraft:spruce_trapdoor[facing=north,half=top,open=false,powered=false,waterlogged=false]"));
+        assertEquals(Decision.APPLY, d.decide(grass, "minecraft:grass_block[snowy=true]"));
+        assertEquals(Decision.APPLY, d.decide(grass, "minecraft:dirt"), "놓은 잔디가 흙이 됨");
+        assertEquals(Decision.APPLY, d.decide(dirt, "minecraft:grass_block[snowy=false]"), "놓은 흙 위로 잔디가 번짐");
+        assertEquals(Decision.SKIP, d.decide(door, "minecraft:oak_planks"), "다른 블록 = 그 뒤 바뀐 칸");
+        assertEquals(Decision.SKIP, d.decide(shutter, "minecraft:cobblestone"));
+        assertEquals(Decision.SAME, d.decide(door, "minecraft:air"));
+        // 파일 왕복 뒤에도 같음
+        Map<Long, String> w = new HashMap<>();
+        w.put(door.key(), "minecraft:spruce_door[facing=south,half=upper,hinge=left,open=true,powered=false]");
+        w.put(shutter.key(), "minecraft:spruce_trapdoor[facing=north,half=top,open=false,powered=false,waterlogged=false]");
+        w.put(grass.key(), "minecraft:dirt");
+        w.put(dirt.key(), "minecraft:dirt");
+        DistrictBackup.Restore r = d.restorePlan(lookup(w));
+        assertEquals(4, r.apply().size(), "문·덧문·흙이 된 잔디·놓은 흙");
+        assertEquals(0, r.same());
+        assertEquals(0, r.skipped());
+    }
 }

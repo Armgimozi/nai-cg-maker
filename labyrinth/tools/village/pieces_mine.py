@@ -78,7 +78,7 @@ def mine_headframe():
     p.set(6, 5, 7, B("waxed_copper_block"))
     p.interact("mine_lift", [(6, 2, 6), (6, 3, 6), (5, 3, 6), (7, 3, 6)])
     p.ambient(6, 2, 7, "dust")
-    p.point("mine_exit", 6, 2, 4, "front")
+    p.point("mine_exit", 6, 2, 4, "back")   # 0.3.6.1: 내리면 승강기 문 쪽을 본다
     # 홀: 들보 + 매단 등불, 승강기 뒤 레일 토막 + 짐
     for x in range(2, 11):
         p.set(x, 6, 4, log(frame, "x"))
@@ -413,4 +413,18 @@ def signpost_mine():
     return p
 
 
-PIECES = [mine_headframe, smelter, miners_lodge, ore_yard, lamp_post_copper, signpost_mine]
+# 갈림길 길잡이 (south_east 자리 — 마을 큰길 끝에서 남쪽으로 꺾는 곳, 정면 = 마을에서 오는 사람 쪽). 오른쪽(→)으로 꺾으면 광산 마을.
+MINE_TURN_SIGNS = {
+    "front": ["<#3fb090><b>광산 마을 →</b></#3fb090>", "<gray>이 길로 꺾어서</gray>", "<gray>승강장 · 제련소</gray>"],
+    "right": ["<gold><b>등불 광장</b></gold>", "<gray>이 길로 곧장</gray>"],
+}
+
+
+def signpost_mine_turn():
+    """광산 갈림길 길잡이 (south_east 자리 0.3.6.1 — 큰길 끝 꺾는 곳)."""
+    p = make_signpost("signpost_mine_turn", MINE_TURN_SIGNS, "광산 갈림길 길잡이", base="chiseled_tuff_bricks",
+                      foundation_mix=[("stone_bricks", 3), ("tuff_bricks", 1), ("polished_andesite", 1)])
+    return p
+
+
+PIECES = [mine_headframe, smelter, miners_lodge, ore_yard, lamp_post_copper, signpost_mine, signpost_mine_turn]

@@ -263,4 +263,54 @@ class DistrictCheckTest {
             assertTrue(head.startsWith("# world.zip"), head);
         }
     }
+    /** 큰길과 만나는 얼린 칸 (0.3.6.1 리뷰 #6): 지문과 같으면 통과, 다르고 y ~ y+2 에 비자연 블록 → 막음. 풀·꽃·흙은 통과. */
+    @Test
+    void junctionCellsBlockPlayerBlocksOnly() throws IOException {
+        FakeWorld w = new FakeWorld().flat(-104, 14, -100, 18, 64);
+        DistrictFingerprint fp = bake(w, -104, 14, 5, 5, "b1");
+        DistrictFingerprint.World fw = fp.forBuild("b1");
+        List<int[]> cells = List.of(new int[] {-103, 15, 64}, new int[] {-102, 16, 64}, new int[] {-101, 17, 64});
+        assertTrue(DistrictCheck.junction(fw, fp.under, fp.above, w, cells, 10).isEmpty(), "그대로");
+        assertTrue(DistrictCheck.junction(null, 10, 30, w, cells, 10).isEmpty(), "지문 없는 월드도 자연 블록뿐이면 통과");
+        w.set(-102, 65, 16, "poppy").set(-101, 64, 17, "dirt");
+        assertTrue(DistrictCheck.junction(fw, fp.under, fp.above, w, cells, 10).isEmpty(), "꽃·흙은 사람 손 아님");
+        w.set(-103, 65, 15, "oak_planks");
+        List<DistrictCheck.Problem> p = DistrictCheck.junction(fw, fp.under, fp.above, w, cells, 10);
+        assertEquals(1, p.size());
+        assertTrue(p.get(0).line().contains("oak_planks"), p.get(0).line());
+        assertEquals(1, DistrictCheck.junction(null, 10, 30, w, cells, 10).size(), "지문이 없어도 비자연 블록은 막음");
+        w.set(-101, 64, 17, "cobblestone");
+        assertEquals(2, DistrictCheck.junction(fw, fp.under, fp.above, w, cells, 10).size(), "겉 블록 자리의 조약돌");
+    }
+
+    /** 짓기 직전 다시 보기 (0.3.6.1 리뷰 #7): 비자연 블록·새 원목이 끼면 사람 손, 잔디↔흙·잎 떨어짐·물 흐름은 자연. */
+    @Test
+    void handChangeSeparatesPlayerEditsFromNature() {
+        assertTrue(DistrictJob.handChange(org.bukkit.Material.AIR, org.bukkit.Material.OAK_PLANKS));
+        assertTrue(DistrictJob.handChange(org.bukkit.Material.GRASS_BLOCK, org.bukkit.Material.COBBLESTONE));
+        assertTrue(DistrictJob.handChange(org.bukkit.Material.AIR, org.bukkit.Material.OAK_LOG), "새 원목");
+        assertTrue(DistrictJob.handChange(org.bukkit.Material.TORCH, org.bukkit.Material.AIR), "횃불을 치움");
+        assertFalse(DistrictJob.handChange(org.bukkit.Material.GRASS_BLOCK, org.bukkit.Material.DIRT));
+        assertFalse(DistrictJob.handChange(org.bukkit.Material.OAK_LEAVES, org.bukkit.Material.AIR));
+        assertFalse(DistrictJob.handChange(org.bukkit.Material.AIR, org.bukkit.Material.WATER));
+        assertFalse(DistrictJob.handChange(org.bukkit.Material.AIR, org.bukkit.Material.SHORT_GRASS));
+        assertFalse(DistrictJob.handChange(org.bukkit.Material.OAK_LOG, org.bukkit.Material.AIR), "나무 베기는 허용 (지문 검사와 같음)");
+    }
+
+    /** 막힘 이유 글 (0.3.6.1 리뷰 #4): 이유마다 안내가 다르고, 파일의 '이유: … [코드]' 를 다시 읽는다. 을/를. */
+    @Test
+    void blockedReasonsRoundTripAndParticles(@org.junit.jupiter.api.io.TempDir java.io.File dir) throws IOException {
+        for (DistrictService.Blocked b : DistrictService.Blocked.values()) {
+            java.io.File f = new java.io.File(dir, b.code + ".txt");
+            java.nio.file.Files.write(f.toPath(), List.of("머리", "이유: " + b.notice + " [" + b.code + "]", "", "본문"), StandardCharsets.UTF_8);
+            assertEquals(b, DistrictService.blockedReason(f));
+        }
+        java.io.File old = new java.io.File(dir, "old.txt");
+        java.nio.file.Files.write(old.toPath(), List.of("미궁 라비린스 — 광산 마을을 짓지 않았습니다", "", "모든 자리 …"), StandardCharsets.UTF_8);
+        assertEquals(DistrictService.Blocked.PLAYER_MADE, DistrictService.blockedReason(old), "0.3.6.1 첫 판 파일");
+        assertTrue(DistrictService.Blocked.NOT_SHIPPED.notice.contains("서버팩 월드가 아니어서"));
+        assertFalse(DistrictService.Blocked.NOT_SHIPPED.last.contains("다시 켜면 다시 살펴봅니다"));
+        assertEquals("을", DistrictService.objectParticle("광산 마을"));
+        assertEquals("를", DistrictService.objectParticle("광산 마당 가게"));
+    }
 }

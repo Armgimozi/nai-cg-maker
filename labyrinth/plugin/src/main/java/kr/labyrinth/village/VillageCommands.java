@@ -127,6 +127,7 @@ final class VillageCommands {
                 {"village info · dump · pregen <반경> · apply · cancel", "정보 · 블록 덤프 · 청크 미리 생성 · 다시 적용 · 작업 취소"},
                 {"wild [info] · wild selftest · wild reasons · wild border apply", "야생 막기: 경계·스폰 상태 · 점검 · 스폰 이유 표 · 마을 경계로 덮어쓰기"},
                 {"village district info|preview|build|remove|selftest mine [자리]", "광산 마을: 상태 · 미리 보기(안 바꿈) · 짓기 · 되돌리기 · 점검 (자리 = east · south_east · here [방향])"},
+                {"village district remove mine force", "백업이 없을 때: 블록은 그대로 두고 광산 마을 기록만 지움"},
         };
         for (String[] l : lines) s.sendMessage(Text.mm(" <white>/labadmin " + Text.escape(l[0]) + "</white> <dark_gray>—</dark_gray> <gray>" + l[1]));
     }
@@ -314,7 +315,10 @@ final class VillageCommands {
         }
         d.then(Commands.literal("remove")
                 .then(Commands.argument("id", StringArgumentType.word()).suggests((c, b) -> suggestIds(b))
-                        .executes(ctx -> run(ctx, () -> districtRemove(ctx.getSource().getSender(), StringArgumentType.getString(ctx, "id"))))));
+                        .executes(ctx -> run(ctx, () -> districtRemove(ctx.getSource().getSender(), StringArgumentType.getString(ctx, "id"))))
+                        // force: 백업이 없거나 깨졌을 때 — 블록은 그대로 두고 기록만 지움
+                        .then(Commands.literal("force")
+                                .executes(ctx -> run(ctx, () -> districtForget(ctx.getSource().getSender(), StringArgumentType.getString(ctx, "id")))))));
         d.then(Commands.literal("selftest")
                 .executes(ctx -> run(ctx, () -> districtSelftest(ctx.getSource().getSender(), "mine")))
                 .then(Commands.argument("id", StringArgumentType.word()).suggests((c, b) -> suggestIds(b))
@@ -419,6 +423,22 @@ final class VillageCommands {
             return;
         }
         DistrictJob.command(module, s, ds, e, DistrictJob.Mode.REMOVE, java.util.List.of()).start();
+    }
+
+    private void districtForget(CommandSender s, String id) {
+        DistrictLibrary.Entry e = needDistrict(s, id.toLowerCase(Locale.ROOT));
+        if (e == null) return;
+        DistrictService ds = module.service().districts();
+        DistrictMeta cur = ds.get(e.id());
+        if (cur != null && cur.state == DistrictMeta.State.REMOVED) {
+            Text.error(s, "이미 지웠습니다");
+            return;
+        }
+        if (DistrictService.backupFile(mainWorld(), e.id()).isFile()) {
+            Text.send(s, "<gray>백업 파일이 있습니다 — 보통은 <white>/labadmin village district remove " + Text.escape(e.id())
+                    + "</white> 로 원래 땅으로 되돌리세요. force 는 블록을 그대로 두고 기록만 지웁니다.");
+        }
+        ds.forget(s, e.id());
     }
 
     private void districtSelftest(CommandSender s, String id) {

@@ -95,6 +95,24 @@ final class DistrictJob extends VillageJob {
     private final Map<String, List<String>> blocked = new LinkedHashMap<>();
     private final List<String> previews = new ArrayList<>();
     private long writeStarted;
+    /** 계획에서 뽑은 기록(보호 상자·자리·우클릭) — 경계 검사·짓기 직전 보호·기록 파일이 같이 쓴다. */
+    private VillageMeta pmeta;
+    /** 블록을 쓰는 중 (state building 을 쓴 뒤 ~ built 를 쓰기 전) · 되돌리는 중 · 다 끝남. */
+    private volatile boolean writing, restoring;
+    private boolean done;
+    /** 짓기 직전 그 자리가 바뀌어 다시 살펴본 횟수. */
+    private int rescans;
+    private int treeOutside;
+    /** 막힌 자리 가운데 경계가 아닌 이유(사람 손)로 막힌 것이 있나. */
+    private boolean anyNonBorder;
+    private DistrictFingerprint.World fpw;
+    private int fpUnder = 10, fpAbove = 30;
+
+    static final int MIN_BLOCKS_PER_TICK = 200;
+    /** 나무 치우기: 원목이 검사한 영역에서 이보다 멀리 이어지면 막음 (원목 건물·사람이 키운 나무일 수 있다). */
+    static final int LOG_REACH = 6;
+    /** 영역에서 이보다 먼 잎·붙은 것은 치우지 않는다 (남는 원목이 없으면 저절로 떨어진다). */
+    static final int LEAF_REACH = 6;
 
     private DistrictJob(VillageModule module, CommandSender sender, DistrictService svc, DistrictLibrary.Entry entry, Mode mode, boolean auto,
                         List<SiteReq> sites) {
@@ -141,8 +159,15 @@ final class DistrictJob extends VillageJob {
         return out;
     }
 
+    static int blocksPerTick(int configured) { return Math.max(MIN_BLOCKS_PER_TICK, configured); }
+
     @Override
-    protected int blocksPerTick() { return Math.max(200, module.districtConfig().blocksPerTick()); }
+    protected int blocksPerTick() { return blocksPerTick(module.districtConfig().blocksPerTick()); }
+
+    /** 이 구역의 블록을 지금 쓰거나 되돌리는 중인가 (짓는 동안 사람 밀어내기). */
+    boolean busy(String id) { return L.id.equals(id) && (writing || restoring); }
+
+    boolean restoring() { return restoring; }
 
     @Override
     protected void begin() {
@@ -189,8 +214,14 @@ final class DistrictJob extends VillageJob {
                 try {
                     ioFuture.get();
                 } catch (java.util.concurrent.ExecutionException ex) {
-                    Text.error(sender, "백업을 읽지 못했습니다: " + Text.escape(String.valueOf(ex.getCause())) + " — 아무것도 바꾸지 않았습니다");
-                    Log.error("[광산 마을] 백업 읽기 실패", ex.getCause());
+                    String why = ex.getCause() instanceof java.nio.file.NoSuchFileException ? "백업 파일이 없습니다" : "백업을 읽지 못했습니다: " + ex.getCause();
+                    Text.error(sender, Text.escape(why) + " — 아무것도 바꾸지 않았습니다. 블록을 그대로 두고 기록만 지우려면 <white>/labadmin village district remove "
+                            + L.id + " force</white>");
+                    Log.error("[광산 마을] 백업 읽기 실패 (" + why + ")", ex.getCause() instanceof java.nio.file.NoSuchFileException ? null : ex.getCause());
+                    if (mode == Mode.RECOVER) {
+                        svc.writeBlocked(L.id, DistrictService.Blocked.BACKUP, List.of("짓다가 멈춘 광산 마을 기록(state: building)이 있는데 " + why
+                                + " — 반쯤 지은 블록을 되돌리지 못했습니다. 그 자리는 보호만 켜져 있습니다 (놓기·부수기 막힘)."), List.of());
+                    }
                     return true;
                 }
                 int[] bb = backup.bounds();
@@ -200,7 +231,8 @@ final class DistrictJob extends VillageJob {
                 }
                 // 되돌리는 동안 그 자리 사람은 광장으로
                 DistrictMeta d = svc.get(L.id);
-                if (d != null) for (Player p : world.getPlayers()) if (insideBox(p.getLocation(), bb, 2)) svc.evict(p, d);
+                restoring = true;
+                if (d != null) for (Player p : world.getPlayers()) if (insideBox(p.getLocation(), bb, 2)) svc.evict(p, d, true);
                 pump = new Scan.ChunkPump(world, module.plugin(), false, true, 12, c -> { }).area(bb[0], bb[1], bb[2], bb[3]);
                 step = Step.RESTORE_PUMP;
             }
@@ -235,12 +267,29 @@ final class DistrictJob extends VillageJob {
                     return false;
                 }
                 writer = new PlanWriter(world, plan, grid, placement.layout().pathStyles, L.foundationMix);
+                pmeta = Markers.meta(plan, placement.layout());
+                String border = svc.outsideBorder(pmeta);
+                if (border != null) {
+                    blockBorder(border);
+                    return false;
+                }
                 step = Step.CHECK;
-                DistrictFingerprint.World fpw = entry.fp() == null ? null : entry.fp().forBuild(svc.villageBuildId());
-                int under = entry.fp() == null ? 10 : entry.fp().under, above = entry.fp() == null ? 30 : entry.fp().above;
+                fpw = entry.fp() == null ? null : entry.fp().forBuild(svc.villageBuildId());
+                fpUnder = entry.fp() == null ? 10 : entry.fp().under;
+                fpAbove = entry.fp() == null ? 30 : entry.fp().above;
+                DistrictFingerprint.World fw = fpw;
+                int under = fpUnder, above = fpAbove;
                 DistrictCheck.Live live = live();
                 List<int[]> cols = regionColumns();
-                checkFuture = async().submit(() -> DistrictCheck.check(fpw, under, above, live, cols, 20));
+                List<int[]> joins = junctionCells();
+                checkFuture = async().submit(() -> {
+                    DistrictCheck.Result r = DistrictCheck.check(fw, under, above, live, cols, 20);
+                    List<DistrictCheck.Problem> j = DistrictCheck.junction(fw, under, above, live, joins, 10);
+                    if (j.isEmpty()) return r;
+                    List<DistrictCheck.Problem> all = new ArrayList<>(r.problems());
+                    all.addAll(j);
+                    return new DistrictCheck.Result(r.checked() + joins.size(), r.same(), r.allowed(), r.uncovered(), all);
+                });
             }
             case CHECK -> {
                 if (!checkFuture.isDone()) return false;
@@ -264,21 +313,21 @@ final class DistrictJob extends VillageJob {
                     report();
                     return true;
                 }
+                // 지금부터 블록을 쓰기 시작할 때까지 그 자리 놓기·부수기를 막는다 (기록 파일 없이 — 몇 초)
+                int[] pb = DistrictService.bounds(pmeta.protect, 2);
+                if (pb != null) svc.setPending(new VillageMeta.Box(pb[0], world.getMinHeight(), pb[1], pb[2], world.getMaxHeight(), pb[3]));
                 step = Step.TREES;
                 treeFuture = async().submit(() -> Trees.analyze(snaps, grid, plan.cx, plan.cz, planner.reach(), writer::tidy));
             }
             case TREES -> {
                 if (!treeFuture.isDone()) return false;
                 Trees.Result t = treeFuture.get();
-                clear = new ArrayList<>();
-                for (long[] c : t.remove()) if (!frozen.untouchable((int) c[0], (int) c[2])) clear.add(c);
-                regrass = new ArrayList<>();
-                for (long[] c : t.regrass()) if (!frozen.untouchable((int) c[0], (int) c[2])) regrass.add(c);
-                snaps = null;
+                if (!treeClear(t)) return false;
                 cells = backupCells();
                 cursor = 0;
                 step = Step.BACKUP_READ;
-                say("<gray>  " + site.label() + ": 통과 — " + summary() + " · 나무 원목 " + t.logs() + " · 백업할 칸 " + cells.length);
+                say("<gray>  " + site.label() + ": 통과 — " + summary() + " · 나무 원목 " + t.logs() + (treeOutside > 0 ? " (영역 밖 열 " + treeOutside + " 살핌)" : "")
+                        + " · 백업할 칸 " + cells.length);
             }
             case BACKUP_READ -> {
                 int minY = world.getMinHeight(), maxY = world.getMaxHeight() - 1;
@@ -286,9 +335,17 @@ final class DistrictJob extends VillageJob {
                     long k = cells[cursor++];
                     int x = Trees.ux(k), y = Trees.uy(k), z = Trees.uz(k);
                     if (y < minY || y > maxY) continue;
-                    before.add(new DistrictBackup.Entry(x, y, z, world.getBlockAt(x, y, z).getBlockData().getAsString(), null));
+                    BlockData now = world.getBlockAt(x, y, z).getBlockData();
+                    // 살펴본 뒤(스냅샷) 사람 손으로 바뀐 칸 → 처음부터 다시 살펴봄
+                    Material then = snaps == null ? null : snaps.type(x, y, z);
+                    if (then != null && then != now.getMaterial() && handChange(then, now.getMaterial())) {
+                        rescan(Scan.id(then) + " → " + Scan.id(now.getMaterial()) + " (" + x + " " + y + " " + z + ")");
+                        return false;
+                    }
+                    before.add(new DistrictBackup.Entry(x, y, z, now.getAsString(), null));
                 }
                 if (cursor >= cells.length) {
+                    snaps = null;
                     DistrictBackup bk = new DistrictBackup(L.id, DistrictBackup.Phase.BEFORE, before);
                     File bf = DistrictService.backupFile(world, L.id);
                     ioFuture = async().submit(() -> {
@@ -445,7 +502,15 @@ final class DistrictJob extends VillageJob {
 
     private void block(String why) { block(List.of(why)); }
 
+    private void blockBorder(String why) {
+        boolean keep = anyNonBorder;
+        block(List.of(why));
+        anyNonBorder = keep;
+    }
+
     private void block(List<String> why) {
+        anyNonBorder = true;
+        if (svc.pending() != null) svc.setPending(null);
         blocked.put(site.label(), new ArrayList<>(why));
         String first = why.isEmpty() ? "-" : why.get(0);
         say("<gray>  " + Text.escape(site.label()) + ": <#ff9a4d>막힘</#ff9a4d> — " + Text.escape(first) + (why.size() > 1 ? " 외 " + (why.size() - 1) + "건" : ""));
@@ -460,8 +525,11 @@ final class DistrictJob extends VillageJob {
         }
         List<String> lines = new ArrayList<>();
         for (Map.Entry<String, List<String>> e : blocked.entrySet()) for (String w : e.getValue()) if (lines.size() < 40) lines.add("[" + e.getKey() + "] " + w);
-        String head = "모든 자리 (" + String.join(" · ", blocked.keySet()) + ") 에 사람이 만든 것으로 보이는 것이 있어 블록을 하나도 바꾸지 않았습니다.";
-        svc.writeBlocked(L.id, List.of(head), lines);
+        String where = String.join(" · ", blocked.keySet());
+        DistrictService.Blocked reason = anyNonBorder ? DistrictService.Blocked.PLAYER_MADE : DistrictService.Blocked.BORDER;
+        String head = reason == DistrictService.Blocked.BORDER ? "모든 자리 (" + where + ") 가 월드 경계 밖이라 블록을 하나도 바꾸지 않았습니다."
+                : "모든 자리 (" + where + ") 에 사람이 만든 것으로 보이는 것이 있거나 지을 수 없어 블록을 하나도 바꾸지 않았습니다.";
+        svc.writeBlocked(L.id, reason, List.of(head), lines);
         Text.send(sender, "<#ff9a4d><b>[광산 마을] 짓지 않았습니다</b></#ff9a4d> <gray>— " + Text.escape(head));
         Text.send(sender, "<gray>  자세히: plugins/Labyrinth/village/" + svc.blockedFile(L.id).getName() + " · 광산은 /미궁 광산 으로 그대로 됩니다");
         if (!(sender instanceof org.bukkit.command.ConsoleCommandSender)) Log.info("[광산 마을] 짓지 않았습니다 — " + head);
@@ -519,6 +587,98 @@ final class DistrictJob extends VillageJob {
             }
         }
         return out;
+    }
+
+    /** 큰길과 만나는 얼린 칸(마을이 다듬은 칸) 위 구역 길 칸 [x, z, y] — 겉 블록을 깔고 위 두 칸을 치우는 칸. */
+    private List<int[]> junctionCells() {
+        List<int[]> out = new ArrayList<>();
+        Set<Long> seen = new HashSet<>();
+        for (Plan.PathPlan pp : plan.paths) {
+            for (int[] c : pp.cells) {
+                if (!plan.isFrozen(c[0], c[1]) || frozen.untouchable(c[0], c[1])) continue;
+                if (seen.add(PathRaster.key(c[0], c[1]))) out.add(new int[] {c[0], c[1], c[2]});
+            }
+        }
+        return out;
+    }
+
+    /** 검사한 열(영역 안, 얼린 칸 아님)까지의 체비셰프 거리 (0 = 그 열, cap 넘으면 cap + 1). */
+    private int regionDistance(int x, int z, int cap) {
+        for (int r = 0; r <= cap; r++) {
+            for (int dz = -r; dz <= r; dz++) {
+                for (int dx = -r; dx <= r; dx++) {
+                    if (Math.max(Math.abs(dx), Math.abs(dz)) != r) continue;
+                    int qx = x + dx, qz = z + dz;
+                    if (plan.inGrid(qx, qz) && plan.inRegion(qx, qz) && !plan.isFrozen(qx, qz)) return r;
+                }
+            }
+        }
+        return cap + 1;
+    }
+
+    /**
+     * 나무 치우기 칸 고르기 (0.3.6.1 리뷰): 마을 길·보호 칸은 빼고, 검사한 영역 밖으로 뻗은 부분은 —
+     * 원목이 {@link #LOG_REACH} 칸 넘게 이어지면 막음 (원목 건물·사람이 키운 나무일 수 있다), 그 안이면 그 열들도 지문·비자연 검사,
+     * 영역에서 먼 잎·붙은 것은 남김 (원목이 없으면 저절로 떨어진다). @return 계속하면 true (막았으면 false)
+     */
+    private boolean treeClear(Trees.Result t) {
+        clear = new ArrayList<>();
+        regrass = new ArrayList<>();
+        Map<Long, int[]> outside = new LinkedHashMap<>();
+        for (long[] c : t.remove()) {
+            int x = (int) c[0], y = (int) c[1], z = (int) c[2];
+            if (frozen.untouchable(x, z)) continue;
+            int d = regionDistance(x, z, Math.max(LOG_REACH, LEAF_REACH));
+            if (d > 0) {
+                Material m = snaps.type(x, y, z);
+                boolean log = m != null && Scan.kind(m) == Nature.Kind.LOG;
+                if (log && d > LOG_REACH) {
+                    block("나무 치우기: 원목이 지을 자리에서 " + LOG_REACH + "칸 넘게 이어짐 — 원목 건물·사람이 키운 나무일 수 있어 짓지 않습니다 ("
+                            + (m == null ? "?" : Scan.id(m)) + " " + x + " " + y + " " + z + ")");
+                    return false;
+                }
+                if (!log && d > LEAF_REACH) continue;
+                outside.putIfAbsent(PathRaster.key(x, z), new int[] {x, z});
+            }
+            clear.add(c);
+        }
+        for (long[] c : t.regrass()) {
+            int x = (int) c[0], z = (int) c[2];
+            if (frozen.untouchable(x, z)) continue;
+            if (regionDistance(x, z, LOG_REACH) > LOG_REACH) continue;
+            regrass.add(c);
+        }
+        if (!outside.isEmpty()) {
+            DistrictCheck.Result r = DistrictCheck.check(fpw, fpUnder, fpAbove, live(), outside.values(), 20);
+            if (!r.ok()) {
+                List<String> why = new ArrayList<>();
+                for (DistrictCheck.Problem p : r.problems()) why.add("나무 치우기 (영역 밖): " + p.line());
+                block(why);
+                return false;
+            }
+        }
+        treeOutside = outside.size();
+        return true;
+    }
+
+    /** 살펴본 뒤 바뀐 칸이 사람 손인가 (자연 변화 = 잔디↔흙·잎 떨어짐·물 흐름·식물 — 비자연 블록이나 새 원목이 끼면 사람 손). */
+    static boolean handChange(Material then, Material now) {
+        Nature.Kind a = Scan.kind(then), b = Scan.kind(now);
+        return a == Nature.Kind.UNNATURAL || b == Nature.Kind.UNNATURAL || (b == Nature.Kind.LOG && a != Nature.Kind.LOG);
+    }
+
+    /** 짓기 직전 그 자리가 바뀜 → 처음부터 다시 살펴봄 (두 번까지, 그다음은 막음). */
+    private void rescan(String what) {
+        before.clear();
+        cursor = 0;
+        if (++rescans > 2) {
+            block("짓기 직전에 그 자리 블록이 바뀌었습니다 — " + what);
+            return;
+        }
+        say("<gray>  " + site.label() + ": 살펴본 뒤 블록이 바뀌어 다시 살펴봅니다 — " + Text.escape(what));
+        if (svc.pending() != null) svc.setPending(null);
+        releasePump();
+        startSite(site);
     }
 
     /** 엔티티 검사 (메인 스레드): 사람 손 엔티티 → 막음. 조각 상자 안의 그냥 동물은 밖으로, 적대 몹은 치운다 (짓기 시작할 때). */
@@ -582,7 +742,7 @@ final class DistrictJob extends VillageJob {
         meta.villageBuildId = v.buildId;
         meta.backup = DistrictMeta.backupName(L.id);
         meta.safeMargin = L.safeMargin;
-        meta.meta = Markers.meta(plan, placement.layout());
+        meta.meta = pmeta != null ? pmeta : Markers.meta(plan, placement.layout());
         meta.meta.name = L.name;
         meta.meta.buildId = UUID.randomUUID().toString();
         meta.meta.builtAt = java.time.Instant.now().toString();
@@ -596,12 +756,14 @@ final class DistrictJob extends VillageJob {
             }
         }
         meta.save(DistrictService.metaFile(world, L.id));
+        writing = true;
         svc.load(false); // 보호 상자 켬 (짓는 동안 놓기·부수기 취소)
+        svc.setPending(null); // 잠깐 보호 → 기록의 보호 상자로
         int[] bb = DistrictService.bounds(meta.meta.protect, 2);
         int moved = 0;
         for (Player p : world.getPlayers()) {
             if (bb != null && insideBox(p.getLocation(), bb, 0)) {
-                svc.evict(p, meta);
+                svc.evict(p, meta, false);
                 moved++;
             }
         }
@@ -646,8 +808,11 @@ final class DistrictJob extends VillageJob {
     private void finishBuild() throws Exception {
         meta.meta.npcs.replaceAll((k, p) -> PlanWriter.standable(world, p));
         meta.meta.points.replaceAll((k, p) -> PlanWriter.standable(world, p));
+        flush("짓기");
         meta.state = DistrictMeta.State.BUILT;
         meta.save(DistrictService.metaFile(world, L.id));
+        writing = false;
+        done = true;
         svc.load(true);
         int npcs = svc.applyNpcs(true);
         svc.clearBlocked(L.id);
@@ -658,8 +823,9 @@ final class DistrictJob extends VillageJob {
         if (!(sender instanceof org.bukkit.command.ConsoleCommandSender)) Log.info(line);
         Text.send(sender, "<gray>  되돌리기: <white>/labadmin village district remove " + L.id + "</white> (백업 " + DistrictMeta.backupName(L.id)
                 + ") · 확인: <white>/labadmin village selftest</white>");
+        String where = site.site() == null ? "마을 옆에" : site.id().equals("east") ? "마을 큰길 끝에" : "마을 큰길 끝에서 갈라진 길 끝에";
         for (Player p : Bukkit.getOnlinePlayers()) {
-            if (p.getWorld().equals(world)) Text.send(p, "<#e8c58a>[광산 마을]</#e8c58a> <gray>마을 큰길 동쪽 끝에 광산 마을이 생겼습니다. 승강장에서 광산으로 내려갈 수 있습니다.");
+            if (p.getWorld().equals(world)) Text.send(p, "<#e8c58a>[광산 마을]</#e8c58a> <gray>" + where + " 광산 마을이 생겼습니다. 승강장에서 광산으로 내려갈 수 있습니다.");
         }
     }
 
@@ -697,7 +863,10 @@ final class DistrictJob extends VillageJob {
         DistrictMeta d = svc.get(L.id);
         String counts = "되돌린 블록 " + restored + " · 이미 같던 칸 " + restoreSame + (restoreSkipped > 0 ? " · 그 뒤 바뀌어 그대로 둔 칸 " + restoreSkipped : "")
                 + (restoreErrors > 0 ? " · 오류 " + restoreErrors : "");
+        flush("되돌리기"); // 되돌린 블록을 디스크에 먼저 — 기록이 블록보다 앞서지 않게
+        restoring = false;
         if (mode == Mode.REMOVE) {
+            done = true;
             if (d != null) {
                 svc.removeNpcs(d);
                 d.state = DistrictMeta.State.REMOVED;
@@ -726,6 +895,17 @@ final class DistrictJob extends VillageJob {
         return false;
     }
 
+    /** 바꾼 블록을 디스크에 (청크 저장이 끝날 때까지 기다림 — 기록 파일을 블록보다 먼저 쓰지 않게, 0.3.6.1 리뷰). */
+    private void flush(String what) {
+        long t0 = System.currentTimeMillis();
+        try {
+            world.save(true);
+            say("<gray>  월드 저장 (" + what + ", " + (System.currentTimeMillis() - t0) + "ms)");
+        } catch (Throwable t) {
+            Log.error("[광산 마을] 월드 저장 실패 (" + what + ") — 다음 자동 저장 때 저장됩니다", t);
+        }
+    }
+
     private void releasePump() {
         if (pump != null) pump.release();
         pump = null;
@@ -735,5 +915,27 @@ final class DistrictJob extends VillageJob {
     protected void cleanup() {
         releasePump();
         snaps = null;
+        if (svc.pending() != null) svc.setPending(null);
+        boolean live = module.plugin().isEnabled();
+        if (writing && !done) {
+            // 짓다가 멈춤 (취소·오류): 반쯤 지은 채 두지 않고 곧바로 백업으로 되돌린다. 서버를 끄는 중이면 다음 시작 때 (state building).
+            writing = false;
+            if (!live) return;
+            Text.send(sender, "<#ff9a4d>[광산 마을] 짓기가 멈췄습니다 — 백업으로 되돌립니다</#ff9a4d>");
+            Log.warn("[광산 마을] 짓기가 멈췄습니다 — 백업으로 되돌립니다");
+            Bukkit.getScheduler().runTaskLater(module.plugin(), () -> {
+                if (VillageJob.running() != null) {
+                    Log.warn("[광산 마을] 다른 마을 작업 중이라 되돌리지 못했습니다 — 다음 시작 때 되돌립니다 (state building)");
+                    return;
+                }
+                DistrictJob.recover(module, svc, entry, false).start();
+            }, 1L);
+            return;
+        }
+        if (restoring && !done && mode == Mode.REMOVE && live) {
+            Text.send(sender, "<#ff9a4d>[광산 마을] 되돌리기를 멈췄습니다</#ff9a4d> <gray>— 다시 <white>/labadmin village district remove " + L.id
+                    + "</white> 하면 이어서 됩니다");
+        }
+        restoring = false;
     }
 }
