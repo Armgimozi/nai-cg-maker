@@ -264,7 +264,7 @@ final class VillageSelfTest extends VillageJob {
                         }
                         BlockData exp = expected.get(pl.index() + ":" + cp);
                         if (exp == null) continue;
-                        if (!exp.matches(actual)) {
+                        if (!exp.matches(actual) && !naturalSoil(exp.getMaterial(), actual.getMaterial())) {
                             ck[1]++;
                             sample(bp.id + " (" + w[0] + " " + wy + " " + w[1] + ") 기대 " + exp.getAsString() + " / 실제 " + actual.getAsString());
                         }
@@ -272,6 +272,14 @@ final class VillageSelfTest extends VillageJob {
                 }
             }
         }
+    }
+
+    /**
+     * 풀 블록 ↔ 흙 은 어긋남으로 세지 않는다 — 사람이 놀면 그 둘레 청크에 무작위 틱이 돌아 덮인 풀은 흙이 되고 흙에는 풀이 번진다
+     * (0.3.6.1 검증: 서버장 월드에서 놀고 나면 광장 풀 한 칸이 흙이 되어 '문제 있음'이 떴다). 눈 덮인 풀(snowy)도 같은 풀.
+     */
+    static boolean naturalSoil(Material expected, Material actual) {
+        return (expected == Material.GRASS_BLOCK || expected == Material.DIRT) && (actual == Material.GRASS_BLOCK || actual == Material.DIRT);
     }
 
     private static boolean emptyish(Material m) {
