@@ -616,8 +616,10 @@ final class WildService implements Listener {
         };
         s.sendMessage(Text.mm(" <gray>월드 경계: <white>" + (w.border() ? "켬" : "끔") + "</white> · 지금 <white>"
                 + Text.escape(WildBorder.describe(cur)) + "</white> · 경고 " + cur.warning() + "칸 · " + state));
+        int boxes = village.protectAll().size();
+        int own = village.meta() == null ? boxes : village.meta().protect.size();
         s.sendMessage(Text.mm(" <gray>마을 경계: <white>" + Text.escape(WildBorder.describe(tgt)) + "</white> (마을 가장자리 + "
-                + w.borderMargin() + "칸, 보호 상자 " + village.protectAll().size() + "개 포함 — 광산 마을 포함)"));
+                + w.borderMargin() + "칸, 보호 상자 " + boxes + "개 포함" + (boxes > own ? " — 광산 마을 포함" : "") + ")"));
         s.sendMessage(Text.mm(" <gray>스폰 막기: <white>" + w.spawns().id() + "</white> " + switch (w.spawns()) {
             case ALL -> "(적대 몹 + 동물 — 있던 동물은 그대로)";
             case MONSTERS -> "(적대 몹만)";
