@@ -16,17 +16,73 @@ class CasterBoltRulesTest {
 
     @Test
     void airClickWithCasterIsABolt() {
-        assertEquals(Punch.BOLT, CasterBoltRules.punch(true, false, false, false, false), "어드벤처 허공");
-        assertEquals(Punch.BOLT, CasterBoltRules.punch(true, false, false, true, false), "서바이벌 허공·먼 블록");
-        assertEquals(Punch.BOLT, CasterBoltRules.punch(true, false, false, false, true), "어드벤처 미궁 벽 — 쏘고 벽에서 멈춤");
+        assertEquals(Punch.BOLT, CasterBoltRules.punch(true, false, false, true, false), "허공·먼 블록·미궁 벽 — 쏘고 벽에서 멈춤");
     }
 
     @Test
     void otherSwingsAreNotBolts() {
-        assertEquals(Punch.NOT_CASTER, CasterBoltRules.punch(false, false, false, false, false), "칼·활·맨손·요구 미달 지팡이");
-        assertEquals(Punch.CONSUMED, CasterBoltRules.punch(true, true, false, false, false), "몹 직접 클릭·버리기·우클릭·창 열기와 같은 틱");
-        assertEquals(Punch.BUSY, CasterBoltRules.punch(true, false, true, false, false), "관전·죽음·기절·창 열림");
-        assertEquals(Punch.DIG, CasterBoltRules.punch(true, false, false, true, true), "서바이벌에서 손 닿는 블록 = 캐기");
+        assertEquals(Punch.NOT_CASTER, CasterBoltRules.punch(false, false, false, true, false), "칼·활·맨손·요구 미달 지팡이");
+        assertEquals(Punch.CONSUMED, CasterBoltRules.punch(true, true, false, true, false), "몹 직접 클릭·다른 기능이 쓴 블록 좌클릭과 같은 틱");
+        assertEquals(Punch.BUSY, CasterBoltRules.punch(true, false, true, true, false), "관전·죽음·기절·창 열림");
+        assertEquals(Punch.HOLD, CasterBoltRules.punch(true, false, false, false, false), "블록을 누르고 있는 동안의 punch");
+        assertEquals(Punch.DIG, CasterBoltRules.punch(true, false, false, true, true), "야생 서바이벌에서 손 닿는 블록, 조준선에 적 없음 = 캐기");
+    }
+
+    @Test
+    void labyrinthIsSurvivalButNeverDigs() {
+        // 미궁은 서바이벌(GameModes.onEnter) 이지만 블록이 깨지지 않는다 — 좌클릭은 언제나 마법탄 (리뷰: 3~4.5칸 몹 뒤 벽에서 클릭이 사라짐)
+        assertFalse(CasterBoltRules.canDig(false, true, true), "미궁 서바이벌");
+        assertTrue(CasterBoltRules.canDig(false, true, false), "야생·마을 서바이벌");
+        assertTrue(CasterBoltRules.canDig(true, false, true), "크리에이티브 (관리자)");
+        assertFalse(CasterBoltRules.canDig(false, false, false), "어드벤처 광산·관전");
+    }
+
+    @Test
+    void enemyOnTheLineWinsOverDigging() {
+        assertTrue(CasterBoltRules.digs(true, true, false), "손 닿는 블록만 보고 누름 = 캐기");
+        assertFalse(CasterBoltRules.digs(true, true, true), "벽 앞 3~4.5칸 몹·작은 몹 뒤 바닥·거미줄 너머 몹 = 마법탄");
+        assertFalse(CasterBoltRules.digs(true, false, false), "블록이 손 밖");
+        assertFalse(CasterBoltRules.digs(false, true, false), "캘 수 없는 곳");
+    }
+
+    @Test
+    void holdingABlockDoesNotAutoFire() {
+        CasterBoltRules.Press p = new CasterBoltRules.Press();
+        p.blockStart(100, true);
+        assertTrue(p.punch(100), "블록 좌클릭 시작과 같은 틱 = 새 클릭");
+        assertTrue(p.holding());
+        int[] gaps = {1, 1, 2, 1, 1, 3, 1, 2, 1, 1, 1, 2}; // 실서버: 틱마다 오지만 네트워크로 1~3틱 끊김 (리뷰 반영 1차 실서버에서 4발 나갔음)
+        int t = 100;
+        for (int g : gaps) {
+            t += g;
+            assertFalse(p.punch(t), "누르고 있는 동안의 punch (" + t + ")");
+        }
+        p.release(); // 놓음 = 클라이언트 ABORT → BlockDamageAbortEvent
+        assertTrue(p.punch(t + 2), "놓은 뒤 허공 클릭은 바로 새 클릭");
+        p.blockStart(150, true);
+        assertTrue(p.punch(151), "블록 시작과 punch 가 틱 경계에 걸려도 새 클릭");
+        assertFalse(p.punch(152));
+        p.blockStart(160, true); // 누른 채 다른 블록으로 / 다 캐서 다시 시작 — 그 시작은 새 클릭 하나
+        assertTrue(p.punch(160));
+        assertFalse(p.punch(161));
+        assertTrue(p.punch(161 + CasterBoltRules.Press.HOLD_GAP + 1), "놓았다는 알림을 놓쳐도 0.5초 끊기면 새 클릭");
+    }
+
+    @Test
+    void airClicksAreAlwaysFresh() {
+        CasterBoltRules.Press p = new CasterBoltRules.Press();
+        // 클라이언트가 몹을 손 밖으로 본 클릭 (블록 시작 없이 punch 만) — 빠르게 마구 눌러도 모두 새 클릭
+        for (int t = 0; t < 40; t += 2) assertTrue(p.punch(t), "허공 " + t);
+        for (int t = 40; t < 60; t++) assertTrue(p.punch(t), "블록 시작 없는 punch 는 1틱 간격이어도 새 클릭 " + t);
+        p.blockStart(70, false); // 어드벤처: 블록을 캐지 않으므로 누르는 중이 되지 않는다
+        assertTrue(p.punch(70));
+        assertFalse(p.holding());
+        assertTrue(p.punch(72), "어드벤처 블록 클릭 뒤 허공 클릭");
+        p.blockStart(80, true); // 서바이벌: 바로 깨지는 풀 — 깨짐이 punch 보다 먼저 온다
+        p.release();
+        assertTrue(p.punch(80));
+        assertFalse(p.holding(), "이미 깨진 블록이면 누르는 중이 아님");
+        assertTrue(p.punch(82), "그 뒤 허공 연타는 새 클릭");
     }
 
     @Test
@@ -66,7 +122,25 @@ class CasterBoltRulesTest {
         assertEquals(0x90E0F0, CasterBoltRules.trailColor(List.of("#101a22", "#1e3a4a", "#3a7a9a", "#90e0f0", "#f0ffff"), 0),
                 "서리 — 어두운 파랑이 아니라 밝은 하늘색");
         assertEquals(0xFFF4D6, CasterBoltRules.trailColor(List.of("#6a5020", "#d9b25a", "#f0d890", "#fff4d6", "#ffffff"), 0),
-                "거의 흰색 둘이면 덜 흰 쪽");
+                "거의 흰색 둘이면 덜 흰 쪽 (옅은 크림빛은 그대로 — 회색이 아님)");
+    }
+
+    @Test
+    void greyBoltsGetTheirColourBack() {
+        // 리뷰: 은빛·잿빛 팔레트의 마법탄이 연기처럼 보임
+        int ore = CasterBoltRules.trailColor(List.of("#1a1c22", "#5a3a26", "#8e9094", "#c9ced6", "#f1f4fa"), 0); // 광석 수정 지팡이
+        int rime = CasterBoltRules.trailColor(List.of("#16161c", "#34343e", "#6a6a7a", "#c0c4d0", "#ffffff"), 0); // 서리 종 막대
+        int silkknot = CasterBoltRules.trailColor(List.of("#1a1622", "#3a3248", "#7a6e8e", "#cfc6e0", "#fbf8ff"), 0);
+        for (int c : new int[] {ore, rime, silkknot}) {
+            assertTrue(CasterBoltRules.vividness(c) >= 0.2, Integer.toHexString(c));
+            assertTrue(CasterBoltRules.value(c) >= 0.75, "밝기는 그대로 " + Integer.toHexString(c));
+        }
+        assertTrue((ore & 0xFF) > (ore >> 16 & 0xFF), "빛깔 그대로 — 푸르스름한 은빛은 옅은 하늘빛 " + Integer.toHexString(ore));
+        assertTrue((silkknot & 0xFF) > (silkknot >> 8 & 0xFF), "보랏빛 회색은 옅은 보라 " + Integer.toHexString(silkknot));
+        assertEquals(0xD9B25A, CasterBoltRules.trailColor(List.of("#2a1e14", "#6a5020", "#d9b25a", "#c8c8cc", "#d0d0d4"), 0),
+                "밝은 둘이 회색이면 팔레트의 밝고 짙은 색");
+        assertEquals(0x808080, CasterBoltRules.saturate(0x808080, 0.3), "빛깔 없는 완전한 회색은 그대로");
+        assertEquals(0x90E0F0, CasterBoltRules.saturate(0x90E0F0, 0.3), "이미 짙으면 그대로");
     }
 
     @Test
@@ -108,12 +182,24 @@ class CasterBoltRulesTest {
 
     @Test
     void valuesAreClamped() {
-        CasterBoltConfig c = new CasterBoltConfig(true, 999, 0, -1, 99, true, true);
+        CasterBoltConfig c = new CasterBoltConfig(true, 999, 0, -1, 99, 99, true, true);
         assertEquals(32, c.range());
         assertEquals(0.5, c.speed());
         assertEquals(0, c.radius());
         assertEquals(3, c.pvpKnockback());
-        assertEquals(16, new CasterBoltConfig(true, Double.NaN, 2.5, 0.3, 0.6, true, true).range());
+        assertEquals(2, c.pvpDamage());
+        assertEquals(0.1, new CasterBoltConfig(true, 16, 2.5, 0.3, 0.6, 0, true, true).pvpDamage());
+        assertEquals(16, new CasterBoltConfig(true, Double.NaN, 2.5, 0.3, 0.6, 0.65, true, true).range());
+        assertEquals(0.65, new CasterBoltConfig(true, 16, 2.5, 0.3, 0.6, Double.NaN, true, true).pvpDamage());
+    }
+
+    @Test
+    void pvpDamageIsBelowOne() throws Exception {
+        // 1:1 모의 실험 (리뷰 pv_duel, 0.3.6 대비 직업 평균 승률 차이): 1.0 이면 사제 +29 · 비전술사 +18, 0.65 면 ±6~14 (비전술사 보정 1.2 그대로일 때)
+        assertEquals(0.65, CasterBoltConfig.DEFAULT.pvpDamage());
+        YamlConfiguration y = new YamlConfiguration();
+        y.loadFromString("caster_bolt:\n  pvp_damage: 1.0\n");
+        assertEquals(1.0, CasterBoltConfig.from(y).pvpDamage());
     }
 
     @Test
