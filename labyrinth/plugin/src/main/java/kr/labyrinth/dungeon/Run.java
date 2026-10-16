@@ -166,6 +166,7 @@ public final class Run {
                 kr.labyrinth.core.Teleports.to(p, spawn);
                 p.setFallDistance(0);
                 lastSafe.put(u, spawn);
+                kr.labyrinth.core.DeathPenalty.noticeOnce(manager.services(), p, adminTest); // 첫 입장 때 한 번: 쓰러지면 잃는 것
             }
             started = true;
             firstArrival = System.currentTimeMillis();
@@ -355,6 +356,8 @@ public final class Run {
 
     void onMemberDeath(Player p) {
         states.put(p.getUniqueId(), MemberState.DEAD);
+        // 0.3.6.1 죽음 페널티: 이번 레벨 경험치 + 가방 2~3칸 (손에 든 칸·갑옷·장신구·보조손·열쇠는 안전). 안내는 바로 채팅으로
+        kr.labyrinth.core.DeathPenalty.onDungeonDown(manager.services(), p, adminTest);
         FloorState fs = floorOf(p);
         if (fs == null) fs = current;
         if (fs != null) fs.addDeath();

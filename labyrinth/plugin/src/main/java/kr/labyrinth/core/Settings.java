@@ -35,6 +35,7 @@ public final class Settings {
     private final List<KitItem> starterKit;
     private final int starterGold;
     private final Death death;
+    private final DeathPenaltyRules.Config deathPenalty;
     private final ClassChange classChange;
     private final ArmorLooks armorLooks;
     private final Wild wild;
@@ -276,6 +277,7 @@ public final class Settings {
         this.starterGold = starterKit.isEmpty() ? 0 : Math.max(0, c.getInt("starter_kit.gold", DEFAULT_STARTER_GOLD));
         this.death = new Death(c.getBoolean("death.keep_inventory", Death.DEFAULT.keepInventory()),
                 c.getBoolean("death.keep_level", Death.DEFAULT.keepLevel()));
+        this.deathPenalty = DeathPenaltyRules.Config.read(c); // 0.3.6.1 죽음 페널티 — 키가 없으면 켜짐
         this.classChange = Boolean.FALSE.equals(c.get("class_change")) ? ClassChange.NONE
                 : classChange(c.getConfigurationSection("class_change"));
         // 0.3.5 방어구 겉모습 장단점 (look_spec §7) — 키가 없으면 코드 기본값 (예전 서버 config 도 그대로 켜진다)
@@ -446,6 +448,9 @@ public final class Settings {
 
     /** 죽을 때 소지품·레벨 보존 (인벤세이브). */
     public Death death() { return death; }
+
+    /** 0.3.6.1 죽음 페널티 (death.penalty — 경험치 진행도 · 미궁 안 가방 2~3칸). */
+    public DeathPenaltyRules.Config deathPenalty() { return deathPenalty; }
 
     /** 직업 변경 제한 (전직의 두루마리·대기 시간). */
     public ClassChange classChange() { return classChange; }

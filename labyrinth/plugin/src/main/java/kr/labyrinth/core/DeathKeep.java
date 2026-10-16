@@ -1,7 +1,13 @@
 package kr.labyrinth.core;
 
+import com.destroystokyo.paper.event.player.PlayerPostRespawnEvent;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import kr.labyrinth.Services;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
@@ -13,6 +19,8 @@ import org.bukkit.event.entity.PlayerDeathEvent;
  * 아무것도 떨구지 않는다. 미궁 월드 안의 죽음은 {@code dungeon.DungeonManager} 가 먼저 처리한다
  * (공략 중이면 죽음을 취소하고 쓰러짐·관전, 그 밖에는 이 설정과 상관없이 {@link #apply} 로 언제나 보존).
  * pvp 모듈은 죽음 메시지만 바꾸므로 PvP 로 죽어도 같은 규칙이다.
+ * <p>0.3.6.1 죽음 페널티({@link DeathPenalty}): 취소되지 않은 죽음은 어디서든 이번 레벨 경험치를 잃고, 안내는 부활한 뒤 채팅으로.
+ * 미궁 공략 중 쓰러짐(취소된 죽음)은 {@code dungeon.Run#onMemberDeath} 가 따로 (경험치 + 가방 2~3칸).
  */
 public final class DeathKeep implements Module, Listener {
 
@@ -27,7 +35,13 @@ public final class DeathKeep implements Module, Listener {
     public void enable() { Bukkit.getPluginManager().registerEvents(this, services.plugin()); }
 
     @Override
-    public void disable() { HandlerList.unregisterAll(this); }
+    public void disable() {
+        HandlerList.unregisterAll(this);
+        afterRespawn.clear();
+    }
+
+    /** 부활한 뒤 보낼 죽음 페널티 안내 (죽음 화면에서 나갔다 들어와도 부활할 때 보냄). */
+    private final Map<UUID, List<String>> afterRespawn = new ConcurrentHashMap<>();
 
     /** 다른 플러그인·모듈이 드롭을 정한 뒤 마지막에 (취소된 죽음 = 미궁 쓰러짐은 건너뜀). */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -35,6 +49,20 @@ public final class DeathKeep implements Module, Listener {
         if (services.dungeon().isLabyrinthWorld(e.getPlayer().getWorld())) return; // 미궁 월드 = DungeonManager (언제나 보존)
         Settings.Death d = services.settings().death();
         apply(e, d.keepInventory(), d.keepLevel());
+    }
+
+    /** 죽음 페널티 — 모든 처리기가 끝난 뒤 정말 죽었을 때만 (미궁 공략 중 쓰러짐 = 취소됨 → 건너뜀, Run 이 따로). */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onDeathPenalty(PlayerDeathEvent e) {
+        Player p = e.getPlayer();
+        List<String> lines = DeathPenalty.onRealDeath(services, p, services.dungeon().isLabyrinthWorld(p.getWorld()));
+        if (!lines.isEmpty()) afterRespawn.put(p.getUniqueId(), lines);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPostRespawn(PlayerPostRespawnEvent e) {
+        List<String> lines = afterRespawn.remove(e.getPlayer().getUniqueId());
+        if (lines != null) for (String line : lines) Text.send(e.getPlayer(), line);
     }
 
     /**
