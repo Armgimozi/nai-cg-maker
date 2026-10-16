@@ -4,6 +4,9 @@
     /opt/packvenv/bin/python -I tools/village/district_fingerprint.py                 # 만들기 → resources/village/districts/mine.fp
     /opt/packvenv/bin/python -I tools/village/district_fingerprint.py --check         # 지금 파일과 같은지만 (다르면 종료 코드 1)
     ... --world <world.zip | 서버팩 zip | world 폴더> [--world ...] --district mine
+    ... --terrain plugin/src/test/resources/village/shipped-terrain.txt.gz   # 첫 --world 의 계획기 열 → 단위 시험 픽스처
+
+지문은 광산 마을을 짓기 **전** 배포 월드의 것이다 — 이미 광산 마을이 지어진 world.zip(0.3.6.1~)은 저절로 뺀다.
 
 기존 서버의 구역 자리가 배포 월드 그대로인지(사람이 손대지 않았는지) jar 가 맞대어 보는 열 기록이다. 열(x, z)마다:
 - h      = 땅 높이: 위에서 내려오며 처음 만나는 Nature GROUND 블록 (계획기 Scan.columns 와 같은 규칙)
@@ -456,17 +459,31 @@ def encode(worlds, rect):
     return buf.getvalue()
 
 
+def has_district(path):
+    """이미 광산 마을이 지어진 월드인가 (0.3.6.1 새 world.zip) — 지문은 짓기 전 배포 월드의 것이어야 한다."""
+    if path.endswith(".zip"):
+        with zipfile.ZipFile(path) as z:
+            return any(n.endswith("overworld/labyrinth-district-mine.yml") for n in z.namelist())
+    return any(f == "labyrinth-district-mine.yml" for _, _, fs in os.walk(path) for f in fs)
+
+
 def default_worlds():
+    """짓기 전 배포 월드들: dist/world.zip(0.3.0~0.3.6) 과 0.2.0 서버팩. 광산 마을이 이미 있는 world.zip(0.3.6.1~)은 뺀다."""
+    import hashlib
     dist = os.path.join(ROOT, "dist")
-    cands = [os.path.join(dist, "world.zip"), os.path.join(dist, "Labyrinth-Server-0.2.0.zip")]
-    # 작업 나무(worktree)에는 dist 가 없을 수 있다 — 저장소 본체의 dist 도 찾아본다
     main_dist = os.path.normpath(os.path.join(ROOT, "..", "..", "nai-cg-maker", "labyrinth", "dist"))
-    cands += [os.path.join(main_dist, "world.zip"), os.path.join(main_dist, "Labyrinth-Server-0.2.0.zip")]
+    cands = []
+    for d in (dist, main_dist):
+        cands += [os.path.join(d, "world.zip"), os.path.join(d, "Labyrinth-Server-0.2.0.zip")]
     seen, out = set(), []
     for c in cands:
-        if os.path.isfile(c) and os.path.basename(c) not in seen:
-            seen.add(os.path.basename(c))
-            out.append(c)
+        if not os.path.isfile(c) or has_district(c):
+            continue
+        h = hashlib.sha1(open(c, "rb").read()).hexdigest()
+        if h in seen:
+            continue
+        seen.add(h)
+        out.append(c)
     return out
 
 
@@ -482,8 +499,12 @@ def main(argv=None):
         district = json.load(f)
     out = a.out or os.path.join(RES, "districts", district.get("fingerprint", a.district + ".fp"))
     paths = a.world or default_worlds()
+    skipped = [p for p in paths if has_district(p)]
+    for p in skipped:
+        print("  뺌: %s — 이미 광산 마을이 지어진 월드 (지문은 짓기 전 배포 월드로)" % p)
+    paths = [p for p in paths if p not in skipped]
     if not paths:
-        raise SystemExit("배포 월드가 없습니다 (--world)")
+        raise SystemExit("짓기 전 배포 월드가 없습니다 — 광산 마을이 없는 예전 world.zip(0.3.0~0.3.6)과 0.2.0 서버팩을 --world 로 주세요")
     boxes = coverage(district)
     rect = union(boxes)
     print("덮는 범위: x %d..%d · z %d..%d (%d열) — 자리 %s" % (rect[0], rect[2], rect[1], rect[3],

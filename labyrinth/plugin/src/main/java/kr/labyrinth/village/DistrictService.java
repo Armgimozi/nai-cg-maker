@@ -226,7 +226,8 @@ final class DistrictService implements Listener {
                 continue;
             }
             try {
-                if (s.npcs().place(id, village.loc(e.getValue())) != null) n++;
+                s.npcs().place(id, village.loc(e.getValue())); // 청크가 안 불려 있으면 자리만 저장되고, 청크가 불릴 때 선다
+                n++;
             } catch (Throwable t) {
                 Log.error("[광산 마을] NPC 배치 실패 (" + id + ")", t);
             }

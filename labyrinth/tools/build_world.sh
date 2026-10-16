@@ -5,6 +5,10 @@
 #   → world 폴더(session.lock·uid.dat·미궁 공허 월드 제외)를 dist/world.zip 으로.
 # 사용: tools/build_world.sh <시드> [<x> <z> <north|east|south|west>]
 #   자리·방향을 안 주면 계획기가 월드 스폰 둘레 64칸에서 고른다 (village survey 로 미리 골라 두는 것을 권장).
+#      tools/build_world.sh --base <예전 world.zip> [<구역 자리 east|south_east>]       (0.3.6.1 증분 빌드, CONTRACT §2.13)
+#   예전 배포 월드를 그대로 풀어 마을은 건드리지 않고 광산 마을만 짓는다: village district build mine <자리> → village selftest
+#   (마을 mismatched=0 + 광산 마을 자가 진단 깨끗) → zip. 시드 = 예전 zip 옆 world.seed. 서버를 켜 둔 동안 random_tick_speed 0 ·
+#   몹 스폰 끔 (잔디·잎·몹이 바뀌지 않게) — 끝나면 게임 규칙 파일은 예전 zip 것으로 되돌린다 (서버장 월드의 규칙은 그대로).
 # 환경 변수: TESTSERVER=/opt/testserver (paper.jar·libraries·cache 를 가져올 곳, 그 안의 world 는 건드리지 않음)
 #            WORK=/opt/worldbuild/build (작업 폴더, 매번 새로) · PORT=25631 · PREGEN=192 · KEEP=1 이면 작업 폴더 남김
 #            DIST=<결과 폴더> (기본 dist — 시험 빌드를 따로 모을 때)
@@ -12,8 +16,18 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT=$(pwd)
-SEED=${1:?"사용: tools/build_world.sh <시드> [<x> <z> <방향>]"}
-BX=${2:-}; BZ=${3:-}; BDIR=${4:-}
+BASE=""
+if [ "${1:-}" = "--base" ]; then
+  BASE=$(readlink -f "${2:?"사용: tools/build_world.sh --base <예전 world.zip> [east|south_east]"}")
+  [ -f "$BASE" ] || { echo "예전 world.zip 이 없습니다: $BASE"; exit 1; }
+  SITE=${3:-east}
+  SEED=$(cat "${BASE%.zip}.seed" 2>/dev/null || true)
+  [ -n "$SEED" ] || { echo "${BASE%.zip}.seed 가 없습니다 (예전 world.zip 의 시드)"; exit 1; }
+  BX=""; BZ=""; BDIR=""
+else
+  SEED=${1:?"사용: tools/build_world.sh <시드> [<x> <z> <방향>] · tools/build_world.sh --base <예전 world.zip> [자리]"}
+  BX=${2:-}; BZ=${3:-}; BDIR=${4:-}
+fi
 TESTSERVER=${TESTSERVER:-/opt/testserver}
 WORK=${WORK:-/opt/worldbuild/build}
 PORT=${PORT:-25631}
@@ -24,7 +38,11 @@ PY=${PYTHON:-$( [ -x /opt/packvenv/bin/python ] && echo /opt/packvenv/bin/python
 JAR=$(ls -t plugin/build/libs/labyrinth-*.jar 2>/dev/null | grep -v -E 'sources|javadoc' | head -n 1 || true)
 [ -n "$JAR" ] || { echo "플러그인 jar 가 없습니다 — 먼저 (cd plugin && ./gradlew build)"; exit 1; }
 [ -f "$TESTSERVER/paper.jar" ] || { echo "$TESTSERVER/paper.jar 가 없습니다"; exit 1; }
-echo "== 배포 월드 만들기: 시드 $SEED ${BX:+· 자리 ($BX, $BZ) $BDIR} · 플러그인 $(basename "$JAR") =="
+if [ -n "$BASE" ]; then
+  echo "== 배포 월드 증분 빌드: 예전 $(basename "$BASE") (시드 $SEED) + 광산 마을 ($SITE) · 플러그인 $(basename "$JAR") =="
+else
+  echo "== 배포 월드 만들기: 시드 $SEED ${BX:+· 자리 ($BX, $BZ) $BDIR} · 플러그인 $(basename "$JAR") =="
+fi
 
 # 1. 서버 복사 (world·logs·플러그인 데이터 없이 — 테스트 서버 world 는 그대로 둔다)
 rm -rf "$WORK"
@@ -39,12 +57,37 @@ cp "$JAR" "$WORK/plugins/Labyrinth.jar"
 # 리소스팩 HTTP 는 끈다 (8163 포트를 다른 서버와 다투지 않게)
 # 야생 막기(wild)도 끈다 — 배포 월드에 우리 경계(world_border)가 구워지지 않게, pregen 하는 청크에 동물(CHUNK_GEN)이 생기게.
 #   경계는 서버장 서버가 처음 켤 때 정하고 기록(월드 폴더 labyrinth-wild-border.yml)을 남긴다.
+# 광산 마을 자동 짓기도 끈다 (증분 빌드는 명령으로 자리를 정해 짓는다 · 새 월드는 마을이 지어지기 전에 돌지 않게),
+# 광산 월드도 끈다 (world.zip 에 labyrinth_mine 이 들어가지 않게 — 서버장 서버가 처음 켤 때 만든다).
 sed -e '/^pack:/,/^[a-z]/ s/^  enabled: true/  enabled: false/' \
     -e '/^wild:/,/^[a-z]/ s/^  border: true/  border: false/' \
     -e '/^wild:/,/^[a-z]/ s/^  spawns: all/  spawns: none/' \
+    -e '/^mine:/,/^[a-z]/ s/^  enabled: true/  enabled: false/' \
+    -e '/^mine:/,/^[a-z]/ s/auto_build: true/auto_build: false/' \
     plugin/src/main/resources/config.yml > "$WORK/plugins/Labyrinth/config.yml"
 grep -qE '^  border: false' "$WORK/plugins/Labyrinth/config.yml" && grep -qE '^  spawns: none' "$WORK/plugins/Labyrinth/config.yml" \
-  || { echo "config.yml 의 wild 를 끄지 못했습니다 (키 모양이 바뀜?) — tools/build_world.sh 를 고치세요"; exit 1; }
+  && grep -qE 'auto_build: false' "$WORK/plugins/Labyrinth/config.yml" \
+  || { echo "config.yml 의 wild·mine.district 를 끄지 못했습니다 (키 모양이 바뀜?) — tools/build_world.sh 를 고치세요"; exit 1; }
+if [ -n "$BASE" ]; then
+  # 예전 배포 월드를 그대로 (잠금·UID 없이)
+  "$PY" - "$BASE" "$WORK" <<'PYEOF'
+import os, sys, zipfile
+src, dst = sys.argv[1], sys.argv[2]
+with zipfile.ZipFile(src) as z:
+    names = z.namelist()
+    bad = [n for n in names if not n.startswith("world/") or ".." in n.split("/")]
+    if bad:
+        sys.exit("예전 world.zip 안에 world/ 밖 경로: %s" % bad[:3])
+    z.extractall(dst)
+for f in ("session.lock", "uid.dat"):
+    p = os.path.join(dst, "world", f)
+    if os.path.exists(p):
+        os.remove(p)
+print("  예전 월드 풀기: 파일 %d개" % len(names))
+PYEOF
+  [ -f "$WORK/world/dimensions/minecraft/overworld/labyrinth-village.yml" ] || { echo "예전 world.zip 에 마을이 없습니다"; exit 1; }
+  [ ! -f "$WORK/world/dimensions/minecraft/overworld/labyrinth-district-mine.yml" ] || { echo "예전 world.zip 에 이미 광산 마을이 있습니다"; exit 1; }
+fi
 P="$WORK/server.properties"
 touch "$P"
 setprop() { if grep -q "^$1=" "$P"; then sed -i "s|^$1=.*|$1=$2|" "$P"; else echo "$1=$2" >> "$P"; fi; }
@@ -61,6 +104,23 @@ setprop simulation-distance 4
 
 # 2. 명령 (한 줄 = 콘솔 명령, "wait <정규식> [초]" = 그 줄이 로그에 나올 때까지, "abort <정규식>" = 그 줄이 나왔으면 바로 끄기)
 CMDS="$WORK/commands.txt"
+if [ -n "$BASE" ]; then
+{
+  echo "gamerule random_tick_speed 0"
+  echo "gamerule spawn_mobs false"
+  echo "sleep 3"
+  echo "labadmin village district build mine $SITE"
+  echo "wait \[광산 마을\] 지었습니다|\[광산 마을\] 짓지 않았습니다|광산 마을 짓기 중 오류|광산 마을이 없습니다|이미 지어져 1800"
+  echo "abort \[광산 마을\] 짓지 않았습니다|광산 마을 짓기 중 오류"
+  echo "sleep 3"
+  echo "labadmin village selftest"
+  echo "wait \[광산 마을 자가 진단\] 결과 900"
+  echo "labadmin village district info"
+  echo "labadmin village info"
+  echo "save-all flush"
+  echo "sleep 5"
+} > "$CMDS"
+else
 {
   if [ -n "$BX" ]; then echo "labadmin village build $BX $BZ $BDIR"; else echo "labadmin village build"; fi
   echo "wait 마을을 지었습니다|여기에는 마을을 지을 수 없습니다|마을 짓기 중 오류 1800"
@@ -75,6 +135,7 @@ CMDS="$WORK/commands.txt"
   echo "save-all flush"
   echo "sleep 5"
 } > "$CMDS"
+fi
 
 LOG="$WORK/logs/latest.log"
 (
@@ -101,7 +162,7 @@ LOG="$WORK/logs/latest.log"
 ) | (cd "$WORK" && timeout 7200 "$JAVA" -Xms1G -Xmx4G -Xshare:off -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -jar paper.jar --nogui > run.out 2>&1) || true
 
 mkdir -p "$DIST"
-grep -E "\[마을|마을 짓기|마을을 지었|계획:|지형|나무:|표지판|청크 미리 생성 완료|덤프 완료|자가 진단|Exception|ERROR.*Labyrinth" "$LOG" \
+grep -E "\[마을|\[광산 마을|마을 짓기|마을을 지었|계획:|지형|나무:|표지판|통과 —|막힘|짓기 시작|청크 미리 생성 완료|덤프 완료|자가 진단|Exception|ERROR.*Labyrinth" "$LOG" \
   | grep -v "PaperVersionFetcher" > "$DIST/world-build.log" || true
 cat "$DIST/world-build.log" | sed 's/^\[[0-9:]*\] \[[^]]*\]: //' | grep -v "· [0-9]*%$" | tail -n 40
 
@@ -113,6 +174,27 @@ SELF=$(grep -h "\[마을 자가 진단\] 결과" "$LOG" | tail -n 1 || true)
 echo "$SELF" | grep -q "예외 0 " && echo "$SELF" | grep -q "mismatched=0 " && echo "$SELF" | grep -q "overlaps=0 " \
   && echo "$SELF" | grep -q "floating=0 " && echo "$SELF" | grep -q "tree_remnants=0 " && echo "$SELF" | grep -q "blocked_doors=0 " \
   || { echo "자가 진단이 깨끗하지 않습니다: ${SELF:-(결과 줄 없음)}"; [ "${ALLOW_DIRTY:-0}" = "1" ] || exit 1; }
+if [ -n "$BASE" ]; then
+  DM="$W/dimensions/minecraft/overworld/labyrinth-district-mine.yml"
+  [ -f "$DM" ] && grep -q "^state: built" "$DM" || { echo "광산 마을이 지어지지 않았습니다 ($DIST/world-build.log)"; exit 1; }
+  DSELF=$(grep -h "\[광산 마을 자가 진단\] 결과" "$LOG" | tail -n 1 || true)
+  for k in "예외 0 " "mismatched=0 " "overlaps=0 " "floating=0 " "tree_remnants=0 " "blocked_doors=0 " "path_steps=0 " "junction=ok "; do
+    echo "$DSELF" | grep -q "$k" || { echo "광산 마을 자가 진단이 깨끗하지 않습니다 ($k): ${DSELF:-(결과 줄 없음)}"; [ "${ALLOW_DIRTY:-0}" = "1" ] || exit 1; }
+  done
+  # 게임 규칙은 예전 zip 것으로 (켜 둔 동안만 random_tick_speed 0 · 몹 스폰 끔)
+  "$PY" - "$BASE" "$WORK" <<'PYEOF'
+import sys, zipfile
+src, dst = sys.argv[1], sys.argv[2]
+with zipfile.ZipFile(src) as z:
+    n = 0
+    for name in z.namelist():
+        if name.endswith("data/minecraft/game_rules.dat"):
+            with open(dst + "/" + name, "wb") as f:
+                f.write(z.read(name))
+            n += 1
+print("  게임 규칙 되돌림: %d개 차원" % n)
+PYEOF
+fi
 [ -f "$WORK/plugins/Labyrinth/village/dump.txt" ] && cp "$WORK/plugins/Labyrinth/village/dump.txt" "$DIST/village-dump.txt"
 
 # 4. world.zip (session.lock · uid.dat · 미궁 공허 월드 · 플레이어 데이터 제외)
@@ -120,7 +202,8 @@ echo "$SELF" | grep -q "예외 0 " && echo "$SELF" | grep -q "mismatched=0 " && 
 import os, sys, zipfile
 src, out = sys.argv[1], sys.argv[2]
 skip_files = {"session.lock", "uid.dat"}
-skip_dirs = {os.path.join("dimensions", "minecraft", "labyrinth_world"), "players", "playerdata", "advancements", "stats"}
+skip_dirs = {os.path.join("dimensions", "minecraft", "labyrinth_world"), os.path.join("dimensions", "minecraft", "labyrinth_mine"),
+             "players", "playerdata", "advancements", "stats"}
 n = 0
 with zipfile.ZipFile(out + ".tmp", "w", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
     for base, dirs, files in os.walk(src):

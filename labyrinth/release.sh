@@ -103,11 +103,17 @@ with zipfile.ZipFile(src) as z:
 meta = os.path.join(dst, "world", "dimensions", "minecraft", "overworld", "labyrinth-village.yml")
 if not os.path.isfile(meta):
     sys.exit("world.zip 에 마을 메타데이터(labyrinth-village.yml)가 없습니다")
-print("  마을 월드 포함: 파일 %d개" % len(names))
+# 0.3.6.1: 광산 마을이 미리 지어져 있어야 한다 (tools/build_world.sh --base <예전 world.zip>)
+dm = os.path.join(dst, "world", "dimensions", "minecraft", "overworld", "labyrinth-district-mine.yml")
+if not os.path.isfile(dm) or "\nstate: built" not in open(dm, encoding="utf-8").read():
+    sys.exit("world.zip 에 지어진 광산 마을(labyrinth-district-mine.yml state: built)이 없습니다 — tools/build_world.sh --base <예전 world.zip>")
+if not os.path.isfile(os.path.join(dst, "world", "dimensions", "minecraft", "overworld", "labyrinth-district-mine.backup.gz")):
+    sys.exit("world.zip 에 광산 마을 되돌리기 백업(labyrinth-district-mine.backup.gz)이 없습니다")
+print("  마을 월드 포함 (광산 마을 지어짐): 파일 %d개" % len(names))
 PYEOF
 
 # 금지 파일 확인 (월드 잠금·UID·미궁 공허 월드는 서버가 새로 만든다)
-for bad in eula.txt paper.jar world/session.lock world/uid.dat world/dimensions/minecraft/labyrinth_world; do
+for bad in eula.txt paper.jar world/session.lock world/uid.dat world/dimensions/minecraft/labyrinth_world world/dimensions/minecraft/labyrinth_mine; do
   [ ! -e "$DIR/$bad" ] || { echo "배포 폴더에 $bad 가 있으면 안 됩니다"; exit 1; }
 done
 
