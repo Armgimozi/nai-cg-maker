@@ -65,7 +65,7 @@ class Ctx:
         self.contract: dict = {}           # tools/data/036 visual/materials/mine.json (0.3.6 광산 계약)
         self.mine_added: list[str] = []    # items.yml 에 없어 계약 값으로 그린 광산 아이템
         self.mine_aliases: dict = {}       # 옛 재료 id → 새 id (그림 별칭)
-        self.mine_nodes: dict = {}         # 보석 노드 결정 모델
+        self.mine_gem_blocks: dict = {}    # 0.3.6.1 보석 광석 블록 그림 (결정 모델 없음)
 
     def load(self, name):
         path = os.path.join(self.content_dir, f'{name}.yml')
@@ -389,87 +389,30 @@ def build_mine_aliases(ctx: Ctx):
     ctx.stats['retired_aliases'] = len(al)
 
 
-# 보석 노드 결정 (ItemDisplay) — 모델 좌표 (8, 8, 8) = 엔티티 원점 = 보석 블록 바깥면 가운데, +y = 바깥면 법선.
-# (ItemDisplayTransform NONE 은 모델을 −0.5 만큼 옮겨 그리므로 바닥을 y = 8 에 둔다.) 크기·밝기·숨김은 Q1 (visual.json gem_nodes).
-NODE_ORIGIN = (8.0, 8.0, 8.0)
-NODE_MAX_ELEMENTS = 300
-
-
-def gem_cluster(g, kind, seed):
-    """보석 노드 블록 앞면에 붙는 결정 덩이. 바닥 y=0 (블록 면) 에서 +y 로 자람. 폭 ±7 복셀(±3.5 모델 단위)."""
-    import random
-    rr = random.Random(seed)
-    # 바닥 받침 (덩이가 면에 박힌 느낌): 납작한 어두운 돌
-    g.ball((0, 0, 0), 6.5, 'dark', sq=(1.0, 0.35, 1.0), vfn=lambda i, j, k, d: None if j < 0 else 0.35 + 0.3 * (1 - d))
-    if kind == 'prism':
-        g.crystal((0, 0, 0), (0.05, 1, 0.1), 15, 2.3, 'crystal', prio=3, tip=0.32)
-        for (x, z, dx, dz, L, r) in ((-4, 2, -0.5, 0.25, 9, 1.6), (4, -1, 0.55, -0.1, 10, 1.7), (1, -4, 0.15, -0.6, 7, 1.3),
-                                     (-2, 4.5, -0.2, 0.6, 6, 1.2), (5, 3, 0.6, 0.4, 5.5, 1.1)):
-            g.crystal((x, 0, z), (dx, 1, dz), L, r, 'crystal', prio=3, tip=0.35)
-    elif kind == 'prism_glow':
-        # 황옥: 석영과 같은 기둥 덩이지만 끝이 길고 뾰족하며 빛남 (석영은 하얗고 무딤)
-        g.crystal((0, 0, 0), (0.12, 1, -0.05), 14, 2.1, 'crystal', glow=True, prio=3, tip=0.55)
-        for (x, z, dx, dz, L, r) in ((-4, 1.5, -0.6, 0.2, 10, 1.6), (4, -1.5, 0.6, -0.2, 9, 1.6),
-                                     (0.5, 4, 0.1, 0.65, 7, 1.3), (-1, -4, -0.15, -0.6, 6.5, 1.2)):
-            g.crystal((x, 0, z), (dx, 1, dz), L, r, 'crystal', glow=True, prio=3, tip=0.6)
-    elif kind == 'round':
-        for (x, y, z, r) in ((0, 3.5, 0, 3.6), (-4.5, 2.2, 1.5, 2.6), (4, 2.5, -1, 2.8), (1, 2, 4, 2.2), (-1.5, 2, -4, 2.3),
-                             (2.5, 6.5, 1.5, 2.0)):
-            g.gem((x, y, z), r, 'crystal', prio=3)
-            g.put(round(x - r * 0.4), round(y + r * 0.5), round(z + r * 0.3), 'crystal', 0.98, prio=4)
-    elif kind == 'cabochon':
-        for (x, y, z, r) in ((0, 3.0, 0, 4.4), (-5, 2.0, 2, 2.8), (4.5, 2.2, -2, 3.1), (1.5, 1.8, 5, 2.4), (-2, 6.5, -1, 2.2)):
-            g.ball((x, y, z), r, 'ice', sq=(1, 1.0, 1),
-                   vfn=lambda i, j, k, d, _y=y: None if j < 0 else 0.42 + 0.45 * (1 - d) + (0.1 if j > _y else 0), prio=3)
-        for (x, y, z) in ((-2, 6, 3), (-1, 5, 4), (1, 7, 3), (-5, 3, 4), (4, 4, 1), (5, 3, 0), (-3, 8, 0), (2, 3, 6)):
-            g.put(x, y, z, 'glow', 0.8, glow=True, prio=5)
-    elif kind == 'hex':
-        g.crystal((0, 0, 0), (0, 1, 0), 14, 2.6, 'crystal', glow=True, prio=3, tip=0.12)
-        for (x, z, dx, dz, L, r) in ((-4.5, 1.5, -0.45, 0.15, 9, 1.8), (4.2, -1.5, 0.45, -0.15, 10, 1.9),
-                                     (0.5, 4.5, 0.05, 0.5, 7, 1.5), (-1, -4.5, -0.1, -0.5, 6, 1.4)):
-            g.crystal((x, 0, z), (dx, 1, dz), L, r, 'crystal', glow=True, prio=3, tip=0.12)
-    elif kind == 'shard':
-        # 용혈석: 짙은 진홍 날카로운 조각 + 안에서 타는 주황 빛 점. 'crystal' 램프는 끝 강조색(주황)에서 나와
-        # 갈색이 되므로, 팔레트 본 램프를 그대로 쓰는 'cloth' 램프(검정 → 진홍 → 주황)로 칠한다.
-        for (x, z, dx, dz, L, r) in ((0, 0, 0.25, 1, 14, 2.2), (-4, 2, -0.8, 1, 9, 1.6), (4, -2, 0.9, 1, 10, 1.7),
-                                     (1, 4, 0.3, 1, 7, 1.3), (-2, -4, -0.4, 1, 8, 1.4)):
-            g.crystal((x, 0, z), (dx, 1, dz * 0.4), L, r, 'cloth', prio=3, tip=0.8)
-        for _ in range(12):
-            x, y, z = rr.uniform(-4, 4), rr.uniform(2, 11), rr.uniform(-2, 2)
-            key = (round(x), round(y), round(z))
-            if g.get(key):
-                g.put(*key, 'glow', 0.75, glow=True, prio=5)
-    else:
-        g.crystal((0, 0, 0), (0, 1, 0), 12, 2.2, 'crystal', prio=3)
-
-
-def build_mine_nodes(ctx: Ctx):
-    """보석 노드 결정 6개: assets/labyrinth/{models/item,items,textures/item}/mine/node_<보석> (visual.json gem_nodes)."""
-    from src.voxel import build as VB
-    from src.voxel.core import Grid
-    nodes = (((ctx.contract.get('visual') or {}).get('gem_nodes') or {}).get('models')) or {}
-    if not nodes:
-        ctx.warnings.append('tools/data/036/visual.json gem_nodes missing — no gem node crystals built')
-    ctx.mine_nodes = {}
-    for key, d in nodes.items():
-        kind = d.get('kind') or 'prism'
-        if kind == 'prism' and d.get('glow'):
-            kind = 'prism_glow'
-        seed = stable_seed('node', key)
-        look = Look(d.get('palette'), 'crystal', 'rare', seed)
-        g = Grid(seed)
-        gem_cluster(g, kind, seed)
-        name = f'mine/{key}'
-        budget = min(NODE_MAX_ELEMENTS, int(d.get('element_budget') or NODE_MAX_ELEMENTS))
-        vo = VB.finish(name, g, look, 'crystal', f'{NS}:item/{name}', 0.5, NODE_ORIGIN, animated=False, seed=seed,
-                       display=None, max_elements=budget, emission=15)
-        ctx.add(f'assets/{NS}/textures/item/{name}.png', items.png_bytes(vo.frames[0]))
-        ctx.add(f'assets/{NS}/models/item/{name}.json', items.jdump(vo.model_json))
-        ctx.add(f'assets/{NS}/items/{name}.json', items.jdump({'model': {'type': 'minecraft:model',
-                                                                         'model': f'{NS}:item/{name}'}}))
-        ctx.mine_nodes[key] = {'elements': len(vo.vm.model.els), 'budget': budget, 'model': vo.vm.model,
-                               'uv': vo.vm.faces_uv, 'frame': vo.frames[0], 'gem': d.get('gem')}
-    ctx.stats['mine_nodes'] = len(ctx.mine_nodes)
+def build_mine_gem_blocks(ctx: Ctx):
+    """0.3.6.1 보석 광석 블록 6개 (주인: "삐쭉 튀어나온 부분이 별로 … 광석 블록 텍스쳐를 네모난걸 새로"): 결정 ItemDisplay 대신
+    바닐라 좀벌레 돌 6개(visual.json blocks.gems)의 blockstates 를 labyrinth:block/mine/gem_<보석> (cube_all, 16×16) 으로."""
+    from src import mine_blocks
+    gems = (((ctx.contract.get('visual') or {}).get('blocks') or {}).get('gems')) or {}
+    if not gems:
+        ctx.warnings.append('tools/data/036/visual.json blocks.gems missing — no gem ore blocks built')
+    ctx.mine_gem_blocks = {}
+    for gid, d in gems.items():
+        block = d.get('block') or ''
+        look = d.get('look') or {}
+        if not block.startswith('minecraft:') or not look.get('palette'):
+            ctx.warnings.append(f'gem block {gid}: no block/look in visual.json — skipped')
+            continue
+        ref = d.get('model') or f'{NS}:block/mine/gem_{gid}'
+        tex_ref = d.get('texture') or ref
+        img = mine_blocks.gem_texture(gid, look)
+        tns, tpath = tex_ref.split(':', 1)
+        mns, mpath = ref.split(':', 1)
+        ctx.add(f'assets/{tns}/textures/{tpath}.png', items.png_bytes(img))
+        ctx.add(f'assets/{mns}/models/{mpath}.json', items.jdump(mine_blocks.cube_model(tex_ref)))
+        ctx.add(f'assets/minecraft/blockstates/{block.split(":", 1)[1]}.json', items.jdump(mine_blocks.blockstate(block, ref)))
+        ctx.mine_gem_blocks[gid] = {'block': block, 'model': ref, 'texture': tex_ref, 'img': img, 'look': look}
+    ctx.stats['mine_gem_blocks'] = len(ctx.mine_gem_blocks)
 
 
 def build_mine_npcs(ctx: Ctx):
@@ -488,7 +431,7 @@ def build_mine_npcs(ctx: Ctx):
 
 
 BUILDERS = [build_core, build_items, build_equipment, build_weapon_fx, build_fx_extra, build_mobs,
-            build_npcs, build_ui, build_mine_aliases, build_mine_nodes, build_mine_npcs]
+            build_npcs, build_ui, build_mine_aliases, build_mine_gem_blocks, build_mine_npcs]
 
 
 # ───────────────────────────── previews ─────────────────────────────
@@ -563,7 +506,8 @@ def write_previews(ctx: Ctx):
 
 
 def write_mine_preview(ctx: Ctx):
-    """preview_mine.png: 0.3.6 광산 아이템 (4배 + 인벤토리 1배·2배 띠), 곡괭이, 보석 노드 결정 (블록 면 위), 옛 id 별칭."""
+    """preview_mine.png: 0.3.6 광산 아이템 (4배 + 인벤토리 1배·2배 띠), 곡괭이, 0.3.6.1 보석 광석 블록, 옛 id 별칭
+    + preview_mine_blocks.png (보석 블록 그림 8배 · 광산 벽 돌 사이에 놓은 3×3 · 정육면체)."""
     ids = mine_item_ids(ctx.contract)
     byid = {label: (m, uv, fr) for (label, m, uv, fr) in ctx.item_previews}
     cells, strip = [], []
@@ -575,26 +519,49 @@ def write_mine_preview(ctx: Ctx):
         n = '' if m is None else f' {len(m.els)}el'
         cells.append((cell, iid + n))
         strip.append(cell)
-    stone = ((1.6, -4.8, 1.6), (14.4, 8.0, 14.4), (96, 92, 100))
-    for key, n in ctx.mine_nodes.items():
-        tr = {'rotation': [25, 35, 0], 'translation': [0, -2, 0], 'scale': [0.62, 0.62, 0.62]}
-        cells.append((render.render(n['model'], n['uv'], n['frame'], tr, ppu=8, solids=[stone]),
-                      f"{key} {n['elements']}el"))
+    from src import mine_blocks
+    for gid, n in ctx.mine_gem_blocks.items():
+        cell = Image.new('RGBA', (128, 128), (0, 0, 0, 0))
+        cell.alpha_composite(mine_blocks.iso_cube(n['img'], 48), (16, 8))
+        cells.append((cell, f"{gid} ({n['block'].split(':')[1]})"))
     for old, new in ctx.mine_aliases.items():
         if new in byid:
             m, uv, fr = byid[new]
             cells.append((_cell(m, uv, fr, ppu=8), f'{old} -> {new}'))
     if not cells:
         return
-    render.grid(cells, 9, 128, title=f'0.3.6 mine: {len(ids)} items, {len(ctx.mine_nodes)} gem nodes, '
+    render.grid(cells, 9, 128, title=f'0.3.6 mine: {len(ids)} items, {len(ctx.mine_gem_blocks)} gem ore blocks, '
                                       f'{len(ctx.mine_aliases)} retired-id aliases').convert('RGB').save(
         os.path.join(ctx.out_dir, 'preview_mine.png'))
+    write_mine_block_preview(ctx)
     for px in (16, 32):    # 인벤토리 실제 크기 (GUI 배율 1·2), 확인용으로 3배 확대
         bar = Image.new('RGBA', (len(strip) * (px + 4) + 4, px + 8), (139, 139, 139, 255))
         for k, im in enumerate(strip):
             bar.alpha_composite(im.resize((px, px), Image.BOX), (4 + k * (px + 4), 4))
         bar.resize((bar.size[0] * 3, bar.size[1] * 3), Image.NEAREST).convert('RGB').save(
             os.path.join(ctx.out_dir, f'preview_mine_{px}px.png'))
+
+
+def write_mine_block_preview(ctx: Ctx):
+    """preview_mine_blocks.png: 보석 광석 블록 6개 — 그림 8배 · 광산 벽 돌(그 바탕) 사이에 놓은 3×3 (4배) · 정육면체."""
+    from src import mine_blocks
+    if not ctx.mine_gem_blocks:
+        return
+    cells = []
+    for gid, n in ctx.mine_gem_blocks.items():
+        cells.append((n['img'].resize((128, 128), Image.NEAREST), f'{gid} x8'))
+        wall = Image.new('RGBA', (48, 48))
+        base = n['look'].get('base') or 'stone'
+        for gy in range(3):
+            for gx in range(3):
+                tile = n['img'] if (gx, gy) == (1, 1) else mine_blocks.base_stone(base, stable_seed('wall', gid, gx, gy))
+                wall.alpha_composite(tile, (gx * 16, gy * 16))
+        cells.append((wall.resize((128, 128), Image.NEAREST), f'{gid} on {base} wall'))
+        cube = Image.new('RGBA', (128, 128), (0, 0, 0, 0))
+        cube.alpha_composite(mine_blocks.iso_cube(n['img'], 48), (16, 8))
+        cells.append((cube, n['block'].split(':')[1]))
+    render.grid(cells, 6, 128, title='0.3.6.1 gem ore blocks (pack repaints these vanilla blocks; no crystal models)').convert('RGB').save(
+        os.path.join(ctx.out_dir, 'preview_mine_blocks.png'))
 
 
 def _mob_label(mid, boss, nel, nvox):
@@ -676,8 +643,7 @@ def main(argv=None):
     ctx.warnings.extend(rep.warnings)
     rep.errors.extend(ctx.ui_errors)
     validate.validate_ui(ctx.files, ctx.content.get('glyphs') or {}, rep)
-    validate.validate_mine(ctx.files, ctx.content, ctx.contract, rep, mine_item_ids(ctx.contract), ctx.mine_aliases,
-                           ctx.mine_nodes)
+    validate.validate_mine(ctx.files, ctx.content, ctx.contract, rep, mine_item_ids(ctx.contract), ctx.mine_aliases)
     os.makedirs(ctx.out_dir, exist_ok=True)
     zpath = os.path.join(ctx.out_dir, 'labyrinth-pack.zip')
     sha = pack.write_zip(ctx.files, zpath)

@@ -1,6 +1,7 @@
 package kr.labyrinth.mine;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 0.3.6 광산 — 패키지끼리 맞춘 이름 (Q0 계약: tools/data/036/mine.json {@code names} · design/036/CONTRACT.md §3).
@@ -54,8 +55,30 @@ public final class MineNames {
     public static final List<String> EXT_REMOVED_036 = List.of("mine.depleted", "mine.hash", "mine.stamina", "mine.stamina_at");
 
     // ── PDC ──
-    /** 보석 노드 ItemDisplay: "L&lt;n&gt;:&lt;i&gt;". */
+    /** 0.3.6 보석 결정 ItemDisplay 표 "L&lt;n&gt;:&lt;i&gt;" — 0.3.6.1 에서 결정은 없앴다. 남은 것을 찾아 지울 때만 쓴다. */
     public static final String PDC_NODE = "mine_node";
+
+    // ── 보석 블록 (0.3.6.1 주인 결정: 튀어나온 결정 대신 네모난 광석 블록) ──
+    /**
+     * 리소스팩이 보석 광석 그림으로 바꿔 보여 주는 바닐라 블록 (보석 id → 블록, 계약 mine.json gems.*.block · visual.json blocks.gems).
+     * 좀벌레 돌만 고른 까닭: 만들 수도 주울 수도 없고 이 팩의 세계(미궁 층·마을·구역·배포 월드 지형)에 한 칸도 없어 다른 곳 모습이 안 바뀐다.
+     * mine.yml 의 보석 블록이 이 표와 다르면 팩 그림이 붙지 않아 바닐라 모습 그대로 보인다 (시작 때 경고 1줄).
+     */
+    public static final Map<String, String> GEM_BLOCKS = Map.of(
+            "quartz", "minecraft:infested_stone_bricks",
+            "garnet", "minecraft:infested_cobblestone",
+            "moonstone", "minecraft:infested_mossy_stone_bricks",
+            "topaz", "minecraft:infested_deepslate",
+            "sapphire", "minecraft:infested_chiseled_stone_bricks",
+            "dragonblood_stone", "minecraft:infested_cracked_stone_bricks");
+    /** 0.3.6 에 쓰던 보석 블록 (광산에서는 이제 안 씀 — 층을 다시 지을 때 새 블록으로 바뀐다). */
+    public static final Map<String, String> GEM_BLOCKS_036 = Map.of(
+            "quartz", "minecraft:nether_quartz_ore",
+            "garnet", "minecraft:cinnabar",
+            "moonstone", "minecraft:sea_lantern",
+            "topaz", "minecraft:glowstone",
+            "sapphire", "minecraft:deepslate_lapis_ore",
+            "dragonblood_stone", "minecraft:magma_block");
 
     /** 곡괭이가 약할 때 액션바 (주인 결정 2). */
     public static final String TOO_WEAK = "곡괭이가 약해 캘 수 없습니다";

@@ -51,8 +51,16 @@ public final class Settings {
         }
     }
 
+    /**
+     * pack: 절. publicCopy (0.3.6.1) = jar 팩 공개 사본 주소 꼴 ({sha8}·{sha1} 이 jar 팩 SHA-1 로 바뀜, "" = 끔) —
+     * 내장 주소를 받지 못한 사람에게 한 번 더 보내고, 옛 사본을 가리키는 pack.url 을 바로잡는다 ({@code pack.PackUrlChoice}).
+     */
     public record Pack(boolean enabled, int port, String bind, String publicHost, int publicPort, String url, String sha1,
-                       boolean required, boolean kickOnDecline, boolean updateFromJar, String prompt, boolean samePort) {}
+                       boolean required, boolean kickOnDecline, boolean updateFromJar, String prompt, boolean samePort, String publicCopy) {}
+
+    /** pack.public_copy 기본값: 배포 가지의 labyrinth/pack-host/ 사본 (판마다 tools/check_pack_host.py 로 확인). */
+    public static final String DEFAULT_PACK_PUBLIC_COPY =
+            "https://raw.githubusercontent.com/Armgimozi/nai-cg-maker/claude/bold-darwin-nwa5vk/labyrinth/pack-host/labyrinth-pack-{sha8}.zip";
 
     /**
      * combat — 0.3.5 게이지 없는 공격 키가 없으면 코드 기본값({@link #DEFAULT}, jar 의 config.yml 과 같음).
@@ -239,7 +247,7 @@ public final class Settings {
                 c.getString("pack.sha1", ""), c.getBoolean("pack.required", true),
                 c.getBoolean("pack.kick_on_decline", false), c.getBoolean("pack.update_from_jar", true),
                 c.getString("pack.prompt", "<gray>미궁 라비린스 전용 리소스팩입니다.</gray>"),
-                c.getBoolean("pack.same_port", true));
+                c.getBoolean("pack.same_port", true), c.getString("pack.public_copy", DEFAULT_PACK_PUBLIC_COPY));
         this.autosaveMinutes = Math.max(1, c.getInt("data.autosave_minutes", 5));
         Combat cd = Combat.DEFAULT;
         this.combat = new Combat(c.getBoolean("combat.damage_numbers", true),

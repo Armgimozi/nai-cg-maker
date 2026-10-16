@@ -121,7 +121,6 @@ public final class MineModule implements Module, MineApi {
         if (active) {
             int n = veins.refillAll();
             if (n > 0) Log.info("[광산] 빈 광맥 " + n + "곳을 다 찬 상태로 되돌림 (끄기)");
-            veins.removeAllDisplays();
         }
         if (listener != null) HandlerList.unregisterAll(listener);
         listener = null;
@@ -153,7 +152,14 @@ public final class MineModule implements Module, MineApi {
         interacts.clear();
         mineBlocks.clear();
         for (MineDef.Node n : mine.ores().values()) addMineBlock(n.block());
-        for (MineDef.Node n : mine.gems().values()) addMineBlock(n.block());
+        for (MineDef.Node n : mine.gems().values()) {
+            addMineBlock(n.block());
+            String want = MineNames.GEM_BLOCKS.get(n.id());
+            if (want != null && !want.equals(n.block())) {
+                Log.warnOnce("mine-gem-block:" + n.id(), "[광산] mine.yml " + n.id() + " 블록 " + n.block() + " 에는 리소스팩 보석 그림이 없습니다 — "
+                        + "바닐라 모습 그대로 보입니다 (팩 그림: " + want + ").");
+            }
+        }
         for (MineDef.Level def : mine.levels()) {
             String path = MineNames.blueprintPath(def.n());
             try (InputStream in = services.plugin().getResource(path)) {
@@ -288,7 +294,8 @@ public final class MineModule implements Module, MineApi {
             }
         }
         if (removed > 0) Log.info("[광산] 광산 월드 몹 " + removed + "마리를 지웠습니다.");
-        veins.ensureDisplays();
+        int crystals = veins.removeLeftoverCrystals();
+        if (crystals > 0) Log.info("[광산] 옛 보석 결정 " + crystals + "개를 지웠습니다 (0.3.6.1 — 보석은 네모난 광석 블록).");
     }
 
     /** 게임 모드 규칙 + 광산 안이면 HASTE·CONDUIT_POWER 지움 (캐는 시간 계약). */

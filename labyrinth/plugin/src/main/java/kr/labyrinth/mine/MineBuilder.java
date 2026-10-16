@@ -30,7 +30,7 @@ import org.bukkit.scheduler.BukkitTask;
  *       그 층 사람은 승강장으로, 그 층 광맥 기록은 지운다.</li>
  *   <li><b>맞추기</b> — 지문이 같으면 광맥·보석 칸만 다 찬 블록으로 되돌린다 (재시작 = 모든 광맥이 다 찬 상태, 계약 §0-3).</li>
  * </ul>
- * 끝나면 보석 결정(ItemDisplay)을 다시 놓는다.
+ * 끝나면 0.3.6 이 남긴 보석 결정(ItemDisplay)을 지운다 (0.3.6.1 — 보석 노드는 네모난 광석 블록 하나).
  */
 final class MineBuilder {
 
@@ -198,11 +198,12 @@ final class MineBuilder {
         } else {
             module.markBuilt(l);
         }
-        module.veins().respawnDisplays(l);
     }
 
     private void finish() {
         cancel();
+        int crystals = module.veins().removeLeftoverCrystals();
+        if (crystals > 0) report.add("옛 보석 결정 " + crystals + "개 지움");
         long ms = System.currentTimeMillis() - startedAt;
         saveMeta();
         String msg = "[광산] 층 " + steps.size() + "개 준비 (" + (report.isEmpty() ? "광맥을 다 찬 상태로" : String.join(", ", report))

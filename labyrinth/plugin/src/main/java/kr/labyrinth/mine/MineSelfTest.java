@@ -23,6 +23,7 @@ import org.bukkit.scheduler.BukkitTask;
  *   <li>unreachable = 보이는 면이 없거나 바닐라 손 닿는 거리(4.5)로 캘 수 없는 광맥·보석 (청사진 검사)</li>
  *   <li>lifts·office = 승강기·관리소 칸이 제 블록인가 · tool_mismatch = items.yml 곡괭이를 ItemService 로 만들었을 때 구성요소가 계획과 다른 수</li>
  *   <li>mobs = 광산 월드의 몹 수</li>
+ *   <li>nodes = 보석 노드 가운데 제 블록(다 참) 또는 빈 광맥 블록(캔 뒤)인 칸 / 전체 · crystals = 남은 0.3.6 보석 결정 ItemDisplay (0.3.6.1 에서 0 이어야 함)</li>
  * </ul>
  * 칸 비교는 틱마다 한 층씩 나눠 한다.
  */
@@ -126,7 +127,8 @@ final class MineSelfTest {
         String line = "[광산 자가 진단] 결과: 예외 " + errors + " · levels=" + ready + "/" + expectedLevels + " · mismatched=" + mismatched
                 + " · veins=" + veins + " · gems=" + gems + " · unreachable=" + unreachable + " · lifts=" + lifts + "/" + expectedLevels
                 + " · office=" + office + " · tool_mismatch=" + toolBad + " · mobs=" + mobs
-                + " · tools=" + tools + " · nodes=" + module.veins().displayCount() + "/" + gems + " · empty=" + module.veins().state().count();
+                + " · tools=" + tools + " · nodes=" + module.veins().fullGemBlocks() + "/" + gems + " · crystals=" + module.veins().leftoverCrystals()
+                + " · empty=" + module.veins().state().count();
         Log.info(line);
         for (String n : notes) Log.info("[광산 자가 진단]   " + n);
         if (!(to instanceof org.bukkit.command.ConsoleCommandSender)) {

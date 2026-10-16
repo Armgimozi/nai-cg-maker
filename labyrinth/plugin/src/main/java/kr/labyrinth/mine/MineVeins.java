@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.MineDef;
@@ -14,7 +13,6 @@ import kr.labyrinth.content.ToolSpec;
 import kr.labyrinth.core.Log;
 import kr.labyrinth.core.Text;
 import kr.labyrinth.event.ItemObtainEvent;
-import net.kyori.adventure.key.Key;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -24,17 +22,13 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Display;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.util.Transformation;
-import org.joml.AxisAngle4f;
-import org.joml.Quaternionf;
-import org.joml.Vector3f;
 
 /**
  * 함께 쓰는 광맥 (계약 §0-3): 진짜 블록이 모두에게 빈 광맥 블록이 되고, 시간이 지나면 다시 찬다.
@@ -42,7 +36,7 @@ import org.joml.Vector3f;
  *   <li>다시 차는 시간 = 기본(config mine.regen_minutes[층]) ÷ min(광산 월드 사람 수, regen_players_cap) — {@link VeinState}</li>
  *   <li>수확은 가방에 바로 (가득 차면 캐지지도 비워지지도 않음), 바닐라 드롭·경험치 없음</li>
  *   <li>광석 블록 = 광석 1 + 곡괭이 덤 확률로 +1 · gem_chance 로 같은 등급 보석 1 · 풍부한 광맥이면 ×rich.multiplier</li>
- *   <li>보석 노드 = 보석 1, gem_node_regen_minutes 뒤 다시 참 · 결정 모양 ItemDisplay (빈 동안 없음)</li>
+ *   <li>보석 노드 = 보석 1, gem_node_regen_minutes 뒤 다시 참 · 네모난 보석 광석 블록 하나 (0.3.6.1 — 튀어나온 결정 없음, 팩이 그림을 바꿈)</li>
  * </ul>
  * 재시작 때 기록은 없다 — 켤 때 {@link MineBuilder} 가 모든 광맥을 다 찬 블록으로 되돌린다.
  */
@@ -58,7 +52,6 @@ final class MineVeins {
     private final MineModule module;
     private final Map<Long, MineLevel.Vein> index = new HashMap<>();
     private final Map<String, MineLevel.Vein> byKey = new HashMap<>();
-    private final Map<String, UUID> displays = new HashMap<>();
     private VeinState state;
     final NamespacedKey nodeKey = new NamespacedKey(kr.labyrinth.core.Keys.NS, MineNames.PDC_NODE);
 
@@ -148,7 +141,6 @@ final class MineVeins {
         double regen = v.gem() ? cfg.gemRegenSeconds() : cfg.regenSeconds(v.level().n);
         state.deplete(v.key(), regen);
         b.setBlockData(v.level().depleted, false);
-        if (v.gem()) removeDisplay(v.key());
         int count = 0;
         for (ItemStack s : bag.getStorageContents()) if (s != null && s.isSimilar(main)) count += s.getAmount();
         module.stats().add(who, v.level().n);
@@ -215,7 +207,6 @@ final class MineVeins {
         Block b = w.getBlockAt(v.x(), v.y(), v.z());
         b.setBlockData(v.full(), false);
         if (rich) state.markRich(v.key());
-        if (v.gem()) spawnDisplay(w, v);
         Location c = face(v);
         try {
             Particle p = Particle.valueOf(v.level().def.regenFx());
@@ -259,96 +250,50 @@ final class MineVeins {
         return n;
     }
 
-    // ── 보석 결정 (ItemDisplay, persistent false) ───────────────────────
+    // ── 0.3.6 보석 결정 (ItemDisplay) 치우기 ─────────────────────────────
+    // 0.3.6.1 주인 결정 ("삐쭉 튀어나온 부분이 별로"): 보석 노드는 네모난 광석 블록 하나다. 결정 ItemDisplay 는 더 놓지 않고,
+    // 0.3.6 이 남긴 것(persistent false 라 보통은 없지만, 켜 둔 채 청크가 저장된 경우 등)을 PDC 표로 찾아 지운다.
 
-    void respawnDisplays(MineLevel l) {
-        World w = module.world();
-        if (w == null) return;
-        String prefix = "L" + l.n + ":";
-        for (ItemDisplay d : w.getEntitiesByClass(ItemDisplay.class)) {
-            String tag = d.getPersistentDataContainer().get(nodeKey, PersistentDataType.STRING);
-            if (tag != null && tag.startsWith(prefix)) d.remove();
-        }
-        displays.keySet().removeIf(k -> k.startsWith(prefix));
-        for (MineLevel.Vein g : l.gems) if (!state.isDepleted(g.key())) spawnDisplay(w, g);
-    }
-
-    void removeAllDisplays() {
-        World w = module.world();
-        if (w != null) {
-            for (ItemDisplay d : w.getEntitiesByClass(ItemDisplay.class)) {
-                if (d.getPersistentDataContainer().has(nodeKey, PersistentDataType.STRING)) d.remove();
-            }
-        }
-        displays.clear();
-    }
-
-    /** 사라진 결정을 다시 놓기 (30초 정리 때). */
-    int ensureDisplays() {
+    /** 광산 월드의 옛 보석 결정 ItemDisplay 를 지운다. @return 지운 수 */
+    int removeLeftoverCrystals() {
         World w = module.world();
         if (w == null) return 0;
         int n = 0;
-        for (MineLevel.Vein g : byKey.values()) {
-            if (!g.gem() || state.isDepleted(g.key())) continue;
-            UUID id = displays.get(g.key());
-            Entity e = id == null ? null : Bukkit.getEntity(id);
-            if (e == null || !e.isValid()) {
-                spawnDisplay(w, g);
+        for (ItemDisplay d : w.getEntitiesByClass(ItemDisplay.class)) {
+            if (isLeftoverCrystal(d)) {
+                d.remove();
                 n++;
             }
         }
         return n;
     }
 
-    int displayCount() {
+    /** 옛 보석 결정 (labyrinth:mine_node PDC) 인가. */
+    boolean isLeftoverCrystal(Entity e) {
+        return e instanceof ItemDisplay d && d.getPersistentDataContainer().has(nodeKey, PersistentDataType.STRING);
+    }
+
+    /** 남은 옛 결정 수 (자가 진단 crystals=0). */
+    int leftoverCrystals() {
+        World w = module.world();
+        if (w == null) return 0;
         int n = 0;
-        for (UUID id : displays.values()) {
-            Entity e = Bukkit.getEntity(id);
-            if (e != null && e.isValid()) n++;
-        }
+        for (ItemDisplay d : w.getEntitiesByClass(ItemDisplay.class)) if (isLeftoverCrystal(d)) n++;
         return n;
     }
 
-    private void spawnDisplay(World w, MineLevel.Vein g) {
-        removeDisplay(g.key());
-        MineBlueprint.Node a = g.at();
-        Location at = new Location(w, a.x() + 0.5 + a.fx() * 0.5, a.y() + 0.5 + a.fy() * 0.5, a.z() + 0.5 + a.fz() * 0.5);
-        String model = g.node().nodeModel();
-        ItemStack item = ItemStack.of(Material.AMETHYST_SHARD);
-        if (model != null && !model.isBlank()) item.setData(DataComponentTypes.ITEM_MODEL, Key.key(model));
-        Quaternionf q = rotation(a.fx(), a.fy(), a.fz());
-        try {
-            ItemDisplay d = w.spawn(at, ItemDisplay.class, e -> {
-                e.setItemStack(item);
-                e.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.NONE);
-                e.setTransformation(new Transformation(new Vector3f(), q, new Vector3f(1.25f, 1.25f, 1.25f), new Quaternionf()));
-                e.setBrightness(new Display.Brightness(11, 0));
-                e.setViewRange(0.6f);
-                e.setShadowRadius(0f);
-                e.setPersistent(false);
-                e.getPersistentDataContainer().set(nodeKey, PersistentDataType.STRING, "L" + g.level().n + ":" + a.index());
-            });
-            displays.put(g.key(), d.getUniqueId());
-        } catch (Throwable t) {
-            Log.warnOnce("mine-display", "[광산] 보석 결정을 놓지 못했습니다: " + t.getMessage());
+    /** 보석 노드 가운데 지금 다 찬 블록인 것 (빈 노드는 빈 광맥 블록) — 자가 진단 nodes=a/b. */
+    int fullGemBlocks() {
+        World w = module.world();
+        if (w == null) return 0;
+        int n = 0;
+        for (MineLevel.Vein g : byKey.values()) {
+            if (!g.gem()) continue;
+            boolean empty = state.isDepleted(g.key());
+            BlockData have = w.getBlockAt(g.x(), g.y(), g.z()).getBlockData();
+            if (empty ? have.equals(g.level().depleted) : have.equals(g.full())) n++;
         }
-    }
-
-    /** 모델 +y → 바깥면 법선. */
-    static Quaternionf rotation(int fx, int fy, int fz) {
-        if (fy > 0) return new Quaternionf();
-        if (fy < 0) return new Quaternionf(new AxisAngle4f((float) Math.PI, 1, 0, 0));
-        if (fz > 0) return new Quaternionf(new AxisAngle4f((float) (Math.PI / 2), 1, 0, 0));
-        if (fz < 0) return new Quaternionf(new AxisAngle4f((float) (-Math.PI / 2), 1, 0, 0));
-        if (fx > 0) return new Quaternionf(new AxisAngle4f((float) (-Math.PI / 2), 0, 0, 1));
-        return new Quaternionf(new AxisAngle4f((float) (Math.PI / 2), 0, 0, 1));
-    }
-
-    private void removeDisplay(String key) {
-        UUID id = displays.remove(key);
-        if (id == null) return;
-        Entity e = Bukkit.getEntity(id);
-        if (e != null) e.remove();
+        return n;
     }
 
     // ── 현황 ────────────────────────────────────────────────────────────

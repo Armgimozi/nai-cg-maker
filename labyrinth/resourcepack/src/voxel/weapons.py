@@ -2040,7 +2040,9 @@ def pickaxe(g, p):
         pa = arm(1, 11.5, 4.5, 2.6, 0.7)
         pb = arm(-1, 6.5, 1.2, 2.5, 1.9, lift=0.6)
         tip = pb[-1]
-        g.box((tip[0] - 1, tip[1] - 2, -1), (tip[0], tip[1] + 1, 1), 'edge', 0.8, prio=3)   # 끌 날
+        # 끌 날 (0.3.6.1): 구리 팔레트에서 가장 밝은 구리 ('blade' 램프 위쪽). 흰 강철 'edge' 램프는 손에서 흰 덩이로 보였다.
+        g.box((tip[0] - 1, tip[1] - 2, -1), (tip[0], tip[1] + 1, 1), 'blade', 0.7, prio=3)
+        g.box((tip[0], tip[1] - 2, -1), (tip[0], tip[1] + 1, 1), 'blade', 0.76, prio=3)    # 끝 한 줄만 조금 더 밝게
         rr = random.Random(7)
         for _ in range(9):                                                               # 녹청 점
             q = pa[rr.randrange(2, 14)] if rr.random() < 0.7 else pb[rr.randrange(1, 12)]

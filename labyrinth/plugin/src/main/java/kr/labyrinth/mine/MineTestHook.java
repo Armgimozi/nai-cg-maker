@@ -106,17 +106,18 @@ final class MineTestHook {
                     f.result() + " → " + MineNames.BAG_FULL);
             // 5. 보석 노드
             if (!l.gems.isEmpty()) {
+                // 0.3.6.1: 보석 노드 = 네모난 광석 블록 하나 (결정 ItemDisplay 없음)
                 MineLevel.Vein g = l.gems.get(0);
-                int before = veins.displayCount();
+                int full0 = veins.fullGemBlocks();
                 MineVeins.Harvest gh = veins.harvest(null, g, best, bag, rnd, true);
                 touched.add(g);
                 Block gb = w.getBlockAt(g.x(), g.y(), g.z());
-                int during = veins.displayCount();
-                boolean ok = gh.result() == MineVeins.Result.OK && gb.getBlockData().equals(l.depleted) && during == before - 1;
+                boolean ok = gh.result() == MineVeins.Result.OK && gb.getBlockData().equals(l.depleted);
                 veins.tickWith(cfg.gemRegenSeconds() + 1, 1);
-                int after = veins.displayCount();
-                check("보석 노드 (" + g.node().name() + ")", ok && gb.getBlockData().equals(g.full()) && after == before,
-                        gh.result() + " · 결정 " + before + "→" + during + "→" + after);
+                int crystals = veins.leftoverCrystals();
+                check("보석 노드 (" + g.node().name() + ")", ok && gb.getBlockData().equals(g.full()) && veins.fullGemBlocks() == full0 && crystals == 0
+                                && MineNames.GEM_BLOCKS.get(g.node().id()).equals(g.node().block()),
+                        gh.result() + " · " + g.node().block() + " · 결정 " + crystals);
             }
             // 6. 곡괭이 구성요소
             ToolSpec mid = new ToolSpec(ToolSpec.PICKAXE, 3, Map.of(1, 1.4, 2, 1.4, 3, 1.4), 0.04);
@@ -127,7 +128,8 @@ final class MineTestHook {
                     + " · UNBREAKABLE · PAPER · 구리 광석 " + String.format(java.util.Locale.ROOT, "%.2f", plan.rules().get(0).seconds()) + "초" : why);
             // 7. 광산 밖 블록 표 · PvP · 몹
             check("광산 블록 12종 표", module.isMineBlock(Material.COPPER_ORE) && module.isMineBlock(Material.ANCIENT_DEBRIS)
-                    && module.isMineBlock(Material.MAGMA_BLOCK) && !module.isMineBlock(Material.STONE), null);
+                    && module.isMineBlock(Material.INFESTED_CRACKED_STONE_BRICKS) && !module.isMineBlock(Material.MAGMA_BLOCK)
+                    && !module.isMineBlock(Material.STONE), null);
             Boolean pvp = w.getGameRuleValue(GameRules.PVP);
             check("광산 월드 PvP 끔", Boolean.FALSE.equals(pvp), "pvp=" + pvp);
             Location at = l.landing(w);

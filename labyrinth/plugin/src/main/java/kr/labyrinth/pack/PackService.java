@@ -55,6 +55,17 @@ public final class PackService implements Module, Listener {
     private volatile String sha1 = "";
     private volatile UUID packId;
     private volatile String externalUrl;
+    /** 0.3.6.1 주소 고르기 결과 ({@link PackUrlChoice}). */
+    private volatile PackUrlChoice.Plan plan;
+    /** 공개 사본을 받아 SHA-1 이 맞았나 (null = 확인 중 · 안 함). */
+    private volatile Boolean copyOk;
+    private volatile String copyState = "확인 안 함";
+    /** 지금 보내는 방식 ((b) 사본을 못 받으면 내장으로 돌아감). */
+    private volatile PackUrlChoice.Mode activeMode = PackUrlChoice.Mode.BUILTIN;
+    private volatile int generation;
+    /** 내장 주소를 받지 못해 공개 사본으로 한 번 더 보낸 사람 (접속마다 한 번). */
+    private final java.util.Set<UUID> fallbackSent = ConcurrentHashMap.newKeySet();
+    private volatile UUID fallbackId;
 
     public PackService(Services services) {
         this.services = services;
@@ -91,26 +102,54 @@ public final class PackService implements Module, Listener {
         packBytes = null;
         sha1 = "";
         externalUrl = null;
+        plan = null;
+        copyOk = null;
+        copyState = "확인 안 함";
+        activeMode = PackUrlChoice.Mode.BUILTIN;
+        fallbackSent.clear();
+        int gen = ++generation;
         if (!cfg.enabled()) {
             Log.info("리소스팩 전송 꺼짐 (pack.enabled: false)");
             return;
         }
-        if (cfg.url() != null && !cfg.url().isBlank()) {
-            externalUrl = cfg.url().trim();
-            sha1 = cfg.sha1() == null ? "" : cfg.sha1().trim().toLowerCase();
-            if (sha1.isEmpty() && Files.exists(packFile)) {
-                try {
-                    sha1 = sha1Hex(Files.readAllBytes(packFile));
-                } catch (IOException e) {
-                    Log.warn("로컬 팩 해시 계산 실패: " + e.getMessage());
-                }
-            }
-            packId = UUID.nameUUIDFromBytes(("labyrinth:" + externalUrl + sha1).getBytes(StandardCharsets.UTF_8));
-            Log.info("리소스팩: 외부 URL 사용 " + externalUrl + (sha1.isEmpty() ? " (SHA-1 없음)" : ""));
-            return;
-        }
+        // 0.3.6.1: jar 팩을 늘 꺼내 SHA-1 을 안다 (외부 주소를 쓸 때도 — 옛 사본을 가리키는 pack.url 을 바로잡으려고)
+        String jarSha = "";
         try {
             extractBundled(cfg.updateFromJar());
+            if (Files.exists(packFile)) jarSha = sha1Hex(Files.readAllBytes(packFile));
+        } catch (IOException e) {
+            Log.warn("로컬 팩 해시 계산 실패: " + e.getMessage());
+        }
+        PackUrlChoice.Plan pl = PackUrlChoice.decide(cfg.url(), cfg.sha1(), cfg.publicHost(), cfg.publicCopy(), jarSha);
+        plan = pl;
+        fallbackId = UUID.nameUUIDFromBytes(("labyrinth:copy:" + jarSha).getBytes(StandardCharsets.UTF_8));
+        if (pl.notice() != null) Log.info(pl.notice());
+        if (pl.mode() != PackUrlChoice.Mode.BUILTIN) {
+            externalUrl = pl.url();
+            sha1 = pl.sha1() == null ? "" : pl.sha1();
+            activeMode = pl.mode();
+            packId = UUID.nameUUIDFromBytes(("labyrinth:" + externalUrl + sha1).getBytes(StandardCharsets.UTF_8));
+            Log.info("리소스팩: " + PackUrlChoice.label(pl.mode()) + " " + externalUrl + (sha1.isEmpty() ? " (SHA-1 없음)" : ""));
+            if (pl.checkUrl() != null) {
+                checkCopy(gen, pl.checkUrl(), sha1, ok -> {
+                    if (ok || externalUrl == null) return;
+                    Log.warn("[리소스팩] 공개 사본을 받을 수 없어(" + copyState + ") 내장 서버로 보냅니다 — 사본이 올라오면 다음 시작부터 사본을 씁니다.");
+                    externalUrl = null;
+                    activeMode = PackUrlChoice.Mode.BUILTIN;
+                    startBuiltin(cfg);
+                    for (Player p : Bukkit.getOnlinePlayers()) send(p);
+                });
+            }
+            return;
+        }
+        startBuiltin(cfg);
+        if (pl.checkUrl() != null && packBytes != null) checkCopy(gen, pl.checkUrl(), sha1, ok -> { });
+    }
+
+    /** 내장 HTTP 서버 (+ 게임 포트) 로 plugins/Labyrinth/pack/labyrinth-pack.zip 을 보낸다. */
+    private void startBuiltin(Settings.Pack cfg) {
+        stopServer();
+        try {
             if (!Files.exists(packFile)) {
                 Log.warn("리소스팩 파일이 없습니다: " + packFile + " — 팩 없이 동작합니다 (resourcepack/generate.py 로 만든 zip 을 넣으세요).");
                 return;
@@ -190,15 +229,20 @@ public final class PackService implements Module, Listener {
 
     public String sha1() { return sha1; }
 
-    /** 플레이어가 받을 팩 URL (접속한 호스트 이름 기준). */
+    /** 플레이어가 받을 팩 URL (외부 주소가 있으면 그것, 없으면 접속한 호스트 이름 기준 내장 주소). */
     public String urlFor(Player p) {
         if (externalUrl != null) return externalUrl;
+        return builtinUrlFor(p);
+    }
+
+    /** 내장 서버 주소 (접속한 호스트 이름 기준). */
+    public String builtinUrlFor(Player p) {
         Settings.Pack cfg = services.settings().pack();
-        String joined = joinHosts.get(p.getUniqueId());
+        String joined = p == null ? null : joinHosts.get(p.getUniqueId());
         String host;
         int port = cfg.port();
         boolean hasPublic = cfg.publicHost() != null && !cfg.publicHost().isBlank();
-        Integer joinedPort = joinPorts.get(p.getUniqueId());
+        Integer joinedPort = p == null ? null : joinPorts.get(p.getUniqueId());
         if (!hasPublic && gamePortActive() && joined != null && !joined.isBlank()) {
             host = joined;                       // 접속한 주소·포트 그대로 (게임 포트로 팩을 받음 — 터널 하나로 충분)
             port = joinedPort != null && joinedPort > 0 ? joinedPort : Bukkit.getPort();
@@ -236,9 +280,13 @@ public final class PackService implements Module, Listener {
     /** 팩 전송 (접속 시 자동, /labadmin pack resend 등에서 수동). */
     public void send(Player p) {
         if (!isAvailable()) return;
+        send(p, packId, urlFor(p));
+    }
+
+    private void send(Player p, UUID id, String url) {
         Settings.Pack cfg = services.settings().pack();
         try {
-            ResourcePackInfo info = ResourcePackInfo.resourcePackInfo(packId, URI.create(urlFor(p)), sha1);
+            ResourcePackInfo info = ResourcePackInfo.resourcePackInfo(id, URI.create(url), sha1);
             p.sendResourcePacks(ResourcePackRequest.resourcePackRequest()
                     .packs(info)
                     .required(cfg.required())
@@ -301,6 +349,89 @@ public final class PackService implements Module, Listener {
     public void onQuit(PlayerQuitEvent e) {
         joinHosts.remove(e.getPlayer().getUniqueId());
         joinPorts.remove(e.getPlayer().getUniqueId());
+        fallbackSent.remove(e.getPlayer().getUniqueId());
+    }
+
+    // ── 0.3.6.1 공개 사본 ────────────────────────────────────────────────
+
+    /** (a) 내장 주소를 받지 못한 사람에게 공개 사본으로 한 번 더 (시작 때 받아 본 사본의 SHA-1 이 맞을 때만, 접속마다 한 번). */
+    private boolean sendCopyOnce(Player p) {
+        PackUrlChoice.Plan pl = plan;
+        if (externalUrl != null || pl == null || pl.fallbackUrl() == null || !Boolean.TRUE.equals(copyOk)) return false;
+        if (!fallbackSent.add(p.getUniqueId())) return false;
+        Text.send(p, "<gray>리소스팩을 다른 주소에서 한 번 더 받습니다…");
+        Log.info("[리소스팩] " + p.getName() + " 님이 내장 주소를 받지 못해 공개 사본으로 다시 보냅니다.");
+        send(p, fallbackId, pl.fallbackUrl());
+        return true;
+    }
+
+    /** 공개 사본을 받아 SHA-1 을 맞춰 본다 (비동기, 20초 제한). 끝나면 주 스레드에서 then(맞음). */
+    private void checkCopy(int gen, String url, String wantSha, java.util.function.Consumer<Boolean> then) {
+        copyState = "확인 중";
+        var plugin = services.plugin();
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            boolean ok;
+            String state;
+            try {
+                java.net.http.HttpClient http = java.net.http.HttpClient.newBuilder()
+                        .connectTimeout(java.time.Duration.ofSeconds(6))
+                        .followRedirects(java.net.http.HttpClient.Redirect.NORMAL)
+                        .proxy(java.net.ProxySelector.getDefault())
+                        .build();
+                java.net.http.HttpResponse<byte[]> r = http.send(java.net.http.HttpRequest.newBuilder(URI.create(url))
+                        .timeout(java.time.Duration.ofSeconds(20)).GET().build(), java.net.http.HttpResponse.BodyHandlers.ofByteArray());
+                if (r.statusCode() != 200) {
+                    ok = false;
+                    state = "HTTP " + r.statusCode();
+                } else {
+                    ok = PackUrlChoice.matches(r.body(), wantSha);
+                    state = ok ? "받음 (sha1 맞음)" : "받았지만 sha1 다름";
+                }
+            } catch (Exception ex) {
+                ok = false;
+                state = "받지 못함 (" + ex.getClass().getSimpleName() + ")";
+            }
+            boolean fok = ok;
+            String fstate = state;
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (gen != generation) return;          // 그 사이 다시 읽음
+                copyOk = fok;
+                copyState = fstate;
+                Log.info("[리소스팩] 공개 사본 " + (fok ? "확인: " : "확인 실패: ") + fstate + " — " + url);
+                then.accept(fok);
+            });
+        });
+    }
+
+    /** /labadmin pack: 방식마다 쓰는 주소 (viewer 기준 내장 주소). */
+    public java.util.List<String> describe(Player viewer) {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        Settings.Pack cfg = services.settings().pack();
+        if (!cfg.enabled()) {
+            out.add("<gray>리소스팩 전송 꺼짐 (pack.enabled: false)");
+            return out;
+        }
+        out.add(isAvailable() ? "<green>리소스팩 사용 가능</green> <gray>sha1 " + (sha1.length() >= 8 ? sha1.substring(0, 8) : "?")
+                + " · 지금 방식: <white>" + PackUrlChoice.label(activeMode)
+                : "<red>리소스팩 없음</red> <gray>(plugins/Labyrinth/pack/labyrinth-pack.zip)");
+        PackUrlChoice.Plan pl = plan;
+        String cfgUrl = cfg.url() == null || cfg.url().isBlank() ? "(비어 있음)" : cfg.url().trim();
+        out.add("<gray>config pack.url: <white>" + Text.escape(cfgUrl));
+        if (externalUrl != null) out.add("<gray>보내는 주소: <white>" + Text.escape(externalUrl));
+        if (packBytes != null) {
+            out.add("<gray>내장 주소" + (viewer == null ? "" : " (당신 기준)") + ": <white>" + Text.escape(builtinUrlFor(viewer))
+                    + (gamePortActive() ? " <gray>· 게임 포트로도 보냄" : " <gray>· 8163 · public_host 로만"));
+        }
+        String copy = pl == null ? null : pl.mode() == PackUrlChoice.Mode.BUILTIN ? pl.fallbackUrl() : pl.mode() == PackUrlChoice.Mode.PUBLIC_COPY ? pl.url() : null;
+        if (cfg.publicCopy() == null || cfg.publicCopy().isBlank()) out.add("<gray>공개 사본: 꺼짐 (pack.public_copy: \"\")");
+        else if (copy != null) out.add("<gray>공개 사본: <white>" + Text.escape(copy) + " <gray>(" + Text.escape(copyState) + ")");
+        else out.add("<gray>공개 사본: 안 씀 (" + (pl != null && pl.mode() == PackUrlChoice.Mode.CUSTOM_URL ? "직접 적은 pack.url 을 그대로 씀" : "public_host 를 씀") + ")");
+        if (activeMode == PackUrlChoice.Mode.BUILTIN) {
+            out.add("<gray>내장 주소를 받지 못하면: " + (pl != null && pl.fallbackUrl() != null
+                    ? (Boolean.TRUE.equals(copyOk) ? "<white>공개 사본으로 한 번 더 보냄" : "<white>공개 사본으로 한 번 더 (사본 확인 뒤)")
+                    : "<white>다시 보내지 않음"));
+        }
+        return out;
     }
 
     static boolean isIpLiteral(String h) {
@@ -352,9 +483,12 @@ public final class PackService implements Module, Listener {
                     Text.error(p, "리소스팩을 거절했습니다. 무기·몬스터가 제대로 보이지 않습니다. <gray>(서버 목록 → 편집 → 리소스팩: 사용)");
                 }
             }
-            case FAILED_DOWNLOAD, INVALID_URL, FAILED_RELOAD -> Text.error(p,
+            case FAILED_DOWNLOAD, INVALID_URL, FAILED_RELOAD -> {
+                if (e.getStatus() != PlayerResourcePackStatusEvent.Status.FAILED_RELOAD && sendCopyOnce(p)) return;
+                Text.error(p,
                     "리소스팩을 받지 못했습니다. <gray>서버 관리자에게 pack.port(" + services.settings().pack().port()
                             + ") 포트 개방 또는 pack.public_host 설정을 요청하세요.");
+            }
             default -> { }
         }
     }

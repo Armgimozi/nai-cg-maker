@@ -99,6 +99,11 @@ pack:
                             #   (같은 PC·와이파이로 들어온 사람은 자동으로 내장 주소를 씀)
   url: ""                   # 외부 호스팅 URL 을 쓰려면 여기에 (내장 서버를 끈다)
   sha1: ""                  # 외부 URL 일 때 SHA-1 (비우면 로컬 zip 으로 계산 시도)
+  # 0.3.6.1 — 팩 공개 사본 주소 ({sha8} = 이 jar 팩 SHA-1 앞 8글자). 팩이 바뀌어도 고칠 것이 없다:
+  #   · url 이 비어 있으면 내장 주소를 먼저 보내고, 받지 못한 사람에게만 이 사본으로 한 번 더 보낸다
+  #   · url 이 예전 사본(…/pack-host/labyrinth-pack-xxxxxxxx.zip)이면 이 jar 팩 사본으로 바꿔 보낸다
+  #   · url 에 직접 올린 다른 주소를 적었으면 그대로 쓴다.   "" = 이 기능 끔
+  public_copy: "https://raw.githubusercontent.com/Armgimozi/nai-cg-maker/claude/bold-darwin-nwa5vk/labyrinth/pack-host/labyrinth-pack-{sha8}.zip"
   required: true
   kick_on_decline: false
   update_from_jar: true     # 플러그인 jar 에 들어 있는 팩이 더 새로우면 자동으로 꺼내 쓴다

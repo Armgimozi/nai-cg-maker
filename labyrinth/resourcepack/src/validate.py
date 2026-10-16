@@ -479,6 +479,64 @@ def validate_rig(files, content, rep):
 BLOCK_OVERRIDE = re.compile(r'^assets/[^/]+/(blockstates/|models/block/|textures/block/)')
 
 
+def validate_gem_blocks(files, vis, rep):
+    """0.3.6.1 보석 광석 블록: 계약 blocks.gems 의 블록마다 blockstates 1 + labyrinth 모델 1 + 16×16 그림 1, 그 밖 블록 덮어쓰기 0,
+    결정 모델(items/mine/node_*) 0, 바닐라 광석 그림은 하나도 안 바꿈."""
+    gems = ((vis.get('blocks') or {}).get('gems')) or {}
+    allowed = {}
+    for gid, d in gems.items():
+        block = (d.get('block') or '').split(':', 1)[-1]
+        ref = d.get('model') or ''
+        tex = d.get('texture') or ref
+        if ':' not in ref:
+            rep.err(f'gem block {gid}: contract model ref missing')
+            continue
+        mns, mpath = ref.split(':', 1)
+        tns, tpath = tex.split(':', 1)
+        allowed[f'assets/minecraft/blockstates/{block}.json'] = (gid, 'state', ref)
+        allowed[f'assets/{mns}/models/{mpath}.json'] = (gid, 'model', tex)
+        allowed[f'assets/{tns}/textures/{tpath}.png'] = (gid, 'texture', None)
+    rep.checked += 1
+    over = sorted(p for p in files if BLOCK_OVERRIDE.match(p))
+    bad = [p for p in over if p not in allowed]
+    rep.stats['block_overrides'] = len(over)
+    if bad:
+        rep.err(f'pack overrides {len(bad)} block asset(s) outside the 6 gem blocks (contract §0-8): ' + ', '.join(bad[:5]))
+    seen_px = set()
+    for path, (gid, kind, ref) in allowed.items():
+        rep.checked += 1
+        if path not in files:
+            rep.err(f'gem block {gid}: missing {path}')
+            continue
+        if kind == 'state':
+            st = json.loads(files[path].decode('utf-8'))
+            refs = {v['model'] for vs in (st.get('variants') or {}).values() for v in (vs if isinstance(vs, list) else [vs])}
+            if 'multipart' in st or refs != {ref}:
+                rep.err(f'gem block {gid}: {path} must point every variant at {ref} (got {sorted(refs)})')
+        elif kind == 'model':
+            m = json.loads(files[path].decode('utf-8'))
+            if m.get('parent') != 'minecraft:block/cube_all' or (m.get('textures') or {}).get('all') != ref:
+                rep.err(f'gem block {gid}: {path} must be cube_all with all = {ref}')
+        else:
+            img = _png(files, path, rep)
+            if img is None:
+                continue
+            if img.size != (16, 16):
+                rep.err(f'gem block {gid}: texture {img.size} (block textures are 16×16)')
+            a = img.convert('RGBA').getchannel('A')
+            if a.getextrema() != (255, 255):
+                rep.err(f'gem block {gid}: texture has transparent pixels (a full ore block is opaque)')
+            key = img.convert('RGBA').tobytes()
+            if key in seen_px:
+                rep.err(f'gem block {gid}: texture identical to another gem block')
+            seen_px.add(key)
+    nodes = sorted(p for p in files if re.match(r'^assets/[^/]+/(items|models/item|textures/item)/mine/node_', p))
+    rep.checked += 1
+    if nodes:
+        rep.err(f'0.3.6 gem crystal models left in the pack (0.3.6.1: square ore blocks only): {nodes[:4]}')
+    rep.stats['gem_blocks'] = sum(1 for v in allowed.values() if v[1] == 'texture')
+
+
 def _elements(files, model_ref):
     ns, p = model_ref.split(':', 1)
     path = f'assets/{ns}/models/{p}.json'
@@ -487,19 +545,18 @@ def _elements(files, model_ref):
     return json.loads(files[path].decode('utf-8')).get('elements') or []
 
 
-def validate_mine(files, content, contract, rep, mine_ids=(), aliases=None, nodes=None):
-    """계약 §3.8 · §8 Q4: 아이콘·곡괭이·보석 결정·옛 id 별칭·메뉴 배경·NPC 스킨 + 팩이 블록을 하나도 안 바꿈."""
+def validate_mine(files, content, contract, rep, mine_ids=(), aliases=None):
+    """계약 §3.8 · §8 Q4 + 0.3.6.1: 아이콘·곡괭이·보석 광석 블록 6개·옛 id 별칭·메뉴 배경·NPC 스킨. 팩이 바꾸는 블록은 보석 블록 6개뿐."""
     vis = (contract or {}).get('visual') or {}
     items = content.get('items') or {}
-    # 팩은 블록을 바꾸지 않는다 (광맥 = 바닐라 블록): blockstates · models/block · textures/block 0개
-    bad = sorted(p for p in files if BLOCK_OVERRIDE.match(p))
-    rep.checked += 1
-    rep.stats['block_overrides'] = len(bad)
-    if bad:
-        rep.err(f'pack overrides {len(bad)} block asset(s) (contract §3.3: zero): ' + ', '.join(bad[:5]))
     if not vis:
         rep.warnings.append('tools/data/036/visual.json not found — 0.3.6 mine asset checks skipped')
+        bad = sorted(p for p in files if BLOCK_OVERRIDE.match(p))
+        rep.checked += 1
+        if bad:
+            rep.err(f'pack overrides {len(bad)} block asset(s) but no contract gem blocks: ' + ', '.join(bad[:5]))
         return
+    validate_gem_blocks(files, vis, rep)
     # 아이콘·곡괭이: 모든 계약 id 에 아이템 정의 + 모델
     for iid in mine_ids:
         rep.checked += 1
@@ -536,27 +593,6 @@ def validate_mine(files, content, contract, rep, mine_ids=(), aliases=None, node
             if ctx_name not in (m.get('display') or {}):
                 rep.err(f'pickaxe {iid}: display.{ctx_name} missing (held model = displays.voxel_weapon)')
     rep.stats['pickaxe_elements'] = '/'.join(str(worst[k]) for k in picks if k in worst)
-    # 보석 노드 결정: visual.json gem_nodes 의 6개, ≤ 300 요소, 바닥이 모델 y = 8 (ItemDisplay 원점 = 블록 면)
-    want_nodes = ((vis.get('gem_nodes') or {}).get('models')) or {}
-    counts = []
-    for key, d in want_nodes.items():
-        rep.checked += 1
-        ref = f'{NS}:item/mine/{key}'
-        check_item_definition(files, f'assets/{NS}/items/mine/{key}.json', rep, {})
-        els = _elements(files, ref)
-        if not els:
-            rep.err(f'gem node {key}: no model')
-            continue
-        counts.append(len(els))
-        cap = min(300, int(d.get('element_budget') or 300))
-        if len(els) > cap:
-            rep.err(f'gem node {key}: {len(els)} elements > {cap}')
-        lo = min(e['from'][1] for e in els)
-        if not 7.0 <= lo <= 8.5:
-            rep.err(f'gem node {key}: base at model y {lo} (must sit on the block face, y = 8)')
-        if d.get('glow') and not any(e.get('light_emission') for e in els):
-            rep.err(f'gem node {key}: contract glow=true but no emissive element')
-    rep.stats['gem_node_elements'] = '/'.join(map(str, counts))
     # 옛 재료 별칭 (두 판): items/<옛 id>.json → 새 id 의 모델
     mat = (contract or {}).get('materials') or {}
     retired = set((mat.get('retired') or {})) | set(((mat.get('conversion') or {}).get('map')) or {})

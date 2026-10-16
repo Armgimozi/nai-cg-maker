@@ -84,6 +84,25 @@ def paper_api_names():
     return out
 
 
+def collateral_uses(blocks):
+    """블록 이름(minecraft:…)이 미궁 층(floors.yml)·마을/구역 조각(resources/village/**)·광산 청사진 팔레트(@vein/@gem 빼고)에 나오는 곳."""
+    names = {b.split(':', 1)[1] for b in blocks}
+    pat = re.compile(r'(?<![a-z0-9_])(' + '|'.join(sorted(map(re.escape, names))) + r')(?![a-z0-9_])', re.I)
+    hits = []
+    res = LAB / 'plugin/src/main/resources'
+    files = [res / 'content/floors.yml'] + sorted((res / 'village').rglob('*.json'))
+    for f in files:
+        if f.is_file():
+            for m in pat.finditer(f.read_text(encoding='utf-8', errors='replace')):
+                hits.append(f"{f.relative_to(res)}:{m.group(1)}")
+    for f in sorted((res / 'mine/levels').glob('L*.json')):
+        pal = json.loads(f.read_text(encoding='utf-8')).get('palette') or {}
+        for v in (pal.values() if isinstance(pal, dict) else pal):
+            if isinstance(v, str) and not v.startswith('@') and pat.search(v):
+                hits.append(f"{f.relative_to(res)}:{v}")
+    return hits
+
+
 def gdd_closed_lists():
     text = (LAB / 'GDD.md').read_text(encoding='utf-8')
     sec = text.split('### 14.5', 1)[1].split('### 14.6', 1)[0]
@@ -248,6 +267,11 @@ def main():
     forb = set(vis['blocks']['forbidden'])
     for b in allb:
         need(b.startswith('minecraft:') and b not in forb and 'redstone' not in b, f'쓰면 안 되는 블록: {b}')
+    # 0.3.6.1: 팩이 모습을 바꾸는 보석 블록 6개는 이 팩의 다른 세계 어디에도 없어야 한다 (미궁 층·마을·구역 조각·광산 장식)
+    gem_blocks = set(gb.values())
+    elsewhere = collateral_uses(gem_blocks)
+    need(not elsewhere, f'보석 블록이 다른 곳에도 쓰임 (팩이 그 모습까지 바꿈): {elsewhere[:6]}')
+    notes.append('보석 블록 6개 (팩이 모습을 바꿈): ' + ' · '.join(f"{g}={gb[g].split(':')[1]}" for g in GEMS) + ' — 미궁·마을·구역·광산 장식에 0칸')
     for x in lv:
         dep = x['depleted_block']
         need(dep == vis['blocks']['depleted'][str(x['n'])], f"{x['n']} 빈 광맥 mine ↔ visual")
@@ -362,10 +386,17 @@ def main():
     budgets = [vis['pickaxes'][p]['element_budget'] for p in picks]
     need(budgets == sorted(budgets) and budgets[-1] <= 720, '곡괭이 요소 예산')
     need(len({vis['pickaxes'][p]['style'] for p in picks}) == 6, '곡괭이 모양 6개가 다르지 않음')
-    nodes = vis['gem_nodes']['models']
-    need(sorted(v['gem'] for v in nodes.values()) == sorted(GEMS), '보석 결정 모델 6')
+    # 0.3.6.1 주인 결정 ("삐쭉 튀어나온 부분이 별로"): 보석 결정 ItemDisplay 없음 — 보석 블록 6개를 팩이 새 광석 그림으로
+    need('gem_nodes' not in vis and all('node_model' not in mine['gems'][g] for g in GEMS), '보석 결정 모델이 남음 (0.3.6.1: 네모난 광석 블록만)')
     for gid in GEMS:
-        need(mine['gems'][gid]['node_model'] == 'labyrinth:mine/' + next(k for k, v in nodes.items() if v['gem'] == gid), f'{gid} 결정 모델 이름')
+        gv = vis['blocks']['gems'][gid]
+        need(gv.get('model') == gv.get('texture') == f'labyrinth:block/mine/gem_{gid}', f'{gid} 보석 블록 모델·그림 이름')
+        lk = gv.get('look') or {}
+        need(lk.get('base') in vis['gem_blocks']['texture']['bases'] and len(lk.get('palette') or []) == 4 and all(HEX.match(c) for c in lk['palette']),
+             f'{gid} 보석 블록 그림 (바탕·4색)')
+        need(bool(gv.get('natural')), f'{gid} 자연 생성 메모 없음')
+    looks = [(vis['blocks']['gems'][g]['look']['base'], vis['blocks']['gems'][g]['look']['palette'][2]) for g in GEMS]
+    need(len(set(looks)) == 6, '보석 블록 그림 6개가 서로 다르지 않음')
     closed = gdd_closed_lists()
     for role in ('miner', 'smelter'):
         n = vis['npcs'][role]

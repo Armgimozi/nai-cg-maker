@@ -31,34 +31,112 @@
   },
   "gems": {
    "quartz": {
-    "block": "minecraft:nether_quartz_ore",
-    "why": "네더 석영 광석 + 석영 결정 모델 (V)",
-    "node_model": "labyrinth:mine/node_quartz"
+    "block": "minecraft:infested_stone_bricks",
+    "why": "0.3.6.1: 좀벌레 석재 벽돌 → 팩이 돌 바탕 + 흰 석영 조각 그림으로 (0.3.6 은 네더 석영 광석 + 결정)",
+    "natural": "요새 석재 벽돌의 약 5% · 이글루 지하 · 좀벌레가 숨은 석재 벽돌",
+    "look": {
+     "base": "stone",
+     "style": "shard",
+     "palette": [
+      "#6e6a64",
+      "#c9c3b8",
+      "#efebe3",
+      "#ffffff"
+     ]
+    },
+    "model": "labyrinth:block/mine/gem_quartz",
+    "texture": "labyrinth:block/mine/gem_quartz",
+    "was_036": "minecraft:nether_quartz_ore"
    },
    "garnet": {
-    "block": "minecraft:cinnabar",
-    "why": "진사(26.x): 자연스러운 붉은 돌, 자기 소리 (V)",
-    "node_model": "labyrinth:mine/node_garnet"
+    "block": "minecraft:infested_cobblestone",
+    "why": "0.3.6.1: 좀벌레 조약돌 → 돌 바탕 + 짙은 붉은 알갱이 (0.3.6 은 진사 + 결정)",
+    "natural": "삼림 대저택 방 몇 곳 · 좀벌레가 숨은 조약돌",
+    "look": {
+     "base": "stone",
+     "style": "grain",
+     "palette": [
+      "#3a0610",
+      "#7e0c20",
+      "#c8102e",
+      "#ff7a88"
+     ]
+    },
+    "model": "labyrinth:block/mine/gem_garnet",
+    "texture": "labyrinth:block/mine/gem_garnet",
+    "was_036": "minecraft:cinnabar"
    },
    "moonstone": {
-    "block": "minecraft:sea_lantern",
-    "why": "바다 랜턴: 희뿌옇게 빛남, 캐면 그 사람 화면에서 빛이 꺼짐 (V)",
-    "node_model": "labyrinth:mine/node_moonstone"
+    "block": "minecraft:infested_mossy_stone_bricks",
+    "why": "0.3.6.1: 좀벌레 이끼 낀 석재 벽돌 → 응회암 바탕 + 젖빛 푸른 알 (0.3.6 은 바다 랜턴 + 결정)",
+    "natural": "이글루 지하 · 좀벌레가 숨은 이끼 낀 석재 벽돌",
+    "look": {
+     "base": "tuff",
+     "style": "cabochon",
+     "palette": [
+      "#3a4f78",
+      "#7aa2d8",
+      "#b8d6ff",
+      "#f2f8ff"
+     ]
+    },
+    "model": "labyrinth:block/mine/gem_moonstone",
+    "texture": "labyrinth:block/mine/gem_moonstone",
+    "was_036": "minecraft:sea_lantern"
    },
    "topaz": {
-    "block": "minecraft:glowstone",
-    "why": "발광석: 노란 결정 덩이가 빛남 — 자연 블록, 노랑은 이것뿐(금 광석과 바탕·밝기가 다름)",
-    "node_model": "labyrinth:mine/node_topaz"
+    "block": "minecraft:infested_deepslate",
+    "why": "0.3.6.1: 좀벌레 심층암 → 심층암 바탕 + 노란 조각 (금 광석과 바탕이 달라 안 헷갈림, 0.3.6 은 발광석 + 결정)",
+    "natural": "산 생물군계(바람 부는 언덕 등) y 0 아래 심층암 덩이 · 좀벌레가 숨은 심층암",
+    "look": {
+     "base": "deepslate",
+     "style": "shard",
+     "palette": [
+      "#5a3606",
+      "#b67c10",
+      "#ffc23a",
+      "#fff1a8"
+     ]
+    },
+    "model": "labyrinth:block/mine/gem_topaz",
+    "texture": "labyrinth:block/mine/gem_topaz",
+    "was_036": "minecraft:glowstone"
    },
    "sapphire": {
-    "block": "minecraft:deepslate_lapis_ore",
-    "why": "심층암 청금석 광석 + 청옥 결정 모델 (V)",
-    "node_model": "labyrinth:mine/node_sapphire"
+    "block": "minecraft:infested_chiseled_stone_bricks",
+    "why": "0.3.6.1: 좀벌레 조각된 석재 벽돌 → 돌 바탕 + 짙은 파란 육각 결정 (미스릴 = 심층암 바탕 청록과 다름, 0.3.6 은 심층암 청금석 + 결정)",
+    "natural": "이글루 지하 · 좀벌레가 숨은 조각된 석재 벽돌",
+    "look": {
+     "base": "stone",
+     "style": "hex",
+     "palette": [
+      "#0c1a5c",
+      "#2244b8",
+      "#4a7cff",
+      "#b4ccff"
+     ]
+    },
+    "model": "labyrinth:block/mine/gem_sapphire",
+    "texture": "labyrinth:block/mine/gem_sapphire",
+    "was_036": "minecraft:deepslate_lapis_ore"
    },
    "dragonblood_stone": {
-    "block": "minecraft:magma_block",
-    "why": "마그마 블록: 붉게 맥박치는 돌 = 용의 피. 광산 안은 피해가 없어 밟아도 안전, 물이 없어 거품 기둥 없음",
-    "node_model": "labyrinth:mine/node_dragonblood"
+    "block": "minecraft:infested_cracked_stone_bricks",
+    "why": "0.3.6.1: 좀벌레 금 간 석재 벽돌 → 현무암 바탕 + 붉게 타는 결 (0.3.6 은 마그마 블록 + 결정)",
+    "natural": "자연 생성 없음 — 좀벌레가 금 간 석재 벽돌에 숨을 때만 (요새 차원문 방 등)",
+    "look": {
+     "base": "basalt",
+     "style": "vein",
+     "palette": [
+      "#2a0404",
+      "#8a120c",
+      "#ff3b2f",
+      "#ffb070"
+     ]
+    },
+    "model": "labyrinth:block/mine/gem_dragonblood_stone",
+    "texture": "labyrinth:block/mine/gem_dragonblood_stone",
+    "was_036": "minecraft:magma_block"
    }
   },
   "depleted": {
@@ -84,7 +162,8 @@
    "광석·보석·빈 광맥 블록은 광산 어느 층 장식·벽·바닥에도 쓰지 않음 (캐지는 것처럼 보이면 헷갈림)",
    "빈 광맥 블록은 그 층 벽·바닥 재료와 다름 (캔 자리가 길잡이)",
    "청사진은 @vein:<광석 id> · @gem:<보석 id> 논리 글자 — 블록을 바꿔도 청사진은 그대로",
-   "팩은 블록을 하나도 바꾸지 않음 (blockstates·models/block·textures/block 0개)",
+   "0.3.6.1: 팩은 보석 블록 6개의 모습만 바꿈 — assets/minecraft/blockstates/<블록>.json 6개 → labyrinth:block/mine/gem_<보석> (cube_all, 16×16 그림). 그 밖 blockstates·models/block·textures/block 0개, 바닐라 광석 그림은 하나도 안 바꿈",
+   "보석 블록 6개는 미궁 층(floors.yml)·마을 조각·광산 장식·구역 조각·배포 월드 지형 어디에도 없어야 함 (바꿔도 다른 곳 모습이 안 바뀜)",
    "구역 건물의 구리는 모두 waxed_*"
   ]
  },
@@ -823,104 +902,24 @@
    "display": "displays.voxel_weapon"
   }
  },
- "gem_nodes": {
-  "entity": "ItemDisplay",
-  "models": {
-   "node_quartz": {
-    "gem": "quartz",
-    "kind": "prism",
-    "palette": [
-     "#7a756f",
-     "#b5afa8",
-     "#e7e3dd",
-     "#ffffff",
-     "#f6f2ea"
-    ],
-    "glow": false,
-    "element_budget": 300
-   },
-   "node_garnet": {
-    "gem": "garnet",
-    "kind": "round",
-    "palette": [
-     "#22040c",
-     "#5a0a1c",
-     "#a01830",
-     "#f04a5e",
-     "#b0102a"
-    ],
-    "glow": false,
-    "element_budget": 300
-   },
-   "node_moonstone": {
-    "gem": "moonstone",
-    "kind": "cabochon",
-    "palette": [
-     "#59607a",
-     "#a0aac0",
-     "#dfe6f2",
-     "#ffffff",
-     "#7fa8ff"
-    ],
-    "glow": true,
-    "element_budget": 300
-   },
-   "node_topaz": {
-    "gem": "topaz",
-    "kind": "prism",
-    "palette": [
-     "#3a2404",
-     "#7a4e08",
-     "#d9940f",
-     "#ffd45a",
-     "#ffe9a0"
-    ],
-    "glow": true,
-    "element_budget": 300
-   },
-   "node_sapphire": {
-    "gem": "sapphire",
-    "kind": "hex",
-    "palette": [
-     "#060c2e",
-     "#122a78",
-     "#2e5ad8",
-     "#8fb4ff",
-     "#3f6fff"
-    ],
-    "glow": true,
-    "element_budget": 300
-   },
-   "node_dragonblood": {
-    "gem": "dragonblood_stone",
-    "kind": "shard",
-    "palette": [
-     "#1a0204",
-     "#4a060c",
-     "#a0121c",
-     "#ff4a3a",
-     "#ffb04a"
-    ],
-    "glow": true,
-    "element_budget": 300
-   }
+ "gem_blocks": {
+  "removed_036": "0.3.6 보석 결정 ItemDisplay (튀어나온 결정, labyrinth:mine_node PDC) — 0.3.6.1 에서 없앰. 남은 것은 시작·층 짓기·30초 정리 때 지움",
+  "asset_paths": [
+   "assets/minecraft/blockstates/<블록>.json",
+   "assets/labyrinth/models/block/mine/gem_<보석>.json",
+   "assets/labyrinth/textures/block/mine/gem_<보석>.png"
+  ],
+  "texture": {
+   "size": 16,
+   "style": "바닐라 광석처럼: 광산 벽 돌 바탕(look.base) + 보석 색 알갱이·조각 (look.style · look.palette)",
+   "bases": [
+    "stone",
+    "tuff",
+    "deepslate",
+    "basalt"
+   ]
   },
-  "asset_paths": "assets/labyrinth/{models/item,items,textures/item}/mine/node_<gem>",
-  "placement": {
-   "location": "보석 블록 중심 + 0.5·바깥면 법선",
-   "rotation": "모델 +y → 바깥면 법선",
-   "scale": 1.25,
-   "item_display_transform": "NONE",
-   "brightness": {
-    "block": 11,
-    "sky": 0
-   },
-   "view_range": 0.6,
-   "shadow_radius": 0,
-   "persistent": false,
-   "pdc": "labyrinth:mine_node = \"L<n>:<i>\""
-  },
-  "visibility": "보이는 것이 기본. 캔 사람에게 hideEntity, 재생 때 showEntity. 접속·텔레포트·승강기 때 다시 계산"
+  "migration": "청사진 지문에 블록이 들어 있어 jar 를 바꾸면 모든 층을 다시 짓는다 (옛 보석 블록 자리 = 새 블록)"
  },
  "feedback": {
   "too_weak": {
@@ -1048,10 +1047,10 @@
   "banned": "구역 장식에 광산 광석·보석 블록 12종 쓰지 않음 (헷갈림) — 원석 블록(raw_*_block)은 됨"
  },
  "pack_rules": [
-  "새 아이콘 21개 (광석 6·주괴 6·보석 6·새 몬스터 재료 3) + 곡괭이 3D 6개 + 보석 결정 6개",
+  "새 아이콘 21개 (광석 6·주괴 6·보석 6·새 몬스터 재료 3) + 곡괭이 3D 6개 + 보석 블록 그림 6개 (0.3.6.1, 결정 모델 없음)",
   "옛 8개 id 는 새 그림 별칭 두 판",
-  "곡괭이 요소 예산 380/380/380/450/520/720, 결정 ≤ 300",
-  "blockstates·models/block·textures/block 0개",
+  "곡괭이 요소 예산 380/380/380/450/520/720",
+  "blockstates 6개(보석 블록) + labyrinth models/block·textures/block mine/gem_* 6개씩, 그 밖 0개",
   "메뉴 배경 gui_smelter·gui_mine_lift·gui_mine_office (glyphs.yml + ui.py)"
  ]
 }

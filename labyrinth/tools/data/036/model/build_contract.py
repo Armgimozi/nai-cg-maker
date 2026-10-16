@@ -61,8 +61,7 @@ def build_mine(lay, eco):
     gems = {}
     for g in P.GEMS:
         gems[g['id']] = {'name': g['ko'], 'tier': g['rank'], 'block': P.GEM_BLOCK[g['id']],
-                         'base_seconds': round(P.ORE_BASE_SECONDS[g['rank']] * P.GEM_NODE_FACTOR, 3), 'yield': 1,
-                         'node_model': f"labyrinth:mine/node_{g['id'].replace('_stone', '')}", 'color': g['color']}
+                         'base_seconds': round(P.ORE_BASE_SECONDS[g['rank']] * P.GEM_NODE_FACTOR, 3), 'yield': 1, 'color': g['color']}
     picks = {}
     for m in P.METALS:
         r = m['rank']
@@ -112,7 +111,8 @@ def build_mine(lay, eco):
             'min_seconds': P.MIN_SECONDS,
             'can_break': '곡괭이 CAN_BREAK = mines 의 블록들 (광산 블록 표에서). 블록 설정이 바뀌면 접속 때 곡괭이 구성요소를 다시 씀',
             'outside_mine': '광산 월드 밖(오버월드·네더·엔드·미궁 월드 모두)에서 그 곡괭이로 광산 블록 12종을 부수면 취소 + 안내 1초에 1번 (R §3-15). '
-                            '미궁도 이 블록을 쓴다: 2층 벽 구리·철 광석 · 6·7층 방해석 · 4·6·7층 바다 랜턴 · 5층 마그마 (DungeonManager 가 이미 부수기를 막음 — 안내 글만 더함)',
+                            '미궁도 이 블록을 쓴다: 2층 벽 구리·철 광석 · 6·7층 방해석 (DungeonManager 가 이미 부수기를 막음 — 안내 글만 더함). '
+                            '0.3.6.1 보석 블록 6개(좀벌레 돌)는 미궁·마을·구역 어디에도 없다',
             'server_recheck': 'BlockBreakEvent 는 늘 취소하고 서버가 다시 본다: 광산 월드 · 곡괭이 tier ≥ 광석 tier · 그 사람에게 고갈 아님 · '
                               f'눈 → 블록 상자 거리 ≤ {P.REACH_CLIENT} + {P.REACH_SERVER_SLACK} (바닐라 서버는 5.5 까지 받아 고친 클라이언트가 더 멀리 캠) · 가방 자리. 하나라도 아니면 수확 없음',
             'pickaxe_item': '바탕 아이템은 지금 방식 그대로 PAPER (ENCHANTABLE 없음 → 효율 마법·모루로 속도 계약이 깨지지 않음) + MAX_STACK_SIZE 1',
@@ -160,7 +160,7 @@ def names():
         'ambient': {'dust': '승강장 갱구 먼지', 'embers': '제련소 화덕', 'smoke': '굴뚝'},
         'ext': {'mine.free_pickaxe': 'true = 첫 무료 구리 곡괭이를 받음', 'mat036.notice': 'true = 옛 재료 바꿈 안내를 봄'},
         'ext_removed': ['mine.prev_mode (R §2-3)', 'mine.depleted · mine.hash (광맥 공유, §0-3)', 'mine.stamina · mine.stamina_at (기력 없음, §0-1)'],
-        'pdc': {'labyrinth:mine_node': '"L<n>:<i>" 보석 노드 ItemDisplay'},
+        'pdc': {'labyrinth:mine_node': '"L<n>:<i>" 0.3.6 보석 결정 ItemDisplay — 0.3.6.1 에서 없앰, 남은 것을 지울 때만 씀'},
         'stations': {'blacksmith': '대장간 (장비)', 'smelter': '제련소·광산 관리소 (제련·새기기·곡괭이)'},
         'recipe_categories': {'tool': '곡괭이'},
         'source_kinds': {'mine': '광산', 'smelt': '제련소'},
@@ -187,7 +187,7 @@ def build_materials(proto, eco):
     for g in P.GEMS:
         items[g['id']] = {'name': g['ko'], 'type': 'material', 'kind': 'gem', 'mine_level': g['rank'], 'rarity': g['rarity'],
                           'sell': P.sell_value('gem', g['rank']), 'sources': ['mine'],
-                          'sources_text': f"광산 · {P.BY_RANK[g['rank']]['ore_name']}을 캘 때 드물게 · 보석 결정", 'lore': g['lore']}
+                          'sources_text': f"광산 · {P.BY_RANK[g['rank']]['ore_name']}을 캘 때 드물게 · 보석 광석", 'lore': g['lore']}
     for k, d in P.MONSTER_NEW.items():
         items[k] = {'name': d['name'], 'type': 'material', 'kind': 'monster', 'floor': d['floor'], 'rarity': d['rarity'],
                     'sell': 'SellPrices 재료 공식 (uncommon · 그 층)', 'sources': ['drop', 'elite', 'boss', 'chest'],
@@ -359,14 +359,6 @@ PICKS = {
     'orichalcum_pickaxe': ('ember', ['#2a0e06', '#5a2010', '#a8442a', '#ff9a6a', '#3a1408', '#ffd86e'], True, 'ember_glow', 720,
                            '초승달 양날, 붉은 금 테, 용혈석 보석, 떠다니는 불티 조각, ember_glow 반짝임 + 날 오라 겹'),
 }
-NODE_MODELS = {
-    'quartz': ('prism', ['#7a756f', '#b5afa8', '#e7e3dd', '#ffffff', '#f6f2ea'], False),
-    'garnet': ('round', ['#22040c', '#5a0a1c', '#a01830', '#f04a5e', '#b0102a'], False),
-    'moonstone': ('cabochon', ['#59607a', '#a0aac0', '#dfe6f2', '#ffffff', '#7fa8ff'], True),
-    'topaz': ('prism', ['#3a2404', '#7a4e08', '#d9940f', '#ffd45a', '#ffe9a0'], True),
-    'sapphire': ('hex', ['#060c2e', '#122a78', '#2e5ad8', '#8fb4ff', '#3f6fff'], True),
-    'dragonblood_stone': ('shard', ['#1a0204', '#4a060c', '#a0121c', '#ff4a3a', '#ffb04a'], True),
-}
 
 
 def build_visual():
@@ -385,14 +377,13 @@ def build_visual():
     for i, (style, pal, anim, eff, budget, look) in PICKS.items():
         picks[i] = {'template': 'pickaxe', 'style': style, 'palette': pal, 'animated': anim, 'effect': eff, 'element_budget': budget,
                     'look': look, 'display': 'displays.voxel_weapon'}
-    nodes = {}
-    for g, (kind, pal, glow) in NODE_MODELS.items():
-        nodes[f"node_{g.replace('_stone', '')}"] = {'gem': g, 'kind': kind, 'palette': pal, 'glow': glow, 'element_budget': 300}
     return {
         'contract': CONTRACT, 'schema': 1, 'note': NOTE,
         'blocks': {
             'ores': {o: {'block': b, 'why': P.BLOCK_WHY[o]} for o, b in P.ORE_BLOCK.items()},
-            'gems': {g: {'block': b, 'why': P.BLOCK_WHY[g], 'node_model': f"labyrinth:mine/node_{g.replace('_stone', '')}"} for g, b in P.GEM_BLOCK.items()},
+            'gems': {g: {'block': b, 'why': P.BLOCK_WHY[g], 'natural': P.GEM_BLOCK_NATURAL[b], 'look': P.GEM_BLOCK_LOOK[g],
+                         'model': f'labyrinth:block/mine/gem_{g}', 'texture': f'labyrinth:block/mine/gem_{g}',
+                         'was_036': P.GEM_BLOCK_036[g]} for g, b in P.GEM_BLOCK.items()},
             'depleted': {str(L['n']): L['depleted'] for L in P.LEVELS},
             'forbidden': P.FORBIDDEN_BLOCKS,
             'rules': ['광석·보석 블록 12개는 서로 모두 다름 (Tool 규칙이 블록 종류마다 하나 · 층이 섞여 종류마다 블록이 하나)',
@@ -400,7 +391,9 @@ def build_visual():
                       '광석·보석·빈 광맥 블록은 광산 어느 층 장식·벽·바닥에도 쓰지 않음 (캐지는 것처럼 보이면 헷갈림)',
                       '빈 광맥 블록은 그 층 벽·바닥 재료와 다름 (캔 자리가 길잡이)',
                       '청사진은 @vein:<광석 id> · @gem:<보석 id> 논리 글자 — 블록을 바꿔도 청사진은 그대로',
-                      '팩은 블록을 하나도 바꾸지 않음 (blockstates·models/block·textures/block 0개)',
+                      '0.3.6.1: 팩은 보석 블록 6개의 모습만 바꿈 — assets/minecraft/blockstates/<블록>.json 6개 → labyrinth:block/mine/gem_<보석> '
+                      '(cube_all, 16×16 그림). 그 밖 blockstates·models/block·textures/block 0개, 바닐라 광석 그림은 하나도 안 바꿈',
+                      '보석 블록 6개는 미궁 층(floors.yml)·마을 조각·광산 장식·구역 조각·배포 월드 지형 어디에도 없어야 함 (바꿔도 다른 곳 모습이 안 바뀜)',
                       '구역 건물의 구리는 모두 waxed_*'],
         },
         'levels': lv,
@@ -410,11 +403,12 @@ def build_visual():
         'icon_source': 'design036/tools/vis_new_styles.py draw_new (16 모양 — hide 는 §0 결정 4 로 빠짐) + Q0 가 더한 ore_ember·gem_drop (Q4 가 그림) · 몹 주제 새 부위 6 은 0.3.5 모양',
         'palette_rule': '0.3.5 Palette: 끝 강조색이 본 램프보다 밝으면 본 램프에 섞인다. 강조색만 쓰려면 그 앞에 어두운 색 하나를 끼운다',
         'pickaxes': picks,
-        'gem_nodes': {'entity': 'ItemDisplay', 'models': nodes, 'asset_paths': 'assets/labyrinth/{models/item,items,textures/item}/mine/node_<gem>',
-                      'placement': {'location': '보석 블록 중심 + 0.5·바깥면 법선', 'rotation': '모델 +y → 바깥면 법선', 'scale': 1.25,
-                                    'item_display_transform': 'NONE', 'brightness': {'block': 11, 'sky': 0}, 'view_range': 0.6, 'shadow_radius': 0,
-                                    'persistent': False, 'pdc': 'labyrinth:mine_node = "L<n>:<i>"'},
-                      'visibility': '보이는 것이 기본. 캔 사람에게 hideEntity, 재생 때 showEntity. 접속·텔레포트·승강기 때 다시 계산'},
+        'gem_blocks': {'removed_036': '0.3.6 보석 결정 ItemDisplay (튀어나온 결정, labyrinth:mine_node PDC) — 0.3.6.1 에서 없앰. 남은 것은 시작·층 짓기·30초 정리 때 지움',
+                       'asset_paths': ['assets/minecraft/blockstates/<블록>.json', 'assets/labyrinth/models/block/mine/gem_<보석>.json',
+                                       'assets/labyrinth/textures/block/mine/gem_<보석>.png'],
+                       'texture': {'size': 16, 'style': '바닐라 광석처럼: 광산 벽 돌 바탕(look.base) + 보석 색 알갱이·조각 (look.style · look.palette)',
+                                   'bases': ['stone', 'tuff', 'deepslate', 'basalt']},
+                       'migration': '청사진 지문에 블록이 들어 있어 jar 를 바꾸면 모든 층을 다시 짓는다 (옛 보석 블록 자리 = 새 블록)'},
         'feedback': {
             'too_weak': {'trigger': 'PlayerAnimationEvent ARM_SWING + 5칸 시선', 'actionbar': '<red>' + P.OWNER['too_weak_actionbar'] + '</red>', 'throttle_ms': 1000},
             'dig': 'vanilla (Tool 규칙 + CAN_BREAK) — 금 가는 10단계·그 블록 소리',
@@ -449,8 +443,8 @@ def build_visual():
             'ore_yard': '레일, 원석 블록 더미, 울타리 기중기 + 쇠사슬 + 등불, 통 더미 (장식 — 광산 광석 블록은 쓰지 않음)',
             'street': '가로등 = 짙은 참나무 울타리 기둥 + 구리 등불(초록 불꽃), 광산 마당 길 = 조약돌·안산암·자갈·응회암 섞기',
             'banned': '구역 장식에 광산 광석·보석 블록 12종 쓰지 않음 (헷갈림) — 원석 블록(raw_*_block)은 됨'},
-        'pack_rules': ['새 아이콘 21개 (광석 6·주괴 6·보석 6·새 몬스터 재료 3) + 곡괭이 3D 6개 + 보석 결정 6개', '옛 8개 id 는 새 그림 별칭 두 판',
-                       '곡괭이 요소 예산 380/380/380/450/520/720, 결정 ≤ 300', 'blockstates·models/block·textures/block 0개',
+        'pack_rules': ['새 아이콘 21개 (광석 6·주괴 6·보석 6·새 몬스터 재료 3) + 곡괭이 3D 6개 + 보석 블록 그림 6개 (0.3.6.1, 결정 모델 없음)', '옛 8개 id 는 새 그림 별칭 두 판',
+                       '곡괭이 요소 예산 380/380/380/450/520/720', 'blockstates 6개(보석 블록) + labyrinth models/block·textures/block mine/gem_* 6개씩, 그 밖 0개',
                        '메뉴 배경 gui_smelter·gui_mine_lift·gui_mine_office (glyphs.yml + ui.py)'],
     }
 

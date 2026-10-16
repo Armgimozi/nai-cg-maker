@@ -185,8 +185,35 @@ ORE_PER_INGOT = 2
 ORE_BLOCK = {'copper_ore': 'minecraft:copper_ore', 'iron_ore': 'minecraft:iron_ore', 'silver_ore': 'minecraft:calcite',
              'gold_ore': 'minecraft:gold_ore', 'mithril_ore': 'minecraft:deepslate_diamond_ore',
              'orichalcum_ore': 'minecraft:ancient_debris'}
-GEM_BLOCK = {'quartz': 'minecraft:nether_quartz_ore', 'garnet': 'minecraft:cinnabar', 'moonstone': 'minecraft:sea_lantern',
-             'topaz': 'minecraft:glowstone', 'sapphire': 'minecraft:deepslate_lapis_ore', 'dragonblood_stone': 'minecraft:magma_block'}
+# 0.3.6.1 주인 결정 ("삐쭉 튀어나온 부분이 별로임 그냥 광석 블록 텍스쳐를 네모난걸 새로 만드는게 나을듯"): 보석 결정 ItemDisplay 를 없애고
+# 보석 6종은 네모난 광석 블록 하나로. 팩이 아래 바닐라 블록 6개의 모습만 새 16×16 그림으로 바꾼다 (blockstates 6 + labyrinth:block/mine/gem_*).
+# 고른 까닭: 좀벌레 숨은 돌(infested_*)은 만들 수도 주울 수도 없고, 이 팩의 세계(미궁 층·마을·광산·구역 조각·배포 월드 지형 세 차원 모두)에
+# 한 칸도 없다 — 바꿔도 다른 곳 모습이 하나도 안 바뀐다. 자연 생성은 요새·이글루 지하·삼림 대저택·산 아래 심층암과 좀벌레가 숨은 돌뿐
+# (GEM_BLOCK_NATURAL). 바닐라 광석(석영·청금석·다이아…)은 하나도 바꾸지 않는다 — 야생에서 광석 뜻이 그대로.
+GEM_BLOCK = {'quartz': 'minecraft:infested_stone_bricks', 'garnet': 'minecraft:infested_cobblestone',
+             'moonstone': 'minecraft:infested_mossy_stone_bricks', 'topaz': 'minecraft:infested_deepslate',
+             'sapphire': 'minecraft:infested_chiseled_stone_bricks', 'dragonblood_stone': 'minecraft:infested_cracked_stone_bricks'}
+# 0.3.6 에 쓰던 보석 블록 (광산 월드 이주 확인 · 문서). 팩은 이 블록들을 바꾼 적이 없다 — 이제 광산에서만 안 쓴다.
+GEM_BLOCK_036 = {'quartz': 'minecraft:nether_quartz_ore', 'garnet': 'minecraft:cinnabar', 'moonstone': 'minecraft:sea_lantern',
+                 'topaz': 'minecraft:glowstone', 'sapphire': 'minecraft:deepslate_lapis_ore', 'dragonblood_stone': 'minecraft:magma_block'}
+# 자연 생성에서 이 블록이 나오는 곳 (팩이 모습을 바꾸므로 그 자리의 좀벌레 돌이 보석 광석처럼 보인다 — 바닐라 광석은 그대로)
+GEM_BLOCK_NATURAL = {
+    'minecraft:infested_stone_bricks': '요새 석재 벽돌의 약 5% · 이글루 지하 · 좀벌레가 숨은 석재 벽돌',
+    'minecraft:infested_cobblestone': '삼림 대저택 방 몇 곳 · 좀벌레가 숨은 조약돌',
+    'minecraft:infested_mossy_stone_bricks': '이글루 지하 · 좀벌레가 숨은 이끼 낀 석재 벽돌',
+    'minecraft:infested_deepslate': '산 생물군계(바람 부는 언덕 등) y 0 아래 심층암 덩이 · 좀벌레가 숨은 심층암',
+    'minecraft:infested_chiseled_stone_bricks': '이글루 지하 · 좀벌레가 숨은 조각된 석재 벽돌',
+    'minecraft:infested_cracked_stone_bricks': '자연 생성 없음 — 좀벌레가 금 간 석재 벽돌에 숨을 때만 (요새 차원문 방 등)',
+}
+# 보석 블록 그림 (resourcepack/src/mine_blocks.py): 바탕 = 광산 벽 돌, 결정 무늬, 팔레트 = 어두운 테 → 밝은 빛 4색
+GEM_BLOCK_LOOK = {
+    'quartz': {'base': 'stone', 'style': 'shard', 'palette': ['#6e6a64', '#c9c3b8', '#efebe3', '#ffffff']},
+    'garnet': {'base': 'stone', 'style': 'grain', 'palette': ['#3a0610', '#7e0c20', '#c8102e', '#ff7a88']},
+    'moonstone': {'base': 'tuff', 'style': 'cabochon', 'palette': ['#3a4f78', '#7aa2d8', '#b8d6ff', '#f2f8ff']},
+    'topaz': {'base': 'deepslate', 'style': 'shard', 'palette': ['#5a3606', '#b67c10', '#ffc23a', '#fff1a8']},
+    'sapphire': {'base': 'stone', 'style': 'hex', 'palette': ['#0c1a5c', '#2244b8', '#4a7cff', '#b4ccff']},
+    'dragonblood_stone': {'base': 'basalt', 'style': 'vein', 'palette': ['#2a0404', '#8a120c', '#ff3b2f', '#ffb070']},
+}
 BLOCK_WHY = {
     'copper_ore': '바닐라 구리 광석 그대로 — 누구나 구리로 읽음',
     'iron_ore': '바닐라 철 광석 그대로',
@@ -194,12 +221,12 @@ BLOCK_WHY = {
     'gold_ore': '바닐라 금 광석 (돌 바탕) — 심층암 금 광석은 오리하르콘·용혈석 쪽 어두운 블록과 헷갈려 뺌',
     'mithril_ore': '심층암 다이아 광석: 어두운 바탕에 청록 점 (V)',
     'orichalcum_ore': '고대 잔해: 바닐라에서 가장 귀하고 단단한 광석으로 읽힘. 붉은 갈색 결 (별 주제가 없어져 V 의 반대 이유가 사라짐)',
-    'quartz': '네더 석영 광석 + 석영 결정 모델 (V)',
-    'garnet': '진사(26.x): 자연스러운 붉은 돌, 자기 소리 (V)',
-    'moonstone': '바다 랜턴: 희뿌옇게 빛남, 캐면 그 사람 화면에서 빛이 꺼짐 (V)',
-    'topaz': '발광석: 노란 결정 덩이가 빛남 — 자연 블록, 노랑은 이것뿐(금 광석과 바탕·밝기가 다름)',
-    'sapphire': '심층암 청금석 광석 + 청옥 결정 모델 (V)',
-    'dragonblood_stone': '마그마 블록: 붉게 맥박치는 돌 = 용의 피. 광산 안은 피해가 없어 밟아도 안전, 물이 없어 거품 기둥 없음',
+    'quartz': '0.3.6.1: 좀벌레 석재 벽돌 → 팩이 돌 바탕 + 흰 석영 조각 그림으로 (0.3.6 은 네더 석영 광석 + 결정)',
+    'garnet': '0.3.6.1: 좀벌레 조약돌 → 돌 바탕 + 짙은 붉은 알갱이 (0.3.6 은 진사 + 결정)',
+    'moonstone': '0.3.6.1: 좀벌레 이끼 낀 석재 벽돌 → 응회암 바탕 + 젖빛 푸른 알 (0.3.6 은 바다 랜턴 + 결정)',
+    'topaz': '0.3.6.1: 좀벌레 심층암 → 심층암 바탕 + 노란 조각 (금 광석과 바탕이 달라 안 헷갈림, 0.3.6 은 발광석 + 결정)',
+    'sapphire': '0.3.6.1: 좀벌레 조각된 석재 벽돌 → 돌 바탕 + 짙은 파란 육각 결정 (미스릴 = 심층암 바탕 청록과 다름, 0.3.6 은 심층암 청금석 + 결정)',
+    'dragonblood_stone': '0.3.6.1: 좀벌레 금 간 석재 벽돌 → 현무암 바탕 + 붉게 타는 결 (0.3.6 은 마그마 블록 + 결정)',
 }
 FORBIDDEN_BLOCKS = ['minecraft:redstone_ore', 'minecraft:deepslate_redstone_ore', 'minecraft:gravel', 'minecraft:sand',
                     'minecraft:suspicious_gravel', 'minecraft:potent_sulfur', 'minecraft:budding_amethyst']

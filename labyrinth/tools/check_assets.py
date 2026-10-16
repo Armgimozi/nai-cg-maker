@@ -11,8 +11,9 @@ content/*.yml + Java 소스의 하드코딩 id 가 resourcepack/dist/labyrinth-p
   fx         : fx.yml models + aura ring/secondary 모델 + params.fx 참조 + Java 리터럴 → assets/labyrinth/items/fx/<name>.json
   glyphs     : glyphs.yml 의 모든 글리프 문자가 font/ui.json 에 있는지, 메뉴 배경 줄 수가 menus.<id>.rows 와 같은지
   mine 0.3.6 : 계약 tools/data/036 (visual·materials·mine.json) — 광석·주괴·보석·곡괭이·새 몬스터 재료 아이템
-               (+ resourcepack/generate.py MINE_EXTRA_ICONS 드롭 명세 재료), 보석 결정 mine/node_<보석> (mine.json
-               gems.*.node_model), 옛 재료 id 별칭 (두 판), 광부·제련공 스킨, 메뉴 배경 3개, 블록 덮어쓰기 0개
+               (+ resourcepack/generate.py MINE_EXTRA_ICONS 드롭 명세 재료), 0.3.6.1 보석 광석 블록 6개 (mine.json gems.*.block 의
+               blockstates → visual.json 모델 → 16×16 그림, 결정 모델 0), 옛 재료 id 별칭 (두 판), 광부·제련공 스킨, 메뉴 배경 3개,
+               보석 블록 밖 블록 덮어쓰기 0개
 사용: python3 tools/check_assets.py [pack.zip]   (종료 코드 0 = 일치)
 """
 import json
@@ -202,11 +203,37 @@ def main():
                 ns, _, path = ref.partition(":")
                 if ns == "labyrinth":
                     need(f"models/{path}.json", f"광산 아이템 {iid} 모델 {ref}")
+    # 0.3.6.1 보석 광석 블록 (결정 모델 없음): mine.json 보석 블록마다 바닐라 blockstates 1 → 계약 visual.json 의 labyrinth 모델 → 16×16 그림
+    allowed = set()
+    vgems = ((vis.get("blocks") or {}).get("gems")) or {}
     for gid, gd in (mine.get("gems") or {}).items():
-        ns, _, path = (gd.get("node_model") or "").partition(":")
-        if ns == "labyrinth" and path:
-            need(f"items/{path}.json", f"보석 노드 {gid}")
-            need(f"models/item/{path}.json", f"보석 노드 {gid} 모델")
+        checked += 1
+        block = (gd.get("block") or "").split(":", 1)[-1]
+        vg = vgems.get(gid) or {}
+        ref = vg.get("model") or ""
+        tex = vg.get("texture") or ref
+        if vg.get("block") != gd.get("block") or ":" not in ref:
+            errors.append(f"보석 블록 {gid}: mine.json 블록 {gd.get('block')} ≠ visual.json {vg.get('block')} (또는 모델 없음)")
+            continue
+        st = f"assets/minecraft/blockstates/{block}.json"
+        mns, _, mpath = ref.partition(":")
+        tns, _, tpath = tex.partition(":")
+        mo, tx = f"assets/{mns}/models/{mpath}.json", f"assets/{tns}/textures/{tpath}.png"
+        allowed |= {st, mo, tx}
+        for path in (st, mo, tx):
+            if path not in names:
+                errors.append(f"보석 블록 {gid}: 팩에 없음 — {path}")
+        if st in names:
+            d = json.loads(zf.read(st))
+            refs = {v["model"] for vs in (d.get("variants") or {}).values() for v in (vs if isinstance(vs, list) else [vs])}
+            if refs != {ref}:
+                errors.append(f"보석 블록 {gid}: {st} 가 {ref} 만 가리키지 않음 ({sorted(refs)})")
+        if "node_model" in gd:
+            errors.append(f"보석 {gid}: mine.json 에 0.3.6 결정 모델(node_model)이 남음")
+    nodes = sorted(n for n in names if re.match(r"assets/[^/]+/(items|models/item|textures/item)/mine/node_", n))
+    checked += 1
+    if nodes:
+        errors.append(f"0.3.6 보석 결정 모델이 팩에 남음 (0.3.6.1: 네모난 광석 블록만): {nodes[:3]}")
     retired = set(mat.get("retired") or {}) | set(((mat.get("conversion") or {}).get("map")) or {})
     for old in sorted(retired - set(items)):
         need(f"items/{old}.json", f"옛 재료 별칭 {old} (두 판)")
@@ -220,10 +247,10 @@ def main():
             checked += 1
             if (gmenus.get(mid) or {}).get("glyph") != gid:
                 errors.append(f"메뉴 {mid}: glyphs.yml menus.{mid}.glyph 가 계약의 {gid} 가 아님")
-    blocks = sorted(n for n in names if re.match(r"assets/[^/]+/(blockstates/|models/block/|textures/block/)", n))
+    blocks = sorted(n for n in names if re.match(r"assets/[^/]+/(blockstates/|models/block/|textures/block/)", n) and n not in allowed)
     checked += 1
     if blocks:
-        errors.append(f"블록 덮어쓰기 {len(blocks)}개 (계약 §3.3: 0개): " + ", ".join(blocks[:5]))
+        errors.append(f"보석 블록 6개 밖 블록 덮어쓰기 {len(blocks)}개 (계약 §0-8): " + ", ".join(blocks[:5]))
 
     print(f"검사 {checked}건 · 오류 {len(errors)}건 ({pack.name})")
     for e in errors:

@@ -78,6 +78,11 @@ final class MineTestData {
             case "minecraft:calcite" -> 0.75;
             case "minecraft:sea_lantern", "minecraft:glowstone" -> 0.3;
             case "minecraft:magma_block" -> 0.5;
+            // 0.3.6.1 보석 블록 (좀벌레 돌 = 바탕 블록 단단함 ÷ 2)
+            case "minecraft:infested_stone_bricks", "minecraft:infested_mossy_stone_bricks", "minecraft:infested_chiseled_stone_bricks",
+                 "minecraft:infested_cracked_stone_bricks" -> 0.75;
+            case "minecraft:infested_cobblestone" -> 1.0;
+            case "minecraft:infested_deepslate" -> 1.5;
             default -> 3.0;
         };
     }

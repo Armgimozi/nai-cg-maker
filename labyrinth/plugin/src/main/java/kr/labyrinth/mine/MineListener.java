@@ -74,6 +74,15 @@ final class MineListener implements Listener {
         return def != null && def.isTool() ? def.tool() : null;
     }
 
+    // ── 0.3.6 보석 결정 치우기 (0.3.6.1) ─────────────────────────────────
+
+    /** 청크 엔티티가 읽힐 때 0.3.6 보석 결정 ItemDisplay 가 섞여 있으면 지운다 (보석 노드는 이제 네모난 광석 블록 하나). */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onEntitiesLoad(org.bukkit.event.world.EntitiesLoadEvent e) {
+        if (!mine(e.getWorld())) return;
+        for (org.bukkit.entity.Entity en : e.getEntities()) if (module.veins().isLeftoverCrystal(en)) en.remove();
+    }
+
     // ── 캐기 ────────────────────────────────────────────────────────────
 
     @EventHandler(priority = EventPriority.HIGH)
