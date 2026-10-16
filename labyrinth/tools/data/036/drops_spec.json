@@ -1,0 +1,9973 @@
+{
+ "version": "0.3.6-design-drops",
+ "base": {
+  "code": "/home/user/nai-cg-maker (0.3.5.1)",
+  "materials_spec": "design036/materials_spec.json (광물 8개 → 광산)"
+ },
+ "rules": {
+  "body": "몹은 자기 몸에서 나온 부위 1~2개만 떨어뜨린다. 정령·원령(몸 없음)은 그 층 정수, 불의 정령은 불씨 혼. 수정·슬래그·쇠 몸은 광석(광산 몫, 총량은 materials_spec 그대로).",
+  "mob_amounts": "부위 하나 = 0.65 ×1~2 (예전 주 0.55 + 보조 0.15 와 같은 기대 개수) · 둘 = 주 0.55 + 보조 0.15 · 큰 몹 ×1~3 · 떼 몹 확률 ×0.7",
+  "spirit_essence": {
+   "1": 0.05,
+   "2": 0.05,
+   "3": 0.05,
+   "4": 0.04,
+   "5": 0.04,
+   "6": 0.04,
+   "7": 0.03,
+   "8": 0.03,
+   "9": 0.02,
+   "10": 0.02
+  },
+  "elite_variant": "일반 몹의 정예 변종은 그 몹 표를 두 번 굴린다 (MobServiceImpl) — 따로 정하지 않는다",
+  "chests": "보물방·시련방·미로 상자의 재료 칸은 그 자리에서 {one_of: [그 층 부위 전부]} 로 바꾼다 (확률·개수·칸 수·순서 그대로 — content_p3 loot_tweaks 번호 유지). 구간 미로 상자(maze_chest_<등급>_<1~4>)는 그 구간 층 부위 전부",
+  "bosses": "guaranteed 의 부위만 바꾼다 (핵·정수·고유 장비 칸 그대로). 광석 항목은 entries 맨 끝",
+  "ore": "층마다 materials_spec 일반 몹 광석 기대량 합을 광석을 지닌 몹끼리 무게(ore)대로 나눈다. 정예·보스·상자 광석은 materials_spec 그대로",
+  "recipes": "0.3.6 레시피의 부위 칸 → 새 부위 (RECIPE_SPLIT). 단단/부드러움 = 방어구는 겉모습(heavy·방패 단단 · cloth 부드러움 · light 는 슬롯: chest·feet 단단, head·legs 부드러움), 무기는 공격 방식(melee 단단), 장신구 부드러움. 그다음 이름 글자(name_part: 2층 은실·거미 → spider_silk, 9층 용수철 → clock_oil — 9층 태엽은 층 전체 이름이라 넣지 않음). 개수 = 반올림(옛 개수 × 새 부위 1회 공급 ÷ 옛 칸 1회 공급), 최소 1, 비가 0.9~1.1 이면 그대로. 주괴·정예 재료·정수·핵·골드 그대로. 결과는 아래 recipes_frozen 으로 고정 (다시 돌려도 같음)",
+  "look_hard": {
+   "heavy": true,
+   "cloth": false
+  },
+  "name_part": {
+   "2": [
+    [
+     "은실",
+     "spider_silk"
+    ],
+    [
+     "거미",
+     "spider_silk"
+    ]
+   ],
+   "9": [
+    [
+     "용수철",
+     "clock_oil"
+    ]
+   ]
+  },
+  "enhance": [
+   "HARD/SOFT 표 (드롭 장비의 P) — 방어구는 레시피와 같은 겉모습 규칙",
+   "p_scale 아래 한도 1.0 → 0.25 (지금 재료는 모두 1회 35 이상이라 바뀌지 않음)",
+   "겹칠 때 P 바꿈: 레시피의 다른 부위 → 그 층 반대쪽 부위 → (부위 하나뿐인 7층) 주괴를 P (materials_spec 규칙)",
+   "R 목록(RA·RB·RC) 안에서 지금 content/enhance.yml 의 R 을 맨 앞에 (PREFER_LIVE_R) — 0.3.5.1 장비 364종 R 이 모두 그대로, +10 회수 0.95~1.0배",
+   "S 주괴 개수 = 반올림(S_BASE × INGOT_S_SCALE[층])"
+  ],
+  "count_deadband": [
+   0.9,
+   1.1
+  ],
+  "scarce_ref": 40.0
+ },
+ "new_items": {
+  "moss_scale": {
+   "name": "이끼 비늘",
+   "floor": 1,
+   "rarity": "common",
+   "texture": {
+    "style": "scale",
+    "palette": [
+     "#14200f",
+     "#2f4a1f",
+     "#5f8a34",
+     "#a8c870"
+    ]
+   },
+   "lore": "이끼 새끼용과 가시덩굴 코볼트의 비늘. 틈마다 이끼가 끼어 있다.",
+   "icon_note": "scale 모양 · 초록 이끼 빛 (moss_fiber 보다 한 톤 어둡게, 끝에 밝은 이끼 점)"
+  },
+  "tunnel_fang": {
+   "name": "갱도 송곳니",
+   "floor": 2,
+   "rarity": "common",
+   "texture": {
+    "style": "fang",
+    "palette": [
+     "#241c16",
+     "#5a4a3a",
+     "#b8a888",
+     "#efe6d0"
+    ]
+   },
+   "lore": "갱도에 사는 것들의 누런 송곳니. 땅굴웜도, 박쥐도, 돌 아가리도 같은 이빨을 가졌다.",
+   "icon_note": "fang 모양 · 누런 상아색, 뿌리 쪽 흙빛"
+  },
+  "cinder_scale": {
+   "name": "잿불 비늘",
+   "floor": 5,
+   "rarity": "uncommon",
+   "texture": {
+    "style": "scale",
+    "palette": [
+     "#0c0a0a",
+     "#1e1a1a",
+     "#363030",
+     "#5a4a44",
+     "#ff7a2a"
+    ]
+   },
+   "lore": "잿불 드레이크와 용인 대장장이의 비늘. 틈으로 아직 불씨가 샌다.",
+   "icon_note": "scale 모양 · 숯빛 비늘 + 주황 불씨 반짝임 (검토: materials_spec 의 cinder_hide 색은 4층 녹물 비늘과 거의 같아 숯빛으로 바꿈)",
+   "replaces_spec_id": "cinder_hide"
+  },
+  "ember_soul": {
+   "name": "불씨 혼",
+   "floor": 5,
+   "rarity": "uncommon",
+   "texture": {
+    "style": "shard",
+    "palette": [
+     "#1a0a06",
+     "#5a1a0a",
+     "#c43c12",
+     "#ff9a2a",
+     "#fff0a0"
+    ]
+   },
+   "lore": "불씨 도깨비와 슬래그 골렘, 풀무 사냥개를 움직이던 작은 불. 손에 쥐면 따뜻하게 뛴다.",
+   "icon_note": "shard 모양 · 옛 불씨 조각(ember_shard) 그림 그대로 (검토: essence 모양은 태고의 미궁 정수와 거의 같아 바꿈 — 바뀐 불씨 조각과 그림이 이어진다)"
+  },
+  "rime_talon": {
+   "name": "서리 발톱",
+   "floor": 6,
+   "rarity": "uncommon",
+   "texture": {
+    "style": "fang",
+    "palette": [
+     "#0a1428",
+     "#1e4a7a",
+     "#4a90d8",
+     "#7cc4ff"
+    ]
+   },
+   "lore": "서리 와이번의 갈고리 발톱. 끝에 늘 서리가 앉아 있다.",
+   "icon_note": "fang 모양 · 밝은 색을 진한 하늘색으로 (fang 은 horn 램프 = 밝은 색 55% + 뼈색이라 옅게 나옴). 더 또렷하게 하려면 icons.py 에 main 램프로 칠하는 claw 모양을 하나 더한다 (선택)"
+  },
+  "chrono_dust": {
+   "name": "시간 가루",
+   "floor": 9,
+   "rarity": "uncommon",
+   "texture": {
+    "style": "dust",
+    "palette": [
+     "#1a140c",
+     "#4a3a20",
+     "#b08a40",
+     "#f0d890",
+     "#6ad0b0"
+    ]
+   },
+   "lore": "시간 나방의 날갯가루. 흩뿌리면 둘레의 시간이 잠깐 끈적해진다.",
+   "icon_note": "dust 모양 · 시간 나방 색 (놋쇠 금빛 + 청록 반짝임)"
+  },
+  "abyss_scale": {
+   "name": "심연 비늘",
+   "floor": 10,
+   "rarity": "uncommon",
+   "texture": {
+    "style": "scale",
+    "palette": [
+     "#020306",
+     "#0a1a20",
+     "#1a3c46",
+     "#2fe0d0"
+    ]
+   },
+   "lore": "심연 고룡과 심연 용인의 검은 비늘. 가장자리가 청록빛으로 빛난다.",
+   "icon_note": "scale 모양 · 거의 검정, 가장자리 청록 빛"
+  }
+ },
+ "renames": {
+  "moss_fiber": {
+   "lore": "이끼 기어다니는 자와 뿌리 비틀이 몸에서 뜯어낸 질긴 섬유. 꼬아서 끈이나 시위로 쓴다."
+  },
+  "beetle_shell": {
+   "lore": "돌갑충이 등에 지고 다니던 돌 껍질. 방패 테나 갑옷 덧댐으로 쓴다."
+  },
+  "spider_silk": {
+   "lore": "갱도 거미와 실잣는 여왕이 뽑아낸 은빛 실 뭉치. 가늘지만 쇠줄보다 질기다."
+  },
+  "spore_cap": {
+   "lore": "갓꼬마와 포자 포탑 버섯이 떨군 포자 갓. 빛갓 나방의 날개와 포자 하피의 깃 사이에도 돋는다."
+  },
+  "hypha_thread": {
+   "lore": "균사 걸음꾼과 균사 켄타우로스의 몸을 이루던 실. 엮으면 천이, 꼬면 밧줄이 된다."
+  },
+  "brine_pearl": {
+   "lore": "짠물이 굳어 생긴 진주. 소금물 뿜개의 껍데기, 거품 해파리의 거품 막, 익사자의 빈 눈자리에서 자란다."
+  },
+  "eel_scale": {
+   "name": "녹물 비늘",
+   "lore": "녹물 장어와 늪 드레이크, 조류의 나가가 지닌 비늘. 미끄럽고 질기며 만지면 찌릿하다."
+  },
+  "grave_bone": {
+   "lore": "묘역에서 일어난 것들의 뼈. 서리에 절어 쇠처럼 단단하다."
+  },
+  "resonant_sinew": {
+   "lore": "정동 거한과 수정 용인, 프리즘 켄타우로스의 몸속에서 떨던 힘줄. 퉁기면 맑은 음이 난다."
+  },
+  "ink_essence": {
+   "lore": "먹물 원령과 먹물 나가가 흘린 진한 먹물. 깃펜 하피의 깃에도 배어 있다. 종이에 떨어뜨리면 저절로 글자가 된다."
+  },
+  "old_page": {
+   "lore": "흩날리는 책장 떼와 물어뜯는 고서에서 떨어진 낡은 종이. 읽을 수 없는 문자로 가득하다."
+  },
+  "clock_oil": {
+   "lore": "태엽 짐승들의 관절에서 흘러나온 검은 기름. 식어도 굳지 않는다."
+  },
+  "abyss_ichor": {
+   "lore": "심연 추적자와 심연의 눈이 흘린 청록빛 체액. 심연의 용들도 이 피가 흐른다. 어둠 속에서 스스로 빛난다."
+  },
+  "sculk_tendril": {
+   "lore": "울림 거상과 공허 성가대의 몸에서 뜯겨 나온 촉수. 소리를 들으면 움찔거린다."
+  }
+ },
+ "floor_parts": {
+  "1": [
+   "moss_fiber",
+   "beetle_shell",
+   "moss_scale"
+  ],
+  "2": [
+   "spider_silk",
+   "tunnel_fang"
+  ],
+  "3": [
+   "spore_cap",
+   "hypha_thread"
+  ],
+  "4": [
+   "brine_pearl",
+   "eel_scale"
+  ],
+  "5": [
+   "cinder_scale",
+   "ember_soul"
+  ],
+  "6": [
+   "grave_bone",
+   "rime_talon"
+  ],
+  "7": [
+   "resonant_sinew"
+  ],
+  "8": [
+   "ink_essence",
+   "old_page"
+  ],
+  "9": [
+   "clock_oil",
+   "chrono_dust"
+  ],
+  "10": [
+   "abyss_ichor",
+   "sculk_tendril",
+   "abyss_scale"
+  ]
+ },
+ "floor_essence": {
+  "1": "dim_essence",
+  "2": "dim_essence",
+  "3": "dim_essence",
+  "4": "labyrinth_essence",
+  "5": "labyrinth_essence",
+  "6": "labyrinth_essence",
+  "7": "radiant_essence",
+  "8": "radiant_essence",
+  "9": "primordial_essence",
+  "10": "primordial_essence"
+ },
+ "floor_ore": {
+  "2": "copper_ore",
+  "5": "silver_ore",
+  "6": "silver_ore",
+  "7": "mithril_ore",
+  "9": "starmetal_ore"
+ },
+ "mob_drops": {
+  "moss_crawler": {
+   "parts": [
+    [
+     "moss_fiber",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "등에 자란 이끼"
+  },
+  "root_shambler": {
+   "parts": [
+    [
+     "moss_fiber",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "뿌리·이끼 덩어리"
+  },
+  "lantern_wisp": {
+   "parts": [],
+   "spirit": true,
+   "why": "정령 — 몸이 없어 정수만"
+  },
+  "stone_beetle": {
+   "parts": [
+    [
+     "beetle_shell",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "돌 껍질"
+  },
+  "moss_drakeling": {
+   "parts": [
+    [
+     "moss_scale",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "새끼용 — 비늘 (주인 지적)"
+  },
+  "thorn_kobold": {
+   "parts": [
+    [
+     "moss_scale",
+     0.55,
+     [
+      1,
+      2
+     ]
+    ],
+    [
+     "moss_fiber",
+     0.15,
+     1
+    ]
+   ],
+   "why": "비늘족 + 비늘 틈 가시덩굴"
+  },
+  "tunnel_skitter": {
+   "parts": [
+    [
+     "spider_silk",
+     0.455,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "거미 (떼)"
+  },
+  "rusted_miner": {
+   "parts": [],
+   "ore": 1.5,
+   "why": "광부 — 광석만 (검토: 몸에 거미줄이 없다)"
+  },
+  "ore_mimic": {
+   "parts": [
+    [
+     "tunnel_fang",
+     0.55,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "ore": 1.0,
+   "why": "돌 아가리 이빨 · 광석"
+  },
+  "echo_bat": {
+   "parts": [
+    [
+     "tunnel_fang",
+     0.455,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "박쥐 송곳니 (떼)"
+  },
+  "kobold_sapper": {
+   "parts": [
+    [
+     "tunnel_fang",
+     0.55,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "ore": 0.5,
+   "why": "코볼트 이빨 · 훔친 광석 조금"
+  },
+  "tunnel_wyrm": {
+   "parts": [
+    [
+     "tunnel_fang",
+     0.55,
+     [
+      1,
+      3
+     ]
+    ]
+   ],
+   "ore": 1.0,
+   "why": "땅굴웜 이빨 고리 · 몸에 박힌 광석"
+  },
+  "capcap": {
+   "parts": [
+    [
+     "spore_cap",
+     0.385,
+     [
+      1,
+      2
+     ]
+    ],
+    [
+     "hypha_thread",
+     0.105,
+     1
+    ]
+   ],
+   "why": "버섯 (떼)"
+  },
+  "mycelid_shambler": {
+   "parts": [
+    [
+     "hypha_thread",
+     0.55,
+     [
+      1,
+      2
+     ]
+    ],
+    [
+     "spore_cap",
+     0.15,
+     1
+    ]
+   ],
+   "why": "균사 꼭두각시"
+  },
+  "spore_turret": {
+   "parts": [
+    [
+     "spore_cap",
+     0.55,
+     [
+      1,
+      2
+     ]
+    ],
+    [
+     "hypha_thread",
+     0.15,
+     1
+    ]
+   ],
+   "why": "거대 버섯"
+  },
+  "glowcap_moth": {
+   "parts": [
+    [
+     "spore_cap",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "날개에 자란 빛갓 (균사 실 뺌)"
+  },
+  "spore_harpy": {
+   "parts": [
+    [
+     "spore_cap",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "깃 사이에 돋은 포자 갓 (균사 실 뺌)"
+  },
+  "myconid_centaur": {
+   "parts": [
+    [
+     "hypha_thread",
+     0.55,
+     [
+      1,
+      3
+     ]
+    ],
+    [
+     "spore_cap",
+     0.15,
+     1
+    ]
+   ],
+   "why": "균사 몸 + 갓 머리"
+  },
+  "sluice_drowner": {
+   "parts": [
+    [
+     "brine_pearl",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "익사자 — 눈자리·따개비의 진주"
+  },
+  "brine_spitter": {
+   "parts": [
+    [
+     "brine_pearl",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "고둥 껍데기 속 진주"
+  },
+  "rust_eel": {
+   "parts": [
+    [
+     "eel_scale",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "장어 비늘"
+  },
+  "bubble_jelly": {
+   "parts": [
+    [
+     "brine_pearl",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "거품 막 속에서 굳은 진주"
+  },
+  "bog_drake": {
+   "parts": [
+    [
+     "eel_scale",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "드레이크 — 비늘 (녹물 비늘로 이름을 넓힘)"
+  },
+  "tide_naga": {
+   "parts": [
+    [
+     "eel_scale",
+     0.55,
+     [
+      1,
+      2
+     ]
+    ],
+    [
+     "brine_pearl",
+     0.15,
+     1
+    ]
+   ],
+   "why": "뱀 하반신 비늘 · 무녀의 진주"
+  },
+  "slag_golem": {
+   "parts": [
+    [
+     "ember_soul",
+     0.55,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "ore": 1.0,
+   "why": "몸을 움직이던 불 · 슬래그 → 은 광석"
+  },
+  "cinder_imp": {
+   "parts": [
+    [
+     "ember_soul",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "불의 정령 — 불씨 혼 (정수 대신)"
+  },
+  "bellows_hound": {
+   "parts": [
+    [
+     "ember_soul",
+     0.55,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "ore": 1.0,
+   "why": "풀무 속 불 · 쇠 몸 → 은 광석"
+  },
+  "forge_acolyte": {
+   "parts": [
+    [
+     "ember_soul",
+     0.45,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "ore": 0.7,
+   "why": "향로의 불씨 · 쇳물 구슬"
+  },
+  "ember_drake": {
+   "parts": [
+    [
+     "cinder_scale",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "드레이크 비늘"
+  },
+  "forge_dragonkin": {
+   "parts": [
+    [
+     "cinder_scale",
+     0.55,
+     [
+      1,
+      3
+     ]
+    ]
+   ],
+   "ore": 0.7,
+   "why": "용인 비늘 · 대장장이의 쇠"
+  },
+  "rime_mourner": {
+   "parts": [],
+   "spirit": true,
+   "why": "원령 — 정수만"
+  },
+  "crypt_hound": {
+   "parts": [
+    [
+     "grave_bone",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "해골 사냥개"
+  },
+  "frozen_knight": {
+   "parts": [
+    [
+     "grave_bone",
+     0.65,
+     [
+      1,
+      3
+     ]
+    ]
+   ],
+   "ore": 1.0,
+   "why": "죽은 기사의 뼈 · 갑옷 쇠"
+  },
+  "icicle_wraith": {
+   "parts": [],
+   "spirit": true,
+   "why": "원령 — 정수만"
+  },
+  "frost_wyvern": {
+   "parts": [
+    [
+     "rime_talon",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "와이번 — 발톱"
+  },
+  "barrow_lich": {
+   "parts": [
+    [
+     "grave_bone",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "ore": 0.5,
+   "why": "리치의 뼈 · 무덤 장신구"
+  },
+  "shard_skitterer": {
+   "parts": [],
+   "ore": 1.0,
+   "why": "등에 꽂은 수정 → 미스릴 광석만"
+  },
+  "prism_sentinel": {
+   "parts": [],
+   "ore": 1.0,
+   "why": "수정 기둥 → 미스릴 광석만"
+  },
+  "echo_wisp": {
+   "parts": [],
+   "spirit": true,
+   "why": "정령 — 정수만"
+  },
+  "geode_brute": {
+   "parts": [
+    [
+     "resonant_sinew",
+     0.45,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "ore": 1.0,
+   "why": "바위 거한의 힘줄 · 정동"
+  },
+  "crystal_dragonkin": {
+   "parts": [
+    [
+     "resonant_sinew",
+     0.55,
+     [
+      1,
+      3
+     ]
+    ]
+   ],
+   "ore": 0.7,
+   "why": "용인의 힘줄 · 수정 비늘 → 광석"
+  },
+  "prism_centaur": {
+   "parts": [
+    [
+     "resonant_sinew",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "말 다리 힘줄"
+  },
+  "ink_wraith": {
+   "parts": [
+    [
+     "ink_essence",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "먹물 원령 — 먹물이 곧 몸"
+  },
+  "page_swarm": {
+   "parts": [
+    [
+     "old_page",
+     0.455,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "책장 떼"
+  },
+  "biting_tome": {
+   "parts": [
+    [
+     "old_page",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "고서 책장"
+  },
+  "archive_sentinel": {
+   "parts": [
+    [
+     "old_page",
+     0.55,
+     [
+      1,
+      3
+     ]
+    ],
+    [
+     "ink_essence",
+     0.15,
+     1
+    ]
+   ],
+   "why": "책장 몸통 · 먹물"
+  },
+  "ink_naga": {
+   "parts": [
+    [
+     "ink_essence",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "잉크 웅덩이의 뱀"
+  },
+  "quill_harpy": {
+   "parts": [
+    [
+     "ink_essence",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "먹물 밴 깃펜 깃 (책장 뺌)"
+  },
+  "gear_hound": {
+   "parts": [
+    [
+     "clock_oil",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "ore": 1.0,
+   "why": "태엽 관절 기름 · 부품 쇠"
+  },
+  "clockwork_sentry": {
+   "parts": [
+    [
+     "clock_oil",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "ore": 1.0,
+   "why": "태엽 기름 · 부품 쇠"
+  },
+  "spring_jumper": {
+   "parts": [
+    [
+     "clock_oil",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "ore": 1.0,
+   "why": "태엽 기름 · 부품 쇠"
+  },
+  "chrono_moth": {
+   "parts": [
+    [
+     "chrono_dust",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "나방 날갯가루"
+  },
+  "clockwork_wyvern": {
+   "parts": [
+    [
+     "clock_oil",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "ore": 1.0,
+   "why": "놋쇠 와이번 — 태엽 기름 · 부품 쇠"
+  },
+  "brass_minotaur": {
+   "parts": [
+    [
+     "clock_oil",
+     0.65,
+     [
+      1,
+      3
+     ]
+    ]
+   ],
+   "ore": 1.0,
+   "why": "황동 거인 — 태엽 기름 · 부품 쇠"
+  },
+  "void_stalker": {
+   "parts": [
+    [
+     "abyss_ichor",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "체액"
+  },
+  "echo_colossus": {
+   "parts": [
+    [
+     "sculk_tendril",
+     0.65,
+     [
+      1,
+      3
+     ]
+    ]
+   ],
+   "why": "울림 거상의 촉수"
+  },
+  "abyss_eye": {
+   "parts": [
+    [
+     "abyss_ichor",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "눈알 — 체액"
+  },
+  "hollow_choir": {
+   "parts": [
+    [
+     "sculk_tendril",
+     0.65,
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "why": "스컬크 핏줄 (소리에 반응)"
+  },
+  "void_drake": {
+   "parts": [
+    [
+     "abyss_scale",
+     0.55,
+     [
+      1,
+      3
+     ]
+    ],
+    [
+     "abyss_ichor",
+     0.15,
+     1
+    ]
+   ],
+   "why": "고룡 — 비늘 · 용의 피"
+  },
+  "abyss_dragonkin": {
+   "parts": [
+    [
+     "abyss_scale",
+     0.55,
+     [
+      1,
+      2
+     ]
+    ],
+    [
+     "abyss_ichor",
+     0.15,
+     1
+    ]
+   ],
+   "why": "용인 — 비늘 · 피"
+  }
+ },
+ "elite_drops": {
+  "moss_crawler_alpha": {
+   "parts": [
+    [
+     "moss_fiber",
+     1.0,
+     [
+      4,
+      7
+     ]
+    ]
+   ],
+   "why": "이끼 볏 우두머리 — 섬유만 (껍질 뺌)"
+  },
+  "foreman_gorrak": {
+   "parts": [],
+   "spirit_elite": 0.6,
+   "ore": 1.0,
+   "why": "감독관의 망령 — 정수 · 광석"
+  },
+  "spore_mother": {
+   "parts": [
+    [
+     "spore_cap",
+     1.0,
+     [
+      3,
+      5
+     ]
+    ],
+    [
+     "hypha_thread",
+     0.7,
+     [
+      2,
+      3
+     ]
+    ]
+   ],
+   "why": "그대로"
+  },
+  "verdigris_crab": {
+   "parts": [
+    [
+     "brine_pearl",
+     1.0,
+     [
+      4,
+      6
+     ]
+    ]
+   ],
+   "why": "구리 집게 — 진주 (장어 비늘 뺌)"
+  },
+  "forge_executioner": {
+   "parts": [
+    [
+     "ember_soul",
+     0.7,
+     [
+      2,
+      3
+     ]
+    ]
+   ],
+   "ore": 1.0,
+   "why": "처형도에 깃든 불 · 쇠"
+  },
+  "crypt_bellringer": {
+   "parts": [
+    [
+     "grave_bone",
+     1.0,
+     [
+      3,
+      5
+     ]
+    ]
+   ],
+   "ore": 1.0,
+   "why": "일으킨 뼈 · 종 쇠"
+  },
+  "resonance_tuner": {
+   "parts": [
+    [
+     "resonant_sinew",
+     1.0,
+     [
+      3,
+      5
+     ]
+    ]
+   ],
+   "ore": 1.0,
+   "why": "수정 사제의 힘줄 · 수정"
+  },
+  "forbidden_keeper": {
+   "parts": [
+    [
+     "ink_essence",
+     1.0,
+     [
+      3,
+      5
+     ]
+    ],
+    [
+     "old_page",
+     0.7,
+     [
+      2,
+      3
+     ]
+    ]
+   ],
+   "why": "그대로"
+  },
+  "grand_regulator": {
+   "parts": [
+    [
+     "clock_oil",
+     1.0,
+     [
+      3,
+      5
+     ]
+    ]
+   ],
+   "ore": 1.0,
+   "why": "시계 거인 — 기름 · 부품"
+  },
+  "abyss_gatekeeper": {
+   "parts": [
+    [
+     "abyss_ichor",
+     1.0,
+     [
+      3,
+      5
+     ]
+    ],
+    [
+     "sculk_tendril",
+     0.7,
+     [
+      2,
+      3
+     ]
+    ]
+   ],
+   "why": "그대로"
+  }
+ },
+ "boss_drops": {
+  "floor01_boss": {
+   "parts": [
+    [
+     "moss_fiber",
+     [
+      6,
+      9
+     ]
+    ]
+   ],
+   "why": "이끼 석상 — 섬유만 (껍질 뺌)"
+  },
+  "floor02_boss": {
+   "parts": [
+    [
+     "spider_silk",
+     [
+      4,
+      6
+     ]
+    ],
+    [
+     "tunnel_fang",
+     [
+      2,
+      3
+     ]
+    ]
+   ],
+   "why": "거미 여왕 — 실 · 독니"
+  },
+  "floor03_boss": {
+   "parts": [
+    [
+     "spore_cap",
+     [
+      4,
+      6
+     ]
+    ],
+    [
+     "hypha_thread",
+     [
+      3,
+      5
+     ]
+    ]
+   ],
+   "why": "그대로"
+  },
+  "floor04_boss": {
+   "parts": [
+    [
+     "brine_pearl",
+     [
+      6,
+      9
+     ]
+    ]
+   ],
+   "why": "익사한 관리인 — 진주만 (비늘 뺌)"
+  },
+  "floor05_boss": {
+   "parts": [
+    [
+     "ember_soul",
+     [
+      4,
+      6
+     ]
+    ]
+   ],
+   "why": "모루왕의 용광로 불"
+  },
+  "floor06_boss": {
+   "parts": [
+    [
+     "grave_bone",
+     [
+      4,
+      6
+     ]
+    ]
+   ],
+   "why": "고분의 여제 — 뼈"
+  },
+  "floor07_boss": {
+   "parts": [],
+   "why": "거대한 수정 — 몸 재료 없음 (광석·정수·심장)"
+  },
+  "floor08_boss": {
+   "parts": [
+    [
+     "ink_essence",
+     [
+      4,
+      6
+     ]
+    ],
+    [
+     "old_page",
+     [
+      3,
+      5
+     ]
+    ]
+   ],
+   "why": "그대로"
+  },
+  "floor09_boss": {
+   "parts": [
+    [
+     "clock_oil",
+     [
+      4,
+      6
+     ]
+    ],
+    [
+     "chrono_dust",
+     [
+      2,
+      3
+     ]
+    ]
+   ],
+   "why": "시계탑 간수 — 기름 · 되감긴 시간"
+  },
+  "floor10_boss": {
+   "parts": [
+    [
+     "abyss_ichor",
+     [
+      4,
+      6
+     ]
+    ],
+    [
+     "sculk_tendril",
+     [
+      3,
+      5
+     ]
+    ]
+   ],
+   "why": "그대로"
+  }
+ },
+ "recipe_split": {
+  "1": {
+   "beetle_shell": {
+    "beetle_shell": [
+     "melee",
+     "chest",
+     "feet",
+     "offhand"
+    ],
+    "moss_scale": [
+     "ranged",
+     "caster",
+     "head",
+     "legs",
+     "accessory"
+    ]
+   }
+  },
+  "2": {
+   "spider_silk": {
+    "tunnel_fang": [
+     "melee",
+     "chest",
+     "feet",
+     "offhand"
+    ],
+    "spider_silk": [
+     "ranged",
+     "caster",
+     "head",
+     "legs",
+     "accessory"
+    ]
+   }
+  },
+  "5": {
+   "cinder_hide": {
+    "cinder_scale": [
+     "melee",
+     "chest",
+     "feet",
+     "offhand"
+    ],
+    "ember_soul": [
+     "ranged",
+     "caster",
+     "head",
+     "legs",
+     "accessory"
+    ]
+   }
+  },
+  "6": {
+   "grave_bone": {
+    "rime_talon": [
+     "melee",
+     "chest",
+     "feet",
+     "offhand"
+    ],
+    "grave_bone": [
+     "ranged",
+     "caster",
+     "head",
+     "legs",
+     "accessory"
+    ]
+   }
+  },
+  "9": {
+   "clock_oil": {
+    "clock_oil": [
+     "melee",
+     "chest",
+     "feet",
+     "offhand"
+    ],
+    "chrono_dust": [
+     "ranged",
+     "caster",
+     "head",
+     "legs",
+     "accessory"
+    ]
+   }
+  },
+  "10": {
+   "sculk_tendril": {
+    "abyss_scale": [
+     "melee",
+     "chest",
+     "feet",
+     "offhand"
+    ],
+    "sculk_tendril": [
+     "ranged",
+     "caster",
+     "head",
+     "legs",
+     "accessory"
+    ]
+   }
+  }
+ },
+ "hard_kinds": [
+  "melee",
+  "chest",
+  "feet",
+  "offhand"
+ ],
+ "soft_kinds": [
+  "ranged",
+  "caster",
+  "head",
+  "legs",
+  "accessory"
+ ],
+ "enhance_hard": {
+  "1": "beetle_shell",
+  "2": "tunnel_fang",
+  "3": "spore_cap",
+  "4": "eel_scale",
+  "5": "cinder_scale",
+  "6": "rime_talon",
+  "7": "resonant_sinew",
+  "8": "old_page",
+  "9": "clock_oil",
+  "10": "abyss_scale"
+ },
+ "enhance_soft": {
+  "1": "moss_fiber",
+  "2": "spider_silk",
+  "3": "hypha_thread",
+  "4": "brine_pearl",
+  "5": "ember_soul",
+  "6": "grave_bone",
+  "7": "resonant_sinew",
+  "8": "ink_essence",
+  "9": "chrono_dust",
+  "10": "sculk_tendril"
+ },
+ "convert_patch": {
+  "ember_shard": "ember_soul",
+  "cinder_hide": "cinder_scale"
+ },
+ "convert_full": {
+  "rusted_iron": "copper_ore",
+  "slag_ingot": "silver_ore",
+  "rime_crystal": "silver_ore",
+  "amethyst_shard": "mithril_ore",
+  "brass_gear": "starmetal_ore",
+  "ember_shard": "ember_soul",
+  "prism_dust": "resonant_sinew",
+  "mainspring": "clock_oil",
+  "cinder_hide": "cinder_scale"
+ },
+ "generator": {
+  "loot_tables": {
+   "moss_crawler": {
+    "entries": [
+     {
+      "item": "moss_fiber",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.01
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f01_drop",
+      "chance": 0.0228
+     },
+     {
+      "table": "enhance_mob_t1",
+      "chance": 1.0
+     }
+    ]
+   },
+   "root_shambler": {
+    "entries": [
+     {
+      "item": "moss_fiber",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.01
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f01_drop",
+      "chance": 0.0228
+     },
+     {
+      "table": "enhance_mob_t1",
+      "chance": 1.0
+     }
+    ]
+   },
+   "lantern_wisp": {
+    "entries": [
+     {
+      "item": "dim_essence",
+      "chance": 0.05
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f01_drop",
+      "chance": 0.0228
+     },
+     {
+      "table": "enhance_mob_t1",
+      "chance": 1.0
+     }
+    ]
+   },
+   "stone_beetle": {
+    "entries": [
+     {
+      "item": "beetle_shell",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.01
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f01_drop",
+      "chance": 0.0228
+     },
+     {
+      "table": "enhance_mob_t1",
+      "chance": 1.0
+     }
+    ]
+   },
+   "moss_drakeling": {
+    "entries": [
+     {
+      "item": "moss_scale",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.01
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f01_drop",
+      "chance": 0.0228
+     },
+     {
+      "table": "enhance_mob_t1",
+      "chance": 1.0
+     }
+    ]
+   },
+   "thorn_kobold": {
+    "entries": [
+     {
+      "item": "moss_scale",
+      "chance": 0.55,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "moss_fiber",
+      "chance": 0.15
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.01
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f01_drop",
+      "chance": 0.0228
+     },
+     {
+      "table": "enhance_mob_t1",
+      "chance": 1.0
+     }
+    ]
+   },
+   "tunnel_skitter": {
+    "entries": [
+     {
+      "item": "spider_silk",
+      "chance": 0.455,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.007
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.021
+     },
+     {
+      "table": "mix_f02_drop",
+      "chance": 0.0211
+     },
+     {
+      "table": "enhance_swarm_t1",
+      "chance": 1.0
+     }
+    ]
+   },
+   "rusted_miner": {
+    "entries": [
+     {
+      "item": "copper_ore",
+      "chance": 0.2537,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.01
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f02_drop",
+      "chance": 0.0301
+     },
+     {
+      "table": "enhance_mob_t1",
+      "chance": 1.0
+     }
+    ]
+   },
+   "ore_mimic": {
+    "entries": [
+     {
+      "item": "tunnel_fang",
+      "chance": 0.55,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "copper_ore",
+      "chance": 0.1269,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.01
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f02_drop",
+      "chance": 0.0301
+     },
+     {
+      "table": "enhance_mob_t1",
+      "chance": 1.0
+     }
+    ]
+   },
+   "echo_bat": {
+    "entries": [
+     {
+      "item": "tunnel_fang",
+      "chance": 0.455,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.007
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.021
+     },
+     {
+      "table": "mix_f02_drop",
+      "chance": 0.0211
+     },
+     {
+      "table": "enhance_swarm_t1",
+      "chance": 1.0
+     }
+    ]
+   },
+   "kobold_sapper": {
+    "entries": [
+     {
+      "item": "tunnel_fang",
+      "chance": 0.55,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "copper_ore",
+      "chance": 0.0846,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.01
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f02_drop",
+      "chance": 0.0301
+     },
+     {
+      "table": "enhance_mob_t1",
+      "chance": 1.0
+     }
+    ]
+   },
+   "tunnel_wyrm": {
+    "entries": [
+     {
+      "item": "tunnel_fang",
+      "chance": 0.55,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "copper_ore",
+      "chance": 0.1269,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.01
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f02_drop",
+      "chance": 0.0301
+     },
+     {
+      "table": "enhance_mob_t1",
+      "chance": 1.0
+     }
+    ]
+   },
+   "capcap": {
+    "entries": [
+     {
+      "item": "spore_cap",
+      "chance": 0.385,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "hypha_thread",
+      "chance": 0.105
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.007
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.021
+     },
+     {
+      "table": "mix_f03_drop",
+      "chance": 0.0147
+     },
+     {
+      "table": "enhance_swarm_t1",
+      "chance": 1.0
+     }
+    ]
+   },
+   "mycelid_shambler": {
+    "entries": [
+     {
+      "item": "hypha_thread",
+      "chance": 0.55,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "spore_cap",
+      "chance": 0.15
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.01
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f03_drop",
+      "chance": 0.0209
+     },
+     {
+      "table": "enhance_mob_t1",
+      "chance": 1.0
+     }
+    ]
+   },
+   "spore_turret": {
+    "entries": [
+     {
+      "item": "spore_cap",
+      "chance": 0.55,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "hypha_thread",
+      "chance": 0.15
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.01
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f03_drop",
+      "chance": 0.0209
+     },
+     {
+      "table": "enhance_mob_t1",
+      "chance": 1.0
+     }
+    ]
+   },
+   "glowcap_moth": {
+    "entries": [
+     {
+      "item": "spore_cap",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.01
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f03_drop",
+      "chance": 0.0209
+     },
+     {
+      "table": "enhance_mob_t1",
+      "chance": 1.0
+     }
+    ]
+   },
+   "spore_harpy": {
+    "entries": [
+     {
+      "item": "spore_cap",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.01
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f03_drop",
+      "chance": 0.0209
+     },
+     {
+      "table": "enhance_mob_t1",
+      "chance": 1.0
+     }
+    ]
+   },
+   "myconid_centaur": {
+    "entries": [
+     {
+      "item": "hypha_thread",
+      "chance": 0.55,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "spore_cap",
+      "chance": 0.15
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.01
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f03_drop",
+      "chance": 0.0209
+     },
+     {
+      "table": "enhance_mob_t1",
+      "chance": 1.0
+     }
+    ]
+   },
+   "sluice_drowner": {
+    "entries": [
+     {
+      "item": "brine_pearl",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.008
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f04_drop",
+      "chance": 0.015
+     },
+     {
+      "table": "enhance_mob_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "brine_spitter": {
+    "entries": [
+     {
+      "item": "brine_pearl",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.008
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f04_drop",
+      "chance": 0.015
+     },
+     {
+      "table": "enhance_mob_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "rust_eel": {
+    "entries": [
+     {
+      "item": "eel_scale",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.008
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f04_drop",
+      "chance": 0.015
+     },
+     {
+      "table": "enhance_mob_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "bubble_jelly": {
+    "entries": [
+     {
+      "item": "brine_pearl",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.008
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f04_drop",
+      "chance": 0.015
+     },
+     {
+      "table": "enhance_mob_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "bog_drake": {
+    "entries": [
+     {
+      "item": "eel_scale",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.008
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f04_drop",
+      "chance": 0.015
+     },
+     {
+      "table": "enhance_mob_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "tide_naga": {
+    "entries": [
+     {
+      "item": "eel_scale",
+      "chance": 0.55,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "brine_pearl",
+      "chance": 0.15
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.008
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f04_drop",
+      "chance": 0.015
+     },
+     {
+      "table": "enhance_mob_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "slag_golem": {
+    "entries": [
+     {
+      "item": "ember_soul",
+      "chance": 0.55,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "silver_ore",
+      "chance": 0.1278,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.008
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f05_drop",
+      "chance": 0.0095
+     },
+     {
+      "table": "enhance_mob_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "cinder_imp": {
+    "entries": [
+     {
+      "item": "ember_soul",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.008
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f05_drop",
+      "chance": 0.0095
+     },
+     {
+      "table": "enhance_mob_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "bellows_hound": {
+    "entries": [
+     {
+      "item": "ember_soul",
+      "chance": 0.55,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "silver_ore",
+      "chance": 0.1703,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.008
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f05_drop",
+      "chance": 0.0095
+     },
+     {
+      "table": "enhance_mob_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "forge_acolyte": {
+    "entries": [
+     {
+      "item": "ember_soul",
+      "chance": 0.45,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "silver_ore",
+      "chance": 0.1192,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.008
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f05_drop",
+      "chance": 0.0095
+     },
+     {
+      "table": "enhance_mob_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "ember_drake": {
+    "entries": [
+     {
+      "item": "cinder_scale",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.008
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f05_drop",
+      "chance": 0.0095
+     },
+     {
+      "table": "enhance_mob_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "forge_dragonkin": {
+    "entries": [
+     {
+      "item": "cinder_scale",
+      "chance": 0.55,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "silver_ore",
+      "chance": 0.0894,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.008
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f05_drop",
+      "chance": 0.0095
+     },
+     {
+      "table": "enhance_mob_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "rime_mourner": {
+    "entries": [
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.04
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f06_drop",
+      "chance": 0.0048
+     },
+     {
+      "table": "enhance_mob_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "crypt_hound": {
+    "entries": [
+     {
+      "item": "grave_bone",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.008
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f06_drop",
+      "chance": 0.0048
+     },
+     {
+      "table": "enhance_mob_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "frozen_knight": {
+    "entries": [
+     {
+      "item": "grave_bone",
+      "chance": 0.65,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "silver_ore",
+      "chance": 0.325,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.008
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f06_drop",
+      "chance": 0.0048
+     },
+     {
+      "table": "enhance_mob_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "icicle_wraith": {
+    "entries": [
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.04
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f06_drop",
+      "chance": 0.0048
+     },
+     {
+      "table": "enhance_mob_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "frost_wyvern": {
+    "entries": [
+     {
+      "item": "rime_talon",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.008
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f06_drop",
+      "chance": 0.0048
+     },
+     {
+      "table": "enhance_mob_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "barrow_lich": {
+    "entries": [
+     {
+      "item": "grave_bone",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "silver_ore",
+      "chance": 0.1625,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.008
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f06_drop",
+      "chance": 0.0048
+     },
+     {
+      "table": "enhance_mob_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "shard_skitterer": {
+    "entries": [
+     {
+      "item": "mithril_ore",
+      "chance": 0.1565,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.006
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f07_drop",
+      "chance": 0.0067
+     },
+     {
+      "table": "enhance_mob_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "prism_sentinel": {
+    "entries": [
+     {
+      "item": "mithril_ore",
+      "chance": 0.1565,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.006
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f07_drop",
+      "chance": 0.0067
+     },
+     {
+      "table": "enhance_mob_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "echo_wisp": {
+    "entries": [
+     {
+      "item": "radiant_essence",
+      "chance": 0.03
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f07_drop",
+      "chance": 0.0067
+     },
+     {
+      "table": "enhance_mob_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "geode_brute": {
+    "entries": [
+     {
+      "item": "resonant_sinew",
+      "chance": 0.45,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "mithril_ore",
+      "chance": 0.1174,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.006
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f07_drop",
+      "chance": 0.0067
+     },
+     {
+      "table": "enhance_mob_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "crystal_dragonkin": {
+    "entries": [
+     {
+      "item": "resonant_sinew",
+      "chance": 0.55,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "mithril_ore",
+      "chance": 0.0822,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.006
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f07_drop",
+      "chance": 0.0067
+     },
+     {
+      "table": "enhance_mob_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "prism_centaur": {
+    "entries": [
+     {
+      "item": "resonant_sinew",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.006
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f07_drop",
+      "chance": 0.0067
+     },
+     {
+      "table": "enhance_mob_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "ink_wraith": {
+    "entries": [
+     {
+      "item": "ink_essence",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.006
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f08_drop",
+      "chance": 0.0043
+     },
+     {
+      "table": "enhance_mob_t3",
+      "chance": 1.0
+     }
+    ]
+   },
+   "page_swarm": {
+    "entries": [
+     {
+      "item": "old_page",
+      "chance": 0.455,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.0042
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.021
+     },
+     {
+      "table": "mix_f08_drop",
+      "chance": 0.0043
+     },
+     {
+      "table": "enhance_swarm_t3",
+      "chance": 1.0
+     }
+    ]
+   },
+   "biting_tome": {
+    "entries": [
+     {
+      "item": "old_page",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.006
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.03
+     },
+     {
+      "item": "forbidden_seal",
+      "chance": 0.01
+     },
+     {
+      "table": "mix_f08_drop",
+      "chance": 0.0043
+     },
+     {
+      "table": "enhance_mob_t3",
+      "chance": 1.0
+     }
+    ]
+   },
+   "archive_sentinel": {
+    "entries": [
+     {
+      "item": "old_page",
+      "chance": 0.55,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "ink_essence",
+      "chance": 0.15
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.006
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f08_drop",
+      "chance": 0.0043
+     },
+     {
+      "table": "enhance_mob_t3",
+      "chance": 1.0
+     }
+    ]
+   },
+   "ink_naga": {
+    "entries": [
+     {
+      "item": "ink_essence",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.006
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f08_drop",
+      "chance": 0.0043
+     },
+     {
+      "table": "enhance_mob_t3",
+      "chance": 1.0
+     }
+    ]
+   },
+   "quill_harpy": {
+    "entries": [
+     {
+      "item": "ink_essence",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.006
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f08_drop",
+      "chance": 0.0043
+     },
+     {
+      "table": "enhance_mob_t3",
+      "chance": 1.0
+     }
+    ]
+   },
+   "gear_hound": {
+    "entries": [
+     {
+      "item": "clock_oil",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "starmetal_ore",
+      "chance": 0.1292,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.004
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f09_drop",
+      "chance": 0.0043
+     },
+     {
+      "table": "enhance_mob_t3",
+      "chance": 1.0
+     }
+    ]
+   },
+   "clockwork_sentry": {
+    "entries": [
+     {
+      "item": "clock_oil",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "starmetal_ore",
+      "chance": 0.1292,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.004
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f09_drop",
+      "chance": 0.0043
+     },
+     {
+      "table": "enhance_mob_t3",
+      "chance": 1.0
+     }
+    ]
+   },
+   "spring_jumper": {
+    "entries": [
+     {
+      "item": "clock_oil",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "starmetal_ore",
+      "chance": 0.1292,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.004
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f09_drop",
+      "chance": 0.0043
+     },
+     {
+      "table": "enhance_mob_t3",
+      "chance": 1.0
+     }
+    ]
+   },
+   "chrono_moth": {
+    "entries": [
+     {
+      "item": "chrono_dust",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.004
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f09_drop",
+      "chance": 0.0043
+     },
+     {
+      "table": "enhance_mob_t3",
+      "chance": 1.0
+     }
+    ]
+   },
+   "clockwork_wyvern": {
+    "entries": [
+     {
+      "item": "clock_oil",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "starmetal_ore",
+      "chance": 0.1292,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.004
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f09_drop",
+      "chance": 0.0043
+     },
+     {
+      "table": "enhance_mob_t3",
+      "chance": 1.0
+     }
+    ]
+   },
+   "brass_minotaur": {
+    "entries": [
+     {
+      "item": "clock_oil",
+      "chance": 0.65,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "starmetal_ore",
+      "chance": 0.0969,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.004
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f09_drop",
+      "chance": 0.0043
+     },
+     {
+      "table": "enhance_mob_t3",
+      "chance": 1.0
+     }
+    ]
+   },
+   "void_stalker": {
+    "entries": [
+     {
+      "item": "abyss_ichor",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.004
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f10_drop",
+      "chance": 0.0034
+     },
+     {
+      "table": "enhance_mob_t3",
+      "chance": 1.0
+     }
+    ]
+   },
+   "echo_colossus": {
+    "entries": [
+     {
+      "item": "sculk_tendril",
+      "chance": 0.65,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.004
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f10_drop",
+      "chance": 0.0034
+     },
+     {
+      "table": "enhance_mob_t3",
+      "chance": 1.0
+     }
+    ]
+   },
+   "abyss_eye": {
+    "entries": [
+     {
+      "item": "abyss_ichor",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.004
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f10_drop",
+      "chance": 0.0034
+     },
+     {
+      "table": "enhance_mob_t3",
+      "chance": 1.0
+     }
+    ]
+   },
+   "hollow_choir": {
+    "entries": [
+     {
+      "item": "sculk_tendril",
+      "chance": 0.65,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.004
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f10_drop",
+      "chance": 0.0034
+     },
+     {
+      "table": "enhance_mob_t3",
+      "chance": 1.0
+     }
+    ]
+   },
+   "void_drake": {
+    "entries": [
+     {
+      "item": "abyss_scale",
+      "chance": 0.55,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "abyss_ichor",
+      "chance": 0.15
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.004
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f10_drop",
+      "chance": 0.0034
+     },
+     {
+      "table": "enhance_mob_t3",
+      "chance": 1.0
+     }
+    ]
+   },
+   "abyss_dragonkin": {
+    "entries": [
+     {
+      "item": "abyss_scale",
+      "chance": 0.55,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "abyss_ichor",
+      "chance": 0.15
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.004
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f10_drop",
+      "chance": 0.0034
+     },
+     {
+      "table": "enhance_mob_t3",
+      "chance": 1.0
+     }
+    ]
+   },
+   "moss_crawler_alpha": {
+    "entries": [
+     {
+      "item": "alpha_moss_crest",
+      "chance": 0.85,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "moss_fiber",
+      "chance": 1.0,
+      "amount": [
+       4,
+       7
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.35
+     },
+     {
+      "pick": [
+       {
+        "table": "band_t01_elite",
+        "weight": 7
+       },
+       {
+        "table": "band_t02_elite",
+        "weight": 1
+       }
+      ],
+      "chance": 1.0
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.25
+     },
+     {
+      "table": "enhance_elite_t1",
+      "chance": 1.0
+     }
+    ]
+   },
+   "foreman_gorrak": {
+    "entries": [
+     {
+      "item": "foreman_badge",
+      "chance": 0.85,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "copper_ore",
+      "chance": 0.175,
+      "amount": [
+       2,
+       3
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.6
+     },
+     {
+      "pick": [
+       {
+        "table": "band_t01_elite",
+        "weight": 2
+       },
+       {
+        "table": "band_t02_elite",
+        "weight": 7
+       },
+       {
+        "table": "band_t03_elite",
+        "weight": 1
+       }
+      ],
+      "chance": 1.0
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.25
+     },
+     {
+      "table": "enhance_elite_t1",
+      "chance": 1.0
+     }
+    ]
+   },
+   "spore_mother": {
+    "entries": [
+     {
+      "item": "brood_core",
+      "chance": 0.85,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "spore_cap",
+      "chance": 1.0,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "hypha_thread",
+      "chance": 0.7,
+      "amount": [
+       2,
+       3
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.35
+     },
+     {
+      "pick": [
+       {
+        "table": "band_t02_elite",
+        "weight": 2
+       },
+       {
+        "table": "band_t03_elite",
+        "weight": 7
+       },
+       {
+        "table": "band_t04_elite",
+        "weight": 1
+       }
+      ],
+      "chance": 1.0
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.25
+     },
+     {
+      "table": "tonics",
+      "chance": 0.08
+     },
+     {
+      "table": "enhance_elite_t1",
+      "chance": 1.0
+     }
+    ]
+   },
+   "verdigris_crab": {
+    "entries": [
+     {
+      "item": "verdigris_plate",
+      "chance": 0.85,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "brine_pearl",
+      "chance": 1.0,
+      "amount": [
+       4,
+       6
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.35
+     },
+     {
+      "pick": [
+       {
+        "table": "band_t03_elite",
+        "weight": 2
+       },
+       {
+        "table": "band_t04_elite",
+        "weight": 7
+       },
+       {
+        "table": "band_t05_elite",
+        "weight": 1
+       }
+      ],
+      "chance": 1.0
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.25
+     },
+     {
+      "table": "tonics",
+      "chance": 0.08
+     },
+     {
+      "table": "enhance_elite_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "forge_executioner": {
+    "entries": [
+     {
+      "item": "executioner_edge",
+      "chance": 0.85,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "ember_soul",
+      "chance": 0.7,
+      "amount": [
+       2,
+       3
+      ]
+     },
+     {
+      "item": "silver_ore",
+      "chance": 0.25,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.35
+     },
+     {
+      "pick": [
+       {
+        "table": "band_t04_elite",
+        "weight": 2
+       },
+       {
+        "table": "band_t05_elite",
+        "weight": 7
+       },
+       {
+        "table": "band_t06_elite",
+        "weight": 1
+       }
+      ],
+      "chance": 1.0
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.25
+     },
+     {
+      "table": "tonics",
+      "chance": 0.08
+     },
+     {
+      "table": "enhance_elite_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "crypt_bellringer": {
+    "entries": [
+     {
+      "item": "funeral_bell_shard",
+      "chance": 0.85,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "grave_bone",
+      "chance": 1.0,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "silver_ore",
+      "chance": 0.25,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.35
+     },
+     {
+      "pick": [
+       {
+        "table": "band_t05_elite",
+        "weight": 2
+       },
+       {
+        "table": "band_t06_elite",
+        "weight": 7
+       },
+       {
+        "table": "band_t07_elite",
+        "weight": 1
+       }
+      ],
+      "chance": 1.0
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.25
+     },
+     {
+      "table": "tonics",
+      "chance": 0.08
+     },
+     {
+      "table": "enhance_elite_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "resonance_tuner": {
+    "entries": [
+     {
+      "item": "tuning_fork_core",
+      "chance": 0.85,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "resonant_sinew",
+      "chance": 1.0,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "mithril_ore",
+      "chance": 0.25,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.35
+     },
+     {
+      "pick": [
+       {
+        "table": "band_t06_elite",
+        "weight": 2
+       },
+       {
+        "table": "band_t07_elite",
+        "weight": 7
+       },
+       {
+        "table": "band_t08_elite",
+        "weight": 1
+       }
+      ],
+      "chance": 1.0
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.25
+     },
+     {
+      "table": "tonics",
+      "chance": 0.08
+     },
+     {
+      "table": "enhance_elite_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "forbidden_keeper": {
+    "entries": [
+     {
+      "item": "forbidden_seal",
+      "chance": 0.85,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "ink_essence",
+      "chance": 1.0,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "old_page",
+      "chance": 0.7,
+      "amount": [
+       2,
+       3
+      ]
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.35
+     },
+     {
+      "pick": [
+       {
+        "table": "band_t07_elite",
+        "weight": 2
+       },
+       {
+        "table": "band_t08_elite",
+        "weight": 7
+       },
+       {
+        "table": "band_t09_elite",
+        "weight": 1
+       }
+      ],
+      "chance": 1.0
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.25
+     },
+     {
+      "table": "tonics",
+      "chance": 0.08
+     },
+     {
+      "table": "enhance_elite_t3",
+      "chance": 1.0
+     }
+    ]
+   },
+   "grand_regulator": {
+    "entries": [
+     {
+      "item": "regulator_pendulum",
+      "chance": 0.85,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "clock_oil",
+      "chance": 1.0,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "starmetal_ore",
+      "chance": 0.25,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.35
+     },
+     {
+      "pick": [
+       {
+        "table": "band_t08_elite",
+        "weight": 2
+       },
+       {
+        "table": "band_t09_elite",
+        "weight": 7
+       },
+       {
+        "table": "band_t10_elite",
+        "weight": 1
+       }
+      ],
+      "chance": 1.0
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.25
+     },
+     {
+      "table": "tonics",
+      "chance": 0.08
+     },
+     {
+      "table": "enhance_elite_t3",
+      "chance": 1.0
+     }
+    ]
+   },
+   "abyss_gatekeeper": {
+    "entries": [
+     {
+      "item": "gatekeeper_rune",
+      "chance": 0.85,
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "item": "abyss_ichor",
+      "chance": 1.0,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "sculk_tendril",
+      "chance": 0.7,
+      "amount": [
+       2,
+       3
+      ]
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.35
+     },
+     {
+      "pick": [
+       {
+        "table": "band_t09_elite",
+        "weight": 2
+       },
+       {
+        "table": "band_t10_elite",
+        "weight": 7
+       }
+      ],
+      "chance": 1.0
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.25
+     },
+     {
+      "table": "tonics",
+      "chance": 0.08
+     },
+     {
+      "table": "enhance_elite_t3",
+      "chance": 1.0
+     }
+    ]
+   },
+   "floor01_boss": {
+    "guaranteed": [
+     {
+      "item": "warden_heartwood",
+      "amount": 1
+     },
+     {
+      "item": "moss_fiber",
+      "amount": [
+       6,
+       9
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "amount": [
+       1,
+       2
+      ]
+     },
+     {
+      "one_of": [
+       "grove_warden_maul",
+       "grove_rootstring_bow",
+       "grove_heartwood_staff",
+       "grove_mossguard_helm"
+      ]
+     }
+    ],
+    "entries": [
+     {
+      "item": "alpha_moss_crest",
+      "chance": 0.5
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.15
+     },
+     {
+      "item": "grove_heartwood_charm",
+      "chance": 0.25
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.5
+     },
+     {
+      "table": "enhance_boss_t1",
+      "chance": 1.0
+     }
+    ]
+   },
+   "floor02_boss": {
+    "guaranteed": [
+     {
+      "item": "silk_queen_spinneret",
+      "amount": 1
+     },
+     {
+      "item": "spider_silk",
+      "amount": [
+       4,
+       6
+      ]
+     },
+     {
+      "item": "tunnel_fang",
+      "amount": [
+       2,
+       3
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "amount": [
+       1,
+       2
+      ]
+     }
+    ],
+    "entries": [
+     {
+      "item": "foreman_badge",
+      "chance": 0.5
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.15
+     },
+     {
+      "one_of": [
+       "silkqueen_reaper",
+       "silkqueen_spindle_censer",
+       "silkqueen_fang"
+      ],
+      "chance": 0.68
+     },
+     {
+      "item": "silkqueen_veil",
+      "chance": 0.25
+     },
+     {
+      "item": "silk_queen_bracelet",
+      "chance": 0.2
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.5
+     },
+     {
+      "table": "enhance_boss_t1",
+      "chance": 1.0
+     },
+     {
+      "item": "copper_ore",
+      "amount": [
+       3,
+       5
+      ],
+      "chance": 0.25
+     }
+    ]
+   },
+   "floor03_boss": {
+    "guaranteed": [
+     {
+      "item": "mycelium_crown",
+      "amount": 1
+     },
+     {
+      "item": "spore_cap",
+      "amount": [
+       4,
+       6
+      ]
+     },
+     {
+      "item": "hypha_thread",
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "amount": [
+       1,
+       2
+      ]
+     }
+    ],
+    "entries": [
+     {
+      "item": "brood_core",
+      "chance": 0.5
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.15
+     },
+     {
+      "one_of": [
+       "mycelking_guard_blade",
+       "mycelking_scepter",
+       "mycelking_sporefang"
+      ],
+      "chance": 0.68
+     },
+     {
+      "item": "mycelking_spore_crown",
+      "chance": 0.22
+     },
+     {
+      "item": "symbiosis_ring",
+      "chance": 0.18
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.5
+     },
+     {
+      "table": "tonics",
+      "chance": 0.2
+     },
+     {
+      "table": "enhance_boss_t1",
+      "chance": 1.0
+     },
+     {
+      "table": "enhance_preview_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "floor04_boss": {
+    "guaranteed": [
+     {
+      "item": "floodgate_key",
+      "amount": 1
+     },
+     {
+      "item": "brine_pearl",
+      "amount": [
+       6,
+       9
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "amount": [
+       1,
+       2
+      ]
+     }
+    ],
+    "entries": [
+     {
+      "item": "verdigris_plate",
+      "chance": 0.5
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.15
+     },
+     {
+      "one_of": [
+       "osric_drowned_axe",
+       "osric_tide_trident"
+      ],
+      "chance": 0.5
+     },
+     {
+      "item": "tidecaller_bow",
+      "chance": 0.2
+     },
+     {
+      "item": "osric_sluice_helm",
+      "chance": 0.2
+     },
+     {
+      "item": "floodwarden_signet",
+      "chance": 0.15
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.5
+     },
+     {
+      "table": "tonics",
+      "chance": 0.2
+     },
+     {
+      "table": "enhance_boss_t2",
+      "chance": 1.0
+     }
+    ]
+   },
+   "floor05_boss": {
+    "guaranteed": [
+     {
+      "item": "forge_core",
+      "amount": 1
+     },
+     {
+      "item": "ember_soul",
+      "amount": [
+       4,
+       6
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "amount": [
+       1,
+       2
+      ]
+     }
+    ],
+    "entries": [
+     {
+      "item": "executioner_edge",
+      "chance": 0.5
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.15
+     },
+     {
+      "one_of": [
+       "dawnbringer",
+       "ember_greatsword"
+      ],
+      "chance": 0.3
+     },
+     {
+      "one_of": [
+       "forge_warden_helm",
+       "forge_warden_chest",
+       "forge_warden_legs",
+       "forge_warden_boots"
+      ],
+      "chance": 0.3
+     },
+     {
+      "item": "anvil_king_brand",
+      "chance": 0.15
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.5
+     },
+     {
+      "table": "tonics",
+      "chance": 0.2
+     },
+     {
+      "table": "enhance_boss_t2",
+      "chance": 1.0
+     },
+     {
+      "item": "silver_ore",
+      "amount": [
+       4,
+       6
+      ],
+      "chance": 0.25
+     }
+    ]
+   },
+   "floor06_boss": {
+    "guaranteed": [
+     {
+      "item": "frozen_crown_shard",
+      "amount": 1
+     },
+     {
+      "item": "grave_bone",
+      "amount": [
+       4,
+       6
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "amount": [
+       1,
+       2
+      ]
+     }
+    ],
+    "entries": [
+     {
+      "item": "funeral_bell_shard",
+      "chance": 0.5
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.15
+     },
+     {
+      "one_of": [
+       "rimeheart_staff",
+       "sanctum_scepter",
+       "soulflame_kris"
+      ],
+      "chance": 0.25
+     },
+     {
+      "one_of": [
+       "frost_regalia_helm",
+       "frost_regalia_chest",
+       "frost_regalia_legs",
+       "frost_regalia_boots"
+      ],
+      "chance": 0.28
+     },
+     {
+      "item": "empress_frozen_tear",
+      "chance": 0.08
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.5
+     },
+     {
+      "table": "tonics",
+      "chance": 0.2
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.08
+     },
+     {
+      "table": "enhance_boss_t2",
+      "chance": 1.0
+     },
+     {
+      "item": "silver_ore",
+      "amount": [
+       4,
+       6
+      ],
+      "chance": 0.25
+     }
+    ]
+   },
+   "floor07_boss": {
+    "guaranteed": [
+     {
+      "item": "dyad_heart",
+      "amount": 1
+     },
+     {
+      "item": "radiant_essence",
+      "amount": [
+       1,
+       2
+      ]
+     }
+    ],
+    "entries": [
+     {
+      "item": "tuning_fork_core",
+      "chance": 0.5
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.15
+     },
+     {
+      "one_of": [
+       "geode_sunderer",
+       "galewing_bow",
+       "twin_light_scepter"
+      ],
+      "chance": 0.25
+     },
+     {
+      "item": "prism_aegis",
+      "chance": 0.08
+     },
+     {
+      "item": "dyad_twin_orb",
+      "chance": 0.08
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.5
+     },
+     {
+      "table": "tonics",
+      "chance": 0.2
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.08
+     },
+     {
+      "table": "enhance_boss_t2",
+      "chance": 1.0
+     },
+     {
+      "table": "enhance_preview_t3",
+      "chance": 1.0
+     },
+     {
+      "item": "mithril_ore",
+      "amount": [
+       4,
+       6
+      ],
+      "chance": 0.25
+     }
+    ]
+   },
+   "floor08_boss": {
+    "guaranteed": [
+     {
+      "item": "librarian_quill",
+      "amount": 1
+     },
+     {
+      "item": "ink_essence",
+      "amount": [
+       4,
+       6
+      ]
+     },
+     {
+      "item": "old_page",
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "radiant_essence",
+      "amount": [
+       1,
+       2
+      ]
+     }
+    ],
+    "entries": [
+     {
+      "item": "forbidden_seal",
+      "chance": 0.5
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.15
+     },
+     {
+      "one_of": [
+       "index_keeper_sword",
+       "inkwell_staff",
+       "nightshade_dagger"
+      ],
+      "chance": 0.34
+     },
+     {
+      "one_of": [
+       "inkveil_helm",
+       "inkveil_chest",
+       "inkveil_legs",
+       "inkveil_boots"
+      ],
+      "chance": 0.22
+     },
+     {
+      "item": "orbel_quill_charm",
+      "chance": 0.08
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.5
+     },
+     {
+      "table": "tonics",
+      "chance": 0.2
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.08
+     },
+     {
+      "table": "enhance_boss_t3",
+      "chance": 1.0
+     }
+    ]
+   },
+   "floor09_boss": {
+    "guaranteed": [
+     {
+      "item": "clockwork_heart",
+      "amount": 1
+     },
+     {
+      "item": "clock_oil",
+      "amount": [
+       4,
+       6
+      ]
+     },
+     {
+      "item": "chrono_dust",
+      "amount": [
+       2,
+       3
+      ]
+     },
+     {
+      "item": "primordial_essence",
+      "amount": [
+       1,
+       2
+      ]
+     }
+    ],
+    "entries": [
+     {
+      "item": "regulator_pendulum",
+      "chance": 0.5
+     },
+     {
+      "one_of": [
+       "doomclock_executioner",
+       "quicksilver_longbow",
+       "tesla_coil_staff"
+      ],
+      "chance": 0.34
+     },
+     {
+      "item": "clockwork_bastion",
+      "chance": 0.06
+     },
+     {
+      "item": "teora_pocketwatch",
+      "chance": 0.08
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.5
+     },
+     {
+      "table": "tonics",
+      "chance": 0.2
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.08
+     },
+     {
+      "table": "enhance_boss_t3",
+      "chance": 1.0
+     },
+     {
+      "item": "starmetal_ore",
+      "amount": [
+       4,
+       6
+      ],
+      "chance": 0.25
+     }
+    ]
+   },
+   "floor10_boss": {
+    "guaranteed": [
+     {
+      "item": "abyssal_heart_fragment",
+      "amount": 1
+     },
+     {
+      "item": "abyss_ichor",
+      "amount": [
+       4,
+       6
+      ]
+     },
+     {
+      "item": "sculk_tendril",
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "primordial_essence",
+      "amount": [
+       1,
+       2
+      ]
+     }
+    ],
+    "entries": [
+     {
+      "item": "gatekeeper_rune",
+      "chance": 0.5
+     },
+     {
+      "one_of": [
+       "abyss_sentinel_longsword",
+       "aurora_scepter",
+       "viper_fang"
+      ],
+      "chance": 0.34
+     },
+     {
+      "one_of": [
+       "celestial_oathkeeper",
+       "bloodmoon_reaver",
+       "tempest_bow",
+       "voidheart_staff",
+       "seraph_scepter",
+       "eclipse_blade"
+      ],
+      "chance": 0.04,
+      "min_difficulty": "hard"
+     },
+     {
+      "item": "heart_of_nelkar",
+      "chance": 0.025,
+      "min_difficulty": "hard"
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.5
+     },
+     {
+      "table": "tonics",
+      "chance": 0.2
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.08
+     },
+     {
+      "table": "enhance_boss_t3",
+      "chance": 1.0
+     }
+    ]
+   }
+  },
+  "chest_tables": {
+   "maze_chest_wood_1": {
+    "rolls": 1,
+    "gold": [
+     12,
+     35
+    ],
+    "entries": [
+     {
+      "table": "potions_t1",
+      "chance": 0.5
+     },
+     {
+      "one_of": [
+       "moss_fiber",
+       "beetle_shell",
+       "moss_scale",
+       "spider_silk",
+       "tunnel_fang",
+       "spore_cap",
+       "hypha_thread"
+      ],
+      "chance": 0.55,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "copper_ore",
+      "chance": 0.0229,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.08
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.05
+     }
+    ]
+   },
+   "maze_chest_iron_1": {
+    "rolls": 2,
+    "gold": [
+     30,
+     70
+    ],
+    "entries": [
+     {
+      "table": "potions_t1",
+      "chance": 0.55
+     },
+     {
+      "one_of": [
+       "moss_fiber",
+       "beetle_shell",
+       "moss_scale",
+       "spider_silk",
+       "tunnel_fang",
+       "spore_cap",
+       "hypha_thread"
+      ],
+      "chance": 0.6,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "copper_ore",
+      "chance": 0.025,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.2
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.1
+     },
+     {
+      "table": "tonics",
+      "chance": 0.06
+     }
+    ]
+   },
+   "maze_chest_gold_1": {
+    "rolls": 2,
+    "gold": [
+     70,
+     150
+    ],
+    "guaranteed": [
+     {
+      "item": "dim_essence",
+      "amount": 1
+     }
+    ],
+    "entries": [
+     {
+      "table": "potions_t1",
+      "chance": 0.6
+     },
+     {
+      "one_of": [
+       "moss_fiber",
+       "beetle_shell",
+       "moss_scale",
+       "spider_silk",
+       "tunnel_fang",
+       "spore_cap",
+       "hypha_thread"
+      ],
+      "chance": 0.6,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "copper_ore",
+      "chance": 0.025,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.06
+     },
+     {
+      "table": "tonics",
+      "chance": 0.15
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.05
+     }
+    ]
+   },
+   "maze_chest_wood_2": {
+    "rolls": 1,
+    "gold": [
+     50,
+     110
+    ],
+    "entries": [
+     {
+      "table": "potions_t1",
+      "chance": 0.5
+     },
+     {
+      "one_of": [
+       "brine_pearl",
+       "eel_scale",
+       "cinder_scale",
+       "ember_soul",
+       "grave_bone",
+       "rime_talon"
+      ],
+      "chance": 0.55,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "silver_ore",
+      "chance": 0.0458,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.08
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.05
+     }
+    ]
+   },
+   "maze_chest_iron_2": {
+    "rolls": 2,
+    "gold": [
+     110,
+     220
+    ],
+    "entries": [
+     {
+      "table": "potions_t2",
+      "chance": 0.55
+     },
+     {
+      "one_of": [
+       "brine_pearl",
+       "eel_scale",
+       "cinder_scale",
+       "ember_soul",
+       "grave_bone",
+       "rime_talon"
+      ],
+      "chance": 0.6,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "silver_ore",
+      "chance": 0.05,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.2
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.1
+     },
+     {
+      "table": "tonics",
+      "chance": 0.06
+     }
+    ]
+   },
+   "maze_chest_gold_2": {
+    "rolls": 2,
+    "gold": [
+     220,
+     420
+    ],
+    "guaranteed": [
+     {
+      "item": "labyrinth_essence",
+      "amount": 1
+     }
+    ],
+    "entries": [
+     {
+      "table": "potions_t2",
+      "chance": 0.6
+     },
+     {
+      "one_of": [
+       "brine_pearl",
+       "eel_scale",
+       "cinder_scale",
+       "ember_soul",
+       "grave_bone",
+       "rime_talon"
+      ],
+      "chance": 0.6,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "silver_ore",
+      "chance": 0.05,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.06
+     },
+     {
+      "table": "tonics",
+      "chance": 0.15
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.05
+     }
+    ]
+   },
+   "maze_chest_wood_3": {
+    "rolls": 1,
+    "gold": [
+     150,
+     300
+    ],
+    "entries": [
+     {
+      "table": "potions_t2",
+      "chance": 0.5
+     },
+     {
+      "one_of": [
+       "resonant_sinew",
+       "ink_essence",
+       "old_page",
+       "clock_oil",
+       "chrono_dust"
+      ],
+      "chance": 0.55,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "mithril_ore",
+      "chance": 0.0229,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "starmetal_ore",
+      "chance": 0.0229,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.08
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.05
+     }
+    ]
+   },
+   "maze_chest_iron_3": {
+    "rolls": 2,
+    "gold": [
+     300,
+     550
+    ],
+    "entries": [
+     {
+      "table": "potions_t3",
+      "chance": 0.55
+     },
+     {
+      "one_of": [
+       "resonant_sinew",
+       "ink_essence",
+       "old_page",
+       "clock_oil",
+       "chrono_dust"
+      ],
+      "chance": 0.6,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "mithril_ore",
+      "chance": 0.025,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "starmetal_ore",
+      "chance": 0.025,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.2
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.1
+     },
+     {
+      "table": "tonics",
+      "chance": 0.06
+     }
+    ]
+   },
+   "maze_chest_gold_3": {
+    "rolls": 2,
+    "gold": [
+     550,
+     950
+    ],
+    "guaranteed": [
+     {
+      "item": "radiant_essence",
+      "amount": 1
+     }
+    ],
+    "entries": [
+     {
+      "table": "potions_t3",
+      "chance": 0.6
+     },
+     {
+      "one_of": [
+       "resonant_sinew",
+       "ink_essence",
+       "old_page",
+       "clock_oil",
+       "chrono_dust"
+      ],
+      "chance": 0.6,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "mithril_ore",
+      "chance": 0.025,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "starmetal_ore",
+      "chance": 0.025,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.06
+     },
+     {
+      "table": "tonics",
+      "chance": 0.15
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.05
+     }
+    ]
+   },
+   "maze_chest_wood_4": {
+    "rolls": 1,
+    "gold": [
+     300,
+     550
+    ],
+    "entries": [
+     {
+      "table": "potions_t3",
+      "chance": 0.5
+     },
+     {
+      "one_of": [
+       "abyss_ichor",
+       "sculk_tendril",
+       "abyss_scale"
+      ],
+      "chance": 0.55,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.08
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.05
+     }
+    ]
+   },
+   "maze_chest_iron_4": {
+    "rolls": 2,
+    "gold": [
+     550,
+     900
+    ],
+    "entries": [
+     {
+      "table": "potions_t3",
+      "chance": 0.55
+     },
+     {
+      "one_of": [
+       "abyss_ichor",
+       "sculk_tendril",
+       "abyss_scale"
+      ],
+      "chance": 0.6,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.2
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.1
+     },
+     {
+      "table": "tonics",
+      "chance": 0.06
+     }
+    ]
+   },
+   "maze_chest_gold_4": {
+    "rolls": 2,
+    "gold": [
+     900,
+     1500
+    ],
+    "guaranteed": [
+     {
+      "item": "primordial_essence",
+      "amount": 1
+     }
+    ],
+    "entries": [
+     {
+      "table": "potions_t3",
+      "chance": 0.6
+     },
+     {
+      "one_of": [
+       "abyss_ichor",
+       "sculk_tendril",
+       "abyss_scale"
+      ],
+      "chance": 0.6,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.06
+     },
+     {
+      "table": "tonics",
+      "chance": 0.15
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.05
+     }
+    ]
+   },
+   "treasure_floor_1": {
+    "rolls": 2,
+    "gold": [
+     20,
+     40
+    ],
+    "guaranteed": [
+     {
+      "table": "enhance_chest_t1",
+      "chance": 1.0
+     }
+    ],
+    "entries": [
+     {
+      "table": "potions_t1",
+      "chance": 0.45
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.1
+     },
+     {
+      "one_of": [
+       "moss_fiber",
+       "beetle_shell",
+       "moss_scale"
+      ],
+      "chance": 0.3,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "one_of": [
+       "moss_fiber",
+       "beetle_shell",
+       "moss_scale"
+      ],
+      "chance": 0.3,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.12
+     },
+     {
+      "table": "mix_f01_drop",
+      "chance": 0.0532
+     }
+    ]
+   },
+   "gimmick_floor_1": {
+    "rolls": 2,
+    "gold": [
+     32,
+     64
+    ],
+    "guaranteed": [
+     {
+      "item": "dim_essence",
+      "amount": 1
+     },
+     {
+      "table": "enhance_gimmick_t1",
+      "chance": 1.0
+     }
+    ],
+    "entries": [
+     {
+      "item": "dim_essence",
+      "chance": 0.6
+     },
+     {
+      "item": "alpha_moss_crest",
+      "chance": 0.15
+     },
+     {
+      "one_of": [
+       "moss_fiber",
+       "beetle_shell",
+       "moss_scale"
+      ],
+      "chance": 0.35,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "one_of": [
+       "moss_fiber",
+       "beetle_shell",
+       "moss_scale"
+      ],
+      "chance": 0.35,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.35
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.05
+     },
+     {
+      "pick": [
+       {
+        "table": "band_t01_trial",
+        "weight": 7
+       },
+       {
+        "table": "band_t02_trial",
+        "weight": 1
+       }
+      ],
+      "chance": 0.143
+     }
+    ]
+   },
+   "maze_chest_wood_f1": {
+    "rolls": 1,
+    "gold": [
+     12,
+     35
+    ],
+    "entries": [
+     {
+      "table": "potions_t1",
+      "chance": 0.5
+     },
+     {
+      "one_of": [
+       "moss_fiber",
+       "beetle_shell",
+       "moss_scale"
+      ],
+      "chance": 0.55,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.08
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.05
+     },
+     {
+      "table": "mix_f01_drop",
+      "chance": 0.0228
+     }
+    ]
+   },
+   "maze_chest_iron_f1": {
+    "rolls": 2,
+    "gold": [
+     30,
+     70
+    ],
+    "entries": [
+     {
+      "table": "potions_t1",
+      "chance": 0.55
+     },
+     {
+      "one_of": [
+       "moss_fiber",
+       "beetle_shell",
+       "moss_scale"
+      ],
+      "chance": 0.6,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.2
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.1
+     },
+     {
+      "table": "tonics",
+      "chance": 0.06
+     },
+     {
+      "table": "mix_f01_drop",
+      "chance": 0.0456
+     }
+    ]
+   },
+   "maze_chest_gold_f1": {
+    "rolls": 2,
+    "gold": [
+     70,
+     150
+    ],
+    "guaranteed": [
+     {
+      "item": "dim_essence",
+      "amount": 1
+     }
+    ],
+    "entries": [
+     {
+      "table": "potions_t1",
+      "chance": 0.6
+     },
+     {
+      "one_of": [
+       "moss_fiber",
+       "beetle_shell",
+       "moss_scale"
+      ],
+      "chance": 0.6,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "alpha_moss_crest",
+      "chance": 0.2
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.06
+     },
+     {
+      "table": "tonics",
+      "chance": 0.15
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.05
+     },
+     {
+      "table": "mix_f01_drop",
+      "chance": 0.076
+     }
+    ]
+   },
+   "treasure_floor_2": {
+    "rolls": 2,
+    "gold": [
+     35,
+     65
+    ],
+    "guaranteed": [
+     {
+      "table": "enhance_chest_t1",
+      "chance": 1.0
+     }
+    ],
+    "entries": [
+     {
+      "table": "potions_t1",
+      "chance": 0.45
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.1
+     },
+     {
+      "one_of": [
+       "spider_silk",
+       "tunnel_fang"
+      ],
+      "chance": 0.3,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "copper_ore",
+      "chance": 0.075,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.12
+     },
+     {
+      "table": "mix_f02_drop",
+      "chance": 0.0844
+     }
+    ]
+   },
+   "gimmick_floor_2": {
+    "rolls": 2,
+    "gold": [
+     56,
+     104
+    ],
+    "guaranteed": [
+     {
+      "item": "dim_essence",
+      "amount": 1
+     },
+     {
+      "table": "enhance_gimmick_t1",
+      "chance": 1.0
+     }
+    ],
+    "entries": [
+     {
+      "item": "dim_essence",
+      "chance": 0.6
+     },
+     {
+      "item": "foreman_badge",
+      "chance": 0.15
+     },
+     {
+      "one_of": [
+       "spider_silk",
+       "tunnel_fang"
+      ],
+      "chance": 0.35,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "copper_ore",
+      "chance": 0.0875,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.35
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.05
+     },
+     {
+      "pick": [
+       {
+        "table": "band_t01_trial",
+        "weight": 2
+       },
+       {
+        "table": "band_t02_trial",
+        "weight": 7
+       },
+       {
+        "table": "band_t03_trial",
+        "weight": 1
+       }
+      ],
+      "chance": 0.3
+     }
+    ]
+   },
+   "maze_chest_wood_f2": {
+    "rolls": 1,
+    "gold": [
+     12,
+     35
+    ],
+    "entries": [
+     {
+      "table": "potions_t1",
+      "chance": 0.5
+     },
+     {
+      "one_of": [
+       "spider_silk",
+       "tunnel_fang"
+      ],
+      "chance": 0.55,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "copper_ore",
+      "chance": 0.0688,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.08
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.05
+     },
+     {
+      "table": "mix_f02_drop",
+      "chance": 0.0362
+     }
+    ]
+   },
+   "maze_chest_iron_f2": {
+    "rolls": 2,
+    "gold": [
+     30,
+     70
+    ],
+    "entries": [
+     {
+      "table": "potions_t1",
+      "chance": 0.55
+     },
+     {
+      "one_of": [
+       "spider_silk",
+       "tunnel_fang"
+      ],
+      "chance": 0.6,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "copper_ore",
+      "chance": 0.075,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.2
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.1
+     },
+     {
+      "table": "tonics",
+      "chance": 0.06
+     },
+     {
+      "table": "mix_f02_drop",
+      "chance": 0.0723
+     }
+    ]
+   },
+   "maze_chest_gold_f2": {
+    "rolls": 2,
+    "gold": [
+     70,
+     150
+    ],
+    "guaranteed": [
+     {
+      "item": "dim_essence",
+      "amount": 1
+     }
+    ],
+    "entries": [
+     {
+      "table": "potions_t1",
+      "chance": 0.6
+     },
+     {
+      "one_of": [
+       "spider_silk",
+       "tunnel_fang"
+      ],
+      "chance": 0.6,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "copper_ore",
+      "chance": 0.075,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "foreman_badge",
+      "chance": 0.2
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.06
+     },
+     {
+      "table": "tonics",
+      "chance": 0.15
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.05
+     },
+     {
+      "table": "mix_f02_drop",
+      "chance": 0.1206
+     }
+    ]
+   },
+   "treasure_floor_3": {
+    "rolls": 2,
+    "gold": [
+     55,
+     100
+    ],
+    "guaranteed": [
+     {
+      "table": "enhance_chest_t1",
+      "chance": 1.0
+     }
+    ],
+    "entries": [
+     {
+      "table": "potions_t1",
+      "chance": 0.45
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.1
+     },
+     {
+      "one_of": [
+       "spore_cap",
+       "hypha_thread"
+      ],
+      "chance": 0.3,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "one_of": [
+       "spore_cap",
+       "hypha_thread"
+      ],
+      "chance": 0.3,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.12
+     },
+     {
+      "table": "tonics",
+      "chance": 0.08
+     },
+     {
+      "table": "mix_f03_drop",
+      "chance": 0.0586
+     }
+    ]
+   },
+   "gimmick_floor_3": {
+    "rolls": 2,
+    "gold": [
+     88,
+     160
+    ],
+    "guaranteed": [
+     {
+      "item": "dim_essence",
+      "amount": 1
+     },
+     {
+      "table": "enhance_gimmick_t1",
+      "chance": 1.0
+     }
+    ],
+    "entries": [
+     {
+      "item": "dim_essence",
+      "chance": 0.6
+     },
+     {
+      "item": "brood_core",
+      "chance": 0.15
+     },
+     {
+      "one_of": [
+       "spore_cap",
+       "hypha_thread"
+      ],
+      "chance": 0.35,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "one_of": [
+       "spore_cap",
+       "hypha_thread"
+      ],
+      "chance": 0.35,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.35
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.05
+     },
+     {
+      "table": "tonics",
+      "chance": 0.12
+     },
+     {
+      "pick": [
+       {
+        "table": "band_t02_trial",
+        "weight": 2
+       },
+       {
+        "table": "band_t03_trial",
+        "weight": 7
+       },
+       {
+        "table": "band_t04_trial",
+        "weight": 1
+       }
+      ],
+      "chance": 0.217
+     }
+    ]
+   },
+   "maze_chest_wood_f3": {
+    "rolls": 1,
+    "gold": [
+     12,
+     35
+    ],
+    "entries": [
+     {
+      "table": "potions_t1",
+      "chance": 0.5
+     },
+     {
+      "one_of": [
+       "spore_cap",
+       "hypha_thread"
+      ],
+      "chance": 0.55,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.08
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.05
+     },
+     {
+      "table": "mix_f03_drop",
+      "chance": 0.0251
+     }
+    ]
+   },
+   "maze_chest_iron_f3": {
+    "rolls": 2,
+    "gold": [
+     30,
+     70
+    ],
+    "entries": [
+     {
+      "table": "potions_t1",
+      "chance": 0.55
+     },
+     {
+      "one_of": [
+       "spore_cap",
+       "hypha_thread"
+      ],
+      "chance": 0.6,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "dim_essence",
+      "chance": 0.2
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.1
+     },
+     {
+      "table": "tonics",
+      "chance": 0.06
+     },
+     {
+      "table": "mix_f03_drop",
+      "chance": 0.0503
+     }
+    ]
+   },
+   "maze_chest_gold_f3": {
+    "rolls": 2,
+    "gold": [
+     70,
+     150
+    ],
+    "guaranteed": [
+     {
+      "item": "dim_essence",
+      "amount": 1
+     }
+    ],
+    "entries": [
+     {
+      "table": "potions_t1",
+      "chance": 0.6
+     },
+     {
+      "one_of": [
+       "spore_cap",
+       "hypha_thread"
+      ],
+      "chance": 0.6,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "brood_core",
+      "chance": 0.2
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.06
+     },
+     {
+      "table": "tonics",
+      "chance": 0.15
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.05
+     },
+     {
+      "table": "mix_f03_drop",
+      "chance": 0.0838
+     }
+    ]
+   },
+   "treasure_floor_4": {
+    "rolls": 2,
+    "gold": [
+     85,
+     150
+    ],
+    "guaranteed": [
+     {
+      "table": "enhance_chest_t2",
+      "chance": 1.0
+     }
+    ],
+    "entries": [
+     {
+      "table": "potions_t1",
+      "chance": 0.45
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.1
+     },
+     {
+      "one_of": [
+       "brine_pearl",
+       "eel_scale"
+      ],
+      "chance": 0.3,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "one_of": [
+       "brine_pearl",
+       "eel_scale"
+      ],
+      "chance": 0.3,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.12
+     },
+     {
+      "table": "tonics",
+      "chance": 0.08
+     },
+     {
+      "table": "mix_f04_drop",
+      "chance": 0.0524
+     }
+    ]
+   },
+   "gimmick_floor_4": {
+    "rolls": 2,
+    "gold": [
+     136,
+     240
+    ],
+    "guaranteed": [
+     {
+      "item": "labyrinth_essence",
+      "amount": 1
+     },
+     {
+      "table": "enhance_gimmick_t2",
+      "chance": 1.0
+     }
+    ],
+    "entries": [
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.6
+     },
+     {
+      "item": "verdigris_plate",
+      "chance": 0.15
+     },
+     {
+      "one_of": [
+       "brine_pearl",
+       "eel_scale"
+      ],
+      "chance": 0.35,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "one_of": [
+       "brine_pearl",
+       "eel_scale"
+      ],
+      "chance": 0.35,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "table": "potions_t1",
+      "chance": 0.35
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.05
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.06
+     },
+     {
+      "table": "tonics",
+      "chance": 0.12
+     },
+     {
+      "pick": [
+       {
+        "table": "band_t03_trial",
+        "weight": 2
+       },
+       {
+        "table": "band_t04_trial",
+        "weight": 7
+       },
+       {
+        "table": "band_t05_trial",
+        "weight": 1
+       }
+      ],
+      "chance": 0.361
+     }
+    ]
+   },
+   "maze_chest_wood_f4": {
+    "rolls": 1,
+    "gold": [
+     50,
+     110
+    ],
+    "entries": [
+     {
+      "table": "potions_t1",
+      "chance": 0.5
+     },
+     {
+      "one_of": [
+       "brine_pearl",
+       "eel_scale"
+      ],
+      "chance": 0.55,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.08
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.05
+     },
+     {
+      "table": "mix_f04_drop",
+      "chance": 0.0224
+     }
+    ]
+   },
+   "maze_chest_iron_f4": {
+    "rolls": 2,
+    "gold": [
+     110,
+     220
+    ],
+    "entries": [
+     {
+      "table": "potions_t1",
+      "chance": 0.55
+     },
+     {
+      "one_of": [
+       "brine_pearl",
+       "eel_scale"
+      ],
+      "chance": 0.6,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.2
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.1
+     },
+     {
+      "table": "tonics",
+      "chance": 0.06
+     },
+     {
+      "table": "mix_f04_drop",
+      "chance": 0.0449
+     }
+    ]
+   },
+   "maze_chest_gold_f4": {
+    "rolls": 2,
+    "gold": [
+     220,
+     420
+    ],
+    "guaranteed": [
+     {
+      "item": "labyrinth_essence",
+      "amount": 1
+     }
+    ],
+    "entries": [
+     {
+      "table": "potions_t1",
+      "chance": 0.6
+     },
+     {
+      "one_of": [
+       "brine_pearl",
+       "eel_scale"
+      ],
+      "chance": 0.6,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "verdigris_plate",
+      "chance": 0.2
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.06
+     },
+     {
+      "table": "tonics",
+      "chance": 0.15
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.05
+     },
+     {
+      "table": "mix_f04_drop",
+      "chance": 0.0748
+     }
+    ]
+   },
+   "treasure_floor_5": {
+    "rolls": 2,
+    "gold": [
+     130,
+     230
+    ],
+    "guaranteed": [
+     {
+      "table": "enhance_chest_t2",
+      "chance": 1.0
+     }
+    ],
+    "entries": [
+     {
+      "table": "potions_t2",
+      "chance": 0.45
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.1
+     },
+     {
+      "item": "silver_ore",
+      "chance": 0.075,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "one_of": [
+       "cinder_scale",
+       "ember_soul"
+      ],
+      "chance": 0.3,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.12
+     },
+     {
+      "table": "tonics",
+      "chance": 0.08
+     },
+     {
+      "table": "mix_f05_drop",
+      "chance": 0.0334
+     }
+    ]
+   },
+   "gimmick_floor_5": {
+    "rolls": 2,
+    "gold": [
+     208,
+     368
+    ],
+    "guaranteed": [
+     {
+      "item": "labyrinth_essence",
+      "amount": 1
+     },
+     {
+      "table": "enhance_gimmick_t2",
+      "chance": 1.0
+     }
+    ],
+    "entries": [
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.6
+     },
+     {
+      "item": "executioner_edge",
+      "chance": 0.15
+     },
+     {
+      "item": "silver_ore",
+      "chance": 0.0875,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "one_of": [
+       "cinder_scale",
+       "ember_soul"
+      ],
+      "chance": 0.35,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.35
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.05
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.06
+     },
+     {
+      "table": "tonics",
+      "chance": 0.12
+     },
+     {
+      "pick": [
+       {
+        "table": "band_t04_trial",
+        "weight": 2
+       },
+       {
+        "table": "band_t05_trial",
+        "weight": 7
+       },
+       {
+        "table": "band_t06_trial",
+        "weight": 1
+       }
+      ],
+      "chance": 0.217
+     }
+    ]
+   },
+   "maze_chest_wood_f5": {
+    "rolls": 1,
+    "gold": [
+     50,
+     110
+    ],
+    "entries": [
+     {
+      "table": "potions_t2",
+      "chance": 0.5
+     },
+     {
+      "one_of": [
+       "cinder_scale",
+       "ember_soul"
+      ],
+      "chance": 0.55,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "silver_ore",
+      "chance": 0.0688,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.08
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.05
+     },
+     {
+      "table": "mix_f05_drop",
+      "chance": 0.0143
+     }
+    ]
+   },
+   "maze_chest_iron_f5": {
+    "rolls": 2,
+    "gold": [
+     110,
+     220
+    ],
+    "entries": [
+     {
+      "table": "potions_t2",
+      "chance": 0.55
+     },
+     {
+      "one_of": [
+       "cinder_scale",
+       "ember_soul"
+      ],
+      "chance": 0.6,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "silver_ore",
+      "chance": 0.075,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.2
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.1
+     },
+     {
+      "table": "tonics",
+      "chance": 0.06
+     },
+     {
+      "table": "mix_f05_drop",
+      "chance": 0.0286
+     }
+    ]
+   },
+   "maze_chest_gold_f5": {
+    "rolls": 2,
+    "gold": [
+     220,
+     420
+    ],
+    "guaranteed": [
+     {
+      "item": "labyrinth_essence",
+      "amount": 1
+     }
+    ],
+    "entries": [
+     {
+      "table": "potions_t2",
+      "chance": 0.6
+     },
+     {
+      "one_of": [
+       "cinder_scale",
+       "ember_soul"
+      ],
+      "chance": 0.6,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "silver_ore",
+      "chance": 0.075,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "executioner_edge",
+      "chance": 0.2
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.06
+     },
+     {
+      "table": "tonics",
+      "chance": 0.15
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.05
+     },
+     {
+      "table": "mix_f05_drop",
+      "chance": 0.0477
+     }
+    ]
+   },
+   "treasure_floor_6": {
+    "rolls": 2,
+    "gold": [
+     190,
+     330
+    ],
+    "guaranteed": [
+     {
+      "table": "enhance_chest_t2",
+      "chance": 1.0
+     }
+    ],
+    "entries": [
+     {
+      "table": "potions_t2",
+      "chance": 0.45
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.1
+     },
+     {
+      "item": "silver_ore",
+      "chance": 0.075,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "one_of": [
+       "grave_bone",
+       "rime_talon"
+      ],
+      "chance": 0.3,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.12
+     },
+     {
+      "table": "tonics",
+      "chance": 0.08
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f06_drop",
+      "chance": 0.0208
+     }
+    ]
+   },
+   "gimmick_floor_6": {
+    "rolls": 2,
+    "gold": [
+     304,
+     528
+    ],
+    "guaranteed": [
+     {
+      "item": "labyrinth_essence",
+      "amount": 1
+     },
+     {
+      "table": "enhance_gimmick_t2",
+      "chance": 1.0
+     }
+    ],
+    "entries": [
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.6
+     },
+     {
+      "item": "funeral_bell_shard",
+      "chance": 0.15
+     },
+     {
+      "item": "silver_ore",
+      "chance": 0.0875,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "one_of": [
+       "grave_bone",
+       "rime_talon"
+      ],
+      "chance": 0.35,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.35
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.05
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.06
+     },
+     {
+      "table": "tonics",
+      "chance": 0.12
+     },
+     {
+      "pick": [
+       {
+        "table": "band_t05_trial",
+        "weight": 2
+       },
+       {
+        "table": "band_t06_trial",
+        "weight": 7
+       },
+       {
+        "table": "band_t07_trial",
+        "weight": 1
+       }
+      ],
+      "chance": 0.217
+     }
+    ]
+   },
+   "maze_chest_wood_f6": {
+    "rolls": 1,
+    "gold": [
+     50,
+     110
+    ],
+    "entries": [
+     {
+      "table": "potions_t2",
+      "chance": 0.5
+     },
+     {
+      "one_of": [
+       "grave_bone",
+       "rime_talon"
+      ],
+      "chance": 0.55,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "silver_ore",
+      "chance": 0.0688,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.08
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.05
+     },
+     {
+      "table": "mix_f06_drop",
+      "chance": 0.0089
+     }
+    ]
+   },
+   "maze_chest_iron_f6": {
+    "rolls": 2,
+    "gold": [
+     110,
+     220
+    ],
+    "entries": [
+     {
+      "table": "potions_t2",
+      "chance": 0.55
+     },
+     {
+      "one_of": [
+       "grave_bone",
+       "rime_talon"
+      ],
+      "chance": 0.6,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "silver_ore",
+      "chance": 0.075,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "labyrinth_essence",
+      "chance": 0.2
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.1
+     },
+     {
+      "table": "tonics",
+      "chance": 0.06
+     },
+     {
+      "table": "mix_f06_drop",
+      "chance": 0.0179
+     }
+    ]
+   },
+   "maze_chest_gold_f6": {
+    "rolls": 2,
+    "gold": [
+     220,
+     420
+    ],
+    "guaranteed": [
+     {
+      "item": "labyrinth_essence",
+      "amount": 1
+     }
+    ],
+    "entries": [
+     {
+      "table": "potions_t2",
+      "chance": 0.6
+     },
+     {
+      "one_of": [
+       "grave_bone",
+       "rime_talon"
+      ],
+      "chance": 0.6,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "silver_ore",
+      "chance": 0.075,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "funeral_bell_shard",
+      "chance": 0.2
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.06
+     },
+     {
+      "table": "tonics",
+      "chance": 0.15
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.05
+     },
+     {
+      "table": "mix_f06_drop",
+      "chance": 0.0298
+     }
+    ]
+   },
+   "treasure_floor_7": {
+    "rolls": 2,
+    "gold": [
+     270,
+     470
+    ],
+    "guaranteed": [
+     {
+      "table": "enhance_chest_t2",
+      "chance": 1.0
+     }
+    ],
+    "entries": [
+     {
+      "table": "potions_t2",
+      "chance": 0.45
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.1
+     },
+     {
+      "item": "mithril_ore",
+      "chance": 0.075,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "resonant_sinew",
+      "chance": 0.3,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.12
+     },
+     {
+      "table": "tonics",
+      "chance": 0.08
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f07_drop",
+      "chance": 0.0292
+     }
+    ]
+   },
+   "gimmick_floor_7": {
+    "rolls": 2,
+    "gold": [
+     432,
+     752
+    ],
+    "guaranteed": [
+     {
+      "item": "radiant_essence",
+      "amount": 1
+     },
+     {
+      "table": "enhance_gimmick_t2",
+      "chance": 1.0
+     }
+    ],
+    "entries": [
+     {
+      "item": "radiant_essence",
+      "chance": 0.6
+     },
+     {
+      "item": "tuning_fork_core",
+      "chance": 0.15
+     },
+     {
+      "item": "mithril_ore",
+      "chance": 0.0875,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "resonant_sinew",
+      "chance": 0.35,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "table": "potions_t2",
+      "chance": 0.35
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.05
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.06
+     },
+     {
+      "table": "tonics",
+      "chance": 0.12
+     },
+     {
+      "pick": [
+       {
+        "table": "band_t06_trial",
+        "weight": 2
+       },
+       {
+        "table": "band_t07_trial",
+        "weight": 7
+       },
+       {
+        "table": "band_t08_trial",
+        "weight": 1
+       }
+      ],
+      "chance": 0.286
+     }
+    ]
+   },
+   "maze_chest_wood_f7": {
+    "rolls": 1,
+    "gold": [
+     150,
+     300
+    ],
+    "entries": [
+     {
+      "table": "potions_t2",
+      "chance": 0.5
+     },
+     {
+      "item": "resonant_sinew",
+      "chance": 0.55,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "mithril_ore",
+      "chance": 0.0688,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.08
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.05
+     },
+     {
+      "table": "mix_f07_drop",
+      "chance": 0.0125
+     }
+    ]
+   },
+   "maze_chest_iron_f7": {
+    "rolls": 2,
+    "gold": [
+     300,
+     550
+    ],
+    "entries": [
+     {
+      "table": "potions_t2",
+      "chance": 0.55
+     },
+     {
+      "item": "resonant_sinew",
+      "chance": 0.6,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "mithril_ore",
+      "chance": 0.075,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.2
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.1
+     },
+     {
+      "table": "tonics",
+      "chance": 0.06
+     },
+     {
+      "table": "mix_f07_drop",
+      "chance": 0.0251
+     }
+    ]
+   },
+   "maze_chest_gold_f7": {
+    "rolls": 2,
+    "gold": [
+     550,
+     950
+    ],
+    "guaranteed": [
+     {
+      "item": "radiant_essence",
+      "amount": 1
+     }
+    ],
+    "entries": [
+     {
+      "table": "potions_t2",
+      "chance": 0.6
+     },
+     {
+      "item": "resonant_sinew",
+      "chance": 0.6,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "mithril_ore",
+      "chance": 0.075,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "tuning_fork_core",
+      "chance": 0.2
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.06
+     },
+     {
+      "table": "tonics",
+      "chance": 0.15
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.05
+     },
+     {
+      "table": "mix_f07_drop",
+      "chance": 0.0418
+     }
+    ]
+   },
+   "treasure_floor_8": {
+    "rolls": 2,
+    "gold": [
+     380,
+     650
+    ],
+    "guaranteed": [
+     {
+      "table": "enhance_chest_t3",
+      "chance": 1.0
+     }
+    ],
+    "entries": [
+     {
+      "table": "potions_t3",
+      "chance": 0.45
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.1
+     },
+     {
+      "one_of": [
+       "ink_essence",
+       "old_page"
+      ],
+      "chance": 0.3,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "one_of": [
+       "ink_essence",
+       "old_page"
+      ],
+      "chance": 0.3,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.12
+     },
+     {
+      "table": "tonics",
+      "chance": 0.08
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f08_drop",
+      "chance": 0.0234
+     }
+    ]
+   },
+   "gimmick_floor_8": {
+    "rolls": 2,
+    "gold": [
+     608,
+     1040
+    ],
+    "guaranteed": [
+     {
+      "item": "radiant_essence",
+      "amount": 1
+     },
+     {
+      "table": "enhance_gimmick_t3",
+      "chance": 1.0
+     }
+    ],
+    "entries": [
+     {
+      "item": "radiant_essence",
+      "chance": 0.6
+     },
+     {
+      "item": "forbidden_seal",
+      "chance": 0.15
+     },
+     {
+      "one_of": [
+       "ink_essence",
+       "old_page"
+      ],
+      "chance": 0.35,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "one_of": [
+       "ink_essence",
+       "old_page"
+      ],
+      "chance": 0.35,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.35
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.05
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.06
+     },
+     {
+      "table": "tonics",
+      "chance": 0.12
+     },
+     {
+      "pick": [
+       {
+        "table": "band_t07_trial",
+        "weight": 2
+       },
+       {
+        "table": "band_t08_trial",
+        "weight": 7
+       },
+       {
+        "table": "band_t09_trial",
+        "weight": 1
+       }
+      ],
+      "chance": 0.217
+     }
+    ]
+   },
+   "maze_chest_wood_f8": {
+    "rolls": 1,
+    "gold": [
+     150,
+     300
+    ],
+    "entries": [
+     {
+      "table": "potions_t3",
+      "chance": 0.5
+     },
+     {
+      "one_of": [
+       "ink_essence",
+       "old_page"
+      ],
+      "chance": 0.55,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.08
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.05
+     },
+     {
+      "table": "mix_f08_drop",
+      "chance": 0.01
+     }
+    ]
+   },
+   "maze_chest_iron_f8": {
+    "rolls": 2,
+    "gold": [
+     300,
+     550
+    ],
+    "entries": [
+     {
+      "table": "potions_t3",
+      "chance": 0.55
+     },
+     {
+      "one_of": [
+       "ink_essence",
+       "old_page"
+      ],
+      "chance": 0.6,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "radiant_essence",
+      "chance": 0.2
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.1
+     },
+     {
+      "table": "tonics",
+      "chance": 0.06
+     },
+     {
+      "table": "mix_f08_drop",
+      "chance": 0.0201
+     }
+    ]
+   },
+   "maze_chest_gold_f8": {
+    "rolls": 2,
+    "gold": [
+     550,
+     950
+    ],
+    "guaranteed": [
+     {
+      "item": "radiant_essence",
+      "amount": 1
+     }
+    ],
+    "entries": [
+     {
+      "table": "potions_t3",
+      "chance": 0.6
+     },
+     {
+      "one_of": [
+       "ink_essence",
+       "old_page"
+      ],
+      "chance": 0.6,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "forbidden_seal",
+      "chance": 0.2
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.06
+     },
+     {
+      "table": "tonics",
+      "chance": 0.15
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.05
+     },
+     {
+      "table": "mix_f08_drop",
+      "chance": 0.0334
+     }
+    ]
+   },
+   "treasure_floor_9": {
+    "rolls": 2,
+    "gold": [
+     520,
+     900
+    ],
+    "guaranteed": [
+     {
+      "table": "enhance_chest_t3",
+      "chance": 1.0
+     }
+    ],
+    "entries": [
+     {
+      "table": "potions_t3",
+      "chance": 0.45
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.1
+     },
+     {
+      "item": "starmetal_ore",
+      "chance": 0.075,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "one_of": [
+       "clock_oil",
+       "chrono_dust"
+      ],
+      "chance": 0.3,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.12
+     },
+     {
+      "table": "tonics",
+      "chance": 0.08
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f09_drop",
+      "chance": 0.0234
+     }
+    ]
+   },
+   "gimmick_floor_9": {
+    "rolls": 2,
+    "gold": [
+     832,
+     1440
+    ],
+    "guaranteed": [
+     {
+      "item": "primordial_essence",
+      "amount": 1
+     },
+     {
+      "table": "enhance_gimmick_t3",
+      "chance": 1.0
+     }
+    ],
+    "entries": [
+     {
+      "item": "primordial_essence",
+      "chance": 0.6
+     },
+     {
+      "item": "regulator_pendulum",
+      "chance": 0.15
+     },
+     {
+      "item": "starmetal_ore",
+      "chance": 0.0875,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "one_of": [
+       "clock_oil",
+       "chrono_dust"
+      ],
+      "chance": 0.35,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.35
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.06
+     },
+     {
+      "table": "tonics",
+      "chance": 0.12
+     },
+     {
+      "pick": [
+       {
+        "table": "band_t08_trial",
+        "weight": 2
+       },
+       {
+        "table": "band_t09_trial",
+        "weight": 7
+       },
+       {
+        "table": "band_t10_trial",
+        "weight": 1
+       }
+      ],
+      "chance": 0.3
+     }
+    ]
+   },
+   "maze_chest_wood_f9": {
+    "rolls": 1,
+    "gold": [
+     150,
+     300
+    ],
+    "entries": [
+     {
+      "table": "potions_t3",
+      "chance": 0.5
+     },
+     {
+      "one_of": [
+       "clock_oil",
+       "chrono_dust"
+      ],
+      "chance": 0.55,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "starmetal_ore",
+      "chance": 0.0688,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.08
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.05
+     },
+     {
+      "table": "mix_f09_drop",
+      "chance": 0.01
+     }
+    ]
+   },
+   "maze_chest_iron_f9": {
+    "rolls": 2,
+    "gold": [
+     300,
+     550
+    ],
+    "entries": [
+     {
+      "table": "potions_t3",
+      "chance": 0.55
+     },
+     {
+      "one_of": [
+       "clock_oil",
+       "chrono_dust"
+      ],
+      "chance": 0.6,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "starmetal_ore",
+      "chance": 0.075,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.2
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.1
+     },
+     {
+      "table": "tonics",
+      "chance": 0.06
+     },
+     {
+      "table": "mix_f09_drop",
+      "chance": 0.0201
+     }
+    ]
+   },
+   "maze_chest_gold_f9": {
+    "rolls": 2,
+    "gold": [
+     550,
+     950
+    ],
+    "guaranteed": [
+     {
+      "item": "primordial_essence",
+      "amount": 1
+     }
+    ],
+    "entries": [
+     {
+      "table": "potions_t3",
+      "chance": 0.6
+     },
+     {
+      "one_of": [
+       "clock_oil",
+       "chrono_dust"
+      ],
+      "chance": 0.6,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "starmetal_ore",
+      "chance": 0.075,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "regulator_pendulum",
+      "chance": 0.2
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.06
+     },
+     {
+      "table": "tonics",
+      "chance": 0.15
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.05
+     },
+     {
+      "table": "mix_f09_drop",
+      "chance": 0.0334
+     }
+    ]
+   },
+   "treasure_floor_10": {
+    "rolls": 2,
+    "gold": [
+     700,
+     1200
+    ],
+    "guaranteed": [
+     {
+      "table": "enhance_chest_t3",
+      "chance": 1.0
+     }
+    ],
+    "entries": [
+     {
+      "table": "potions_t3",
+      "chance": 0.45
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.1
+     },
+     {
+      "one_of": [
+       "abyss_ichor",
+       "sculk_tendril",
+       "abyss_scale"
+      ],
+      "chance": 0.3,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "one_of": [
+       "abyss_ichor",
+       "sculk_tendril",
+       "abyss_scale"
+      ],
+      "chance": 0.3,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.12
+     },
+     {
+      "table": "tonics",
+      "chance": 0.08
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.03
+     },
+     {
+      "table": "mix_f10_drop",
+      "chance": 0.0197
+     }
+    ]
+   },
+   "gimmick_floor_10": {
+    "rolls": 2,
+    "gold": [
+     1120,
+     1920
+    ],
+    "guaranteed": [
+     {
+      "item": "primordial_essence",
+      "amount": 1
+     },
+     {
+      "table": "enhance_gimmick_t3",
+      "chance": 1.0
+     }
+    ],
+    "entries": [
+     {
+      "item": "primordial_essence",
+      "chance": 0.6
+     },
+     {
+      "item": "gatekeeper_rune",
+      "chance": 0.15
+     },
+     {
+      "one_of": [
+       "abyss_ichor",
+       "sculk_tendril",
+       "abyss_scale"
+      ],
+      "chance": 0.35,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "one_of": [
+       "abyss_ichor",
+       "sculk_tendril",
+       "abyss_scale"
+      ],
+      "chance": 0.35,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "table": "potions_t3",
+      "chance": 0.35
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.06
+     },
+     {
+      "table": "tonics",
+      "chance": 0.12
+     },
+     {
+      "pick": [
+       {
+        "table": "band_t09_trial",
+        "weight": 2
+       },
+       {
+        "table": "band_t10_trial",
+        "weight": 7
+       }
+      ],
+      "chance": 0.364
+     }
+    ]
+   },
+   "maze_chest_wood_f10": {
+    "rolls": 1,
+    "gold": [
+     300,
+     550
+    ],
+    "entries": [
+     {
+      "table": "potions_t3",
+      "chance": 0.5
+     },
+     {
+      "one_of": [
+       "abyss_ichor",
+       "sculk_tendril",
+       "abyss_scale"
+      ],
+      "chance": 0.55,
+      "amount": [
+       1,
+       3
+      ]
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.08
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.05
+     },
+     {
+      "table": "mix_f10_drop",
+      "chance": 0.0084
+     }
+    ]
+   },
+   "maze_chest_iron_f10": {
+    "rolls": 2,
+    "gold": [
+     550,
+     900
+    ],
+    "entries": [
+     {
+      "table": "potions_t3",
+      "chance": 0.55
+     },
+     {
+      "one_of": [
+       "abyss_ichor",
+       "sculk_tendril",
+       "abyss_scale"
+      ],
+      "chance": 0.6,
+      "amount": [
+       2,
+       4
+      ]
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.2
+     },
+     {
+      "table": "scrolls",
+      "chance": 0.1
+     },
+     {
+      "table": "tonics",
+      "chance": 0.06
+     },
+     {
+      "table": "mix_f10_drop",
+      "chance": 0.0169
+     }
+    ]
+   },
+   "maze_chest_gold_f10": {
+    "rolls": 2,
+    "gold": [
+     900,
+     1500
+    ],
+    "guaranteed": [
+     {
+      "item": "primordial_essence",
+      "amount": 1
+     }
+    ],
+    "entries": [
+     {
+      "table": "potions_t3",
+      "chance": 0.6
+     },
+     {
+      "one_of": [
+       "abyss_ichor",
+       "sculk_tendril",
+       "abyss_scale"
+      ],
+      "chance": 0.6,
+      "amount": [
+       3,
+       5
+      ]
+     },
+     {
+      "item": "gatekeeper_rune",
+      "chance": 0.2
+     },
+     {
+      "item": "primordial_essence",
+      "chance": 0.06
+     },
+     {
+      "table": "tonics",
+      "chance": 0.15
+     },
+     {
+      "table": "rare_consumables",
+      "chance": 0.05
+     },
+     {
+      "table": "mix_f10_drop",
+      "chance": 0.0281
+     }
+    ]
+   }
+  },
+  "ore_plan": {
+   "rusted_miner": {
+    "item": "copper_ore",
+    "chance": 0.2537,
+    "amount": [
+     1,
+     2
+    ]
+   },
+   "ore_mimic": {
+    "item": "copper_ore",
+    "chance": 0.1269,
+    "amount": [
+     1,
+     3
+    ]
+   },
+   "kobold_sapper": {
+    "item": "copper_ore",
+    "chance": 0.0846,
+    "amount": [
+     1,
+     2
+    ]
+   },
+   "tunnel_wyrm": {
+    "item": "copper_ore",
+    "chance": 0.1269,
+    "amount": [
+     1,
+     3
+    ]
+   },
+   "slag_golem": {
+    "item": "silver_ore",
+    "chance": 0.1278,
+    "amount": [
+     1,
+     3
+    ]
+   },
+   "bellows_hound": {
+    "item": "silver_ore",
+    "chance": 0.1703,
+    "amount": [
+     1,
+     2
+    ]
+   },
+   "forge_acolyte": {
+    "item": "silver_ore",
+    "chance": 0.1192,
+    "amount": [
+     1,
+     2
+    ]
+   },
+   "forge_dragonkin": {
+    "item": "silver_ore",
+    "chance": 0.0894,
+    "amount": [
+     1,
+     3
+    ]
+   },
+   "frozen_knight": {
+    "item": "silver_ore",
+    "chance": 0.325,
+    "amount": [
+     1,
+     2
+    ]
+   },
+   "barrow_lich": {
+    "item": "silver_ore",
+    "chance": 0.1625,
+    "amount": [
+     1,
+     2
+    ]
+   },
+   "shard_skitterer": {
+    "item": "mithril_ore",
+    "chance": 0.1565,
+    "amount": [
+     1,
+     2
+    ]
+   },
+   "prism_sentinel": {
+    "item": "mithril_ore",
+    "chance": 0.1565,
+    "amount": [
+     1,
+     2
+    ]
+   },
+   "geode_brute": {
+    "item": "mithril_ore",
+    "chance": 0.1174,
+    "amount": [
+     1,
+     3
+    ]
+   },
+   "crystal_dragonkin": {
+    "item": "mithril_ore",
+    "chance": 0.0822,
+    "amount": [
+     1,
+     3
+    ]
+   },
+   "gear_hound": {
+    "item": "starmetal_ore",
+    "chance": 0.1292,
+    "amount": [
+     1,
+     2
+    ]
+   },
+   "clockwork_sentry": {
+    "item": "starmetal_ore",
+    "chance": 0.1292,
+    "amount": [
+     1,
+     2
+    ]
+   },
+   "spring_jumper": {
+    "item": "starmetal_ore",
+    "chance": 0.1292,
+    "amount": [
+     1,
+     2
+    ]
+   },
+   "clockwork_wyvern": {
+    "item": "starmetal_ore",
+    "chance": 0.1292,
+    "amount": [
+     1,
+     2
+    ]
+   },
+   "brass_minotaur": {
+    "item": "starmetal_ore",
+    "chance": 0.0969,
+    "amount": [
+     1,
+     3
+    ]
+   }
+  },
+  "recipes_frozen": {
+   "mossback_warhammer": {
+    "tier": 1,
+    "kind": "melee",
+    "from": {
+     "moss_fiber": 8,
+     "beetle_shell": 5,
+     "copper_ingot": 5
+    },
+    "to": {
+     "moss_fiber": 6,
+     "beetle_shell": 3,
+     "copper_ingot": 5
+    }
+   },
+   "rootbound_scythe": {
+    "tier": 1,
+    "kind": "melee",
+    "from": {
+     "moss_fiber": 8,
+     "beetle_shell": 5,
+     "copper_ingot": 5
+    },
+    "to": {
+     "moss_fiber": 6,
+     "beetle_shell": 3,
+     "copper_ingot": 5
+    }
+   },
+   "mossvine_hornbow": {
+    "tier": 1,
+    "kind": "ranged",
+    "from": {
+     "moss_fiber": 8,
+     "beetle_shell": 5,
+     "copper_ingot": 5
+    },
+    "to": {
+     "moss_fiber": 6,
+     "moss_scale": 3,
+     "copper_ingot": 5
+    }
+   },
+   "wayfarer_spiral_staff": {
+    "tier": 1,
+    "kind": "caster",
+    "from": {
+     "moss_fiber": 8,
+     "beetle_shell": 5,
+     "copper_ingot": 5
+    },
+    "to": {
+     "moss_fiber": 6,
+     "moss_scale": 3,
+     "copper_ingot": 5
+    }
+   },
+   "grove_chalice": {
+    "tier": 1,
+    "kind": "caster",
+    "from": {
+     "moss_fiber": 8,
+     "beetle_shell": 5,
+     "copper_ingot": 5
+    },
+    "to": {
+     "moss_fiber": 6,
+     "moss_scale": 3,
+     "copper_ingot": 5
+    }
+   },
+   "corridor_katar": {
+    "tier": 1,
+    "kind": "melee",
+    "from": {
+     "moss_fiber": 8,
+     "beetle_shell": 5,
+     "copper_ingot": 5
+    },
+    "to": {
+     "moss_fiber": 6,
+     "beetle_shell": 3,
+     "copper_ingot": 5
+    }
+   },
+   "grove_warden_maul": {
+    "tier": 1,
+    "kind": "melee",
+    "from": {
+     "warden_heartwood": 2,
+     "moss_fiber": 10,
+     "beetle_shell": 8,
+     "copper_ingot": 6,
+     "alpha_moss_crest": 1
+    },
+    "to": {
+     "warden_heartwood": 2,
+     "moss_fiber": 8,
+     "beetle_shell": 4,
+     "copper_ingot": 6,
+     "alpha_moss_crest": 1
+    }
+   },
+   "grove_rootstring_bow": {
+    "tier": 1,
+    "kind": "ranged",
+    "from": {
+     "warden_heartwood": 2,
+     "moss_fiber": 10,
+     "beetle_shell": 8,
+     "copper_ingot": 6,
+     "alpha_moss_crest": 1
+    },
+    "to": {
+     "warden_heartwood": 2,
+     "moss_fiber": 8,
+     "moss_scale": 5,
+     "copper_ingot": 6,
+     "alpha_moss_crest": 1
+    }
+   },
+   "grove_heartwood_staff": {
+    "tier": 1,
+    "kind": "caster",
+    "from": {
+     "warden_heartwood": 2,
+     "moss_fiber": 10,
+     "beetle_shell": 8,
+     "copper_ingot": 6,
+     "alpha_moss_crest": 1
+    },
+    "to": {
+     "warden_heartwood": 2,
+     "moss_fiber": 8,
+     "moss_scale": 5,
+     "copper_ingot": 6,
+     "alpha_moss_crest": 1
+    }
+   },
+   "silkguard_falchion": {
+    "tier": 2,
+    "kind": "melee",
+    "from": {
+     "spider_silk": 10,
+     "copper_ingot": 6,
+     "foreman_badge": 1,
+     "dim_essence": 1
+    },
+    "to": {
+     "spider_silk": 5,
+     "copper_ingot": 6,
+     "foreman_badge": 1,
+     "dim_essence": 1
+    }
+   },
+   "silkspan_glaive": {
+    "tier": 2,
+    "kind": "melee",
+    "from": {
+     "spider_silk": 10,
+     "copper_ingot": 6,
+     "foreman_badge": 1,
+     "dim_essence": 1
+    },
+    "to": {
+     "spider_silk": 5,
+     "copper_ingot": 6,
+     "foreman_badge": 1,
+     "dim_essence": 1
+    }
+   },
+   "skitter_bladebow": {
+    "tier": 2,
+    "kind": "ranged",
+    "from": {
+     "spider_silk": 10,
+     "copper_ingot": 6,
+     "foreman_badge": 1,
+     "dim_essence": 1
+    },
+    "to": {
+     "spider_silk": 5,
+     "copper_ingot": 6,
+     "foreman_badge": 1,
+     "dim_essence": 1
+    }
+   },
+   "miners_fork_staff": {
+    "tier": 2,
+    "kind": "caster",
+    "from": {
+     "spider_silk": 10,
+     "copper_ingot": 6,
+     "foreman_badge": 1,
+     "dim_essence": 1
+    },
+    "to": {
+     "spider_silk": 5,
+     "copper_ingot": 6,
+     "foreman_badge": 1,
+     "dim_essence": 1
+    }
+   },
+   "miners_bell_scepter": {
+    "tier": 2,
+    "kind": "caster",
+    "from": {
+     "spider_silk": 10,
+     "copper_ingot": 6,
+     "foreman_badge": 1,
+     "dim_essence": 1
+    },
+    "to": {
+     "spider_silk": 5,
+     "copper_ingot": 6,
+     "foreman_badge": 1,
+     "dim_essence": 1
+    }
+   },
+   "silk_sickle": {
+    "tier": 2,
+    "kind": "melee",
+    "from": {
+     "spider_silk": 10,
+     "copper_ingot": 6,
+     "foreman_badge": 1,
+     "dim_essence": 1
+    },
+    "to": {
+     "spider_silk": 5,
+     "copper_ingot": 6,
+     "foreman_badge": 1,
+     "dim_essence": 1
+    }
+   },
+   "sluice_breaker_mace": {
+    "tier": 4,
+    "kind": "melee",
+    "from": {
+     "brine_pearl": 10,
+     "eel_scale": 10,
+     "iron_ingot": 7,
+     "verdigris_plate": 1,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "brine_pearl": 10,
+     "eel_scale": 9,
+     "iron_ingot": 7,
+     "verdigris_plate": 1,
+     "labyrinth_essence": 1
+    }
+   },
+   "drowned_anchor_cleaver": {
+    "tier": 4,
+    "kind": "melee",
+    "from": {
+     "brine_pearl": 10,
+     "eel_scale": 10,
+     "iron_ingot": 7,
+     "verdigris_plate": 1,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "brine_pearl": 10,
+     "eel_scale": 9,
+     "iron_ingot": 7,
+     "verdigris_plate": 1,
+     "labyrinth_essence": 1
+    }
+   },
+   "eelbone_recurve": {
+    "tier": 4,
+    "kind": "ranged",
+    "from": {
+     "brine_pearl": 10,
+     "eel_scale": 10,
+     "iron_ingot": 7,
+     "verdigris_plate": 1,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "brine_pearl": 10,
+     "eel_scale": 9,
+     "iron_ingot": 7,
+     "verdigris_plate": 1,
+     "labyrinth_essence": 1
+    }
+   },
+   "brine_orb_staff": {
+    "tier": 4,
+    "kind": "caster",
+    "from": {
+     "brine_pearl": 10,
+     "eel_scale": 10,
+     "iron_ingot": 7,
+     "verdigris_plate": 1,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "brine_pearl": 10,
+     "eel_scale": 9,
+     "iron_ingot": 7,
+     "verdigris_plate": 1,
+     "labyrinth_essence": 1
+    }
+   },
+   "tidebell_censer": {
+    "tier": 4,
+    "kind": "caster",
+    "from": {
+     "brine_pearl": 10,
+     "eel_scale": 10,
+     "iron_ingot": 7,
+     "verdigris_plate": 1,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "brine_pearl": 10,
+     "eel_scale": 9,
+     "iron_ingot": 7,
+     "verdigris_plate": 1,
+     "labyrinth_essence": 1
+    }
+   },
+   "eel_kris": {
+    "tier": 4,
+    "kind": "melee",
+    "from": {
+     "brine_pearl": 10,
+     "eel_scale": 10,
+     "iron_ingot": 7,
+     "verdigris_plate": 1,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "brine_pearl": 10,
+     "eel_scale": 9,
+     "iron_ingot": 7,
+     "verdigris_plate": 1,
+     "labyrinth_essence": 1
+    }
+   },
+   "anvil_oath_broadsword": {
+    "tier": 5,
+    "kind": "melee",
+    "from": {
+     "cinder_hide": 12,
+     "silver_ingot": 9,
+     "executioner_edge": 2,
+     "labyrinth_essence": 2
+    },
+    "to": {
+     "cinder_scale": 6,
+     "silver_ingot": 9,
+     "executioner_edge": 2,
+     "labyrinth_essence": 2
+    }
+   },
+   "slagforged_greatsword": {
+    "tier": 5,
+    "kind": "melee",
+    "from": {
+     "cinder_hide": 12,
+     "silver_ingot": 9,
+     "executioner_edge": 2,
+     "labyrinth_essence": 2
+    },
+    "to": {
+     "cinder_scale": 6,
+     "silver_ingot": 9,
+     "executioner_edge": 2,
+     "labyrinth_essence": 2
+    }
+   },
+   "bellows_composite_bow": {
+    "tier": 5,
+    "kind": "ranged",
+    "from": {
+     "cinder_hide": 12,
+     "silver_ingot": 9,
+     "executioner_edge": 2,
+     "labyrinth_essence": 2
+    },
+    "to": {
+     "ember_soul": 9,
+     "silver_ingot": 9,
+     "executioner_edge": 2,
+     "labyrinth_essence": 2
+    }
+   },
+   "cinder_crystal_staff": {
+    "tier": 5,
+    "kind": "caster",
+    "from": {
+     "cinder_hide": 12,
+     "silver_ingot": 9,
+     "executioner_edge": 2,
+     "labyrinth_essence": 2
+    },
+    "to": {
+     "ember_soul": 9,
+     "silver_ingot": 9,
+     "executioner_edge": 2,
+     "labyrinth_essence": 2
+    }
+   },
+   "embersong_scepter": {
+    "tier": 5,
+    "kind": "caster",
+    "from": {
+     "cinder_hide": 12,
+     "silver_ingot": 9,
+     "executioner_edge": 2,
+     "labyrinth_essence": 2
+    },
+    "to": {
+     "ember_soul": 9,
+     "silver_ingot": 9,
+     "executioner_edge": 2,
+     "labyrinth_essence": 2
+    }
+   },
+   "cinder_fang": {
+    "tier": 5,
+    "kind": "melee",
+    "from": {
+     "cinder_hide": 12,
+     "silver_ingot": 9,
+     "executioner_edge": 2,
+     "labyrinth_essence": 2
+    },
+    "to": {
+     "cinder_scale": 6,
+     "silver_ingot": 9,
+     "executioner_edge": 2,
+     "labyrinth_essence": 2
+    }
+   },
+   "frostgrave_mace": {
+    "tier": 6,
+    "kind": "melee",
+    "from": {
+     "grave_bone": 12,
+     "silver_ingot": 10,
+     "funeral_bell_shard": 1,
+     "labyrinth_essence": 2
+    },
+    "to": {
+     "rime_talon": 5,
+     "silver_ingot": 10,
+     "funeral_bell_shard": 1,
+     "labyrinth_essence": 2
+    }
+   },
+   "rime_reaper_scythe": {
+    "tier": 6,
+    "kind": "melee",
+    "from": {
+     "grave_bone": 12,
+     "silver_ingot": 10,
+     "funeral_bell_shard": 1,
+     "labyrinth_essence": 2
+    },
+    "to": {
+     "rime_talon": 5,
+     "silver_ingot": 10,
+     "funeral_bell_shard": 1,
+     "labyrinth_essence": 2
+    }
+   },
+   "frostbone_longbow": {
+    "tier": 6,
+    "kind": "ranged",
+    "from": {
+     "grave_bone": 12,
+     "silver_ingot": 10,
+     "funeral_bell_shard": 1,
+     "labyrinth_essence": 2
+    },
+    "to": {
+     "grave_bone": 9,
+     "silver_ingot": 10,
+     "funeral_bell_shard": 1,
+     "labyrinth_essence": 2
+    }
+   },
+   "rimebell_staff": {
+    "tier": 6,
+    "kind": "caster",
+    "from": {
+     "grave_bone": 12,
+     "silver_ingot": 10,
+     "funeral_bell_shard": 1,
+     "labyrinth_essence": 2
+    },
+    "to": {
+     "grave_bone": 9,
+     "silver_ingot": 10,
+     "funeral_bell_shard": 1,
+     "labyrinth_essence": 2
+    }
+   },
+   "frost_vigil_censer": {
+    "tier": 6,
+    "kind": "caster",
+    "from": {
+     "grave_bone": 12,
+     "silver_ingot": 10,
+     "funeral_bell_shard": 1,
+     "labyrinth_essence": 2
+    },
+    "to": {
+     "grave_bone": 9,
+     "silver_ingot": 10,
+     "funeral_bell_shard": 1,
+     "labyrinth_essence": 2
+    }
+   },
+   "gravefrost_katar": {
+    "tier": 6,
+    "kind": "melee",
+    "from": {
+     "grave_bone": 12,
+     "silver_ingot": 10,
+     "funeral_bell_shard": 1,
+     "labyrinth_essence": 2
+    },
+    "to": {
+     "rime_talon": 5,
+     "silver_ingot": 10,
+     "funeral_bell_shard": 1,
+     "labyrinth_essence": 2
+    }
+   },
+   "orrery_staff": {
+    "tier": 9,
+    "kind": "caster",
+    "from": {
+     "clock_oil": 12,
+     "starmetal_ingot": 10,
+     "regulator_pendulum": 1,
+     "primordial_essence": 1
+    },
+    "to": {
+     "chrono_dust": 6,
+     "starmetal_ingot": 10,
+     "regulator_pendulum": 1,
+     "primordial_essence": 1
+    }
+   },
+   "pendulum_censer": {
+    "tier": 9,
+    "kind": "caster",
+    "from": {
+     "clock_oil": 12,
+     "starmetal_ingot": 10,
+     "regulator_pendulum": 1,
+     "primordial_essence": 1
+    },
+    "to": {
+     "chrono_dust": 6,
+     "starmetal_ingot": 10,
+     "regulator_pendulum": 1,
+     "primordial_essence": 1
+    }
+   },
+   "void_falchion": {
+    "tier": 10,
+    "kind": "melee",
+    "from": {
+     "abyss_ichor": 18,
+     "sculk_tendril": 14,
+     "starmetal_ingot": 11,
+     "gatekeeper_rune": 1,
+     "primordial_essence": 2
+    },
+    "to": {
+     "abyss_ichor": 13,
+     "abyss_scale": 8,
+     "starmetal_ingot": 11,
+     "gatekeeper_rune": 1,
+     "primordial_essence": 2
+    }
+   },
+   "void_scythe": {
+    "tier": 10,
+    "kind": "melee",
+    "from": {
+     "abyss_ichor": 18,
+     "sculk_tendril": 14,
+     "starmetal_ingot": 11,
+     "gatekeeper_rune": 1,
+     "primordial_essence": 2
+    },
+    "to": {
+     "abyss_ichor": 13,
+     "abyss_scale": 8,
+     "starmetal_ingot": 11,
+     "gatekeeper_rune": 1,
+     "primordial_essence": 2
+    }
+   },
+   "abyss_bladebow": {
+    "tier": 10,
+    "kind": "ranged",
+    "from": {
+     "abyss_ichor": 18,
+     "sculk_tendril": 14,
+     "starmetal_ingot": 11,
+     "gatekeeper_rune": 1,
+     "primordial_essence": 2
+    },
+    "to": {
+     "abyss_ichor": 13,
+     "sculk_tendril": 10,
+     "starmetal_ingot": 11,
+     "gatekeeper_rune": 1,
+     "primordial_essence": 2
+    }
+   },
+   "void_fork_staff": {
+    "tier": 10,
+    "kind": "caster",
+    "from": {
+     "abyss_ichor": 18,
+     "sculk_tendril": 14,
+     "starmetal_ingot": 11,
+     "gatekeeper_rune": 1,
+     "primordial_essence": 2
+    },
+    "to": {
+     "abyss_ichor": 13,
+     "sculk_tendril": 10,
+     "starmetal_ingot": 11,
+     "gatekeeper_rune": 1,
+     "primordial_essence": 2
+    }
+   },
+   "abyss_bell_scepter": {
+    "tier": 10,
+    "kind": "caster",
+    "from": {
+     "abyss_ichor": 18,
+     "sculk_tendril": 14,
+     "starmetal_ingot": 11,
+     "gatekeeper_rune": 1,
+     "primordial_essence": 2
+    },
+    "to": {
+     "abyss_ichor": 13,
+     "sculk_tendril": 10,
+     "starmetal_ingot": 11,
+     "gatekeeper_rune": 1,
+     "primordial_essence": 2
+    }
+   },
+   "abyss_sickle": {
+    "tier": 10,
+    "kind": "melee",
+    "from": {
+     "abyss_ichor": 18,
+     "sculk_tendril": 14,
+     "starmetal_ingot": 11,
+     "gatekeeper_rune": 1,
+     "primordial_essence": 2
+    },
+    "to": {
+     "abyss_ichor": 13,
+     "abyss_scale": 8,
+     "starmetal_ingot": 11,
+     "gatekeeper_rune": 1,
+     "primordial_essence": 2
+    }
+   },
+   "wayfarer_helm": {
+    "tier": 1,
+    "kind": "head",
+    "from": {
+     "moss_fiber": 6,
+     "beetle_shell": 4,
+     "copper_ingot": 4
+    },
+    "to": {
+     "moss_fiber": 5,
+     "moss_scale": 2,
+     "copper_ingot": 4
+    }
+   },
+   "wayfarer_chest": {
+    "tier": 1,
+    "kind": "chest",
+    "from": {
+     "moss_fiber": 8,
+     "beetle_shell": 6,
+     "copper_ingot": 5
+    },
+    "to": {
+     "moss_fiber": 6,
+     "beetle_shell": 3,
+     "copper_ingot": 5
+    }
+   },
+   "wayfarer_legs": {
+    "tier": 1,
+    "kind": "legs",
+    "from": {
+     "moss_fiber": 7,
+     "beetle_shell": 5,
+     "copper_ingot": 4
+    },
+    "to": {
+     "moss_fiber": 6,
+     "moss_scale": 3,
+     "copper_ingot": 4
+    }
+   },
+   "wayfarer_boots": {
+    "tier": 1,
+    "kind": "feet",
+    "from": {
+     "moss_fiber": 5,
+     "beetle_shell": 4,
+     "copper_ingot": 3
+    },
+    "to": {
+     "moss_fiber": 4,
+     "beetle_shell": 2,
+     "copper_ingot": 3
+    }
+   },
+   "oak_round_shield": {
+    "tier": 1,
+    "kind": "offhand",
+    "from": {
+     "moss_fiber": 4,
+     "beetle_shell": 6,
+     "copper_ingot": 4
+    },
+    "to": {
+     "moss_fiber": 3,
+     "beetle_shell": 3,
+     "copper_ingot": 4
+    }
+   },
+   "grove_mossguard_helm": {
+    "tier": 1,
+    "kind": "head",
+    "from": {
+     "warden_heartwood": 2,
+     "beetle_shell": 10,
+     "moss_fiber": 6,
+     "copper_ingot": 6
+    },
+    "to": {
+     "warden_heartwood": 2,
+     "beetle_shell": 5,
+     "moss_fiber": 5,
+     "copper_ingot": 6
+    }
+   },
+   "pit_foreman_helm": {
+    "tier": 2,
+    "kind": "head",
+    "from": {
+     "spider_silk": 6,
+     "copper_ingot": 4,
+     "dim_essence": 1
+    },
+    "to": {
+     "tunnel_fang": 4,
+     "copper_ingot": 4,
+     "dim_essence": 1
+    }
+   },
+   "pit_foreman_chest": {
+    "tier": 2,
+    "kind": "chest",
+    "from": {
+     "spider_silk": 8,
+     "copper_ingot": 5,
+     "dim_essence": 1,
+     "foreman_badge": 1
+    },
+    "to": {
+     "tunnel_fang": 6,
+     "copper_ingot": 5,
+     "dim_essence": 1,
+     "foreman_badge": 1
+    }
+   },
+   "pit_foreman_legs": {
+    "tier": 2,
+    "kind": "legs",
+    "from": {
+     "spider_silk": 7,
+     "copper_ingot": 4,
+     "dim_essence": 1,
+     "foreman_badge": 1
+    },
+    "to": {
+     "tunnel_fang": 5,
+     "copper_ingot": 4,
+     "dim_essence": 1,
+     "foreman_badge": 1
+    }
+   },
+   "pit_foreman_boots": {
+    "tier": 2,
+    "kind": "feet",
+    "from": {
+     "spider_silk": 5,
+     "copper_ingot": 3,
+     "dim_essence": 1
+    },
+    "to": {
+     "tunnel_fang": 3,
+     "copper_ingot": 3,
+     "dim_essence": 1
+    }
+   },
+   "webrunner_helm": {
+    "tier": 2,
+    "kind": "head",
+    "from": {
+     "spider_silk": 4,
+     "copper_ingot": 4,
+     "dim_essence": 1
+    },
+    "to": {
+     "spider_silk": 2,
+     "copper_ingot": 4,
+     "dim_essence": 1
+    }
+   },
+   "webrunner_chest": {
+    "tier": 2,
+    "kind": "chest",
+    "from": {
+     "spider_silk": 6,
+     "copper_ingot": 5,
+     "dim_essence": 1,
+     "foreman_badge": 1
+    },
+    "to": {
+     "spider_silk": 3,
+     "copper_ingot": 5,
+     "dim_essence": 1,
+     "foreman_badge": 1
+    }
+   },
+   "webrunner_legs": {
+    "tier": 2,
+    "kind": "legs",
+    "from": {
+     "spider_silk": 5,
+     "copper_ingot": 4,
+     "dim_essence": 1,
+     "foreman_badge": 1
+    },
+    "to": {
+     "spider_silk": 2,
+     "copper_ingot": 4,
+     "dim_essence": 1,
+     "foreman_badge": 1
+    }
+   },
+   "webrunner_boots": {
+    "tier": 2,
+    "kind": "feet",
+    "from": {
+     "spider_silk": 3,
+     "copper_ingot": 3,
+     "dim_essence": 1
+    },
+    "to": {
+     "spider_silk": 1,
+     "copper_ingot": 3,
+     "dim_essence": 1
+    }
+   },
+   "silkweaver_helm": {
+    "tier": 2,
+    "kind": "head",
+    "from": {
+     "spider_silk": 6,
+     "copper_ingot": 4,
+     "dim_essence": 1
+    },
+    "to": {
+     "spider_silk": 3,
+     "copper_ingot": 4,
+     "dim_essence": 1
+    }
+   },
+   "silkweaver_chest": {
+    "tier": 2,
+    "kind": "chest",
+    "from": {
+     "spider_silk": 8,
+     "copper_ingot": 5,
+     "dim_essence": 1,
+     "foreman_badge": 1
+    },
+    "to": {
+     "spider_silk": 4,
+     "copper_ingot": 5,
+     "dim_essence": 1,
+     "foreman_badge": 1
+    }
+   },
+   "silkweaver_legs": {
+    "tier": 2,
+    "kind": "legs",
+    "from": {
+     "spider_silk": 7,
+     "copper_ingot": 4,
+     "dim_essence": 1,
+     "foreman_badge": 1
+    },
+    "to": {
+     "spider_silk": 3,
+     "copper_ingot": 4,
+     "dim_essence": 1,
+     "foreman_badge": 1
+    }
+   },
+   "silkweaver_boots": {
+    "tier": 2,
+    "kind": "feet",
+    "from": {
+     "spider_silk": 5,
+     "copper_ingot": 3,
+     "dim_essence": 1
+    },
+    "to": {
+     "spider_silk": 2,
+     "copper_ingot": 3,
+     "dim_essence": 1
+    }
+   },
+   "ironbound_kite_shield": {
+    "tier": 2,
+    "kind": "offhand",
+    "from": {
+     "spider_silk": 4,
+     "copper_ingot": 5,
+     "foreman_badge": 1
+    },
+    "to": {
+     "tunnel_fang": 3,
+     "copper_ingot": 5,
+     "foreman_badge": 1
+    }
+   },
+   "silkqueen_veil": {
+    "tier": 2,
+    "kind": "head",
+    "from": {
+     "silk_queen_spinneret": 2,
+     "spider_silk": 12,
+     "copper_ingot": 6,
+     "dim_essence": 1
+    },
+    "to": {
+     "silk_queen_spinneret": 2,
+     "spider_silk": 6,
+     "copper_ingot": 6,
+     "dim_essence": 1
+    }
+   },
+   "verdigris_guard_helm": {
+    "tier": 4,
+    "kind": "head",
+    "from": {
+     "brine_pearl": 8,
+     "eel_scale": 6,
+     "iron_ingot": 5,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "brine_pearl": 8,
+     "eel_scale": 5,
+     "iron_ingot": 5,
+     "labyrinth_essence": 1
+    }
+   },
+   "verdigris_guard_chest": {
+    "tier": 4,
+    "kind": "chest",
+    "from": {
+     "brine_pearl": 12,
+     "eel_scale": 8,
+     "iron_ingot": 7,
+     "labyrinth_essence": 1,
+     "verdigris_plate": 1
+    },
+    "to": {
+     "brine_pearl": 12,
+     "eel_scale": 7,
+     "iron_ingot": 7,
+     "labyrinth_essence": 1,
+     "verdigris_plate": 1
+    }
+   },
+   "verdigris_guard_legs": {
+    "tier": 4,
+    "kind": "legs",
+    "from": {
+     "brine_pearl": 10,
+     "eel_scale": 7,
+     "iron_ingot": 6,
+     "labyrinth_essence": 1,
+     "verdigris_plate": 1
+    },
+    "to": {
+     "brine_pearl": 10,
+     "eel_scale": 6,
+     "iron_ingot": 6,
+     "labyrinth_essence": 1,
+     "verdigris_plate": 1
+    }
+   },
+   "verdigris_guard_boots": {
+    "tier": 4,
+    "kind": "feet",
+    "from": {
+     "brine_pearl": 7,
+     "eel_scale": 5,
+     "iron_ingot": 4,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "brine_pearl": 7,
+     "eel_scale": 4,
+     "iron_ingot": 4,
+     "labyrinth_essence": 1
+    }
+   },
+   "verdigris_tower_shield": {
+    "tier": 4,
+    "kind": "offhand",
+    "from": {
+     "verdigris_plate": 2,
+     "eel_scale": 10,
+     "brine_pearl": 6,
+     "iron_ingot": 6,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "verdigris_plate": 2,
+     "eel_scale": 9,
+     "brine_pearl": 6,
+     "iron_ingot": 6,
+     "labyrinth_essence": 1
+    }
+   },
+   "osric_sluice_helm": {
+    "tier": 4,
+    "kind": "head",
+    "from": {
+     "floodgate_key": 2,
+     "eel_scale": 14,
+     "brine_pearl": 10,
+     "iron_ingot": 8,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "floodgate_key": 2,
+     "eel_scale": 12,
+     "brine_pearl": 10,
+     "iron_ingot": 8,
+     "labyrinth_essence": 1
+    }
+   },
+   "emberforged_helm": {
+    "tier": 5,
+    "kind": "head",
+    "from": {
+     "cinder_hide": 6,
+     "silver_ingot": 5,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "cinder_scale": 3,
+     "silver_ingot": 5,
+     "labyrinth_essence": 1
+    }
+   },
+   "emberforged_chest": {
+    "tier": 5,
+    "kind": "chest",
+    "from": {
+     "cinder_hide": 9,
+     "silver_ingot": 8,
+     "labyrinth_essence": 1,
+     "executioner_edge": 1
+    },
+    "to": {
+     "cinder_scale": 5,
+     "silver_ingot": 8,
+     "labyrinth_essence": 1,
+     "executioner_edge": 1
+    }
+   },
+   "emberforged_legs": {
+    "tier": 5,
+    "kind": "legs",
+    "from": {
+     "cinder_hide": 7,
+     "silver_ingot": 6,
+     "labyrinth_essence": 1,
+     "executioner_edge": 1
+    },
+    "to": {
+     "cinder_scale": 4,
+     "silver_ingot": 6,
+     "labyrinth_essence": 1,
+     "executioner_edge": 1
+    }
+   },
+   "emberforged_boots": {
+    "tier": 5,
+    "kind": "feet",
+    "from": {
+     "cinder_hide": 5,
+     "silver_ingot": 5,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "cinder_scale": 3,
+     "silver_ingot": 5,
+     "labyrinth_essence": 1
+    }
+   },
+   "anvil_face_shield": {
+    "tier": 5,
+    "kind": "offhand",
+    "from": {
+     "cinder_hide": 6,
+     "silver_ingot": 8,
+     "executioner_edge": 2,
+     "labyrinth_essence": 2
+    },
+    "to": {
+     "cinder_scale": 3,
+     "silver_ingot": 8,
+     "executioner_edge": 2,
+     "labyrinth_essence": 2
+    }
+   },
+   "forge_warden_helm": {
+    "tier": 5,
+    "kind": "head",
+    "from": {
+     "forge_core": 1,
+     "cinder_hide": 7,
+     "silver_ingot": 6,
+     "executioner_edge": 1,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "forge_core": 1,
+     "cinder_scale": 4,
+     "silver_ingot": 6,
+     "executioner_edge": 1,
+     "labyrinth_essence": 1
+    }
+   },
+   "forge_warden_chest": {
+    "tier": 5,
+    "kind": "chest",
+    "from": {
+     "forge_core": 1,
+     "cinder_hide": 10,
+     "silver_ingot": 8,
+     "executioner_edge": 1,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "forge_core": 1,
+     "cinder_scale": 5,
+     "silver_ingot": 8,
+     "executioner_edge": 1,
+     "labyrinth_essence": 1
+    }
+   },
+   "forge_warden_legs": {
+    "tier": 5,
+    "kind": "legs",
+    "from": {
+     "forge_core": 1,
+     "cinder_hide": 8,
+     "silver_ingot": 7,
+     "executioner_edge": 1,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "forge_core": 1,
+     "cinder_scale": 4,
+     "silver_ingot": 7,
+     "executioner_edge": 1,
+     "labyrinth_essence": 1
+    }
+   },
+   "forge_warden_boots": {
+    "tier": 5,
+    "kind": "feet",
+    "from": {
+     "forge_core": 1,
+     "cinder_hide": 6,
+     "silver_ingot": 5,
+     "executioner_edge": 1,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "forge_core": 1,
+     "cinder_scale": 3,
+     "silver_ingot": 5,
+     "executioner_edge": 1,
+     "labyrinth_essence": 1
+    }
+   },
+   "rimefang_helm": {
+    "tier": 6,
+    "kind": "head",
+    "from": {
+     "grave_bone": 9,
+     "silver_ingot": 5,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "grave_bone": 7,
+     "silver_ingot": 5,
+     "labyrinth_essence": 1
+    }
+   },
+   "rimefang_chest": {
+    "tier": 6,
+    "kind": "chest",
+    "from": {
+     "grave_bone": 13,
+     "silver_ingot": 8,
+     "labyrinth_essence": 1,
+     "funeral_bell_shard": 1
+    },
+    "to": {
+     "rime_talon": 5,
+     "silver_ingot": 8,
+     "labyrinth_essence": 1,
+     "funeral_bell_shard": 1
+    }
+   },
+   "rimefang_legs": {
+    "tier": 6,
+    "kind": "legs",
+    "from": {
+     "grave_bone": 11,
+     "silver_ingot": 6,
+     "labyrinth_essence": 1,
+     "funeral_bell_shard": 1
+    },
+    "to": {
+     "grave_bone": 9,
+     "silver_ingot": 6,
+     "labyrinth_essence": 1,
+     "funeral_bell_shard": 1
+    }
+   },
+   "rimefang_boots": {
+    "tier": 6,
+    "kind": "feet",
+    "from": {
+     "grave_bone": 8,
+     "silver_ingot": 5,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "rime_talon": 3,
+     "silver_ingot": 5,
+     "labyrinth_essence": 1
+    }
+   },
+   "crypt_mourner_helm": {
+    "tier": 6,
+    "kind": "head",
+    "from": {
+     "grave_bone": 6,
+     "silver_ingot": 5,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "grave_bone": 5,
+     "silver_ingot": 5,
+     "labyrinth_essence": 1
+    }
+   },
+   "crypt_mourner_chest": {
+    "tier": 6,
+    "kind": "chest",
+    "from": {
+     "grave_bone": 9,
+     "silver_ingot": 8,
+     "labyrinth_essence": 1,
+     "funeral_bell_shard": 1
+    },
+    "to": {
+     "grave_bone": 7,
+     "silver_ingot": 8,
+     "labyrinth_essence": 1,
+     "funeral_bell_shard": 1
+    }
+   },
+   "crypt_mourner_legs": {
+    "tier": 6,
+    "kind": "legs",
+    "from": {
+     "grave_bone": 7,
+     "silver_ingot": 6,
+     "labyrinth_essence": 1,
+     "funeral_bell_shard": 1
+    },
+    "to": {
+     "grave_bone": 5,
+     "silver_ingot": 6,
+     "labyrinth_essence": 1,
+     "funeral_bell_shard": 1
+    }
+   },
+   "crypt_mourner_boots": {
+    "tier": 6,
+    "kind": "feet",
+    "from": {
+     "grave_bone": 5,
+     "silver_ingot": 5,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "grave_bone": 4,
+     "silver_ingot": 5,
+     "labyrinth_essence": 1
+    }
+   },
+   "frostgrave_tower_shield": {
+    "tier": 6,
+    "kind": "offhand",
+    "from": {
+     "grave_bone": 10,
+     "silver_ingot": 8,
+     "funeral_bell_shard": 2,
+     "labyrinth_essence": 2
+    },
+    "to": {
+     "rime_talon": 4,
+     "silver_ingot": 8,
+     "funeral_bell_shard": 2,
+     "labyrinth_essence": 2
+    }
+   },
+   "frost_regalia_helm": {
+    "tier": 6,
+    "kind": "head",
+    "from": {
+     "frozen_crown_shard": 1,
+     "grave_bone": 7,
+     "silver_ingot": 6,
+     "funeral_bell_shard": 1,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "frozen_crown_shard": 1,
+     "grave_bone": 5,
+     "silver_ingot": 6,
+     "funeral_bell_shard": 1,
+     "labyrinth_essence": 1
+    }
+   },
+   "frost_regalia_chest": {
+    "tier": 6,
+    "kind": "chest",
+    "from": {
+     "frozen_crown_shard": 1,
+     "grave_bone": 10,
+     "silver_ingot": 8,
+     "funeral_bell_shard": 1,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "frozen_crown_shard": 1,
+     "grave_bone": 8,
+     "silver_ingot": 8,
+     "funeral_bell_shard": 1,
+     "labyrinth_essence": 1
+    }
+   },
+   "frost_regalia_legs": {
+    "tier": 6,
+    "kind": "legs",
+    "from": {
+     "frozen_crown_shard": 1,
+     "grave_bone": 8,
+     "silver_ingot": 7,
+     "funeral_bell_shard": 1,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "frozen_crown_shard": 1,
+     "grave_bone": 6,
+     "silver_ingot": 7,
+     "funeral_bell_shard": 1,
+     "labyrinth_essence": 1
+    }
+   },
+   "frost_regalia_boots": {
+    "tier": 6,
+    "kind": "feet",
+    "from": {
+     "frozen_crown_shard": 1,
+     "grave_bone": 6,
+     "silver_ingot": 5,
+     "funeral_bell_shard": 1,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "frozen_crown_shard": 1,
+     "grave_bone": 5,
+     "silver_ingot": 5,
+     "funeral_bell_shard": 1,
+     "labyrinth_essence": 1
+    }
+   },
+   "abyss_walker_helm": {
+    "tier": 10,
+    "kind": "head",
+    "from": {
+     "sculk_tendril": 15,
+     "abyss_ichor": 10,
+     "starmetal_ingot": 9,
+     "primordial_essence": 1
+    },
+    "to": {
+     "sculk_tendril": 11,
+     "abyss_ichor": 7,
+     "starmetal_ingot": 9,
+     "primordial_essence": 1
+    }
+   },
+   "abyss_walker_chest": {
+    "tier": 10,
+    "kind": "chest",
+    "from": {
+     "sculk_tendril": 22,
+     "abyss_ichor": 14,
+     "starmetal_ingot": 13,
+     "primordial_essence": 1,
+     "gatekeeper_rune": 2
+    },
+    "to": {
+     "abyss_scale": 12,
+     "abyss_ichor": 10,
+     "starmetal_ingot": 13,
+     "primordial_essence": 1,
+     "gatekeeper_rune": 2
+    }
+   },
+   "abyss_walker_legs": {
+    "tier": 10,
+    "kind": "legs",
+    "from": {
+     "sculk_tendril": 18,
+     "abyss_ichor": 12,
+     "starmetal_ingot": 11,
+     "primordial_essence": 1,
+     "gatekeeper_rune": 2
+    },
+    "to": {
+     "sculk_tendril": 13,
+     "abyss_ichor": 9,
+     "starmetal_ingot": 11,
+     "primordial_essence": 1,
+     "gatekeeper_rune": 2
+    }
+   },
+   "abyss_walker_boots": {
+    "tier": 10,
+    "kind": "feet",
+    "from": {
+     "sculk_tendril": 13,
+     "abyss_ichor": 9,
+     "starmetal_ingot": 8,
+     "primordial_essence": 1
+    },
+    "to": {
+     "abyss_scale": 7,
+     "abyss_ichor": 7,
+     "starmetal_ingot": 8,
+     "primordial_essence": 1
+    }
+   },
+   "starless_choir_helm": {
+    "tier": 10,
+    "kind": "head",
+    "from": {
+     "abyss_ichor": 15,
+     "sculk_tendril": 10,
+     "starmetal_ingot": 9,
+     "primordial_essence": 1
+    },
+    "to": {
+     "abyss_ichor": 11,
+     "sculk_tendril": 7,
+     "starmetal_ingot": 9,
+     "primordial_essence": 1
+    }
+   },
+   "starless_choir_chest": {
+    "tier": 10,
+    "kind": "chest",
+    "from": {
+     "abyss_ichor": 22,
+     "sculk_tendril": 14,
+     "starmetal_ingot": 13,
+     "primordial_essence": 1,
+     "gatekeeper_rune": 2
+    },
+    "to": {
+     "abyss_ichor": 16,
+     "sculk_tendril": 10,
+     "starmetal_ingot": 13,
+     "primordial_essence": 1,
+     "gatekeeper_rune": 2
+    }
+   },
+   "starless_choir_legs": {
+    "tier": 10,
+    "kind": "legs",
+    "from": {
+     "abyss_ichor": 18,
+     "sculk_tendril": 12,
+     "starmetal_ingot": 11,
+     "primordial_essence": 1,
+     "gatekeeper_rune": 2
+    },
+    "to": {
+     "abyss_ichor": 13,
+     "sculk_tendril": 9,
+     "starmetal_ingot": 11,
+     "primordial_essence": 1,
+     "gatekeeper_rune": 2
+    }
+   },
+   "starless_choir_boots": {
+    "tier": 10,
+    "kind": "feet",
+    "from": {
+     "abyss_ichor": 13,
+     "sculk_tendril": 9,
+     "starmetal_ingot": 8,
+     "primordial_essence": 1
+    },
+    "to": {
+     "abyss_ichor": 10,
+     "sculk_tendril": 6,
+     "starmetal_ingot": 8,
+     "primordial_essence": 1
+    }
+   },
+   "void_bulwark_shield": {
+    "tier": 10,
+    "kind": "offhand",
+    "from": {
+     "abyss_ichor": 18,
+     "sculk_tendril": 12,
+     "starmetal_ingot": 11,
+     "gatekeeper_rune": 2,
+     "primordial_essence": 2
+    },
+    "to": {
+     "abyss_ichor": 13,
+     "abyss_scale": 7,
+     "starmetal_ingot": 11,
+     "gatekeeper_rune": 2,
+     "primordial_essence": 2
+    }
+   },
+   "moss_band": {
+    "tier": 1,
+    "kind": "accessory",
+    "from": {
+     "moss_fiber": 8,
+     "beetle_shell": 2,
+     "copper_ingot": 4
+    },
+    "to": {
+     "moss_fiber": 6,
+     "moss_scale": 1,
+     "copper_ingot": 4
+    }
+   },
+   "grove_heartwood_charm": {
+    "tier": 1,
+    "kind": "accessory",
+    "from": {
+     "warden_heartwood": 2,
+     "moss_fiber": 8,
+     "copper_ingot": 3,
+     "alpha_moss_crest": 1
+    },
+    "to": {
+     "warden_heartwood": 2,
+     "moss_fiber": 6,
+     "copper_ingot": 3,
+     "alpha_moss_crest": 1
+    }
+   },
+   "miners_lucky_charm": {
+    "tier": 2,
+    "kind": "accessory",
+    "from": {
+     "spider_silk": 6,
+     "copper_ingot": 4,
+     "foreman_badge": 1
+    },
+    "to": {
+     "spider_silk": 3,
+     "copper_ingot": 4,
+     "foreman_badge": 1
+    }
+   },
+   "silk_queen_bracelet": {
+    "tier": 2,
+    "kind": "accessory",
+    "from": {
+     "silk_queen_spinneret": 2,
+     "spider_silk": 10,
+     "copper_ingot": 4,
+     "foreman_badge": 1,
+     "dim_essence": 1
+    },
+    "to": {
+     "silk_queen_spinneret": 2,
+     "spider_silk": 5,
+     "copper_ingot": 4,
+     "foreman_badge": 1,
+     "dim_essence": 1
+    }
+   },
+   "brine_pearl_ring": {
+    "tier": 4,
+    "kind": "accessory",
+    "from": {
+     "brine_pearl": 14,
+     "eel_scale": 4,
+     "iron_ingot": 6,
+     "verdigris_plate": 1,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "brine_pearl": 14,
+     "eel_scale": 3,
+     "iron_ingot": 6,
+     "verdigris_plate": 1,
+     "labyrinth_essence": 1
+    }
+   },
+   "ember_heart_amulet": {
+    "tier": 5,
+    "kind": "accessory",
+    "from": {
+     "cinder_hide": 14,
+     "silver_ingot": 7,
+     "executioner_edge": 1,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "ember_soul": 11,
+     "silver_ingot": 7,
+     "executioner_edge": 1,
+     "labyrinth_essence": 1
+    }
+   },
+   "anvil_king_brand": {
+    "tier": 5,
+    "kind": "accessory",
+    "from": {
+     "forge_core": 2,
+     "cinder_hide": 10,
+     "silver_ingot": 8,
+     "executioner_edge": 1,
+     "labyrinth_essence": 2
+    },
+    "to": {
+     "forge_core": 2,
+     "ember_soul": 8,
+     "silver_ingot": 8,
+     "executioner_edge": 1,
+     "labyrinth_essence": 2
+    }
+   },
+   "mourning_bell_charm": {
+    "tier": 6,
+    "kind": "accessory",
+    "from": {
+     "grave_bone": 8,
+     "silver_ingot": 7,
+     "funeral_bell_shard": 2,
+     "labyrinth_essence": 2
+    },
+    "to": {
+     "grave_bone": 6,
+     "silver_ingot": 7,
+     "funeral_bell_shard": 2,
+     "labyrinth_essence": 2
+    }
+   },
+   "mainspring_bracelet": {
+    "tier": 9,
+    "kind": "accessory",
+    "from": {
+     "clock_oil": 14,
+     "starmetal_ingot": 8,
+     "regulator_pendulum": 1,
+     "primordial_essence": 1
+    },
+    "to": {
+     "chrono_dust": 7,
+     "starmetal_ingot": 8,
+     "regulator_pendulum": 1,
+     "primordial_essence": 1
+    }
+   },
+   "teora_pocketwatch": {
+    "tier": 9,
+    "kind": "accessory",
+    "from": {
+     "clockwork_heart": 2,
+     "clock_oil": 14,
+     "starmetal_ingot": 11,
+     "regulator_pendulum": 2,
+     "primordial_essence": 3
+    },
+    "to": {
+     "clockwork_heart": 2,
+     "chrono_dust": 7,
+     "starmetal_ingot": 11,
+     "regulator_pendulum": 2,
+     "primordial_essence": 3
+    }
+   },
+   "abyssal_eye_amulet": {
+    "tier": 10,
+    "kind": "accessory",
+    "from": {
+     "abyss_ichor": 20,
+     "sculk_tendril": 12,
+     "starmetal_ingot": 11,
+     "gatekeeper_rune": 4,
+     "primordial_essence": 3
+    },
+    "to": {
+     "abyss_ichor": 15,
+     "sculk_tendril": 9,
+     "starmetal_ingot": 11,
+     "gatekeeper_rune": 4,
+     "primordial_essence": 3
+    }
+   },
+   "sluice_diver_helm": {
+    "tier": 4,
+    "kind": "head",
+    "from": {
+     "eel_scale": 8,
+     "brine_pearl": 6,
+     "iron_ingot": 5,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "eel_scale": 7,
+     "brine_pearl": 6,
+     "iron_ingot": 5,
+     "labyrinth_essence": 1
+    }
+   },
+   "sluice_diver_chest": {
+    "tier": 4,
+    "kind": "chest",
+    "from": {
+     "eel_scale": 12,
+     "brine_pearl": 8,
+     "iron_ingot": 7,
+     "labyrinth_essence": 1,
+     "verdigris_plate": 1
+    },
+    "to": {
+     "eel_scale": 10,
+     "brine_pearl": 8,
+     "iron_ingot": 7,
+     "labyrinth_essence": 1,
+     "verdigris_plate": 1
+    }
+   },
+   "sluice_diver_legs": {
+    "tier": 4,
+    "kind": "legs",
+    "from": {
+     "eel_scale": 10,
+     "brine_pearl": 7,
+     "iron_ingot": 6,
+     "labyrinth_essence": 1,
+     "verdigris_plate": 1
+    },
+    "to": {
+     "eel_scale": 9,
+     "brine_pearl": 7,
+     "iron_ingot": 6,
+     "labyrinth_essence": 1,
+     "verdigris_plate": 1
+    }
+   },
+   "sluice_diver_boots": {
+    "tier": 4,
+    "kind": "feet",
+    "from": {
+     "eel_scale": 7,
+     "brine_pearl": 5,
+     "iron_ingot": 4,
+     "labyrinth_essence": 1
+    },
+    "to": {
+     "eel_scale": 6,
+     "brine_pearl": 5,
+     "iron_ingot": 4,
+     "labyrinth_essence": 1
+    }
+   }
+  }
+ },
+ "mimic": {
+  "now": "미믹(미로 상자 · 보물방)은 처음 열면 그 층 일반 몹 2(+층/4)마리를 부른다 (Treasures.spring · TreasureRoom.springMimic). 그래서 미믹이 그냥 몹으로 보인다. 보물방 미믹은 상자가 사라져(setBlock AIR) 몫이 없다.",
+  "owner_complaint_2": "이 명세만으로는 풀리지 않는다 — 미믹 모양·싸움 작업이 따로 있어야 한다",
+  "drops_rule": [
+   "미믹 몸은 루팅 표를 굴리지 않는다 (drops 없음 · gold [0,0] · xp 0) — 상이 곧 상자. 표 하나로는 층마다 강화석·골드를 다르게 줄 수 없다",
+   "미로 미믹: 지금처럼 길들여져 한 단계 좋은 상자 + 금고·미믹 표(hoard_fNN) 한 번 더 (코드 그대로)",
+   "보물방 미믹: 잡으면 그 자리에 상자를 다시 놓는다 (열면 treasure_floor_N 한 번) — 지금은 상자가 사라져 몫이 없다"
+  ],
+  "interface_for_mimic_form_task": [
+   "mobs.yml chest_mimic 1종 (rank add) — 층 몹 대신 1마리. 몸틀은 ore_mimic(lid 턱 관절 · tongue · 다리 4)을 상자 색으로",
+   "능력치는 코드가 정한다 (mobs.yml 은 몹마다 고정, 층 배율 없음 — MobStats.compute): HP = 그 층 일반 몹 hp 중간값 × (mimic_mobs + 층/4), 피해 = damage 중간값 × 1.2, 방어 = defense 중간값, 경험치·골드 = 중간값 × 같은 수. InstanceContext 배율을 덧씌운 소환 1개",
+   "층마다 몹 10종(chest_mimic_f01…)은 팩 리그가 10벌이 되어 권하지 않는다",
+   "공급 영향: 1회 부르던 몹 1~4마리 몫(부위 1~4개)이 빠진다 — 1회 공급의 2% 안팎, gen_enhance MOBS_RUN 은 원래 미믹 몹을 세지 않음"
+  ]
+ },
+ "craft_legend_patch": {
+  "silver_grip": {
+   "cinder_hide": 16,
+   "to": {
+    "cinder_scale": 8
+   }
+  },
+  "moonstone_orb_staff": {
+   "cinder_hide": 30,
+   "to": {
+    "ember_soul": 23
+   }
+  },
+  "moonstone_sun_scepter": {
+   "cinder_hide": 30,
+   "to": {
+    "ember_soul": 23
+   }
+  },
+  "note": "개수 = 이 명세의 공급 비 (잿불 비늘 ×0.52 · 불씨 혼 ×0.766). 묘지 뼈·스컬크·체액 공급이 줄어도 craft_legend 무기 21종의 부위 몫은 1.09회 이하라 병목(정예 전리품 2.2~5.4회)과 시간표는 그대로. craft_legend 레시피는 recipes_frozen 밖이라 gen_036 부위 바꿈을 받지 않는다"
+ },
+ "visual_spec_patch": "새 모양 hide(잿불 가죽용)를 뺀다 (17 → 16). 잿불 비늘 = scale, 불씨 혼 = shard (옛 불씨 조각 그림 그대로)",
+ "review": {
+  "file": "review_drops.md",
+  "check": "tools/review_check.py → out/review_check.json",
+  "designer_version": "review_backup/",
+  "fixed": [
+   "녹슨 광부: 거미줄 뺌, 구리 광석만 (무게 1.5)",
+   "레시피 부위: 방어구 겉모습 + 이름 글자 규칙 — 이름과 재료가 어긋난 레시피 12개 → 2 (태엽 천구 지팡이·태엽 팔찌는 시간 가루가 시계 재료라 둠)",
+   "강화 R: 지금 서버 것 먼저 — R 바뀐 장비 23(설계 첫 판, materials_spec 대비) · 36(지금 서버 대비) → 지금 서버 대비 0",
+   "아이콘: 불씨 혼 essence → shard (태고의 미궁 정수와 헷갈림) · 잿불 비늘 숯빛 (녹물 비늘과 헷갈림)",
+   "미믹 계약: 몸 표 없음 · 능력치 코드",
+   "craft_legend cinder_hide 3칸 바꿈 표",
+   "시험: EnhanceMaterialsTest·EnhanceIngotTest 고칠 점 · RecipeNameMaterialTest · EnhanceLiveRTest",
+   "수치 다시 냄"
+  ]
+ },
+ "tests": [
+  "DragonPartsTest — 몸틀(style.shape) drake · wyvern · dragonkin 몹 표에 껍질·섬유·실·갓·진주·책장·뼈가 없다 (태엽 와이번은 태엽 기름)",
+  "NoSharedFloorDropTest — 같은 층 일반 몹 6종의 부위 구성이 모두 같지 않다 (0.3.5 의 \"층 재료를 모두가 줌\" 막기)",
+  "MobPartFloorTest — 몹 표의 부위는 모두 그 몹 층(floor) 재료",
+  "RecipePartObtainableTest — 장비 레시피의 부위는 그 단계 층 몹·정예·보스·상자 중 한 곳 이상에서 나온다",
+  "BossTweakIndexTest — content_p3 loot_tweaks 가 가리키는 보스 표 entries 번호가 고유 장비 one_of 를 가리킨다 (광석을 앞에 넣으면 깨짐)",
+  "ItemMigration036Test (materials_spec) — ember_shard → ember_soul, cinder_hide → cinder_scale 추가",
+  "RecipeNameMaterialTest — 이름에 은실·거미(2층) · 용수철(9층)이 든 장비 레시피는 그 부위를 쓴다. 판금 방어구·방패는 부드러운 부위만 쓰지 않는다",
+  "EnhanceLiveRTest — 0.3.5.1 에 있던 장비는 R(+7~+10 귀한 재료)이 그때와 같다",
+  "LootRollerTest.guaranteedAlwaysDrops — 1층 보스 이끼 섬유 [4,6] → [6,9]",
+  "EnhanceMaterialsTest — \"P·S = 레시피에서 가장 많이 드는 두 재료\"는 materials_spec 시제품에서도 깨진다(78/165, S 가 주괴). materials_spec EnhanceIngotTest 로 바꾸고 \"P = 가장 많이 드는 몬스터 재료\" 비율로 센다 (이 명세 117/165, 기준 2/3)",
+  "EnhanceIngotTest (materials_spec) — low 가 주괴일 수 있는 하나뿐인 층은 7층뿐",
+  "python3 tools/gen_035_content.py --check && python3 tools/gen_enhance.py --check"
+ ],
+ "_copy": "design036/drops/drops_spec.json (검토 review_drops.md 반영판) 사본, results 뺌 — tools/gen_036_materials.py 의 드롭 단계 입력. 손으로 고치지 않는다"
+}

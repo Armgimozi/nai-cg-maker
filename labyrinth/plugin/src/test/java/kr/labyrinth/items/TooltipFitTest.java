@@ -210,7 +210,7 @@ class TooltipFitTest {
         for (RecipeDef r : content.recipes().values()) {
             ItemDef d = content.item(r.result());
             if (d == null || !d.isGear()) continue;
-            int tail = 4 + r.materials().size();
+            int tail = kr.labyrinth.items.crafting.BlacksmithMenu.tailSize(content, r);   // 0.3.6: 주괴 한 줄 · 재료가 많으면 제목 뺌
             List<String> l = ItemTooltip.lines(content, d, null, Map.of(), List.of(), tail, true, null);
             if (l.size() + tail > worst) { worst = l.size() + tail; worstId = r.id(); }
             assertTrue(l.size() + tail <= ItemTooltip.MAX_LINES, r.id() + " 대장간 " + (l.size() + tail) + "줄\n" + String.join("\n", l));

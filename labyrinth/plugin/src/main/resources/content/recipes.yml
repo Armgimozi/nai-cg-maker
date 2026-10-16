@@ -3,8 +3,8 @@
 #
 # 스키마: ARCHITECTURE.md §6 recipes.yml (+ 추가 필드는 §6.2)
 #  result     : items.yml id (레시피 id = 결과 id)
-#  category   : weapon | armor | accessory | material  — 대장장이 GUI 탭
-#  station    : blacksmith
+#  category   : weapon | armor | accessory | material | tool(0.3.6 곡괭이)  — GUI 탭
+#  station    : blacksmith (대장간) | smelter (0.3.6 제련소·광산 관리소 — 제련·새기기·곡괭이)
 #  materials  : {재료 id: 개수}  — 인벤토리에서 소모
 #  gold       : 제작 골드 (명장의 부적 craft_discount 로 할인)
 #  level_req  : 결과 장비의 숨은 아이템 레벨 (정렬·표시용 — 제작을 레벨로 막지 않는다)
@@ -26,63 +26,63 @@ recipes:
     result: mossback_warhammer
     category: weapon
     station: blacksmith
-    materials: {moss_fiber: 8, beetle_shell: 5}
+    materials: {moss_fiber: 6, beetle_shell: 3, copper_ingot: 3}
     gold: 70
     level_req: 3
   rootbound_scythe:   # 뿌리 감긴 큰낫
     result: rootbound_scythe
     category: weapon
     station: blacksmith
-    materials: {moss_fiber: 8, beetle_shell: 5}
+    materials: {moss_fiber: 6, beetle_shell: 3, copper_ingot: 3}
     gold: 70
     level_req: 3
   mossvine_hornbow:   # 이끼 덩굴 각궁
     result: mossvine_hornbow
     category: weapon
     station: blacksmith
-    materials: {moss_fiber: 8, beetle_shell: 5}
+    materials: {moss_fiber: 6, moss_scale: 3, copper_ingot: 3}
     gold: 70
     level_req: 3
   wayfarer_spiral_staff:   # 길잡이의 소용돌이 지팡이
     result: wayfarer_spiral_staff
     category: weapon
     station: blacksmith
-    materials: {moss_fiber: 8, beetle_shell: 5}
+    materials: {moss_fiber: 6, moss_scale: 3, copper_ingot: 3}
     gold: 70
     level_req: 3
   grove_chalice:   # 숲지기의 성배
     result: grove_chalice
     category: weapon
     station: blacksmith
-    materials: {moss_fiber: 8, beetle_shell: 5}
+    materials: {moss_fiber: 6, moss_scale: 3, copper_ingot: 3}
     gold: 70
     level_req: 3
   corridor_katar:   # 회랑 주먹칼
     result: corridor_katar
     category: weapon
     station: blacksmith
-    materials: {moss_fiber: 8, beetle_shell: 5}
+    materials: {moss_fiber: 6, beetle_shell: 3, copper_ingot: 3}
     gold: 70
     level_req: 3
   grove_warden_maul:   # 파수꾼의 이끼바위 망치
     result: grove_warden_maul
     category: weapon
     station: blacksmith
-    materials: {warden_heartwood: 2, moss_fiber: 10, beetle_shell: 8, alpha_moss_crest: 1}
+    materials: {warden_heartwood: 2, moss_fiber: 8, beetle_shell: 4, copper_ingot: 2, iron_ingot: 2, alpha_moss_crest: 1}
     gold: 300
     level_req: 5
   grove_rootstring_bow:   # 뿌리시위 파수궁
     result: grove_rootstring_bow
     category: weapon
     station: blacksmith
-    materials: {warden_heartwood: 2, moss_fiber: 10, beetle_shell: 8, alpha_moss_crest: 1}
+    materials: {warden_heartwood: 2, moss_fiber: 8, moss_scale: 5, copper_ingot: 2, iron_ingot: 2, alpha_moss_crest: 1}
     gold: 300
     level_req: 5
   grove_heartwood_staff:   # 심재 반딧불 지팡이
     result: grove_heartwood_staff
     category: weapon
     station: blacksmith
-    materials: {warden_heartwood: 2, moss_fiber: 10, beetle_shell: 8, alpha_moss_crest: 1}
+    materials: {warden_heartwood: 2, moss_fiber: 8, moss_scale: 5, copper_ingot: 2, iron_ingot: 2, alpha_moss_crest: 1}
     gold: 300
     level_req: 5
   # ── 지하 2층 ──
@@ -90,42 +90,42 @@ recipes:
     result: silkguard_falchion
     category: weapon
     station: blacksmith
-    materials: {spider_silk: 10, rusted_iron: 8, foreman_badge: 1, dim_essence: 1}
+    materials: {spider_silk: 5, copper_ingot: 1, iron_ingot: 3, foreman_badge: 1, dim_essence: 1}
     gold: 400
     level_req: 8
   silkspan_glaive:   # 은실 언월도
     result: silkspan_glaive
     category: weapon
     station: blacksmith
-    materials: {spider_silk: 10, rusted_iron: 8, foreman_badge: 1, dim_essence: 1}
+    materials: {spider_silk: 5, copper_ingot: 1, iron_ingot: 3, foreman_badge: 1, dim_essence: 1}
     gold: 400
     level_req: 8
   skitter_bladebow:   # 갱도 거미 날활
     result: skitter_bladebow
     category: weapon
     station: blacksmith
-    materials: {spider_silk: 10, rusted_iron: 8, foreman_badge: 1, dim_essence: 1}
+    materials: {spider_silk: 5, copper_ingot: 1, iron_ingot: 3, foreman_badge: 1, dim_essence: 1}
     gold: 400
     level_req: 8
   miners_fork_staff:   # 광부의 갈래 지팡이
     result: miners_fork_staff
     category: weapon
     station: blacksmith
-    materials: {spider_silk: 10, rusted_iron: 8, foreman_badge: 1, dim_essence: 1}
+    materials: {spider_silk: 5, copper_ingot: 1, iron_ingot: 3, foreman_badge: 1, dim_essence: 1}
     gold: 400
     level_req: 8
   miners_bell_scepter:   # 갱도 경보종 홀
     result: miners_bell_scepter
     category: weapon
     station: blacksmith
-    materials: {spider_silk: 10, rusted_iron: 8, foreman_badge: 1, dim_essence: 1}
+    materials: {spider_silk: 5, copper_ingot: 1, iron_ingot: 3, foreman_badge: 1, dim_essence: 1}
     gold: 400
     level_req: 8
   silk_sickle:   # 은실 낫
     result: silk_sickle
     category: weapon
     station: blacksmith
-    materials: {spider_silk: 10, rusted_iron: 8, foreman_badge: 1, dim_essence: 1}
+    materials: {spider_silk: 5, copper_ingot: 1, iron_ingot: 3, foreman_badge: 1, dim_essence: 1}
     gold: 400
     level_req: 8
   # ── 지하 3층 ──
@@ -133,42 +133,42 @@ recipes:
     result: sporecap_warhammer
     category: weapon
     station: blacksmith
-    materials: {spore_cap: 12, hypha_thread: 10, brood_core: 1, dim_essence: 2}
+    materials: {spore_cap: 12, hypha_thread: 10, iron_ingot: 4, brood_core: 1, dim_essence: 2}
     gold: 1050
     level_req: 14
   mycel_scythe:   # 균사 큰낫
     result: mycel_scythe
     category: weapon
     station: blacksmith
-    materials: {spore_cap: 12, hypha_thread: 10, brood_core: 1, dim_essence: 2}
+    materials: {spore_cap: 12, hypha_thread: 10, iron_ingot: 4, brood_core: 1, dim_essence: 2}
     gold: 1050
     level_req: 14
   mycel_hornbow:   # 균사 각궁
     result: mycel_hornbow
     category: weapon
     station: blacksmith
-    materials: {spore_cap: 12, hypha_thread: 10, brood_core: 1, dim_essence: 2}
+    materials: {spore_cap: 12, hypha_thread: 10, iron_ingot: 4, brood_core: 1, dim_essence: 2}
     gold: 1050
     level_req: 14
   glowcap_spiral_staff:   # 빛갓 소용돌이 지팡이
     result: glowcap_spiral_staff
     category: weapon
     station: blacksmith
-    materials: {spore_cap: 12, hypha_thread: 10, brood_core: 1, dim_essence: 2}
+    materials: {spore_cap: 12, hypha_thread: 10, iron_ingot: 4, brood_core: 1, dim_essence: 2}
     gold: 1050
     level_req: 14
   bloom_chalice:   # 공생꽃 성배
     result: bloom_chalice
     category: weapon
     station: blacksmith
-    materials: {spore_cap: 12, hypha_thread: 10, brood_core: 1, dim_essence: 2}
+    materials: {spore_cap: 12, hypha_thread: 10, iron_ingot: 4, brood_core: 1, dim_essence: 2}
     gold: 1050
     level_req: 14
   spore_katar:   # 포자 주먹칼
     result: spore_katar
     category: weapon
     station: blacksmith
-    materials: {spore_cap: 12, hypha_thread: 10, brood_core: 1, dim_essence: 2}
+    materials: {spore_cap: 12, hypha_thread: 10, iron_ingot: 4, brood_core: 1, dim_essence: 2}
     gold: 1050
     level_req: 14
   # ── 지하 4층 ──
@@ -176,42 +176,42 @@ recipes:
     result: sluice_breaker_mace
     category: weapon
     station: blacksmith
-    materials: {brine_pearl: 10, eel_scale: 10, verdigris_plate: 1, labyrinth_essence: 1}
+    materials: {brine_pearl: 10, eel_scale: 9, silver_ingot: 4, verdigris_plate: 1, labyrinth_essence: 1}
     gold: 1800
     level_req: 17
   drowned_anchor_cleaver:   # 익사한 닻날
     result: drowned_anchor_cleaver
     category: weapon
     station: blacksmith
-    materials: {brine_pearl: 10, eel_scale: 10, verdigris_plate: 1, labyrinth_essence: 1}
+    materials: {brine_pearl: 10, eel_scale: 9, silver_ingot: 4, verdigris_plate: 1, labyrinth_essence: 1}
     gold: 1800
     level_req: 17
   eelbone_recurve:   # 장어뼈 만곡궁
     result: eelbone_recurve
     category: weapon
     station: blacksmith
-    materials: {brine_pearl: 10, eel_scale: 10, verdigris_plate: 1, labyrinth_essence: 1}
+    materials: {brine_pearl: 10, eel_scale: 9, silver_ingot: 4, verdigris_plate: 1, labyrinth_essence: 1}
     gold: 1800
     level_req: 17
   brine_orb_staff:   # 소금물 구슬 지팡이
     result: brine_orb_staff
     category: weapon
     station: blacksmith
-    materials: {brine_pearl: 10, eel_scale: 10, verdigris_plate: 1, labyrinth_essence: 1}
+    materials: {brine_pearl: 10, eel_scale: 9, silver_ingot: 4, verdigris_plate: 1, labyrinth_essence: 1}
     gold: 1800
     level_req: 17
   tidebell_censer:   # 조수종 향로
     result: tidebell_censer
     category: weapon
     station: blacksmith
-    materials: {brine_pearl: 10, eel_scale: 10, verdigris_plate: 1, labyrinth_essence: 1}
+    materials: {brine_pearl: 10, eel_scale: 9, silver_ingot: 4, verdigris_plate: 1, labyrinth_essence: 1}
     gold: 1800
     level_req: 17
   eel_kris:   # 녹물 장어 크리스
     result: eel_kris
     category: weapon
     station: blacksmith
-    materials: {brine_pearl: 10, eel_scale: 10, verdigris_plate: 1, labyrinth_essence: 1}
+    materials: {brine_pearl: 10, eel_scale: 9, silver_ingot: 4, verdigris_plate: 1, labyrinth_essence: 1}
     gold: 1800
     level_req: 17
   # ── 지하 5층 ──
@@ -219,42 +219,42 @@ recipes:
     result: anvil_oath_broadsword
     category: weapon
     station: blacksmith
-    materials: {slag_ingot: 14, ember_shard: 12, executioner_edge: 2, labyrinth_essence: 2}
+    materials: {cinder_scale: 6, silver_ingot: 2, gold_ingot: 3, executioner_edge: 2, labyrinth_essence: 2}
     gold: 4800
     level_req: 24
   slagforged_greatsword:   # 슬래그 단조 대검
     result: slagforged_greatsword
     category: weapon
     station: blacksmith
-    materials: {slag_ingot: 14, ember_shard: 12, executioner_edge: 2, labyrinth_essence: 2}
+    materials: {cinder_scale: 6, silver_ingot: 2, gold_ingot: 3, executioner_edge: 2, labyrinth_essence: 2}
     gold: 4800
     level_req: 24
   bellows_composite_bow:   # 풀무 복합궁
     result: bellows_composite_bow
     category: weapon
     station: blacksmith
-    materials: {slag_ingot: 14, ember_shard: 12, executioner_edge: 2, labyrinth_essence: 2}
+    materials: {ember_soul: 9, silver_ingot: 2, gold_ingot: 3, executioner_edge: 2, labyrinth_essence: 2}
     gold: 4800
     level_req: 24
   cinder_crystal_staff:   # 불씨 수정 지팡이
     result: cinder_crystal_staff
     category: weapon
     station: blacksmith
-    materials: {slag_ingot: 14, ember_shard: 12, executioner_edge: 2, labyrinth_essence: 2}
+    materials: {ember_soul: 9, silver_ingot: 2, gold_ingot: 3, executioner_edge: 2, labyrinth_essence: 2}
     gold: 4800
     level_req: 24
   embersong_scepter:   # 불씨노래 홀
     result: embersong_scepter
     category: weapon
     station: blacksmith
-    materials: {slag_ingot: 14, ember_shard: 12, executioner_edge: 2, labyrinth_essence: 2}
+    materials: {ember_soul: 9, silver_ingot: 2, gold_ingot: 3, executioner_edge: 2, labyrinth_essence: 2}
     gold: 4800
     level_req: 24
   cinder_fang:   # 불씨 송곳니
     result: cinder_fang
     category: weapon
     station: blacksmith
-    materials: {slag_ingot: 14, ember_shard: 12, executioner_edge: 2, labyrinth_essence: 2}
+    materials: {cinder_scale: 6, silver_ingot: 2, gold_ingot: 3, executioner_edge: 2, labyrinth_essence: 2}
     gold: 4800
     level_req: 24
   # ── 지하 6층 ──
@@ -262,42 +262,42 @@ recipes:
     result: frostgrave_mace
     category: weapon
     station: blacksmith
-    materials: {rime_crystal: 16, grave_bone: 12, funeral_bell_shard: 1, labyrinth_essence: 2}
+    materials: {rime_talon: 5, gold_ingot: 6, funeral_bell_shard: 1, labyrinth_essence: 2}
     gold: 5700
     level_req: 27
   rime_reaper_scythe:   # 서리 수확자의 큰낫
     result: rime_reaper_scythe
     category: weapon
     station: blacksmith
-    materials: {rime_crystal: 16, grave_bone: 12, funeral_bell_shard: 1, labyrinth_essence: 2}
+    materials: {rime_talon: 5, gold_ingot: 6, funeral_bell_shard: 1, labyrinth_essence: 2}
     gold: 5700
     level_req: 27
   frostbone_longbow:   # 얼음뼈 장궁
     result: frostbone_longbow
     category: weapon
     station: blacksmith
-    materials: {rime_crystal: 16, grave_bone: 12, funeral_bell_shard: 1, labyrinth_essence: 2}
+    materials: {grave_bone: 9, gold_ingot: 6, funeral_bell_shard: 1, labyrinth_essence: 2}
     gold: 5700
     level_req: 27
   rimebell_staff:   # 서리방울 고리 지팡이
     result: rimebell_staff
     category: weapon
     station: blacksmith
-    materials: {rime_crystal: 16, grave_bone: 12, funeral_bell_shard: 1, labyrinth_essence: 2}
+    materials: {grave_bone: 9, gold_ingot: 6, funeral_bell_shard: 1, labyrinth_essence: 2}
     gold: 5700
     level_req: 27
   frost_vigil_censer:   # 서리 철야 향로
     result: frost_vigil_censer
     category: weapon
     station: blacksmith
-    materials: {rime_crystal: 16, grave_bone: 12, funeral_bell_shard: 1, labyrinth_essence: 2}
+    materials: {grave_bone: 9, gold_ingot: 6, funeral_bell_shard: 1, labyrinth_essence: 2}
     gold: 5700
     level_req: 27
   gravefrost_katar:   # 묘역 서리 주먹칼
     result: gravefrost_katar
     category: weapon
     station: blacksmith
-    materials: {rime_crystal: 16, grave_bone: 12, funeral_bell_shard: 1, labyrinth_essence: 2}
+    materials: {rime_talon: 5, gold_ingot: 6, funeral_bell_shard: 1, labyrinth_essence: 2}
     gold: 5700
     level_req: 27
   # ── 지하 7층 ──
@@ -305,42 +305,42 @@ recipes:
     result: amethyst_falchion
     category: weapon
     station: blacksmith
-    materials: {amethyst_shard: 16, prism_dust: 12, tuning_fork_core: 1, radiant_essence: 1}
+    materials: {resonant_sinew: 12, gold_ingot: 6, tuning_fork_core: 1, radiant_essence: 1}
     gold: 8400
     level_req: 34
   geode_scythe:   # 정동 큰낫
     result: geode_scythe
     category: weapon
     station: blacksmith
-    materials: {amethyst_shard: 16, prism_dust: 12, tuning_fork_core: 1, radiant_essence: 1}
+    materials: {resonant_sinew: 12, gold_ingot: 6, tuning_fork_core: 1, radiant_essence: 1}
     gold: 8400
     level_req: 34
   prism_hornbow:   # 프리즘 각궁
     result: prism_hornbow
     category: weapon
     station: blacksmith
-    materials: {amethyst_shard: 16, prism_dust: 12, tuning_fork_core: 1, radiant_essence: 1}
+    materials: {resonant_sinew: 12, gold_ingot: 6, tuning_fork_core: 1, radiant_essence: 1}
     gold: 8400
     level_req: 34
   resonant_fork_staff:   # 공명 소리굽쇠 지팡이
     result: resonant_fork_staff
     category: weapon
     station: blacksmith
-    materials: {amethyst_shard: 16, prism_dust: 12, tuning_fork_core: 1, radiant_essence: 1}
+    materials: {resonant_sinew: 12, gold_ingot: 6, tuning_fork_core: 1, radiant_essence: 1}
     gold: 8400
     level_req: 34
   crystal_bell_scepter:   # 수정 종 홀
     result: crystal_bell_scepter
     category: weapon
     station: blacksmith
-    materials: {amethyst_shard: 16, prism_dust: 12, tuning_fork_core: 1, radiant_essence: 1}
+    materials: {resonant_sinew: 12, gold_ingot: 6, tuning_fork_core: 1, radiant_essence: 1}
     gold: 8400
     level_req: 34
   shardglass_sickle:   # 파편유리 낫
     result: shardglass_sickle
     category: weapon
     station: blacksmith
-    materials: {amethyst_shard: 16, prism_dust: 12, tuning_fork_core: 1, radiant_essence: 1}
+    materials: {resonant_sinew: 12, gold_ingot: 6, tuning_fork_core: 1, radiant_essence: 1}
     gold: 8400
     level_req: 34
   # ── 지하 8층 ──
@@ -348,42 +348,42 @@ recipes:
     result: inkseal_warhammer
     category: weapon
     station: blacksmith
-    materials: {ink_essence: 18, old_page: 14, forbidden_seal: 1, radiant_essence: 2}
+    materials: {ink_essence: 18, old_page: 14, mithril_ingot: 6, forbidden_seal: 1, radiant_essence: 2}
     gold: 12000
     level_req: 38
   lore_glaive:   # 금서 언월도
     result: lore_glaive
     category: weapon
     station: blacksmith
-    materials: {ink_essence: 18, old_page: 14, forbidden_seal: 1, radiant_essence: 2}
+    materials: {ink_essence: 18, old_page: 14, mithril_ingot: 6, forbidden_seal: 1, radiant_essence: 2}
     gold: 12000
     level_req: 38
   inkquill_hornbow:   # 깃펜 각궁
     result: inkquill_hornbow
     category: weapon
     station: blacksmith
-    materials: {ink_essence: 18, old_page: 14, forbidden_seal: 1, radiant_essence: 2}
+    materials: {ink_essence: 18, old_page: 14, mithril_ingot: 6, forbidden_seal: 1, radiant_essence: 2}
     gold: 12000
     level_req: 38
   ink_spiral_staff:   # 먹물 소용돌이 지팡이
     result: ink_spiral_staff
     category: weapon
     station: blacksmith
-    materials: {ink_essence: 18, old_page: 14, forbidden_seal: 1, radiant_essence: 2}
+    materials: {ink_essence: 18, old_page: 14, mithril_ingot: 6, forbidden_seal: 1, radiant_essence: 2}
     gold: 12000
     level_req: 38
   ink_chalice:   # 먹물 잔 홀
     result: ink_chalice
     category: weapon
     station: blacksmith
-    materials: {ink_essence: 18, old_page: 14, forbidden_seal: 1, radiant_essence: 2}
+    materials: {ink_essence: 18, old_page: 14, mithril_ingot: 6, forbidden_seal: 1, radiant_essence: 2}
     gold: 12000
     level_req: 38
   lorekeeper_katar:   # 금서지기의 주먹칼
     result: lorekeeper_katar
     category: weapon
     station: blacksmith
-    materials: {ink_essence: 18, old_page: 14, forbidden_seal: 1, radiant_essence: 2}
+    materials: {ink_essence: 18, old_page: 14, mithril_ingot: 6, forbidden_seal: 1, radiant_essence: 2}
     gold: 12000
     level_req: 38
   # ── 지하 9층 ──
@@ -391,42 +391,42 @@ recipes:
     result: clockguard_mace
     category: weapon
     station: blacksmith
-    materials: {brass_gear: 16, mainspring: 12, regulator_pendulum: 1, primordial_essence: 1}
+    materials: {clock_oil: 12, mithril_ingot: 3, orichalcum_ingot: 3, regulator_pendulum: 1, primordial_essence: 1}
     gold: 14250
     level_req: 41
   regulator_greatsword:   # 조율기 대검
     result: regulator_greatsword
     category: weapon
     station: blacksmith
-    materials: {brass_gear: 16, mainspring: 12, regulator_pendulum: 1, primordial_essence: 1}
+    materials: {clock_oil: 12, mithril_ingot: 3, orichalcum_ingot: 3, regulator_pendulum: 1, primordial_essence: 1}
     gold: 14250
     level_req: 41
   springloaded_bow:   # 용수철 연발궁
     result: springloaded_bow
     category: weapon
     station: blacksmith
-    materials: {brass_gear: 16, mainspring: 12, regulator_pendulum: 1, primordial_essence: 1}
+    materials: {clock_oil: 12, mithril_ingot: 3, orichalcum_ingot: 3, regulator_pendulum: 1, primordial_essence: 1}
     gold: 14250
     level_req: 41
   orrery_staff:   # 태엽 천구 지팡이
     result: orrery_staff
     category: weapon
     station: blacksmith
-    materials: {brass_gear: 16, mainspring: 12, regulator_pendulum: 1, primordial_essence: 1}
+    materials: {chrono_dust: 6, mithril_ingot: 3, orichalcum_ingot: 3, regulator_pendulum: 1, primordial_essence: 1}
     gold: 14250
     level_req: 41
   pendulum_censer:   # 진자 향로
     result: pendulum_censer
     category: weapon
     station: blacksmith
-    materials: {brass_gear: 16, mainspring: 12, regulator_pendulum: 1, primordial_essence: 1}
+    materials: {chrono_dust: 6, mithril_ingot: 3, orichalcum_ingot: 3, regulator_pendulum: 1, primordial_essence: 1}
     gold: 14250
     level_req: 41
   mainspring_dagger:   # 태엽 단검
     result: mainspring_dagger
     category: weapon
     station: blacksmith
-    materials: {brass_gear: 16, mainspring: 12, regulator_pendulum: 1, primordial_essence: 1}
+    materials: {clock_oil: 12, mithril_ingot: 3, orichalcum_ingot: 3, regulator_pendulum: 1, primordial_essence: 1}
     gold: 14250
     level_req: 41
   # ── 지하 10층 ──
@@ -434,42 +434,42 @@ recipes:
     result: void_falchion
     category: weapon
     station: blacksmith
-    materials: {abyss_ichor: 18, sculk_tendril: 14, gatekeeper_rune: 1, primordial_essence: 2}
+    materials: {abyss_ichor: 13, abyss_scale: 8, orichalcum_ingot: 6, gatekeeper_rune: 1, primordial_essence: 2}
     gold: 18000
     level_req: 46
   void_scythe:   # 공허의 큰낫
     result: void_scythe
     category: weapon
     station: blacksmith
-    materials: {abyss_ichor: 18, sculk_tendril: 14, gatekeeper_rune: 1, primordial_essence: 2}
+    materials: {abyss_ichor: 13, abyss_scale: 8, orichalcum_ingot: 6, gatekeeper_rune: 1, primordial_essence: 2}
     gold: 18000
     level_req: 46
   abyss_bladebow:   # 심연 날활
     result: abyss_bladebow
     category: weapon
     station: blacksmith
-    materials: {abyss_ichor: 18, sculk_tendril: 14, gatekeeper_rune: 1, primordial_essence: 2}
+    materials: {abyss_ichor: 13, sculk_tendril: 10, orichalcum_ingot: 6, gatekeeper_rune: 1, primordial_essence: 2}
     gold: 18000
     level_req: 46
   void_fork_staff:   # 공허 갈래 지팡이
     result: void_fork_staff
     category: weapon
     station: blacksmith
-    materials: {abyss_ichor: 18, sculk_tendril: 14, gatekeeper_rune: 1, primordial_essence: 2}
+    materials: {abyss_ichor: 13, sculk_tendril: 10, orichalcum_ingot: 6, gatekeeper_rune: 1, primordial_essence: 2}
     gold: 18000
     level_req: 46
   abyss_bell_scepter:   # 심연 울림종 홀
     result: abyss_bell_scepter
     category: weapon
     station: blacksmith
-    materials: {abyss_ichor: 18, sculk_tendril: 14, gatekeeper_rune: 1, primordial_essence: 2}
+    materials: {abyss_ichor: 13, sculk_tendril: 10, orichalcum_ingot: 6, gatekeeper_rune: 1, primordial_essence: 2}
     gold: 18000
     level_req: 46
   abyss_sickle:   # 심연 낫
     result: abyss_sickle
     category: weapon
     station: blacksmith
-    materials: {abyss_ichor: 18, sculk_tendril: 14, gatekeeper_rune: 1, primordial_essence: 2}
+    materials: {abyss_ichor: 13, abyss_scale: 8, orichalcum_ingot: 6, gatekeeper_rune: 1, primordial_essence: 2}
     gold: 18000
     level_req: 46
 
@@ -479,42 +479,42 @@ recipes:
     result: wayfarer_helm
     category: armor
     station: blacksmith
-    materials: {moss_fiber: 6, beetle_shell: 4}
+    materials: {moss_fiber: 5, moss_scale: 2, copper_ingot: 2}
     gold: 40
     level_req: 3
   wayfarer_chest:   # 길잡이 조끼
     result: wayfarer_chest
     category: armor
     station: blacksmith
-    materials: {moss_fiber: 8, beetle_shell: 6}
+    materials: {moss_fiber: 6, beetle_shell: 3, copper_ingot: 3}
     gold: 60
     level_req: 3
   wayfarer_legs:   # 길잡이 바지
     result: wayfarer_legs
     category: armor
     station: blacksmith
-    materials: {moss_fiber: 7, beetle_shell: 5}
+    materials: {moss_fiber: 6, moss_scale: 3, copper_ingot: 2}
     gold: 50
     level_req: 3
   wayfarer_boots:   # 길잡이 장화
     result: wayfarer_boots
     category: armor
     station: blacksmith
-    materials: {moss_fiber: 5, beetle_shell: 4}
+    materials: {moss_fiber: 4, beetle_shell: 2, copper_ingot: 2}
     gold: 40
     level_req: 3
   oak_round_shield:   # 참나무 원형 방패
     result: oak_round_shield
     category: armor
     station: blacksmith
-    materials: {moss_fiber: 4, beetle_shell: 6}
+    materials: {moss_fiber: 3, beetle_shell: 3, copper_ingot: 2}
     gold: 40
     level_req: 1
   grove_mossguard_helm:   # 그로브의 이끼 투구
     result: grove_mossguard_helm
     category: armor
     station: blacksmith
-    materials: {warden_heartwood: 2, beetle_shell: 10, moss_fiber: 6}
+    materials: {warden_heartwood: 2, beetle_shell: 5, moss_fiber: 5, copper_ingot: 1, iron_ingot: 2}
     gold: 250
     level_req: 5
   # ── 지하 2층 ──
@@ -522,98 +522,98 @@ recipes:
     result: pit_foreman_helm
     category: armor
     station: blacksmith
-    materials: {spider_silk: 6, rusted_iron: 4, dim_essence: 1}
+    materials: {tunnel_fang: 4, copper_ingot: 1, iron_ingot: 1, dim_essence: 1}
     gold: 140
     level_req: 8
   pit_foreman_chest:   # 감독관의 철판 흉갑
     result: pit_foreman_chest
     category: armor
     station: blacksmith
-    materials: {spider_silk: 8, rusted_iron: 6, dim_essence: 1, foreman_badge: 1}
+    materials: {tunnel_fang: 6, copper_ingot: 1, iron_ingot: 2, dim_essence: 1, foreman_badge: 1}
     gold: 200
     level_req: 8
   pit_foreman_legs:   # 감독관의 철판 다리 보호대
     result: pit_foreman_legs
     category: armor
     station: blacksmith
-    materials: {spider_silk: 7, rusted_iron: 5, dim_essence: 1, foreman_badge: 1}
+    materials: {tunnel_fang: 5, copper_ingot: 1, iron_ingot: 1, dim_essence: 1, foreman_badge: 1}
     gold: 170
     level_req: 8
   pit_foreman_boots:   # 감독관의 징 박은 장화
     result: pit_foreman_boots
     category: armor
     station: blacksmith
-    materials: {spider_silk: 5, rusted_iron: 3, dim_essence: 1}
+    materials: {tunnel_fang: 3, copper_ingot: 1, iron_ingot: 1, dim_essence: 1}
     gold: 120
     level_req: 8
   webrunner_helm:   # 잠행자의 거미줄 두건
     result: webrunner_helm
     category: armor
     station: blacksmith
-    materials: {rusted_iron: 6, spider_silk: 4, dim_essence: 1}
+    materials: {spider_silk: 2, copper_ingot: 1, iron_ingot: 1, dim_essence: 1}
     gold: 140
     level_req: 8
   webrunner_chest:   # 잠행자의 은실 조끼
     result: webrunner_chest
     category: armor
     station: blacksmith
-    materials: {rusted_iron: 8, spider_silk: 6, dim_essence: 1, foreman_badge: 1}
+    materials: {spider_silk: 3, copper_ingot: 1, iron_ingot: 2, dim_essence: 1, foreman_badge: 1}
     gold: 200
     level_req: 8
   webrunner_legs:   # 잠행자의 은실 바지
     result: webrunner_legs
     category: armor
     station: blacksmith
-    materials: {rusted_iron: 7, spider_silk: 5, dim_essence: 1, foreman_badge: 1}
+    materials: {spider_silk: 2, copper_ingot: 1, iron_ingot: 1, dim_essence: 1, foreman_badge: 1}
     gold: 170
     level_req: 8
   webrunner_boots:   # 잠행자의 거미발 신
     result: webrunner_boots
     category: armor
     station: blacksmith
-    materials: {rusted_iron: 5, spider_silk: 3, dim_essence: 1}
+    materials: {spider_silk: 1, copper_ingot: 1, iron_ingot: 1, dim_essence: 1}
     gold: 120
     level_req: 8
   silkweaver_helm:   # 직조사의 은실 관
     result: silkweaver_helm
     category: armor
     station: blacksmith
-    materials: {spider_silk: 6, rusted_iron: 4, dim_essence: 1}
+    materials: {spider_silk: 3, copper_ingot: 1, iron_ingot: 1, dim_essence: 1}
     gold: 140
     level_req: 8
   silkweaver_chest:   # 직조사의 은실 로브
     result: silkweaver_chest
     category: armor
     station: blacksmith
-    materials: {spider_silk: 8, rusted_iron: 6, dim_essence: 1, foreman_badge: 1}
+    materials: {spider_silk: 4, copper_ingot: 1, iron_ingot: 2, dim_essence: 1, foreman_badge: 1}
     gold: 200
     level_req: 8
   silkweaver_legs:   # 직조사의 은실 치마
     result: silkweaver_legs
     category: armor
     station: blacksmith
-    materials: {spider_silk: 7, rusted_iron: 5, dim_essence: 1, foreman_badge: 1}
+    materials: {spider_silk: 3, copper_ingot: 1, iron_ingot: 1, dim_essence: 1, foreman_badge: 1}
     gold: 170
     level_req: 8
   silkweaver_boots:   # 직조사의 은실 신
     result: silkweaver_boots
     category: armor
     station: blacksmith
-    materials: {spider_silk: 5, rusted_iron: 3, dim_essence: 1}
+    materials: {spider_silk: 2, copper_ingot: 1, iron_ingot: 1, dim_essence: 1}
     gold: 120
     level_req: 8
   ironbound_kite_shield:   # 철띠 연 방패
     result: ironbound_kite_shield
     category: armor
     station: blacksmith
-    materials: {rusted_iron: 10, spider_silk: 4, foreman_badge: 1}
+    materials: {tunnel_fang: 3, copper_ingot: 1, iron_ingot: 2, foreman_badge: 1}
     gold: 160
     level_req: 6
   silkqueen_veil:   # 베셀라의 은실 면사포
     result: silkqueen_veil
     category: armor
     station: blacksmith
-    materials: {silk_queen_spinneret: 2, spider_silk: 12, rusted_iron: 6, dim_essence: 1}
+    materials: {silk_queen_spinneret: 2, spider_silk: 6, iron_ingot: 4, dim_essence: 1}
     gold: 700
     level_req: 10
   # ── 지하 3층 ──
@@ -621,70 +621,70 @@ recipes:
     result: hypha_stalker_helm
     category: armor
     station: blacksmith
-    materials: {hypha_thread: 8, spore_cap: 6, dim_essence: 1}
+    materials: {hypha_thread: 8, spore_cap: 6, iron_ingot: 3, dim_essence: 1}
     gold: 490
     level_req: 14
   hypha_stalker_chest:   # 균사 추적자 조끼
     result: hypha_stalker_chest
     category: armor
     station: blacksmith
-    materials: {hypha_thread: 12, spore_cap: 8, dim_essence: 1, brood_core: 1}
+    materials: {hypha_thread: 12, spore_cap: 8, iron_ingot: 4, dim_essence: 1, brood_core: 1}
     gold: 700
     level_req: 14
   hypha_stalker_legs:   # 균사 추적자 바지
     result: hypha_stalker_legs
     category: armor
     station: blacksmith
-    materials: {hypha_thread: 10, spore_cap: 7, dim_essence: 1, brood_core: 1}
+    materials: {hypha_thread: 10, spore_cap: 7, iron_ingot: 3, dim_essence: 1, brood_core: 1}
     gold: 600
     level_req: 14
   hypha_stalker_boots:   # 균사 추적자 장화
     result: hypha_stalker_boots
     category: armor
     station: blacksmith
-    materials: {hypha_thread: 7, spore_cap: 5, dim_essence: 1}
+    materials: {hypha_thread: 7, spore_cap: 5, iron_ingot: 2, dim_essence: 1}
     gold: 420
     level_req: 14
   spore_sage_helm:   # 포자 현자의 모자
     result: spore_sage_helm
     category: armor
     station: blacksmith
-    materials: {spore_cap: 8, hypha_thread: 6, dim_essence: 1}
+    materials: {spore_cap: 8, hypha_thread: 6, iron_ingot: 3, dim_essence: 1}
     gold: 490
     level_req: 14
   spore_sage_chest:   # 포자 현자의 로브
     result: spore_sage_chest
     category: armor
     station: blacksmith
-    materials: {spore_cap: 12, hypha_thread: 8, dim_essence: 1, brood_core: 1}
+    materials: {spore_cap: 12, hypha_thread: 8, iron_ingot: 4, dim_essence: 1, brood_core: 1}
     gold: 700
     level_req: 14
   spore_sage_legs:   # 포자 현자의 하의
     result: spore_sage_legs
     category: armor
     station: blacksmith
-    materials: {spore_cap: 10, hypha_thread: 7, dim_essence: 1, brood_core: 1}
+    materials: {spore_cap: 10, hypha_thread: 7, iron_ingot: 3, dim_essence: 1, brood_core: 1}
     gold: 600
     level_req: 14
   spore_sage_boots:   # 포자 현자의 신발
     result: spore_sage_boots
     category: armor
     station: blacksmith
-    materials: {spore_cap: 7, hypha_thread: 5, dim_essence: 1}
+    materials: {spore_cap: 7, hypha_thread: 5, iron_ingot: 2, dim_essence: 1}
     gold: 420
     level_req: 14
   sporecap_round_shield:   # 포자갓 원형 방패
     result: sporecap_round_shield
     category: armor
     station: blacksmith
-    materials: {spore_cap: 10, hypha_thread: 6, brood_core: 1, dim_essence: 1}
+    materials: {spore_cap: 10, hypha_thread: 6, iron_ingot: 3, brood_core: 1, dim_essence: 1}
     gold: 500
     level_req: 12
   mycelking_spore_crown:   # 무르노크의 포자관
     result: mycelking_spore_crown
     category: armor
     station: blacksmith
-    materials: {mycelium_crown: 2, hypha_thread: 12, spore_cap: 8, dim_essence: 2}
+    materials: {mycelium_crown: 2, hypha_thread: 12, spore_cap: 8, silver_ingot: 4, dim_essence: 2}
     gold: 1400
     level_req: 15
   # ── 지하 4층 ──
@@ -692,42 +692,42 @@ recipes:
     result: verdigris_guard_helm
     category: armor
     station: blacksmith
-    materials: {brine_pearl: 8, eel_scale: 6, labyrinth_essence: 1}
+    materials: {brine_pearl: 8, eel_scale: 5, silver_ingot: 3, labyrinth_essence: 1}
     gold: 490
     level_req: 19
   verdigris_guard_chest:   # 녹청 수문 흉갑
     result: verdigris_guard_chest
     category: armor
     station: blacksmith
-    materials: {brine_pearl: 12, eel_scale: 8, labyrinth_essence: 1, verdigris_plate: 1}
+    materials: {brine_pearl: 12, eel_scale: 7, silver_ingot: 4, labyrinth_essence: 1, verdigris_plate: 1}
     gold: 700
     level_req: 19
   verdigris_guard_legs:   # 녹청 수문 각반
     result: verdigris_guard_legs
     category: armor
     station: blacksmith
-    materials: {brine_pearl: 10, eel_scale: 7, labyrinth_essence: 1, verdigris_plate: 1}
+    materials: {brine_pearl: 10, eel_scale: 6, silver_ingot: 3, labyrinth_essence: 1, verdigris_plate: 1}
     gold: 600
     level_req: 19
   verdigris_guard_boots:   # 녹청 수문 철장화
     result: verdigris_guard_boots
     category: armor
     station: blacksmith
-    materials: {brine_pearl: 7, eel_scale: 5, labyrinth_essence: 1}
+    materials: {brine_pearl: 7, eel_scale: 4, silver_ingot: 2, labyrinth_essence: 1}
     gold: 420
     level_req: 19
   verdigris_tower_shield:   # 녹청 탑 방패
     result: verdigris_tower_shield
     category: armor
     station: blacksmith
-    materials: {verdigris_plate: 2, eel_scale: 10, brine_pearl: 6, labyrinth_essence: 1}
+    materials: {verdigris_plate: 2, eel_scale: 9, brine_pearl: 6, silver_ingot: 3, labyrinth_essence: 1}
     gold: 900
     level_req: 15
   osric_sluice_helm:   # 오스릭의 수문 투구
     result: osric_sluice_helm
     category: armor
     station: blacksmith
-    materials: {floodgate_key: 2, eel_scale: 14, brine_pearl: 10, labyrinth_essence: 1}
+    materials: {floodgate_key: 2, eel_scale: 12, brine_pearl: 10, silver_ingot: 5, labyrinth_essence: 1}
     gold: 2800
     level_req: 20
   # ── 지하 5층 ──
@@ -735,63 +735,63 @@ recipes:
     result: emberforged_helm
     category: armor
     station: blacksmith
-    materials: {slag_ingot: 9, ember_shard: 6, labyrinth_essence: 1}
+    materials: {cinder_scale: 3, silver_ingot: 3, labyrinth_essence: 1}
     gold: 1540
     level_req: 24
   emberforged_chest:   # 불씨 단조 흉갑
     result: emberforged_chest
     category: armor
     station: blacksmith
-    materials: {slag_ingot: 13, ember_shard: 9, labyrinth_essence: 1, executioner_edge: 1}
+    materials: {cinder_scale: 5, silver_ingot: 4, labyrinth_essence: 1, executioner_edge: 1}
     gold: 2200
     level_req: 24
   emberforged_legs:   # 불씨 단조 각반
     result: emberforged_legs
     category: armor
     station: blacksmith
-    materials: {slag_ingot: 11, ember_shard: 7, labyrinth_essence: 1, executioner_edge: 1}
+    materials: {cinder_scale: 4, silver_ingot: 4, labyrinth_essence: 1, executioner_edge: 1}
     gold: 1870
     level_req: 24
   emberforged_boots:   # 불씨 단조 철장화
     result: emberforged_boots
     category: armor
     station: blacksmith
-    materials: {slag_ingot: 8, ember_shard: 5, labyrinth_essence: 1}
+    materials: {cinder_scale: 3, silver_ingot: 3, labyrinth_essence: 1}
     gold: 1320
     level_req: 24
   anvil_face_shield:   # 모룻면 방패
     result: anvil_face_shield
     category: armor
     station: blacksmith
-    materials: {slag_ingot: 16, ember_shard: 6, executioner_edge: 2, labyrinth_essence: 2}
+    materials: {cinder_scale: 3, silver_ingot: 2, gold_ingot: 2, executioner_edge: 2, labyrinth_essence: 2}
     gold: 3000
     level_req: 25
   forge_warden_helm:   # 용광로 수문장 투구
     result: forge_warden_helm
     category: armor
     station: blacksmith
-    materials: {forge_core: 1, slag_ingot: 10, ember_shard: 7, executioner_edge: 1, labyrinth_essence: 1}
+    materials: {forge_core: 1, cinder_scale: 4, gold_ingot: 3, executioner_edge: 1, labyrinth_essence: 1}
     gold: 4600
     level_req: 25
   forge_warden_chest:   # 용광로 수문장 흉갑
     result: forge_warden_chest
     category: armor
     station: blacksmith
-    materials: {forge_core: 1, slag_ingot: 14, ember_shard: 10, executioner_edge: 1, labyrinth_essence: 1}
+    materials: {forge_core: 1, cinder_scale: 5, gold_ingot: 5, executioner_edge: 1, labyrinth_essence: 1}
     gold: 6500
     level_req: 25
   forge_warden_legs:   # 용광로 수문장 각반
     result: forge_warden_legs
     category: armor
     station: blacksmith
-    materials: {forge_core: 1, slag_ingot: 12, ember_shard: 8, executioner_edge: 1, labyrinth_essence: 1}
+    materials: {forge_core: 1, cinder_scale: 4, gold_ingot: 4, executioner_edge: 1, labyrinth_essence: 1}
     gold: 5500
     level_req: 25
   forge_warden_boots:   # 용광로 수문장 철장화
     result: forge_warden_boots
     category: armor
     station: blacksmith
-    materials: {forge_core: 1, slag_ingot: 9, ember_shard: 6, executioner_edge: 1, labyrinth_essence: 1}
+    materials: {forge_core: 1, cinder_scale: 3, gold_ingot: 3, executioner_edge: 1, labyrinth_essence: 1}
     gold: 3900
     level_req: 25
   # ── 지하 6층 ──
@@ -799,91 +799,91 @@ recipes:
     result: rimefang_helm
     category: armor
     station: blacksmith
-    materials: {grave_bone: 9, rime_crystal: 6, labyrinth_essence: 1}
+    materials: {grave_bone: 7, gold_ingot: 3, labyrinth_essence: 1}
     gold: 1540
     level_req: 24
   rimefang_chest:   # 서리송곳니 조끼
     result: rimefang_chest
     category: armor
     station: blacksmith
-    materials: {grave_bone: 13, rime_crystal: 9, labyrinth_essence: 1, funeral_bell_shard: 1}
+    materials: {rime_talon: 5, gold_ingot: 4, labyrinth_essence: 1, funeral_bell_shard: 1}
     gold: 2200
     level_req: 24
   rimefang_legs:   # 서리송곳니 바지
     result: rimefang_legs
     category: armor
     station: blacksmith
-    materials: {grave_bone: 11, rime_crystal: 7, labyrinth_essence: 1, funeral_bell_shard: 1}
+    materials: {grave_bone: 9, gold_ingot: 4, labyrinth_essence: 1, funeral_bell_shard: 1}
     gold: 1870
     level_req: 24
   rimefang_boots:   # 서리송곳니 장화
     result: rimefang_boots
     category: armor
     station: blacksmith
-    materials: {grave_bone: 8, rime_crystal: 5, labyrinth_essence: 1}
+    materials: {rime_talon: 3, gold_ingot: 3, labyrinth_essence: 1}
     gold: 1320
     level_req: 24
   crypt_mourner_helm:   # 애도자의 면사 두건
     result: crypt_mourner_helm
     category: armor
     station: blacksmith
-    materials: {rime_crystal: 9, grave_bone: 6, labyrinth_essence: 1}
+    materials: {grave_bone: 5, gold_ingot: 3, labyrinth_essence: 1}
     gold: 1540
     level_req: 24
   crypt_mourner_chest:   # 애도자의 상복
     result: crypt_mourner_chest
     category: armor
     station: blacksmith
-    materials: {rime_crystal: 13, grave_bone: 9, labyrinth_essence: 1, funeral_bell_shard: 1}
+    materials: {grave_bone: 7, gold_ingot: 4, labyrinth_essence: 1, funeral_bell_shard: 1}
     gold: 2200
     level_req: 24
   crypt_mourner_legs:   # 애도자의 하의
     result: crypt_mourner_legs
     category: armor
     station: blacksmith
-    materials: {rime_crystal: 11, grave_bone: 7, labyrinth_essence: 1, funeral_bell_shard: 1}
+    materials: {grave_bone: 5, gold_ingot: 4, labyrinth_essence: 1, funeral_bell_shard: 1}
     gold: 1870
     level_req: 24
   crypt_mourner_boots:   # 애도자의 신발
     result: crypt_mourner_boots
     category: armor
     station: blacksmith
-    materials: {rime_crystal: 8, grave_bone: 5, labyrinth_essence: 1}
+    materials: {grave_bone: 4, gold_ingot: 3, labyrinth_essence: 1}
     gold: 1320
     level_req: 24
   frostgrave_tower_shield:   # 서리 묘비 방패
     result: frostgrave_tower_shield
     category: armor
     station: blacksmith
-    materials: {rime_crystal: 14, grave_bone: 10, funeral_bell_shard: 2, labyrinth_essence: 2}
+    materials: {rime_talon: 4, gold_ingot: 5, funeral_bell_shard: 2, labyrinth_essence: 2}
     gold: 3800
     level_req: 28
   frost_regalia_helm:   # 얼음관의 왕관
     result: frost_regalia_helm
     category: armor
     station: blacksmith
-    materials: {frozen_crown_shard: 1, rime_crystal: 10, grave_bone: 7, funeral_bell_shard: 1, labyrinth_essence: 1}
+    materials: {frozen_crown_shard: 1, grave_bone: 5, gold_ingot: 3, funeral_bell_shard: 1, labyrinth_essence: 1}
     gold: 4900
     level_req: 28
   frost_regalia_chest:   # 얼음관의 예복
     result: frost_regalia_chest
     category: armor
     station: blacksmith
-    materials: {frozen_crown_shard: 1, rime_crystal: 14, grave_bone: 10, funeral_bell_shard: 1, labyrinth_essence: 1}
+    materials: {frozen_crown_shard: 1, grave_bone: 8, gold_ingot: 5, funeral_bell_shard: 1, labyrinth_essence: 1}
     gold: 7000
     level_req: 28
   frost_regalia_legs:   # 얼음관의 치맛자락
     result: frost_regalia_legs
     category: armor
     station: blacksmith
-    materials: {frozen_crown_shard: 1, rime_crystal: 12, grave_bone: 8, funeral_bell_shard: 1, labyrinth_essence: 1}
+    materials: {frozen_crown_shard: 1, grave_bone: 6, gold_ingot: 4, funeral_bell_shard: 1, labyrinth_essence: 1}
     gold: 6000
     level_req: 28
   frost_regalia_boots:   # 얼음관의 신
     result: frost_regalia_boots
     category: armor
     station: blacksmith
-    materials: {frozen_crown_shard: 1, rime_crystal: 9, grave_bone: 6, funeral_bell_shard: 1, labyrinth_essence: 1}
+    materials: {frozen_crown_shard: 1, grave_bone: 5, gold_ingot: 3, funeral_bell_shard: 1, labyrinth_essence: 1}
     gold: 4200
     level_req: 28
   # ── 지하 7층 ──
@@ -891,63 +891,63 @@ recipes:
     result: geode_bastion_helm
     category: armor
     station: blacksmith
-    materials: {amethyst_shard: 11, prism_dust: 7, radiant_essence: 1}
+    materials: {resonant_sinew: 7, gold_ingot: 2, mithril_ingot: 2, radiant_essence: 1}
     gold: 4200
     level_req: 34
   geode_bastion_chest:   # 정동 성채 흉갑
     result: geode_bastion_chest
     category: armor
     station: blacksmith
-    materials: {amethyst_shard: 16, prism_dust: 10, radiant_essence: 1, tuning_fork_core: 1}
+    materials: {resonant_sinew: 10, gold_ingot: 2, mithril_ingot: 3, radiant_essence: 1, tuning_fork_core: 1}
     gold: 6000
     level_req: 34
   geode_bastion_legs:   # 정동 성채 각반
     result: geode_bastion_legs
     category: armor
     station: blacksmith
-    materials: {amethyst_shard: 13, prism_dust: 9, radiant_essence: 1, tuning_fork_core: 1}
+    materials: {resonant_sinew: 9, gold_ingot: 2, mithril_ingot: 2, radiant_essence: 1, tuning_fork_core: 1}
     gold: 5100
     level_req: 34
   geode_bastion_boots:   # 정동 성채 철장화
     result: geode_bastion_boots
     category: armor
     station: blacksmith
-    materials: {amethyst_shard: 9, prism_dust: 6, radiant_essence: 1}
+    materials: {resonant_sinew: 6, gold_ingot: 1, mithril_ingot: 2, radiant_essence: 1}
     gold: 3600
     level_req: 34
   shard_dancer_helm:   # 파편 무희의 가면
     result: shard_dancer_helm
     category: armor
     station: blacksmith
-    materials: {prism_dust: 11, amethyst_shard: 7, radiant_essence: 1}
+    materials: {resonant_sinew: 11, gold_ingot: 2, mithril_ingot: 2, radiant_essence: 1}
     gold: 4200
     level_req: 34
   shard_dancer_chest:   # 파편 무희의 조끼
     result: shard_dancer_chest
     category: armor
     station: blacksmith
-    materials: {prism_dust: 16, amethyst_shard: 10, radiant_essence: 1, tuning_fork_core: 1}
+    materials: {resonant_sinew: 16, gold_ingot: 2, mithril_ingot: 3, radiant_essence: 1, tuning_fork_core: 1}
     gold: 6000
     level_req: 34
   shard_dancer_legs:   # 파편 무희의 바지
     result: shard_dancer_legs
     category: armor
     station: blacksmith
-    materials: {prism_dust: 13, amethyst_shard: 9, radiant_essence: 1, tuning_fork_core: 1}
+    materials: {resonant_sinew: 13, gold_ingot: 2, mithril_ingot: 2, radiant_essence: 1, tuning_fork_core: 1}
     gold: 5100
     level_req: 34
   shard_dancer_boots:   # 파편 무희의 장화
     result: shard_dancer_boots
     category: armor
     station: blacksmith
-    materials: {prism_dust: 9, amethyst_shard: 6, radiant_essence: 1}
+    materials: {resonant_sinew: 9, gold_ingot: 1, mithril_ingot: 2, radiant_essence: 1}
     gold: 3600
     level_req: 34
   prism_aegis:   # 양극의 아이기스
     result: prism_aegis
     category: armor
     station: blacksmith
-    materials: {dyad_heart: 1, amethyst_shard: 20, prism_dust: 16, tuning_fork_core: 3, radiant_essence: 4}
+    materials: {dyad_heart: 1, resonant_sinew: 16, mithril_ingot: 7, tuning_fork_core: 3, radiant_essence: 4}
     gold: 15000
     level_req: 35
   # ── 지하 8층 ──
@@ -955,63 +955,63 @@ recipes:
     result: lorekeeper_helm
     category: armor
     station: blacksmith
-    materials: {ink_essence: 12, old_page: 8, radiant_essence: 1}
+    materials: {ink_essence: 12, old_page: 8, mithril_ingot: 4, radiant_essence: 1}
     gold: 4200
     level_req: 34
   lorekeeper_chest:   # 서고지기의 예복
     result: lorekeeper_chest
     category: armor
     station: blacksmith
-    materials: {ink_essence: 17, old_page: 11, radiant_essence: 1, forbidden_seal: 1}
+    materials: {ink_essence: 17, old_page: 11, mithril_ingot: 6, radiant_essence: 1, forbidden_seal: 1}
     gold: 6000
     level_req: 34
   lorekeeper_legs:   # 서고지기의 하의
     result: lorekeeper_legs
     category: armor
     station: blacksmith
-    materials: {ink_essence: 14, old_page: 10, radiant_essence: 1, forbidden_seal: 1}
+    materials: {ink_essence: 14, old_page: 10, mithril_ingot: 5, radiant_essence: 1, forbidden_seal: 1}
     gold: 5100
     level_req: 34
   lorekeeper_boots:   # 서고지기의 신발
     result: lorekeeper_boots
     category: armor
     station: blacksmith
-    materials: {ink_essence: 10, old_page: 7, radiant_essence: 1}
+    materials: {ink_essence: 10, old_page: 7, mithril_ingot: 3, radiant_essence: 1}
     gold: 3600
     level_req: 34
   inkbound_kite_shield:   # 먹물 장정 연 방패
     result: inkbound_kite_shield
     category: armor
     station: blacksmith
-    materials: {ink_essence: 16, old_page: 12, forbidden_seal: 2, radiant_essence: 2}
+    materials: {ink_essence: 16, old_page: 12, mithril_ingot: 6, forbidden_seal: 2, radiant_essence: 2}
     gold: 9000
     level_req: 38
   inkveil_helm:   # 먹물 장막 가면
     result: inkveil_helm
     category: armor
     station: blacksmith
-    materials: {librarian_quill: 1, ink_essence: 13, old_page: 8, forbidden_seal: 1, radiant_essence: 1}
+    materials: {librarian_quill: 1, ink_essence: 13, old_page: 8, mithril_ingot: 2, orichalcum_ingot: 2, forbidden_seal: 1, radiant_essence: 1}
     gold: 9100
     level_req: 38
   inkveil_chest:   # 먹물 장막 외투
     result: inkveil_chest
     category: armor
     station: blacksmith
-    materials: {librarian_quill: 1, ink_essence: 18, old_page: 12, forbidden_seal: 1, radiant_essence: 1}
+    materials: {librarian_quill: 1, ink_essence: 18, old_page: 12, mithril_ingot: 3, orichalcum_ingot: 3, forbidden_seal: 1, radiant_essence: 1}
     gold: 13000
     level_req: 38
   inkveil_legs:   # 먹물 장막 바지
     result: inkveil_legs
     category: armor
     station: blacksmith
-    materials: {librarian_quill: 1, ink_essence: 15, old_page: 10, forbidden_seal: 1, radiant_essence: 1}
+    materials: {librarian_quill: 1, ink_essence: 15, old_page: 10, mithril_ingot: 2, orichalcum_ingot: 3, forbidden_seal: 1, radiant_essence: 1}
     gold: 11000
     level_req: 38
   inkveil_boots:   # 먹물 장막 장화
     result: inkveil_boots
     category: armor
     station: blacksmith
-    materials: {librarian_quill: 1, ink_essence: 11, old_page: 7, forbidden_seal: 1, radiant_essence: 1}
+    materials: {librarian_quill: 1, ink_essence: 11, old_page: 7, mithril_ingot: 2, orichalcum_ingot: 2, forbidden_seal: 1, radiant_essence: 1}
     gold: 7800
     level_req: 38
   # ── 지하 9층 ──
@@ -1019,35 +1019,35 @@ recipes:
     result: clockwork_juggernaut_helm
     category: armor
     station: blacksmith
-    materials: {brass_gear: 15, mainspring: 10, primordial_essence: 1}
+    materials: {clock_oil: 10, orichalcum_ingot: 5, primordial_essence: 1}
     gold: 10500
     level_req: 44
   clockwork_juggernaut_chest:   # 태엽 거신 흉갑
     result: clockwork_juggernaut_chest
     category: armor
     station: blacksmith
-    materials: {brass_gear: 22, mainspring: 14, primordial_essence: 1, regulator_pendulum: 2}
+    materials: {clock_oil: 14, orichalcum_ingot: 7, primordial_essence: 1, regulator_pendulum: 2}
     gold: 15000
     level_req: 44
   clockwork_juggernaut_legs:   # 태엽 거신 각반
     result: clockwork_juggernaut_legs
     category: armor
     station: blacksmith
-    materials: {brass_gear: 18, mainspring: 12, primordial_essence: 1, regulator_pendulum: 2}
+    materials: {clock_oil: 12, orichalcum_ingot: 6, primordial_essence: 1, regulator_pendulum: 2}
     gold: 12750
     level_req: 44
   clockwork_juggernaut_boots:   # 태엽 거신 철장화
     result: clockwork_juggernaut_boots
     category: armor
     station: blacksmith
-    materials: {brass_gear: 13, mainspring: 9, primordial_essence: 1}
+    materials: {clock_oil: 9, orichalcum_ingot: 4, primordial_essence: 1}
     gold: 9000
     level_req: 44
   clockwork_bastion:   # 태엽 성벽 방패
     result: clockwork_bastion
     category: armor
     station: blacksmith
-    materials: {clockwork_heart: 1, brass_gear: 26, mainspring: 14, regulator_pendulum: 3, primordial_essence: 3}
+    materials: {clockwork_heart: 1, clock_oil: 14, orichalcum_ingot: 8, regulator_pendulum: 3, primordial_essence: 3}
     gold: 24000
     level_req: 44
   # ── 지하 10층 ──
@@ -1055,63 +1055,63 @@ recipes:
     result: abyss_walker_helm
     category: armor
     station: blacksmith
-    materials: {sculk_tendril: 15, abyss_ichor: 10, primordial_essence: 1}
+    materials: {sculk_tendril: 11, abyss_ichor: 7, orichalcum_ingot: 5, primordial_essence: 1}
     gold: 10500
     level_req: 44
   abyss_walker_chest:   # 심연 보행자 조끼
     result: abyss_walker_chest
     category: armor
     station: blacksmith
-    materials: {sculk_tendril: 22, abyss_ichor: 14, primordial_essence: 1, gatekeeper_rune: 2}
+    materials: {abyss_scale: 12, abyss_ichor: 10, orichalcum_ingot: 7, primordial_essence: 1, gatekeeper_rune: 2}
     gold: 15000
     level_req: 44
   abyss_walker_legs:   # 심연 보행자 바지
     result: abyss_walker_legs
     category: armor
     station: blacksmith
-    materials: {sculk_tendril: 18, abyss_ichor: 12, primordial_essence: 1, gatekeeper_rune: 2}
+    materials: {sculk_tendril: 13, abyss_ichor: 9, orichalcum_ingot: 6, primordial_essence: 1, gatekeeper_rune: 2}
     gold: 12750
     level_req: 44
   abyss_walker_boots:   # 심연 보행자 장화
     result: abyss_walker_boots
     category: armor
     station: blacksmith
-    materials: {sculk_tendril: 13, abyss_ichor: 9, primordial_essence: 1}
+    materials: {abyss_scale: 7, abyss_ichor: 7, orichalcum_ingot: 4, primordial_essence: 1}
     gold: 9000
     level_req: 44
   starless_choir_helm:   # 별 없는 성가대 모자
     result: starless_choir_helm
     category: armor
     station: blacksmith
-    materials: {abyss_ichor: 15, sculk_tendril: 10, primordial_essence: 1}
+    materials: {abyss_ichor: 11, sculk_tendril: 7, orichalcum_ingot: 5, primordial_essence: 1}
     gold: 10500
     level_req: 44
   starless_choir_chest:   # 별 없는 성가대 예복
     result: starless_choir_chest
     category: armor
     station: blacksmith
-    materials: {abyss_ichor: 22, sculk_tendril: 14, primordial_essence: 1, gatekeeper_rune: 2}
+    materials: {abyss_ichor: 16, sculk_tendril: 10, orichalcum_ingot: 7, primordial_essence: 1, gatekeeper_rune: 2}
     gold: 15000
     level_req: 44
   starless_choir_legs:   # 별 없는 성가대 하의
     result: starless_choir_legs
     category: armor
     station: blacksmith
-    materials: {abyss_ichor: 18, sculk_tendril: 12, primordial_essence: 1, gatekeeper_rune: 2}
+    materials: {abyss_ichor: 13, sculk_tendril: 9, orichalcum_ingot: 6, primordial_essence: 1, gatekeeper_rune: 2}
     gold: 12750
     level_req: 44
   starless_choir_boots:   # 별 없는 성가대 신발
     result: starless_choir_boots
     category: armor
     station: blacksmith
-    materials: {abyss_ichor: 13, sculk_tendril: 9, primordial_essence: 1}
+    materials: {abyss_ichor: 10, sculk_tendril: 6, orichalcum_ingot: 4, primordial_essence: 1}
     gold: 9000
     level_req: 44
   void_bulwark_shield:   # 공허의 방벽
     result: void_bulwark_shield
     category: armor
     station: blacksmith
-    materials: {abyss_ichor: 18, sculk_tendril: 12, gatekeeper_rune: 2, primordial_essence: 2}
+    materials: {abyss_ichor: 13, abyss_scale: 7, orichalcum_ingot: 6, gatekeeper_rune: 2, primordial_essence: 2}
     gold: 14000
     level_req: 46
 
@@ -1121,14 +1121,14 @@ recipes:
     result: moss_band
     category: accessory
     station: blacksmith
-    materials: {moss_fiber: 8, beetle_shell: 2}
+    materials: {moss_fiber: 6, moss_scale: 1, copper_ingot: 2}
     gold: 50
     level_req: 1
   grove_heartwood_charm:   # 그로브의 심재 부적
     result: grove_heartwood_charm
     category: accessory
     station: blacksmith
-    materials: {warden_heartwood: 2, moss_fiber: 8, alpha_moss_crest: 1}
+    materials: {warden_heartwood: 2, moss_fiber: 6, copper_ingot: 1, iron_ingot: 1, alpha_moss_crest: 1}
     gold: 250
     level_req: 5
   # ── 지하 2층 ──
@@ -1136,14 +1136,14 @@ recipes:
     result: miners_lucky_charm
     category: accessory
     station: blacksmith
-    materials: {rusted_iron: 6, spider_silk: 6, foreman_badge: 1}
+    materials: {spider_silk: 3, copper_ingot: 1, iron_ingot: 1, foreman_badge: 1}
     gold: 220
     level_req: 6
   silk_queen_bracelet:   # 베셀라의 은실 팔찌
     result: silk_queen_bracelet
     category: accessory
     station: blacksmith
-    materials: {silk_queen_spinneret: 2, spider_silk: 10, foreman_badge: 1, dim_essence: 1}
+    materials: {silk_queen_spinneret: 2, spider_silk: 5, iron_ingot: 2, foreman_badge: 1, dim_essence: 1}
     gold: 700
     level_req: 9
   # ── 지하 3층 ──
@@ -1151,14 +1151,14 @@ recipes:
     result: sporelight_amulet
     category: accessory
     station: blacksmith
-    materials: {spore_cap: 12, hypha_thread: 6, brood_core: 1, dim_essence: 1}
+    materials: {spore_cap: 12, hypha_thread: 6, iron_ingot: 4, brood_core: 1, dim_essence: 1}
     gold: 600
     level_req: 11
   symbiosis_ring:   # 무르노크의 공생 반지
     result: symbiosis_ring
     category: accessory
     station: blacksmith
-    materials: {mycelium_crown: 2, spore_cap: 10, hypha_thread: 8, brood_core: 1, dim_essence: 2}
+    materials: {mycelium_crown: 2, spore_cap: 10, hypha_thread: 8, silver_ingot: 4, brood_core: 1, dim_essence: 2}
     gold: 1500
     level_req: 13
   # ── 지하 4층 ──
@@ -1166,14 +1166,14 @@ recipes:
     result: brine_pearl_ring
     category: accessory
     station: blacksmith
-    materials: {brine_pearl: 14, eel_scale: 4, verdigris_plate: 1, labyrinth_essence: 1}
+    materials: {brine_pearl: 14, eel_scale: 3, silver_ingot: 4, verdigris_plate: 1, labyrinth_essence: 1}
     gold: 900
     level_req: 15
   floodwarden_signet:   # 오스릭의 수문 인장
     result: floodwarden_signet
     category: accessory
     station: blacksmith
-    materials: {floodgate_key: 2, brine_pearl: 12, verdigris_plate: 1, labyrinth_essence: 2}
+    materials: {floodgate_key: 2, brine_pearl: 12, silver_ingot: 2, verdigris_plate: 1, labyrinth_essence: 2}
     gold: 3000
     level_req: 18
   # ── 지하 5층 ──
@@ -1181,14 +1181,14 @@ recipes:
     result: ember_heart_amulet
     category: accessory
     station: blacksmith
-    materials: {ember_shard: 14, slag_ingot: 6, executioner_edge: 1, labyrinth_essence: 1}
+    materials: {ember_soul: 11, silver_ingot: 4, executioner_edge: 1, labyrinth_essence: 1}
     gold: 2000
     level_req: 22
   anvil_king_brand:   # 카르둠의 모루 낙인
     result: anvil_king_brand
     category: accessory
     station: blacksmith
-    materials: {forge_core: 2, slag_ingot: 12, ember_shard: 10, executioner_edge: 1, labyrinth_essence: 2}
+    materials: {forge_core: 2, ember_soul: 8, gold_ingot: 4, executioner_edge: 1, labyrinth_essence: 2}
     gold: 5000
     level_req: 23
   # ── 지하 6층 ──
@@ -1196,14 +1196,14 @@ recipes:
     result: mourning_bell_charm
     category: accessory
     station: blacksmith
-    materials: {rime_crystal: 12, grave_bone: 8, funeral_bell_shard: 2, labyrinth_essence: 2}
+    materials: {grave_bone: 6, gold_ingot: 4, funeral_bell_shard: 2, labyrinth_essence: 2}
     gold: 3000
     level_req: 26
   empress_frozen_tear:   # 시린의 얼어붙은 눈물
     result: empress_frozen_tear
     category: accessory
     station: blacksmith
-    materials: {frozen_crown_shard: 2, rime_crystal: 16, funeral_bell_shard: 2, labyrinth_essence: 3}
+    materials: {gold_ingot: 1, mithril_ingot: 2, frozen_crown_shard: 2, funeral_bell_shard: 2, labyrinth_essence: 3}
     gold: 9000
     level_req: 28
   # ── 지하 7층 ──
@@ -1211,14 +1211,14 @@ recipes:
     result: resonance_ring
     category: accessory
     station: blacksmith
-    materials: {amethyst_shard: 12, prism_dust: 10, tuning_fork_core: 1, radiant_essence: 1}
+    materials: {resonant_sinew: 10, gold_ingot: 4, tuning_fork_core: 1, radiant_essence: 1}
     gold: 4000
     level_req: 31
   dyad_twin_orb:   # 다이아드의 쌍극 보주
     result: dyad_twin_orb
     category: accessory
     station: blacksmith
-    materials: {dyad_heart: 2, amethyst_shard: 16, prism_dust: 12, tuning_fork_core: 2, radiant_essence: 3}
+    materials: {dyad_heart: 2, resonant_sinew: 12, mithril_ingot: 6, tuning_fork_core: 2, radiant_essence: 3}
     gold: 14000
     level_req: 33
   # ── 지하 8층 ──
@@ -1226,14 +1226,14 @@ recipes:
     result: forbidden_seal_bracelet
     category: accessory
     station: blacksmith
-    materials: {old_page: 12, ink_essence: 10, forbidden_seal: 2, radiant_essence: 2}
+    materials: {old_page: 12, ink_essence: 10, mithril_ingot: 4, forbidden_seal: 2, radiant_essence: 2}
     gold: 7000
     level_req: 35
   orbel_quill_charm:   # 오르벨의 깃펜 부적
     result: orbel_quill_charm
     category: accessory
     station: blacksmith
-    materials: {librarian_quill: 2, ink_essence: 16, old_page: 12, forbidden_seal: 2, radiant_essence: 3}
+    materials: {librarian_quill: 2, ink_essence: 16, old_page: 12, mithril_ingot: 3, orichalcum_ingot: 3, forbidden_seal: 2, radiant_essence: 3}
     gold: 16000
     level_req: 38
   # ── 지하 9층 ──
@@ -1241,14 +1241,14 @@ recipes:
     result: mainspring_bracelet
     category: accessory
     station: blacksmith
-    materials: {mainspring: 14, brass_gear: 10, regulator_pendulum: 1, primordial_essence: 1}
+    materials: {chrono_dust: 7, mithril_ingot: 2, orichalcum_ingot: 3, regulator_pendulum: 1, primordial_essence: 1}
     gold: 9000
     level_req: 41
   teora_pocketwatch:   # 테오라의 회중시계
     result: teora_pocketwatch
     category: accessory
     station: blacksmith
-    materials: {clockwork_heart: 2, brass_gear: 16, mainspring: 14, regulator_pendulum: 2, primordial_essence: 3}
+    materials: {clockwork_heart: 2, chrono_dust: 7, orichalcum_ingot: 6, regulator_pendulum: 2, primordial_essence: 3}
     gold: 22000
     level_req: 43
   # ── 지하 10층 ──
@@ -1256,7 +1256,7 @@ recipes:
     result: abyssal_eye_amulet
     category: accessory
     station: blacksmith
-    materials: {abyss_ichor: 20, sculk_tendril: 12, gatekeeper_rune: 4, primordial_essence: 3}
+    materials: {abyss_ichor: 15, sculk_tendril: 9, orichalcum_ingot: 6, gatekeeper_rune: 4, primordial_essence: 3}
     gold: 22000
     level_req: 45
 
@@ -1291,83 +1291,193 @@ recipes:
     result: mycel_carapace_helm
     category: armor
     station: blacksmith
-    materials: {hypha_thread: 6, spore_cap: 8, dim_essence: 1}
+    materials: {hypha_thread: 6, spore_cap: 8, iron_ingot: 3, dim_essence: 1}
     gold: 490
     level_req: 14
   mycel_carapace_chest:   # 균사 갑각 흉갑
     result: mycel_carapace_chest
     category: armor
     station: blacksmith
-    materials: {hypha_thread: 8, spore_cap: 12, dim_essence: 1, brood_core: 1}
+    materials: {hypha_thread: 8, spore_cap: 12, iron_ingot: 4, dim_essence: 1, brood_core: 1}
     gold: 700
     level_req: 14
   mycel_carapace_legs:   # 균사 갑각 각반
     result: mycel_carapace_legs
     category: armor
     station: blacksmith
-    materials: {hypha_thread: 7, spore_cap: 10, dim_essence: 1, brood_core: 1}
+    materials: {hypha_thread: 7, spore_cap: 10, iron_ingot: 3, dim_essence: 1, brood_core: 1}
     gold: 600
     level_req: 14
   mycel_carapace_boots:   # 균사 갑각 장화
     result: mycel_carapace_boots
     category: armor
     station: blacksmith
-    materials: {hypha_thread: 5, spore_cap: 7, dim_essence: 1}
+    materials: {hypha_thread: 5, spore_cap: 7, iron_ingot: 2, dim_essence: 1}
     gold: 420
     level_req: 14
   sluice_diver_helm:   # 잠수부의 물안경
     result: sluice_diver_helm
     category: armor
     station: blacksmith
-    materials: {eel_scale: 8, brine_pearl: 6, labyrinth_essence: 1}
+    materials: {eel_scale: 7, brine_pearl: 6, silver_ingot: 3, labyrinth_essence: 1}
     gold: 490
     level_req: 19
   sluice_diver_chest:   # 잠수부의 가죽 조끼
     result: sluice_diver_chest
     category: armor
     station: blacksmith
-    materials: {eel_scale: 12, brine_pearl: 8, labyrinth_essence: 1, verdigris_plate: 1}
+    materials: {eel_scale: 10, brine_pearl: 8, silver_ingot: 4, labyrinth_essence: 1, verdigris_plate: 1}
     gold: 700
     level_req: 19
   sluice_diver_legs:   # 잠수부의 바지
     result: sluice_diver_legs
     category: armor
     station: blacksmith
-    materials: {eel_scale: 10, brine_pearl: 7, labyrinth_essence: 1, verdigris_plate: 1}
+    materials: {eel_scale: 9, brine_pearl: 7, silver_ingot: 3, labyrinth_essence: 1, verdigris_plate: 1}
     gold: 600
     level_req: 19
   sluice_diver_boots:   # 잠수부의 물갈퀴 장화
     result: sluice_diver_boots
     category: armor
     station: blacksmith
-    materials: {eel_scale: 7, brine_pearl: 5, labyrinth_essence: 1}
+    materials: {eel_scale: 6, brine_pearl: 5, silver_ingot: 2, labyrinth_essence: 1}
     gold: 420
     level_req: 19
   index_bulwark_helm:   # 색인 방벽 투구
     result: index_bulwark_helm
     category: armor
     station: blacksmith
-    materials: {old_page: 14, ink_essence: 9, radiant_essence: 1}
+    materials: {old_page: 14, ink_essence: 9, mithril_ingot: 5, radiant_essence: 1}
     gold: 4800
     level_req: 38
   index_bulwark_chest:   # 색인 방벽 흉갑
     result: index_bulwark_chest
     category: armor
     station: blacksmith
-    materials: {old_page: 20, ink_essence: 13, radiant_essence: 1, forbidden_seal: 1}
+    materials: {old_page: 20, ink_essence: 13, mithril_ingot: 7, radiant_essence: 1, forbidden_seal: 1}
     gold: 6900
     level_req: 38
   index_bulwark_legs:   # 색인 방벽 각반
     result: index_bulwark_legs
     category: armor
     station: blacksmith
-    materials: {old_page: 17, ink_essence: 11, radiant_essence: 1, forbidden_seal: 1}
+    materials: {old_page: 17, ink_essence: 11, mithril_ingot: 6, radiant_essence: 1, forbidden_seal: 1}
     gold: 5900
     level_req: 38
   index_bulwark_boots:   # 색인 방벽 철장화
     result: index_bulwark_boots
     category: armor
     station: blacksmith
-    materials: {old_page: 12, ink_essence: 8, radiant_essence: 1}
+    materials: {old_page: 12, ink_essence: 8, mithril_ingot: 4, radiant_essence: 1}
     gold: 4100
     level_req: 38
+
+  # ═════════ 제련소 (0.3.6 — station: smelter · 제련 광석 ×2 → 주괴 · 새기기 보석 + 정수 → 강화석 2개 · 곡괭이 벼리기(앞 곡괭이를 재료로) · 레벨 조건 없음) ═════════
+  copper_ingot:   # 구리 주괴
+    result: copper_ingot
+    category: material
+    station: smelter
+    materials: {copper_ore: 2}
+    gold: 2
+  iron_ingot:   # 철 주괴
+    result: iron_ingot
+    category: material
+    station: smelter
+    materials: {iron_ore: 2}
+    gold: 4
+  silver_ingot:   # 은 주괴
+    result: silver_ingot
+    category: material
+    station: smelter
+    materials: {silver_ore: 2}
+    gold: 8
+  gold_ingot:   # 금 주괴
+    result: gold_ingot
+    category: material
+    station: smelter
+    materials: {gold_ore: 2}
+    gold: 12
+  mithril_ingot:   # 미스릴 주괴
+    result: mithril_ingot
+    category: material
+    station: smelter
+    materials: {mithril_ore: 2}
+    gold: 18
+  orichalcum_ingot:   # 오리하르콘 주괴
+    result: orichalcum_ingot
+    category: material
+    station: smelter
+    materials: {orichalcum_ore: 2}
+    gold: 25
+  lesser_enhance_stone:   # 하급 강화석
+    result: lesser_enhance_stone
+    category: material
+    station: smelter
+    materials: {quartz: 1, dim_essence: 1}
+    gold: 20
+    amount: 2
+  lesser_enhance_stone_garnet:   # 하급 강화석
+    result: lesser_enhance_stone
+    category: material
+    station: smelter
+    materials: {garnet: 1, dim_essence: 1}
+    gold: 20
+    amount: 2
+  greater_enhance_stone:   # 상급 강화석
+    result: greater_enhance_stone
+    category: material
+    station: smelter
+    materials: {moonstone: 1, labyrinth_essence: 1}
+    gold: 120
+    amount: 2
+  greater_enhance_stone_topaz:   # 상급 강화석
+    result: greater_enhance_stone
+    category: material
+    station: smelter
+    materials: {topaz: 1, labyrinth_essence: 1}
+    gold: 120
+    amount: 2
+  supreme_enhance_stone:   # 최상급 강화석
+    result: supreme_enhance_stone
+    category: material
+    station: smelter
+    materials: {sapphire: 1, radiant_essence: 1}
+    gold: 400
+    amount: 2
+  supreme_enhance_stone_dragonblood:   # 최상급 강화석
+    result: supreme_enhance_stone
+    category: material
+    station: smelter
+    materials: {dragonblood_stone: 1, radiant_essence: 1}
+    gold: 400
+    amount: 2
+  iron_pickaxe:   # 철 곡괭이
+    result: iron_pickaxe
+    category: tool
+    station: smelter
+    materials: {copper_pickaxe: 1, copper_ingot: 12, quartz: 2, dim_essence: 2}
+    gold: 300
+  silver_pickaxe:   # 은 곡괭이
+    result: silver_pickaxe
+    category: tool
+    station: smelter
+    materials: {iron_pickaxe: 1, iron_ingot: 16, garnet: 2, dim_essence: 4}
+    gold: 1000
+  gold_pickaxe:   # 금 곡괭이
+    result: gold_pickaxe
+    category: tool
+    station: smelter
+    materials: {silver_pickaxe: 1, silver_ingot: 20, moonstone: 3, labyrinth_essence: 2}
+    gold: 2500
+  mithril_pickaxe:   # 미스릴 곡괭이
+    result: mithril_pickaxe
+    category: tool
+    station: smelter
+    materials: {gold_pickaxe: 1, gold_ingot: 24, topaz: 3, labyrinth_essence: 4}
+    gold: 5000
+  orichalcum_pickaxe:   # 오리하르콘 곡괭이
+    result: orichalcum_pickaxe
+    category: tool
+    station: smelter
+    materials: {mithril_pickaxe: 1, mithril_ingot: 28, sapphire: 4, radiant_essence: 3}
+    gold: 10000

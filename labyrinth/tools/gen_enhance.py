@@ -35,6 +35,16 @@
 0.3.5 (review2 A13): 장비의 층 = items.yml tier (없으면 floor · level_req) · 루팅 {pick: […]} 항목을 무게대로 따라간다 ·
   1회 클리어에 특별 시련 상자 special_trial_fNN (0.26번) · 금고·미믹 hoard_fNN (2.4~3.4번) 도 굴린다 ·
   획득처 이름에 시련방 · 특별 시련 · 금고·미믹.
+
+0.3.6 (Q3 — 계약 §2.9 + 몹 주제 드롭 drops_spec §8, content 에 주괴(mine_kind: ingot)가 있으면 저절로 켜짐 → Rules036):
+  · P = 그 장비의 몬스터 재료 (레시피에서 가장 많이 드는 몬스터 재료 / 드롭 장비는 단단한 장비 HARD · 부드러운 장비 SOFT —
+    방어구는 겉모습: 판금·방패 단단 · 천 부드러움 · 가죽은 슬롯)
+  · S = 그 장비의 주 금속 주괴 (레시피면 가장 많이 드는 주괴, 같으면 윗 금속 · 드롭 장비는 힘 규칙의 금속).
+    개수 = 반올림(S_BASE × 층 상수 ingot_s_scale), 최소 1. 주괴 1회 공급 = 그 금속 곡괭이로 그 금속만 노려 캘 때 1분당 광석
+    × 그 층 1회 클리어 분 ÷ 2 (환산 비교·보스 장비 검사용)
+  · 겹치면 P 를 레시피의 다른 부위 → 그 층 반대쪽 부위 → (부위 하나뿐인 층) 주괴를 P (개수 × 0.5, S 는 부위)
+  · R(+7~+10 귀한 재료)은 지금 enhance.yml 의 R 을 그 단계 목록 맨 앞에 (라이브 서버에서 하던 강화가 갑자기 비싸지지 않게)
+  · 일반 재료 공급 배율 p_scale 아래 한도 1.0 → 0.25 (적게 나오는 새 부위는 개수도 그만큼 적게)
 """
 import argparse
 import collections
@@ -119,8 +129,62 @@ GROUP = {'weapon': '무기', 'shield': '방패', 'armor_body': '흉갑·하의',
 
 
 def p_scale(supply):
-    """일반 재료 공급이 많은 깊은 층은 개수도 늘린다 (0.25 단위, 1.0 ~ 2.0)."""
-    return max(1.0, min(2.0, half_up(supply / REF_SUPPLY * 4) / 4))
+    """일반 재료 공급이 많은 깊은 층은 개수도 늘린다 (0.25 단위, 1.0 ~ 2.0). 0.3.6: 아래 한도 0.25 (적게 나오는 새 부위)."""
+    lo = 0.25 if RULES is not None else 1.0
+    return max(lo, min(2.0, half_up(supply / REF_SUPPLY * 4) / 4))
+
+
+# ───────────────────────── 0.3.6 규칙 (Q3) ─────────────────────────
+# None = 0.3.5 규칙 그대로 (계약 시제품 proto036 이 이것으로 돌고 위에 직접 덧씌운다). build() 가 content 를 보고 정한다.
+MODE036 = None
+RULES = None
+DATA036 = ROOT / 'tools/data/036'
+
+
+class Rules036:
+    """계약 tools/data/036 (materials.json · mine.json · drops_spec.json · drops_036.json · model/out/economy.json) 에서 읽은 0.3.6 강화 규칙."""
+
+    def __init__(self, items, sets):
+        rd = lambda n: json.loads((DATA036 / n).read_text(encoding='utf-8'))
+        mat, mine, drops, extra = rd('materials.json'), rd('mine.json'), rd('drops_spec.json'), rd('drops_036.json')
+        ds = mat['generator_rules']['enhance']['drops_stage']
+        self.hard = {int(k): v for k, v in ds['hard'].items()}
+        self.soft = {int(k): v for k, v in ds['soft'].items()}
+        self.ingot_unit = mat['generator_rules']['enhance']['ingot_unit']
+        self.ingot_s_scale = {int(k): v for k, v in extra['ingot_s_scale'].items()}
+        mc = mat['generator_rules']['metal_choice']
+        self.rarity_step, self.boss_step, self.mix_band = mc['rarity_step'], mc['boss_step'], mc['mix_band']
+        self.metals = [o.replace('_ore', '') for o in mine['ores']]
+        self.ingots = {f'{m}_ingot': k + 1 for k, m in enumerate(self.metals)}
+        rate = mine['economy']['focused_ore_per_min']
+        run_min = json.loads((DATA036 / 'model/out/economy.json').read_text(encoding='utf-8'))['assumptions']['run_minutes']
+        self.ingot_supply = {f: {f'{m}_ingot': rate[f'{k + 1}:{m}'] * run_min[str(f)] / 2 for k, m in enumerate(self.metals)}
+                             for f in range(1, 11)}
+        self.look_hard = drops['rules']['look_hard']
+        self.hard_kinds = set(drops['hard_kinds'])
+        self.setlook = {p: s_.get('look') for s_ in (sets or {}).values() for p in (s_.get('pieces') or [])}
+        live = RES / 'content/enhance.yml'
+        self.live = (load_yaml(live).get('items') or {}) if live.exists() else {}
+
+    def is_hard(self, i, v, kind):
+        if v.get('type') == 'armor':
+            lk = 'heavy' if v.get('armor_slot') == 'offhand' else (self.setlook.get(i) or v.get('look'))
+            if lk in self.look_hard:
+                return self.look_hard[lk]
+        return kind in self.hard_kinds
+
+    def primary_ingot(self, v):
+        """드롭 장비의 금속 = 힘 규칙 pos 를 반올림한 금속 (섞임이면 윗 금속)."""
+        boss = 'boss' in (v.get('sources') or [])
+        p = gear_floor(v) + self.rarity_step.get(v.get('rarity', 'common'), 0.0) + (self.boss_step if boss else 0.0)
+        pos = max(1.0, min(6.0, 1 + (p - 1) / 2))
+        lo = int(pos)
+        r = lo + (1 if pos - lo >= self.mix_band[0] - 1e-9 else 0)
+        return f'{self.metals[max(1, min(6, r)) - 1]}_ingot'
+
+    def recipe_ingot(self, recipe):
+        ings = [(n, self.ingots[m], m) for m, n in recipe.items() if m in self.ingots]
+        return max(ings)[2] if ings else None
 
 
 def half_up(x):
@@ -151,7 +215,7 @@ def load_content(content_dir, spec_path=None):
         tables.update(spec.get('tables') or {})
         recipes.update(spec.get('recipes') or {})
     return {'items': items, 'tables': tables, 'mobs': c['mobs'].get('mobs') or {}, 'bosses': c['bosses'].get('bosses') or {},
-            'floors': c['floors'].get('floors') or {}, 'recipes': recipes}
+            'floors': c['floors'].get('floors') or {}, 'recipes': recipes, 'sets': c['items'].get('sets') or {}}
 
 
 def enhance_config():
@@ -298,8 +362,14 @@ class Floor:
         self.elites = [i for i in mats if i not in self.cores and items[i].get('rarity') == 'rare']
         self.commons = sorted([i for i in mats if i not in self.cores and i not in self.elites], key=lambda i: -supply[i])
         self.ess = max(ESS_ORDER, key=lambda e: supply[e])
-        self.hard = HARD.get(f) if HARD.get(f) in self.commons else (self.commons[-1] if self.commons else None)
-        self.soft = next((i for i in self.commons if i != self.hard), self.hard)
+        if RULES is not None:
+            self.supply = collections.Counter(self.supply)
+            self.supply.update(RULES.ingot_supply.get(f, {}))
+            self.hard = RULES.hard.get(f) if RULES.hard.get(f) in self.commons else (self.commons[-1] if self.commons else None)
+            self.soft = RULES.soft.get(f) if RULES.soft.get(f) in self.commons else next((i for i in self.commons if i != self.hard), self.hard)
+        else:
+            self.hard = HARD.get(f) if HARD.get(f) in self.commons else (self.commons[-1] if self.commons else None)
+            self.soft = next((i for i in self.commons if i != self.hard), self.hard)
         self.boss_root = next((t for t, _, h in roots if h == 'boss'), None)
         boss_items = expand_items(tables, self.boss_root) if self.boss_root else set()
         self.core = next((c for c in self.cores if c in boss_items), self.cores[0] if self.cores else None)
@@ -473,8 +543,41 @@ def candidates(i, v, fl, tables, recipe, refine):
     r_cost = lambda m: sum((R_BOSS if boss else R_COUNT).get(fl.cls(m), R_COUNT['ess'])) / max(1e-9, eff_supply(fl, refine, m))
     tier_a = tier_a[:1] + sorted(tier_a[1:], key=r_cost)
     tier_b, tier_c = sorted(tier_b, key=r_cost), sorted(tier_c, key=r_cost)
+    if RULES is not None:
+        bulk, ps = ps036(i, v, fl, recipe, kind)
+        tier_a, tier_b, tier_c = live_r(i, fl, tier_a, tier_b, tier_c)
     return {'bulk': bulk, 'ps': ps, 'RA': tier_a, 'RB': tier_b, 'RC': tier_c, 'R_recipe': recipe_rare, 'R_home': home_rare,
             'K': core, 'boss': boss, 'how': how, 'label': label, 'kind': kind, 'cat': category(v), 'home_sup': home_sup}
+
+
+def ps036(i, v, fl, recipe, kind):
+    """0.3.6: P = 몬스터 재료 (레시피에서 가장 많이 드는 것 / 드롭 장비는 HARD·SOFT) · S = 주 금속 주괴.
+    겹칠 때 P 바꿈: 레시피의 다른 부위 → 그 층 반대쪽 부위 → (부위 하나뿐인 층) 주괴를 P (S 는 부위)."""
+    mons = list(fl.commons)
+    hard = RULES.is_hard(i, v, kind)
+    ing = (RULES.recipe_ingot(recipe) if recipe else None) or RULES.primary_ingot(v)
+    if recipe:
+        keys = list(recipe)
+        inr = sorted([(n, k) for k, (m, n) in enumerate(recipe.items()) if m in mons], key=lambda x: (-x[0], x[1]))
+        P = keys[inr[0][1]] if inr else (fl.hard if hard else fl.soft)
+        others = [keys[k] for _, k in inr[1:]]
+    else:
+        P = fl.hard if hard else fl.soft
+        others = []
+    P2 = others[0] if others else next((m for m in [fl.soft if hard else fl.hard] + mons if m in mons and m != P), None)
+    return [P, ing], [(P, ing, '')] + ([(P2, ing, 'swap')] if P2 else [(ing, P, 'swap')])
+
+
+def live_r(i, fl, ra, rb, rc):
+    """0.3.6: 지금 enhance.yml 의 R(high 에만 있는 재료, 핵 빼고)을 원칙 단계 맨 앞에 — 겹치지 않으면 R 이 그대로 남는다."""
+    lv = RULES.live.get(i)
+    if not lv:
+        return ra, rb, rc
+    live = [x for x in (lv.get('high') or {}) if x not in (lv.get('mid') or {}) and fl.cls(x) != 'core']
+    keep = next((x for x in live if x in ra + rb + rc), None)
+    if not keep:
+        return ra, rb, rc
+    return [keep], [y for y in ra + rb if y != keep], [y for y in rc if y != keep]
 
 
 def recipe_of(cand, fl, P, S, R, dp=0, ds=0):
@@ -490,6 +593,19 @@ def recipe_of(cand, fl, P, S, R, dp=0, ds=0):
         r['high'][K] = list(K_COUNT)
     else:
         r['high'][R] = band_counts(cat, 'R', fl.cls(R), 1, 0, False)['high']
+    if RULES is not None:
+        if S in RULES.ingots:      # 주괴 S 개수 = S_BASE × 층 상수 (P 가 어느 부위든 주괴 몫이 흔들리지 않게)
+            s_c = band_counts(cat, 'S', 'common', RULES.ingot_s_scale[fl.f], ds, boss)
+            for b in ('mid', 'high'):
+                r[b][S] = s_c[b]
+        if P in RULES.ingots:      # 부위 하나뿐인 층의 겹침 바꿈: 주괴가 P (개수 × 0.5), S 는 부위
+            scale = p_scale(fl.supply.get(S, REF_SUPPLY))
+            p_c = band_counts(cat, 'P', 'common', scale * RULES.ingot_unit, dp, boss)
+            s_c = band_counts(cat, 'S', 'common', scale, ds, boss)
+            for b in ('low', 'mid', 'high'):
+                r[b][P] = p_c[b]
+            for b in ('mid', 'high'):
+                r[b][S] = s_c[b]
     return r
 
 
@@ -498,7 +614,10 @@ def signature(r):
 
 
 def build(c, cfg):
+    global RULES
     items, tables, mobs, bosses, floors, recipes = c['items'], c['tables'], c['mobs'], c['bosses'], c['floors'], c['recipes']
+    on = MODE036 if MODE036 is not None else any(v.get('mine_kind') == 'ingot' for v in items.values())
+    RULES = Rules036(items, c.get('sets')) if on else None
     fls = {}
     for f, fd in floors.items():
         f = int(f)
@@ -815,6 +934,13 @@ def write_yaml(cfg, items, recipes_out, meta, fls, rows, collisions, fair, sourc
       f' P·S 순서 바꿈 {n_swap}종 · 일반 장비 S +n {n_sb}종 · P +n {n_pb}종 · 원칙 밖 R {n_out}종 (겹칠 수 있음)')
     w(f'#         보스 장비 {len(boss)}종 중 개수를 더한 장비 {n_boss_extra}종. 같은 층에서 구성이 똑같은 장비 {len(collisions)}쌍.')
     w('#   강화석(하급·상급·최상급)은 그대로 모든 장비에 공용으로 든다 — 장비 재료는 그 위에 더하는 몫.')
+    if RULES is not None:
+        w('#   ⑤ 0.3.6 (광산 · 몹 몸에 맞는 드롭): 위 ①②의 보조 S 는 그 장비의 주 금속 주괴다 (레시피에서 가장 많이 드는 주괴, 같으면 윗 금속 ·')
+        w('#      드롭 장비는 장비 힘으로 고른 금속). 주괴 개수 = S 기본 × 층 상수 ' + ' · '.join(f'{f}층 {v:g}' for f, v in sorted(RULES.ingot_s_scale.items())) + '.')
+        w('#      P 는 몬스터 재료 — 드롭 장비는 단단한 장비(근접·판금·방패·가죽 흉갑·신발) ' + ' · '.join(
+            f'{f}층 {name(items, m)}' for f, m in sorted(RULES.hard.items())) + ',')
+        w('#      부드러운 장비 ' + ' · '.join(f'{f}층 {name(items, m)}' for f, m in sorted(RULES.soft.items())) + '.')
+        w('#      겹치면 P 를 레시피의 다른 부위 → 그 층 반대쪽 부위 → (부위 하나뿐인 층) 주괴를 P 로. R 은 지난 판 enhance.yml 의 R 을 먼저 쓴다.')
     w('#')
     w('# ── 개수 (시도 1번당) ─────────────────────────────────────────────────────────')
     fb = lambda cat, bands=BANDS: ' · '.join(fmt_counts(P_BASE[cat][b]) for b in bands)

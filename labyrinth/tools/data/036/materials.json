@@ -261,8 +261,8 @@
    "sources_text": "광산 · 오리하르콘 광석을 캘 때 드물게 · 보석 결정",
    "lore": "잠든 용의 피가 굳었다는 붉은 돌. 안쪽에서 불씨가 맥박친다. 최상급 강화석을 새길 때 쓴다."
   },
-  "cinder_hide": {
-   "name": "잿불 가죽",
+  "ember_soul": {
+   "name": "불씨 혼",
    "type": "material",
    "kind": "monster",
    "floor": 5,
@@ -275,7 +275,7 @@
     "chest"
    ],
    "sources_text": "던전 몬스터·정예·보스·상자 (옛 불씨 조각 자리)",
-   "lore": "잿불 드레이크와 풀무 사냥개의 그을린 가죽. 불길 속에서도 타지 않는다.",
+   "lore": "불씨 도깨비와 슬래그 골렘, 풀무 사냥개를 움직이던 작은 불. 손에 쥐면 따뜻하게 뛴다.",
    "replaces": "ember_shard"
   },
   "resonant_sinew": {
@@ -292,7 +292,7 @@
     "chest"
    ],
    "sources_text": "던전 몬스터·정예·보스·상자 (옛 프리즘 가루 자리)",
-   "lore": "정동 거한과 수정 용인의 몸속에서 떨던 힘줄. 퉁기면 맑은 음이 난다.",
+   "lore": "정동 거한과 수정 용인, 프리즘 켄타우로스의 몸속에서 떨던 힘줄. 퉁기면 맑은 음이 난다.",
    "replaces": "prism_dust"
   },
   "clock_oil": {
@@ -311,6 +311,147 @@
    "sources_text": "던전 몬스터·정예·보스·상자 (옛 태엽 용수철 자리)",
    "lore": "태엽 짐승들의 관절에서 흘러나온 검은 기름. 식어도 굳지 않는다.",
    "replaces": "mainspring"
+  },
+  "moss_scale": {
+   "name": "이끼 비늘",
+   "type": "material",
+   "kind": "monster",
+   "floor": 1,
+   "rarity": "common",
+   "sell": "SellPrices 재료 공식 (희귀도 · 그 층)",
+   "sources": [
+    "drop",
+    "chest"
+   ],
+   "sources_text": "그 몸을 가진 몬스터 · 그 층 상자 (몹 주제 드롭 — drops_spec)",
+   "lore": "이끼 새끼용과 가시덩굴 코볼트의 비늘. 틈마다 이끼가 끼어 있다.",
+   "texture": {
+    "style": "scale",
+    "palette": [
+     "#14200f",
+     "#2f4a1f",
+     "#5f8a34",
+     "#a8c870"
+    ]
+   }
+  },
+  "tunnel_fang": {
+   "name": "갱도 송곳니",
+   "type": "material",
+   "kind": "monster",
+   "floor": 2,
+   "rarity": "common",
+   "sell": "SellPrices 재료 공식 (희귀도 · 그 층)",
+   "sources": [
+    "drop",
+    "chest"
+   ],
+   "sources_text": "그 몸을 가진 몬스터 · 그 층 상자 (몹 주제 드롭 — drops_spec)",
+   "lore": "갱도에 사는 것들의 누런 송곳니. 땅굴웜도, 박쥐도, 돌 아가리도 같은 이빨을 가졌다.",
+   "texture": {
+    "style": "fang",
+    "palette": [
+     "#241c16",
+     "#5a4a3a",
+     "#b8a888",
+     "#efe6d0"
+    ]
+   }
+  },
+  "cinder_scale": {
+   "name": "잿불 비늘",
+   "type": "material",
+   "kind": "monster",
+   "floor": 5,
+   "rarity": "uncommon",
+   "sell": "SellPrices 재료 공식 (희귀도 · 그 층)",
+   "sources": [
+    "drop",
+    "chest"
+   ],
+   "sources_text": "그 몸을 가진 몬스터 · 그 층 상자 (몹 주제 드롭 — drops_spec)",
+   "lore": "잿불 드레이크와 용인 대장장이의 비늘. 틈으로 아직 불씨가 샌다.",
+   "texture": {
+    "style": "scale",
+    "palette": [
+     "#0c0a0a",
+     "#1e1a1a",
+     "#363030",
+     "#5a4a44",
+     "#ff7a2a"
+    ]
+   },
+   "pre_release": "cinder_hide"
+  },
+  "rime_talon": {
+   "name": "서리 발톱",
+   "type": "material",
+   "kind": "monster",
+   "floor": 6,
+   "rarity": "uncommon",
+   "sell": "SellPrices 재료 공식 (희귀도 · 그 층)",
+   "sources": [
+    "drop",
+    "chest"
+   ],
+   "sources_text": "그 몸을 가진 몬스터 · 그 층 상자 (몹 주제 드롭 — drops_spec)",
+   "lore": "서리 와이번의 갈고리 발톱. 끝에 늘 서리가 앉아 있다.",
+   "texture": {
+    "style": "fang",
+    "palette": [
+     "#0a1428",
+     "#1e4a7a",
+     "#4a90d8",
+     "#7cc4ff"
+    ]
+   }
+  },
+  "chrono_dust": {
+   "name": "시간 가루",
+   "type": "material",
+   "kind": "monster",
+   "floor": 9,
+   "rarity": "uncommon",
+   "sell": "SellPrices 재료 공식 (희귀도 · 그 층)",
+   "sources": [
+    "drop",
+    "chest"
+   ],
+   "sources_text": "그 몸을 가진 몬스터 · 그 층 상자 (몹 주제 드롭 — drops_spec)",
+   "lore": "시간 나방의 날갯가루. 흩뿌리면 둘레의 시간이 잠깐 끈적해진다.",
+   "texture": {
+    "style": "dust",
+    "palette": [
+     "#1a140c",
+     "#4a3a20",
+     "#b08a40",
+     "#f0d890",
+     "#6ad0b0"
+    ]
+   }
+  },
+  "abyss_scale": {
+   "name": "심연 비늘",
+   "type": "material",
+   "kind": "monster",
+   "floor": 10,
+   "rarity": "uncommon",
+   "sell": "SellPrices 재료 공식 (희귀도 · 그 층)",
+   "sources": [
+    "drop",
+    "chest"
+   ],
+   "sources_text": "그 몸을 가진 몬스터 · 그 층 상자 (몹 주제 드롭 — drops_spec)",
+   "lore": "심연 고룡과 심연 용인의 검은 비늘. 가장자리가 청록빛으로 빛난다.",
+   "texture": {
+    "style": "scale",
+    "palette": [
+     "#020306",
+     "#0a1a20",
+     "#1a3c46",
+     "#2fe0d0"
+    ]
+   }
   },
   "copper_pickaxe": {
    "name": "구리 곡괭이",
@@ -510,9 +651,15 @@
   "topaz",
   "sapphire",
   "dragonblood_stone",
-  "cinder_hide",
+  "ember_soul",
   "resonant_sinew",
   "clock_oil",
+  "moss_scale",
+  "tunnel_fang",
+  "cinder_scale",
+  "rime_talon",
+  "chrono_dust",
+  "abyss_scale",
   "copper_pickaxe",
   "iron_pickaxe",
   "silver_pickaxe",
@@ -750,7 +897,7 @@
   "ember_shard": {
    "floor": 5,
    "slot": "monster",
-   "to": "cinder_hide",
+   "to": "ember_soul",
    "ratio": "1:1"
   },
   "rime_crystal": {
@@ -788,7 +935,7 @@
   "map": {
    "rusted_iron": "iron_ore",
    "slag_ingot": "gold_ore",
-   "ember_shard": "cinder_hide",
+   "ember_shard": "ember_soul",
    "rime_crystal": "gold_ore",
    "amethyst_shard": "gold_ore",
    "prism_dust": "resonant_sinew",
@@ -809,6 +956,10 @@
   "equal_to_fresh": "결과는 ItemService 로 새로 만든 아이템과 isSimilar (겹쳐짐) — 시험",
   "guard": "새 id 가 지금 content 에 없으면 바꾸지 않고 시작 때 경고 1줄 · 두 번 해도 같음 · 모르는 id 그대로",
   "pack_alias": "팩은 옛 8개 id 를 새 그림으로 가리키는 별칭을 두 판(0.3.6·0.3.7) 남긴다",
+  "pre_release": {
+   "cinder_hide": "cinder_scale"
+  },
+  "pre_release_note": "배포 전 시험 서버에만 있던 id (Q0 계약 첫 판의 잿불 가죽) — ItemMigration036 이 같이 바꾼다",
   "notice": {
    "ext": "mat036.notice",
    "text": "<gray>광산이 열렸습니다. 녹슨 철괴·슬래그 주괴 같은 광물 재료는 광석으로, 불씨 조각·프리즘 가루·태엽 용수철은 새 몬스터 재료로 바뀌었습니다. 광석은 제련소나 광산 관리소에서 주괴로 녹이세요.</gray>"
@@ -1124,10 +1275,38 @@
    "swap": "몬스터 재료가 둘인 층(1·3·4·8·10) = 다른 몬스터 재료를 P 로 / 하나인 층(2·5·6·7·9) = 주괴를 P 로 (P 주괴 개수 × ingot_unit, S 는 몬스터 재료)",
    "hard": {
     "2": "spider_silk",
-    "5": "cinder_hide",
+    "5": "ember_soul",
     "6": "grave_bone",
     "7": "resonant_sinew",
     "9": "clock_oil"
+   },
+   "drops_stage": {
+    "rule": "몹 주제 드롭 단계 뒤 (§0 결정 4 · drops_spec §8): 드롭 장비의 P = 단단한 장비 hard · 부드러운 장비 soft (방어구는 겉모습 — 판금·방패 단단, 천 부드러움, 가죽은 슬롯). 겹치면 레시피의 다른 부위 → 그 층 반대쪽 부위 → (부위 하나뿐인 7층만) 주괴를 P. R 은 지금 enhance.yml 의 것을 먼저. S 주괴 개수 = 반올림(S_BASE × ingot_s_scale[층]), p_scale 아래 한도 0.25",
+    "hard": {
+     "1": "beetle_shell",
+     "2": "tunnel_fang",
+     "3": "spore_cap",
+     "4": "eel_scale",
+     "5": "cinder_scale",
+     "6": "rime_talon",
+     "7": "resonant_sinew",
+     "8": "old_page",
+     "9": "clock_oil",
+     "10": "abyss_scale"
+    },
+    "soft": {
+     "1": "moss_fiber",
+     "2": "spider_silk",
+     "3": "hypha_thread",
+     "4": "brine_pearl",
+     "5": "ember_soul",
+     "6": "grave_bone",
+     "7": "resonant_sinew",
+     "8": "ink_essence",
+     "9": "chrono_dust",
+     "10": "sculk_tendril"
+    },
+    "ingot_s_scale": "0.5 × p_scale(재료 단계 뒤 그 층 몬스터 재료 1회 공급 중 큰 값)"
    },
    "ingot_unit": 0.5,
    "ingot_supply": "주괴 1회 공급량(환산 비교·보스 장비 검사) = 그 금속 곡괭이로 그 금속만 노릴 때 1분당 광석 × 그 층 1회 클리어 분 ÷ 2"
@@ -1262,12 +1441,22 @@
    "이 파일의 금속·보석·곡괭이 id 와 규칙",
    "mine.json",
    "ING_SHARE·던전 광석 per_run (바꾸려면 Q0 계약을 고친다)",
-   "새 몬스터 재료 3개 id·이름 (cinder_hide 잿불 가죽 · resonant_sinew 공명 힘줄 · clock_oil 태엽 기름 — 주인 결정 5)",
-   "옛 8개 바꿈 표 conversion.map (주인 결정 5 — T §5)"
+   "새 몬스터 재료 3개 id·이름 (ember_soul 불씨 혼 · resonant_sinew 공명 힘줄 · clock_oil 태엽 기름 — §0 결정 4)",
+   "몹 몸에 맞는 새 부위 6 (drop_parts — §0 결정 4)",
+   "옛 8개 바꿈 표 conversion.map (§0 결정 4 로 불씨 조각 → 불씨 혼)"
+  ],
+  "drop_parts": [
+   "moss_scale",
+   "tunnel_fang",
+   "cinder_scale",
+   "rime_talon",
+   "chrono_dust",
+   "abyss_scale"
   ],
   "known_conflicts": [
    "drops_spec 은 옛 T(5금속) 위에서 만들어짐: 거기 적힌 옛 금속 광석(T 의 가장 높은 금속 포함) → 그 층 dungeon_ore.metals 의 금속으로 읽는다",
-   "drops_spec 의 cinder_hide → cinder_scale 이름 바꿈 · ember_shard → ember_soul 바꿈은 주인 결정 5 와 다름 — 주인이 따로 승인할 때만, 그것도 params.py(이 계약)를 먼저 고친 뒤 적용"
+   "§0 결정 4 (주인 늦은 결정): 드롭 명세가 재료 id 를 정한다 — 잿불 가죽(cinder_hide) → 잿불 비늘(cinder_scale), 불씨 조각 → 불씨 혼(ember_soul) 을 이 계약에 넣었다",
+   "LootRoller 는 guaranteed 의 chance 를 보지 않는다 (늘 지급) — 던전 광석 확률 항목은 entries 맨 끝에 둔다 (content_p3 loot_tweaks 번호 그대로)"
   ]
  },
  "derived": {

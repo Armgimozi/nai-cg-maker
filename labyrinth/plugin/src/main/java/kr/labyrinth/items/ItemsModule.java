@@ -70,6 +70,10 @@ public final class ItemsModule implements Module {
         services.stats().addContributor(equipment);
         pm.registerEvents(loot, services.plugin());
         pm.registerEvents(new ItemGuardListener(services), services.plugin());
+        // 0.3.6 옛 광물 재료 → 광석·새 몬스터 재료 (접속·보관함·줍기·손에 들기·셜커·꾸러미·액자·거치대·바닥 아이템)
+        ItemMigration036Listener mat036 = new ItemMigration036Listener(services);
+        pm.registerEvents(mat036, services.plugin());
+        mat036.start();
         weaponSkills.start();
         // 고유 효과: 피해 훅은 pvp 모듈보다 먼저 등록된다 (가시 반격이 PvP 배율 전 피해를 잡는다)
         unique = new UniqueEffectService(services);

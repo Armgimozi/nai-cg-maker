@@ -24,7 +24,9 @@ errors, notes = [], []
 
 METALS = ['copper', 'iron', 'silver', 'gold', 'mithril', 'orichalcum']
 GEMS = ['quartz', 'garnet', 'moonstone', 'topaz', 'sapphire', 'dragonblood_stone']
-MONSTER = ['cinder_hide', 'resonant_sinew', 'clock_oil']
+MONSTER = ['ember_soul', 'resonant_sinew', 'clock_oil']          # §0 결정 4: 5층은 불씨 혼 (잿불 가죽 없음)
+DROP_PARTS = ['moss_scale', 'tunnel_fang', 'cinder_scale', 'rime_talon', 'chrono_dust', 'abyss_scale']   # §0 결정 4: 몹 몸에 맞는 새 부위
+PRE_RELEASE = {'cinder_hide': 'cinder_scale'}                  # 배포 전 시험 서버에만 있던 id
 RETIRED = ['rusted_iron', 'slag_ingot', 'ember_shard', 'rime_crystal', 'amethyst_shard', 'prism_dust', 'brass_gear', 'mainspring']
 BANNED_WORDS = ['starmetal', 'obsidian', '별철', '흑요석']
 LABEL_RE = re.compile(r'(Lv\s*\d|레벨|\d+\s*층|층\s*\d|단계|구간|티어|tier\s*\d)', re.I)
@@ -102,12 +104,23 @@ def main():
     ores = [f'{m}_ore' for m in METALS]
     ingots = [f'{m}_ingot' for m in METALS]
     picks = [f'{m}_pickaxe' for m in METALS]
-    expect_ids = ores + ingots + GEMS + MONSTER + picks
+    expect_ids = ores + ingots + GEMS + MONSTER + DROP_PARTS + picks
     need(sorted(mat['new_ids']) == sorted(expect_ids), f"새 id 목록이 주인 결정과 다름: {sorted(set(mat['new_ids']) ^ set(expect_ids))}")
-    need(len(set(mat['new_ids'])) == len(mat['new_ids']) == 27, '새 id 27개, 겹침 없음')
+    need(len(set(mat['new_ids'])) == len(mat['new_ids']) == 33, '새 id 33개 (광산 27 − 잿불 가죽 + 불씨 혼 + 몹 주제 부위 6), 겹침 없음')
+    # content 는 바꾸기 전(0.3.5.1 — 새 id 0 · 옛 id 8) 이거나 Q3 생성기가 바꾼 뒤(새 id 모두 · 옛 id 0) 둘 중 하나여야 한다
+    have_new = [i for i in mat['new_ids'] if i in items_now]
+    migrated = len(have_new) == len(mat['new_ids'])
+    need(migrated or not have_new, f'content 가 반쯤 바뀜 — 새 id {len(have_new)}/{len(mat["new_ids"])} (python3 tools/gen_035_content.py)')
+    if migrated:
+        notes.append('content 는 0.3.6 (Q3 생성기가 바꾼 뒤) — 새 id 모두 있음 · 옛 id 0 을 본다')
     for i in mat['new_ids']:
-        need(i not in items_now, f'새 id 가 지금 items.yml 에 이미 있음: {i}')
-        need(i not in RETIRED, f'새 id 가 옛 id: {i}')
+        if migrated:
+            v = items_now[i]
+            need(v.get('name') == mat['items'][i]['name'] and v.get('type') == mat['items'][i]['type'], f'{i}: items.yml 이름·종류 ≠ 계약')
+            need(v.get('rarity') == mat['items'][i]['rarity'], f'{i}: items.yml 희귀도 ≠ 계약')
+            if mat['items'][i]['kind'] in ('ore', 'ingot', 'gem'):
+                need(v.get('mine_kind') == mat['items'][i]['kind'] and v.get('mine_level') == mat['items'][i]['mine_level'], f'{i}: mine_kind·mine_level ≠ 계약')
+        need(i not in RETIRED and i not in PRE_RELEASE, f'새 id 가 옛 id: {i}')
         need(re.fullmatch(r'[a-z][a-z0-9_]*', i) is not None and ':' not in i, f'플러그인 id 꼴이 아님: {i}')
     need(list(mine['ores']) == ores, f"mine.ores 순서·id: {list(mine['ores'])}")
     need(list(mine['gems']) == GEMS, f"mine.gems 순서·id: {list(mine['gems'])}")
@@ -116,7 +129,13 @@ def main():
     for w in BANNED_WORDS:
         need(w not in blob, f'버린 이름이 남음: {w}')
     for r in RETIRED:
-        need(r in items_now, f'옛 id 가 지금 items.yml 에 없음 (바꿈 표 확인): {r}')
+        if migrated:
+            need(r not in items_now, f'옛 id 가 바뀐 content 에 남음: {r}')
+        else:
+            need(r in items_now, f'옛 id 가 지금 items.yml 에 없음 (바꿈 표 확인): {r}')
+    for r in PRE_RELEASE:
+        need(r not in items_now, f'배포 전 id 가 items.yml 에 있음: {r}')
+    need(mat['conversion'].get('pre_release') == PRE_RELEASE, '배포 전 id 바꿈 표 (cinder_hide → cinder_scale)')
 
     # ── 2. 등급 ──
     for k, o in enumerate(ores, 1):
@@ -238,7 +257,7 @@ def main():
     need(len(cv) == 6 and sorted(next(m for m in r['materials'] if m in GEMS) for r in cv) == sorted(GEMS), '새기기 6 (보석마다 1)')
     for r in cv:
         need(r['result'] in ('lesser_enhance_stone', 'greater_enhance_stone', 'supreme_enhance_stone') and r['amount'] == 2, f"새기기 {r['id']}")
-        need(r['id'] not in recipes_now, f"새기기 id 가 지금 recipes.yml 과 겹침: {r['id']}")
+        need(r['id'] not in recipes_now or (migrated and recipes_now[r['id']].get('station') == 'smelter'), f"새기기 id 가 지금 recipes.yml 과 겹침: {r['id']}")
         for m in r['materials']:
             need(m in items_now or m in mat['items'], f"새기기 재료 없음: {m}")
     pr = mat['pickaxe_recipes']
@@ -253,7 +272,12 @@ def main():
             need(m in items_now or m in mat['items'], f"{r['id']} 재료 없음: {m}")
         need(mine['pickaxes'][r['result']]['recipe']['materials'] == mats, f"{r['id']} mine ↔ materials 레시피")
     for r in sm + cv + pr:
-        need(r['id'] not in recipes_now or r['id'] in ingots, f"레시피 id 겹침: {r['id']}")
+        if migrated:
+            now = recipes_now.get(r['id']) or {}
+            need(now.get('station') == 'smelter' and now.get('materials') == r['materials'] and now.get('gold') == r['gold'],
+                 f"recipes.yml {r['id']} ≠ 계약 (station·재료·골드)")
+        else:
+            need(r['id'] not in recipes_now or r['id'] in ingots, f"레시피 id 겹침: {r['id']}")
 
     # ── 6. 바꿈 ──
     conv = mat['conversion']['map']
@@ -310,8 +334,8 @@ def main():
     need(not LABEL_RE.search(mat['codex']['mine_line'].split('—')[0]), '도감 광산 줄')
 
     # ── 10. 그림 ──
-    icon_ids = ores + ingots + GEMS + MONSTER
-    need(sorted(vis['icons']) == sorted(icon_ids), '아이콘 21개 = 광석·주괴·보석·새 몬스터 재료')
+    icon_ids = ores + ingots + GEMS + MONSTER + DROP_PARTS
+    need(sorted(vis['icons']) == sorted(icon_ids), '아이콘 27개 = 광석·주괴·보석·새 몬스터 재료·몹 주제 부위')
     seen = set()
     for i, v in vis['icons'].items():
         need(all(HEX.match(c) for c in v['palette']) and 4 <= len(v['palette']) <= 6, f'{i} 팔레트')
@@ -336,8 +360,10 @@ def main():
         need(hangul(n['name']) and n['name'] == dist['npcs'][role]['name'], f'{role} 이름 (visual ↔ district)')
     need(vis['npcs']['smelter']['name'].startswith('제련공 ') and len(vis['npcs']['smelter']['name']) > 4, '제련공 이름 (주인 결정 6)')
     names_now = {(v.get('name') or '') for v in (yaml.safe_load(open(CONTENT / 'npcs.yml', encoding='utf-8')) or {})['npcs'].values()}
+    npcs_now = (yaml.safe_load(open(CONTENT / 'npcs.yml', encoding='utf-8')) or {})['npcs']
     for role in ('miner', 'smelter'):
-        need(vis['npcs'][role]['name'] not in names_now, f'{role} 이름이 지금 NPC 와 겹침')
+        same = [k for k, v in npcs_now.items() if (v.get('name') or '') == vis['npcs'][role]['name']]
+        need(not same or (migrated and all(npcs_now[k].get('role') == role for k in same)), f'{role} 이름이 지금 NPC 와 겹침')
 
     # ── 11. 광산 마을 ──
     pcs = dist['pieces']

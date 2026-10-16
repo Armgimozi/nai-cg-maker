@@ -259,6 +259,7 @@ starter_kit:
     - {item: minor_healing_potion, amount: 10}
     - {item: minor_mana_potion, amount: 5}
     - {item: return_scroll, amount: 2}
+    - {item: copper_pickaxe, amount: 1}
 
 # 직업 변경 (최상위 키) — 첫 직업 선택은 무료. 그 뒤로 바꿀 때마다:
 #   require_item: true 면 item(전직의 두루마리, 떠돌이 상인 핀이 판다) 1장이 사라진다.
@@ -340,6 +341,9 @@ sell:
   confirm_rarity: epic
   confirm_enhance: 1
   unsellable: [class_change_scroll]
+  # 광산 재료 (0.3.6) — 값 = 반올림(기본값 × (1 + rank_bonus × (광물 등급 − 1))), 최소 1. 등급은 items.yml mine_level (구리·석영 1 … 오리하르콘·용혈석 6).
+  # 주괴를 녹여 팔면 언제나 손해다 (주괴 값 < 광석 2개 + 제련 골드). 곡괭이(도구)는 팔 수 없다.
+  mine: {ore: 1, ingot: 3, gem: 6, rank_bonus: 0.35}
 
 # 몬스터
 mobs:

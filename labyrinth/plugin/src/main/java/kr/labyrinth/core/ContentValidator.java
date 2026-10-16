@@ -81,6 +81,9 @@ public final class ContentValidator {
     public static final Set<String> NPC_ROLES = Set.of("entrance", "blacksmith", "class_master", "title_keeper", "merchant", "lore",
             kr.labyrinth.mine.MineNames.ROLE_MINER, kr.labyrinth.mine.MineNames.ROLE_SMELTER);
     public static final Set<String> DIFFICULTIES = Set.of("easy", "normal", "hard", "nightmare");
+    /** recipes.yml station (0.3.6): 대장간 · 제련소. */
+    public static final Set<String> RECIPE_STATIONS = Set.of(kr.labyrinth.mine.MineNames.STATION_BLACKSMITH,
+            kr.labyrinth.mine.MineNames.STATION_SMELTER);
     public static final Set<String> RECIPE_CATEGORIES = Set.of("weapon", "armor", "accessory", "material",
             kr.labyrinth.mine.MineNames.CATEGORY_TOOL);
 
@@ -110,6 +113,7 @@ public final class ContentValidator {
         floors();
         loot();
         recipes();
+        mine();
         requirements();
         armorLooks();
         gearHomes();
@@ -778,7 +782,84 @@ public final class ContentValidator {
                 if (n <= 0) err(w, "재료 개수는 양수: " + id);
             });
             if (!RECIPE_CATEGORIES.contains(r.category())) err(w, "category 가 올바르지 않음: " + r.category());
+            String st = r.station() == null || r.station().isBlank() ? kr.labyrinth.mine.MineNames.STATION_BLACKSMITH : r.station();
+            if (!RECIPE_STATIONS.contains(st)) err(w, "station 이 올바르지 않음 (blacksmith | smelter): " + st);
+            ItemDef res = c.items().get(r.result());
+            if (res != null && res.isTool() && !kr.labyrinth.mine.MineNames.STATION_SMELTER.equals(st)) {
+                err(w, "곡괭이 레시피는 station: smelter (제련소·광산 관리소)");
+            }
+            if (kr.labyrinth.mine.MineNames.CATEGORY_TOOL.equals(r.category()) && (res == null || !res.isTool())) {
+                err(w, "category: tool 은 곡괭이(type: tool) 결과만");
+            }
         }
+    }
+
+    /**
+     * 0.3.6 광산 재료·곡괭이 (계약 tools/data/036): items.yml {@code mine_kind}·{@code mine_level}·{@code tool} 과 mine.yml 을 맞대어 본다.
+     * 광석·보석 id 는 mine.yml ores·gems 와, 등급은 tier 와 같아야 한다. 주괴 = 광석의 ingot. 곡괭이는 tier 1~6, 캘 수 있는 등급마다 speed,
+     * 레벨 조건·능력치 없음. mine.yml 이 없으면(광산 꺼짐) items.yml 쪽 모양만 본다.
+     */
+    private void mine() {
+        kr.labyrinth.content.MineDef m = c.mine();
+        boolean have = m != null && !m.isEmpty();
+        for (ItemDef d : c.items().values()) {
+            String w = "items." + d.id();
+            if (d.mineKind() != null) {
+                if (d.type() != ItemType.MATERIAL) err(w, "mine_kind 는 재료(type: material)만");
+                if (d.mineLevel() < 1 || d.mineLevel() > kr.labyrinth.content.ToolSpec.MAX_TIER) err(w, "mine_level 은 1~6: " + d.mineLevel());
+                if (have) {
+                    switch (d.mineKind()) {
+                        case ORE -> {
+                            var n = m.ores().get(d.id());
+                            if (n == null) err(w, "mine_kind: ore 인데 mine.yml ores 에 없음");
+                            else if (n.tier() != d.mineLevel()) err(w, "mine_level " + d.mineLevel() + " ≠ mine.yml tier " + n.tier());
+                        }
+                        case GEM -> {
+                            var n = m.gems().get(d.id());
+                            if (n == null) err(w, "mine_kind: gem 인데 mine.yml gems 에 없음");
+                            else if (n.tier() != d.mineLevel()) err(w, "mine_level " + d.mineLevel() + " ≠ mine.yml tier " + n.tier());
+                        }
+                        case INGOT -> {
+                            var n = m.ores().values().stream().filter(o -> d.id().equals(o.ingot())).findFirst().orElse(null);
+                            if (n == null) err(w, "mine_kind: ingot 인데 mine.yml 의 어느 광석 ingot 도 아님");
+                            else if (n.tier() != d.mineLevel()) err(w, "mine_level " + d.mineLevel() + " ≠ 광석 " + n.id() + " tier " + n.tier());
+                        }
+                    }
+                }
+            } else if (d.mineLevel() > 0) {
+                err(w, "mine_level 은 mine_kind 와 함께");
+            }
+            if (d.type() == ItemType.TOOL) {
+                kr.labyrinth.content.ToolSpec t = d.tool();
+                if (t == null) {
+                    err(w, "type: tool 인데 tool: {kind, tier, speed, bonus} 가 없음");
+                    continue;
+                }
+                if (!t.isPickaxe()) err(w, "tool.kind 는 pickaxe: " + t.kind());
+                if (t.tier() < 1) err(w, "tool.tier 는 1~6");
+                for (int o = 1; o <= t.tier(); o++) {
+                    Double sp = t.speed().get(o);
+                    if (sp == null || sp <= 0) err(w, "tool.speed 에 등급 " + o + " 배율이 없음");
+                }
+                for (Integer k : t.speed().keySet()) if (k < 1 || k > t.tier()) warn(w, "tool.speed 등급 " + k + " 는 캘 수 없는 등급 (무시)");
+                if (!d.stats().isEmpty()) err(w, "도구에는 능력치(stats)가 없다");
+                if (d.raw() != null && d.raw().has("level_req")) warn(w, "도구에 level_req 가 있음 — 광산에는 레벨 조건이 없다 (무시)");
+            }
+        }
+        if (!have) return;
+        m.ores().values().forEach(n -> {
+            ItemDef d = c.items().get(n.id());
+            if (d == null || d.mineKind() != kr.labyrinth.content.MineKind.ORE) err("mine.ores." + n.id(), "items.yml 에 mine_kind: ore 아이템이 없음");
+            if (n.ingot() != null && !n.ingot().isBlank()) {
+                ItemDef ing = c.items().get(n.ingot());
+                if (ing == null || ing.mineKind() != kr.labyrinth.content.MineKind.INGOT) err("mine.ores." + n.id(), "주괴 '" + n.ingot() + "' 가 items.yml 에 없음");
+            }
+            if (n.gem() != null && !n.gem().isBlank() && !m.gems().containsKey(n.gem())) err("mine.ores." + n.id(), "같은 등급 보석 '" + n.gem() + "' 이 mine.yml gems 에 없음");
+        });
+        m.gems().values().forEach(n -> {
+            ItemDef d = c.items().get(n.id());
+            if (d == null || d.mineKind() != kr.labyrinth.content.MineKind.GEM) err("mine.gems." + n.id(), "items.yml 에 mine_kind: gem 아이템이 없음");
+        });
     }
 
     private void titles() {
