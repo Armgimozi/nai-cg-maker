@@ -365,6 +365,7 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
             return true;
         }
         useMana(player, cost);
+        services.unique().onSkill(player); // 고유 효과 과부하
         // 채널링 스킬이 cancelCast 로 쿨다운을 이미 정했으면 덮어쓰지 않는다. 재사용 대기 = classes.yml 값 → 재사용 감소 스탯
         // (0.3.5: 든 무기와 상관없음 — 예전 '추천 무기 −10%' 는 모든 스킬의 값에 녹였다)
         if (st.cooldowns.ready(sk.id())) {

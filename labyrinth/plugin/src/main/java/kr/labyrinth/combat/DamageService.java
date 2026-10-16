@@ -50,6 +50,9 @@ public final class DamageService implements Module {
 
         /** 적용 후 (dealt/killed/crit 확정). 적중 시 효과·자원 회복 등. */
         default void after(DamageContext ctx) {}
+
+        /** 회피됐을 때 (after 대신 — 피해 없음). 예: 고유 효과 흘려치기. 회피할 수 없는 피해(지속 피해·패턴)는 여기 오지 않는다. */
+        default void evaded(DamageContext ctx) {}
     }
 
     public void addHook(Hook hook) { hooks.add(java.util.Objects.requireNonNull(hook)); }
@@ -184,9 +187,13 @@ public final class DamageService implements Module {
             taken = pool.damageTaken();
         }
 
+        // 고유 효과 갑옷 부수기: 쌓인 만큼 대상 방어를 깎는다 (상한 40%, 누가 때려도 — 파티 전원)
+        double shred = services.unique().defenseShred(target);
+        if (shred > 0) defense *= 1.0 - Math.min(0.4, shred);
         // PvP: 방어 대신 강인함(defenseScale 0) · 치명 추가 피해 × 0.6 (pvp 훅이 before() 에서 정함)
         defense *= ctx.defenseScale();
-        double critDamage = DamageFormula.scaledCritDamage(atk != null ? atk.critDamage() : 1.5, ctx.critDamageScale());
+        double critDamage = DamageFormula.scaledCritDamage((atk != null ? atk.critDamage() : 1.5) + ctx.critDamageAdd(),
+                ctx.critDamageScale());
         DamageFormula.Input in = new DamageFormula.Input(ctx.amount(), ctx.isSkill(),
                 atk != null ? atk.damageMult() : 0, atk != null ? atk.skillDamage() : 0,
                 (atk != null ? atk.critChance() : 0) + ctx.critBonus(), critDamage,
@@ -197,6 +204,13 @@ public final class DamageService implements Module {
 
         if (out.evaded()) {
             if (ctx.showNumber()) numbers.show(target, 0, DamageNumbers.Kind.EVADE);
+            for (Hook h : hooks) {
+                try {
+                    h.evaded(ctx);
+                } catch (Throwable t) {
+                    kr.labyrinth.core.Log.error("피해 훅(evaded) 오류", t);
+                }
+            }
             return ctx;
         }
 

@@ -20,6 +20,8 @@ import kr.labyrinth.items.crafting.LabCraftingService;
 import kr.labyrinth.items.enhance.EnhanceService;
 import kr.labyrinth.items.enhance.Enhancement;
 import kr.labyrinth.items.loot.LabLootService;
+import kr.labyrinth.items.unique.UniqueEffectService;
+import kr.labyrinth.items.unique.UniqueEffects;
 import kr.labyrinth.items.weaponskills.LabWeaponSkillService;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -27,7 +29,7 @@ import org.bukkit.entity.Player;
 
 /**
  * items 담당 모듈 진입점: ItemService(굴림·툴팁·장비 컴포넌트) · LootService(개인 루팅) · CraftingService(대장장이 GUI) ·
- * WeaponSkillService(17종 무기 스킬) · AuraService(전설·신화 아우라) · 장비 StatContributor(+세트 효과) · 소모품 · 바닐라 가공 차단 ·
+ * WeaponSkillService(17종 무기 스킬) · UniqueEffects(무기 고유 효과 26종, {@link UniqueEffectService}) · AuraService(전설·신화 아우라) · 장비 StatContributor(+세트 효과) · 소모품 · 바닐라 가공 차단 ·
  * 강화(enhance/EnhanceService — 대장간 [강화], +10 빛) · 어깨·등 3D 장식({@link ArmorCosmetics} — 상의 세트별 탑승 디스플레이).
  * 명령: /미궁 강화|enhance (강화 창) ·
  * /미궁 장식 내화면|self [켜기|끄기] (내 장식을 내 화면에도). 관리: /labadmin blacksmith [플레이어] · /labadmin loot &lt;테이블&gt; [플레이어] ·
@@ -43,6 +45,7 @@ public final class ItemsModule implements Module {
     private LabLootService loot;
     private EnhanceService enhance;
     private ArmorCosmetics cosmetics;
+    private UniqueEffectService unique;
 
     public ItemsModule(Services services) { this.services = services; }
 
@@ -68,6 +71,10 @@ public final class ItemsModule implements Module {
         pm.registerEvents(loot, services.plugin());
         pm.registerEvents(new ItemGuardListener(services), services.plugin());
         weaponSkills.start();
+        // 고유 효과: 피해 훅은 pvp 모듈보다 먼저 등록된다 (가시 반격이 PvP 배율 전 피해를 잡는다)
+        unique = new UniqueEffectService(services);
+        services.setUnique(unique);
+        unique.start();
         consumables = new ConsumableListener(services, weaponSkills);
         consumables.start();
         auras = new AuraService(services);
@@ -86,6 +93,10 @@ public final class ItemsModule implements Module {
         if (cosmetics != null) cosmetics.stop();
         if (enhance != null) enhance.stop();
         if (weaponSkills != null) weaponSkills.stop();
+        if (unique != null) {
+            unique.stop();
+            services.setUnique(UniqueEffects.NONE);
+        }
         if (consumables != null) consumables.stop();
         if (equipment != null) services.stats().removeContributor(equipment);
     }

@@ -42,6 +42,7 @@ public final class DamageContext {
     private double critBonus;
     private double defenseScale = 1.0;
     private double critDamageScale = 1.0;
+    private double critDamageAdd;
     private String sourceId;
 
     // 결과
@@ -123,6 +124,8 @@ public final class DamageContext {
     public DamageContext defenseScale(double s) { this.defenseScale = Math.max(0, s); return this; }
     /** 치명 '추가' 피해 배율 (1 = 그대로, 0.6 = 치명 피해 2.5 → 1.9). PvP 훅이 before() 에서 바꾼다 (pvp.crit_damage_scale). */
     public DamageContext critDamageScale(double s) { this.critDamageScale = Math.max(0, s); return this; }
+    /** 이 피해 한 건의 치명 피해 가산 (0.45 = 치명 피해 +45%p, 고유 효과 피 냄새). 누적된다. PvP 의 critDamageScale 은 그 뒤에 곱한다. */
+    public DamageContext critDamageAdd(double add) { this.critDamageAdd += add; return this; }
 
     // ── 입력 접근 ─────────────────────────────────────────────────────────
     public LivingEntity attacker() { return attacker; }
@@ -154,6 +157,11 @@ public final class DamageContext {
     public double critBonus() { return critBonus; }
     public double defenseScale() { return defenseScale; }
     public double critDamageScale() { return critDamageScale; }
+    public double critDamageAdd() { return critDamageAdd; }
+    /** 기본 공격인가 — 플레이어가 무기로 친 한 대 (스킬·보스 패턴·지속 피해·고유 효과 피해·출처 붙은 피해가 아님). */
+    public boolean isBasicAttack() {
+        return attacker instanceof Player && !skill && !pattern && sourceId == null && usesAttackPower() && base == Base.PER_HIT;
+    }
     public String sourceId() { return sourceId; }
 
     // ── 결과 ──────────────────────────────────────────────────────────────

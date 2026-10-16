@@ -64,6 +64,7 @@ import org.bukkit.persistence.PersistentDataType;
  *   <li>예전 판 설명("요구 레벨 25")은 지금 규칙으로 다시 그린다 — 접속 때 가방, 엔더 상자·상자 등을 열 때 그 안,
  *       바닥에서 주울 때 ({@link #refreshLore}).</li>
  *   <li>미궁 활을 들면 '미궁 화살'(무한, 1개)을 넣어 준다 — 바닐라 활은 화살이 있어야 당겨진다.</li>
+ *   <li>재계산 때마다 손 무기와 요구 능력치 충족 여부를 고유 효과 서비스에 알린다 ({@code services.unique().held}).</li>
  * </ul>
  */
 final class EquipmentListener implements Listener, StatContributor {
@@ -94,11 +95,13 @@ final class EquipmentListener implements Listener, StatContributor {
         PlayerInventory inv = p.getInventory();
 
         ItemStack main = inv.getItemInMainHand();
-        items.defOf(main).ifPresent(def -> {
-            if (!def.isWeapon()) return;
-            if (EquipRules.usable(def, req)) block.addAll(items.rolledStats(main));
-            else unmet.put("main:" + def.id(), def);
-        });
+        ItemDef mainWeapon = items.defOf(main).filter(ItemDef::isWeapon).orElse(null);
+        if (mainWeapon != null) {
+            if (EquipRules.usable(mainWeapon, req)) block.addAll(items.rolledStats(main));
+            else unmet.put("main:" + mainWeapon.id(), mainWeapon);
+        }
+        // 손 무기 고유 효과 캐시 (요구 능력치 미달이면 무기 스킬처럼 꺼짐)
+        services.unique().held(p, mainWeapon, mainWeapon != null && EquipRules.usable(mainWeapon, req));
         for (EquipmentSlot slot : new EquipmentSlot[] {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET}) {
             ItemStack it = inv.getItem(slot);
             items.defOf(it).ifPresent(def -> {

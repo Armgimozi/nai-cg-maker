@@ -251,12 +251,17 @@ public final class PvpModule implements Module {
         if (id != null && !id.isBlank()) {
             if (id.startsWith("effect:")) {
                 return switch (id.substring(7)) {
-                    case "poison", "venom" -> "독";
-                    case "bleed" -> "출혈";
+                    case "poison", "venom", "poison_stack" -> "독";
+                    case "bleed", "bleed_stack" -> "출혈";
                     case "burn" -> "화상";
                     case "infection" -> "감염";
                     default -> "지속 피해";
                 };
+            }
+            if (id.startsWith("unique:")) {
+                // 고유 효과 피해 (휩쓸기·연쇄 번개·반사 …) = 그 무기의 고유 효과 이름
+                var u = services.unique().current(attacker);
+                return u != null ? Text.strip(u.name()) : "고유 효과";
             }
             if (id.startsWith("mech:") || id.startsWith("ws:")) {
                 String[] parts = id.split(":");

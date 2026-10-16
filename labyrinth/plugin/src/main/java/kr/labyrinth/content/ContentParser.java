@@ -198,11 +198,21 @@ public final class ContentParser {
         StatRequirement req = StatRequirement.of(requirementStats(id, p, "requires"), requirementStats(id, p, "requires_any"));
         // 0.3.5: 무기 종류 없음 — 무기마다 attack 블록 (예전 weapon_type 만 있으면 그때 주기로 대신, ContentValidator 가 경고)
         WeaponAttack attack = type == ItemType.WEAPON ? WeaponAttack.parse(p) : null;
+        // 0.3.5 고유 효과 (unique_spec §7): unique: {id, name, 수치…} — 무기만 (닫힌 목록·범위 검사는 ContentValidator)
+        UniqueDef unique = null;
+        if (p.has("unique")) {
+            if (!(p.get("unique") instanceof Map<?, ?>)) {
+                problem("items.yml", id, "unique 는 {id: …, name: …, 수치…} 꼴이어야 함");
+            } else {
+                unique = UniqueDef.parse(p);
+                if (unique == null) problem("items.yml", id, "unique.id 가 없음");
+            }
+        }
         return new ItemDef(id, p.str("name", id), type, attack, p.str("armor_slot"),
                 p.str("armor_set"), rarity, p.integer("level_req", 1), req, p.strings("classes"),
                 Collections.unmodifiableMap(stats), p.str("set_bonus"), p.str("aura"), List.copyOf(ws),
                 p.integer("floor", 0), p.bool("pool", true), p.strings("sources"), p.sub("use"), p.sub("model"),
-                p.sub("texture"), p.str("lore", ""), p);
+                p.sub("texture"), p.str("lore", ""), p, unique);
     }
 
     /** requires / requires_any: {STR: 30, ...} — 키는 STR DEX INT VIT WIS LUK, 값은 0 이상 정수 (0 = 요구 없음). */

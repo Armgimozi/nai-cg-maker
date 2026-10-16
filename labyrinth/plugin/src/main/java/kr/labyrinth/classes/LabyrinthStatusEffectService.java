@@ -49,7 +49,10 @@ import org.bukkit.util.Vector;
  *   <li>5틱(0.25초)마다: 만료 처리, 지속 피해(1초 간격, DamageService 경유 TRUE 피해), 이동 제한 속성 수정치, 파티클</li>
  *   <li>플레이어 버프·디버프 능력치 → {@link StatContributor} (damage_mult, damage_taken, evasion …)</li>
  *   <li>몹·보스의 weaken/vulnerable/mark, 모든 대상의 보호막 → {@link DamageService.Hook}</li>
- *   <li>frost 5중첩 → 4초 빙결(얼음 껍질 모델, 아군 4회 타격으로 해방), infection 5중첩 → 2초 속박 + 피해</li>
+ *   <li>frost 5중첩 → 4초 빙결(얼음 껍질 모델, 아군 4회 타격으로 해방), infection 5중첩 → 2초 속박 + 피해.
+ *       고유 효과 원소 부여({@link #applyFrost})가 채운 5중첩은 빙결 1초, 보스는 빙결 대신 받는 피해 증가 3초</li>
+ *   <li>고유 효과 중첩 출혈·독({@link #applyStacks}) = 따로 쌓이는 층 bleed_stack·poison_stack (중첩당 피해 × 중첩),
+ *       has("bleed")·has("poison") 에 함께 잡힌다</li>
  * </ul>
  */
 public final class LabyrinthStatusEffectService implements StatusEffectService, Listener, DamageService.Hook, StatContributor {
@@ -78,6 +81,9 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
         long lastShieldFx;
         /** 지금 걸린 행동 불가(기절·빙결)가 다른 파티 플레이어가 건 것 — 끝나면 PvP 면역 시작. */
         boolean pvpControl;
+        /** applyFrost 가 거는 동안만: 5중첩 빙결 시간(0 = 기본 4초) · 보스에게 대신 거는 받는 피해 증가. */
+        double frostFreeze;
+        double frostBossVuln;
 
         State(LivingEntity e) { this.entity = e; }
 
@@ -197,12 +203,57 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
         updatePhysical(s, now);
     }
 
+    @Override
+    public void applyStacks(LivingEntity target, String effectId, double durationSeconds, double perStack, int addStacks,
+                            int maxStacks, LivingEntity source) {
+        String layer = EffectStack.stackLayer(effectId == null ? null : effectId.toLowerCase(java.util.Locale.ROOT));
+        if (layer == null) {
+            apply(target, effectId, durationSeconds, 0, source);
+            return;
+        }
+        if (target == null || target.isDead() || !(perStack > 0)) return;
+        if (target instanceof Player p && (p.getGameMode() == org.bukkit.GameMode.CREATIVE
+                || p.getGameMode() == org.bukkit.GameMode.SPECTATOR)) return;
+        long now = System.currentTimeMillis();
+        double dur = Math.max(0.05, durationSeconds);
+        if (target instanceof Player p) {
+            dur *= 1.0 - services.stats().get(p).debuffReduction();
+            if (source instanceof Player && !source.equals(p)) {
+                dur = services.targets().pvp().ccSeconds(p, source, layer, dur);
+                if (dur <= 0) return;
+            }
+        }
+        State s = state(target);
+        s.effects.apply(layer, perStack, Math.max(1, addStacks), (long) (dur * 1000), source == null ? null : source.getUniqueId(),
+                now, Math.max(1, maxStacks));
+    }
+
+    @Override
+    public void applyFrost(LivingEntity target, int stacks, double freezeSeconds, double bossVulnerable, LivingEntity source) {
+        if (target == null || target.isDead()) return;
+        State s = state(target);
+        s.frostFreeze = Math.max(0, freezeSeconds);
+        s.frostBossVuln = Math.max(0, bossVulnerable);
+        try {
+            apply(target, "frost", 6, Math.max(1, stacks), source); // 서리 중첩은 6초 (PvP 최소 시간에 걸리지 않게 시간을 준다)
+        } finally {
+            s.frostFreeze = 0;
+            s.frostBossVuln = 0;
+        }
+    }
+
     private void onMaxStacks(LivingEntity target, State s, String id, LivingEntity source) {
         switch (id) {
             case "frost" -> {
                 s.effects.remove("frost");
+                if (isBoss(target)) {
+                    // 보스는 빙결 면역 — 고유 효과 서리만 받는 피해 증가로 바꾼다 (무기 스킬·몹 서리는 예전처럼 아무것도 안 함)
+                    if (s.frostBossVuln > 0) apply(target, "vulnerable", 3, s.frostBossVuln, source);
+                    return;
+                }
                 s.freeHits = 4;
-                apply(target, "frozen", 4, 1, source);
+                double freeze = s.frostFreeze > 0 ? s.frostFreeze : 4;
+                apply(target, "frozen", freeze, 1, source);
                 if (!s.effects.has("frozen", System.currentTimeMillis())) return; // PvP 면역·줄어듦으로 안 걸림
                 SkillFx.sound(target.getLocation(), Sound.BLOCK_GLASS_PLACE, 1f, 0.6f);
                 SkillFx.burst(target.getLocation().add(0, 1, 0), Particle.SNOWFLAKE, 40, 0.5, 0.05, null);
@@ -210,7 +261,8 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
                     s.iceShell = SkillFx.attach("ice_shell", target, 0.0, (float) Math.max(1.0, target.getHeight() / 1.8), 0);
                 }
                 if (target instanceof Player p) {
-                    services.hud().actionBar(p, Text.mm("<#bfe6ff>❄ 빙결! <gray>동료가 4번 때려 깨 줄 수 있습니다"), 80);
+                    services.hud().actionBar(p, Text.mm(freeze >= 2 ? "<#bfe6ff>❄ 빙결! <gray>동료가 4번 때려 깨 줄 수 있습니다"
+                            : "<#bfe6ff>❄ 빙결!"), (int) Math.max(20, freeze * 20));
                 }
             }
             case "infection" -> {
@@ -287,13 +339,20 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
         State s = peek(target);
         if (s == null) return false;
         if ("stealth".equals(effectId)) return isStealthed(target);
-        return s.effects.has(effectId, System.currentTimeMillis());
+        long now = System.currentTimeMillis();
+        if (s.effects.has(effectId, now)) return true;
+        String layer = "bleed".equals(effectId) || "poison".equals(effectId) ? EffectStack.stackLayer(effectId) : null;
+        return layer != null && s.effects.has(layer, now);
     }
 
     @Override
     public int stacks(LivingEntity target, String effectId) {
         State s = peek(target);
-        return s == null ? 0 : s.effects.stacks(effectId, System.currentTimeMillis());
+        if (s == null) return 0;
+        long now = System.currentTimeMillis();
+        int n = s.effects.stacks(effectId, now);
+        String layer = "bleed".equals(effectId) || "poison".equals(effectId) ? EffectStack.stackLayer(effectId) : null;
+        return layer == null ? n : Math.max(n, s.effects.stacks(layer, now));
     }
 
     @Override
@@ -302,6 +361,8 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
         if (s == null) return;
         EffectStack.Entry e = s.effects.remove(effectId);
         if (e != null) onRemoved(s, e.id);
+        String layer = "bleed".equals(effectId) || "poison".equals(effectId) ? EffectStack.stackLayer(effectId) : null;
+        if (layer != null) s.effects.remove(layer);
         updatePhysical(s, System.currentTimeMillis());
         if (target instanceof Player p) services.stats().markDirty(p);
     }
@@ -548,13 +609,20 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
         for (EffectStack.Entry x : List.copyOf(s.effects.all())) {
             if (!EffectStack.DOT.contains(x.id) || x.nextTickAt > now) continue;
             x.nextTickAt = now + 1000;
-            double amount = x.value * (x.id.equals("venom") ? x.stacks : 1);
-            if (x.id.equals("bleed") && s.entity.getVelocity().clone().setY(0).lengthSquared() > 0.003) amount *= 1.5;
+            double amount = x.value * (EffectStack.dotScalesWithStacks(x.id) ? x.stacks : 1);
+            if ((x.id.equals("bleed") || x.id.equals("bleed_stack")) && s.entity.getVelocity().clone().setY(0).lengthSquared() > 0.003) {
+                amount *= 1.5;
+            }
             LivingEntity src = x.source == null ? null : Bukkit.getEntity(x.source) instanceof LivingEntity le && le.isValid() ? le : null;
-            services.damage().deal(DamageContext.raw(src, s.entity, amount, DamageType.TRUE).source("effect:" + x.id)
-                    .noCrit().noEvade().noBlock().noLifesteal());
+            services.damage().deal(dotContext(src, s.entity, amount, x.id));
             if (s.entity.isDead()) return;
         }
+    }
+
+    /** 지속 피해 한 틱 — 방어 무시 고정 피해, 치명·회피(구르기 포함)·막기·흡혈 없음. */
+    public static DamageContext dotContext(LivingEntity source, LivingEntity target, double amount, String effectId) {
+        return DamageContext.raw(source, target, amount, DamageType.TRUE).source("effect:" + effectId)
+                .noCrit().noEvade().noBlock().noLifesteal();
     }
 
     private void particles(State s, long now) {
@@ -563,10 +631,12 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
         Location mid = feet.clone().add(0, e.getHeight() * 0.55, 0);
         Location head = feet.clone().add(0, e.getHeight() + 0.25, 0);
         double w = Math.max(0.3, e.getWidth() * 0.5);
-        if (s.effects.has("poison", now) || s.effects.has("venom", now)) {
+        if (s.effects.has("poison", now) || s.effects.has("venom", now) || s.effects.has("poison_stack", now)) {
             SkillFx.burst(mid, Particle.DUST, 3, w, 0, SkillFx.dust(0x6ad13a, 1.0f));
         }
-        if (s.effects.has("bleed", now)) SkillFx.burst(mid, Particle.DUST, 3, w * 0.7, 0, SkillFx.dust(0xa01818, 1.1f));
+        if (s.effects.has("bleed", now) || s.effects.has("bleed_stack", now)) {
+            SkillFx.burst(mid, Particle.DUST, Math.max(3, 2 + s.effects.stacks("bleed_stack", now)), w * 0.7, 0, SkillFx.dust(0xa01818, 1.1f));
+        }
         if (s.effects.has("burn", now)) SkillFx.burst(mid, Particle.FLAME, 2, w * 0.7, 0.01, null);
         if (s.effects.has("stun", now)) {
             double a = (tickCount % 8) / 8.0 * Math.PI * 2;

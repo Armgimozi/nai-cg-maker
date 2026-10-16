@@ -81,6 +81,24 @@ public interface StatusEffectService {
     /** 직업·무기 스킬 쿨다운이 흐르는 속도 (1 = 정상, cooldown_slow 0.3 이면 0.7). */
     default double cooldownRate(LivingEntity e) { return 1.0; }
 
+    /**
+     * 중첩 지속 피해 (고유 효과 찢는 치명의 출혈 · 원소 부여의 독, unique_spec): 중첩당 초당 perStack (커스텀 HP 단위, 부르는 쪽이 계산),
+     * 중첩 += addStacks (상한 maxStacks). 일반 bleed/poison 과 따로 쌓이고 {@code has("bleed")}·{@code has("poison")} 에 함께 잡힌다.
+     * 기본 구현은 일반 효과로 건다.
+     */
+    default void applyStacks(LivingEntity target, String effectId, double durationSeconds, double perStack, int addStacks,
+                             int maxStacks, LivingEntity source) {
+        apply(target, effectId, durationSeconds, 0, source);
+    }
+
+    /**
+     * 서리 중첩 (고유 효과 원소 부여): 5중첩이면 빙결 freezeSeconds (무기 스킬·몹이 건 서리는 그대로 4초).
+     * 보스는 빙결 대신 받는 피해 +bossVulnerable 3초 (0 이면 아무것도 안 함).
+     */
+    default void applyFrost(LivingEntity target, int stacks, double freezeSeconds, double bossVulnerable, LivingEntity source) {
+        apply(target, "frost", 6, Math.max(1, stacks), source);
+    }
+
     /** 사망·인스턴스 종료 등: 버프·디버프·보호막 전부 제거. */
     default void clearAll(LivingEntity e) { cleanse(e); }
 }

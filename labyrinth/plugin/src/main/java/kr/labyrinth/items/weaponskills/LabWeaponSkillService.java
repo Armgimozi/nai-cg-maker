@@ -152,6 +152,14 @@ public final class LabWeaponSkillService implements WeaponSkillService, Listener
     }
 
     @Override
+    public void reduceCooldowns(Player player, String itemId, double seconds) {
+        Map<String, Long> m = cooldowns.get(player.getUniqueId());
+        if (m == null || itemId == null || seconds <= 0) return;
+        long cut = Math.round(seconds * 1000);
+        for (Input in : Input.values()) m.computeIfPresent(key(itemId, in), (k, end) -> end - cut);
+    }
+
+    @Override
     public boolean handle(Player player, Input input) { return handle(player, input, -1); }
 
     /**
@@ -203,6 +211,7 @@ public final class LabWeaponSkillService implements WeaponSkillService, Listener
         } catch (Throwable t) {
             Log.error("무기 스킬 실행 오류: " + s.id() + " (" + def.id() + ")", t);
         }
+        services.unique().onSkill(player); // 고유 효과 과부하: 스킬을 쓰면 다음 기본 공격이 폭발
         if (s.cooldown() >= 2.0) {
             if (services.hud().skillMessages()) bar(player, "<#ffd27a>◆ " + Text.escape(s.name()) + " <dark_gray>· " + ItemTooltip.inputName(def, input.name())
                     + " · 재사용 " + String.format("%.1f", cd) + "초", 30);

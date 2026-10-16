@@ -14,7 +14,8 @@ import java.util.UUID;
  *   <li>{@link Rule#REFRESH} (poison·bleed·burn·root·stun·blind·silence·mark·interrupt·frozen):
  *       지속시간은 남은 것과 새 것 중 긴 쪽, 세기는 큰 쪽(같거나 크면 출처 교체)</li>
  *   <li>{@link Rule#MAX} (slow·weaken·vulnerable·cooldown_slow): 세기 = 최대치, 지속시간 = 긴 쪽</li>
- *   <li>{@link Rule#STACKS} (frost·infection·venom): 중첩 += n (상한), 지속시간 갱신. 상한 도달을 알려 준다</li>
+ *   <li>{@link Rule#STACKS} (frost·infection·venom · 고유 효과 중첩 출혈·독 bleed_stack·poison_stack): 중첩 += n (상한),
+ *       지속시간 갱신. 상한 도달을 알려 준다</li>
  *   <li>{@link Rule#INSTANT} (knockback·damage): 저장하지 않음</li>
  * </ul>
  */
@@ -24,14 +25,31 @@ public final class EffectStack {
 
     /** 정화로 지울 수 있는 해로운 효과 (stun·빙결 제외 — GDD §9.2). */
     public static final Set<String> CLEANSABLE = Set.of("poison", "bleed", "burn", "slow", "root", "weaken",
-            "vulnerable", "blind", "silence", "frost", "infection", "venom", "mark", "cooldown_slow");
+            "vulnerable", "blind", "silence", "frost", "infection", "venom", "mark", "cooldown_slow", "bleed_stack", "poison_stack");
     /** 지속 피해 효과. */
-    public static final Set<String> DOT = Set.of("poison", "bleed", "burn", "venom");
+    public static final Set<String> DOT = Set.of("poison", "bleed", "burn", "venom", "bleed_stack", "poison_stack");
+
+    /**
+     * 고유 효과의 중첩 지속 피해 층 (unique_spec rend · imbue 독): 일반 bleed/poison 과 따로 쌓이고(중첩당 피해 × 중첩),
+     * {@code has("bleed")}·{@code has("poison")} 에는 함께 잡힌다. 없으면 null.
+     */
+    public static String stackLayer(String id) {
+        return switch (id == null ? "" : id) {
+            case "bleed", "bleed_stack" -> "bleed_stack";
+            case "poison", "poison_stack" -> "poison_stack";
+            default -> null;
+        };
+    }
+
+    /** 피해가 중첩 수만큼 곱해지는 지속 피해 (맹독·고유 효과 중첩 층). */
+    public static boolean dotScalesWithStacks(String id) {
+        return "venom".equals(id) || "bleed_stack".equals(id) || "poison_stack".equals(id);
+    }
 
     public static Rule rule(String id) {
         return switch (id) {
             case "slow", "weaken", "vulnerable", "cooldown_slow" -> Rule.MAX;
-            case "frost", "infection", "venom" -> Rule.STACKS;
+            case "frost", "infection", "venom", "bleed_stack", "poison_stack" -> Rule.STACKS;
             case "knockback", "damage" -> Rule.INSTANT;
             default -> Rule.REFRESH;
         };
@@ -39,7 +57,7 @@ public final class EffectStack {
 
     public static int defaultMaxStacks(String id) {
         return switch (id) {
-            case "frost", "infection", "venom" -> 5;
+            case "frost", "infection", "venom", "bleed_stack", "poison_stack" -> 5;
             default -> 1;
         };
     }

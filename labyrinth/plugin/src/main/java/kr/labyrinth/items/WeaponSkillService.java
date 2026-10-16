@@ -19,4 +19,7 @@ public interface WeaponSkillService {
 
     /** 남은 재사용 대기(초). 없으면 0. */
     double cooldownRemaining(Player player, String itemId, Input input);
+
+    /** 그 무기(itemId)의 무기 스킬 재사용 대기를 모두 seconds 만큼 줄인다 (고유 효과 마력 흡수). */
+    default void reduceCooldowns(Player player, String itemId, double seconds) {}
 }

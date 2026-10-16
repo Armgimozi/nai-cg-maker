@@ -29,6 +29,7 @@ import kr.labyrinth.items.NoopCraftingService;
 import kr.labyrinth.items.NoopLootService;
 import kr.labyrinth.items.NoopWeaponSkillService;
 import kr.labyrinth.items.WeaponSkillService;
+import kr.labyrinth.items.unique.UniqueEffects;
 import kr.labyrinth.mobs.MobService;
 import kr.labyrinth.mobs.NoopMobService;
 import kr.labyrinth.mobs.NoopNpcService;
@@ -77,6 +78,7 @@ public final class Services {
     private volatile LootService loot;
     private volatile CraftingService crafting;
     private volatile WeaponSkillService weaponSkills;
+    private volatile UniqueEffects unique = UniqueEffects.NONE;
     private volatile ClassService classes;
     private volatile StatusEffectService effects;
     private volatile TargetFilter targets;
@@ -198,6 +200,8 @@ public final class Services {
     public LootService loot() { return loot; }
     public CraftingService crafting() { return crafting; }
     public WeaponSkillService weaponSkills() { return weaponSkills; }
+    /** 무기 고유 효과 (items 담당, 기본 = 효과 없음). */
+    public UniqueEffects unique() { return unique; }
     public ClassService classes() { return classes; }
     public StatusEffectService effects() { return effects; }
     public TargetFilter targets() { return targets; }
@@ -216,6 +220,7 @@ public final class Services {
     public void setLoot(LootService s) { loot = Objects.requireNonNull(s); }
     public void setCrafting(CraftingService s) { crafting = Objects.requireNonNull(s); }
     public void setWeaponSkills(WeaponSkillService s) { weaponSkills = Objects.requireNonNull(s); }
+    public void setUnique(UniqueEffects s) { unique = Objects.requireNonNull(s); }
     public void setClasses(ClassService s) { classes = Objects.requireNonNull(s); }
     public void setEffects(StatusEffectService s) { effects = Objects.requireNonNull(s); }
     public void setTargets(TargetFilter s) { targets = Objects.requireNonNull(s); }

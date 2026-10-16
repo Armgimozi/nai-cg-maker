@@ -180,6 +180,7 @@ public final class ContentValidator {
         for (ItemDef d : c.items().values()) {
             String w = "items." + d.id();
             if (d.type() == ItemType.WEAPON) attack(w, d);
+            unique(w, d);
             if (d.type() == ItemType.ARMOR && (d.armorSlot() == null || !ARMOR_SLOTS.contains(d.armorSlot()))) {
                 err(w, "방어구 armor_slot 이 올바르지 않음: " + d.armorSlot());
             }
@@ -247,6 +248,27 @@ public final class ContentValidator {
         for (ItemDef.WeaponSkillDef s : d.weaponSkills()) {
             if (d.attack().ranged() && "RIGHT".equals(s.input())) err(w + ".weapon_skills." + s.id(), "활은 RIGHT(바닐라 당기기) 스킬 금지");
         }
+    }
+
+    /**
+     * 고유 효과 (unique_spec §7·§9.8, review2 A11·A12): 무기만 · 닫힌 목록 26개 · 수치 범위 · 원거리 전용은 attack.style 로.
+     * 고유 효과가 없는 무기는 아직 허용한다 (0.3.5 P3 생성기가 모든 무기에 넣는다).
+     */
+    private void unique(String w, ItemDef d) {
+        boolean has = d.raw() != null && d.raw().has("unique");
+        if (!has) return;
+        if (d.type() != ItemType.WEAPON) {
+            err(w + ".unique", "고유 효과는 무기만 — " + d.type().id() + " 에는 넣을 수 없음");
+            return;
+        }
+        if (d.unique() == null) return; // 꼴이 틀린 블록은 파서가 이미 문제로 남김
+        String rawId = d.raw().sub("unique").str("id", "");
+        if (kr.labyrinth.content.UniqueCatalog.ALIASES.containsKey(rawId.trim())) {
+            warn(w + ".unique", "id '" + rawId + "' 는 예전 이름 — '" + d.unique().id() + "' 로 바꿀 것");
+        }
+        var check = kr.labyrinth.content.UniqueCatalog.check(d.unique(), d.attack());
+        for (String e : check.errors()) err(w, e);
+        for (String x : check.warnings()) warn(w, x);
     }
 
     /** Lv.1 시작 포인트 (config level.start_points 기본값 — 검사는 번들 기본 기준). */
