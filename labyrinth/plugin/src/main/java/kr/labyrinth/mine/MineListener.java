@@ -97,8 +97,8 @@ final class MineListener implements Listener {
 
     /** 광산 밖(오버월드·네더·엔드·미궁)에서 광산 곡괭이로 광산 블록 12종을 부수면 취소 + 안내 (R §3-15). */
     private void outside(BlockBreakEvent e) {
-        if (e.isCancelled() || heldTool(e.getPlayer()) == null) return;
-        if (!module.isMineBlock(e.getBlock().getType())) return;
+        // 이미 막힌 부수기(미궁 DungeonManager 등)도 안내 글은 보인다
+        if (heldTool(e.getPlayer()) == null || !module.isMineBlock(e.getBlock().getType())) return;
         e.setCancelled(true);
         if (throttle(lastOutside, e.getPlayer(), 1000)) module.services().hud().actionBar(e.getPlayer(), Text.mm("<red>" + MineNames.OUTSIDE), 40);
     }
