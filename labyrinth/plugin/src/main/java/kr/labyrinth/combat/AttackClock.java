@@ -41,10 +41,11 @@ import org.bukkit.util.Vector;
  *   <li>너무 이른 클릭은 취소. 간격 끝 0.35초 안이면 한 번 기억했다가 시각이 되면 넣는다(휘두름 + 같은 공격 경로).
  *       대상이 죽었거나 멀어졌거나(눈 → 히트박스 ≤ 사거리 + 0.3) 시야(50°·가림) 밖이거나 무기를 바꿨으면 조용히 버린다.
  *       더 이르면 본인에게만 작은 '휙' 소리.</li>
- *   <li>무기를 바꾸면 다음 시각 = max(다음 시각, 지금 + 새 간격 × 0.5).</li>
+ *   <li>무기를 바꾸면 새 무기의 첫 공격은 지금 + 새 주기 × 0.5 뒤부터 (활은 그 안에 당김이 들어간다 — {@link AttackTiming#swap}).</li>
  *   <li>활: 끝까지 당겨지면 본인에게만 작은 '탁' 소리 (바닐라 활 그림은 늘 1초라서).</li>
- *   <li>활 쏘기와 근접 치기는 같은 시계 — 한 주기(당김 + 0.15초)에 화살 한 발이나 근접 한 대 중 하나만. 쏘면 근접은 한 발 주기 뒤에,
- *       근접하거나 쏜 뒤의 당김은 다시 메기기(0.15초) 뒤부터 센다 ({@link AttackTiming#bowDrawnMs} · {@link AttackTiming#shot}).</li>
+ *   <li>활 쏘기와 근접 치기는 같은 시계 (0.3.6.1) — 공격마다 제 시간을 쓴다: 근접 한 대 = 그 뒤 간격, 화살 한 발 = 그 앞 당김 + 그 뒤
+ *       다시 메기기 0.15초. 쏜 직후 단도로 바꾸면 약 0.2초 뒤에 찌르고, 근접 한 대 뒤의 당김은 그 간격이 끝난 뒤부터 센다
+ *       ({@link AttackTiming#bowDrawnMs} · {@link AttackTiming#shot}). 번갈아 써도 두 무기 중 센 쪽보다 빨라지지 않는다.</li>
  * </ul>
  * 바닐라 무기(칼·도끼·삼지창 등 아이템에 공격 속도가 있는 것)는 바닐라 게이지 그대로라 여기서 막지 않는다.
  */
@@ -149,7 +150,10 @@ final class AttackClock implements Listener {
         ItemDef def = services.items().defOf(newMain).filter(ItemDef::isWeapon).orElse(null);
         WeaponAttack a = def != null ? WeaponAttack.of(def) : WeaponAttack.UNARMED;
         double as = services.stats().get(p).attackSpeed();
-        t.swap(System.currentTimeMillis(), ms(CombatMath.cycle(a, as, cfg().attackIntervalMin())), SWAP_DELAY_FRACTION);
+        double min = cfg().attackIntervalMin();
+        // 활의 첫 공격(화살)은 당김을 세기 시작하고 끝까지 당긴 뒤에 나간다 — 바꿈 대기에서 당김만큼 빼 준다 (0.3.6.1)
+        long lead = a.ranged() ? ms(CombatMath.bowDraw(a.interval(), as, min)) : 0;
+        t.swap(System.currentTimeMillis(), ms(CombatMath.cycle(a, as, min)), SWAP_DELAY_FRACTION, lead);
         drawCued.remove(p.getUniqueId());
     }
 
@@ -243,8 +247,8 @@ final class AttackClock implements Listener {
     private record Draw(long usedMs, double fullDraw, long drawnMs, double force) {}
 
     /**
-     * 당김 재기 (상태는 바꾸지 않음). 당긴 시간을 못 읽으면 바닐라 세기에서 되돌린다. 끝까지 당긴 화살이 공유 시계의 다음 시각보다 먼저
-     * 나가지 않게 자른다 (근접 한 대·앞 화살 뒤에는 다시 메기기 0.15초 뒤부터).
+     * 당김 재기 (상태는 바꾸지 않음). 당긴 시간을 못 읽으면 바닐라 세기에서 되돌린다. 당김은 공유 시계의 다음 시각부터 센다
+     * (앞 화살 뒤에는 다시 메기기 0.15초 뒤부터, 근접 한 대 뒤에는 그 간격이 끝난 뒤부터).
      */
     private Draw draw(Player p, double vanillaForce, long now) {
         DerivedStats s = services.stats().get(p);
@@ -259,7 +263,7 @@ final class AttackClock implements Listener {
         double ticks = used > 0 ? used : CombatMath.ticksFromVanillaForce(vanillaForce);
         long usedMs = Math.round(ticks * 50.0);
         AttackTiming t = clocks.get(p.getUniqueId());
-        long drawnMs = t == null ? usedMs : t.bowDrawnMs(now, usedMs, Math.round(full * 1000.0), cfg().clickToleranceMs());
+        long drawnMs = t == null ? usedMs : t.bowDrawnMs(now, usedMs, cfg().clickToleranceMs());
         return new Draw(usedMs, full, drawnMs, CombatMath.bowForce(drawnMs / 1000.0, full));
     }
 
@@ -270,14 +274,14 @@ final class AttackClock implements Listener {
     }
 
     /**
-     * 화살이 나갔다 (활 — 쇠뇌 말고): 세기를 재고 근접과 같은 시계에 남긴다. 다음 근접 = 한 발 주기(당김 + 0.15초) 뒤,
-     * 다음 당김은 0.15초 뒤부터. @return 서버가 잰 세기 (0~1)
+     * 화살이 나갔다 (활 — 쇠뇌 말고): 세기를 재고 근접과 같은 시계에 남긴다. 다음 근접·다음 당김 = 다시 메기기 0.15초 뒤부터
+     * (다른 무기로 바꾸면 그 무기 간격 × 0.5 와 더 긴 쪽). @return 서버가 잰 세기 (0~1)
      */
     double shoot(Player p, double vanillaForce) {
         long now = System.currentTimeMillis();
         Draw d = draw(p, vanillaForce, now);
         long fullMs = Math.round(d.fullDraw() * 1000.0);
-        clock(p).shot(now, d.usedMs(), fullMs, cfg().clickToleranceMs(), fullMs + NOCK_MS);
+        clock(p).shot(now, d.usedMs(), fullMs, cfg().clickToleranceMs(), NOCK_MS);
         drawCued.remove(p.getUniqueId());
         return d.force();
     }

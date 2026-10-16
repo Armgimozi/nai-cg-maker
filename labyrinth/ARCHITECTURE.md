@@ -265,6 +265,8 @@ combat/  DamageService(모든 피해 계산의 단일 경로: 플레이어→몹
          0.3.5 (combat_spec): 공격 게이지 없음 — AttackClock·AttackTiming(순수, 무기 간격·이른 클릭 1번 기억·활 쏘기와 근접이 같은 시계), WeaponAttack(무기 방식·간격·
          피해 종류, `ItemDef.attack()`), DamageKind(물리 = 힘 · 마법 = 지능 · 혼합 · 고정), DamageContext 기준(한 방 W / 스킬 위력 SP),
          CombatMath(순수: power(kind) · 공속 = 민첩 몫 ≤ 0.45 + 장비, 합 ≤ 0.75, 간격 하한 0.25 · K(방식, 간격) · skillPower), CrowdControl(판금 버팀).
+         0.3.6.1 사냥꾼 활: AttackTiming 은 '공격마다 제 시간'(근접 = 친 뒤 간격, 화살 = 앞 당김 + 뒤 0.15초 — 쏜 직후 단도 ≈0.2초, 번갈아 써도 센 무기 이하),
+         BowMelee(활로 직접 치면 × combat.bow_melee_mult 0.5), BowDrawMove(사냥꾼 당기며 걷기 60% — 활의 use_effects, items/EquipmentListener 가 든 사람에 맞춤).
 classes/ RoleClass(classes.yml 로드), Skill(interface), ClassService(전직, 스킬 입력, 마나, 쿨다운), skills/*(직업별 구현)
 items/   ItemDef, Rarity, ItemService(정의→ItemStack, ItemStack→정의/굴림값 PDC, 툴팁 lore 생성), AuraService(전설·신화 무기
          들고 있을 때 파티클 + ItemDisplay 링 이펙트, 플레이어 수·거리 기반 LOD)

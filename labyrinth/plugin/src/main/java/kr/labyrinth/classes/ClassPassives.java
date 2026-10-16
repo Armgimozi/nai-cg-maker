@@ -29,7 +29,7 @@ import org.bukkit.scheduler.BukkitTask;
  * <ul>
  *   <li>강철 의지(수호기사): 받는 피해 −10%(스탯), 위협 ×2, HP 30% 이하 → 5초 피해 감소 +20% (60초 1회)</li>
  *   <li>피의 분노(광전사): 잃은 HP 비례 피해 +최대 25%(HP 50% 이하부터), 기본 공격 적중 시 MP 3</li>
- *   <li>매의 눈(사냥꾼): 끝까지 당긴 화살 +30%·MP 3, 12칸 이상 적에게 치명타 +8%. 미궁 안 활 당기며 걷기(draw_move)는
+ *   <li>매의 눈(사냥꾼): 끝까지 당긴 화살 +30%·MP 3, 12칸 이상 적에게 치명타 +8%. 활 당기며 걷기(draw_move, 어디서나)는
  *       {@link kr.labyrinth.combat.BowDrawMove} · items.EquipmentListener (활 아이템 구성요소라 피해 훅이 아님)</li>
  *   <li>비전 공명(비전술사): 3명 이상 적중 시 MP 50% 환급(SkillContext), 서로 다른 스킬 4초 안 연계 +10%</li>
  *   <li>은총(사제): 마법 피해 +2% → Lv.45 +18% ({@link #graceMagicDamage}), 넘친 치유 → 보호막, 치유 시 MP (SkillContext.heal)</li>

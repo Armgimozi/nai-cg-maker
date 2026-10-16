@@ -221,7 +221,7 @@ final class CombatListener implements Listener {
 
     /**
      * 근접: 미궁 무기·맨손(서버 시계) = 1 (게이지 없음 — 통과한 공격은 온전한 피해), 바닐라 무기 = 공격 게이지(0.2 + 0.8 × 충전²).
-     * 휩쓸기 ×0.35 (바닐라 칼) · 떨어지며 친 점프 치명 × combat.jump_crit(1.2).
+     * 휩쓸기 ×0.35 (바닐라 칼) · 떨어지며 친 점프 치명 × combat.jump_crit(1.2) · 활을 든 채 친 근접 × combat.bow_melee_mult(0.5, {@link BowMelee}).
      */
     private double meleeMult(Player p, EntityDamageByEntityEvent be) {
         double mult = 1.0;
@@ -229,6 +229,7 @@ final class CombatListener implements Listener {
             float cd = preAttackCooldown.getOrDefault(p.getUniqueId(), 1f);
             mult = 0.2 + cd * cd * 0.8;
         }
+        mult *= BowMelee.mult(services.stats().get(p).weapon(), services.settings().bowMeleeMult()); // 0.3.6.1 활로 직접 치면 절반
         if (be.getCause() == DamageCause.ENTITY_SWEEP_ATTACK) mult *= 0.35;
         if (be.isCritical()) mult *= services.settings().combat().jumpCrit();
         return mult;

@@ -32,6 +32,7 @@ import kr.labyrinth.stats.Stat;
  *   요구 민첩 32 · 힘 21 · 행운 13             ← 모두 채워야 함, 보는 사람을 알면 초록/빨강
  *   ⚔ 공격력 23 (21~24) · 물리                 ← 한 방 피해 (강화 몫 금색), 마법 무기는 '· 마법'
  *   공격 속도 초당 1.5회                        ← 1 ÷ attack.interval, 민첩 넣기 전
+ *   활로 직접 치면 피해 절반                    ← 활만 (0.3.6.1, config combat.bow_melee_mult)
  *   (부가 스탯 두 개씩)
  *   ✧ 고유 {이름} (재발동 N초) + 설명 한 줄      ← 무기 고유 효과 (unique_spec §6)
  *   ◆ 무기 스킬 …
@@ -151,6 +152,19 @@ public final class ItemTooltip {
 
     public static ArmorLooks looks() { return looks; }
 
+    /** 활 '직접 치기' 줄에 적는 배율 (config.yml combat.bow_melee_mult — Services 가 넣는다, 시험은 기본값 0.5). */
+    private static volatile double bowMelee = kr.labyrinth.combat.BowMelee.DEFAULT_MULT;
+
+    /** 활로 직접 친 피해 배율을 바꾼다 (0.3.6.1). */
+    public static void bowMelee(double mult) { bowMelee = kr.labyrinth.combat.BowMelee.clamp(mult); }
+
+    /** 활(원거리 무기) 툴팁의 '활로 직접 치면 피해 절반' 줄 (배율 1 이면 null). */
+    public static String bowMeleeLine(ItemDef def) {
+        if (!kr.labyrinth.combat.WeaponAttack.of(def).ranged()) return null;
+        String t = kr.labyrinth.combat.BowMelee.tooltipText(bowMelee);
+        return t == null ? null : "<gray>" + t;
+    }
+
     /**
      * @param rolls   굴린 스탯 (null 이면 범위만 보여 주는 미리보기)
      */
@@ -228,6 +242,8 @@ public final class ItemTooltip {
             stats.add(line.toString());
         }
         if (def.isWeapon()) stats.add(speedLine(def));
+        String bowMeleeLine = def.isWeapon() ? bowMeleeLine(def) : null; // 0.3.6.1 활: 공격 속도 바로 아래 한 줄
+        if (bowMeleeLine != null) stats.add(bowMeleeLine);
         for (Map.Entry<String, Range> e : def.stats().entrySet()) {
             if (e.getValue() == null || e.getKey().equals(firstKey)) continue;
             cells.add(statCell(def, e.getKey(), e.getValue(), rolls, enhanceBonus));

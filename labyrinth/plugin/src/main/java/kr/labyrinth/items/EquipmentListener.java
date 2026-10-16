@@ -72,7 +72,10 @@ import org.bukkit.persistence.PersistentDataType;
  *   <li>미궁 활을 들면 '미궁 화살'(무한, 1개)을 넣어 준다 — 바닐라 활은 화살이 있어야 당겨진다. 가방이 가득 차면 빈 보조손에,
  *       그것도 없으면 알리고 가방을 닫을 때 다시 넣어 본다.</li>
  *   <li>활 당기며 걷기 ({@link BowDrawMove}, 0.3.6.1): 재계산 때마다 손(주손·보조손)의 미궁 활 {@code use_effects} 를 든 사람에 맞춘다 —
- *       사냥꾼이 미궁 안이면 당김 중 걷기 배율 = 매의 눈 draw_move, 그 밖에는 바닐라 0.2 (구성요소 없음). 다음 틱에 손의 활만 고쳐 쓴다.</li>
+ *       사냥꾼이면 어디서나 당김 중 걷기 배율 = 매의 눈 draw_move, 다른 직업은 바닐라 0.2 (구성요소 없음). 다음 틱에 손의 활만 고쳐 쓴다.
+ *       재계산은 손 칸 바꿈·양손 바꿈·손 칸 아이템 바뀜(줍기·거래·상자에서 꺼냄)·가방 닫기·전직·접속·부활·월드 이동 때 일어나므로
+ *       활을 주고받거나(거래·버림·엔더 상자) 직업을 바꿔도 다음 사람이 손에 드는 순간 그 사람 값이 된다. 고쳐 쓰는 것은 그 칸에 지금 있는
+ *       아이템의 사본(구성요소만 다름)이라 복사가 생기지 않고, 바닐라는 당기는 중 아이템이 같은 종류(활)면 당김을 끊지 않는다.</li>
  *   <li>재계산 때마다 손 무기와 요구 능력치 충족 여부를 고유 효과 서비스에 알린다 ({@code services.unique().held}).</li>
  * </ul>
  */
@@ -168,10 +171,10 @@ final class EquipmentListener implements Listener, StatContributor {
 
     // ── 활 당기며 걷기 (BowDrawMove) ─────────────────────────────────────────
 
-    /** 이 사람이 활을 당길 때 원하는 걷기 배율 (사냥꾼 + 미궁 안 = 매의 눈 draw_move, 아니면 바닐라 0.2). */
+    /** 이 사람이 활을 당길 때 원하는 걷기 배율 (사냥꾼 = 매의 눈 draw_move — 어디서나, 아니면 바닐라 0.2). */
     private double bowMoveWant(Player p) {
         try {
-            return BowDrawMove.want(services.content().classDef(services.data().get(p).classId()), services.dungeon().isInLabyrinth(p));
+            return BowDrawMove.want(services.content().classDef(services.data().get(p).classId()));
         } catch (Throwable t) {
             return BowDrawMove.VANILLA;
         }

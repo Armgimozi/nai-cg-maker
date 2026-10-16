@@ -14,7 +14,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
- * 0.3.6.1 활 손맛 고침 (bowfeel FIX_PLAN): 사냥꾼 당기며 걷기 ({@link BowDrawMove}) · 화살 피해 = 쏜 활 (B1).
+ * 0.3.6.1 활 손맛 고침 (bowfeel FIX_PLAN · 주인 결정 1): 사냥꾼 당기며 걷기 — 어디서나 ({@link BowDrawMove}) · 화살 피해 = 쏜 활 (B1).
  * 가방이 가득 찰 때 화살 넣기(B3)는 Bukkit 가방이 있어야 해서 여기서는 못 본다.
  */
 class BowFeelFixTest {
@@ -31,16 +31,37 @@ class BowFeelFixTest {
     }
 
     @Test
-    void hunterInLabyrinthGetsDrawMoveOthersVanilla() {
-        assertEquals(0.6, BowDrawMove.want("keen_eye", 0.6, true), EPS);
-        assertEquals(BowDrawMove.VANILLA, BowDrawMove.want("keen_eye", 0.6, false), EPS, "미궁 밖(야생·마을 = PvP 있는 곳)은 바닐라");
-        assertEquals(BowDrawMove.VANILLA, BowDrawMove.want("bloodrage", 0.6, true), EPS, "다른 패시브는 바닐라");
-        assertEquals(BowDrawMove.VANILLA, BowDrawMove.want(null, 0.6, true), EPS);
-        assertEquals(BowDrawMove.DEFAULT_HUNTER, BowDrawMove.want("keen_eye", Double.NaN, true), EPS, "키가 없는 classes.yml = jar 값");
-        assertEquals(BowDrawMove.VANILLA, BowDrawMove.want("keen_eye", 0.2, true), EPS, "0.2 = 끔");
-        assertEquals(1.0, BowDrawMove.want("keen_eye", 1.7, true), EPS, "위로 1.0 (바닐라 구성요소 범위 0~1)");
-        assertEquals(BowDrawMove.VANILLA, BowDrawMove.want("keen_eye", 0.05, true), EPS, "바닐라보다 느리게는 안 됨");
-        assertEquals(BowDrawMove.VANILLA, BowDrawMove.want((ClassDef) null, true), EPS);
+    void hunterGetsDrawMoveEverywhereOthersVanilla() {
+        // 주인 결정 1 (0.3.6.1): 사냥꾼은 어디서나 (미궁·야생·마을·PvP) — 어디에 있는지는 묻지 않는다
+        assertEquals(0.6, BowDrawMove.want("keen_eye", 0.6), EPS);
+        assertEquals(BowDrawMove.VANILLA, BowDrawMove.want("bloodrage", 0.6), EPS, "다른 패시브는 바닐라");
+        assertEquals(BowDrawMove.VANILLA, BowDrawMove.want(null, 0.6), EPS);
+        assertEquals(BowDrawMove.DEFAULT_HUNTER, BowDrawMove.want("keen_eye", Double.NaN), EPS, "키가 없는 classes.yml = jar 값");
+        assertEquals(BowDrawMove.VANILLA, BowDrawMove.want("keen_eye", 0.2), EPS, "0.2 = 끔");
+        assertEquals(1.0, BowDrawMove.want("keen_eye", 1.7), EPS, "위로 1.0 (바닐라 구성요소 범위 0~1)");
+        assertEquals(BowDrawMove.VANILLA, BowDrawMove.want("keen_eye", 0.05), EPS, "바닐라보다 느리게는 안 됨");
+        assertEquals(BowDrawMove.VANILLA, BowDrawMove.want((ClassDef) null), EPS, "직업 없음 = 바닐라");
+    }
+
+    @Test
+    void theBowFollowsWhoeverHoldsIt() {
+        // 같은 활 하나가 사냥꾼 → 다른 직업 → 사냥꾼으로 (거래·버림·엔더 상자·전직): 손에 들 때마다 든 사람 값으로 고쳐 쓴다
+        ClassDef hunter = content.classDef("hunter");
+        boolean present = false;
+        double speed = 0;
+        String[] holders = {"hunter", "guardian", "hunter", "arcanist", "priest", "hunter", null, "hunter"};
+        for (String holder : holders) {
+            ClassDef c = holder == null ? null : content.classDef(holder);
+            assertTrue(holder == null || c != null, holder);
+            double want = BowDrawMove.want(c);
+            if (!BowDrawMove.matches(present, speed, false, want)) {
+                // EquipmentListener.setBowMove: 사냥꾼 값이면 붙이고, 바닐라면 지운다
+                present = BowDrawMove.custom(want);
+                speed = present ? (float) want : 0;
+            }
+            assertTrue(BowDrawMove.matches(present, speed, false, want), holder + " 손에서 맞음 — 한 번 고치면 다시 고치지 않는다");
+            assertEquals(c == hunter, present, holder + ": 사냥꾼만 구성요소가 붙어 있다");
+        }
     }
 
     @Test
@@ -64,13 +85,12 @@ class BowFeelFixTest {
         assertEquals(BowDrawMove.PASSIVE, hunter.passive().id());
         assertEquals(HUNTER_DRAW_MOVE, hunter.passive().params().dbl(BowDrawMove.PARAM, Double.NaN), EPS);
         assertEquals(HUNTER_DRAW_MOVE, BowDrawMove.DEFAULT_HUNTER, EPS, "jar 기본값 = classes.yml 값");
-        assertEquals(HUNTER_DRAW_MOVE, BowDrawMove.want(hunter, true), EPS);
-        assertEquals(BowDrawMove.VANILLA, BowDrawMove.want(hunter, false), EPS);
+        assertEquals(HUNTER_DRAW_MOVE, BowDrawMove.want(hunter), EPS);
         assertTrue(hunter.passive().description().contains("60%"), "패시브 설명에 당기며 걷기 값");
-        assertTrue(hunter.passive().description().contains("미궁 안"), "미궁 안에서만이라는 말");
+        assertFalse(hunter.passive().description().contains("미궁 안"), "어디서나 — '미궁 안에서만' 이라는 말이 없다");
         for (ClassDef c : content.classes().values()) {
             if (c.id().equals("hunter")) continue;
-            assertEquals(BowDrawMove.VANILLA, BowDrawMove.want(c, true), EPS, c.id() + " 은 바닐라 0.2 그대로 — 활이 모든 직업의 정답이 되지 않게");
+            assertEquals(BowDrawMove.VANILLA, BowDrawMove.want(c), EPS, c.id() + " 은 바닐라 0.2 그대로 — 활이 모든 직업의 정답이 되지 않게");
         }
     }
 

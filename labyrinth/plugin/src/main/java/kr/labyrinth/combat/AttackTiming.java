@@ -3,17 +3,22 @@ package kr.labyrinth.combat;
 import java.util.UUID;
 
 /**
- * 플레이어 한 명의 기본 공격 시계 (0.3.5, 순수 — 단위 테스트 대상). 게이지 대신 서버가 무기 간격을 지킨다 (combat_spec §2).
+ * 플레이어 한 명의 기본 공격 시계 (0.3.5 · 0.3.6.1, 순수 — 단위 테스트 대상). 게이지 대신 서버가 무기 간격을 지킨다 (combat_spec §2).
  * <ul>
  *   <li>{@link #click}: 다음 공격 가능 시각 − 허용 오차(50ms) 이후면 {@link Result#ACCEPT} (온전한 피해). 다음 시각 =
  *       (아직 안 된 시각이었으면 그 시각, 아니면 지금) + 간격 — 틱(50ms) 반올림으로 속도가 새지 않는다.</li>
  *   <li>너무 이르면 막는다. 남은 시간이 기억창(0.35초, 간격이 더 짧으면 간격) 안이면 {@link Result#BUFFER} — 그 대상을 한 번 기억했다가
  *       시각이 되면 넣는다(새 클릭이 오면 대상만 바꿈). 더 이르면 {@link Result#EARLY}.</li>
  *   <li>기억한 클릭을 넣으면 다음 시각 = 그 시각 + 간격.</li>
- *   <li>무기를 바꾸면 다음 시각 = max(다음 시각, 지금 + 새 간격 × 0.5), 기억한 클릭은 지운다.</li>
- *   <li>활도 같은 시계를 쓴다 — 한 주기(당김 + 0.15초)에 화살 한 발이나 근접 한 대 중 하나만. 당긴 시간은 '다음 시각 − 끝까지 당기는 시간'
- *       뒤부터만 친다 ({@link #bowDrawnMs}: 쏜 뒤·근접 뒤에는 다시 메기기 0.15초 뒤부터). 쏘면 다음 시각 = max(다음 시각, 쏜 시각 + 한 발 주기)
- *       ({@link #shot}).</li>
+ *   <li>무기를 바꾸면 새 무기의 첫 공격 = 지금 + 새 주기 × 0.5 뒤부터 ({@link #swap}), 기억한 클릭은 지운다.</li>
+ *   <li>활도 같은 시계를 쓴다 (0.3.6.1 규칙, 주인 결정 3) — <b>공격마다 제 시간을 쓰고 겹치지 않는다</b>:
+ *       근접 한 대 = 친 뒤 그 무기 간격, 화살 한 발 = 쏘기 전 끝까지 당기는 시간 + 쏜 뒤 다시 메기기 0.15초.
+ *       {@link #nextReady} = 다음 근접이 되는 시각 = 활 당김을 세기 시작하는 시각 ({@link #bowDrawnMs}). 쏘면 다음 시각 = 쏜 시각 + 0.15초
+ *       ({@link #shot}). 그래서 활만 쓰면 예전과 똑같이 한 발 주기(당김 + 0.15초)마다 한 발이고, 쏜 직후 단도로 바꾸면
+ *       max(0.15초, 단도 간격 × 0.5) ≈ 0.2초 뒤에 찌른다. 대신 근접 한 대 뒤의 당김은 그 무기 간격이 끝난 뒤부터 찬다.</li>
+ *   <li>번갈아 쓰기 증명: 화살 한 발과 근접 한 대를 번갈아 쓰면 한 바퀴 ≥ 당김 + max(0.15초, 바꿈 대기) + 근접 간격 ≥ 활 한 발 주기 + 근접 간격.
+ *       한 바퀴 피해 = 화살 + 근접이므로 초당 피해 = (D활 + D근접) ÷ (T활 + T근접) — 두 무기 초당 피해의 가중 평균이라
+ *       더 센 무기 하나만 쓴 것을 넘지 못한다 ({@code BowSwapRuleTest}).</li>
  * </ul>
  * 시간은 모두 ms. 스레드 안전하지 않다 (메인 스레드에서만).
  */
@@ -80,32 +85,47 @@ public final class AttackTiming {
         bufferedAt = 0;
     }
 
-    /** 손에 든 무기가 바뀜: 다음 시각 = max(다음 시각, 지금 + 새 간격 × fraction), 기억 지움. */
-    public void swap(long now, long newIntervalMs, double fraction) {
-        nextReady = Math.max(nextReady, now + Math.round(Math.max(0, newIntervalMs) * Math.max(0, fraction)));
+    /** 손에 든 무기가 바뀜 (근접·시전 무기): 다음 시각 = max(다음 시각, 지금 + 새 주기 × fraction), 기억 지움. */
+    public void swap(long now, long newCycleMs, double fraction) {
+        swap(now, newCycleMs, fraction, 0);
+    }
+
+    /**
+     * 손에 든 무기가 바뀜: 새 무기의 첫 공격은 지금 + 새 주기 × fraction 뒤부터, 기억 지움.
+     * @param leadMs 그 무기의 공격이 시계 시각보다 얼마나 늦게 나가는가 — 활 = 끝까지 당기는 시간 (화살은 당김을 세기 시작한 뒤 이만큼 지나야
+     *               나간다), 근접·시전 = 0. 다음 시각 = max(다음 시각, 지금 + 새 주기 × fraction − leadMs)
+     */
+    public void swap(long now, long newCycleMs, double fraction, long leadMs) {
+        long wait = Math.round(Math.max(0, newCycleMs) * Math.max(0, fraction)) - Math.max(0, leadMs);
+        nextReady = Math.max(nextReady, now + wait);
         clearBuffer();
     }
 
     /**
-     * 활: 서버가 인정하는 당긴 시간 (ms) = min(바닐라가 잰 당긴 시간, 지금 − (다음 시각 − 끝까지 당기는 시간)). 끝까지 당긴 화살이 다음 시각보다
-     * 먼저 나가지 않는다 — 쏜 직후나 근접 직후에는 다시 메기기(한 발 주기 − 당김 = 0.15초) 뒤부터 세기가 0 에서 찬다. 허용 오차(toleranceMs)만큼
-     * 일찍 당긴 것은 쳐 주고, 빌린 몫은 {@link #shot} 이 다음 시각에서 갚는다.
+     * 활: 서버가 인정하는 당긴 시간 (ms) = min(바닐라가 잰 당긴 시간, 지금 − 다음 시각). 당김은 다음 시각부터 센다 — 쏜 직후에는 다시 메기기
+     * 0.15초 뒤부터, 근접 직후에는 그 무기 간격이 끝난 뒤부터 세기가 0 에서 찬다 (0.3.6.1: 근접의 남은 간격과 겹쳐 당기지 않는다).
+     * 허용 오차(toleranceMs)만큼 일찍 센 것은 쳐 주고, 빌린 몫은 {@link #shot} 이 갚는다.
      */
-    public long bowDrawnMs(long now, long usedMs, long fullDrawMs, long toleranceMs) {
-        long since = now - (nextReady - Math.max(0, fullDrawMs)) + Math.max(0, toleranceMs);
+    public long bowDrawnMs(long now, long usedMs, long toleranceMs) {
+        long since = now - nextReady + Math.max(0, toleranceMs);
         return Math.max(0, Math.min(Math.max(0, usedMs), since));
     }
 
     /**
-     * 화살 한 발을 쐈다: 다음 시각 = max(다음 시각, 쏜 시각 + 한 발 주기(cycleMs = 당김 + 0.15초)) — 근접도 다음 당김도 이 시각을 기다린다.
-     * 허용 오차로 빌려 끝까지 당겼으면 '쏜 시각' = 원래 끝까지 당겨질 시각 (근접의 허용 오차처럼 빨라지지 않는다). 기억한 근접 클릭은 지운다.
+     * 화살 한 발을 쐈다: 그 화살은 [다음 시각, 다음 시각 + 인정한 당김] 을 쓰고 그 뒤 다시 메기기(nockMs = 0.15초) — 다음 시각 =
+     * max(쏜 시각, 다음 시각 + 인정한 당김) + 0.15초. 다음 근접·다음 당김이 이 시각을 기다린다. 다음 화살은 거기서 다시 끝까지 당겨야 하므로
+     * 활만 쓰면 한 발 주기(당김 + 0.15초)마다 한 발 (0.3.6.1 전과 같음).
+     * <ul>
+     *   <li>허용 오차로 빌려 끝까지 당겼으면 '쏜 시각' = 원래 끝까지 당겨질 시각 (근접의 허용 오차처럼 빨라지지 않는다).</li>
+     *   <li>다음 시각 전에 놓은 화살(근접 간격 안에 덜 당겨 쏜 약한 화살)도 다시 메기기 0.15초는 시계를 민다 — 공짜 화살이 없다.</li>
+     * </ul>
+     * 기억한 근접 클릭은 지운다.
      */
-    public void shot(long now, long usedMs, long fullDrawMs, long toleranceMs, long cycleMs) {
+    public void shot(long now, long usedMs, long fullDrawMs, long toleranceMs, long nockMs) {
         long full = Math.max(0, fullDrawMs);
-        long strict = Math.min(bowDrawnMs(now, usedMs, full, 0), full);
-        long loose = Math.min(bowDrawnMs(now, usedMs, full, toleranceMs), full);
-        long at = loose > strict ? Math.max(now, nextReady - full + loose) : now;
-        nextReady = Math.max(nextReady, at + Math.max(1, cycleMs));
+        long credited = Math.min(bowDrawnMs(now, usedMs, toleranceMs), full); // 세기를 셀 때와 같은 값 (AttackClock.draw)
+        long at = Math.max(now, nextReady + credited);
+        nextReady = Math.max(nextReady, at + Math.max(1, nockMs));
         clearBuffer();
     }
 
