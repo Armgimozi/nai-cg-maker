@@ -187,6 +187,17 @@ public final class Settings {
             new KitItem("novice_tunic", 1), new KitItem("novice_trousers", 1), new KitItem("novice_boots", 1),
             new KitItem("minor_healing_potion", 10), new KitItem("minor_mana_potion", 5), new KitItem("return_scroll", 2),
             new KitItem("minecraft:bread", 16));
+    /** 파티 최대 인원 기본값 (0.3.6 부터 5명 — 5 대 5 파티 대전에 맞춤). */
+    public static final int DEFAULT_PARTY_MAX = 5;
+    /** 0.3.5 까지의 기본값. config.yml 에 그대로 남아 있으면 손대지 않은 것으로 보고 새 기본값으로 읽는다. */
+    public static final int LEGACY_PARTY_MAX = 10;
+
+    /** party.max_size 읽기 — 예전 기본값 10 은 새 기본값 5 로, 그 밖에 직접 고친 값은 그대로 (최소 1). */
+    static int partyMaxSize(int v) {
+        if (v == LEGACY_PARTY_MAX) return DEFAULT_PARTY_MAX;
+        return Math.max(1, v);
+    }
+
     /** 시작 골드 기본값 (starter_kit.gold). 하급 물약 15병 · 귀환 주문서 3장 정도. */
     public static final int DEFAULT_STARTER_GOLD = 300;
 
@@ -206,7 +217,7 @@ public final class Settings {
         did = did == null ? "" : did.trim().toLowerCase(Locale.ROOT);
         this.difficultyId = diffs.containsKey(did) ? did : "";
 
-        this.party = new PartyScaling(Math.max(1, c.getInt("party.max_size", 10)),
+        this.party = new PartyScaling(partyMaxSize(c.getInt("party.max_size", DEFAULT_PARTY_MAX)),
                 c.getDouble("party.hp_per_member", 0.6), c.getDouble("party.dmg_per_member", 0.08),
                 c.getDouble("party.reward_per_member", 0.05),
                 clamp(c.getDouble("party.solo_hp", PartyScaling.DEFAULT_SOLO), 0.1, 1.5),

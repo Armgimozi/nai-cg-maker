@@ -181,14 +181,14 @@ class ScalingTest {
                 difficulty: ""
                 difficulties:
                   hard: {name: "어려움", hp: 1.6, damage: 1.35, drop: 1.3, xp: 1.3, telegraph: 0.8}
-                party: {max_size: 10, hp_per_member: 0.5, dmg_per_member: 0.1}
+                party: {max_size: 8, hp_per_member: 0.5, dmg_per_member: 0.1}
                 """);
         Settings s = new Settings(y);
         assertFalse(s.isDifficultySet());
         assertEquals("normal", s.difficulty().id());
         assertEquals(new Difficulty("hard", "어려움", 1.6, 1.35, 1.3, 1.3, 0.8), s.difficulty("hard")); // 직접 고친 값 그대로
         assertEquals(0.6, s.difficulty("easy").damage(), 1e-9); // 기본 프리셋 유지
-        assertEquals(10, s.party().maxSize());
+        assertEquals(8, s.party().maxSize()); // 직접 고친 값 그대로
         assertEquals(0.5, s.party().hpPerMember(), 1e-9);
         // 층 램프 없음 — 모든 층 같은 값, 적지 않은 악몽은 코드 기본값
         assertEquals(1.6, s.difficulty("hard").atFloor(1).hp(), 1e-9);
@@ -474,6 +474,15 @@ class ScalingTest {
                 custom.starterKit());
     }
 
+    @Test
+    void partyMaxSizeLegacyDefaultBecomesFive() throws Exception {
+        // 0.3.5 까지 config.yml 에 적혀 있던 max_size: 10 은 손대지 않은 값 → 5 명
+        assertEquals(5, new Settings(yaml("party: {max_size: 10}")).party().maxSize());
+        assertEquals(5, new Settings(new YamlConfiguration()).party().maxSize(), "키 없음 = 5");
+        assertEquals(3, new Settings(yaml("party: {max_size: 3}")).party().maxSize(), "직접 고친 값");
+        assertEquals(1, new Settings(yaml("party: {max_size: 0}")).party().maxSize(), "최소 1");
+    }
+
     private static YamlConfiguration yaml(String text) throws Exception {
         YamlConfiguration y = new YamlConfiguration();
         y.loadFromString(text);
@@ -486,7 +495,7 @@ class ScalingTest {
         y.load(new java.io.File("src/main/resources/config.yml"));
         Settings s = new Settings(y);
         assertEquals(4, s.difficulties().size());
-        assertEquals(10, s.party().maxSize());
+        assertEquals(Settings.DEFAULT_PARTY_MAX, s.party().maxSize());
         // jar 값 = 코드 기본값 (기존 서버에 키가 없을 때와 같은 동작), 층 램프 없음
         for (String id : List.of("easy", "normal", "hard", "nightmare")) {
             assertEquals(Difficulty.defaultFor(id), s.difficulty(id), id);
