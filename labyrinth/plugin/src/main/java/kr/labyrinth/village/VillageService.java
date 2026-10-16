@@ -528,6 +528,10 @@ public final class VillageService implements Listener {
                 case "class" -> s.menus().openClass(p);
                 case "titles" -> s.menus().openTitles(p);
                 case "merchant" -> s.menus().openMerchant(p);
+                case kr.labyrinth.mine.MineNames.INTERACT_LIFT -> s.mine().openLift(p);
+                case kr.labyrinth.mine.MineNames.INTERACT_OFFICE -> s.mine().openOffice(p);
+                case kr.labyrinth.mine.MineNames.INTERACT_SMELTER -> s.crafting().openSmelter(p);
+                case kr.labyrinth.mine.MineNames.INTERACT_INFO -> s.mine().openInfo(p);
                 default -> s.menus().openMain(p);
             }
             p.playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.6f, 1.4f);

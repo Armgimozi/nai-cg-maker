@@ -17,7 +17,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-/** /미궁 — 메인 메뉴: 프로필 + 입장·파티·PvP 규칙·스탯·직업·칭호·장신구·대장간·상점·기록·마을 바로가기. */
+/** /미궁 — 메인 메뉴: 프로필 + 광산·입장·파티·PvP 규칙·스탯·직업·칭호·장신구·대장간·상점·기록·마을 바로가기. */
 public final class MainMenu extends LabMenu {
 
     public MainMenu(Services services) {
@@ -53,6 +53,13 @@ public final class MainMenu extends LabMenu {
                 ? "<white>" + services.settings().difficulty().name() : "<#ff6b6b>미설정"));
         deco(4, head(p, "<white><b>" + Text.escape(p.getName()) + "</b>", lore));
 
+        if (services.mine().enabled()) {
+            boolean inMine = services.mine().isMineWorld(p.getWorld());
+            set(13, model("copper_pickaxe", Material.IRON_PICKAXE, "<#e8c58a><b>광산</b>",
+                    List.of("<gray>몬스터 없는 광산에서 광석을 캡니다.", "<gray>여섯 층 모두 열려 있고, 광맥은 모두가 함께 씁니다.",
+                            "", "<#ffd36b>클릭: " + (inMine ? "승강기" : "광산으로") + " <dark_gray>(/미궁 광산)")),
+                    ctx -> { click(ctx.player()); ctx.player().closeInventory(); services.mine().openMine(ctx.player()); });
+        }
         set(20, model("labyrinth_essence", Material.ENDER_EYE, "<#7fd8ff><b>미궁 입장</b>",
                 List.of("<gray>층을 골라 미궁으로 내려갑니다.", "<gray>파티라면 파티장이 시작합니다.", "", "<#ffd36b>클릭: 입장 메뉴")),
                 ctx -> { click(ctx.player()); services.menus().openEntrance(ctx.player()); });

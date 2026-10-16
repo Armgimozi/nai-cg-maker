@@ -49,7 +49,8 @@ public final class ItemTooltip {
     private static final Map<String, String> SOURCES = Map.ofEntries(Map.entry("drop", "몬스터"), Map.entry("elite", "정예"),
             Map.entry("boss", "보스"), Map.entry("chest", "보물 상자"), Map.entry("craft", "대장간"), Map.entry("reward", "칭호 보상"),
             Map.entry("shop", "상인"), Map.entry("starter", "시작 지급"),
-            Map.entry("trial", "시련방"), Map.entry("special", "특별 시련"), Map.entry("hoard", "금고·미믹"));
+            Map.entry("trial", "시련방"), Map.entry("special", "특별 시련"), Map.entry("hoard", "금고·미믹"),
+            Map.entry("mine", "광산"), Map.entry("smelt", "제련소"));   // 0.3.6
     private static final Map<String, String> BUFFS = Map.of("damage", "주는 피해", "damage_reduction", "받는 피해 감소",
             "attack_speed", "공격 속도", "move_speed", "이동 속도", "crit_chance", "치명타 확률", "crit_damage", "치명타 피해",
             "lifesteal", "흡혈", "evasion", "회피", "cooldown_reduction", "재사용 대기 감소", "skill_damage", "스킬 피해");
@@ -117,6 +118,8 @@ public final class ItemTooltip {
             case MATERIAL -> "재료";
             case CONSUMABLE -> "소모품";
             case KEY -> "열쇠";
+            case TOOL -> "도구";
+            case BLUEPRINT -> "도안";
         };
     }
 
@@ -273,6 +276,7 @@ public final class ItemTooltip {
                 extra.add("  <gray>(" + count + ") " + String.join(", ", parts));
             });
         }
+        if (def.isTool()) extra.addAll(toolLines(content, def));
         if (def.use() != null && !def.use().isEmpty()) {
             double cd = def.use().dbl("cooldown", 0);
             extra.add("<#9be89b>사용: " + useText(def.use()) + (cd > 0 ? " <dark_gray>(재사용 " + trim(cd) + "초)" : ""));
@@ -299,6 +303,32 @@ public final class ItemTooltip {
                     tier == 0 ? flavor : List.of(), keepSource ? source : null, blanks, fold);
             if (out.size() <= budget) break;
         }
+        return out;
+    }
+
+    /**
+     * 곡괭이 줄 (0.3.6): 캘 수 있는 광석 · 구리 광석 하나 캐는 초 · 하나 더 나올 확률 · 부서지지 않음.
+     * 단계·tier 숫자는 쓰지 않는다 (광석 이름으로만).
+     */
+    public static List<String> toolLines(Content content, ItemDef def) {
+        List<String> out = new ArrayList<>();
+        kr.labyrinth.content.ToolSpec t = def.tool();
+        if (t == null) return out;
+        List<String> ores = new ArrayList<>();
+        kr.labyrinth.content.MineDef.Node fastest = null;
+        for (kr.labyrinth.content.MineDef.Node n : content.mine().ores().values()) {
+            if (!t.canMine(n.tier())) continue;
+            ores.add(Text.escape(n.name().replace(" 광석", "")));
+            if (fastest == null) fastest = n;
+        }
+        if (ores.isEmpty()) return out;
+        out.add("<#e8c58a>⛏ 캘 수 있는 광석 <white>" + String.join("·", ores));
+        if (fastest != null && fastest.baseSeconds() > 0) {
+            double sec = kr.labyrinth.mine.MineMath.seconds(fastest, t);
+            out.add("<gray>" + Text.escape(fastest.name()) + " 하나 <white>" + trim(Math.round(sec * 10) / 10.0) + "초"
+                    + (t.bonus() > 0 ? " <dark_gray>·</dark_gray> <gray>하나 더 <white>" + Text.pct(t.bonus()) : ""));
+        }
+        out.add("<dark_gray>부서지지 않음 · 광산에서만 캔다");
         return out;
     }
 

@@ -295,6 +295,25 @@ class DropRateWindowTest {
     }
 
     @Test
+    void dungeonOrePerRunMatchesTheContract() {
+        // 0.3.6 던전 광석 (계약 §2.8 — 모든 층): 1회(솔로) 기대 광석 = materials.json dungeon_ore.per_run ±10% (몹·정예·보스·상자 표 합)
+        Map<Integer, Integer> perRun = Map.of(1, 8, 2, 7, 3, 7, 4, 8, 5, 8, 6, 11, 7, 12, 8, 11, 9, 14, 10, 13);
+        List<String> off = new ArrayList<>();
+        StringBuilder sb = new StringBuilder();
+        for (int f = 1; f <= 10; f++) {
+            double ore = 0;
+            for (var e : runYield(f, false).entrySet()) {
+                ItemDef d = content.item(e.getKey());
+                if (d != null && d.mineKind() == kr.labyrinth.content.MineKind.ORE) ore += e.getValue();
+            }
+            sb.append(f).append("층 ").append(String.format("%.1f", ore)).append(" · ");
+            if (Math.abs(ore - perRun.get(f)) > perRun.get(f) * 0.10) off.add(f + "층 " + String.format("%.1f", ore) + " (계약 " + perRun.get(f) + ")");
+        }
+        System.out.println("ORE 1회 광석 " + sb);
+        assertEquals(List.of(), off, "던전 광석 1회량");
+    }
+
+    @Test
     void forgeBaselineRecipesTakeAFewRuns() {
         // 띠 대장간 기준 = 그 띠 가장 높은 레벨 대장간 무기 — 제작 회차 = max(재료 회차, 골드 회차) 0.3~2.5 (무기 레시피 골드 ×1.5 뒤)
         Map<String, RecipeDef> recipeOf = new HashMap<>();
@@ -313,6 +332,8 @@ class DropRateWindowTest {
                 Map<String, Double> y = runYield(w.tier(), false);
                 double mat = 0;
                 for (var m : r.materials().entrySet()) {
+                    ItemDef md = content.item(m.getKey());
+                    if (md != null && md.isMineMaterial()) continue;   // 0.3.6 주괴는 광산·제련소 몫 (계약 §5 표 C — 광산 분)
                     double per = y.getOrDefault(m.getKey(), 0.0);
                     mat = Math.max(mat, per > 0 ? m.getValue() / per : Double.POSITIVE_INFINITY);
                 }

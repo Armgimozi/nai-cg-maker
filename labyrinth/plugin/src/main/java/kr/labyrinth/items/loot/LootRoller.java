@@ -10,6 +10,7 @@ import kr.labyrinth.content.LootTable;
 import kr.labyrinth.content.Rarity;
 import kr.labyrinth.content.StatRequirement;
 import kr.labyrinth.core.Difficulty;
+import kr.labyrinth.items.blueprint.BlueprintRules;
 import kr.labyrinth.stats.Stat;
 
 /**
@@ -21,13 +22,16 @@ import kr.labyrinth.stats.Stat;
  *   <li>PICK (0.3.5): chance 를 넘으면 무게대로 하위 테이블 하나를 골라 통째로 굴린다 (장비 항목이 아니라 rarity_weight 없음).</li>
  *   <li>빌드 편향 own_build_bias (0.3.5): rarity_pool·one_of 로 장비를 고를 때 그 확률로 '요구치 1위 능력치가 줍는 사람
  *       능력치(기본 + 분배 + 칭호) 상위 2개 안' 인 후보만 (없으면 전체). items.yml classes 는 보지 않는다.</li>
+ *   <li>BLUEPRINT (0.3.6 Q6): 도안 하나 ({@link BlueprintRules#pick}) — Drop.recipe 에 레시피 id.</li>
  *   <li>min_difficulty 미만 난이도면 그 항목은 판정하지 않는다. table·pick 항목은 하위 테이블을 굴린다(깊이 제한 6).</li>
  * </ul>
  */
 public final class LootRoller {
 
-    /** 굴림 결과 한 줄. */
-    public record Drop(String itemId, int amount) {}
+    /** 굴림 결과 한 줄. recipe = 도안이면 가르치는 레시피 id (0.3.6 Q6, itemId = {@code blueprint}), 아니면 null. */
+    public record Drop(String itemId, int amount, String recipe) {
+        public Drop(String itemId, int amount) { this(itemId, amount, null); }
+    }
 
     /**
      * @param difficultyId   서버/인스턴스 난이도 id
@@ -119,6 +123,13 @@ public final class LootRoller {
                 if (!guaranteed && !pass(s, e.chance(), req, 1.0)) return;
                 LootTable sub = content.lootTable(choose(e.pick()));
                 if (sub != null) roll(sub, req, out, depth + 1);
+            }
+            case BLUEPRINT -> {
+                // 0.3.6 Q6: 그 단계(이웃 2 : 7 : 1) 도안 하나 — rarity_weight 없음, 빌드 편향은 장비와 같은 확률로
+                if (!guaranteed && !pass(s, e.chance(), req, 1.0)) return;
+                if (content.item(BlueprintRules.ITEM_ID) == null) return;
+                String rid = BlueprintRules.pick(content, e.floor(), req.stats(), s.ownBuildBias(), rng);
+                if (rid != null) out.add(new Drop(BlueprintRules.ITEM_ID, 1, rid));
             }
         }
     }

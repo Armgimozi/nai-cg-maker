@@ -44,8 +44,10 @@ print("  jar 에 최신 리소스팩 포함 확인 (sha1 %s)" % hashlib.sha1(out
 PYEOF
 
 echo "[3/4] 에셋 id 대조"
-"$PY" tools/check_assets.py resourcepack/dist/labyrinth-pack.zip | head -n 1
-"$PY" tools/check_assets.py resourcepack/dist/labyrinth-pack.zip > /dev/null || { echo "에셋 id 불일치 — 위 목록을 고치세요"; exit 1; }
+# (출력을 파일로 받은 뒤 첫 줄만 — head 로 바로 자르면 경고가 많을 때 BrokenPipe 로 멈춘다)
+mkdir -p dist
+"$PY" tools/check_assets.py resourcepack/dist/labyrinth-pack.zip > dist/.check_assets.log 2>&1 || { cat dist/.check_assets.log; echo "에셋 id 불일치 — 위 목록을 고치세요"; exit 1; }
+head -n 1 dist/.check_assets.log
 
 echo "[4/4] 배포 폴더 조립"
 WORLD_ZIP="$OUT_WORLD"

@@ -27,7 +27,8 @@ public final class SetupMenu extends LabMenu {
     private String mode;
 
     public SetupMenu(Services services) {
-        super(services, "setup", 6, "<#ff6b6b>미궁 라비린스 · 서버 설정");
+        // 0.3.6: 미리 지은 마을 월드면 석문·NPC 소켓이 없는 배경 (입구 = 마을 게이트, 가운데 40 안내)
+        super(services, kr.labyrinth.village.VillageService.present() ? "setup_village" : "setup", 6, "<#ff6b6b>미궁 라비린스 · 서버 설정");
         Settings s = services.settings();
         this.difficulty = s.isDifficultySet() ? s.difficulty().id() : "normal";
         String m = s.entrance().mode();

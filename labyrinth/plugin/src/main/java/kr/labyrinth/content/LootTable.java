@@ -9,8 +9,10 @@ public record LootTable(String id, int rolls, List<Entry> entries, List<Entry> g
     /**
      * 항목 종류. PICK (0.3.5, gear_spec §4.2) = chance 를 넘으면 하위 테이블 중 하나를 무게대로 골라 굴린다 —
      * 층마다 이웃 단계 풀(band_tNN_*)을 2 : 7 : 1 로 섞을 때 쓴다.
+     * BLUEPRINT (0.3.6 Q6) = {@code {blueprint: 단계, chance}} — 도안이 필요한 레시피(희귀 이상 장비) 중 하나의 도안.
+     * 단계 = {@link Entry#floor()}, 이웃 단계를 장비 풀처럼 2 : 7 : 1 로 섞는다 (items/blueprint/BlueprintRules).
      */
-    public enum Kind { ITEM, RARITY_POOL, ONE_OF, TABLE, PICK }
+    public enum Kind { ITEM, RARITY_POOL, ONE_OF, TABLE, PICK, BLUEPRINT }
 
     /** PICK 의 하위 테이블 하나 (weight 기본 1). */
     public record Pick(String table, int weight) {}

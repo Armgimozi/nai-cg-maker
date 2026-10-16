@@ -259,6 +259,7 @@ starter_kit:
     - {item: minor_healing_potion, amount: 10}
     - {item: minor_mana_potion, amount: 5}
     - {item: return_scroll, amount: 2}
+    - {item: copper_pickaxe, amount: 1}
 
 # 직업 변경 (최상위 키) — 첫 직업 선택은 무료. 그 뒤로 바꿀 때마다:
 #   require_item: true 면 item(전직의 두루마리, 떠돌이 상인 핀이 판다) 1장이 사라진다.
@@ -340,6 +341,9 @@ sell:
   confirm_rarity: epic
   confirm_enhance: 1
   unsellable: [class_change_scroll]
+  # 광산 재료 (0.3.6) — 값 = 반올림(기본값 × (1 + rank_bonus × (광물 등급 − 1))), 최소 1. 등급은 items.yml mine_level (구리·석영 1 … 오리하르콘·용혈석 6).
+  # 주괴를 녹여 팔면 언제나 손해다 (주괴 값 < 광석 2개 + 제련 골드). 곡괭이(도구)는 팔 수 없다.
+  mine: {ore: 1, ingot: 3, gem: 6, rank_bonus: 0.35}
 
 # 몬스터
 mobs:
@@ -357,3 +361,35 @@ hints:
   mode: progressive
   thresholds: [2, 4, 6]
 
+
+# 광산 (0.3.6) — 따로 된 광산 월드 + 승강기. 층·광석·보석·블록·바이옴·캐는 초는 content/mine.yml (자동 갱신), 여기는 손잡이만.
+#   층 6개는 모두 처음부터 열려 있다 (레벨 조건 없음). 곡괭이는 캘 수 있는 광석(단단함)과 빠르기만 정한다.
+#   광맥은 모두가 함께 쓴다: 누가 캐면 모두에게 빈 광맥이 되고 regen_minutes 뒤 다시 찬다.
+#   광산 월드에 사람이 많을수록 빨리 찬다: 다시 차는 시간 = regen_minutes ÷ min(광산 사람 수, regen_players_cap).
+#   서버를 다시 켜면 모든 광맥이 다 찬 상태로 시작한다. 광산 안은 피해 없음 · PvP 끔 · 몹 없음 · 어드벤처 모드.
+#   키가 없으면 아래 기본값. 끄려면 enabled: false (또는 mine: false).
+mine:
+  enabled: true
+  world: labyrinth_mine
+  teleport_command: auto          # /미궁 광산 · 메인 메뉴 "광산" — auto = village.teleport_command 를 따름 · true · false (관리자는 늘 됨)
+  lift_seconds: 2.0               # 승강기 타는 시간 (움직이면 멈춤)
+  regen_minutes: [8, 9, 9, 10, 10, 10]   # 층마다 광맥이 다시 차는 분 (혼자일 때) — 얕은 갱도 … 용의 심연
+  gem_node_regen_minutes: 30      # 보석 노드가 다시 차는 분
+  regen_players_cap: 4            # 사람 수로 빨라지는 최대 배수 (4 = 넷 이상이면 4배)
+  gem_chance: 0.022               # 광석 블록마다 같은 등급 보석이 나올 확률
+  rich: {chance: 0.04, multiplier: 3}    # 다시 찰 때 풍부한 광맥(반짝임)이 될 확률 · 다음에 캔 사람 수확 배수
+  fx: {pop: true}                 # 광석 날아오기 연출
+  no_hunger: true                 # 광산 안에서 배고픔이 줄지 않음
+  safe: true                      # 광산 안 피해 0
+
+
+# 도안 (0.3.6) — 희귀 이상 장비(무기·방어구·방패·장신구)는 도안을 배워야 대장간에서 만든다. 일반·고급은 처음부터 안다.
+#   도안은 우클릭하면 영구히 배운다 (한 장 소모, 이미 알면 그대로 — 남에게 주거나 판다).
+#   나오는 곳: 정예 · 보스 · 금·철 상자 · 보물방 · 금고·미믹 · 특별 시련 (loot.yml {blueprint: …}) + 상인 핀(희귀만, 날마다 바뀜)
+#   enabled: false 면 도안 없이 모두 만든다 (예전처럼)
+#   상인 값 = shop_price_base + shop_price_step × 장비 단계 (팔 때는 재료 희귀 값 — 사서 되팔기로 골드가 늘지 않는다)
+blueprints:
+  enabled: true
+  shop_count: 3
+  shop_price_base: 200
+  shop_price_step: 40

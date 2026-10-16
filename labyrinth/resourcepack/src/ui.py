@@ -145,6 +145,13 @@ EMBLEMS = {
                 '#+#.....#+#', '.#+#...#+#.', '..#+###+#..', '...#+#+#...', '....#.#....'],
     'enhance': ['.....#.....', '....#+#....', '.....#.....', '..#.#+#.#..', '.#+#+++#+#.', '..#+++++#..',
                 '.#+#+++#+#.', '..#.#+#.#..', '.....#.....', '....#+#....', '.....#.....'],
+    # 0.3.6 광산: 곡괭이 · 도가니와 불 · 승강기 칸
+    'mine': ['..#######..', '.##+++++##.', '##..#+#..##', '#...#+#...#', '....#+#....', '....#+#....',
+             '....#+#....', '....#+#....', '....#+#....', '...##+##...', '....###....'],
+    'smelter': ['....+.+....', '...+.+.+...', '....+++....', '#.........#', '##.......##', '.#+++++++#.',
+                '.#+++++++#.', '.##+++++##.', '..#######..', '...#...#...', '..###.###..'],
+    'lift': ['.....#.....', '.....#.....', '.#########.', '.#+#+#+#+#.', '.#+#+#+#+#.', '.#+#+#+#+#.',
+             '.#+#+#+#+#.', '.#########.', '..#.....#..', '.###...###.', '...........'],
 }
 
 
@@ -542,7 +549,8 @@ def gui_party(seed):
     return g
 
 
-def gui_setup(seed):
+def gui_setup(seed, village=False):
+    """village = 미리 지은 마을 월드 (0.3.6): 입구는 마을 게이트로 정해져 있어 석문·NPC 고르는 두 소켓 대신 가운데(40) 안내 하나."""
     g = Gui(6, '#f0b446', 'setup', seed)
     cv = g.cv
     for k, (diff, col) in enumerate(DIFF_COLORS.items()):
@@ -567,8 +575,11 @@ def gui_setup(seed):
     for k, slot in enumerate((10, 12, 14, 16)):
         g.sock(slot, 'gem', list(DIFF_COLORS.values())[k])
     # entrance mode options (row 4) + confirm (row 5)
-    g.sock(38, 'big', '#c8a070')
-    g.sock(42, 'big', '#8fd0ff')
+    if village:
+        g.sock(40, 'big', '#c79bff')
+    else:
+        g.sock(38, 'big', '#c8a070')
+        g.sock(42, 'big', '#8fd0ff')
     g.sock(49, 'big', '#ffd27a')
     return g
 
@@ -823,6 +834,278 @@ def gui_panel(seed, rows):
     return g
 
 
+# ───────────────────────────── 0.3.6 광산 메뉴 배경 (glyphs.yml menus.smelter / mine_lift / mine_office) ─────────────
+# 글자·숫자를 그리지 않는다 (층 번호·Lv 표지 없음 — 주인 결정). 층은 색으로만, 이름은 버튼 아이템이 알려 준다.
+MINE_ACCENT = '#d9a066'      # 도감 '광산' 색
+SMELT_ACCENT = '#ff9a5a'     # 도감 '제련소' 색
+TIMBER = [(34, 22, 12), (62, 40, 22), (96, 64, 36), (128, 90, 52), (158, 116, 70)]
+# 승강기 벽 색 = 그 층 바이옴 (층 색은 승강장 띠에) — 종유굴 갈색 · 무성한 동굴 초록 · 황토 · 뒤틀린 청록 · 현무암 검붉음
+BIOME_TINT = {'dripstone_caves': (128, 100, 72), 'lush_caves': (64, 128, 60), 'badlands': (196, 112, 52),
+              'warped_forest': (36, 150, 140), 'basalt_deltas': (100, 36, 34), 'deep_dark': (20, 40, 50)}
+
+
+def _timber_post(cv, x0, y0, x1, y1, seed):
+    """세로 갱도 받침 기둥 (나뭇결 + 어두운 테)."""
+    for y in range(y0, y1 + 1):
+        for x in range(x0, x1 + 1):
+            grain = h2(x * 7, y // 3, seed) * 0.7 + (0.25 if (x - x0) == 1 else 0)
+            c = mix(TIMBER[1], TIMBER[3], grain * 0.6)
+            if x in (x0, x1):
+                c = TIMBER[0]
+            cv.set(x, y, c)
+
+
+def _timber_beam(cv, x0, x1, y0, y1, seed):
+    """가로 들보 (위 밝음 · 아래 어두움 + 쇠 꺾쇠)."""
+    for y in range(y0, y1 + 1):
+        for x in range(x0, x1 + 1):
+            grain = h2(x // 3, y * 5, seed) * 0.6
+            c = mix(TIMBER[1], TIMBER[3], grain * 0.6)
+            if y == y0:
+                c = TIMBER[4]
+            elif y == y1:
+                c = TIMBER[0]
+            cv.set(x, y, c)
+    for x in range(x0 + 3, x1 - 2, 24):
+        cv.rect(x, y0 + 1, x + 1, y1 - 1, (90, 90, 100))
+        cv.set(x, y0 + 1, (150, 150, 160))
+
+
+def _lantern(g, cx, cy, color=(255, 196, 90), glow=0.45):
+    cv = g.cv
+    cv.vline(cx, cy - 4, cy - 2, (70, 70, 78))
+    cv.rect(cx - 2, cy - 1, cx + 2, cy + 5, GOLD[1])
+    cv.rect(cx - 1, cy, cx + 1, cy + 4, color)
+    cv.set(cx, cy + 1, lighten(color, 0.5))
+    cv.hline(cx - 2, cx + 2, cy - 1, GOLD[3])
+    g.glow(cx, cy + 2, 11, color, glow)
+
+
+def _rock_wall(cv, x0, y0, x1, y1, seed, tint=(0, 0, 0), t=0.0):
+    """갱도 바위 벽: 덩어리진 어두운 돌 (_stone 보다 거칠게, 층 색으로 살짝 물듦)."""
+    for y in range(y0, y1 + 1):
+        for x in range(x0, x1 + 1):
+            n = h2(x // 3, y // 3, seed) * 0.6 + h2(x, y, seed + 1) * 0.4
+            c = mix(STONE[1], STONE[3], n * 0.8)
+            if h2(x // 3 + 1, y // 3, seed) > 0.8 and (x + y) % 3 == 0:
+                c = STONE[0]
+            cv.set(x, y, mix(c, tint, t) if t else c)
+
+
+def _mine_levels(content):
+    """층 6개: [(id, 층 색, [(광석 색, 무게), …])] — content/mine.yml (Q1) 이 읽히면 그 값, 아니면 계약 mine.json."""
+    def from_doc(levels, ores):
+        out = []
+        items_ = levels.values() if isinstance(levels, dict) else levels
+        for lv in sorted(items_, key=lambda v: (v or {}).get('n') or (v or {}).get('depth_m') or 0):
+            lv = lv or {}
+            col = lv.get('title_color') or lv.get('color')
+            if not col:
+                return None
+            w = lv.get('ore_weights') or {}
+            out.append((lv.get('id'), col, [((ores.get(o) or {}).get('color') or '#a0a0a0', v) for o, v in w.items()],
+                        str(lv.get('biome') or '').split(':')[-1]))
+        return out if len(out) >= 1 else None
+    mine = content.get('mine') or {}
+    got = None
+    try:
+        if mine.get('levels'):
+            got = from_doc(mine['levels'], mine.get('ores') or {})
+    except Exception:  # noqa: BLE001 — 모양이 다른 mine.yml 이면 계약 값으로
+        got = None
+    if not got:
+        c = ((content.get('contract036') or {}).get('mine')) or {}
+        got = from_doc(c.get('levels') or [], c.get('ores') or {}) if c.get('levels') else None
+    if not got:   # 계약도 없으면 기본 색 6개 (그림만 됨)
+        got = [(None, h, [], '') for h in ('#e8843f', '#c8a070', '#5fcf72', '#d9a052', '#3fd0c0', '#e04a3a')]
+    return got[:6]
+
+
+def gui_smelter(seed):
+    """제련소 (menus.smelter): 탭 2·4·6 (제련/새기기/곡괭이) · 지갑 8 · 돌아가기 0 · 레시피 행 1~4 × 열 1~7 ·
+    화덕 띠 (줄 5) 위 수량 단추 48·49·50 (×1 · ×8 · 전부) · 이전 45 · 다음 53."""
+    g = Gui(6, SMELT_ACCENT, 'smelter', seed)
+    cv = g.cv
+    # 레시피 틀 (쇠테 + 리벳) 줄 1~4, 열 1~7
+    x0, y0 = slot_xy(10)
+    x1, y1 = slot_xy(43)
+    cv.box(x0 - 2, y0 - 2, x1 + 19, y1 + 19, (90, 90, 100))
+    cv.box(x0 - 3, y0 - 3, x1 + 20, y1 + 20, INK)
+    for x in range(x0 + 2, x1 + 18, 16):
+        _rivet(cv, x, y0 - 4)
+    # 열 0·8: 벽돌 굴뚝 기둥 + 아래쪽 도가니 (녹은 쇳물 빛)
+    for cx0 in (7, 151):
+        for y in range(_row_y(1), _row_y(5) - 1):
+            for x in range(cx0, cx0 + 18):
+                row = (y - _row_y(1)) // 5
+                bx = (x - cx0 + (row % 2) * 4) // 8
+                c = mix((92, 44, 30), (128, 66, 42), h2(bx, row, seed) * 0.8)
+                if (y - _row_y(1)) % 5 == 4 or (x - cx0 + (row % 2) * 4) % 8 == 7:
+                    c = (48, 24, 18)
+                cv.set(x, y, c)
+        cx = cx0 + 9
+        cy = _row_y(4) + 6
+        cv.rect(cx - 6, cy, cx + 6, cy + 7, (58, 56, 64))           # 도가니
+        cv.hline(cx - 7, cx + 7, cy, (110, 108, 118))
+        cv.rect(cx - 5, cy + 1, cx + 5, cy + 2, (255, 150, 50))      # 쇳물
+        cv.hline(cx - 4, cx + 4, cy + 1, (255, 214, 120))
+        g.glow(cx, cy + 1, 13, (255, 130, 40), 0.55)
+    # 줄 5: 화덕 아가리 — 벽돌 아치 + 불빛 띠 + 쇠 창살 (수량 단추가 이 위에 놓인다)
+    fy0, fy1 = _row_y(5) - 1, _row_y(5) + 18
+    fx0, fx1 = slot_xy(47)[0] - 3, slot_xy(51)[0] + 20
+    for y in range(fy0, fy1 + 1):
+        for x in range(fx0, fx1 + 1):
+            t = (y - fy0) / max(1, fy1 - fy0)                      # 아래로 갈수록 뜨거움
+            n = h2(x // 2, y // 2, seed + 21)
+            if n > 0.62:                                           # 달아오른 숯
+                c = mix((255, 120, 30), (255, 214, 120), (n - 0.62) / 0.38 * (0.4 + 0.6 * t))
+            else:                                                  # 검붉은 숯
+                c = mix((34, 12, 8), (130, 34, 12), 0.25 + 0.6 * t + 0.3 * n)
+            cv.set(x, y, c)
+    for x in range(fx0 + 2, fx1, 9):                               # 쇠 창살
+        cv.vline(x, fy0, fy1, (46, 40, 44))
+        cv.vline(x + 1, fy0, fy1, (78, 70, 74))
+    cv.hline(fx0 - 2, fx1 + 2, fy0 - 1, (130, 64, 40))
+    cv.hline(fx0 - 2, fx1 + 2, fy0 - 2, (180, 96, 60))
+    cv.box(fx0 - 3, fy0 - 3, fx1 + 3, fy1 + 1, INK)
+    g.glow(88, fy0 + 6, 46, (255, 120, 30), 0.40)
+    # 불티 (줄 1~4 사이 위로 날림)
+    for k in range(22):
+        ex = 30 + int(h2(k, 1, seed) * 116)
+        ey = _row_y(1) + int(h2(k, 2, seed) * 70)
+        if ey % 18 in (0, 17):
+            cv.set(ex, ey, (255, 170 + int(h2(k, 3, seed) * 70), 60))
+    # 소켓
+    g.sock([r * 9 + c for r in range(1, 5) for c in range(1, 8)], 'plain')
+    g.sock([2, 4, 6], 'tab', SMELT_ACCENT)
+    g.sock(8, 'gem', '#ffd27a')
+    g.sock(0, 'button')
+    g.sock([45, 53], 'button')
+    g.sock(48, 'gem', '#ffd27a')
+    g.sock(49, 'gem', '#ffb040')
+    g.sock(50, 'gem', '#ff7a2a')
+    # 수량 표시: 단추 위 점 1개 · 8개 · 막대 (글자 없이)
+    for slot, pips in ((48, 1), (49, 8), (50, 0)):
+        x, y = slot_xy(slot)
+        if pips == 1:
+            cv.rect(x + 8, y - 3, x + 9, y - 2, GOLD[4])
+        elif pips == 8:
+            for i in range(4):
+                for j in range(2):
+                    cv.set(x + 5 + i * 2 + (1 if j else 0) - 1, y - 4 + j * 2, GOLD[4])
+        else:
+            cv.hline(x + 3, x + 14, y - 3, GOLD[4])
+            cv.hline(x + 3, x + 14, y - 2, GOLD[2])
+    return g
+
+
+def gui_mine_lift(seed, levels):
+    """광산 승강기 (menus.mine_lift): 세로 갱도 — 층 단추 4·13·22·31·40·49 (깊이 순, 층 색) · 마을로 0 · 닫기 8.
+    잠김 쇠사슬 없음 (모든 층이 열려 있다). 좌우 벽에는 그 층에 많이 나는 광석 색 점이 박혀 있다."""
+    g = Gui(6, MINE_ACCENT, 'lift', seed)
+    cv = g.cv
+    top, bot = 17, 17 + 6 * 18
+    # 갱도 바위 벽 (깊을수록 어둡고 그 층 색으로 물듦)
+    for r in range(6):
+        tint = BIOME_TINT.get(levels[r][3], (90, 90, 100)) if r < len(levels) else (90, 90, 100)
+        y0 = _row_y(r)
+        _rock_wall(cv, 6, y0, 169, y0 + 17, seed + r, tint, 0.26)
+        for x in range(6, 170):
+            for y in range(y0, y0 + 18):
+                cv.blend(x, y, (0, 0, 0), 0.06 * r)
+        # 광석 점: 무게만큼 (가장 많은 것부터), 갱도 칸(열 3~5)은 비움
+        ores = sorted(levels[r][2], key=lambda o: -o[1]) if r < len(levels) else []
+        bag = [o[0] for o in ores for _ in range(max(1, round(o[1] / 12)))]
+        for k in range(min(18, len(bag) * 2)):
+            ox = 10 + int(h2(k, r, seed) * 56)
+            if h2(k, r + 9, seed) > 0.5:
+                ox += 100
+            oy = y0 + 3 + int(h2(k, r + 3, seed) * 12)
+            oc = _c(bag[k % len(bag)])
+            cv.set(ox, oy, oc)
+            cv.set(ox + 1, oy, darken(oc, 0.3))
+            cv.set(ox, oy + 1, darken(oc, 0.45))
+    # 지상 (줄 0 왼쪽): 하늘 + 풀 + 작은 집 지붕 — 마을로 단추 자리
+    for y in range(top, top + 18):
+        for x in range(6, 60):
+            t = (y - top) / 18
+            cv.set(x, y, mix((96, 150, 210), (170, 205, 235), t))
+    cv.rect(6, top + 15, 59, top + 17, (86, 140, 60))
+    cv.hline(6, 59, top + 15, (120, 180, 80))
+    roof = ['....##....', '...####...', '..######..', '.########.', '##########']
+    cv.pattern(36, top + 4, roof, {'#': (150, 70, 50)})
+    cv.rect(38, top + 9, 45, top + 14, (196, 176, 130))
+    cv.rect(41, top + 11, 42, top + 14, (90, 60, 36))
+    # 갱도: 기둥 둘 + 층마다 들보 + 가운데 쇠줄
+    sx0, sx1 = slot_xy(4)[0] - 6, slot_xy(4)[0] + 23
+    for y in range(top, bot + 1):
+        for x in range(sx0 + 3, sx1 - 2):
+            cv.set(x, y, mix((14, 12, 16), (30, 26, 30), h2(x // 2, y // 4, seed + 4) * 0.6))
+    _timber_post(cv, sx0, top, sx0 + 2, bot, seed)
+    _timber_post(cv, sx1 - 2, top, sx1, bot, seed + 1)
+    cx = slot_xy(4)[0] + 8
+    for y in range(top, bot):
+        cv.set(cx, y, (110, 110, 120) if y % 3 else (70, 70, 78))
+        cv.set(cx + 1, y, (80, 80, 90) if y % 3 else (50, 50, 58))
+    for r in range(6):
+        col = _c(levels[r][1]) if r < len(levels) else GOLD[3]
+        x, y = slot_xy(r * 9 + 4)
+        # 층 받침: 층 색 띠가 기둥 밖으로 뻗음 (층 표시등 — 글자 대신 색)
+        cv.rect(x - 20, y + 7, x - 7, y + 10, darken(col, 0.35))
+        cv.hline(x - 20, x - 7, y + 7, col)
+        cv.rect(x + 24, y + 7, x + 37, y + 10, darken(col, 0.35))
+        cv.hline(x + 24, x + 37, y + 7, col)
+        cv.set(x - 21, y + 8, lighten(col, 0.5))
+        cv.set(x + 38, y + 8, lighten(col, 0.5))
+        _timber_beam(cv, sx0, sx1, y + 17, y + 18, seed + r) if r < 5 else None
+        g.glow(x + 9, y + 9, 15, col, 0.35)
+    for r in range(6):
+        col = levels[r][1] if r < len(levels) else MINE_ACCENT
+        g.sock(r * 9 + 4, 'gem', col)
+    g.sock(0, 'big', '#7fd07f')
+    g.sock(8, 'button', '#c8c8d0')
+    return g
+
+
+def gui_mine_office(seed):
+    """광산 관리소 (menus.mine_office): 탭 1·2·3·5·6·7 (곡괭이/제련/새기기/벼리기/팔기/현황) · 등불 4 (안내) ·
+    내용 행 1~4 × 열 1~7 · 이전 45 · 지갑 49 · 다음 53. 갱도 나무 틀 + 등불."""
+    g = Gui(6, MINE_ACCENT, 'mine', seed)
+    cv = g.cv
+    # 탭 줄 아래 들보 + 기둥 (열 0·8, 줄 1~4)
+    _timber_beam(cv, 6, 169, _row_y(1) - 3, _row_y(1) - 1, seed)
+    for cx0 in (9, 153):
+        _timber_post(cv, cx0, _row_y(1), cx0 + 13, _row_y(5) - 2, seed + cx0)
+        for r in (1, 3):
+            _lantern(g, cx0 + 7, _row_y(r) + 6)
+    # 내용 칸 뒤: 판자 벽 (가로 판 + 못)
+    x0, y0 = slot_xy(10)
+    x1, y1 = slot_xy(43)
+    for y in range(y0 - 1, y1 + 19):
+        for x in range(x0 - 1, x1 + 19):
+            plank = (y - y0) // 6
+            c = mix(TIMBER[0], TIMBER[1], 0.4 + 0.5 * h2(plank, x // 20, seed + 5))
+            if (y - y0) % 6 == 5:
+                c = darken(TIMBER[0], 0.3)
+            cv.set(x, y, c)
+    cv.box(x0 - 2, y0 - 2, x1 + 19, y1 + 19, INK)
+    # 등불 4 (가운데 탭 사이): 매달린 등
+    lx, ly = slot_xy(4)
+    g.glow(lx + 9, ly + 9, 20, (255, 196, 90), 0.5)
+    # 아래 줄: 레일 (지갑 양옆)
+    ry = _row_y(5) + 13
+    cv.hline(26, 150, ry, (120, 120, 130))
+    cv.hline(26, 150, ry + 1, (70, 70, 78))
+    for x in range(28, 150, 7):
+        cv.rect(x, ry + 2, x + 3, ry + 3, TIMBER[1])
+    g.sock([r * 9 + c for r in range(1, 5) for c in range(1, 8)], 'plain')
+    g.sock([1, 2, 3, 5, 6, 7], 'tab', MINE_ACCENT)
+    g.sock(4, 'gem', '#ffd27a')
+    g.sock([45, 53], 'button')
+    g.sock(49, 'gem', '#ffd27a')
+    return g
+
+
 def paint_socket_glyph(style):
     cv = Canvas(18, 18)
     socket(cv, 0, 0, 'plain' if style == 'plain' else 'button', '#e6aa50')
@@ -884,8 +1167,11 @@ def paint_gui(name, ctx_content):
         return gui_class(seed, cols).image()
     fns = {
         'main': gui_main, 'stats': gui_stats, 'party': gui_party, 'setup': gui_setup, 'entrance': gui_entrance,
+        'setup_village': lambda s: gui_setup(s, village=True),
         'blacksmith': gui_blacksmith, 'titles': gui_titles, 'accessories': gui_accessories,
         'merchant': gui_merchant, 'confirm': gui_confirm, 'enhance': gui_enhance,
+        'smelter': gui_smelter, 'mine_office': gui_mine_office,
+        'mine_lift': lambda s: gui_mine_lift(s, _mine_levels(ctx_content or {})),
         'generic_6': lambda s: gui_generic(s, 6), 'generic_3': lambda s: gui_generic(s, 3),
     }
     for r in range(1, 7):

@@ -19,6 +19,10 @@ import kr.labyrinth.combat.WeaponAttack;
  * {@code look} (0.3.5, look_spec §1.1): 방어구 겉모습 ({@link ArmorLook}). 방어구가 아니면 null. 파서가 정한다 —
  * items.yml {@code look}(세트 없는 투구) → 방패면 판금 → 세트 {@code look}(세트에 {@code look_effects: false} 면 평상복) → 없으면 평상복.
  * null 로 만들면 raw 의 look 키 → 방패면 판금 순으로 읽고, 그래도 없으면 null (파서가 세트에서 채운다, 시험용 정의는 평상복으로 다룸).
+ * <p>
+ * 광산 (0.3.6, 계약 tools/data/036/): {@code mineLevel} (items.yml {@code mine_level}) = 광물 등급 1~6 (구리·석영 1 … 오리하르콘·용혈석 6,
+ * 광석·주괴·보석만, 아니면 0) · {@code mineKind} (items.yml {@code mine_kind}) = ore | ingot | gem · {@code tool} = 곡괭이
+ * ({@code type: tool} 의 {@code tool:} 블록, {@link ToolSpec}). 0 / null 로 만들면 raw 에서 읽는다. 등급은 화면에 숫자로 쓰지 않는다.
  */
 public record ItemDef(
         String id,
@@ -44,7 +48,10 @@ public record ItemDef(
         String lore,
         Params raw,
         UniqueDef unique,
-        ArmorLook look) {
+        ArmorLook look,
+        int mineLevel,
+        MineKind mineKind,
+        ToolSpec tool) {
 
     /**
      * 무기 스킬. input = LEFT | RIGHT | SNEAK_LEFT | SNEAK_RIGHT.
@@ -73,6 +80,24 @@ public record ItemDef(
             look = raw == null ? null : ArmorLook.byId(raw.str("look"));
             if (look == null && "offhand".equals(armorSlot)) look = ArmorLook.HEAVY;
         }
+        if (mineLevel <= 0 && raw != null) mineLevel = raw.integer("mine_level", 0);
+        mineLevel = Math.max(0, mineLevel);
+        if (mineKind == null && raw != null) mineKind = MineKind.byId(raw.str("mine_kind"));
+        if (type != ItemType.TOOL) {
+            tool = null;
+        } else if (tool == null && raw != null) {
+            tool = ToolSpec.parse(raw.sub("tool"));
+        }
+    }
+
+    /** 광산 칸을 raw 에서 읽는다 (0.3.5 까지의 꼴). */
+    public ItemDef(String id, String name, ItemType type, WeaponAttack attack, String armorSlot, String armorSet,
+                   Rarity rarity, int levelReq, StatRequirement requires, List<String> classes, Map<String, Range> stats,
+                   String setBonus, String aura, List<WeaponSkillDef> weaponSkills, int floor, boolean pool,
+                   List<String> sources, Params use, Params model, Params texture, String lore, Params raw, UniqueDef unique,
+                   ArmorLook look) {
+        this(id, name, type, attack, armorSlot, armorSet, rarity, levelReq, requires, classes, stats, setBonus, aura,
+                weaponSkills, floor, pool, sources, use, model, texture, lore, raw, unique, look, 0, null, null);
     }
 
     /** 겉모습을 raw·방패에서 읽는다 (0.3.5 P1 까지의 꼴). */
@@ -106,6 +131,10 @@ public record ItemDef(
     }
 
     public boolean isWeapon() { return type == ItemType.WEAPON; }
+    /** 광산 곡괭이 ({@code type: tool} + tool 블록). */
+    public boolean isTool() { return type == ItemType.TOOL && tool != null; }
+    /** 광석·주괴·보석 (mine_kind 가 있는 재료). */
+    public boolean isMineMaterial() { return type == ItemType.MATERIAL && mineKind != null && mineLevel > 0; }
     public boolean isGear() { return type.isGear(); }
     public boolean isShield() { return "offhand".equals(armorSlot); }
 
@@ -129,13 +158,14 @@ public record ItemDef(
     /** 요구 능력치만 바꾼 사본 (시험·도구용). */
     public ItemDef withRequires(StatRequirement r) {
         return new ItemDef(id, name, type, attack, armorSlot, armorSet, rarity, levelReq, r == null ? StatRequirement.NONE : r,
-                classes, stats, setBonus, aura, weaponSkills, floor, pool, sources, use, model, texture, lore, raw, unique, look);
+                classes, stats, setBonus, aura, weaponSkills, floor, pool, sources, use, model, texture, lore, raw, unique, look,
+                mineLevel, mineKind, tool);
     }
 
     /** 겉모습만 바꾼 사본 (파서가 세트 겉모습을 정할 때). */
     public ItemDef withLook(ArmorLook l) {
         return new ItemDef(id, name, type, attack, armorSlot, armorSet, rarity, levelReq, requires, classes, stats, setBonus,
-                aura, weaponSkills, floor, pool, sources, use, model, texture, lore, raw, unique, l);
+                aura, weaponSkills, floor, pool, sources, use, model, texture, lore, raw, unique, l, mineLevel, mineKind, tool);
     }
 
     /**

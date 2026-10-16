@@ -214,21 +214,25 @@ class EnhanceMaterialsTest {
             Set<String> home = homeMaterials(d);
             Set<String> allowed = new HashSet<>(home);
             RecipeDef r = recipeOf.get(d.id());
+            // 0.3.6 (계약 §2.9 + 몹 주제 드롭): S 는 그 장비의 주 금속 주괴(광산·제련소) — 어느 장비든 주괴는 허용 (EnhanceIngotTest 가 금속을 본다)
+            Set<String> ingots = new HashSet<>();
+            for (ItemDef x : content.items().values()) if (x.mineKind() == kr.labyrinth.content.MineKind.INGOT) ingots.add(x.id());
+            allowed.addAll(ingots);
+            Set<String> commons = floorCommons(d.floor());
+            allowed.addAll(commons);   // 겹침 피하기: 그 층 반대쪽 부위로 바꿀 수 있다 (drops_stage)
             if (r != null) {
                 crafted++;
                 allowed.addAll(r.materials().keySet());
-                // low · mid = 레시피의 두 주 재료 (같은 레시피 장비끼리 겹치지 않게 순서는 바뀔 수 있다)
-                assertTrue(r.materials().containsKey(p) && r.materials().containsKey(s), d.id() + " P·S 는 제작 재료: " + p + ", " + s);
-                int pc = r.materials().get(p), sc = r.materials().get(s);
-                for (var e : r.materials().entrySet()) {
-                    if (e.getKey().equals(p) || e.getKey().equals(s)) continue;
-                    assertTrue(Math.min(pc, sc) >= e.getValue(), d.id() + " P·S 는 레시피에서 가장 많이 드는 두 재료 (" + e + ")");
+                // P = 레시피의 몬스터 재료 (겹치면 그 층 다른 부위·주괴) · S = 주괴 (부위 하나뿐인 층은 거꾸로)
+                for (String x : List.of(p, s)) {
+                    assertTrue(r.materials().containsKey(x) || commons.contains(x) || ingots.contains(x),
+                            d.id() + " P·S 는 제작 재료 · 그 층 몬스터 재료 · 주괴: " + p + ", " + s);
                 }
-                int top = r.materials().values().stream().mapToInt(Integer::intValue).max().orElse(0);
-                if (pc == top) mostUsedFirst++;
+                int top = 0;
+                for (var e : r.materials().entrySet()) if (commons.contains(e.getKey())) top = Math.max(top, e.getValue());
+                if (r.materials().containsKey(p) && r.materials().get(p) == top) mostUsedFirst++;
             } else {
                 dropped++;
-                Set<String> commons = floorCommons(d.floor());
                 Set<String> homeCommons = new HashSet<>(home);
                 homeCommons.retainAll(commons);
                 if (homeCommons.isEmpty()) {
@@ -236,10 +240,12 @@ class EnhanceMaterialsTest {
                     // (gen_enhance 와 같음 — 그 층에서 얻을 수 있는지는 아래 obtainable 이 본다)
                     allowed.addAll(commons);
                     allowed.addAll(ESSENCES);
-                    assertTrue(commons.contains(p) && commons.contains(s), d.id() + " P·S 는 그 층 일반 재료: " + p + ", " + s);
-                } else {
-                    assertTrue(home.contains(p) && home.contains(s), d.id() + " P·S 는 그 장비가 나오는 곳의 드롭: " + p + ", " + s + " / " + home);
                 }
+                for (String x : List.of(p, s)) {
+                    assertTrue(home.contains(x) || commons.contains(x) || ingots.contains(x),
+                            d.id() + " P·S 는 그 장비가 나오는 곳·그 층의 몬스터 재료 또는 주괴: " + p + ", " + s + " / " + home);
+                }
+                allowed.addAll(commons);
             }
             allowed.addAll(refinedFrom(allowed));
             Set<String> floorMats = floorMaterials(d.floor());
@@ -247,13 +253,15 @@ class EnhanceMaterialsTest {
             obtainable.addAll(refinedFrom(floorMats));
             for (String m : used) {
                 if (cores().contains(m)) continue; // 보스 핵은 bandsFollowTheRules 가 본다
+                ItemDef md = content.item(m);
+                if (md != null && md.isMineMaterial()) continue; // 주괴는 광산·제련소에서 (EnhanceIngotTest)
                 assertTrue(allowed.contains(m), d.id() + " 의 " + m + " 는 제작 재료도 나오는 곳 드롭도 아니다 (" + allowed + ")");
                 assertTrue(obtainable.contains(m), d.id() + " 의 " + m + " 는 " + d.floor() + "층에서 얻을 수 없다");
             }
         }
-        System.out.println("ENHANCE 제작 재료 " + crafted + "종 (주 재료 = 가장 많이 드는 재료 " + mostUsedFirst + "종) · 드롭 재료 " + dropped + "종");
+        System.out.println("ENHANCE 제작 재료 " + crafted + "종 (주 재료 = 가장 많이 드는 몬스터 재료 " + mostUsedFirst + "종) · 드롭 재료 " + dropped + "종");
         assertTrue(crafted > 150 && dropped > 30, crafted + " / " + dropped);
-        assertTrue(mostUsedFirst * 3 >= crafted * 2, "제작 장비 대부분은 레시피에서 가장 많이 드는 재료가 주 재료: " + mostUsedFirst + "/" + crafted);
+        assertTrue(mostUsedFirst * 3 >= crafted * 2, "제작 장비 대부분은 레시피에서 가장 많이 드는 몬스터 재료가 주 재료: " + mostUsedFirst + "/" + crafted);
     }
 
     @Test

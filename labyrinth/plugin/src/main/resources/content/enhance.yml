@@ -31,9 +31,14 @@
 #      1단계 (원칙 재료 그대로) R 을 같은 원칙 안의 다른 귀한 재료로(환산해 싼 쪽부터) → P·S 순서 바꿈 → S +1 → S +2 → P +1 …
 #      2단계 (원칙 밖, 1단계로 안 될 때만) 나오는 곳의 다른 귀한 드롭·윗 등급 정수 → 3단계 그 정수를 대장간에서 정제한 윗 등급 정수
 #      일반 장비는 낮은 레벨·등급부터 원칙 그대로 받고 변형은 높은 장비가 받는다. S 를 먼저 늘리는 것은 S 가 mid·high 에만 들어 싸서.
-#   결과: 장비 364종 (제작 재료 165 · 드롭 재료 199) — 원칙 그대로 61종 · R 바꿈 86종 · P·S 순서 바꿈 90종 · 일반 장비 S +n 111종 · P +n 87종 · 원칙 밖 R 3종 (겹칠 수 있음)
+#   결과: 장비 364종 (제작 재료 165 · 드롭 재료 199) — 원칙 그대로 89종 · R 바꿈 0종 · P·S 순서 바꿈 100종 · 일반 장비 S +n 114종 · P +n 72종 · 원칙 밖 R 0종 (겹칠 수 있음)
 #         보스 장비 54종 중 개수를 더한 장비 50종. 같은 층에서 구성이 똑같은 장비 0쌍.
 #   강화석(하급·상급·최상급)은 그대로 모든 장비에 공용으로 든다 — 장비 재료는 그 위에 더하는 몫.
+#   ⑤ 0.3.6 (광산 · 몹 몸에 맞는 드롭): 위 ①②의 보조 S 는 그 장비의 주 금속 주괴다 (레시피에서 가장 많이 드는 주괴, 같으면 윗 금속 ·
+#      드롭 장비는 장비 힘으로 고른 금속). 주괴 개수 = S 기본 × 층 상수 1층 0.5 · 2층 0.625 · 3층 0.625 · 4층 0.625 · 5층 0.75 · 6층 0.875 · 7층 0.875 · 8층 0.875 · 9층 1 · 10층 1.
+#      P 는 몬스터 재료 — 드롭 장비는 단단한 장비(근접·판금·방패·가죽 흉갑·신발) 1층 돌갑충 껍질 · 2층 갱도 송곳니 · 3층 포자 갓 · 4층 녹물 비늘 · 5층 잿불 비늘 · 6층 서리 발톱 · 7층 공명 힘줄 · 8층 바랜 책장 · 9층 태엽 기름 · 10층 심연 비늘,
+#      부드러운 장비 1층 이끼 섬유 · 2층 갱도 거미줄 · 3층 균사 실 · 4층 소금물 진주 · 5층 불씨 혼 · 6층 묘지 뼈 · 7층 공명 힘줄 · 8층 먹물 정수 · 9층 시간 가루 · 10층 스컬크 촉수.
+#      겹치면 P 를 레시피의 다른 부위 → 그 층 반대쪽 부위 → (부위 하나뿐인 층) 주괴를 P 로. R 은 지난 판 enhance.yml 의 R 을 먼저 쓴다.
 #
 # ── 개수 (시도 1번당) ─────────────────────────────────────────────────────────
 #   P (일반 재료, low · mid · high)  무기 [2, 2, 3] · [3, 3, 4] · [4, 5, 6, 7] | 방패 [2, 3, 3] · [3, 4, 4] · [4, 5, 6, 7]
@@ -45,17 +50,17 @@
 #
 # ── 근거: 1회 클리어 공급량 (보통·솔로·1인, LUK 0 — loot.yml 을 펼쳐 계산) ──────────
 #   가정: 몹 수 GDD §16.1 (1층 24 … 10층 60), 미로 상자 나무 4~6 · 철 2~3 · 금 3~4, 보물방 상자 3개 × 방 수, 기믹방 1, 정예 1~2, 보스 1.
-#   계산한 콘텐츠: content/ — 장비 364종 · 레시피 187개 · 루팅 테이블 254개
-#    1층  돌갑충 껍질 36 · 이끼 섬유 45  | 정예 우두머리 이끼 볏 3.3  | 정수 희미한 미궁 정수 9.5 · 윗 정수 0.6  | 핵 파수꾼의 심재 1
-#    2층  녹슨 철괴 46 · 갱도 거미줄 38  | 정예 감독관의 휘장 3.3  | 정수 희미한 미궁 정수 9.4 · 윗 정수 0.6  | 핵 여왕의 방적돌기 1
-#    3층  포자 갓 46 · 균사 실 39  | 정예 군락체의 핵 3.3  | 정수 희미한 미궁 정수 9.4 · 윗 정수 0.6  | 핵 균사의 왕관 1
-#    4층  녹물 장어 비늘 45 · 소금물 진주 48  | 정예 녹청 등판 3.3  | 정수 미궁 정수 9.5 · 윗 정수 0.6  | 핵 수문의 열쇠 1
-#    5층  슬래그 주괴 54 · 불씨 조각 47  | 정예 집행관의 칼날 3.3  | 정수 미궁 정수 9.5 · 윗 정수 0.6  | 핵 용광로 핵 1
-#    6층  묘지 뼈 52 · 서리 결정 53  | 정예 장송종 파편 3.3  | 정수 미궁 정수 9.6 · 윗 정수 0.6  | 핵 얼음관 조각 1
-#    7층  자수정 파편 62 · 프리즘 가루 55  | 정예 조율 소리굽쇠 3.3  | 정수 찬란한 미궁 정수 10.2 · 윗 정수 0.6  | 핵 양극의 심장 1
-#    8층  바랜 책장 62 · 먹물 정수 70  | 정예 금서의 봉인 3.8  | 정수 찬란한 미궁 정수 11.7 · 윗 정수 0.7  | 핵 사서의 깃펜 1
-#    9층  놋쇠 톱니 80 · 태엽 용수철 60  | 정예 조속 진자 4.9  | 정수 태고의 미궁 정수 12.5  | 핵 태엽 심장 1
-#   10층  스컬크 촉수 71 · 심연의 체액 77  | 정예 문지기의 룬 4.9  | 정수 태고의 미궁 정수 12.5  | 핵 심연 심장 파편 1
+#   계산한 콘텐츠: content/ — 장비 364종 · 레시피 204개 · 루팅 테이블 254개
+#    1층  돌갑충 껍질 18 · 이끼 섬유 36  | 정예 우두머리 이끼 볏 3.3  | 정수 희미한 미궁 정수 9.5 · 윗 정수 0.6  | 핵 파수꾼의 심재 1
+#    2층  갱도 송곳니 36 · 갱도 거미줄 25  | 정예 감독관의 휘장 3.3  | 정수 희미한 미궁 정수 9.6 · 윗 정수 0.6  | 핵 여왕의 방적돌기 1
+#    3층  포자 갓 47 · 균사 실 37  | 정예 군락체의 핵 3.3  | 정수 희미한 미궁 정수 9.4 · 윗 정수 0.6  | 핵 균사의 왕관 1
+#    4층  녹물 비늘 38 · 소금물 진주 53  | 정예 녹청 등판 3.3  | 정수 미궁 정수 9.5 · 윗 정수 0.6  | 핵 수문의 열쇠 1
+#    5층  잿불 비늘 31 · 불씨 혼 46  | 정예 집행관의 칼날 3.3  | 정수 미궁 정수 9.5 · 윗 정수 0.6  | 핵 용광로 핵 1
+#    6층  서리 발톱 25 · 묘지 뼈 51  | 정예 장송종 파편 3.3  | 정수 미궁 정수 10.1 · 윗 정수 0.6  | 핵 얼음관 조각 1
+#    7층  공명 힘줄 65 · 공명 힘줄 65  | 정예 조율 소리굽쇠 3.3  | 정수 찬란한 미궁 정수 10.4 · 윗 정수 0.6  | 핵 양극의 심장 1
+#    8층  바랜 책장 63 · 먹물 정수 69  | 정예 금서의 봉인 3.8  | 정수 찬란한 미궁 정수 11.7 · 윗 정수 0.7  | 핵 사서의 깃펜 1
+#    9층  태엽 기름 86 · 시간 가루 37  | 정예 조속 진자 4.9  | 정수 태고의 미궁 정수 12.5  | 핵 태엽 심장 1
+#   10층  심연 비늘 41 · 스컬크 촉수 52  | 정예 문지기의 룬 4.9  | 정수 태고의 미궁 정수 12.5  | 핵 심연 심장 파편 1
 #   (정수는 대장간에서 5:1 로 윗 등급으로 정제할 수 있다. 일반 재료는 대장간 제작에도 10~24개씩 든다.)
 #
 # ── 근거: 시도 수 (config chances · downgrade_from 그대로, 정확한 기대값) ─────────
@@ -67,17 +72,17 @@
 # ── 결과: 예상 클리어 수 (그 층만 돌고, 그 재료를 강화에만 쓸 때) ─────────────────
 #   층  | 장비 1개 +5 | 대표 한 벌(무기+방어구 4+방패) +5 (병목) | +10 장비 1개 — R 종류별 (병목 재료) / 강화석
 #    1층 | 0.6회 | 3.6회 (하급 강화석) | 정예 재료 23회(우두머리 이끼 볏) · 정수 17회(희미한 미궁 정수) · 보스 장비 24회(파수꾼의 심재) / 강화석 16회
-#    2층 | 0.6회 | 3.6회 (하급 강화석) | 정예 재료 23회(감독관의 휘장) · 정수 17회(희미한 미궁 정수) · 윗 정수 25회(미궁 정수) · 보스 장비 24회(여왕의 방적돌기) / 강화석 16회
+#    2층 | 0.6회 | 3.6회 (하급 강화석) | 정예 재료 23회(감독관의 휘장) · 정수 17회(희미한 미궁 정수) · 윗 정수 24회(미궁 정수) · 보스 장비 24회(여왕의 방적돌기) / 강화석 16회
 #    3층 | 0.6회 | 3.6회 (하급 강화석) | 정예 재료 23회(군락체의 핵) · 정수 17회(희미한 미궁 정수) · 보스 장비 24회(균사의 왕관) / 강화석 16회
 #    4층 | 0.6회 | 3.5회 (상급 강화석) | 정예 재료 23회(녹청 등판) · 정수 17회(미궁 정수) · 보스 장비 24회(수문의 열쇠) / 강화석 16회
 #    5층 | 0.6회 | 3.4회 (상급 강화석) | 정예 재료 23회(집행관의 칼날) · 정수 17회(미궁 정수) · 보스 장비 24회(용광로 핵) / 강화석 15회
-#    6층 | 0.6회 | 3.4회 (상급 강화석) | 정예 재료 23회(장송종 파편) · 정수 17회(미궁 정수) · 보스 장비 24회(얼음관 조각) / 강화석 15회
-#    7층 | 0.5회 | 2.3회 (상급 강화석) | 정예 재료 23회(조율 소리굽쇠) · 정수 16회(찬란한 미궁 정수) · 보스 장비 24회(양극의 심장) / 강화석 13회
+#    6층 | 0.6회 | 3.4회 (상급 강화석) | 정예 재료 23회(장송종 파편) · 정수 16회(미궁 정수) · 보스 장비 24회(얼음관 조각) / 강화석 15회
+#    7층 | 0.5회 | 2.3회 (상급 강화석) | 정예 재료 23회(조율 소리굽쇠) · 정수 15회(찬란한 미궁 정수) · 보스 장비 24회(양극의 심장) / 강화석 13회
 #    8층 | 0.4회 | 2.5회 (최상급 강화석) | 정예 재료 20회(금서의 봉인) · 정수 14회(찬란한 미궁 정수) · 보스 장비 24회(사서의 깃펜) / 강화석 11회
 #    9층 | 0.4회 | 2.0회 (최상급 강화석) | 정예 재료 15회(조속 진자) · 정수 13회(태고의 미궁 정수) · 보스 장비 24회(태엽 심장) / 강화석 11회
-#   10층 | 0.4회 | 2.4회 (최상급 강화석) | 정예 재료 15회(문지기의 룬) · 정수 13회(태고의 미궁 정수) · 보스 장비 24회(심연 심장 파편) / 강화석 11회
+#   10층 | 0.5회 | 2.4회 (최상급 강화석) | 정예 재료 15회(문지기의 룬) · 정수 13회(태고의 미궁 정수) · 보스 장비 24회(심연 심장 파편) / 강화석 11회
 #   → +5 는 장비 하나가 0.4~0.6회, 대표 한 벌이 2.0~3.6회 (강화석이 병목 — mid 까지는 일반 재료 2종이라 제작과 같이 모인다).
-#   → +10 은 장기 목표: 일반 장비 13~25회, 보스 장비는 핵 때문에 그 보스 24회 (보호 주문서를 쓰면 크게 준다).
+#   → +10 은 장기 목표: 일반 장비 13~24회, 보스 장비는 핵 때문에 그 보스 24회 (보호 주문서를 쓰면 크게 준다).
 #   1~3층 하급 강화석은 떠돌이 상인 핀에게서 살 수 있어 병목이 아니다.
 #
 # ── 검사: 보스 장비 vs 같은 층·같은 분류(무기 / 방패 / 흉갑·하의 / 투구·신발) 일반 장비 ─────────
@@ -97,1476 +102,1476 @@ items:
 
   # ════ 지하 1층 — 일반 돌갑충 껍질 · 이끼 섬유 · 정예 우두머리 이끼 볏 · 정수 희미한 미궁 정수 · 핵 파수꾼의 심재 ════
   corridor_longsword:  # 회랑 수비대 장검 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭
-    low:  {beetle_shell: [2, 2, 3]}
-    mid:  {beetle_shell: [3, 3, 4], moss_fiber: [2, 2, 3]}
-    high: {beetle_shell: [4, 5, 6, 7], moss_fiber: [3, 3, 4, 5], alpha_moss_crest: [1, 1, 2, 2]}
-  moss_dirk:  # 이끼 단도 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (R 바꿈 — 겹침 피함)
-    low:  {beetle_shell: [2, 2, 3]}
-    mid:  {beetle_shell: [3, 3, 4], moss_fiber: [2, 2, 3]}
-    high: {beetle_shell: [4, 5, 6, 7], moss_fiber: [3, 3, 4, 5], dim_essence: [2, 3, 3, 4]}
+    low:  {beetle_shell: [1, 1, 2]}
+    mid:  {beetle_shell: [2, 2, 2], copper_ingot: [1, 1, 2]}
+    high: {beetle_shell: [2, 3, 3, 4], copper_ingot: [2, 2, 2, 3], alpha_moss_crest: [1, 1, 2, 2]}
+  moss_dirk:  # 이끼 단도 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭
+    low:  {beetle_shell: [1, 1, 2]}
+    mid:  {beetle_shell: [2, 2, 2], copper_ingot: [1, 1, 2]}
+    high: {beetle_shell: [2, 3, 3, 4], copper_ingot: [2, 2, 2, 3], dim_essence: [2, 3, 3, 4]}
   rootcutter_greatsword:  # 뿌리 베는 대검 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P·S 바꿈 — 겹침 피함)
     low:  {moss_fiber: [2, 2, 3]}
-    mid:  {moss_fiber: [3, 3, 4], beetle_shell: [2, 2, 3]}
-    high: {moss_fiber: [4, 5, 6, 7], beetle_shell: [3, 3, 4, 5], alpha_moss_crest: [1, 1, 2, 2]}
-  corridor_katar:  # 회랑 주먹칼 · 근접 무기 · 몬스터·상자 · 대장간 → 제작 재료 + 나오는 곳 드롭 (R 바꿈, S +2 — 겹침 피함)
+    mid:  {moss_fiber: [3, 3, 4], copper_ingot: [1, 1, 2]}
+    high: {moss_fiber: [4, 5, 6, 7], copper_ingot: [2, 2, 2, 3], alpha_moss_crest: [1, 1, 2, 2]}
+  corridor_katar:  # 회랑 주먹칼 · 근접 무기 · 몬스터·상자 · 대장간 → 제작 재료 + 나오는 곳 드롭 (P·S 바꿈, S +1 — 겹침 피함)
+    low:  {beetle_shell: [1, 1, 2]}
+    mid:  {beetle_shell: [2, 2, 2], copper_ingot: [2, 2, 3]}
+    high: {beetle_shell: [2, 3, 3, 4], copper_ingot: [3, 3, 3, 4], dim_essence: [2, 3, 3, 4]}
+  mossback_warhammer:  # 이끼등 전투망치 · 근접 무기 · 몬스터·상자 · 대장간 → 제작 재료 + 나오는 곳 드롭 (P·S 바꿈, S +1 — 겹침 피함)
+    low:  {beetle_shell: [1, 1, 2]}
+    mid:  {beetle_shell: [2, 2, 2], copper_ingot: [2, 2, 3]}
+    high: {beetle_shell: [2, 3, 3, 4], copper_ingot: [3, 3, 3, 4], alpha_moss_crest: [1, 1, 2, 2]}
+  rootbound_scythe:  # 뿌리 감긴 큰낫 · 근접 무기 · 몬스터·상자 · 대장간 → 제작 재료 + 나오는 곳 드롭 (S +2 — 겹침 피함)
     low:  {moss_fiber: [2, 2, 3]}
-    mid:  {moss_fiber: [3, 3, 4], beetle_shell: [4, 4, 5]}
-    high: {moss_fiber: [4, 5, 6, 7], beetle_shell: [5, 5, 6, 7], dim_essence: [2, 3, 3, 4]}
-  mossback_warhammer:  # 이끼등 전투망치 · 근접 무기 · 몬스터·상자 · 대장간 → 제작 재료 + 나오는 곳 드롭 (P·S 바꿈, S +2 — 겹침 피함)
+    mid:  {moss_fiber: [3, 3, 4], copper_ingot: [3, 3, 4]}
+    high: {moss_fiber: [4, 5, 6, 7], copper_ingot: [4, 4, 4, 5], dim_essence: [2, 3, 3, 4]}
+  wayfarer_sabre:  # 길손의 사브르 · 근접 무기 · 기타 → 드롭 재료 (S +2 — 겹침 피함)
+    low:  {beetle_shell: [1, 1, 2]}
+    mid:  {beetle_shell: [2, 2, 2], copper_ingot: [3, 3, 4]}
+    high: {beetle_shell: [2, 3, 3, 4], copper_ingot: [4, 4, 4, 5], alpha_moss_crest: [1, 1, 2, 2]}
+  corridor_executioner_axe:  # 회랑 처형 도끼 · 근접 무기 · 특별 시련 → 드롭 재료 (S +2 — 겹침 피함)
+    low:  {beetle_shell: [1, 1, 2]}
+    mid:  {beetle_shell: [2, 2, 2], copper_ingot: [3, 3, 4]}
+    high: {beetle_shell: [2, 3, 3, 4], copper_ingot: [4, 4, 4, 5], dim_essence: [2, 3, 3, 4]}
+  rootgnaw_tanto:  # 뿌리 갉는 탄토 · 근접 무기 · 금고·미믹 → 드롭 재료 (P +1 — 겹침 피함)
     low:  {beetle_shell: [2, 2, 3]}
-    mid:  {beetle_shell: [3, 3, 4], moss_fiber: [4, 4, 5]}
-    high: {beetle_shell: [4, 5, 6, 7], moss_fiber: [5, 5, 6, 7], alpha_moss_crest: [1, 1, 2, 2]}
-  rootbound_scythe:  # 뿌리 감긴 큰낫 · 근접 무기 · 몬스터·상자 · 대장간 → 제작 재료 + 나오는 곳 드롭 (R 바꿈, P·S 바꿈, S +2 — 겹침 피함)
+    mid:  {beetle_shell: [3, 3, 3], copper_ingot: [1, 1, 2]}
+    high: {beetle_shell: [3, 4, 4, 5], copper_ingot: [2, 2, 2, 3], dim_essence: [2, 3, 3, 4]}
+  grove_warden_maul:  # 파수꾼의 이끼바위 망치 · 근접 무기 · 보스 고유 · 대장간 → 제작 재료 (P·S 바꿈, P +1 — 일반 장비 이상)
     low:  {beetle_shell: [2, 2, 3]}
-    mid:  {beetle_shell: [3, 3, 4], moss_fiber: [4, 4, 5]}
-    high: {beetle_shell: [4, 5, 6, 7], moss_fiber: [5, 5, 6, 7], dim_essence: [2, 3, 3, 4]}
-  wayfarer_sabre:  # 길손의 사브르 · 근접 무기 · 기타 → 드롭 재료 (P +1 — 겹침 피함)
-    low:  {beetle_shell: [3, 3, 4]}
-    mid:  {beetle_shell: [4, 4, 5], moss_fiber: [2, 2, 3]}
-    high: {beetle_shell: [5, 6, 7, 8], moss_fiber: [3, 3, 4, 5], alpha_moss_crest: [1, 1, 2, 2]}
-  corridor_executioner_axe:  # 회랑 처형 도끼 · 근접 무기 · 특별 시련 → 드롭 재료 (P +1 — 겹침 피함)
-    low:  {beetle_shell: [3, 3, 4]}
-    mid:  {beetle_shell: [4, 4, 5], moss_fiber: [2, 2, 3]}
-    high: {beetle_shell: [5, 6, 7, 8], moss_fiber: [3, 3, 4, 5], dim_essence: [2, 3, 3, 4]}
-  rootgnaw_tanto:  # 뿌리 갉는 탄토 · 근접 무기 · 금고·미믹 → 드롭 재료 (P·S 바꿈, P +1 — 겹침 피함)
-    low:  {moss_fiber: [3, 3, 4]}
-    mid:  {moss_fiber: [4, 4, 5], beetle_shell: [2, 2, 3]}
-    high: {moss_fiber: [5, 6, 7, 8], beetle_shell: [3, 3, 4, 5], dim_essence: [2, 3, 3, 4]}
-  grove_warden_maul:  # 파수꾼의 이끼바위 망치 · 근접 무기 · 보스 고유 · 대장간 → 제작 재료 (P·S 바꿈, P +2 — 일반 장비 이상 · 겹침 피함)
-    low:  {beetle_shell: [4, 4, 5]}
-    mid:  {beetle_shell: [5, 5, 6], moss_fiber: [2, 2, 3]}
-    high: {beetle_shell: [6, 7, 8, 9], moss_fiber: [3, 3, 4, 5], alpha_moss_crest: [1, 2, 0, 0], warden_heartwood: [0, 0, 1, 2]}
-  corridor_longbow:  # 회랑 사냥 장궁 · 원거리 무기 · 몬스터·상자 → 몬스터·상자 드롭 (R 바꿈 — 겹침 피함)
+    mid:  {beetle_shell: [3, 3, 3], iron_ingot: [1, 1, 2]}
+    high: {beetle_shell: [3, 4, 4, 5], iron_ingot: [2, 2, 2, 3], alpha_moss_crest: [1, 2, 0, 0], warden_heartwood: [0, 0, 1, 2]}
+  corridor_longbow:  # 회랑 사냥 장궁 · 원거리 무기 · 몬스터·상자 → 몬스터·상자 드롭
     low:  {moss_fiber: [2, 2, 3]}
-    mid:  {moss_fiber: [3, 3, 4], beetle_shell: [2, 2, 3]}
-    high: {moss_fiber: [4, 5, 6, 7], beetle_shell: [3, 3, 4, 5], dim_essence: [2, 3, 3, 4]}
-  mossvine_hornbow:  # 이끼 덩굴 각궁 · 원거리 무기 · 몬스터·상자 · 대장간 → 제작 재료 + 나오는 곳 드롭 (P·S 바꿈, S +1 — 겹침 피함)
-    low:  {beetle_shell: [2, 2, 3]}
-    mid:  {beetle_shell: [3, 3, 4], moss_fiber: [3, 3, 4]}
-    high: {beetle_shell: [4, 5, 6, 7], moss_fiber: [4, 4, 5, 6], alpha_moss_crest: [1, 1, 2, 2]}
-  moss_bone_bow:  # 이끼 뼈 활 · 원거리 무기 · 시련방 → 상자 드롭 (P +1 — 겹침 피함)
-    low:  {moss_fiber: [3, 3, 4]}
-    mid:  {moss_fiber: [4, 4, 5], beetle_shell: [2, 2, 3]}
-    high: {moss_fiber: [5, 6, 7, 8], beetle_shell: [3, 3, 4, 5], alpha_moss_crest: [1, 1, 2, 2]}
-  grove_rootstring_bow:  # 뿌리시위 파수궁 · 원거리 무기 · 보스 고유 · 대장간 → 제작 재료 (P·S 바꿈, P +1, S +1 — 일반 장비 이상)
-    low:  {beetle_shell: [3, 3, 4]}
-    mid:  {beetle_shell: [4, 4, 5], moss_fiber: [3, 3, 4]}
-    high: {beetle_shell: [5, 6, 7, 8], moss_fiber: [4, 4, 5, 6], alpha_moss_crest: [1, 2, 0, 0], warden_heartwood: [0, 0, 1, 2]}
+    mid:  {moss_fiber: [3, 3, 4], copper_ingot: [1, 1, 2]}
+    high: {moss_fiber: [4, 5, 6, 7], copper_ingot: [2, 2, 2, 3], dim_essence: [2, 3, 3, 4]}
+  mossvine_hornbow:  # 이끼 덩굴 각궁 · 원거리 무기 · 몬스터·상자 · 대장간 → 제작 재료 + 나오는 곳 드롭 (P·S 바꿈 — 겹침 피함)
+    low:  {moss_scale: [1, 1, 2]}
+    mid:  {moss_scale: [2, 2, 2], copper_ingot: [1, 1, 2]}
+    high: {moss_scale: [2, 3, 3, 4], copper_ingot: [2, 2, 2, 3], alpha_moss_crest: [1, 1, 2, 2]}
+  moss_bone_bow:  # 이끼 뼈 활 · 원거리 무기 · 시련방 → 상자 드롭 (S +2 — 겹침 피함)
+    low:  {moss_fiber: [2, 2, 3]}
+    mid:  {moss_fiber: [3, 3, 4], copper_ingot: [3, 3, 4]}
+    high: {moss_fiber: [4, 5, 6, 7], copper_ingot: [4, 4, 4, 5], alpha_moss_crest: [1, 1, 2, 2]}
+  grove_rootstring_bow:  # 뿌리시위 파수궁 · 원거리 무기 · 보스 고유 · 대장간 → 제작 재료 (P·S 바꿈, P +2 — 일반 장비 이상)
+    low:  {moss_scale: [3, 3, 4]}
+    mid:  {moss_scale: [4, 4, 4], iron_ingot: [1, 1, 2]}
+    high: {moss_scale: [4, 5, 5, 6], iron_ingot: [2, 2, 2, 3], alpha_moss_crest: [1, 2, 0, 0], warden_heartwood: [0, 0, 1, 2]}
   acolyte_scepter:  # 수련 사제의 홀 · 시전 무기 · 몬스터·상자 → 몬스터·상자 드롭 (S +1 — 겹침 피함)
     low:  {moss_fiber: [2, 2, 3]}
-    mid:  {moss_fiber: [3, 3, 4], beetle_shell: [3, 3, 4]}
-    high: {moss_fiber: [4, 5, 6, 7], beetle_shell: [4, 4, 5, 6], alpha_moss_crest: [1, 1, 2, 2]}
-  lantern_staff:  # 등불 지팡이 · 시전 무기 · 몬스터·상자 → 몬스터·상자 드롭 (R 바꿈, S +1 — 겹침 피함)
+    mid:  {moss_fiber: [3, 3, 4], copper_ingot: [2, 2, 3]}
+    high: {moss_fiber: [4, 5, 6, 7], copper_ingot: [3, 3, 3, 4], alpha_moss_crest: [1, 1, 2, 2]}
+  lantern_staff:  # 등불 지팡이 · 시전 무기 · 몬스터·상자 → 몬스터·상자 드롭 (S +1 — 겹침 피함)
     low:  {moss_fiber: [2, 2, 3]}
-    mid:  {moss_fiber: [3, 3, 4], beetle_shell: [3, 3, 4]}
-    high: {moss_fiber: [4, 5, 6, 7], beetle_shell: [4, 4, 5, 6], dim_essence: [2, 3, 3, 4]}
-  grove_chalice:  # 숲지기의 성배 · 시전 무기 · 몬스터·상자 · 대장간 → 제작 재료 + 나오는 곳 드롭 (R 바꿈, P·S 바꿈, S +1 — 겹침 피함)
-    low:  {beetle_shell: [2, 2, 3]}
-    mid:  {beetle_shell: [3, 3, 4], moss_fiber: [3, 3, 4]}
-    high: {beetle_shell: [4, 5, 6, 7], moss_fiber: [4, 4, 5, 6], dim_essence: [2, 3, 3, 4]}
-  wayfarer_spiral_staff:  # 길잡이의 소용돌이 지팡이 · 시전 무기 · 몬스터·상자 · 대장간 → 제작 재료 + 나오는 곳 드롭 (S +2 — 겹침 피함)
-    low:  {moss_fiber: [2, 2, 3]}
-    mid:  {moss_fiber: [3, 3, 4], beetle_shell: [4, 4, 5]}
-    high: {moss_fiber: [4, 5, 6, 7], beetle_shell: [5, 5, 6, 7], alpha_moss_crest: [1, 1, 2, 2]}
-  grove_heartwood_staff:  # 심재 반딧불 지팡이 · 시전 무기 · 보스 고유 · 대장간 → 제작 재료 (P +2, S +1 — 일반 장비 이상 · 겹침 피함)
-    low:  {moss_fiber: [4, 4, 5]}
-    mid:  {moss_fiber: [5, 5, 6], beetle_shell: [3, 3, 4]}
-    high: {moss_fiber: [6, 7, 8, 9], beetle_shell: [4, 4, 5, 6], alpha_moss_crest: [1, 2, 0, 0], warden_heartwood: [0, 0, 1, 2]}
+    mid:  {moss_fiber: [3, 3, 4], copper_ingot: [2, 2, 3]}
+    high: {moss_fiber: [4, 5, 6, 7], copper_ingot: [3, 3, 3, 4], dim_essence: [2, 3, 3, 4]}
+  grove_chalice:  # 숲지기의 성배 · 시전 무기 · 몬스터·상자 · 대장간 → 제작 재료 + 나오는 곳 드롭 (P·S 바꿈 — 겹침 피함)
+    low:  {moss_scale: [1, 1, 2]}
+    mid:  {moss_scale: [2, 2, 2], copper_ingot: [1, 1, 2]}
+    high: {moss_scale: [2, 3, 3, 4], copper_ingot: [2, 2, 2, 3], dim_essence: [2, 3, 3, 4]}
+  wayfarer_spiral_staff:  # 길잡이의 소용돌이 지팡이 · 시전 무기 · 몬스터·상자 · 대장간 → 제작 재료 + 나오는 곳 드롭 (P·S 바꿈, S +1 — 겹침 피함)
+    low:  {moss_scale: [1, 1, 2]}
+    mid:  {moss_scale: [2, 2, 2], copper_ingot: [2, 2, 3]}
+    high: {moss_scale: [2, 3, 3, 4], copper_ingot: [3, 3, 3, 4], alpha_moss_crest: [1, 1, 2, 2]}
+  grove_heartwood_staff:  # 심재 반딧불 지팡이 · 시전 무기 · 보스 고유 · 대장간 → 제작 재료 (P +3 — 일반 장비 이상 · 겹침 피함)
+    low:  {moss_fiber: [5, 5, 6]}
+    mid:  {moss_fiber: [6, 6, 7], iron_ingot: [1, 1, 2]}
+    high: {moss_fiber: [7, 8, 9, 10], iron_ingot: [2, 2, 2, 3], alpha_moss_crest: [1, 2, 0, 0], warden_heartwood: [0, 0, 1, 2]}
   novice_cap:  # 수련생 두건 · 투구 · 시작 지급 → 1층 몬스터·상자 드롭
     low:  {moss_fiber: [2, 2, 2]}
-    mid:  {moss_fiber: [2, 3, 3], beetle_shell: [1, 2, 2]}
-    high: {moss_fiber: [3, 4, 5, 6], beetle_shell: [2, 2, 3, 4], alpha_moss_crest: [1, 1, 2, 2]}
-  wayfarer_helm:  # 길잡이 두건 · 투구 · 정예 · 대장간 → 제작 재료 + 나오는 곳 드롭 (R 바꿈 — 겹침 피함)
+    mid:  {moss_fiber: [2, 3, 3], copper_ingot: [1, 1, 1]}
+    high: {moss_fiber: [3, 4, 5, 6], copper_ingot: [1, 1, 2, 2], alpha_moss_crest: [1, 1, 2, 2]}
+  wayfarer_helm:  # 길잡이 두건 · 투구 · 정예 · 대장간 → 제작 재료 + 나오는 곳 드롭
     low:  {moss_fiber: [2, 2, 2]}
-    mid:  {moss_fiber: [2, 3, 3], beetle_shell: [1, 2, 2]}
-    high: {moss_fiber: [3, 4, 5, 6], beetle_shell: [2, 2, 3, 4], dim_essence: [2, 3, 3, 4]}
-  grove_mossguard_helm:  # 그로브의 이끼 투구 · 투구 · 보스 고유 · 대장간 → 제작 재료 + 나오는 곳 드롭
+    mid:  {moss_fiber: [2, 3, 3], copper_ingot: [1, 1, 1]}
+    high: {moss_fiber: [3, 4, 5, 6], copper_ingot: [1, 1, 2, 2], dim_essence: [2, 3, 3, 4]}
+  grove_mossguard_helm:  # 그로브의 이끼 투구 · 투구 · 보스 고유 · 대장간 → 제작 재료 + 나오는 곳 드롭 (P +1 — 일반 장비 이상)
     low:  {beetle_shell: [2, 2, 2]}
-    mid:  {beetle_shell: [2, 3, 3], moss_fiber: [1, 2, 2]}
-    high: {beetle_shell: [3, 4, 5, 6], moss_fiber: [2, 2, 3, 4], alpha_moss_crest: [1, 2, 0, 0], warden_heartwood: [0, 0, 1, 2]}
+    mid:  {beetle_shell: [2, 3, 3], iron_ingot: [1, 1, 1]}
+    high: {beetle_shell: [3, 3, 4, 4], iron_ingot: [1, 1, 2, 2], alpha_moss_crest: [1, 2, 0, 0], warden_heartwood: [0, 0, 1, 2]}
   novice_tunic:  # 수련생 누비옷 · 흉갑 · 시작 지급 → 1층 몬스터·상자 드롭
-    low:  {beetle_shell: [2, 2, 3]}
-    mid:  {beetle_shell: [3, 3, 4], moss_fiber: [2, 2, 2]}
-    high: {beetle_shell: [4, 4, 5, 6], moss_fiber: [2, 3, 3, 4], alpha_moss_crest: [1, 1, 2, 2]}
-  wayfarer_chest:  # 길잡이 조끼 · 흉갑 · 정예 · 대장간 → 제작 재료 + 나오는 곳 드롭 (R 바꿈, P·S 바꿈 — 겹침 피함)
-    low:  {beetle_shell: [2, 2, 3]}
-    mid:  {beetle_shell: [3, 3, 4], moss_fiber: [2, 2, 2]}
-    high: {beetle_shell: [4, 4, 5, 6], moss_fiber: [2, 3, 3, 4], dim_essence: [2, 3, 3, 4]}
+    low:  {beetle_shell: [1, 1, 2]}
+    mid:  {beetle_shell: [2, 2, 2], copper_ingot: [1, 1, 1]}
+    high: {beetle_shell: [2, 2, 3, 3], copper_ingot: [1, 2, 2, 2], alpha_moss_crest: [1, 1, 2, 2]}
+  wayfarer_chest:  # 길잡이 조끼 · 흉갑 · 정예 · 대장간 → 제작 재료 + 나오는 곳 드롭 (P·S 바꿈 — 겹침 피함)
+    low:  {beetle_shell: [1, 1, 2]}
+    mid:  {beetle_shell: [2, 2, 2], copper_ingot: [1, 1, 1]}
+    high: {beetle_shell: [2, 2, 3, 3], copper_ingot: [1, 2, 2, 2], dim_essence: [2, 3, 3, 4]}
   novice_trousers:  # 수련생 바지 · 하의 · 시작 지급 → 1층 몬스터·상자 드롭
     low:  {moss_fiber: [2, 2, 3]}
-    mid:  {moss_fiber: [3, 3, 4], beetle_shell: [2, 2, 2]}
-    high: {moss_fiber: [4, 4, 5, 6], beetle_shell: [2, 3, 3, 4], alpha_moss_crest: [1, 1, 2, 2]}
-  wayfarer_legs:  # 길잡이 바지 · 하의 · 정예 · 대장간 → 제작 재료 + 나오는 곳 드롭 (R 바꿈 — 겹침 피함)
+    mid:  {moss_fiber: [3, 3, 4], copper_ingot: [1, 1, 1]}
+    high: {moss_fiber: [4, 4, 5, 6], copper_ingot: [1, 2, 2, 2], alpha_moss_crest: [1, 1, 2, 2]}
+  wayfarer_legs:  # 길잡이 바지 · 하의 · 정예 · 대장간 → 제작 재료 + 나오는 곳 드롭
     low:  {moss_fiber: [2, 2, 3]}
-    mid:  {moss_fiber: [3, 3, 4], beetle_shell: [2, 2, 2]}
-    high: {moss_fiber: [4, 4, 5, 6], beetle_shell: [2, 3, 3, 4], dim_essence: [2, 3, 3, 4]}
+    mid:  {moss_fiber: [3, 3, 4], copper_ingot: [1, 1, 1]}
+    high: {moss_fiber: [4, 4, 5, 6], copper_ingot: [1, 2, 2, 2], dim_essence: [2, 3, 3, 4]}
   novice_boots:  # 수련생 신발 · 신발 · 시작 지급 → 1층 몬스터·상자 드롭
-    low:  {beetle_shell: [2, 2, 2]}
-    mid:  {beetle_shell: [2, 3, 3], moss_fiber: [1, 2, 2]}
-    high: {beetle_shell: [3, 4, 5, 6], moss_fiber: [2, 2, 3, 4], alpha_moss_crest: [1, 1, 2, 2]}
-  wayfarer_boots:  # 길잡이 장화 · 신발 · 정예 · 대장간 → 제작 재료 + 나오는 곳 드롭 (R 바꿈, P·S 바꿈 — 겹침 피함)
-    low:  {beetle_shell: [2, 2, 2]}
-    mid:  {beetle_shell: [2, 3, 3], moss_fiber: [1, 2, 2]}
-    high: {beetle_shell: [3, 4, 5, 6], moss_fiber: [2, 2, 3, 4], dim_essence: [2, 3, 3, 4]}
+    low:  {beetle_shell: [1, 1, 1]}
+    mid:  {beetle_shell: [1, 2, 2], copper_ingot: [1, 1, 1]}
+    high: {beetle_shell: [2, 2, 3, 3], copper_ingot: [1, 1, 2, 2], alpha_moss_crest: [1, 1, 2, 2]}
+  wayfarer_boots:  # 길잡이 장화 · 신발 · 정예 · 대장간 → 제작 재료 + 나오는 곳 드롭 (P·S 바꿈 — 겹침 피함)
+    low:  {beetle_shell: [1, 1, 1]}
+    mid:  {beetle_shell: [1, 2, 2], copper_ingot: [1, 1, 1]}
+    high: {beetle_shell: [2, 2, 3, 3], copper_ingot: [1, 1, 2, 2], dim_essence: [2, 3, 3, 4]}
   oak_round_shield:  # 참나무 원형 방패 · 방패 · 정예 · 대장간 → 제작 재료 + 나오는 곳 드롭
-    low:  {beetle_shell: [2, 3, 3]}
-    mid:  {beetle_shell: [3, 4, 4], moss_fiber: [2, 2, 3]}
-    high: {beetle_shell: [4, 5, 6, 7], moss_fiber: [3, 3, 4, 5], alpha_moss_crest: [1, 1, 2, 2]}
+    low:  {moss_fiber: [2, 3, 3]}
+    mid:  {moss_fiber: [3, 4, 4], copper_ingot: [1, 1, 2]}
+    high: {moss_fiber: [4, 5, 6, 7], copper_ingot: [2, 2, 2, 3], alpha_moss_crest: [1, 1, 2, 2]}
 
-  # ════ 지하 2층 — 일반 녹슨 철괴 · 갱도 거미줄 · 정예 감독관의 휘장 · 정수 희미한 미궁 정수 · 핵 여왕의 방적돌기 ════
+  # ════ 지하 2층 — 일반 갱도 송곳니 · 갱도 거미줄 · 정예 감독관의 휘장 · 정수 희미한 미궁 정수 · 핵 여왕의 방적돌기 ════
   minewarden_mace:  # 갱도 감시자의 철퇴 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭
-    low:  {rusted_iron: [3, 3, 4]}
-    mid:  {rusted_iron: [4, 4, 5], spider_silk: [2, 2, 3]}
-    high: {rusted_iron: [5, 6, 8, 9], spider_silk: [3, 3, 4, 5], foreman_badge: [1, 1, 2, 2]}
-  ore_splitter_axe:  # 광맥 쪼개개 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (R 바꿈 — 겹침 피함)
-    low:  {rusted_iron: [3, 3, 4]}
-    mid:  {rusted_iron: [4, 4, 5], spider_silk: [2, 2, 3]}
-    high: {rusted_iron: [5, 6, 8, 9], spider_silk: [3, 3, 4, 5], dim_essence: [2, 3, 3, 4]}
+    low:  {tunnel_fang: [2, 2, 3]}
+    mid:  {tunnel_fang: [3, 3, 4], iron_ingot: [1, 1, 2]}
+    high: {tunnel_fang: [4, 5, 6, 7], iron_ingot: [2, 2, 3, 3], foreman_badge: [1, 1, 2, 2]}
+  ore_splitter_axe:  # 광맥 쪼개개 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭
+    low:  {tunnel_fang: [2, 2, 3]}
+    mid:  {tunnel_fang: [3, 3, 4], iron_ingot: [1, 1, 2]}
+    high: {tunnel_fang: [4, 5, 6, 7], iron_ingot: [2, 2, 3, 3], dim_essence: [2, 3, 3, 4]}
   skitter_fang:  # 갱도 거미 송곳니 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P·S 바꿈 — 겹침 피함)
-    low:  {spider_silk: [2, 2, 3]}
-    mid:  {spider_silk: [3, 3, 4], rusted_iron: [3, 3, 4]}
-    high: {spider_silk: [4, 5, 6, 7], rusted_iron: [4, 4, 5, 6], foreman_badge: [1, 1, 2, 2]}
+    low:  {spider_silk: [2, 2, 2]}
+    mid:  {spider_silk: [2, 2, 3], iron_ingot: [1, 1, 2]}
+    high: {spider_silk: [3, 4, 5, 5], iron_ingot: [2, 2, 3, 3], foreman_badge: [1, 1, 2, 2]}
   miners_great_maul:  # 광부의 대형 망치 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P +1 — 겹침 피함)
-    low:  {rusted_iron: [4, 4, 5]}
-    mid:  {rusted_iron: [5, 5, 6], spider_silk: [2, 2, 3]}
-    high: {rusted_iron: [6, 7, 9, 10], spider_silk: [3, 3, 4, 5], foreman_badge: [1, 1, 2, 2]}
+    low:  {tunnel_fang: [3, 3, 4]}
+    mid:  {tunnel_fang: [4, 4, 5], iron_ingot: [1, 1, 2]}
+    high: {tunnel_fang: [5, 6, 7, 8], iron_ingot: [2, 2, 3, 3], foreman_badge: [1, 1, 2, 2]}
   ore_kris:  # 광맥 물결검 · 근접 무기 · 금고·미믹 → 드롭 재료 (P +1 — 겹침 피함)
-    low:  {rusted_iron: [4, 4, 5]}
-    mid:  {rusted_iron: [5, 5, 6], spider_silk: [2, 2, 3]}
-    high: {rusted_iron: [6, 7, 9, 10], spider_silk: [3, 3, 4, 5], dim_essence: [2, 3, 3, 4]}
+    low:  {tunnel_fang: [3, 3, 4]}
+    mid:  {tunnel_fang: [4, 4, 5], iron_ingot: [1, 1, 2]}
+    high: {tunnel_fang: [5, 6, 7, 8], iron_ingot: [2, 2, 3, 3], dim_essence: [2, 3, 3, 4]}
   ore_morning_star:  # 광석 모닝스타 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P·S 바꿈, P +1 — 겹침 피함)
-    low:  {spider_silk: [3, 3, 4]}
-    mid:  {spider_silk: [4, 4, 5], rusted_iron: [3, 3, 4]}
-    high: {spider_silk: [5, 6, 7, 8], rusted_iron: [4, 4, 5, 6], foreman_badge: [1, 1, 2, 2]}
-  pit_rapier:  # 감독관의 레이피어 · 근접 무기 · 정예 → 정예 드롭 (R 바꿈, P·S 바꿈, P +1 — 겹침 피함)
-    low:  {spider_silk: [3, 3, 4]}
-    mid:  {spider_silk: [4, 4, 5], rusted_iron: [3, 3, 4]}
-    high: {spider_silk: [5, 6, 7, 8], rusted_iron: [4, 4, 5, 6], dim_essence: [2, 3, 3, 4]}
+    low:  {spider_silk: [3, 3, 3]}
+    mid:  {spider_silk: [3, 3, 4], iron_ingot: [1, 1, 2]}
+    high: {spider_silk: [4, 5, 6, 6], iron_ingot: [2, 2, 3, 3], foreman_badge: [1, 1, 2, 2]}
+  pit_rapier:  # 감독관의 레이피어 · 근접 무기 · 정예 → 정예 드롭 (P·S 바꿈, P +1 — 겹침 피함)
+    low:  {spider_silk: [3, 3, 3]}
+    mid:  {spider_silk: [3, 3, 4], iron_ingot: [1, 1, 2]}
+    high: {spider_silk: [4, 5, 6, 6], iron_ingot: [2, 2, 3, 3], dim_essence: [2, 3, 3, 4]}
   silk_sabre:  # 은실 사브르 · 근접 무기 · 시련방 → 상자 드롭 (P +1, S +1 — 겹침 피함)
-    low:  {rusted_iron: [4, 4, 5]}
-    mid:  {rusted_iron: [5, 5, 6], spider_silk: [3, 3, 4]}
-    high: {rusted_iron: [6, 7, 9, 10], spider_silk: [4, 4, 5, 6], foreman_badge: [1, 1, 2, 2]}
-  silk_sickle:  # 은실 낫 · 근접 무기 · 대장간 → 제작 재료 (R 바꿈, S +2 — 겹침 피함)
-    low:  {spider_silk: [2, 2, 3]}
-    mid:  {spider_silk: [3, 3, 4], rusted_iron: [5, 5, 6]}
-    high: {spider_silk: [4, 5, 6, 7], rusted_iron: [6, 6, 7, 8], dim_essence: [2, 3, 3, 4]}
+    low:  {tunnel_fang: [3, 3, 4]}
+    mid:  {tunnel_fang: [4, 4, 5], iron_ingot: [2, 2, 3]}
+    high: {tunnel_fang: [5, 6, 7, 8], iron_ingot: [3, 3, 4, 4], foreman_badge: [1, 1, 2, 2]}
+  silk_sickle:  # 은실 낫 · 근접 무기 · 대장간 → 제작 재료 (S +2 — 겹침 피함)
+    low:  {spider_silk: [2, 2, 2]}
+    mid:  {spider_silk: [2, 2, 3], iron_ingot: [3, 3, 4]}
+    high: {spider_silk: [3, 4, 5, 5], iron_ingot: [4, 4, 5, 5], dim_essence: [2, 3, 3, 4]}
   silkcut_flamberge:  # 거미줄 끊는 플랑베르주 · 근접 무기 · 특별 시련 → 드롭 재료 (P +1, S +1 — 겹침 피함)
-    low:  {rusted_iron: [4, 4, 5]}
-    mid:  {rusted_iron: [5, 5, 6], spider_silk: [3, 3, 4]}
-    high: {rusted_iron: [6, 7, 9, 10], spider_silk: [4, 4, 5, 6], dim_essence: [2, 3, 3, 4]}
+    low:  {tunnel_fang: [3, 3, 4]}
+    mid:  {tunnel_fang: [4, 4, 5], iron_ingot: [2, 2, 3]}
+    high: {tunnel_fang: [5, 6, 7, 8], iron_ingot: [3, 3, 4, 4], dim_essence: [2, 3, 3, 4]}
   silkguard_falchion:  # 은실 손잡이 팔시온 · 근접 무기 · 대장간 → 제작 재료 (P·S 바꿈, S +2 — 겹침 피함)
-    low:  {rusted_iron: [3, 3, 4]}
-    mid:  {rusted_iron: [4, 4, 5], spider_silk: [4, 4, 5]}
-    high: {rusted_iron: [5, 6, 8, 9], spider_silk: [5, 5, 6, 7], foreman_badge: [1, 1, 2, 2]}
-  silkspan_glaive:  # 은실 언월도 · 근접 무기 · 대장간 → 제작 재료 (R 바꿈, P·S 바꿈, S +2 — 겹침 피함)
-    low:  {rusted_iron: [3, 3, 4]}
-    mid:  {rusted_iron: [4, 4, 5], spider_silk: [4, 4, 5]}
-    high: {rusted_iron: [5, 6, 8, 9], spider_silk: [5, 5, 6, 7], dim_essence: [2, 3, 3, 4]}
+    low:  {tunnel_fang: [2, 2, 3]}
+    mid:  {tunnel_fang: [3, 3, 4], iron_ingot: [3, 3, 4]}
+    high: {tunnel_fang: [4, 5, 6, 7], iron_ingot: [4, 4, 5, 5], foreman_badge: [1, 1, 2, 2]}
+  silkspan_glaive:  # 은실 언월도 · 근접 무기 · 대장간 → 제작 재료 (P·S 바꿈, S +2 — 겹침 피함)
+    low:  {tunnel_fang: [2, 2, 3]}
+    mid:  {tunnel_fang: [3, 3, 4], iron_ingot: [3, 3, 4]}
+    high: {tunnel_fang: [4, 5, 6, 7], iron_ingot: [4, 4, 5, 5], dim_essence: [2, 3, 3, 4]}
   skitter_stiletto:  # 갱도 거미 스틸레토 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P·S 바꿈, P +1, S +1 — 겹침 피함)
-    low:  {spider_silk: [3, 3, 4]}
-    mid:  {spider_silk: [4, 4, 5], rusted_iron: [4, 4, 5]}
-    high: {spider_silk: [5, 6, 7, 8], rusted_iron: [5, 5, 6, 7], foreman_badge: [1, 1, 2, 2]}
-  silkqueen_fang:  # 베셀라의 독니 · 근접 무기 · 보스 고유 → 보스 드롭 (P +1, S +4 — 일반 장비 이상)
-    low:  {rusted_iron: [4, 4, 5]}
-    mid:  {rusted_iron: [5, 5, 6], spider_silk: [6, 6, 7]}
-    high: {rusted_iron: [6, 7, 9, 10], spider_silk: [7, 7, 8, 9], foreman_badge: [1, 2, 0, 0], silk_queen_spinneret: [0, 0, 1, 2]}
-  silkqueen_reaper:  # 베셀라의 거미다리 큰낫 · 근접 무기 · 보스 고유 → 보스 드롭 (P +2, S +4 — 일반 장비 이상 · 겹침 피함)
-    low:  {rusted_iron: [5, 5, 6]}
-    mid:  {rusted_iron: [6, 6, 7], spider_silk: [6, 6, 7]}
-    high: {rusted_iron: [7, 8, 10, 11], spider_silk: [7, 7, 8, 9], foreman_badge: [1, 2, 0, 0], silk_queen_spinneret: [0, 0, 1, 2]}
-  silkstring_recurve:  # 은실 시위 만곡궁 · 원거리 무기 · 몬스터·상자 → 몬스터·상자 드롭 (R 바꿈 — 겹침 피함)
-    low:  {spider_silk: [2, 2, 3]}
-    mid:  {spider_silk: [3, 3, 4], rusted_iron: [3, 3, 4]}
-    high: {spider_silk: [4, 5, 6, 7], rusted_iron: [4, 4, 5, 6], dim_essence: [2, 3, 3, 4]}
-  pit_bone_bow:  # 감독관의 뼈 활 · 원거리 무기 · 정예 → 정예 드롭 (R 바꿈, P +1, S +1 — 겹침 피함)
-    low:  {spider_silk: [3, 3, 4]}
-    mid:  {spider_silk: [4, 4, 5], rusted_iron: [4, 4, 5]}
-    high: {spider_silk: [5, 6, 7, 8], rusted_iron: [5, 5, 6, 7], dim_essence: [2, 3, 3, 4]}
+    low:  {spider_silk: [3, 3, 3]}
+    mid:  {spider_silk: [3, 3, 4], iron_ingot: [2, 2, 3]}
+    high: {spider_silk: [4, 5, 6, 6], iron_ingot: [3, 3, 4, 4], foreman_badge: [1, 1, 2, 2]}
+  silkqueen_fang:  # 베셀라의 독니 · 근접 무기 · 보스 고유 → 보스 드롭 (P·S 바꿈, P +3 — 일반 장비 이상)
+    low:  {spider_silk: [5, 5, 5]}
+    mid:  {spider_silk: [5, 5, 6], iron_ingot: [1, 1, 2]}
+    high: {spider_silk: [6, 7, 8, 8], iron_ingot: [2, 2, 3, 3], foreman_badge: [1, 2, 0, 0], silk_queen_spinneret: [0, 0, 1, 2]}
+  silkqueen_reaper:  # 베셀라의 거미다리 큰낫 · 근접 무기 · 보스 고유 → 보스 드롭 (P +4 — 일반 장비 이상 · 겹침 피함)
+    low:  {tunnel_fang: [6, 6, 7]}
+    mid:  {tunnel_fang: [7, 7, 8], iron_ingot: [1, 1, 2]}
+    high: {tunnel_fang: [8, 9, 10, 11], iron_ingot: [2, 2, 3, 3], foreman_badge: [1, 2, 0, 0], silk_queen_spinneret: [0, 0, 1, 2]}
+  silkstring_recurve:  # 은실 시위 만곡궁 · 원거리 무기 · 몬스터·상자 → 몬스터·상자 드롭
+    low:  {spider_silk: [2, 2, 2]}
+    mid:  {spider_silk: [2, 2, 3], iron_ingot: [1, 1, 2]}
+    high: {spider_silk: [3, 4, 5, 5], iron_ingot: [2, 2, 3, 3], dim_essence: [2, 3, 3, 4]}
+  pit_bone_bow:  # 감독관의 뼈 활 · 원거리 무기 · 정예 → 정예 드롭 (P +1, S +1 — 겹침 피함)
+    low:  {spider_silk: [3, 3, 3]}
+    mid:  {spider_silk: [3, 3, 4], iron_ingot: [2, 2, 3]}
+    high: {spider_silk: [4, 5, 6, 6], iron_ingot: [3, 3, 4, 4], dim_essence: [2, 3, 3, 4]}
   silk_twin_bow:  # 은실 쌍현 활 · 원거리 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P +1, S +2 — 겹침 피함)
-    low:  {spider_silk: [3, 3, 4]}
-    mid:  {spider_silk: [4, 4, 5], rusted_iron: [5, 5, 6]}
-    high: {spider_silk: [5, 6, 7, 8], rusted_iron: [6, 6, 7, 8], foreman_badge: [1, 1, 2, 2]}
+    low:  {spider_silk: [3, 3, 3]}
+    mid:  {spider_silk: [3, 3, 4], iron_ingot: [3, 3, 4]}
+    high: {spider_silk: [4, 5, 6, 6], iron_ingot: [4, 4, 5, 5], foreman_badge: [1, 1, 2, 2]}
   skitter_bladebow:  # 갱도 거미 날활 · 원거리 무기 · 대장간 → 제작 재료 (P·S 바꿈, S +1 — 겹침 피함)
-    low:  {rusted_iron: [3, 3, 4]}
-    mid:  {rusted_iron: [4, 4, 5], spider_silk: [3, 3, 4]}
-    high: {rusted_iron: [5, 6, 8, 9], spider_silk: [4, 4, 5, 6], foreman_badge: [1, 1, 2, 2]}
-  skitter_longbow:  # 거미줄 장궁 · 원거리 무기 · 시련방 → 상자 드롭 (R 바꿈, P +1, S +2 — 겹침 피함)
-    low:  {spider_silk: [3, 3, 4]}
-    mid:  {spider_silk: [4, 4, 5], rusted_iron: [5, 5, 6]}
-    high: {spider_silk: [5, 6, 7, 8], rusted_iron: [6, 6, 7, 8], dim_essence: [2, 3, 3, 4]}
+    low:  {tunnel_fang: [2, 2, 3]}
+    mid:  {tunnel_fang: [3, 3, 4], iron_ingot: [2, 2, 3]}
+    high: {tunnel_fang: [4, 5, 6, 7], iron_ingot: [3, 3, 4, 4], foreman_badge: [1, 1, 2, 2]}
+  skitter_longbow:  # 거미줄 장궁 · 원거리 무기 · 시련방 → 상자 드롭 (P +1, S +2 — 겹침 피함)
+    low:  {spider_silk: [3, 3, 3]}
+    mid:  {spider_silk: [3, 3, 4], iron_ingot: [3, 3, 4]}
+    high: {spider_silk: [4, 5, 6, 6], iron_ingot: [4, 4, 5, 5], dim_essence: [2, 3, 3, 4]}
   miners_lamp_censer:  # 광부의 등불 향로 · 시전 무기 · 몬스터·상자 → 몬스터·상자 드롭 (S +1 — 겹침 피함)
-    low:  {spider_silk: [2, 2, 3]}
-    mid:  {spider_silk: [3, 3, 4], rusted_iron: [4, 4, 5]}
-    high: {spider_silk: [4, 5, 6, 7], rusted_iron: [5, 5, 6, 7], foreman_badge: [1, 1, 2, 2]}
-  ore_crystal_staff:  # 광석 수정 지팡이 · 시전 무기 · 몬스터·상자 → 몬스터·상자 드롭 (R 바꿈, S +1 — 겹침 피함)
-    low:  {spider_silk: [2, 2, 3]}
-    mid:  {spider_silk: [3, 3, 4], rusted_iron: [4, 4, 5]}
-    high: {spider_silk: [4, 5, 6, 7], rusted_iron: [5, 5, 6, 7], dim_essence: [2, 3, 3, 4]}
-  miners_bell_scepter:  # 갱도 경보종 홀 · 시전 무기 · 대장간 → 제작 재료 (R 바꿈, P·S 바꿈, S +1 — 겹침 피함)
-    low:  {rusted_iron: [3, 3, 4]}
-    mid:  {rusted_iron: [4, 4, 5], spider_silk: [3, 3, 4]}
-    high: {rusted_iron: [5, 6, 8, 9], spider_silk: [4, 4, 5, 6], dim_essence: [2, 3, 3, 4]}
+    low:  {spider_silk: [2, 2, 2]}
+    mid:  {spider_silk: [2, 2, 3], iron_ingot: [2, 2, 3]}
+    high: {spider_silk: [3, 4, 5, 5], iron_ingot: [3, 3, 4, 4], foreman_badge: [1, 1, 2, 2]}
+  ore_crystal_staff:  # 광석 수정 지팡이 · 시전 무기 · 몬스터·상자 → 몬스터·상자 드롭 (S +1 — 겹침 피함)
+    low:  {spider_silk: [2, 2, 2]}
+    mid:  {spider_silk: [2, 2, 3], iron_ingot: [2, 2, 3]}
+    high: {spider_silk: [3, 4, 5, 5], iron_ingot: [3, 3, 4, 4], dim_essence: [2, 3, 3, 4]}
+  miners_bell_scepter:  # 갱도 경보종 홀 · 시전 무기 · 대장간 → 제작 재료 (P·S 바꿈, S +1 — 겹침 피함)
+    low:  {tunnel_fang: [2, 2, 3]}
+    mid:  {tunnel_fang: [3, 3, 4], iron_ingot: [2, 2, 3]}
+    high: {tunnel_fang: [4, 5, 6, 7], iron_ingot: [3, 3, 4, 4], dim_essence: [2, 3, 3, 4]}
   miners_fork_staff:  # 광부의 갈래 지팡이 · 시전 무기 · 대장간 → 제작 재료 (S +2 — 겹침 피함)
-    low:  {spider_silk: [2, 2, 3]}
-    mid:  {spider_silk: [3, 3, 4], rusted_iron: [5, 5, 6]}
-    high: {spider_silk: [4, 5, 6, 7], rusted_iron: [6, 6, 7, 8], foreman_badge: [1, 1, 2, 2]}
+    low:  {spider_silk: [2, 2, 2]}
+    mid:  {spider_silk: [2, 2, 3], iron_ingot: [3, 3, 4]}
+    high: {spider_silk: [3, 4, 5, 5], iron_ingot: [4, 4, 5, 5], foreman_badge: [1, 1, 2, 2]}
   miners_lamp_crook:  # 광부의 등롱 지팡이 · 시전 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P·S 바꿈, P +1, S +2 — 겹침 피함)
-    low:  {rusted_iron: [4, 4, 5]}
-    mid:  {rusted_iron: [5, 5, 6], spider_silk: [4, 4, 5]}
-    high: {rusted_iron: [6, 7, 9, 10], spider_silk: [5, 5, 6, 7], foreman_badge: [1, 1, 2, 2]}
+    low:  {tunnel_fang: [3, 3, 4]}
+    mid:  {tunnel_fang: [4, 4, 5], iron_ingot: [3, 3, 4]}
+    high: {tunnel_fang: [5, 6, 7, 8], iron_ingot: [4, 4, 5, 5], foreman_badge: [1, 1, 2, 2]}
   ore_thurible_rod:  # 광석 향로봉 · 시전 무기 · 금고·미믹 → 드롭 재료 (P·S 바꿈, P +1, S +2 — 겹침 피함)
-    low:  {rusted_iron: [4, 4, 5]}
-    mid:  {rusted_iron: [5, 5, 6], spider_silk: [4, 4, 5]}
-    high: {rusted_iron: [6, 7, 9, 10], spider_silk: [5, 5, 6, 7], dim_essence: [2, 3, 3, 4]}
-  silk_antler_staff:  # 은실 감긴 사슴뿔 지팡이 · 시전 무기 · 기타 → 드롭 재료 (R 바꿈 — 겹침 피함)
-    low:  {spider_silk: [2, 2, 3]}
-    mid:  {spider_silk: [3, 3, 4], rusted_iron: [3, 3, 4]}
-    high: {spider_silk: [4, 5, 6, 7], rusted_iron: [4, 4, 5, 6], labyrinth_essence: [1, 1, 1, 2]}
-  silk_chime_rod:  # 은실 풍경 홀 · 시전 무기 · 특별 시련 → 드롭 재료 + 정제 정수 (R 바꿈, P·S 바꿈 — 겹침 피함)
-    low:  {rusted_iron: [3, 3, 4]}
-    mid:  {rusted_iron: [4, 4, 5], spider_silk: [2, 2, 3]}
-    high: {rusted_iron: [5, 6, 8, 9], spider_silk: [3, 3, 4, 5], labyrinth_essence: [1, 1, 1, 2]}
-  silkknot_bell_scepter:  # 은실 매듭 종 홀 · 시전 무기 · 시련방 → 상자 드롭 (R 바꿈, S +1 — 겹침 피함)
-    low:  {spider_silk: [2, 2, 3]}
-    mid:  {spider_silk: [3, 3, 4], rusted_iron: [4, 4, 5]}
-    high: {spider_silk: [4, 5, 6, 7], rusted_iron: [5, 5, 6, 7], labyrinth_essence: [1, 1, 1, 2]}
-  silkqueen_spindle_censer:  # 실잣는 물렛가락 향로 · 시전 무기 · 보스 고유 → 보스 드롭 (P +3, S +2 — 일반 장비 이상)
-    low:  {spider_silk: [5, 5, 6]}
-    mid:  {spider_silk: [6, 6, 7], rusted_iron: [5, 5, 6]}
-    high: {spider_silk: [7, 8, 9, 10], rusted_iron: [6, 6, 7, 8], foreman_badge: [1, 2, 0, 0], silk_queen_spinneret: [0, 0, 1, 2]}
-  pit_foreman_helm:  # 감독관의 갱도 투구 · 투구 · 정예 · 대장간 → 제작 재료
+    low:  {tunnel_fang: [3, 3, 4]}
+    mid:  {tunnel_fang: [4, 4, 5], iron_ingot: [3, 3, 4]}
+    high: {tunnel_fang: [5, 6, 7, 8], iron_ingot: [4, 4, 5, 5], dim_essence: [2, 3, 3, 4]}
+  silk_antler_staff:  # 은실 감긴 사슴뿔 지팡이 · 시전 무기 · 기타 → 드롭 재료
     low:  {spider_silk: [2, 2, 2]}
-    mid:  {spider_silk: [2, 3, 3], rusted_iron: [1, 3, 3]}
-    high: {spider_silk: [3, 4, 5, 6], rusted_iron: [3, 3, 4, 5], dim_essence: [2, 3, 3, 4]}
-  silkweaver_helm:  # 직조사의 은실 관 · 투구 · 정예 · 대장간 → 제작 재료 (P·S 바꿈 — 겹침 피함)
-    low:  {rusted_iron: [3, 3, 3]}
-    mid:  {rusted_iron: [3, 4, 4], spider_silk: [1, 2, 2]}
-    high: {rusted_iron: [4, 5, 6, 8], spider_silk: [2, 2, 3, 4], dim_essence: [2, 3, 3, 4]}
-  webrunner_helm:  # 잠행자의 거미줄 두건 · 투구 · 정예 · 대장간 → 제작 재료 (P·S 바꿈, S +1 — 겹침 피함)
+    mid:  {spider_silk: [2, 2, 3], iron_ingot: [1, 1, 2]}
+    high: {spider_silk: [3, 4, 5, 5], iron_ingot: [2, 2, 3, 3], labyrinth_essence: [1, 1, 1, 2]}
+  silk_chime_rod:  # 은실 풍경 홀 · 시전 무기 · 특별 시련 → 드롭 재료 (P·S 바꿈 — 겹침 피함)
+    low:  {tunnel_fang: [2, 2, 3]}
+    mid:  {tunnel_fang: [3, 3, 4], iron_ingot: [1, 1, 2]}
+    high: {tunnel_fang: [4, 5, 6, 7], iron_ingot: [2, 2, 3, 3], labyrinth_essence: [1, 1, 1, 2]}
+  silkknot_bell_scepter:  # 은실 매듭 종 홀 · 시전 무기 · 시련방 → 상자 드롭 (S +1 — 겹침 피함)
     low:  {spider_silk: [2, 2, 2]}
-    mid:  {spider_silk: [2, 3, 3], rusted_iron: [2, 4, 4]}
-    high: {spider_silk: [3, 4, 5, 6], rusted_iron: [4, 4, 5, 6], dim_essence: [2, 3, 3, 4]}
-  silkqueen_veil:  # 베셀라의 은실 면사포 · 투구 · 보스 고유 · 대장간 → 제작 재료 + 나오는 곳 드롭 (P·S 바꿈, S +2 — 일반 장비 이상)
-    low:  {rusted_iron: [3, 3, 3]}
-    mid:  {rusted_iron: [3, 4, 4], spider_silk: [3, 4, 4]}
-    high: {rusted_iron: [4, 5, 6, 8], spider_silk: [4, 4, 5, 6], foreman_badge: [1, 2, 0, 0], silk_queen_spinneret: [0, 0, 1, 2]}
-  pit_foreman_chest:  # 감독관의 철판 흉갑 · 흉갑 · 정예 · 대장간 → 제작 재료 (R 바꿈, P·S 바꿈 — 겹침 피함)
-    low:  {rusted_iron: [3, 3, 4]}
-    mid:  {rusted_iron: [4, 4, 5], spider_silk: [2, 2, 2]}
-    high: {rusted_iron: [5, 5, 6, 8], spider_silk: [2, 3, 3, 4], dim_essence: [2, 3, 3, 4]}
-  silkweaver_chest:  # 직조사의 은실 로브 · 흉갑 · 정예 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
-    low:  {spider_silk: [2, 2, 3]}
-    mid:  {spider_silk: [3, 3, 4], rusted_iron: [4, 4, 4]}
-    high: {spider_silk: [4, 4, 5, 6], rusted_iron: [4, 5, 5, 6], foreman_badge: [1, 1, 2, 2]}
-  webrunner_chest:  # 잠행자의 은실 조끼 · 흉갑 · 정예 · 대장간 → 제작 재료
-    low:  {rusted_iron: [3, 3, 4]}
-    mid:  {rusted_iron: [4, 4, 5], spider_silk: [2, 2, 2]}
-    high: {rusted_iron: [5, 5, 6, 8], spider_silk: [2, 3, 3, 4], foreman_badge: [1, 1, 2, 2]}
-  pit_foreman_legs:  # 감독관의 철판 다리 보호대 · 하의 · 정예 · 대장간 → 제작 재료
-    low:  {spider_silk: [2, 2, 3]}
-    mid:  {spider_silk: [3, 3, 4], rusted_iron: [3, 3, 3]}
-    high: {spider_silk: [4, 4, 5, 6], rusted_iron: [3, 4, 4, 5], foreman_badge: [1, 1, 2, 2]}
-  silkweaver_legs:  # 직조사의 은실 치마 · 하의 · 정예 · 대장간 → 제작 재료 (R 바꿈 — 겹침 피함)
-    low:  {spider_silk: [2, 2, 3]}
-    mid:  {spider_silk: [3, 3, 4], rusted_iron: [3, 3, 3]}
-    high: {spider_silk: [4, 4, 5, 6], rusted_iron: [3, 4, 4, 5], dim_essence: [2, 3, 3, 4]}
-  webrunner_legs:  # 잠행자의 은실 바지 · 하의 · 정예 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
-    low:  {rusted_iron: [3, 3, 4]}
-    mid:  {rusted_iron: [4, 4, 5], spider_silk: [3, 3, 3]}
-    high: {rusted_iron: [5, 5, 6, 8], spider_silk: [3, 4, 4, 5], foreman_badge: [1, 1, 2, 2]}
-  pit_foreman_boots:  # 감독관의 징 박은 장화 · 신발 · 정예 · 대장간 → 제작 재료 (S +2 — 겹침 피함)
+    mid:  {spider_silk: [2, 2, 3], iron_ingot: [2, 2, 3]}
+    high: {spider_silk: [3, 4, 5, 5], iron_ingot: [3, 3, 4, 4], labyrinth_essence: [1, 1, 1, 2]}
+  silkqueen_spindle_censer:  # 실잣는 물렛가락 향로 · 시전 무기 · 보스 고유 → 보스 드롭 (P +2, S +2 — 일반 장비 이상 · 겹침 피함)
+    low:  {spider_silk: [4, 4, 4]}
+    mid:  {spider_silk: [4, 4, 5], iron_ingot: [3, 3, 4]}
+    high: {spider_silk: [5, 6, 7, 7], iron_ingot: [4, 4, 5, 5], foreman_badge: [1, 2, 0, 0], silk_queen_spinneret: [0, 0, 1, 2]}
+  pit_foreman_helm:  # 감독관의 갱도 투구 · 투구 · 정예 · 대장간 → 제작 재료 (P·S 바꿈, S +1 — 겹침 피함)
     low:  {spider_silk: [2, 2, 2]}
-    mid:  {spider_silk: [2, 3, 3], rusted_iron: [3, 5, 5]}
-    high: {spider_silk: [3, 4, 5, 6], rusted_iron: [5, 5, 6, 7], dim_essence: [2, 3, 3, 4]}
-  silkweaver_boots:  # 직조사의 은실 신 · 신발 · 정예 · 대장간 → 제작 재료 (P·S 바꿈, S +2 — 겹침 피함)
-    low:  {rusted_iron: [3, 3, 3]}
-    mid:  {rusted_iron: [3, 4, 4], spider_silk: [3, 4, 4]}
-    high: {rusted_iron: [4, 5, 6, 8], spider_silk: [4, 4, 5, 6], dim_essence: [2, 3, 3, 4]}
-  webrunner_boots:  # 잠행자의 거미발 신 · 신발 · 정예 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
-    low:  {rusted_iron: [3, 3, 3]}
-    mid:  {rusted_iron: [3, 4, 4], spider_silk: [2, 3, 3]}
-    high: {rusted_iron: [4, 5, 6, 8], spider_silk: [3, 3, 4, 5], dim_essence: [2, 3, 3, 4]}
+    mid:  {spider_silk: [2, 2, 2], iron_ingot: [2, 2, 2]}
+    high: {spider_silk: [2, 3, 4, 5], iron_ingot: [2, 2, 3, 4], dim_essence: [2, 3, 3, 4]}
+  silkweaver_helm:  # 직조사의 은실 관 · 투구 · 정예 · 대장간 → 제작 재료
+    low:  {spider_silk: [2, 2, 2]}
+    mid:  {spider_silk: [2, 2, 2], iron_ingot: [1, 1, 1]}
+    high: {spider_silk: [2, 3, 4, 5], iron_ingot: [1, 1, 2, 3], dim_essence: [2, 3, 3, 4]}
+  webrunner_helm:  # 잠행자의 거미줄 두건 · 투구 · 정예 · 대장간 → 제작 재료 (P·S 바꿈 — 겹침 피함)
+    low:  {tunnel_fang: [2, 2, 2]}
+    mid:  {tunnel_fang: [2, 3, 3], iron_ingot: [1, 1, 1]}
+    high: {tunnel_fang: [3, 4, 5, 6], iron_ingot: [1, 1, 2, 3], dim_essence: [2, 3, 3, 4]}
+  silkqueen_veil:  # 베셀라의 은실 면사포 · 투구 · 보스 고유 · 대장간 → 제작 재료 + 나오는 곳 드롭 (P +1 — 일반 장비 이상)
+    low:  {spider_silk: [3, 3, 3]}
+    mid:  {spider_silk: [3, 3, 3], iron_ingot: [1, 1, 1]}
+    high: {spider_silk: [3, 4, 5, 6], iron_ingot: [1, 1, 2, 3], foreman_badge: [1, 2, 0, 0], silk_queen_spinneret: [0, 0, 1, 2]}
+  pit_foreman_chest:  # 감독관의 철판 흉갑 · 흉갑 · 정예 · 대장간 → 제작 재료
+    low:  {tunnel_fang: [2, 2, 3]}
+    mid:  {tunnel_fang: [3, 3, 4], iron_ingot: [1, 1, 1]}
+    high: {tunnel_fang: [4, 4, 5, 6], iron_ingot: [1, 2, 2, 3], dim_essence: [2, 3, 3, 4]}
+  silkweaver_chest:  # 직조사의 은실 로브 · 흉갑 · 정예 · 대장간 → 제작 재료 (P·S 바꿈 — 겹침 피함)
+    low:  {tunnel_fang: [2, 2, 3]}
+    mid:  {tunnel_fang: [3, 3, 4], iron_ingot: [1, 1, 1]}
+    high: {tunnel_fang: [4, 4, 5, 6], iron_ingot: [1, 2, 2, 3], foreman_badge: [1, 1, 2, 2]}
+  webrunner_chest:  # 잠행자의 은실 조끼 · 흉갑 · 정예 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
+    low:  {spider_silk: [2, 2, 2]}
+    mid:  {spider_silk: [2, 2, 3], iron_ingot: [2, 2, 2]}
+    high: {spider_silk: [3, 3, 4, 5], iron_ingot: [2, 3, 3, 4], foreman_badge: [1, 1, 2, 2]}
+  pit_foreman_legs:  # 감독관의 철판 다리 보호대 · 하의 · 정예 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
+    low:  {tunnel_fang: [2, 2, 3]}
+    mid:  {tunnel_fang: [3, 3, 4], iron_ingot: [2, 2, 2]}
+    high: {tunnel_fang: [4, 4, 5, 6], iron_ingot: [2, 3, 3, 4], foreman_badge: [1, 1, 2, 2]}
+  silkweaver_legs:  # 직조사의 은실 치마 · 하의 · 정예 · 대장간 → 제작 재료
+    low:  {spider_silk: [2, 2, 2]}
+    mid:  {spider_silk: [2, 2, 3], iron_ingot: [1, 1, 1]}
+    high: {spider_silk: [3, 3, 4, 5], iron_ingot: [1, 2, 2, 3], dim_essence: [2, 3, 3, 4]}
+  webrunner_legs:  # 잠행자의 은실 바지 · 하의 · 정예 · 대장간 → 제작 재료
+    low:  {spider_silk: [2, 2, 2]}
+    mid:  {spider_silk: [2, 2, 3], iron_ingot: [1, 1, 1]}
+    high: {spider_silk: [3, 3, 4, 5], iron_ingot: [1, 2, 2, 3], foreman_badge: [1, 1, 2, 2]}
+  pit_foreman_boots:  # 감독관의 징 박은 장화 · 신발 · 정예 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
+    low:  {tunnel_fang: [2, 2, 2]}
+    mid:  {tunnel_fang: [2, 3, 3], iron_ingot: [2, 2, 2]}
+    high: {tunnel_fang: [3, 4, 5, 6], iron_ingot: [2, 2, 3, 4], dim_essence: [2, 3, 3, 4]}
+  silkweaver_boots:  # 직조사의 은실 신 · 신발 · 정예 · 대장간 → 제작 재료 (S +2 — 겹침 피함)
+    low:  {spider_silk: [2, 2, 2]}
+    mid:  {spider_silk: [2, 2, 2], iron_ingot: [3, 3, 3]}
+    high: {spider_silk: [2, 3, 4, 5], iron_ingot: [3, 3, 4, 5], dim_essence: [2, 3, 3, 4]}
+  webrunner_boots:  # 잠행자의 거미발 신 · 신발 · 정예 · 대장간 → 제작 재료 (P·S 바꿈, S +2 — 겹침 피함)
+    low:  {tunnel_fang: [2, 2, 2]}
+    mid:  {tunnel_fang: [2, 3, 3], iron_ingot: [3, 3, 3]}
+    high: {tunnel_fang: [3, 4, 5, 6], iron_ingot: [3, 3, 4, 5], dim_essence: [2, 3, 3, 4]}
   ironbound_kite_shield:  # 철띠 연 방패 · 방패 · 정예 · 대장간 → 제작 재료
-    low:  {rusted_iron: [3, 4, 4]}
-    mid:  {rusted_iron: [4, 5, 5], spider_silk: [2, 2, 3]}
-    high: {rusted_iron: [5, 6, 8, 9], spider_silk: [3, 3, 4, 5], foreman_badge: [1, 1, 2, 2]}
+    low:  {tunnel_fang: [2, 3, 3]}
+    mid:  {tunnel_fang: [3, 4, 4], iron_ingot: [1, 1, 2]}
+    high: {tunnel_fang: [4, 5, 6, 7], iron_ingot: [2, 2, 3, 3], foreman_badge: [1, 1, 2, 2]}
 
   # ════ 지하 3층 — 일반 포자 갓 · 균사 실 · 정예 군락체의 핵 · 정수 희미한 미궁 정수 · 핵 균사의 왕관 ════
   capsplitter_cleaver:  # 갓 가르는 참마도 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭
     low:  {spore_cap: [3, 3, 4]}
-    mid:  {spore_cap: [4, 4, 5], hypha_thread: [2, 2, 3]}
-    high: {spore_cap: [5, 6, 8, 9], hypha_thread: [3, 3, 4, 5], brood_core: [1, 1, 2, 2]}
-  spore_kris:  # 포자 물결검 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (R 바꿈 — 겹침 피함)
+    mid:  {spore_cap: [4, 4, 5], iron_ingot: [1, 1, 2]}
+    high: {spore_cap: [5, 6, 8, 9], iron_ingot: [2, 2, 3, 3], brood_core: [1, 1, 2, 2]}
+  spore_kris:  # 포자 물결검 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭
     low:  {spore_cap: [3, 3, 4]}
-    mid:  {spore_cap: [4, 4, 5], hypha_thread: [2, 2, 3]}
-    high: {spore_cap: [5, 6, 8, 9], hypha_thread: [3, 3, 4, 5], dim_essence: [2, 3, 3, 4]}
+    mid:  {spore_cap: [4, 4, 5], iron_ingot: [1, 1, 2]}
+    high: {spore_cap: [5, 6, 8, 9], iron_ingot: [2, 2, 3, 3], dim_essence: [2, 3, 3, 4]}
   sporeward_broadsword:  # 포자막이 넓은검 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P·S 바꿈 — 겹침 피함)
     low:  {hypha_thread: [2, 2, 3]}
-    mid:  {hypha_thread: [3, 3, 4], spore_cap: [3, 3, 4]}
-    high: {hypha_thread: [4, 5, 6, 7], spore_cap: [4, 4, 5, 6], brood_core: [1, 1, 2, 2]}
-  spore_warden_mace:  # 포자 수호자의 철퇴 · 근접 무기 · 정예 → 정예 드롭 (R 바꿈, S +1 — 겹침 피함)
+    mid:  {hypha_thread: [3, 3, 4], iron_ingot: [1, 1, 2]}
+    high: {hypha_thread: [4, 5, 6, 7], iron_ingot: [2, 2, 3, 3], brood_core: [1, 1, 2, 2]}
+  spore_warden_mace:  # 포자 수호자의 철퇴 · 근접 무기 · 정예 → 정예 드롭
     low:  {spore_cap: [3, 3, 4]}
-    mid:  {spore_cap: [4, 4, 5], hypha_thread: [3, 3, 4]}
-    high: {spore_cap: [5, 6, 8, 9], hypha_thread: [4, 4, 5, 6], dim_essence: [2, 3, 3, 4]}
+    mid:  {spore_cap: [4, 4, 5], silver_ingot: [1, 1, 2]}
+    high: {spore_cap: [5, 6, 8, 9], silver_ingot: [2, 2, 3, 3], dim_essence: [2, 3, 3, 4]}
   hypha_glaive:  # 균사 언월도 · 근접 무기 · 정예 → 정예 드롭 (P·S 바꿈, P +1 — 겹침 피함)
     low:  {hypha_thread: [3, 3, 4]}
-    mid:  {hypha_thread: [4, 4, 5], spore_cap: [3, 3, 4]}
-    high: {hypha_thread: [5, 6, 7, 8], spore_cap: [4, 4, 5, 6], brood_core: [1, 1, 2, 2]}
-  mycel_dirk:  # 균사 단도 · 근접 무기 · 금고·미믹 → 드롭 재료 (P·S 바꿈, P +1 — 겹침 피함)
-    low:  {hypha_thread: [3, 3, 4]}
-    mid:  {hypha_thread: [4, 4, 5], spore_cap: [3, 3, 4]}
-    high: {hypha_thread: [5, 6, 7, 8], spore_cap: [4, 4, 5, 6], dim_essence: [2, 3, 3, 4]}
+    mid:  {hypha_thread: [4, 4, 5], iron_ingot: [1, 1, 2]}
+    high: {hypha_thread: [5, 6, 7, 8], iron_ingot: [2, 2, 3, 3], brood_core: [1, 1, 2, 2]}
+  mycel_dirk:  # 균사 단도 · 근접 무기 · 금고·미믹 → 드롭 재료 (P +1 — 겹침 피함)
+    low:  {spore_cap: [4, 4, 5]}
+    mid:  {spore_cap: [5, 5, 6], iron_ingot: [1, 1, 2]}
+    high: {spore_cap: [6, 7, 9, 10], iron_ingot: [2, 2, 3, 3], dim_essence: [2, 3, 3, 4]}
   mycel_scythe:  # 균사 큰낫 · 근접 무기 · 대장간 → 제작 재료 (S +2 — 겹침 피함)
     low:  {spore_cap: [3, 3, 4]}
-    mid:  {spore_cap: [4, 4, 5], hypha_thread: [4, 4, 5]}
-    high: {spore_cap: [5, 6, 8, 9], hypha_thread: [5, 5, 6, 7], brood_core: [1, 1, 2, 2]}
+    mid:  {spore_cap: [4, 4, 5], iron_ingot: [3, 3, 4]}
+    high: {spore_cap: [5, 6, 8, 9], iron_ingot: [4, 4, 5, 5], brood_core: [1, 1, 2, 2]}
   mycel_warhammer:  # 균사 전투망치 · 근접 무기 · 시련방 → 상자 드롭 (P +1, S +1 — 겹침 피함)
     low:  {spore_cap: [4, 4, 5]}
-    mid:  {spore_cap: [5, 5, 6], hypha_thread: [3, 3, 4]}
-    high: {spore_cap: [6, 7, 9, 10], hypha_thread: [4, 4, 5, 6], brood_core: [1, 1, 2, 2]}
-  spore_flamberge:  # 포자 플랑베르주 · 근접 무기 · 특별 시련 → 드롭 재료 (P +1, S +1 — 겹침 피함)
-    low:  {spore_cap: [4, 4, 5]}
-    mid:  {spore_cap: [5, 5, 6], hypha_thread: [3, 3, 4]}
-    high: {spore_cap: [6, 7, 9, 10], hypha_thread: [4, 4, 5, 6], dim_essence: [2, 3, 3, 4]}
-  spore_katar:  # 포자 주먹칼 · 근접 무기 · 대장간 → 제작 재료 (R 바꿈, S +2 — 겹침 피함)
+    mid:  {spore_cap: [5, 5, 6], iron_ingot: [2, 2, 3]}
+    high: {spore_cap: [6, 7, 9, 10], iron_ingot: [3, 3, 4, 4], brood_core: [1, 1, 2, 2]}
+  spore_flamberge:  # 포자 플랑베르주 · 근접 무기 · 특별 시련 → 드롭 재료 (P·S 바꿈, P +1 — 겹침 피함)
+    low:  {hypha_thread: [3, 3, 4]}
+    mid:  {hypha_thread: [4, 4, 5], iron_ingot: [1, 1, 2]}
+    high: {hypha_thread: [5, 6, 7, 8], iron_ingot: [2, 2, 3, 3], dim_essence: [2, 3, 3, 4]}
+  spore_katar:  # 포자 주먹칼 · 근접 무기 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
     low:  {spore_cap: [3, 3, 4]}
-    mid:  {spore_cap: [4, 4, 5], hypha_thread: [4, 4, 5]}
-    high: {spore_cap: [5, 6, 8, 9], hypha_thread: [5, 5, 6, 7], dim_essence: [2, 3, 3, 4]}
+    mid:  {spore_cap: [4, 4, 5], iron_ingot: [2, 2, 3]}
+    high: {spore_cap: [5, 6, 8, 9], iron_ingot: [3, 3, 4, 4], dim_essence: [2, 3, 3, 4]}
   spore_stiletto:  # 포자 스틸레토 · 근접 무기 · 시련방 → 상자 드롭 (P·S 바꿈, P +1, S +1 — 겹침 피함)
     low:  {hypha_thread: [3, 3, 4]}
-    mid:  {hypha_thread: [4, 4, 5], spore_cap: [4, 4, 5]}
-    high: {hypha_thread: [5, 6, 7, 8], spore_cap: [5, 5, 6, 7], brood_core: [1, 1, 2, 2]}
+    mid:  {hypha_thread: [4, 4, 5], iron_ingot: [2, 2, 3]}
+    high: {hypha_thread: [5, 6, 7, 8], iron_ingot: [3, 3, 4, 4], brood_core: [1, 1, 2, 2]}
   sporecap_warhammer:  # 포자갓 망치 · 근접 무기 · 대장간 → 제작 재료 (P·S 바꿈, S +2 — 겹침 피함)
     low:  {hypha_thread: [2, 2, 3]}
-    mid:  {hypha_thread: [3, 3, 4], spore_cap: [5, 5, 6]}
-    high: {hypha_thread: [4, 5, 6, 7], spore_cap: [6, 6, 7, 8], brood_core: [1, 1, 2, 2]}
-  mycelking_guard_blade:  # 균사왕 근위 넓은검 · 근접 무기 · 보스 고유 → 보스 드롭 (P +1, S +2 — 일반 장비 이상)
-    low:  {spore_cap: [4, 4, 5]}
-    mid:  {spore_cap: [5, 5, 6], hypha_thread: [4, 4, 5]}
-    high: {spore_cap: [6, 7, 9, 10], hypha_thread: [5, 5, 6, 7], brood_core: [1, 2, 0, 0], mycelium_crown: [0, 0, 1, 2]}
-  mycelking_sporefang:  # 포자왕의 송곳 · 근접 무기 · 보스 고유 → 보스 드롭 (P +1, S +3 — 일반 장비 이상 · 겹침 피함)
-    low:  {spore_cap: [4, 4, 5]}
-    mid:  {spore_cap: [5, 5, 6], hypha_thread: [5, 5, 6]}
-    high: {spore_cap: [6, 7, 9, 10], hypha_thread: [6, 6, 7, 8], brood_core: [1, 2, 0, 0], mycelium_crown: [0, 0, 1, 2]}
-  glowcap_longbow:  # 빛갓 장궁 · 원거리 무기 · 몬스터·상자 → 몬스터·상자 드롭 (R 바꿈 — 겹침 피함)
+    mid:  {hypha_thread: [3, 3, 4], iron_ingot: [3, 3, 4]}
+    high: {hypha_thread: [4, 5, 6, 7], iron_ingot: [4, 4, 5, 5], brood_core: [1, 1, 2, 2]}
+  mycelking_guard_blade:  # 균사왕 근위 넓은검 · 근접 무기 · 보스 고유 → 보스 드롭 (P +2 — 일반 장비 이상)
+    low:  {spore_cap: [5, 5, 6]}
+    mid:  {spore_cap: [6, 6, 7], silver_ingot: [1, 1, 2]}
+    high: {spore_cap: [7, 8, 10, 11], silver_ingot: [2, 2, 3, 3], brood_core: [1, 2, 0, 0], mycelium_crown: [0, 0, 1, 2]}
+  mycelking_sporefang:  # 포자왕의 송곳 · 근접 무기 · 보스 고유 → 보스 드롭 (P +2, S +1 — 일반 장비 이상 · 겹침 피함)
+    low:  {spore_cap: [5, 5, 6]}
+    mid:  {spore_cap: [6, 6, 7], silver_ingot: [2, 2, 3]}
+    high: {spore_cap: [7, 8, 10, 11], silver_ingot: [3, 3, 4, 4], brood_core: [1, 2, 0, 0], mycelium_crown: [0, 0, 1, 2]}
+  glowcap_longbow:  # 빛갓 장궁 · 원거리 무기 · 몬스터·상자 → 몬스터·상자 드롭
     low:  {hypha_thread: [2, 2, 3]}
-    mid:  {hypha_thread: [3, 3, 4], spore_cap: [3, 3, 4]}
-    high: {hypha_thread: [4, 5, 6, 7], spore_cap: [4, 4, 5, 6], dim_essence: [2, 3, 3, 4]}
+    mid:  {hypha_thread: [3, 3, 4], iron_ingot: [1, 1, 2]}
+    high: {hypha_thread: [4, 5, 6, 7], iron_ingot: [2, 2, 3, 3], dim_essence: [2, 3, 3, 4]}
   glowcap_twin_bow:  # 빛갓 쌍현 활 · 원거리 무기 · 기타 → 드롭 재료 (S +1 — 겹침 피함)
     low:  {hypha_thread: [2, 2, 3]}
-    mid:  {hypha_thread: [3, 3, 4], spore_cap: [4, 4, 5]}
-    high: {hypha_thread: [4, 5, 6, 7], spore_cap: [5, 5, 6, 7], brood_core: [1, 1, 2, 2]}
+    mid:  {hypha_thread: [3, 3, 4], iron_ingot: [2, 2, 3]}
+    high: {hypha_thread: [4, 5, 6, 7], iron_ingot: [3, 3, 4, 4], brood_core: [1, 1, 2, 2]}
   glowcap_bone_bow:  # 빛갓 뼈 활 · 원거리 무기 · 특별 시련 → 드롭 재료 (P +1, S +1 — 겹침 피함)
     low:  {hypha_thread: [3, 3, 4]}
-    mid:  {hypha_thread: [4, 4, 5], spore_cap: [4, 4, 5]}
-    high: {hypha_thread: [5, 6, 7, 8], spore_cap: [5, 5, 6, 7], dim_essence: [2, 3, 3, 4]}
-  mycel_hornbow:  # 균사 각궁 · 원거리 무기 · 대장간 → 제작 재료 (R 바꿈, P·S 바꿈, S +2 — 겹침 피함)
+    mid:  {hypha_thread: [4, 4, 5], iron_ingot: [2, 2, 3]}
+    high: {hypha_thread: [5, 6, 7, 8], iron_ingot: [3, 3, 4, 4], dim_essence: [2, 3, 3, 4]}
+  mycel_hornbow:  # 균사 각궁 · 원거리 무기 · 대장간 → 제작 재료 (S +2 — 겹침 피함)
+    low:  {spore_cap: [3, 3, 4]}
+    mid:  {spore_cap: [4, 4, 5], iron_ingot: [3, 3, 4]}
+    high: {spore_cap: [5, 6, 8, 9], iron_ingot: [4, 4, 5, 5], dim_essence: [2, 3, 3, 4]}
+  bloom_scepter:  # 공생꽃 홀 · 시전 무기 · 몬스터·상자 → 몬스터·상자 드롭 (S +1 — 겹침 피함)
     low:  {hypha_thread: [2, 2, 3]}
-    mid:  {hypha_thread: [3, 3, 4], spore_cap: [5, 5, 6]}
-    high: {hypha_thread: [4, 5, 6, 7], spore_cap: [6, 6, 7, 8], dim_essence: [2, 3, 3, 4]}
-  bloom_scepter:  # 공생꽃 홀 · 시전 무기 · 몬스터·상자 → 몬스터·상자 드롭 (R 바꿈, S +1 — 겹침 피함)
-    low:  {hypha_thread: [2, 2, 3]}
-    mid:  {hypha_thread: [3, 3, 4], spore_cap: [4, 4, 5]}
-    high: {hypha_thread: [4, 5, 6, 7], spore_cap: [5, 5, 6, 7], dim_essence: [2, 3, 3, 4]}
+    mid:  {hypha_thread: [3, 3, 4], iron_ingot: [2, 2, 3]}
+    high: {hypha_thread: [4, 5, 6, 7], iron_ingot: [3, 3, 4, 4], dim_essence: [2, 3, 3, 4]}
   mycelium_staff:  # 균사 고리 지팡이 · 시전 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P·S 바꿈, S +1 — 겹침 피함)
     low:  {spore_cap: [3, 3, 4]}
-    mid:  {spore_cap: [4, 4, 5], hypha_thread: [3, 3, 4]}
-    high: {spore_cap: [5, 6, 8, 9], hypha_thread: [4, 4, 5, 6], brood_core: [1, 1, 2, 2]}
+    mid:  {spore_cap: [4, 4, 5], iron_ingot: [2, 2, 3]}
+    high: {spore_cap: [5, 6, 8, 9], iron_ingot: [3, 3, 4, 4], brood_core: [1, 1, 2, 2]}
   bloom_chalice:  # 공생꽃 성배 · 시전 무기 · 대장간 → 제작 재료 (P +1 — 겹침 피함)
     low:  {spore_cap: [4, 4, 5]}
-    mid:  {spore_cap: [5, 5, 6], hypha_thread: [2, 2, 3]}
-    high: {spore_cap: [6, 7, 9, 10], hypha_thread: [3, 3, 4, 5], brood_core: [1, 1, 2, 2]}
-  glowcap_spiral_staff:  # 빛갓 소용돌이 지팡이 · 시전 무기 · 대장간 → 제작 재료 (R 바꿈, P +1 — 겹침 피함)
+    mid:  {spore_cap: [5, 5, 6], iron_ingot: [1, 1, 2]}
+    high: {spore_cap: [6, 7, 9, 10], iron_ingot: [2, 2, 3, 3], brood_core: [1, 1, 2, 2]}
+  glowcap_spiral_staff:  # 빛갓 소용돌이 지팡이 · 시전 무기 · 대장간 → 제작 재료 (P·S 바꿈, S +2 — 겹침 피함)
+    low:  {hypha_thread: [2, 2, 3]}
+    mid:  {hypha_thread: [3, 3, 4], iron_ingot: [3, 3, 4]}
+    high: {hypha_thread: [4, 5, 6, 7], iron_ingot: [4, 4, 5, 5], dim_essence: [2, 3, 3, 4]}
+  spore_thurible_rod:  # 포자 향로봉 · 시전 무기 · 금고·미믹 → 드롭 재료 (P·S 바꿈, P +1, S +1 — 겹침 피함)
     low:  {spore_cap: [4, 4, 5]}
-    mid:  {spore_cap: [5, 5, 6], hypha_thread: [2, 2, 3]}
-    high: {spore_cap: [6, 7, 9, 10], hypha_thread: [3, 3, 4, 5], dim_essence: [2, 3, 3, 4]}
-  spore_thurible_rod:  # 포자 향로봉 · 시전 무기 · 금고·미믹 → 드롭 재료 (P +1, S +2 — 겹침 피함)
-    low:  {hypha_thread: [3, 3, 4]}
-    mid:  {hypha_thread: [4, 4, 5], spore_cap: [5, 5, 6]}
-    high: {hypha_thread: [5, 6, 7, 8], spore_cap: [6, 6, 7, 8], dim_essence: [2, 3, 3, 4]}
-  mycelking_scepter:  # 균사왕의 왕홀 · 시전 무기 · 보스 고유 → 보스 드롭 (P +2, S +1 — 일반 장비 이상)
+    mid:  {spore_cap: [5, 5, 6], iron_ingot: [2, 2, 3]}
+    high: {spore_cap: [6, 7, 9, 10], iron_ingot: [3, 3, 4, 4], dim_essence: [2, 3, 3, 4]}
+  mycelking_scepter:  # 균사왕의 왕홀 · 시전 무기 · 보스 고유 → 보스 드롭 (P +2 — 일반 장비 이상)
     low:  {hypha_thread: [4, 4, 5]}
-    mid:  {hypha_thread: [5, 5, 6], spore_cap: [4, 4, 5]}
-    high: {hypha_thread: [6, 7, 8, 9], spore_cap: [5, 5, 6, 7], brood_core: [1, 2, 0, 0], mycelium_crown: [0, 0, 1, 2]}
+    mid:  {hypha_thread: [5, 5, 6], silver_ingot: [1, 1, 2]}
+    high: {hypha_thread: [6, 7, 8, 9], silver_ingot: [2, 2, 3, 3], brood_core: [1, 2, 0, 0], mycelium_crown: [0, 0, 1, 2]}
   hypha_stalker_helm:  # 균사 추적자 두건 · 투구 · 정예 · 대장간 → 제작 재료
     low:  {hypha_thread: [2, 2, 2]}
-    mid:  {hypha_thread: [2, 3, 3], spore_cap: [1, 3, 3]}
-    high: {hypha_thread: [3, 4, 5, 6], spore_cap: [3, 3, 4, 5], dim_essence: [2, 3, 3, 4]}
+    mid:  {hypha_thread: [2, 3, 3], iron_ingot: [1, 1, 1]}
+    high: {hypha_thread: [3, 4, 5, 6], iron_ingot: [1, 1, 2, 3], dim_essence: [2, 3, 3, 4]}
   mycel_carapace_helm:  # 균사 갑각 투구 · 투구 · 정예 · 대장간 → 제작 재료 (P·S 바꿈, S +1 — 겹침 피함)
     low:  {hypha_thread: [2, 2, 2]}
-    mid:  {hypha_thread: [2, 3, 3], spore_cap: [2, 4, 4]}
-    high: {hypha_thread: [3, 4, 5, 6], spore_cap: [4, 4, 5, 6], dim_essence: [2, 3, 3, 4]}
+    mid:  {hypha_thread: [2, 3, 3], iron_ingot: [2, 2, 2]}
+    high: {hypha_thread: [3, 4, 5, 6], iron_ingot: [2, 2, 3, 4], dim_essence: [2, 3, 3, 4]}
   spore_sage_helm:  # 포자 현자의 모자 · 투구 · 정예 · 대장간 → 제작 재료 (S +2 — 겹침 피함)
     low:  {spore_cap: [3, 3, 3]}
-    mid:  {spore_cap: [3, 4, 4], hypha_thread: [3, 4, 4]}
-    high: {spore_cap: [4, 5, 6, 8], hypha_thread: [4, 4, 5, 6], dim_essence: [2, 3, 3, 4]}
-  mycelking_spore_crown:  # 무르노크의 포자관 · 투구 · 보스 고유 · 대장간 → 제작 재료 + 나오는 곳 드롭 (P·S 바꿈, S +2 — 일반 장비 이상)
-    low:  {spore_cap: [3, 3, 3]}
-    mid:  {spore_cap: [3, 4, 4], hypha_thread: [3, 4, 4]}
-    high: {spore_cap: [4, 5, 6, 8], hypha_thread: [4, 4, 5, 6], brood_core: [1, 2, 0, 0], mycelium_crown: [0, 0, 1, 2]}
-  hypha_stalker_chest:  # 균사 추적자 조끼 · 흉갑 · 정예 · 대장간 → 제작 재료 (R 바꿈 — 겹침 피함)
+    mid:  {spore_cap: [3, 4, 4], iron_ingot: [3, 3, 3]}
+    high: {spore_cap: [4, 5, 6, 8], iron_ingot: [3, 3, 4, 5], dim_essence: [2, 3, 3, 4]}
+  mycelking_spore_crown:  # 무르노크의 포자관 · 투구 · 보스 고유 · 대장간 → 제작 재료 + 나오는 곳 드롭 (P +1, S +1 — 일반 장비 이상)
+    low:  {hypha_thread: [3, 3, 3]}
+    mid:  {hypha_thread: [3, 4, 4], silver_ingot: [2, 2, 2]}
+    high: {hypha_thread: [4, 5, 6, 7], silver_ingot: [2, 2, 3, 4], brood_core: [1, 2, 0, 0], mycelium_crown: [0, 0, 1, 2]}
+  hypha_stalker_chest:  # 균사 추적자 조끼 · 흉갑 · 정예 · 대장간 → 제작 재료
     low:  {hypha_thread: [2, 2, 3]}
-    mid:  {hypha_thread: [3, 3, 4], spore_cap: [3, 3, 3]}
-    high: {hypha_thread: [4, 4, 5, 6], spore_cap: [3, 4, 4, 5], dim_essence: [2, 3, 3, 4]}
+    mid:  {hypha_thread: [3, 3, 4], iron_ingot: [1, 1, 1]}
+    high: {hypha_thread: [4, 4, 5, 6], iron_ingot: [1, 2, 2, 3], dim_essence: [2, 3, 3, 4]}
   mycel_carapace_chest:  # 균사 갑각 흉갑 · 흉갑 · 정예 · 대장간 → 제작 재료
     low:  {spore_cap: [3, 3, 4]}
-    mid:  {spore_cap: [4, 4, 5], hypha_thread: [2, 2, 2]}
-    high: {spore_cap: [5, 5, 6, 8], hypha_thread: [2, 3, 3, 4], brood_core: [1, 1, 2, 2]}
-  spore_sage_chest:  # 포자 현자의 로브 · 흉갑 · 정예 · 대장간 → 제작 재료 (R 바꿈 — 겹침 피함)
+    mid:  {spore_cap: [4, 4, 5], iron_ingot: [1, 1, 1]}
+    high: {spore_cap: [5, 5, 6, 8], iron_ingot: [1, 2, 2, 3], brood_core: [1, 1, 2, 2]}
+  spore_sage_chest:  # 포자 현자의 로브 · 흉갑 · 정예 · 대장간 → 제작 재료
     low:  {spore_cap: [3, 3, 4]}
-    mid:  {spore_cap: [4, 4, 5], hypha_thread: [2, 2, 2]}
-    high: {spore_cap: [5, 5, 6, 8], hypha_thread: [2, 3, 3, 4], dim_essence: [2, 3, 3, 4]}
+    mid:  {spore_cap: [4, 4, 5], iron_ingot: [1, 1, 1]}
+    high: {spore_cap: [5, 5, 6, 8], iron_ingot: [1, 2, 2, 3], dim_essence: [2, 3, 3, 4]}
   hypha_stalker_legs:  # 균사 추적자 바지 · 하의 · 정예 · 대장간 → 제작 재료
     low:  {hypha_thread: [2, 2, 3]}
-    mid:  {hypha_thread: [3, 3, 4], spore_cap: [3, 3, 3]}
-    high: {hypha_thread: [4, 4, 5, 6], spore_cap: [3, 4, 4, 5], brood_core: [1, 1, 2, 2]}
+    mid:  {hypha_thread: [3, 3, 4], iron_ingot: [1, 1, 1]}
+    high: {hypha_thread: [4, 4, 5, 6], iron_ingot: [1, 2, 2, 3], brood_core: [1, 1, 2, 2]}
   mycel_carapace_legs:  # 균사 갑각 각반 · 하의 · 정예 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
     low:  {spore_cap: [3, 3, 4]}
-    mid:  {spore_cap: [4, 4, 5], hypha_thread: [3, 3, 3]}
-    high: {spore_cap: [5, 5, 6, 8], hypha_thread: [3, 4, 4, 5], brood_core: [1, 1, 2, 2]}
-  spore_sage_legs:  # 포자 현자의 하의 · 하의 · 정예 · 대장간 → 제작 재료 (R 바꿈, S +1 — 겹침 피함)
+    mid:  {spore_cap: [4, 4, 5], iron_ingot: [2, 2, 2]}
+    high: {spore_cap: [5, 5, 6, 8], iron_ingot: [2, 3, 3, 4], brood_core: [1, 1, 2, 2]}
+  spore_sage_legs:  # 포자 현자의 하의 · 하의 · 정예 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
     low:  {spore_cap: [3, 3, 4]}
-    mid:  {spore_cap: [4, 4, 5], hypha_thread: [3, 3, 3]}
-    high: {spore_cap: [5, 5, 6, 8], hypha_thread: [3, 4, 4, 5], dim_essence: [2, 3, 3, 4]}
+    mid:  {spore_cap: [4, 4, 5], iron_ingot: [2, 2, 2]}
+    high: {spore_cap: [5, 5, 6, 8], iron_ingot: [2, 3, 3, 4], dim_essence: [2, 3, 3, 4]}
   hypha_stalker_boots:  # 균사 추적자 장화 · 신발 · 정예 · 대장간 → 제작 재료 (S +2 — 겹침 피함)
     low:  {hypha_thread: [2, 2, 2]}
-    mid:  {hypha_thread: [2, 3, 3], spore_cap: [3, 5, 5]}
-    high: {hypha_thread: [3, 4, 5, 6], spore_cap: [5, 5, 6, 7], dim_essence: [2, 3, 3, 4]}
+    mid:  {hypha_thread: [2, 3, 3], iron_ingot: [3, 3, 3]}
+    high: {hypha_thread: [3, 4, 5, 6], iron_ingot: [3, 3, 4, 5], dim_essence: [2, 3, 3, 4]}
   mycel_carapace_boots:  # 균사 갑각 장화 · 신발 · 정예 · 대장간 → 제작 재료
     low:  {spore_cap: [3, 3, 3]}
-    mid:  {spore_cap: [3, 4, 4], hypha_thread: [1, 2, 2]}
-    high: {spore_cap: [4, 5, 6, 8], hypha_thread: [2, 2, 3, 4], dim_essence: [2, 3, 3, 4]}
+    mid:  {spore_cap: [3, 4, 4], iron_ingot: [1, 1, 1]}
+    high: {spore_cap: [4, 5, 6, 8], iron_ingot: [1, 1, 2, 3], dim_essence: [2, 3, 3, 4]}
   spore_sage_boots:  # 포자 현자의 신발 · 신발 · 정예 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
     low:  {spore_cap: [3, 3, 3]}
-    mid:  {spore_cap: [3, 4, 4], hypha_thread: [2, 3, 3]}
-    high: {spore_cap: [4, 5, 6, 8], hypha_thread: [3, 3, 4, 5], dim_essence: [2, 3, 3, 4]}
+    mid:  {spore_cap: [3, 4, 4], iron_ingot: [2, 2, 2]}
+    high: {spore_cap: [4, 5, 6, 8], iron_ingot: [2, 2, 3, 4], dim_essence: [2, 3, 3, 4]}
   sporecap_round_shield:  # 포자갓 원형 방패 · 방패 · 정예 · 대장간 → 제작 재료
     low:  {spore_cap: [3, 4, 4]}
-    mid:  {spore_cap: [4, 5, 5], hypha_thread: [2, 2, 3]}
-    high: {spore_cap: [5, 6, 8, 9], hypha_thread: [3, 3, 4, 5], brood_core: [1, 1, 2, 2]}
+    mid:  {spore_cap: [4, 5, 5], iron_ingot: [1, 1, 2]}
+    high: {spore_cap: [5, 6, 8, 9], iron_ingot: [2, 2, 3, 3], brood_core: [1, 1, 2, 2]}
 
-  # ════ 지하 4층 — 일반 녹물 장어 비늘 · 소금물 진주 · 정예 녹청 등판 · 정수 미궁 정수 · 핵 수문의 열쇠 ════
-  drowned_anchor_cleaver:  # 익사한 닻날 · 근접 무기 · 대장간 → 제작 재료 (R 바꿈, P·S 바꿈 — 겹침 피함)
-    low:  {eel_scale: [3, 3, 4]}
-    mid:  {eel_scale: [4, 4, 5], brine_pearl: [3, 3, 4]}
-    high: {eel_scale: [5, 6, 8, 9], brine_pearl: [4, 4, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
+  # ════ 지하 4층 — 일반 녹물 비늘 · 소금물 진주 · 정예 녹청 등판 · 정수 미궁 정수 · 핵 수문의 열쇠 ════
+  drowned_anchor_cleaver:  # 익사한 닻날 · 근접 무기 · 대장간 → 제작 재료 (P·S 바꿈 — 겹침 피함)
+    low:  {eel_scale: [2, 2, 3]}
+    mid:  {eel_scale: [3, 3, 4], silver_ingot: [1, 1, 2]}
+    high: {eel_scale: [4, 5, 6, 7], silver_ingot: [2, 2, 3, 3], labyrinth_essence: [2, 3, 3, 4]}
   drowned_executioner_axe:  # 익사자의 처형 도끼 · 근접 무기 · 특별 시련 → 드롭 재료 (S +1 — 겹침 피함)
-    low:  {eel_scale: [3, 3, 4]}
-    mid:  {eel_scale: [4, 4, 5], brine_pearl: [4, 4, 5]}
-    high: {eel_scale: [5, 6, 8, 9], brine_pearl: [5, 5, 6, 7], labyrinth_essence: [2, 3, 3, 4]}
+    low:  {eel_scale: [2, 2, 3]}
+    mid:  {eel_scale: [3, 3, 4], silver_ingot: [2, 2, 3]}
+    high: {eel_scale: [4, 5, 6, 7], silver_ingot: [3, 3, 4, 4], labyrinth_essence: [2, 3, 3, 4]}
   eel_kris:  # 녹물 장어 크리스 · 근접 무기 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
     low:  {brine_pearl: [3, 3, 4]}
-    mid:  {brine_pearl: [4, 4, 5], eel_scale: [4, 4, 5]}
-    high: {brine_pearl: [5, 6, 8, 9], eel_scale: [5, 5, 6, 7], verdigris_plate: [1, 1, 2, 2]}
-  sluice_breaker_mace:  # 수문 부수개 · 근접 무기 · 대장간 → 제작 재료 (R 바꿈, S +1 — 겹침 피함)
+    mid:  {brine_pearl: [4, 4, 5], silver_ingot: [2, 2, 3]}
+    high: {brine_pearl: [5, 6, 8, 9], silver_ingot: [3, 3, 4, 4], verdigris_plate: [1, 1, 2, 2]}
+  sluice_breaker_mace:  # 수문 부수개 · 근접 무기 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
     low:  {brine_pearl: [3, 3, 4]}
-    mid:  {brine_pearl: [4, 4, 5], eel_scale: [4, 4, 5]}
-    high: {brine_pearl: [5, 6, 8, 9], eel_scale: [5, 5, 6, 7], labyrinth_essence: [2, 3, 3, 4]}
+    mid:  {brine_pearl: [4, 4, 5], silver_ingot: [2, 2, 3]}
+    high: {brine_pearl: [5, 6, 8, 9], silver_ingot: [3, 3, 4, 4], labyrinth_essence: [2, 3, 3, 4]}
   sluice_hook_spear:  # 수문지기의 갈고리창 · 근접 무기 · 시련방 → 상자 드롭 (S +1 — 겹침 피함)
-    low:  {eel_scale: [3, 3, 4]}
-    mid:  {eel_scale: [4, 4, 5], brine_pearl: [4, 4, 5]}
-    high: {eel_scale: [5, 6, 8, 9], brine_pearl: [5, 5, 6, 7], verdigris_plate: [1, 1, 2, 2]}
+    low:  {eel_scale: [2, 2, 3]}
+    mid:  {eel_scale: [3, 3, 4], silver_ingot: [2, 2, 3]}
+    high: {eel_scale: [4, 5, 6, 7], silver_ingot: [3, 3, 4, 4], verdigris_plate: [1, 1, 2, 2]}
   brine_falchion:  # 소금물 팔시온 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (S +2 — 겹침 피함)
-    low:  {eel_scale: [3, 3, 4]}
-    mid:  {eel_scale: [4, 4, 5], brine_pearl: [5, 5, 6]}
-    high: {eel_scale: [5, 6, 8, 9], brine_pearl: [6, 6, 7, 8], verdigris_plate: [1, 1, 2, 2]}
+    low:  {eel_scale: [2, 2, 3]}
+    mid:  {eel_scale: [3, 3, 4], silver_ingot: [3, 3, 4]}
+    high: {eel_scale: [4, 5, 6, 7], silver_ingot: [4, 4, 5, 5], verdigris_plate: [1, 1, 2, 2]}
   brine_katar:  # 소금물 주먹칼 · 근접 무기 · 금고·미믹 → 드롭 재료 (P +1 — 겹침 피함)
-    low:  {eel_scale: [4, 4, 5]}
-    mid:  {eel_scale: [5, 5, 6], brine_pearl: [3, 3, 4]}
-    high: {eel_scale: [6, 7, 9, 10], brine_pearl: [4, 4, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
+    low:  {eel_scale: [3, 3, 4]}
+    mid:  {eel_scale: [4, 4, 5], silver_ingot: [1, 1, 2]}
+    high: {eel_scale: [5, 6, 7, 8], silver_ingot: [2, 2, 3, 3], labyrinth_essence: [2, 3, 3, 4]}
   brine_sabre:  # 소금물 사브르 · 근접 무기 · 시련방 → 상자 드롭 (P·S 바꿈, S +2 — 겹침 피함)
     low:  {brine_pearl: [3, 3, 4]}
-    mid:  {brine_pearl: [4, 4, 5], eel_scale: [5, 5, 6]}
-    high: {brine_pearl: [5, 6, 8, 9], eel_scale: [6, 6, 7, 8], verdigris_plate: [1, 1, 2, 2]}
+    mid:  {brine_pearl: [4, 4, 5], silver_ingot: [3, 3, 4]}
+    high: {brine_pearl: [5, 6, 8, 9], silver_ingot: [4, 4, 5, 5], verdigris_plate: [1, 1, 2, 2]}
   drowned_glaive:  # 익사자의 언월도 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P +1 — 겹침 피함)
-    low:  {eel_scale: [4, 4, 5]}
-    mid:  {eel_scale: [5, 5, 6], brine_pearl: [3, 3, 4]}
-    high: {eel_scale: [6, 7, 9, 10], brine_pearl: [4, 4, 5, 6], verdigris_plate: [1, 1, 2, 2]}
+    low:  {eel_scale: [3, 3, 4]}
+    mid:  {eel_scale: [4, 4, 5], silver_ingot: [1, 1, 2]}
+    high: {eel_scale: [5, 6, 7, 8], silver_ingot: [2, 2, 3, 3], verdigris_plate: [1, 1, 2, 2]}
   eelfin_sickle:  # 장어지느러미 낫 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P·S 바꿈, P +1 — 겹침 피함)
     low:  {brine_pearl: [4, 4, 5]}
-    mid:  {brine_pearl: [5, 5, 6], eel_scale: [3, 3, 4]}
-    high: {brine_pearl: [6, 7, 9, 10], eel_scale: [4, 4, 5, 6], verdigris_plate: [1, 1, 2, 2]}
+    mid:  {brine_pearl: [5, 5, 6], silver_ingot: [1, 1, 2]}
+    high: {brine_pearl: [6, 7, 9, 10], silver_ingot: [2, 2, 3, 3], verdigris_plate: [1, 1, 2, 2]}
   verdigris_great_axe:  # 녹청 큰도끼 · 근접 무기 · 정예 → 정예 드롭 (P +1, S +1 — 겹침 피함)
+    low:  {eel_scale: [3, 3, 4]}
+    mid:  {eel_scale: [4, 4, 5], silver_ingot: [2, 2, 3]}
+    high: {eel_scale: [5, 6, 7, 8], silver_ingot: [3, 3, 4, 4], verdigris_plate: [1, 1, 2, 2]}
+  osric_drowned_axe:  # 오스릭의 익사 닻도끼 · 근접 무기 · 보스 고유 → 보스 드롭 (P +2 — 일반 장비 이상)
     low:  {eel_scale: [4, 4, 5]}
-    mid:  {eel_scale: [5, 5, 6], brine_pearl: [4, 4, 5]}
-    high: {eel_scale: [6, 7, 9, 10], brine_pearl: [5, 5, 6, 7], verdigris_plate: [1, 1, 2, 2]}
-  osric_drowned_axe:  # 오스릭의 익사 닻도끼 · 근접 무기 · 보스 고유 → 보스 드롭 (P +1, S +2 — 일반 장비 이상)
-    low:  {eel_scale: [4, 4, 5]}
-    mid:  {eel_scale: [5, 5, 6], brine_pearl: [5, 5, 6]}
-    high: {eel_scale: [6, 7, 9, 10], brine_pearl: [6, 6, 7, 8], verdigris_plate: [1, 2, 0, 0], floodgate_key: [0, 0, 1, 2]}
+    mid:  {eel_scale: [5, 5, 6], silver_ingot: [1, 1, 2]}
+    high: {eel_scale: [6, 7, 8, 9], silver_ingot: [2, 2, 3, 3], verdigris_plate: [1, 2, 0, 0], floodgate_key: [0, 0, 1, 2]}
   eel_twin_bow:  # 장어 쌍현 활 · 원거리 무기 · 특별 시련 → 드롭 재료 (S +2 — 겹침 피함)
     low:  {brine_pearl: [3, 3, 4]}
-    mid:  {brine_pearl: [4, 4, 5], eel_scale: [5, 5, 6]}
-    high: {brine_pearl: [5, 6, 8, 9], eel_scale: [6, 6, 7, 8], labyrinth_essence: [2, 3, 3, 4]}
+    mid:  {brine_pearl: [4, 4, 5], silver_ingot: [3, 3, 4]}
+    high: {brine_pearl: [5, 6, 8, 9], silver_ingot: [4, 4, 5, 5], labyrinth_essence: [2, 3, 3, 4]}
   eelbone_recurve:  # 장어뼈 만곡궁 · 원거리 무기 · 대장간 → 제작 재료
     low:  {brine_pearl: [3, 3, 4]}
-    mid:  {brine_pearl: [4, 4, 5], eel_scale: [3, 3, 4]}
-    high: {brine_pearl: [5, 6, 8, 9], eel_scale: [4, 4, 5, 6], verdigris_plate: [1, 1, 2, 2]}
+    mid:  {brine_pearl: [4, 4, 5], silver_ingot: [1, 1, 2]}
+    high: {brine_pearl: [5, 6, 8, 9], silver_ingot: [2, 2, 3, 3], verdigris_plate: [1, 1, 2, 2]}
   sluice_bone_bow:  # 수문 뼈 활 · 원거리 무기 · 금고·미믹 → 드롭 재료 (P·S 바꿈, S +2 — 겹침 피함)
-    low:  {eel_scale: [3, 3, 4]}
-    mid:  {eel_scale: [4, 4, 5], brine_pearl: [5, 5, 6]}
-    high: {eel_scale: [5, 6, 8, 9], brine_pearl: [6, 6, 7, 8], labyrinth_essence: [2, 3, 3, 4]}
+    low:  {eel_scale: [2, 2, 3]}
+    mid:  {eel_scale: [3, 3, 4], silver_ingot: [3, 3, 4]}
+    high: {eel_scale: [4, 5, 6, 7], silver_ingot: [4, 4, 5, 5], labyrinth_essence: [2, 3, 3, 4]}
   brine_bladebow:  # 소금물 날활 · 원거리 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P +1, S +1 — 겹침 피함)
     low:  {brine_pearl: [4, 4, 5]}
-    mid:  {brine_pearl: [5, 5, 6], eel_scale: [4, 4, 5]}
-    high: {brine_pearl: [6, 7, 9, 10], eel_scale: [5, 5, 6, 7], verdigris_plate: [1, 1, 2, 2]}
-  tidecaller_bow:  # 조수 부르는 활 · 원거리 무기 · 보스 고유 → 보스 드롭 (P·S 바꿈, P +2, S +1 — 일반 장비 이상 · 겹침 피함)
-    low:  {eel_scale: [5, 5, 6]}
-    mid:  {eel_scale: [6, 6, 7], brine_pearl: [4, 4, 5]}
-    high: {eel_scale: [7, 8, 10, 11], brine_pearl: [5, 5, 6, 7], verdigris_plate: [1, 2, 0, 0], floodgate_key: [0, 0, 1, 2]}
-  brine_orb_staff:  # 소금물 구슬 지팡이 · 시전 무기 · 대장간 → 제작 재료 (R 바꿈 — 겹침 피함)
+    mid:  {brine_pearl: [5, 5, 6], silver_ingot: [2, 2, 3]}
+    high: {brine_pearl: [6, 7, 9, 10], silver_ingot: [3, 3, 4, 4], verdigris_plate: [1, 1, 2, 2]}
+  tidecaller_bow:  # 조수 부르는 활 · 원거리 무기 · 보스 고유 → 보스 드롭 (P +2, S +1 — 일반 장비 이상)
+    low:  {brine_pearl: [5, 5, 6]}
+    mid:  {brine_pearl: [6, 6, 7], gold_ingot: [2, 2, 3]}
+    high: {brine_pearl: [7, 8, 10, 11], gold_ingot: [3, 3, 4, 4], verdigris_plate: [1, 2, 0, 0], floodgate_key: [0, 0, 1, 2]}
+  brine_orb_staff:  # 소금물 구슬 지팡이 · 시전 무기 · 대장간 → 제작 재료
     low:  {brine_pearl: [3, 3, 4]}
-    mid:  {brine_pearl: [4, 4, 5], eel_scale: [3, 3, 4]}
-    high: {brine_pearl: [5, 6, 8, 9], eel_scale: [4, 4, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
+    mid:  {brine_pearl: [4, 4, 5], silver_ingot: [1, 1, 2]}
+    high: {brine_pearl: [5, 6, 8, 9], silver_ingot: [2, 2, 3, 3], labyrinth_essence: [2, 3, 3, 4]}
   drowned_ring_staff:  # 익사자의 고리 지팡이 · 시전 무기 · 금고·미믹 → 드롭 재료 (P +1 — 겹침 피함)
     low:  {brine_pearl: [4, 4, 5]}
-    mid:  {brine_pearl: [5, 5, 6], eel_scale: [3, 3, 4]}
-    high: {brine_pearl: [6, 7, 9, 10], eel_scale: [4, 4, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
+    mid:  {brine_pearl: [5, 5, 6], silver_ingot: [1, 1, 2]}
+    high: {brine_pearl: [6, 7, 9, 10], silver_ingot: [2, 2, 3, 3], labyrinth_essence: [2, 3, 3, 4]}
   tidebell_censer:  # 조수종 향로 · 시전 무기 · 대장간 → 제작 재료 (P·S 바꿈 — 겹침 피함)
-    low:  {eel_scale: [3, 3, 4]}
-    mid:  {eel_scale: [4, 4, 5], brine_pearl: [3, 3, 4]}
-    high: {eel_scale: [5, 6, 8, 9], brine_pearl: [4, 4, 5, 6], verdigris_plate: [1, 1, 2, 2]}
-  brine_bell_scepter:  # 소금물 종 홀 · 시전 무기 · 몬스터·상자 → 몬스터·상자 드롭 (R 바꿈, P +1, S +1 — 겹침 피함)
+    low:  {eel_scale: [2, 2, 3]}
+    mid:  {eel_scale: [3, 3, 4], silver_ingot: [1, 1, 2]}
+    high: {eel_scale: [4, 5, 6, 7], silver_ingot: [2, 2, 3, 3], verdigris_plate: [1, 1, 2, 2]}
+  brine_bell_scepter:  # 소금물 종 홀 · 시전 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P +1, S +1 — 겹침 피함)
     low:  {brine_pearl: [4, 4, 5]}
-    mid:  {brine_pearl: [5, 5, 6], eel_scale: [4, 4, 5]}
-    high: {brine_pearl: [6, 7, 9, 10], eel_scale: [5, 5, 6, 7], labyrinth_essence: [2, 3, 3, 4]}
-  tide_fork_staff:  # 조류의 삼지창 지팡이 · 시전 무기 · 몬스터·상자 → 몬스터·상자 드롭 (R 바꿈, P·S 바꿈, P +1, S +1 — 겹침 피함)
-    low:  {eel_scale: [4, 4, 5]}
-    mid:  {eel_scale: [5, 5, 6], brine_pearl: [4, 4, 5]}
-    high: {eel_scale: [6, 7, 9, 10], brine_pearl: [5, 5, 6, 7], labyrinth_essence: [2, 3, 3, 4]}
+    mid:  {brine_pearl: [5, 5, 6], silver_ingot: [2, 2, 3]}
+    high: {brine_pearl: [6, 7, 9, 10], silver_ingot: [3, 3, 4, 4], labyrinth_essence: [2, 3, 3, 4]}
+  tide_fork_staff:  # 조류의 삼지창 지팡이 · 시전 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P·S 바꿈, P +1, S +1 — 겹침 피함)
+    low:  {eel_scale: [3, 3, 4]}
+    mid:  {eel_scale: [4, 4, 5], silver_ingot: [2, 2, 3]}
+    high: {eel_scale: [5, 6, 7, 8], silver_ingot: [3, 3, 4, 4], labyrinth_essence: [2, 3, 3, 4]}
   tide_lamp_crook:  # 조수 등롱 지팡이 · 시전 무기 · 시련방 → 상자 드롭 (P +1, S +2 — 겹침 피함)
     low:  {brine_pearl: [4, 4, 5]}
-    mid:  {brine_pearl: [5, 5, 6], eel_scale: [5, 5, 6]}
-    high: {brine_pearl: [6, 7, 9, 10], eel_scale: [6, 6, 7, 8], verdigris_plate: [1, 1, 2, 2]}
-  verdigris_chime_rod:  # 녹청 풍경 홀 · 시전 무기 · 정예 → 정예 드롭 (R 바꿈, P +1, S +2 — 겹침 피함)
+    mid:  {brine_pearl: [5, 5, 6], silver_ingot: [3, 3, 4]}
+    high: {brine_pearl: [6, 7, 9, 10], silver_ingot: [4, 4, 5, 5], verdigris_plate: [1, 1, 2, 2]}
+  verdigris_chime_rod:  # 녹청 풍경 홀 · 시전 무기 · 정예 → 정예 드롭 (P +1, S +2 — 겹침 피함)
     low:  {brine_pearl: [4, 4, 5]}
-    mid:  {brine_pearl: [5, 5, 6], eel_scale: [5, 5, 6]}
-    high: {brine_pearl: [6, 7, 9, 10], eel_scale: [6, 6, 7, 8], labyrinth_essence: [2, 3, 3, 4]}
-  osric_tide_trident:  # 오스릭의 조수 삼지창 · 시전 무기 · 보스 고유 → 보스 드롭 (P +2, S +2 — 일반 장비 이상 · 겹침 피함)
+    mid:  {brine_pearl: [5, 5, 6], silver_ingot: [3, 3, 4]}
+    high: {brine_pearl: [6, 7, 9, 10], silver_ingot: [4, 4, 5, 5], labyrinth_essence: [2, 3, 3, 4]}
+  osric_tide_trident:  # 오스릭의 조수 삼지창 · 시전 무기 · 보스 고유 → 보스 드롭 (P +2, S +1 — 일반 장비 이상)
     low:  {brine_pearl: [5, 5, 6]}
-    mid:  {brine_pearl: [6, 6, 7], eel_scale: [5, 5, 6]}
-    high: {brine_pearl: [7, 8, 10, 11], eel_scale: [6, 6, 7, 8], verdigris_plate: [1, 2, 0, 0], floodgate_key: [0, 0, 1, 2]}
+    mid:  {brine_pearl: [6, 6, 7], silver_ingot: [2, 2, 3]}
+    high: {brine_pearl: [7, 8, 10, 11], silver_ingot: [3, 3, 4, 4], verdigris_plate: [1, 2, 0, 0], floodgate_key: [0, 0, 1, 2]}
   sluice_diver_helm:  # 잠수부의 물안경 · 투구 · 시련방 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
-    low:  {eel_scale: [3, 3, 3]}
-    mid:  {eel_scale: [3, 4, 4], brine_pearl: [2, 4, 4]}
-    high: {eel_scale: [4, 5, 6, 8], brine_pearl: [4, 4, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
+    low:  {eel_scale: [2, 2, 2]}
+    mid:  {eel_scale: [2, 3, 3], silver_ingot: [2, 2, 2]}
+    high: {eel_scale: [3, 4, 5, 6], silver_ingot: [2, 2, 3, 4], labyrinth_essence: [2, 3, 3, 4]}
   verdigris_guard_helm:  # 녹청 수문 투구 · 투구 · 정예 · 대장간 → 제작 재료
     low:  {brine_pearl: [3, 3, 3]}
-    mid:  {brine_pearl: [3, 4, 4], eel_scale: [1, 3, 3]}
-    high: {brine_pearl: [4, 5, 6, 8], eel_scale: [3, 3, 4, 5], labyrinth_essence: [2, 3, 3, 4]}
-  osric_sluice_helm:  # 오스릭의 수문 투구 · 투구 · 보스 고유 · 대장간 → 제작 재료 + 나오는 곳 드롭 (S +1 — 일반 장비 이상)
+    mid:  {brine_pearl: [3, 4, 4], silver_ingot: [1, 1, 1]}
+    high: {brine_pearl: [4, 5, 6, 8], silver_ingot: [1, 1, 2, 3], labyrinth_essence: [2, 3, 3, 4]}
+  osric_sluice_helm:  # 오스릭의 수문 투구 · 투구 · 보스 고유 · 대장간 → 제작 재료 + 나오는 곳 드롭 (P +1 — 일반 장비 이상)
     low:  {eel_scale: [3, 3, 3]}
-    mid:  {eel_scale: [3, 4, 4], brine_pearl: [2, 4, 4]}
-    high: {eel_scale: [4, 5, 6, 8], brine_pearl: [4, 4, 5, 6], verdigris_plate: [1, 2, 0, 0], floodgate_key: [0, 0, 1, 2]}
+    mid:  {eel_scale: [3, 4, 4], silver_ingot: [1, 1, 1]}
+    high: {eel_scale: [4, 5, 6, 7], silver_ingot: [1, 1, 2, 3], verdigris_plate: [1, 2, 0, 0], floodgate_key: [0, 0, 1, 2]}
   sluice_diver_chest:  # 잠수부의 가죽 조끼 · 흉갑 · 시련방 · 대장간 → 제작 재료
-    low:  {eel_scale: [3, 3, 4]}
-    mid:  {eel_scale: [4, 4, 5], brine_pearl: [3, 3, 3]}
-    high: {eel_scale: [5, 5, 6, 8], brine_pearl: [3, 4, 4, 5], verdigris_plate: [1, 1, 2, 2]}
-  verdigris_guard_chest:  # 녹청 수문 흉갑 · 흉갑 · 정예 · 대장간 → 제작 재료 (R 바꿈 — 겹침 피함)
+    low:  {eel_scale: [2, 2, 3]}
+    mid:  {eel_scale: [3, 3, 4], silver_ingot: [1, 1, 1]}
+    high: {eel_scale: [4, 4, 5, 6], silver_ingot: [1, 2, 2, 3], verdigris_plate: [1, 1, 2, 2]}
+  verdigris_guard_chest:  # 녹청 수문 흉갑 · 흉갑 · 정예 · 대장간 → 제작 재료
     low:  {brine_pearl: [3, 3, 4]}
-    mid:  {brine_pearl: [4, 4, 5], eel_scale: [3, 3, 3]}
-    high: {brine_pearl: [5, 5, 6, 8], eel_scale: [3, 4, 4, 5], labyrinth_essence: [2, 3, 3, 4]}
-  sluice_diver_legs:  # 잠수부의 바지 · 하의 · 시련방 · 대장간 → 제작 재료 (R 바꿈 — 겹침 피함)
-    low:  {eel_scale: [3, 3, 4]}
-    mid:  {eel_scale: [4, 4, 5], brine_pearl: [3, 3, 3]}
-    high: {eel_scale: [5, 5, 6, 8], brine_pearl: [3, 4, 4, 5], labyrinth_essence: [2, 3, 3, 4]}
+    mid:  {brine_pearl: [4, 4, 5], silver_ingot: [1, 1, 1]}
+    high: {brine_pearl: [5, 5, 6, 8], silver_ingot: [1, 2, 2, 3], labyrinth_essence: [2, 3, 3, 4]}
+  sluice_diver_legs:  # 잠수부의 바지 · 하의 · 시련방 · 대장간 → 제작 재료
+    low:  {eel_scale: [2, 2, 3]}
+    mid:  {eel_scale: [3, 3, 4], silver_ingot: [1, 1, 1]}
+    high: {eel_scale: [4, 4, 5, 6], silver_ingot: [1, 2, 2, 3], labyrinth_essence: [2, 3, 3, 4]}
   verdigris_guard_legs:  # 녹청 수문 각반 · 하의 · 정예 · 대장간 → 제작 재료
     low:  {brine_pearl: [3, 3, 4]}
-    mid:  {brine_pearl: [4, 4, 5], eel_scale: [3, 3, 3]}
-    high: {brine_pearl: [5, 5, 6, 8], eel_scale: [3, 4, 4, 5], verdigris_plate: [1, 1, 2, 2]}
+    mid:  {brine_pearl: [4, 4, 5], silver_ingot: [1, 1, 1]}
+    high: {brine_pearl: [5, 5, 6, 8], silver_ingot: [1, 2, 2, 3], verdigris_plate: [1, 1, 2, 2]}
   sluice_diver_boots:  # 잠수부의 물갈퀴 장화 · 신발 · 시련방 · 대장간 → 제작 재료
-    low:  {eel_scale: [3, 3, 3]}
-    mid:  {eel_scale: [3, 4, 4], brine_pearl: [1, 3, 3]}
-    high: {eel_scale: [4, 5, 6, 8], brine_pearl: [3, 3, 4, 5], labyrinth_essence: [2, 3, 3, 4]}
+    low:  {eel_scale: [2, 2, 2]}
+    mid:  {eel_scale: [2, 3, 3], silver_ingot: [1, 1, 1]}
+    high: {eel_scale: [3, 4, 5, 6], silver_ingot: [1, 1, 2, 3], labyrinth_essence: [2, 3, 3, 4]}
   verdigris_guard_boots:  # 녹청 수문 철장화 · 신발 · 정예 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
     low:  {brine_pearl: [3, 3, 3]}
-    mid:  {brine_pearl: [3, 4, 4], eel_scale: [2, 4, 4]}
-    high: {brine_pearl: [4, 5, 6, 8], eel_scale: [4, 4, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
+    mid:  {brine_pearl: [3, 4, 4], silver_ingot: [2, 2, 2]}
+    high: {brine_pearl: [4, 5, 6, 8], silver_ingot: [2, 2, 3, 4], labyrinth_essence: [2, 3, 3, 4]}
   verdigris_tower_shield:  # 녹청 탑 방패 · 방패 · 정예 · 대장간 → 제작 재료
-    low:  {eel_scale: [3, 4, 4]}
-    mid:  {eel_scale: [4, 5, 5], brine_pearl: [3, 3, 4]}
-    high: {eel_scale: [5, 6, 8, 9], brine_pearl: [4, 4, 5, 6], verdigris_plate: [1, 1, 2, 2]}
+    low:  {eel_scale: [2, 3, 3]}
+    mid:  {eel_scale: [3, 4, 4], silver_ingot: [1, 1, 2]}
+    high: {eel_scale: [4, 5, 6, 7], silver_ingot: [2, 2, 3, 3], verdigris_plate: [1, 1, 2, 2]}
 
-  # ════ 지하 5층 — 일반 슬래그 주괴 · 불씨 조각 · 정예 집행관의 칼날 · 정수 미궁 정수 · 핵 용광로 핵 ════
+  # ════ 지하 5층 — 일반 잿불 비늘 · 불씨 혼 · 정예 집행관의 칼날 · 정수 미궁 정수 · 핵 용광로 핵 ════
   cinderdrake_glaive:  # 잿불 용 언월도 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭
-    low:  {slag_ingot: [3, 3, 4]}
-    mid:  {slag_ingot: [4, 4, 5], ember_shard: [3, 3, 4]}
-    high: {slag_ingot: [5, 6, 8, 9], ember_shard: [4, 4, 5, 6], executioner_edge: [1, 1, 2, 2]}
-  emberforge_warhammer:  # 잿불 단조 망치 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (R 바꿈 — 겹침 피함)
-    low:  {slag_ingot: [3, 3, 4]}
-    mid:  {slag_ingot: [4, 4, 5], ember_shard: [3, 3, 4]}
-    high: {slag_ingot: [5, 6, 8, 9], ember_shard: [4, 4, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
+    low:  {cinder_scale: [2, 2, 2]}
+    mid:  {cinder_scale: [2, 2, 3], gold_ingot: [2, 2, 2]}
+    high: {cinder_scale: [3, 4, 5, 5], gold_ingot: [2, 2, 3, 4], executioner_edge: [1, 1, 2, 2]}
+  emberforge_warhammer:  # 잿불 단조 망치 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭
+    low:  {cinder_scale: [2, 2, 2]}
+    mid:  {cinder_scale: [2, 2, 3], gold_ingot: [2, 2, 2]}
+    high: {cinder_scale: [3, 4, 5, 5], gold_ingot: [2, 2, 3, 4], labyrinth_essence: [2, 3, 3, 4]}
   slag_katar:  # 슬래그 주먹칼 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P·S 바꿈 — 겹침 피함)
-    low:  {ember_shard: [3, 3, 4]}
-    mid:  {ember_shard: [4, 4, 5], slag_ingot: [3, 3, 4]}
-    high: {ember_shard: [5, 6, 8, 9], slag_ingot: [4, 4, 5, 6], executioner_edge: [1, 1, 2, 2]}
+    low:  {ember_soul: [3, 3, 4]}
+    mid:  {ember_soul: [4, 4, 5], gold_ingot: [2, 2, 2]}
+    high: {ember_soul: [5, 6, 8, 9], gold_ingot: [2, 2, 3, 4], executioner_edge: [1, 1, 2, 2]}
   anvil_executioner_axe:  # 모루 처형 도끼 · 근접 무기 · 특별 시련 → 드롭 재료 (P +1 — 겹침 피함)
-    low:  {slag_ingot: [4, 4, 5]}
-    mid:  {slag_ingot: [5, 5, 6], ember_shard: [3, 3, 4]}
-    high: {slag_ingot: [6, 7, 9, 10], ember_shard: [4, 4, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
+    low:  {cinder_scale: [3, 3, 3]}
+    mid:  {cinder_scale: [3, 3, 4], gold_ingot: [2, 2, 2]}
+    high: {cinder_scale: [4, 5, 6, 6], gold_ingot: [2, 2, 3, 4], labyrinth_essence: [2, 3, 3, 4]}
   anvil_oath_broadsword:  # 모루 서약 넓은검 · 근접 무기 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
-    low:  {slag_ingot: [3, 3, 4]}
-    mid:  {slag_ingot: [4, 4, 5], ember_shard: [4, 4, 5]}
-    high: {slag_ingot: [5, 6, 8, 9], ember_shard: [5, 5, 6, 7], executioner_edge: [1, 1, 2, 2]}
+    low:  {cinder_scale: [2, 2, 2]}
+    mid:  {cinder_scale: [2, 2, 3], gold_ingot: [3, 3, 3]}
+    high: {cinder_scale: [3, 4, 5, 5], gold_ingot: [3, 3, 4, 5], executioner_edge: [1, 1, 2, 2]}
   cinder_dagger:  # 불씨 단검 · 근접 무기 · 시련방 → 상자 드롭 (P +1 — 겹침 피함)
-    low:  {slag_ingot: [4, 4, 5]}
-    mid:  {slag_ingot: [5, 5, 6], ember_shard: [3, 3, 4]}
-    high: {slag_ingot: [6, 7, 9, 10], ember_shard: [4, 4, 5, 6], executioner_edge: [1, 1, 2, 2]}
-  cinder_fang:  # 불씨 송곳니 · 근접 무기 · 대장간 → 제작 재료 (R 바꿈, S +1 — 겹침 피함)
-    low:  {slag_ingot: [3, 3, 4]}
-    mid:  {slag_ingot: [4, 4, 5], ember_shard: [4, 4, 5]}
-    high: {slag_ingot: [5, 6, 8, 9], ember_shard: [5, 5, 6, 7], labyrinth_essence: [2, 3, 3, 4]}
+    low:  {cinder_scale: [3, 3, 3]}
+    mid:  {cinder_scale: [3, 3, 4], gold_ingot: [2, 2, 2]}
+    high: {cinder_scale: [4, 5, 6, 6], gold_ingot: [2, 2, 3, 4], executioner_edge: [1, 1, 2, 2]}
+  cinder_fang:  # 불씨 송곳니 · 근접 무기 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
+    low:  {cinder_scale: [2, 2, 2]}
+    mid:  {cinder_scale: [2, 2, 3], gold_ingot: [3, 3, 3]}
+    high: {cinder_scale: [3, 4, 5, 5], gold_ingot: [3, 3, 4, 5], labyrinth_essence: [2, 3, 3, 4]}
   cinder_rapier:  # 불씨 레이피어 · 근접 무기 · 정예 → 정예 드롭 (P·S 바꿈, P +1 — 겹침 피함)
-    low:  {ember_shard: [4, 4, 5]}
-    mid:  {ember_shard: [5, 5, 6], slag_ingot: [3, 3, 4]}
-    high: {ember_shard: [6, 7, 9, 10], slag_ingot: [4, 4, 5, 6], executioner_edge: [1, 1, 2, 2]}
-  forge_cleaver:  # 단조 참마도 · 근접 무기 · 정예 → 정예 드롭 (R 바꿈, P·S 바꿈, P +1 — 겹침 피함)
-    low:  {ember_shard: [4, 4, 5]}
-    mid:  {ember_shard: [5, 5, 6], slag_ingot: [3, 3, 4]}
-    high: {ember_shard: [6, 7, 9, 10], slag_ingot: [4, 4, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
+    low:  {ember_soul: [4, 4, 5]}
+    mid:  {ember_soul: [5, 5, 6], gold_ingot: [2, 2, 2]}
+    high: {ember_soul: [6, 7, 9, 10], gold_ingot: [2, 2, 3, 4], executioner_edge: [1, 1, 2, 2]}
+  forge_cleaver:  # 단조 참마도 · 근접 무기 · 정예 → 정예 드롭 (P·S 바꿈, P +1 — 겹침 피함)
+    low:  {ember_soul: [4, 4, 5]}
+    mid:  {ember_soul: [5, 5, 6], gold_ingot: [2, 2, 2]}
+    high: {ember_soul: [6, 7, 9, 10], gold_ingot: [2, 2, 3, 4], labyrinth_essence: [2, 3, 3, 4]}
   slag_flamberge:  # 슬래그 플랑베르주 · 근접 무기 · 시련방 → 상자 드롭 (P +1, S +1 — 겹침 피함)
-    low:  {slag_ingot: [4, 4, 5]}
-    mid:  {slag_ingot: [5, 5, 6], ember_shard: [4, 4, 5]}
-    high: {slag_ingot: [6, 7, 9, 10], ember_shard: [5, 5, 6, 7], executioner_edge: [1, 1, 2, 2]}
+    low:  {cinder_scale: [3, 3, 3]}
+    mid:  {cinder_scale: [3, 3, 4], gold_ingot: [3, 3, 3]}
+    high: {cinder_scale: [4, 5, 6, 6], gold_ingot: [3, 3, 4, 5], executioner_edge: [1, 1, 2, 2]}
   slag_war_spear:  # 슬래그 창 · 근접 무기 · 금고·미믹 → 드롭 재료 (P +1, S +1 — 겹침 피함)
-    low:  {slag_ingot: [4, 4, 5]}
-    mid:  {slag_ingot: [5, 5, 6], ember_shard: [4, 4, 5]}
-    high: {slag_ingot: [6, 7, 9, 10], ember_shard: [5, 5, 6, 7], labyrinth_essence: [2, 3, 3, 4]}
+    low:  {cinder_scale: [3, 3, 3]}
+    mid:  {cinder_scale: [3, 3, 4], gold_ingot: [3, 3, 3]}
+    high: {cinder_scale: [4, 5, 6, 6], gold_ingot: [3, 3, 4, 5], labyrinth_essence: [2, 3, 3, 4]}
   slagforged_greatsword:  # 슬래그 단조 대검 · 근접 무기 · 대장간 → 제작 재료 (S +2 — 겹침 피함)
-    low:  {slag_ingot: [3, 3, 4]}
-    mid:  {slag_ingot: [4, 4, 5], ember_shard: [5, 5, 6]}
-    high: {slag_ingot: [5, 6, 8, 9], ember_shard: [6, 6, 7, 8], executioner_edge: [1, 1, 2, 2]}
-  dawnbringer:  # 여명을 맹세한 검 · 근접 무기 · 보스 고유 → 보스 드롭 (P·S 바꿈, P +1, S +2 — 일반 장비 이상)
-    low:  {ember_shard: [4, 4, 5]}
-    mid:  {ember_shard: [5, 5, 6], slag_ingot: [5, 5, 6]}
-    high: {ember_shard: [6, 7, 9, 10], slag_ingot: [6, 6, 7, 8], executioner_edge: [1, 2, 0, 0], forge_core: [0, 0, 1, 2]}
-  ember_greatsword:  # 잿불 대검 · 근접 무기 · 보스 고유 → 보스 드롭 (P +2, S +2 — 일반 장비 이상 · 겹침 피함)
-    low:  {slag_ingot: [5, 5, 6]}
-    mid:  {slag_ingot: [6, 6, 7], ember_shard: [5, 5, 6]}
-    high: {slag_ingot: [7, 8, 10, 11], ember_shard: [6, 6, 7, 8], executioner_edge: [1, 2, 0, 0], forge_core: [0, 0, 1, 2]}
-  slagedge_bladebow:  # 슬래그 날활 · 원거리 무기 · 몬스터·상자 → 몬스터·상자 드롭 (R 바꿈 — 겹침 피함)
-    low:  {ember_shard: [3, 3, 4]}
-    mid:  {ember_shard: [4, 4, 5], slag_ingot: [3, 3, 4]}
-    high: {ember_shard: [5, 6, 8, 9], slag_ingot: [4, 4, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
+    low:  {cinder_scale: [2, 2, 2]}
+    mid:  {cinder_scale: [2, 2, 3], gold_ingot: [4, 4, 4]}
+    high: {cinder_scale: [3, 4, 5, 5], gold_ingot: [4, 4, 5, 6], executioner_edge: [1, 1, 2, 2]}
+  dawnbringer:  # 여명을 맹세한 검 · 근접 무기 · 보스 고유 → 보스 드롭 (P +2, S +1 — 일반 장비 이상)
+    low:  {cinder_scale: [4, 4, 4]}
+    mid:  {cinder_scale: [4, 4, 5], gold_ingot: [3, 3, 3]}
+    high: {cinder_scale: [5, 6, 7, 7], gold_ingot: [3, 3, 4, 5], executioner_edge: [1, 2, 0, 0], forge_core: [0, 0, 1, 2]}
+  ember_greatsword:  # 잿불 대검 · 근접 무기 · 보스 고유 → 보스 드롭 (P +3 — 일반 장비 이상 · 겹침 피함)
+    low:  {cinder_scale: [5, 5, 5]}
+    mid:  {cinder_scale: [5, 5, 6], gold_ingot: [2, 2, 2]}
+    high: {cinder_scale: [6, 7, 8, 8], gold_ingot: [2, 2, 3, 4], executioner_edge: [1, 2, 0, 0], forge_core: [0, 0, 1, 2]}
+  slagedge_bladebow:  # 슬래그 날활 · 원거리 무기 · 몬스터·상자 → 몬스터·상자 드롭
+    low:  {ember_soul: [3, 3, 4]}
+    mid:  {ember_soul: [4, 4, 5], gold_ingot: [2, 2, 2]}
+    high: {ember_soul: [5, 6, 8, 9], gold_ingot: [2, 2, 3, 4], labyrinth_essence: [2, 3, 3, 4]}
   bellows_bone_bow:  # 풀무 뼈 활 · 원거리 무기 · 특별 시련 → 드롭 재료 (P +1, S +1 — 겹침 피함)
-    low:  {ember_shard: [4, 4, 5]}
-    mid:  {ember_shard: [5, 5, 6], slag_ingot: [4, 4, 5]}
-    high: {ember_shard: [6, 7, 9, 10], slag_ingot: [5, 5, 6, 7], labyrinth_essence: [2, 3, 3, 4]}
-  bellows_composite_bow:  # 풀무 복합궁 · 원거리 무기 · 대장간 → 제작 재료 (R 바꿈, S +2 — 겹침 피함)
-    low:  {slag_ingot: [3, 3, 4]}
-    mid:  {slag_ingot: [4, 4, 5], ember_shard: [5, 5, 6]}
-    high: {slag_ingot: [5, 6, 8, 9], ember_shard: [6, 6, 7, 8], labyrinth_essence: [2, 3, 3, 4]}
+    low:  {ember_soul: [4, 4, 5]}
+    mid:  {ember_soul: [5, 5, 6], gold_ingot: [3, 3, 3]}
+    high: {ember_soul: [6, 7, 9, 10], gold_ingot: [3, 3, 4, 5], labyrinth_essence: [2, 3, 3, 4]}
+  bellows_composite_bow:  # 풀무 복합궁 · 원거리 무기 · 대장간 → 제작 재료 (S +2 — 겹침 피함)
+    low:  {ember_soul: [3, 3, 4]}
+    mid:  {ember_soul: [4, 4, 5], gold_ingot: [4, 4, 4]}
+    high: {ember_soul: [5, 6, 8, 9], gold_ingot: [4, 4, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
   ember_twin_bow:  # 잿불 쌍현 활 · 원거리 무기 · 금고·미믹 → 드롭 재료 (P +1, S +2 — 겹침 피함)
-    low:  {ember_shard: [4, 4, 5]}
-    mid:  {ember_shard: [5, 5, 6], slag_ingot: [5, 5, 6]}
-    high: {ember_shard: [6, 7, 9, 10], slag_ingot: [6, 6, 7, 8], labyrinth_essence: [2, 3, 3, 4]}
+    low:  {ember_soul: [4, 4, 5]}
+    mid:  {ember_soul: [5, 5, 6], gold_ingot: [4, 4, 4]}
+    high: {ember_soul: [6, 7, 9, 10], gold_ingot: [4, 4, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
   cinder_spiral_staff:  # 불씨 소용돌이 지팡이 · 시전 무기 · 몬스터·상자 → 몬스터·상자 드롭 (S +1 — 겹침 피함)
-    low:  {ember_shard: [3, 3, 4]}
-    mid:  {ember_shard: [4, 4, 5], slag_ingot: [4, 4, 5]}
-    high: {ember_shard: [5, 6, 8, 9], slag_ingot: [5, 5, 6, 7], executioner_edge: [1, 1, 2, 2]}
-  crucible_chalice:  # 도가니 성배 · 시전 무기 · 몬스터·상자 → 몬스터·상자 드롭 (R 바꿈, S +1 — 겹침 피함)
-    low:  {ember_shard: [3, 3, 4]}
-    mid:  {ember_shard: [4, 4, 5], slag_ingot: [4, 4, 5]}
-    high: {ember_shard: [5, 6, 8, 9], slag_ingot: [5, 5, 6, 7], labyrinth_essence: [2, 3, 3, 4]}
-  cinder_crystal_staff:  # 불씨 수정 지팡이 · 시전 무기 · 대장간 → 제작 재료 (P·S 바꿈, S +2 — 겹침 피함)
-    low:  {ember_shard: [3, 3, 4]}
-    mid:  {ember_shard: [4, 4, 5], slag_ingot: [5, 5, 6]}
-    high: {ember_shard: [5, 6, 8, 9], slag_ingot: [6, 6, 7, 8], executioner_edge: [1, 1, 2, 2]}
-  embersong_scepter:  # 불씨노래 홀 · 시전 무기 · 대장간 → 제작 재료 (R 바꿈, P·S 바꿈, S +2 — 겹침 피함)
-    low:  {ember_shard: [3, 3, 4]}
-    mid:  {ember_shard: [4, 4, 5], slag_ingot: [5, 5, 6]}
-    high: {ember_shard: [5, 6, 8, 9], slag_ingot: [6, 6, 7, 8], labyrinth_essence: [2, 3, 3, 4]}
+    low:  {ember_soul: [3, 3, 4]}
+    mid:  {ember_soul: [4, 4, 5], gold_ingot: [3, 3, 3]}
+    high: {ember_soul: [5, 6, 8, 9], gold_ingot: [3, 3, 4, 5], executioner_edge: [1, 1, 2, 2]}
+  crucible_chalice:  # 도가니 성배 · 시전 무기 · 몬스터·상자 → 몬스터·상자 드롭 (S +1 — 겹침 피함)
+    low:  {ember_soul: [3, 3, 4]}
+    mid:  {ember_soul: [4, 4, 5], gold_ingot: [3, 3, 3]}
+    high: {ember_soul: [5, 6, 8, 9], gold_ingot: [3, 3, 4, 5], labyrinth_essence: [2, 3, 3, 4]}
+  cinder_crystal_staff:  # 불씨 수정 지팡이 · 시전 무기 · 대장간 → 제작 재료 (S +2 — 겹침 피함)
+    low:  {ember_soul: [3, 3, 4]}
+    mid:  {ember_soul: [4, 4, 5], gold_ingot: [4, 4, 4]}
+    high: {ember_soul: [5, 6, 8, 9], gold_ingot: [4, 4, 5, 6], executioner_edge: [1, 1, 2, 2]}
+  embersong_scepter:  # 불씨노래 홀 · 시전 무기 · 대장간 → 제작 재료 (P·S 바꿈, S +2 — 겹침 피함)
+    low:  {cinder_scale: [2, 2, 2]}
+    mid:  {cinder_scale: [2, 2, 3], gold_ingot: [4, 4, 4]}
+    high: {cinder_scale: [3, 4, 5, 5], gold_ingot: [4, 4, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
   forge_chime_rod:  # 용광로 풍경 홀 · 시전 무기 · 금고·미믹 → 드롭 재료 (P·S 바꿈, P +1, S +2 — 겹침 피함)
-    low:  {slag_ingot: [4, 4, 5]}
-    mid:  {slag_ingot: [5, 5, 6], ember_shard: [5, 5, 6]}
-    high: {slag_ingot: [6, 7, 9, 10], ember_shard: [6, 6, 7, 8], labyrinth_essence: [2, 3, 3, 4]}
+    low:  {cinder_scale: [3, 3, 3]}
+    mid:  {cinder_scale: [3, 3, 4], gold_ingot: [4, 4, 4]}
+    high: {cinder_scale: [4, 5, 6, 6], gold_ingot: [4, 4, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
   cinder_cantor_helm:  # 성가자의 두건 모자 · 투구 · 금고·미믹 → 드롭 재료
-    low:  {ember_shard: [3, 3, 3]}
-    mid:  {ember_shard: [3, 4, 4], slag_ingot: [1, 3, 3]}
-    high: {ember_shard: [4, 5, 6, 8], slag_ingot: [3, 3, 4, 5], labyrinth_essence: [2, 3, 3, 4]}
-  emberforged_helm:  # 불씨 단조 투구 · 투구 · 정예 · 대장간 → 제작 재료 (P·S 바꿈, S +1 — 겹침 피함)
-    low:  {ember_shard: [3, 3, 3]}
-    mid:  {ember_shard: [3, 4, 4], slag_ingot: [2, 4, 4]}
-    high: {ember_shard: [4, 5, 6, 8], slag_ingot: [4, 4, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
-  forge_warden_helm:  # 용광로 수문장 투구 · 투구 · 보스 고유 · 대장간 → 제작 재료 (P +1, S +1 — 일반 장비 이상 · 겹침 피함)
-    low:  {slag_ingot: [4, 4, 4]}
-    mid:  {slag_ingot: [4, 5, 5], ember_shard: [2, 4, 4]}
-    high: {slag_ingot: [5, 6, 7, 9], ember_shard: [4, 4, 5, 6], executioner_edge: [1, 2, 0, 0], forge_core: [0, 0, 1, 2]}
-  cinder_cantor_chest:  # 잿불 성가복 · 흉갑 · 금고·미믹 → 드롭 재료
-    low:  {slag_ingot: [3, 3, 4]}
-    mid:  {slag_ingot: [4, 4, 5], ember_shard: [3, 3, 3]}
-    high: {slag_ingot: [5, 5, 6, 8], ember_shard: [3, 4, 4, 5], labyrinth_essence: [2, 3, 3, 4]}
+    low:  {ember_soul: [3, 3, 3]}
+    mid:  {ember_soul: [3, 4, 4], gold_ingot: [1, 2, 2]}
+    high: {ember_soul: [4, 5, 6, 8], gold_ingot: [2, 2, 2, 3], labyrinth_essence: [2, 3, 3, 4]}
+  emberforged_helm:  # 불씨 단조 투구 · 투구 · 정예 · 대장간 → 제작 재료 (P·S 바꿈 — 겹침 피함)
+    low:  {ember_soul: [3, 3, 3]}
+    mid:  {ember_soul: [3, 4, 4], silver_ingot: [1, 2, 2]}
+    high: {ember_soul: [4, 5, 6, 8], silver_ingot: [2, 2, 2, 3], labyrinth_essence: [2, 3, 3, 4]}
+  forge_warden_helm:  # 용광로 수문장 투구 · 투구 · 보스 고유 · 대장간 → 제작 재료 (P +1 — 일반 장비 이상 · 겹침 피함)
+    low:  {cinder_scale: [3, 3, 3]}
+    mid:  {cinder_scale: [3, 3, 3], gold_ingot: [1, 2, 2]}
+    high: {cinder_scale: [3, 4, 5, 6], gold_ingot: [2, 2, 2, 3], executioner_edge: [1, 2, 0, 0], forge_core: [0, 0, 1, 2]}
+  cinder_cantor_chest:  # 잿불 성가복 · 흉갑 · 금고·미믹 → 드롭 재료 (P·S 바꿈 — 겹침 피함)
+    low:  {cinder_scale: [2, 2, 2]}
+    mid:  {cinder_scale: [2, 2, 3], gold_ingot: [2, 2, 2]}
+    high: {cinder_scale: [3, 3, 4, 5], gold_ingot: [2, 2, 2, 3], labyrinth_essence: [2, 3, 3, 4]}
   emberforged_chest:  # 불씨 단조 흉갑 · 흉갑 · 정예 · 대장간 → 제작 재료
-    low:  {slag_ingot: [3, 3, 4]}
-    mid:  {slag_ingot: [4, 4, 5], ember_shard: [3, 3, 3]}
-    high: {slag_ingot: [5, 5, 6, 8], ember_shard: [3, 4, 4, 5], executioner_edge: [1, 1, 2, 2]}
+    low:  {cinder_scale: [2, 2, 2]}
+    mid:  {cinder_scale: [2, 2, 3], silver_ingot: [2, 2, 2]}
+    high: {cinder_scale: [3, 3, 4, 5], silver_ingot: [2, 2, 2, 3], executioner_edge: [1, 1, 2, 2]}
   forge_warden_chest:  # 용광로 수문장 흉갑 · 흉갑 · 보스 고유 · 대장간 → 제작 재료 (P·S 바꿈 — 일반 장비 이상)
-    low:  {ember_shard: [3, 3, 4]}
-    mid:  {ember_shard: [4, 4, 5], slag_ingot: [3, 3, 3]}
-    high: {ember_shard: [5, 5, 6, 8], slag_ingot: [3, 4, 4, 5], executioner_edge: [1, 2, 0, 0], forge_core: [0, 0, 1, 2]}
+    low:  {ember_soul: [3, 3, 4]}
+    mid:  {ember_soul: [4, 4, 5], gold_ingot: [2, 2, 2]}
+    high: {ember_soul: [5, 5, 6, 8], gold_ingot: [2, 2, 2, 3], executioner_edge: [1, 2, 0, 0], forge_core: [0, 0, 1, 2]}
   cinder_cantor_legs:  # 잿불 성가자 하의 · 하의 · 금고·미믹 → 드롭 재료
-    low:  {ember_shard: [3, 3, 4]}
-    mid:  {ember_shard: [4, 4, 5], slag_ingot: [3, 3, 3]}
-    high: {ember_shard: [5, 5, 6, 8], slag_ingot: [3, 4, 4, 5], labyrinth_essence: [2, 3, 3, 4]}
+    low:  {ember_soul: [3, 3, 4]}
+    mid:  {ember_soul: [4, 4, 5], gold_ingot: [2, 2, 2]}
+    high: {ember_soul: [5, 5, 6, 8], gold_ingot: [2, 2, 2, 3], labyrinth_essence: [2, 3, 3, 4]}
   emberforged_legs:  # 불씨 단조 각반 · 하의 · 정예 · 대장간 → 제작 재료 (P·S 바꿈 — 겹침 피함)
-    low:  {ember_shard: [3, 3, 4]}
-    mid:  {ember_shard: [4, 4, 5], slag_ingot: [3, 3, 3]}
-    high: {ember_shard: [5, 5, 6, 8], slag_ingot: [3, 4, 4, 5], executioner_edge: [1, 1, 2, 2]}
+    low:  {ember_soul: [3, 3, 4]}
+    mid:  {ember_soul: [4, 4, 5], silver_ingot: [2, 2, 2]}
+    high: {ember_soul: [5, 5, 6, 8], silver_ingot: [2, 2, 2, 3], executioner_edge: [1, 1, 2, 2]}
   forge_warden_legs:  # 용광로 수문장 각반 · 하의 · 보스 고유 · 대장간 → 제작 재료 (P +1 — 일반 장비 이상 · 겹침 피함)
-    low:  {slag_ingot: [4, 4, 5]}
-    mid:  {slag_ingot: [5, 5, 6], ember_shard: [3, 3, 3]}
-    high: {slag_ingot: [6, 6, 7, 9], ember_shard: [3, 4, 4, 5], executioner_edge: [1, 2, 0, 0], forge_core: [0, 0, 1, 2]}
-  cinder_cantor_boots:  # 잿불 성가자 신발 · 신발 · 금고·미믹 → 드롭 재료
-    low:  {slag_ingot: [3, 3, 3]}
-    mid:  {slag_ingot: [3, 4, 4], ember_shard: [1, 3, 3]}
-    high: {slag_ingot: [4, 5, 6, 8], ember_shard: [3, 3, 4, 5], labyrinth_essence: [2, 3, 3, 4]}
-  emberforged_boots:  # 불씨 단조 철장화 · 신발 · 정예 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
-    low:  {slag_ingot: [3, 3, 3]}
-    mid:  {slag_ingot: [3, 4, 4], ember_shard: [2, 4, 4]}
-    high: {slag_ingot: [4, 5, 6, 8], ember_shard: [4, 4, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
-  forge_warden_boots:  # 용광로 수문장 철장화 · 신발 · 보스 고유 · 대장간 → 제작 재료 (P·S 바꿈, S +1 — 일반 장비 이상)
-    low:  {ember_shard: [3, 3, 3]}
-    mid:  {ember_shard: [3, 4, 4], slag_ingot: [2, 4, 4]}
-    high: {ember_shard: [4, 5, 6, 8], slag_ingot: [4, 4, 5, 6], executioner_edge: [1, 2, 0, 0], forge_core: [0, 0, 1, 2]}
+    low:  {cinder_scale: [3, 3, 3]}
+    mid:  {cinder_scale: [3, 3, 4], gold_ingot: [2, 2, 2]}
+    high: {cinder_scale: [4, 4, 5, 6], gold_ingot: [2, 2, 2, 3], executioner_edge: [1, 2, 0, 0], forge_core: [0, 0, 1, 2]}
+  cinder_cantor_boots:  # 잿불 성가자 신발 · 신발 · 금고·미믹 → 드롭 재료 (P·S 바꿈 — 겹침 피함)
+    low:  {cinder_scale: [2, 2, 2]}
+    mid:  {cinder_scale: [2, 2, 2], gold_ingot: [1, 2, 2]}
+    high: {cinder_scale: [2, 3, 4, 5], gold_ingot: [2, 2, 2, 3], labyrinth_essence: [2, 3, 3, 4]}
+  emberforged_boots:  # 불씨 단조 철장화 · 신발 · 정예 · 대장간 → 제작 재료
+    low:  {cinder_scale: [2, 2, 2]}
+    mid:  {cinder_scale: [2, 2, 2], silver_ingot: [1, 2, 2]}
+    high: {cinder_scale: [2, 3, 4, 5], silver_ingot: [2, 2, 2, 3], labyrinth_essence: [2, 3, 3, 4]}
+  forge_warden_boots:  # 용광로 수문장 철장화 · 신발 · 보스 고유 · 대장간 → 제작 재료 (P·S 바꿈 — 일반 장비 이상)
+    low:  {ember_soul: [3, 3, 3]}
+    mid:  {ember_soul: [3, 4, 4], gold_ingot: [1, 2, 2]}
+    high: {ember_soul: [4, 5, 6, 8], gold_ingot: [2, 2, 2, 3], executioner_edge: [1, 2, 0, 0], forge_core: [0, 0, 1, 2]}
   anvil_face_shield:  # 모룻면 방패 · 방패 · 정예 · 대장간 → 제작 재료
-    low:  {slag_ingot: [3, 4, 4]}
-    mid:  {slag_ingot: [4, 5, 5], ember_shard: [3, 3, 4]}
-    high: {slag_ingot: [5, 6, 8, 9], ember_shard: [4, 4, 5, 6], executioner_edge: [1, 1, 2, 2]}
+    low:  {cinder_scale: [2, 2, 2]}
+    mid:  {cinder_scale: [2, 3, 3], gold_ingot: [2, 2, 2]}
+    high: {cinder_scale: [3, 4, 5, 5], gold_ingot: [2, 2, 3, 4], executioner_edge: [1, 1, 2, 2]}
 
-  # ════ 지하 6층 — 일반 묘지 뼈 · 서리 결정 · 정예 장송종 파편 · 정수 미궁 정수 · 핵 얼음관 조각 ════
+  # ════ 지하 6층 — 일반 서리 발톱 · 묘지 뼈 · 정예 장송종 파편 · 정수 미궁 정수 · 핵 얼음관 조각 ════
   frost_longsword:  # 서리 묘지기 장검 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (S +1 — 겹침 피함)
-    low:  {grave_bone: [3, 3, 4]}
-    mid:  {grave_bone: [4, 4, 5], rime_crystal: [4, 4, 5]}
-    high: {grave_bone: [5, 6, 8, 9], rime_crystal: [5, 5, 6, 7], funeral_bell_shard: [1, 1, 2, 2]}
-  frost_stiletto:  # 서리 스틸레토 · 근접 무기 · 시련방 → 상자 드롭 (R 바꿈, S +1 — 겹침 피함)
-    low:  {grave_bone: [3, 3, 4]}
-    mid:  {grave_bone: [4, 4, 5], rime_crystal: [4, 4, 5]}
-    high: {grave_bone: [5, 6, 8, 9], rime_crystal: [5, 5, 6, 7], labyrinth_essence: [2, 3, 3, 4]}
+    low:  {rime_talon: [1, 1, 2]}
+    mid:  {rime_talon: [2, 2, 2], gold_ingot: [3, 3, 4]}
+    high: {rime_talon: [2, 3, 3, 4], gold_ingot: [4, 4, 5, 5], funeral_bell_shard: [1, 1, 2, 2]}
+  frost_stiletto:  # 서리 스틸레토 · 근접 무기 · 시련방 → 상자 드롭 (S +1 — 겹침 피함)
+    low:  {rime_talon: [1, 1, 2]}
+    mid:  {rime_talon: [2, 2, 2], gold_ingot: [3, 3, 4]}
+    high: {rime_talon: [2, 3, 3, 4], gold_ingot: [4, 4, 5, 5], labyrinth_essence: [2, 3, 3, 4]}
   frost_tanto:  # 서리 탄토 · 근접 무기 · 금고·미믹 → 드롭 재료 (S +2 — 겹침 피함)
-    low:  {grave_bone: [3, 3, 4]}
-    mid:  {grave_bone: [4, 4, 5], rime_crystal: [5, 5, 6]}
-    high: {grave_bone: [5, 6, 8, 9], rime_crystal: [6, 6, 7, 8], labyrinth_essence: [2, 3, 3, 4]}
+    low:  {rime_talon: [1, 1, 2]}
+    mid:  {rime_talon: [2, 2, 2], gold_ingot: [4, 4, 5]}
+    high: {rime_talon: [2, 3, 3, 4], gold_ingot: [5, 5, 6, 6], labyrinth_essence: [2, 3, 3, 4]}
   frost_war_spear:  # 서리 창 · 근접 무기 · 정예 → 정예 드롭 (S +2 — 겹침 피함)
-    low:  {grave_bone: [3, 3, 4]}
-    mid:  {grave_bone: [4, 4, 5], rime_crystal: [5, 5, 6]}
-    high: {grave_bone: [5, 6, 8, 9], rime_crystal: [6, 6, 7, 8], funeral_bell_shard: [1, 1, 2, 2]}
-  frostgrave_mace:  # 서리 묘지기의 철퇴 · 근접 무기 · 대장간 → 제작 재료 (R 바꿈, P·S 바꿈 — 겹침 피함)
-    low:  {grave_bone: [3, 3, 4]}
-    mid:  {grave_bone: [4, 4, 5], rime_crystal: [3, 3, 4]}
-    high: {grave_bone: [5, 6, 8, 9], rime_crystal: [4, 4, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
-  gravefrost_katar:  # 묘역 서리 주먹칼 · 근접 무기 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
-    low:  {rime_crystal: [3, 3, 4]}
-    mid:  {rime_crystal: [4, 4, 5], grave_bone: [4, 4, 5]}
-    high: {rime_crystal: [5, 6, 8, 9], grave_bone: [5, 5, 6, 7], funeral_bell_shard: [1, 1, 2, 2]}
+    low:  {rime_talon: [1, 1, 2]}
+    mid:  {rime_talon: [2, 2, 2], gold_ingot: [4, 4, 5]}
+    high: {rime_talon: [2, 3, 3, 4], gold_ingot: [5, 5, 6, 6], funeral_bell_shard: [1, 1, 2, 2]}
+  frostgrave_mace:  # 서리 묘지기의 철퇴 · 근접 무기 · 대장간 → 제작 재료
+    low:  {rime_talon: [1, 1, 2]}
+    mid:  {rime_talon: [2, 2, 2], gold_ingot: [2, 2, 3]}
+    high: {rime_talon: [2, 3, 3, 4], gold_ingot: [3, 3, 4, 4], labyrinth_essence: [2, 3, 3, 4]}
+  gravefrost_katar:  # 묘역 서리 주먹칼 · 근접 무기 · 대장간 → 제작 재료
+    low:  {rime_talon: [1, 1, 2]}
+    mid:  {rime_talon: [2, 2, 2], gold_ingot: [2, 2, 3]}
+    high: {rime_talon: [2, 3, 3, 4], gold_ingot: [3, 3, 4, 4], funeral_bell_shard: [1, 1, 2, 2]}
   rime_flamberge:  # 서리 플랑베르주 · 근접 무기 · 금고·미믹 → 드롭 재료 (P·S 바꿈, S +2 — 겹침 피함)
-    low:  {rime_crystal: [3, 3, 4]}
-    mid:  {rime_crystal: [4, 4, 5], grave_bone: [5, 5, 6]}
-    high: {rime_crystal: [5, 6, 8, 9], grave_bone: [6, 6, 7, 8], labyrinth_essence: [2, 3, 3, 4]}
+    low:  {grave_bone: [3, 3, 4]}
+    mid:  {grave_bone: [4, 4, 5], gold_ingot: [4, 4, 5]}
+    high: {grave_bone: [5, 6, 8, 9], gold_ingot: [5, 5, 6, 6], labyrinth_essence: [2, 3, 3, 4]}
   rime_great_maul:  # 서리 대형 망치 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P·S 바꿈, S +2 — 겹침 피함)
-    low:  {rime_crystal: [3, 3, 4]}
-    mid:  {rime_crystal: [4, 4, 5], grave_bone: [5, 5, 6]}
-    high: {rime_crystal: [5, 6, 8, 9], grave_bone: [6, 6, 7, 8], funeral_bell_shard: [1, 1, 2, 2]}
+    low:  {grave_bone: [3, 3, 4]}
+    mid:  {grave_bone: [4, 4, 5], gold_ingot: [4, 4, 5]}
+    high: {grave_bone: [5, 6, 8, 9], gold_ingot: [5, 5, 6, 6], funeral_bell_shard: [1, 1, 2, 2]}
   rime_morning_star:  # 서리 모닝스타 · 근접 무기 · 시련방 → 상자 드롭 (P +1 — 겹침 피함)
-    low:  {grave_bone: [4, 4, 5]}
-    mid:  {grave_bone: [5, 5, 6], rime_crystal: [3, 3, 4]}
-    high: {grave_bone: [6, 7, 9, 10], rime_crystal: [4, 4, 5, 6], funeral_bell_shard: [1, 1, 2, 2]}
-  rime_reaper_scythe:  # 서리 수확자의 큰낫 · 근접 무기 · 대장간 → 제작 재료 (R 바꿈, S +1 — 겹침 피함)
-    low:  {rime_crystal: [3, 3, 4]}
-    mid:  {rime_crystal: [4, 4, 5], grave_bone: [4, 4, 5]}
-    high: {rime_crystal: [5, 6, 8, 9], grave_bone: [5, 5, 6, 7], labyrinth_essence: [2, 3, 3, 4]}
+    low:  {rime_talon: [2, 2, 3]}
+    mid:  {rime_talon: [3, 3, 3], gold_ingot: [2, 2, 3]}
+    high: {rime_talon: [3, 4, 4, 5], gold_ingot: [3, 3, 4, 4], funeral_bell_shard: [1, 1, 2, 2]}
+  rime_reaper_scythe:  # 서리 수확자의 큰낫 · 근접 무기 · 대장간 → 제작 재료 (P·S 바꿈 — 겹침 피함)
+    low:  {grave_bone: [3, 3, 4]}
+    mid:  {grave_bone: [4, 4, 5], gold_ingot: [2, 2, 3]}
+    high: {grave_bone: [5, 6, 8, 9], gold_ingot: [3, 3, 4, 4], labyrinth_essence: [2, 3, 3, 4]}
   rime_great_axe:  # 서리 큰도끼 · 근접 무기 · 특별 시련 → 드롭 재료 (P +1, S +1 — 겹침 피함)
-    low:  {grave_bone: [4, 4, 5]}
-    mid:  {grave_bone: [5, 5, 6], rime_crystal: [4, 4, 5]}
-    high: {grave_bone: [6, 7, 9, 10], rime_crystal: [5, 5, 6, 7], labyrinth_essence: [2, 3, 3, 4]}
-  soulflame_kris:  # 혼불 물결검 · 근접 무기 · 보스 고유 → 보스 드롭 (P +1, S +2 — 일반 장비 이상)
-    low:  {grave_bone: [4, 4, 5]}
-    mid:  {grave_bone: [5, 5, 6], rime_crystal: [5, 5, 6]}
-    high: {grave_bone: [6, 7, 9, 10], rime_crystal: [6, 6, 7, 8], funeral_bell_shard: [1, 2, 0, 0], frozen_crown_shard: [0, 0, 1, 2]}
+    low:  {rime_talon: [2, 2, 3]}
+    mid:  {rime_talon: [3, 3, 3], gold_ingot: [3, 3, 4]}
+    high: {rime_talon: [3, 4, 4, 5], gold_ingot: [4, 4, 5, 5], labyrinth_essence: [2, 3, 3, 4]}
+  soulflame_kris:  # 혼불 물결검 · 근접 무기 · 보스 고유 → 보스 드롭 (P +2 — 일반 장비 이상)
+    low:  {rime_talon: [3, 3, 4]}
+    mid:  {rime_talon: [4, 4, 4], mithril_ingot: [2, 2, 3]}
+    high: {rime_talon: [4, 5, 5, 6], mithril_ingot: [3, 3, 4, 4], funeral_bell_shard: [1, 2, 0, 0], frozen_crown_shard: [0, 0, 1, 2]}
   frost_twin_bow:  # 서리 쌍현 활 · 원거리 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P +1 — 겹침 피함)
-    low:  {rime_crystal: [4, 4, 5]}
-    mid:  {rime_crystal: [5, 5, 6], grave_bone: [3, 3, 4]}
-    high: {rime_crystal: [6, 7, 9, 10], grave_bone: [4, 4, 5, 6], funeral_bell_shard: [1, 1, 2, 2]}
-  frostbone_longbow:  # 얼음뼈 장궁 · 원거리 무기 · 대장간 → 제작 재료
-    low:  {rime_crystal: [3, 3, 4]}
-    mid:  {rime_crystal: [4, 4, 5], grave_bone: [3, 3, 4]}
-    high: {rime_crystal: [5, 6, 8, 9], grave_bone: [4, 4, 5, 6], funeral_bell_shard: [1, 1, 2, 2]}
-  rime_composite_bow:  # 서리 복합궁 · 원거리 무기 · 특별 시련 → 드롭 재료 (P +1, S +1 — 겹침 피함)
-    low:  {rime_crystal: [4, 4, 5]}
-    mid:  {rime_crystal: [5, 5, 6], grave_bone: [4, 4, 5]}
-    high: {rime_crystal: [6, 7, 9, 10], grave_bone: [5, 5, 6, 7], labyrinth_essence: [2, 3, 3, 4]}
-  frost_vigil_censer:  # 서리 철야 향로 · 시전 무기 · 대장간 → 제작 재료 (R 바꿈 — 겹침 피함)
-    low:  {rime_crystal: [3, 3, 4]}
-    mid:  {rime_crystal: [4, 4, 5], grave_bone: [3, 3, 4]}
-    high: {rime_crystal: [5, 6, 8, 9], grave_bone: [4, 4, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
-  rime_chalice:  # 서리 잔 홀 · 시전 무기 · 금고·미믹 → 드롭 재료 (P +1 — 겹침 피함)
-    low:  {rime_crystal: [4, 4, 5]}
-    mid:  {rime_crystal: [5, 5, 6], grave_bone: [3, 3, 4]}
-    high: {rime_crystal: [6, 7, 9, 10], grave_bone: [4, 4, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
-  rime_chime_rod:  # 묘역 풍경 홀 · 시전 무기 · 정예 → 정예 드롭 (R 바꿈, P·S 바꿈, P +1 — 겹침 피함)
     low:  {grave_bone: [4, 4, 5]}
-    mid:  {grave_bone: [5, 5, 6], rime_crystal: [3, 3, 4]}
-    high: {grave_bone: [6, 7, 9, 10], rime_crystal: [4, 4, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
+    mid:  {grave_bone: [5, 5, 6], gold_ingot: [2, 2, 3]}
+    high: {grave_bone: [6, 7, 9, 10], gold_ingot: [3, 3, 4, 4], funeral_bell_shard: [1, 1, 2, 2]}
+  frostbone_longbow:  # 얼음뼈 장궁 · 원거리 무기 · 대장간 → 제작 재료
+    low:  {grave_bone: [3, 3, 4]}
+    mid:  {grave_bone: [4, 4, 5], gold_ingot: [2, 2, 3]}
+    high: {grave_bone: [5, 6, 8, 9], gold_ingot: [3, 3, 4, 4], funeral_bell_shard: [1, 1, 2, 2]}
+  rime_composite_bow:  # 서리 복합궁 · 원거리 무기 · 특별 시련 → 드롭 재료 (P +1, S +1 — 겹침 피함)
+    low:  {grave_bone: [4, 4, 5]}
+    mid:  {grave_bone: [5, 5, 6], gold_ingot: [3, 3, 4]}
+    high: {grave_bone: [6, 7, 9, 10], gold_ingot: [4, 4, 5, 5], labyrinth_essence: [2, 3, 3, 4]}
+  frost_vigil_censer:  # 서리 철야 향로 · 시전 무기 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
+    low:  {grave_bone: [3, 3, 4]}
+    mid:  {grave_bone: [4, 4, 5], gold_ingot: [3, 3, 4]}
+    high: {grave_bone: [5, 6, 8, 9], gold_ingot: [4, 4, 5, 5], labyrinth_essence: [2, 3, 3, 4]}
+  rime_chalice:  # 서리 잔 홀 · 시전 무기 · 금고·미믹 → 드롭 재료 (P +1 — 겹침 피함)
+    low:  {grave_bone: [4, 4, 5]}
+    mid:  {grave_bone: [5, 5, 6], gold_ingot: [2, 2, 3]}
+    high: {grave_bone: [6, 7, 9, 10], gold_ingot: [3, 3, 4, 4], labyrinth_essence: [2, 3, 3, 4]}
+  rime_chime_rod:  # 묘역 풍경 홀 · 시전 무기 · 정예 → 정예 드롭 (P·S 바꿈, P +1 — 겹침 피함)
+    low:  {rime_talon: [2, 2, 3]}
+    mid:  {rime_talon: [3, 3, 3], gold_ingot: [2, 2, 3]}
+    high: {rime_talon: [3, 4, 4, 5], gold_ingot: [3, 3, 4, 4], labyrinth_essence: [2, 3, 3, 4]}
   rime_thurible_rod:  # 서리 향로봉 · 시전 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P +1, S +1 — 겹침 피함)
-    low:  {rime_crystal: [4, 4, 5]}
-    mid:  {rime_crystal: [5, 5, 6], grave_bone: [4, 4, 5]}
-    high: {rime_crystal: [6, 7, 9, 10], grave_bone: [5, 5, 6, 7], funeral_bell_shard: [1, 1, 2, 2]}
-  rimebell_staff:  # 서리방울 고리 지팡이 · 시전 무기 · 대장간 → 제작 재료 (P·S 바꿈 — 겹침 피함)
+    low:  {grave_bone: [4, 4, 5]}
+    mid:  {grave_bone: [5, 5, 6], gold_ingot: [3, 3, 4]}
+    high: {grave_bone: [6, 7, 9, 10], gold_ingot: [4, 4, 5, 5], funeral_bell_shard: [1, 1, 2, 2]}
+  rimebell_staff:  # 서리방울 고리 지팡이 · 시전 무기 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
     low:  {grave_bone: [3, 3, 4]}
-    mid:  {grave_bone: [4, 4, 5], rime_crystal: [3, 3, 4]}
-    high: {grave_bone: [5, 6, 8, 9], rime_crystal: [4, 4, 5, 6], funeral_bell_shard: [1, 1, 2, 2]}
+    mid:  {grave_bone: [4, 4, 5], gold_ingot: [3, 3, 4]}
+    high: {grave_bone: [5, 6, 8, 9], gold_ingot: [4, 4, 5, 5], funeral_bell_shard: [1, 1, 2, 2]}
   frost_antler_staff:  # 서리 사슴뿔 지팡이 · 시전 무기 · 특별 시련 → 드롭 재료 (P +1, S +2 — 겹침 피함)
-    low:  {rime_crystal: [4, 4, 5]}
-    mid:  {rime_crystal: [5, 5, 6], grave_bone: [5, 5, 6]}
-    high: {rime_crystal: [6, 7, 9, 10], grave_bone: [6, 6, 7, 8], labyrinth_essence: [2, 3, 3, 4]}
-  rimeheart_staff:  # 서리심장 지팡이 · 시전 무기 · 보스 고유 → 보스 드롭 (P +2, S +2 — 일반 장비 이상 · 겹침 피함)
-    low:  {rime_crystal: [5, 5, 6]}
-    mid:  {rime_crystal: [6, 6, 7], grave_bone: [5, 5, 6]}
-    high: {rime_crystal: [7, 8, 10, 11], grave_bone: [6, 6, 7, 8], funeral_bell_shard: [1, 2, 0, 0], frozen_crown_shard: [0, 0, 1, 2]}
-  sanctum_scepter:  # 성역의 홀 · 시전 무기 · 보스 고유 → 보스 드롭 (P·S 바꿈, P +2, S +1 — 일반 장비 이상 · 겹침 피함)
-    low:  {grave_bone: [5, 5, 6]}
-    mid:  {grave_bone: [6, 6, 7], rime_crystal: [4, 4, 5]}
-    high: {grave_bone: [7, 8, 10, 11], rime_crystal: [5, 5, 6, 7], funeral_bell_shard: [1, 2, 0, 0], frozen_crown_shard: [0, 0, 1, 2]}
+    low:  {grave_bone: [4, 4, 5]}
+    mid:  {grave_bone: [5, 5, 6], gold_ingot: [4, 4, 5]}
+    high: {grave_bone: [6, 7, 9, 10], gold_ingot: [5, 5, 6, 6], labyrinth_essence: [2, 3, 3, 4]}
+  rimeheart_staff:  # 서리심장 지팡이 · 시전 무기 · 보스 고유 → 보스 드롭 (P +3 — 일반 장비 이상 · 겹침 피함)
+    low:  {grave_bone: [6, 6, 7]}
+    mid:  {grave_bone: [7, 7, 8], mithril_ingot: [2, 2, 3]}
+    high: {grave_bone: [8, 9, 11, 12], mithril_ingot: [3, 3, 4, 4], funeral_bell_shard: [1, 2, 0, 0], frozen_crown_shard: [0, 0, 1, 2]}
+  sanctum_scepter:  # 성역의 홀 · 시전 무기 · 보스 고유 → 보스 드롭 (P·S 바꿈, P +1, S +2 — 일반 장비 이상 · 겹침 피함)
+    low:  {rime_talon: [2, 2, 3]}
+    mid:  {rime_talon: [3, 3, 3], mithril_ingot: [4, 4, 5]}
+    high: {rime_talon: [3, 4, 4, 5], mithril_ingot: [5, 5, 6, 6], funeral_bell_shard: [1, 2, 0, 0], frozen_crown_shard: [0, 0, 1, 2]}
   crypt_mourner_helm:  # 애도자의 면사 두건 · 투구 · 정예 · 대장간 → 제작 재료
-    low:  {rime_crystal: [3, 3, 3]}
-    mid:  {rime_crystal: [3, 4, 4], grave_bone: [1, 3, 3]}
-    high: {rime_crystal: [4, 5, 6, 8], grave_bone: [3, 3, 4, 5], labyrinth_essence: [2, 3, 3, 4]}
-  rimefang_helm:  # 서리송곳니 가면 · 투구 · 정예 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
     low:  {grave_bone: [3, 3, 3]}
-    mid:  {grave_bone: [3, 4, 4], rime_crystal: [2, 4, 4]}
-    high: {grave_bone: [4, 5, 6, 8], rime_crystal: [4, 4, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
+    mid:  {grave_bone: [3, 4, 4], gold_ingot: [1, 2, 2]}
+    high: {grave_bone: [4, 5, 6, 8], gold_ingot: [2, 2, 3, 4], labyrinth_essence: [2, 3, 3, 4]}
+  rimefang_helm:  # 서리송곳니 가면 · 투구 · 정예 · 대장간 → 제작 재료 (P·S 바꿈 — 겹침 피함)
+    low:  {rime_talon: [1, 1, 1]}
+    mid:  {rime_talon: [1, 2, 2], gold_ingot: [1, 2, 2]}
+    high: {rime_talon: [2, 2, 3, 3], gold_ingot: [2, 2, 3, 4], labyrinth_essence: [2, 3, 3, 4]}
   rime_stalker_helm:  # 추적자의 서리 두건 · 투구 · 특별 시련 → 드롭 재료 (S +2 — 겹침 피함)
-    low:  {rime_crystal: [3, 3, 3]}
-    mid:  {rime_crystal: [3, 4, 4], grave_bone: [3, 5, 5]}
-    high: {rime_crystal: [4, 5, 6, 8], grave_bone: [5, 5, 6, 7], labyrinth_essence: [2, 3, 3, 4]}
-  frost_regalia_helm:  # 얼음관의 왕관 · 투구 · 보스 고유 · 대장간 → 제작 재료 (P +1, S +2 — 일반 장비 이상)
-    low:  {rime_crystal: [4, 4, 4]}
-    mid:  {rime_crystal: [4, 5, 5], grave_bone: [3, 5, 5]}
-    high: {rime_crystal: [5, 6, 7, 9], grave_bone: [5, 5, 6, 7], funeral_bell_shard: [1, 2, 0, 0], frozen_crown_shard: [0, 0, 1, 2]}
-  crypt_mourner_chest:  # 애도자의 상복 · 흉갑 · 정예 · 대장간 → 제작 재료 (R 바꿈 — 겹침 피함)
-    low:  {rime_crystal: [3, 3, 4]}
-    mid:  {rime_crystal: [4, 4, 5], grave_bone: [3, 3, 3]}
-    high: {rime_crystal: [5, 5, 6, 8], grave_bone: [3, 4, 4, 5], labyrinth_essence: [2, 3, 3, 4]}
-  rimefang_chest:  # 서리송곳니 조끼 · 흉갑 · 정예 · 대장간 → 제작 재료
-    low:  {grave_bone: [3, 3, 4]}
-    mid:  {grave_bone: [4, 4, 5], rime_crystal: [3, 3, 3]}
-    high: {grave_bone: [5, 5, 6, 8], rime_crystal: [3, 4, 4, 5], funeral_bell_shard: [1, 1, 2, 2]}
-  rime_stalker_chest:  # 추적자의 털가죽 · 흉갑 · 특별 시련 → 드롭 재료 (S +1 — 겹침 피함)
-    low:  {grave_bone: [3, 3, 4]}
-    mid:  {grave_bone: [4, 4, 5], rime_crystal: [4, 4, 4]}
-    high: {grave_bone: [5, 5, 6, 8], rime_crystal: [4, 5, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
-  frost_regalia_chest:  # 얼음관의 예복 · 흉갑 · 보스 고유 · 대장간 → 제작 재료 (P +1, S +1 — 일반 장비 이상 · 겹침 피함)
-    low:  {rime_crystal: [4, 4, 5]}
-    mid:  {rime_crystal: [5, 5, 6], grave_bone: [4, 4, 4]}
-    high: {rime_crystal: [6, 6, 7, 9], grave_bone: [4, 5, 5, 6], funeral_bell_shard: [1, 2, 0, 0], frozen_crown_shard: [0, 0, 1, 2]}
-  crypt_mourner_legs:  # 애도자의 하의 · 하의 · 정예 · 대장간 → 제작 재료
-    low:  {rime_crystal: [3, 3, 4]}
-    mid:  {rime_crystal: [4, 4, 5], grave_bone: [3, 3, 3]}
-    high: {rime_crystal: [5, 5, 6, 8], grave_bone: [3, 4, 4, 5], funeral_bell_shard: [1, 1, 2, 2]}
-  rimefang_legs:  # 서리송곳니 바지 · 하의 · 정예 · 대장간 → 제작 재료 (R 바꿈 — 겹침 피함)
-    low:  {grave_bone: [3, 3, 4]}
-    mid:  {grave_bone: [4, 4, 5], rime_crystal: [3, 3, 3]}
-    high: {grave_bone: [5, 5, 6, 8], rime_crystal: [3, 4, 4, 5], labyrinth_essence: [2, 3, 3, 4]}
-  rime_stalker_legs:  # 추적자의 각반 · 하의 · 특별 시련 → 드롭 재료 (S +1 — 겹침 피함)
-    low:  {rime_crystal: [3, 3, 4]}
-    mid:  {rime_crystal: [4, 4, 5], grave_bone: [4, 4, 4]}
-    high: {rime_crystal: [5, 5, 6, 8], grave_bone: [4, 5, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
-  frost_regalia_legs:  # 얼음관의 치맛자락 · 하의 · 보스 고유 · 대장간 → 제작 재료 (P·S 바꿈, S +1 — 일반 장비 이상)
-    low:  {grave_bone: [3, 3, 4]}
-    mid:  {grave_bone: [4, 4, 5], rime_crystal: [4, 4, 4]}
-    high: {grave_bone: [5, 5, 6, 8], rime_crystal: [4, 5, 5, 6], funeral_bell_shard: [1, 2, 0, 0], frozen_crown_shard: [0, 0, 1, 2]}
-  crypt_mourner_boots:  # 애도자의 신발 · 신발 · 정예 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
-    low:  {rime_crystal: [3, 3, 3]}
-    mid:  {rime_crystal: [3, 4, 4], grave_bone: [2, 4, 4]}
-    high: {rime_crystal: [4, 5, 6, 8], grave_bone: [4, 4, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
-  rimefang_boots:  # 서리송곳니 장화 · 신발 · 정예 · 대장간 → 제작 재료
     low:  {grave_bone: [3, 3, 3]}
-    mid:  {grave_bone: [3, 4, 4], rime_crystal: [1, 3, 3]}
-    high: {grave_bone: [4, 5, 6, 8], rime_crystal: [3, 3, 4, 5], labyrinth_essence: [2, 3, 3, 4]}
-  rime_stalker_boots:  # 추적자의 눈길 장화 · 신발 · 특별 시련 → 드롭 재료 (S +2 — 겹침 피함)
-    low:  {grave_bone: [3, 3, 3]}
-    mid:  {grave_bone: [3, 4, 4], rime_crystal: [3, 5, 5]}
-    high: {grave_bone: [4, 5, 6, 8], rime_crystal: [5, 5, 6, 7], labyrinth_essence: [2, 3, 3, 4]}
-  frost_regalia_boots:  # 얼음관의 신 · 신발 · 보스 고유 · 대장간 → 제작 재료 (P·S 바꿈, P +1, S +1 — 일반 장비 이상 · 겹침 피함)
+    mid:  {grave_bone: [3, 4, 4], gold_ingot: [3, 4, 4]}
+    high: {grave_bone: [4, 5, 6, 8], gold_ingot: [4, 4, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
+  frost_regalia_helm:  # 얼음관의 왕관 · 투구 · 보스 고유 · 대장간 → 제작 재료 (P +1, S +1 — 일반 장비 이상)
     low:  {grave_bone: [4, 4, 4]}
-    mid:  {grave_bone: [4, 5, 5], rime_crystal: [2, 4, 4]}
-    high: {grave_bone: [5, 6, 7, 9], rime_crystal: [4, 4, 5, 6], funeral_bell_shard: [1, 2, 0, 0], frozen_crown_shard: [0, 0, 1, 2]}
+    mid:  {grave_bone: [4, 5, 5], gold_ingot: [2, 3, 3]}
+    high: {grave_bone: [5, 6, 7, 9], gold_ingot: [3, 3, 4, 5], funeral_bell_shard: [1, 2, 0, 0], frozen_crown_shard: [0, 0, 1, 2]}
+  crypt_mourner_chest:  # 애도자의 상복 · 흉갑 · 정예 · 대장간 → 제작 재료 (P·S 바꿈 — 겹침 피함)
+    low:  {rime_talon: [1, 1, 2]}
+    mid:  {rime_talon: [2, 2, 2], gold_ingot: [2, 2, 2]}
+    high: {rime_talon: [2, 2, 3, 3], gold_ingot: [2, 3, 3, 4], labyrinth_essence: [2, 3, 3, 4]}
+  rimefang_chest:  # 서리송곳니 조끼 · 흉갑 · 정예 · 대장간 → 제작 재료
+    low:  {rime_talon: [1, 1, 2]}
+    mid:  {rime_talon: [2, 2, 2], gold_ingot: [2, 2, 2]}
+    high: {rime_talon: [2, 2, 3, 3], gold_ingot: [2, 3, 3, 4], funeral_bell_shard: [1, 1, 2, 2]}
+  rime_stalker_chest:  # 추적자의 털가죽 · 흉갑 · 특별 시련 → 드롭 재료 (S +1 — 겹침 피함)
+    low:  {rime_talon: [1, 1, 2]}
+    mid:  {rime_talon: [2, 2, 2], gold_ingot: [3, 3, 3]}
+    high: {rime_talon: [2, 2, 3, 3], gold_ingot: [3, 4, 4, 5], labyrinth_essence: [2, 3, 3, 4]}
+  frost_regalia_chest:  # 얼음관의 예복 · 흉갑 · 보스 고유 · 대장간 → 제작 재료 (P +1, S +1 — 일반 장비 이상 · 겹침 피함)
+    low:  {grave_bone: [4, 4, 5]}
+    mid:  {grave_bone: [5, 5, 6], gold_ingot: [3, 3, 3]}
+    high: {grave_bone: [6, 6, 7, 9], gold_ingot: [3, 4, 4, 5], funeral_bell_shard: [1, 2, 0, 0], frozen_crown_shard: [0, 0, 1, 2]}
+  crypt_mourner_legs:  # 애도자의 하의 · 하의 · 정예 · 대장간 → 제작 재료
+    low:  {grave_bone: [3, 3, 4]}
+    mid:  {grave_bone: [4, 4, 5], gold_ingot: [2, 2, 2]}
+    high: {grave_bone: [5, 5, 6, 8], gold_ingot: [2, 3, 3, 4], funeral_bell_shard: [1, 1, 2, 2]}
+  rimefang_legs:  # 서리송곳니 바지 · 하의 · 정예 · 대장간 → 제작 재료
+    low:  {grave_bone: [3, 3, 4]}
+    mid:  {grave_bone: [4, 4, 5], gold_ingot: [2, 2, 2]}
+    high: {grave_bone: [5, 5, 6, 8], gold_ingot: [2, 3, 3, 4], labyrinth_essence: [2, 3, 3, 4]}
+  rime_stalker_legs:  # 추적자의 각반 · 하의 · 특별 시련 → 드롭 재료 (S +1 — 겹침 피함)
+    low:  {grave_bone: [3, 3, 4]}
+    mid:  {grave_bone: [4, 4, 5], gold_ingot: [3, 3, 3]}
+    high: {grave_bone: [5, 5, 6, 8], gold_ingot: [3, 4, 4, 5], labyrinth_essence: [2, 3, 3, 4]}
+  frost_regalia_legs:  # 얼음관의 치맛자락 · 하의 · 보스 고유 · 대장간 → 제작 재료 (P +1 — 일반 장비 이상)
+    low:  {grave_bone: [4, 4, 5]}
+    mid:  {grave_bone: [5, 5, 6], gold_ingot: [2, 2, 2]}
+    high: {grave_bone: [6, 6, 7, 9], gold_ingot: [2, 3, 3, 4], funeral_bell_shard: [1, 2, 0, 0], frozen_crown_shard: [0, 0, 1, 2]}
+  crypt_mourner_boots:  # 애도자의 신발 · 신발 · 정예 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
+    low:  {grave_bone: [3, 3, 3]}
+    mid:  {grave_bone: [3, 4, 4], gold_ingot: [2, 3, 3]}
+    high: {grave_bone: [4, 5, 6, 8], gold_ingot: [3, 3, 4, 5], labyrinth_essence: [2, 3, 3, 4]}
+  rimefang_boots:  # 서리송곳니 장화 · 신발 · 정예 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
+    low:  {rime_talon: [1, 1, 1]}
+    mid:  {rime_talon: [1, 2, 2], gold_ingot: [2, 3, 3]}
+    high: {rime_talon: [2, 2, 3, 3], gold_ingot: [3, 3, 4, 5], labyrinth_essence: [2, 3, 3, 4]}
+  rime_stalker_boots:  # 추적자의 눈길 장화 · 신발 · 특별 시련 → 드롭 재료 (S +2 — 겹침 피함)
+    low:  {rime_talon: [1, 1, 1]}
+    mid:  {rime_talon: [1, 2, 2], gold_ingot: [3, 4, 4]}
+    high: {rime_talon: [2, 2, 3, 3], gold_ingot: [4, 4, 5, 6], labyrinth_essence: [2, 3, 3, 4]}
+  frost_regalia_boots:  # 얼음관의 신 · 신발 · 보스 고유 · 대장간 → 제작 재료 (P +2 — 일반 장비 이상 · 겹침 피함)
+    low:  {grave_bone: [5, 5, 5]}
+    mid:  {grave_bone: [5, 6, 6], gold_ingot: [1, 2, 2]}
+    high: {grave_bone: [6, 7, 8, 10], gold_ingot: [2, 2, 3, 4], funeral_bell_shard: [1, 2, 0, 0], frozen_crown_shard: [0, 0, 1, 2]}
   frostgrave_tower_shield:  # 서리 묘비 방패 · 방패 · 정예 · 대장간 → 제작 재료
-    low:  {rime_crystal: [3, 4, 4]}
-    mid:  {rime_crystal: [4, 5, 5], grave_bone: [3, 3, 4]}
-    high: {rime_crystal: [5, 6, 8, 9], grave_bone: [4, 4, 5, 6], funeral_bell_shard: [1, 1, 2, 2]}
+    low:  {rime_talon: [1, 2, 2]}
+    mid:  {rime_talon: [2, 2, 2], gold_ingot: [2, 2, 3]}
+    high: {rime_talon: [2, 3, 3, 4], gold_ingot: [3, 3, 4, 4], funeral_bell_shard: [1, 1, 2, 2]}
 
-  # ════ 지하 7층 — 일반 자수정 파편 · 프리즘 가루 · 정예 조율 소리굽쇠 · 정수 찬란한 미궁 정수 · 핵 양극의 심장 ════
+  # ════ 지하 7층 — 일반 공명 힘줄 · 공명 힘줄 · 정예 조율 소리굽쇠 · 정수 찬란한 미궁 정수 · 핵 양극의 심장 ════
   amethyst_cleaver:  # 자수정 참마도 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭
-    low:  {amethyst_shard: [3, 3, 5]}
-    mid:  {amethyst_shard: [5, 5, 6], prism_dust: [3, 3, 4]}
-    high: {amethyst_shard: [6, 8, 9, 11], prism_dust: [4, 4, 5, 6], tuning_fork_core: [1, 1, 2, 2]}
-  resonant_longsword:  # 공명 수정 장검 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (R 바꿈 — 겹침 피함)
-    low:  {amethyst_shard: [3, 3, 5]}
-    mid:  {amethyst_shard: [5, 5, 6], prism_dust: [3, 3, 4]}
-    high: {amethyst_shard: [6, 8, 9, 11], prism_dust: [4, 4, 5, 6], radiant_essence: [2, 3, 3, 4]}
+    low:  {resonant_sinew: [4, 4, 5]}
+    mid:  {resonant_sinew: [5, 5, 7], gold_ingot: [2, 2, 3]}
+    high: {resonant_sinew: [7, 9, 11, 12], gold_ingot: [3, 3, 4, 4], tuning_fork_core: [1, 1, 2, 2]}
+  resonant_longsword:  # 공명 수정 장검 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭
+    low:  {resonant_sinew: [4, 4, 5]}
+    mid:  {resonant_sinew: [5, 5, 7], gold_ingot: [2, 2, 3]}
+    high: {resonant_sinew: [7, 9, 11, 12], gold_ingot: [3, 3, 4, 4], radiant_essence: [2, 3, 3, 4]}
   shardglass_dagger:  # 파편유리 단검 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P·S 바꿈 — 겹침 피함)
-    low:  {prism_dust: [3, 3, 4]}
-    mid:  {prism_dust: [4, 4, 5], amethyst_shard: [3, 3, 5]}
-    high: {prism_dust: [5, 6, 8, 9], amethyst_shard: [5, 5, 6, 8], tuning_fork_core: [1, 1, 2, 2]}
-  amethyst_executioner_axe:  # 자수정 처형 도끼 · 근접 무기 · 특별 시련 → 드롭 재료 (S +1 — 겹침 피함)
-    low:  {amethyst_shard: [3, 3, 5]}
-    mid:  {amethyst_shard: [5, 5, 6], prism_dust: [4, 4, 5]}
-    high: {amethyst_shard: [6, 8, 9, 11], prism_dust: [5, 5, 6, 7], radiant_essence: [2, 3, 3, 4]}
-  geode_great_maul:  # 정동 대형 망치 · 근접 무기 · 시련방 → 상자 드롭 (S +1 — 겹침 피함)
-    low:  {amethyst_shard: [3, 3, 5]}
-    mid:  {amethyst_shard: [5, 5, 6], prism_dust: [4, 4, 5]}
-    high: {amethyst_shard: [6, 8, 9, 11], prism_dust: [5, 5, 6, 7], tuning_fork_core: [1, 1, 2, 2]}
-  resonance_rapier:  # 공명 레이피어 · 근접 무기 · 정예 → 정예 드롭 (S +2 — 겹침 피함)
-    low:  {amethyst_shard: [3, 3, 5]}
-    mid:  {amethyst_shard: [5, 5, 6], prism_dust: [5, 5, 6]}
-    high: {amethyst_shard: [6, 8, 9, 11], prism_dust: [6, 6, 7, 8], tuning_fork_core: [1, 1, 2, 2]}
-  shardglass_tanto:  # 파편유리 탄토 · 근접 무기 · 금고·미믹 → 드롭 재료 (S +2 — 겹침 피함)
-    low:  {amethyst_shard: [3, 3, 5]}
-    mid:  {amethyst_shard: [5, 5, 6], prism_dust: [5, 5, 6]}
-    high: {amethyst_shard: [6, 8, 9, 11], prism_dust: [6, 6, 7, 8], radiant_essence: [2, 3, 3, 4]}
-  amethyst_falchion:  # 자수정 팔시온 · 근접 무기 · 대장간 → 제작 재료 (P +1 — 겹침 피함)
-    low:  {amethyst_shard: [4, 4, 6]}
-    mid:  {amethyst_shard: [6, 6, 7], prism_dust: [3, 3, 4]}
-    high: {amethyst_shard: [7, 9, 10, 12], prism_dust: [4, 4, 5, 6], tuning_fork_core: [1, 1, 2, 2]}
-  geode_scythe:  # 정동 큰낫 · 근접 무기 · 대장간 → 제작 재료 (R 바꿈, P +1 — 겹침 피함)
-    low:  {amethyst_shard: [4, 4, 6]}
-    mid:  {amethyst_shard: [6, 6, 7], prism_dust: [3, 3, 4]}
-    high: {amethyst_shard: [7, 9, 10, 12], prism_dust: [4, 4, 5, 6], radiant_essence: [2, 3, 3, 4]}
-  shardglass_sickle:  # 파편유리 낫 · 근접 무기 · 대장간 → 제작 재료 (P +1, S +1 — 겹침 피함)
-    low:  {amethyst_shard: [4, 4, 6]}
-    mid:  {amethyst_shard: [6, 6, 7], prism_dust: [4, 4, 5]}
-    high: {amethyst_shard: [7, 9, 10, 12], prism_dust: [5, 5, 6, 7], tuning_fork_core: [1, 1, 2, 2]}
-  geode_sunderer:  # 정동 파쇄 도끼 · 근접 무기 · 보스 고유 → 보스 드롭 (P +2, S +1 — 일반 장비 이상)
-    low:  {amethyst_shard: [5, 5, 7]}
-    mid:  {amethyst_shard: [7, 7, 8], prism_dust: [4, 4, 5]}
-    high: {amethyst_shard: [8, 10, 11, 13], prism_dust: [5, 5, 6, 7], tuning_fork_core: [1, 2, 0, 0], dyad_heart: [0, 0, 1, 2]}
-  prismstring_longbow:  # 프리즘 시위 장궁 · 원거리 무기 · 몬스터·상자 → 몬스터·상자 드롭 (R 바꿈 — 겹침 피함)
-    low:  {prism_dust: [3, 3, 4]}
-    mid:  {prism_dust: [4, 4, 5], amethyst_shard: [3, 3, 5]}
-    high: {prism_dust: [5, 6, 8, 9], amethyst_shard: [5, 5, 6, 8], radiant_essence: [2, 3, 3, 4]}
-  prism_twin_bow:  # 프리즘 쌍현 활 · 원거리 무기 · 특별 시련 → 드롭 재료 (S +2 — 겹침 피함)
-    low:  {prism_dust: [3, 3, 4]}
-    mid:  {prism_dust: [4, 4, 5], amethyst_shard: [5, 5, 7]}
-    high: {prism_dust: [5, 6, 8, 9], amethyst_shard: [7, 7, 8, 10], radiant_essence: [2, 3, 3, 4]}
-  prism_hornbow:  # 프리즘 각궁 · 원거리 무기 · 대장간 → 제작 재료 (R 바꿈, P +1, S +1 — 겹침 피함)
-    low:  {amethyst_shard: [4, 4, 6]}
-    mid:  {amethyst_shard: [6, 6, 7], prism_dust: [4, 4, 5]}
-    high: {amethyst_shard: [7, 9, 10, 12], prism_dust: [5, 5, 6, 7], radiant_essence: [2, 3, 3, 4]}
-  galewing_bow:  # 질풍 날개 활 · 원거리 무기 · 보스 고유 → 보스 드롭 (P +2, S +1 — 일반 장비 이상)
-    low:  {prism_dust: [5, 5, 6]}
-    mid:  {prism_dust: [6, 6, 7], amethyst_shard: [4, 4, 6]}
-    high: {prism_dust: [7, 8, 10, 11], amethyst_shard: [6, 6, 7, 9], tuning_fork_core: [1, 2, 0, 0], dyad_heart: [0, 0, 1, 2]}
+    low:  {gold_ingot: [2, 2, 3]}
+    mid:  {gold_ingot: [3, 3, 4], resonant_sinew: [4, 4, 5]}
+    high: {gold_ingot: [4, 4, 5, 6], resonant_sinew: [5, 5, 7, 9], tuning_fork_core: [1, 1, 2, 2]}
+  amethyst_executioner_axe:  # 자수정 처형 도끼 · 근접 무기 · 특별 시련 → 드롭 재료
+    low:  {resonant_sinew: [4, 4, 5]}
+    mid:  {resonant_sinew: [5, 5, 7], mithril_ingot: [2, 2, 3]}
+    high: {resonant_sinew: [7, 9, 11, 12], mithril_ingot: [3, 3, 4, 4], radiant_essence: [2, 3, 3, 4]}
+  geode_great_maul:  # 정동 대형 망치 · 근접 무기 · 시련방 → 상자 드롭
+    low:  {resonant_sinew: [4, 4, 5]}
+    mid:  {resonant_sinew: [5, 5, 7], mithril_ingot: [2, 2, 3]}
+    high: {resonant_sinew: [7, 9, 11, 12], mithril_ingot: [3, 3, 4, 4], tuning_fork_core: [1, 1, 2, 2]}
+  resonance_rapier:  # 공명 레이피어 · 근접 무기 · 정예 → 정예 드롭 (P·S 바꿈 — 겹침 피함)
+    low:  {mithril_ingot: [2, 2, 3]}
+    mid:  {mithril_ingot: [3, 3, 4], resonant_sinew: [4, 4, 5]}
+    high: {mithril_ingot: [4, 4, 5, 6], resonant_sinew: [5, 5, 7, 9], tuning_fork_core: [1, 1, 2, 2]}
+  shardglass_tanto:  # 파편유리 탄토 · 근접 무기 · 금고·미믹 → 드롭 재료 (P·S 바꿈 — 겹침 피함)
+    low:  {mithril_ingot: [2, 2, 3]}
+    mid:  {mithril_ingot: [3, 3, 4], resonant_sinew: [4, 4, 5]}
+    high: {mithril_ingot: [4, 4, 5, 6], resonant_sinew: [5, 5, 7, 9], radiant_essence: [2, 3, 3, 4]}
+  amethyst_falchion:  # 자수정 팔시온 · 근접 무기 · 대장간 → 제작 재료 (P·S 바꿈, S +1 — 겹침 피함)
+    low:  {gold_ingot: [2, 2, 3]}
+    mid:  {gold_ingot: [3, 3, 4], resonant_sinew: [5, 5, 6]}
+    high: {gold_ingot: [4, 4, 5, 6], resonant_sinew: [6, 6, 8, 10], tuning_fork_core: [1, 1, 2, 2]}
+  geode_scythe:  # 정동 큰낫 · 근접 무기 · 대장간 → 제작 재료 (P·S 바꿈, S +1 — 겹침 피함)
+    low:  {gold_ingot: [2, 2, 3]}
+    mid:  {gold_ingot: [3, 3, 4], resonant_sinew: [5, 5, 6]}
+    high: {gold_ingot: [4, 4, 5, 6], resonant_sinew: [6, 6, 8, 10], radiant_essence: [2, 3, 3, 4]}
+  shardglass_sickle:  # 파편유리 낫 · 근접 무기 · 대장간 → 제작 재료 (S +2 — 겹침 피함)
+    low:  {resonant_sinew: [4, 4, 5]}
+    mid:  {resonant_sinew: [5, 5, 7], gold_ingot: [4, 4, 5]}
+    high: {resonant_sinew: [7, 9, 11, 12], gold_ingot: [5, 5, 6, 6], tuning_fork_core: [1, 1, 2, 2]}
+  geode_sunderer:  # 정동 파쇄 도끼 · 근접 무기 · 보스 고유 → 보스 드롭 (S +2 — 일반 장비 이상)
+    low:  {resonant_sinew: [4, 4, 5]}
+    mid:  {resonant_sinew: [5, 5, 7], mithril_ingot: [4, 4, 5]}
+    high: {resonant_sinew: [7, 9, 11, 12], mithril_ingot: [5, 5, 6, 6], tuning_fork_core: [1, 2, 0, 0], dyad_heart: [0, 0, 1, 2]}
+  prismstring_longbow:  # 프리즘 시위 장궁 · 원거리 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P·S 바꿈 — 겹침 피함)
+    low:  {gold_ingot: [2, 2, 3]}
+    mid:  {gold_ingot: [3, 3, 4], resonant_sinew: [4, 4, 5]}
+    high: {gold_ingot: [4, 4, 5, 6], resonant_sinew: [5, 5, 7, 9], radiant_essence: [2, 3, 3, 4]}
+  prism_twin_bow:  # 프리즘 쌍현 활 · 원거리 무기 · 특별 시련 → 드롭 재료 (S +1 — 겹침 피함)
+    low:  {resonant_sinew: [4, 4, 5]}
+    mid:  {resonant_sinew: [5, 5, 7], mithril_ingot: [3, 3, 4]}
+    high: {resonant_sinew: [7, 9, 11, 12], mithril_ingot: [4, 4, 5, 5], radiant_essence: [2, 3, 3, 4]}
+  prism_hornbow:  # 프리즘 각궁 · 원거리 무기 · 대장간 → 제작 재료 (S +2 — 겹침 피함)
+    low:  {resonant_sinew: [4, 4, 5]}
+    mid:  {resonant_sinew: [5, 5, 7], gold_ingot: [4, 4, 5]}
+    high: {resonant_sinew: [7, 9, 11, 12], gold_ingot: [5, 5, 6, 6], radiant_essence: [2, 3, 3, 4]}
+  galewing_bow:  # 질풍 날개 활 · 원거리 무기 · 보스 고유 → 보스 드롭 (P +1, S +1 — 일반 장비 이상 · 겹침 피함)
+    low:  {resonant_sinew: [5, 5, 6]}
+    mid:  {resonant_sinew: [6, 6, 8], mithril_ingot: [3, 3, 4]}
+    high: {resonant_sinew: [8, 10, 12, 13], mithril_ingot: [4, 4, 5, 5], tuning_fork_core: [1, 2, 0, 0], dyad_heart: [0, 0, 1, 2]}
   prism_censer:  # 프리즘 향로 · 시전 무기 · 몬스터·상자 → 몬스터·상자 드롭 (S +1 — 겹침 피함)
-    low:  {prism_dust: [3, 3, 4]}
-    mid:  {prism_dust: [4, 4, 5], amethyst_shard: [4, 4, 6]}
-    high: {prism_dust: [5, 6, 8, 9], amethyst_shard: [6, 6, 7, 9], tuning_fork_core: [1, 1, 2, 2]}
-  resonance_staff:  # 공명 고리 지팡이 · 시전 무기 · 몬스터·상자 → 몬스터·상자 드롭 (R 바꿈, S +1 — 겹침 피함)
-    low:  {prism_dust: [3, 3, 4]}
-    mid:  {prism_dust: [4, 4, 5], amethyst_shard: [4, 4, 6]}
-    high: {prism_dust: [5, 6, 8, 9], amethyst_shard: [6, 6, 7, 9], radiant_essence: [2, 3, 3, 4]}
-  crystal_censer:  # 수정 향로 · 시전 무기 · 금고·미믹 → 드롭 재료 (P +1 — 겹침 피함)
-    low:  {prism_dust: [4, 4, 5]}
-    mid:  {prism_dust: [5, 5, 6], amethyst_shard: [3, 3, 5]}
-    high: {prism_dust: [6, 7, 9, 10], amethyst_shard: [5, 5, 6, 8], radiant_essence: [2, 3, 3, 4]}
-  prism_lamp_crook:  # 프리즘 등롱 지팡이 · 시전 무기 · 시련방 → 상자 드롭 (S +2 — 겹침 피함)
-    low:  {prism_dust: [3, 3, 4]}
-    mid:  {prism_dust: [4, 4, 5], amethyst_shard: [5, 5, 7]}
-    high: {prism_dust: [5, 6, 8, 9], amethyst_shard: [7, 7, 8, 10], tuning_fork_core: [1, 1, 2, 2]}
-  resonance_chime_rod:  # 공명 풍경 홀 · 시전 무기 · 정예 → 정예 드롭 (P +1 — 겹침 피함)
-    low:  {prism_dust: [4, 4, 5]}
-    mid:  {prism_dust: [5, 5, 6], amethyst_shard: [3, 3, 5]}
-    high: {prism_dust: [6, 7, 9, 10], amethyst_shard: [5, 5, 6, 8], tuning_fork_core: [1, 1, 2, 2]}
-  crystal_bell_scepter:  # 수정 종 홀 · 시전 무기 · 대장간 → 제작 재료 (P·S 바꿈, P +1, S +1 — 겹침 피함)
-    low:  {prism_dust: [4, 4, 5]}
-    mid:  {prism_dust: [5, 5, 6], amethyst_shard: [4, 4, 6]}
-    high: {prism_dust: [6, 7, 9, 10], amethyst_shard: [6, 6, 7, 9], tuning_fork_core: [1, 1, 2, 2]}
-  resonant_fork_staff:  # 공명 소리굽쇠 지팡이 · 시전 무기 · 대장간 → 제작 재료 (R 바꿈, P·S 바꿈, P +1, S +1 — 겹침 피함)
-    low:  {prism_dust: [4, 4, 5]}
-    mid:  {prism_dust: [5, 5, 6], amethyst_shard: [4, 4, 6]}
-    high: {prism_dust: [6, 7, 9, 10], amethyst_shard: [6, 6, 7, 9], radiant_essence: [2, 3, 3, 4]}
-  twin_light_scepter:  # 양극광 홀 · 시전 무기 · 보스 고유 → 보스 드롭 (P +3 — 일반 장비 이상 · 겹침 피함)
-    low:  {prism_dust: [6, 6, 7]}
-    mid:  {prism_dust: [7, 7, 8], amethyst_shard: [3, 3, 5]}
-    high: {prism_dust: [8, 9, 11, 12], amethyst_shard: [5, 5, 6, 8], tuning_fork_core: [1, 2, 0, 0], dyad_heart: [0, 0, 1, 2]}
-  geode_bastion_helm:  # 정동 성채 투구 · 투구 · 정예 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
-    low:  {amethyst_shard: [3, 3, 3]}
-    mid:  {amethyst_shard: [3, 5, 5], prism_dust: [2, 4, 4]}
-    high: {amethyst_shard: [5, 6, 8, 9], prism_dust: [4, 4, 5, 6], radiant_essence: [2, 3, 3, 4]}
-  shard_dancer_helm:  # 파편 무희의 가면 · 투구 · 정예 · 대장간 → 제작 재료
-    low:  {prism_dust: [3, 3, 3]}
-    mid:  {prism_dust: [3, 4, 4], amethyst_shard: [2, 3, 3]}
-    high: {prism_dust: [4, 5, 6, 8], amethyst_shard: [3, 3, 5, 6], radiant_essence: [2, 3, 3, 4]}
+    low:  {resonant_sinew: [4, 4, 5]}
+    mid:  {resonant_sinew: [5, 5, 7], gold_ingot: [3, 3, 4]}
+    high: {resonant_sinew: [7, 9, 11, 12], gold_ingot: [4, 4, 5, 5], tuning_fork_core: [1, 1, 2, 2]}
+  resonance_staff:  # 공명 고리 지팡이 · 시전 무기 · 몬스터·상자 → 몬스터·상자 드롭 (S +1 — 겹침 피함)
+    low:  {resonant_sinew: [4, 4, 5]}
+    mid:  {resonant_sinew: [5, 5, 7], gold_ingot: [3, 3, 4]}
+    high: {resonant_sinew: [7, 9, 11, 12], gold_ingot: [4, 4, 5, 5], radiant_essence: [2, 3, 3, 4]}
+  crystal_censer:  # 수정 향로 · 시전 무기 · 금고·미믹 → 드롭 재료 (P·S 바꿈, S +1 — 겹침 피함)
+    low:  {mithril_ingot: [2, 2, 3]}
+    mid:  {mithril_ingot: [3, 3, 4], resonant_sinew: [5, 5, 6]}
+    high: {mithril_ingot: [4, 4, 5, 6], resonant_sinew: [6, 6, 8, 10], radiant_essence: [2, 3, 3, 4]}
+  prism_lamp_crook:  # 프리즘 등롱 지팡이 · 시전 무기 · 시련방 → 상자 드롭 (S +1 — 겹침 피함)
+    low:  {resonant_sinew: [4, 4, 5]}
+    mid:  {resonant_sinew: [5, 5, 7], mithril_ingot: [3, 3, 4]}
+    high: {resonant_sinew: [7, 9, 11, 12], mithril_ingot: [4, 4, 5, 5], tuning_fork_core: [1, 1, 2, 2]}
+  resonance_chime_rod:  # 공명 풍경 홀 · 시전 무기 · 정예 → 정예 드롭 (P·S 바꿈, S +1 — 겹침 피함)
+    low:  {mithril_ingot: [2, 2, 3]}
+    mid:  {mithril_ingot: [3, 3, 4], resonant_sinew: [5, 5, 6]}
+    high: {mithril_ingot: [4, 4, 5, 6], resonant_sinew: [6, 6, 8, 10], tuning_fork_core: [1, 1, 2, 2]}
+  crystal_bell_scepter:  # 수정 종 홀 · 시전 무기 · 대장간 → 제작 재료 (P·S 바꿈, S +2 — 겹침 피함)
+    low:  {gold_ingot: [2, 2, 3]}
+    mid:  {gold_ingot: [3, 3, 4], resonant_sinew: [6, 6, 7]}
+    high: {gold_ingot: [4, 4, 5, 6], resonant_sinew: [7, 7, 9, 11], tuning_fork_core: [1, 1, 2, 2]}
+  resonant_fork_staff:  # 공명 소리굽쇠 지팡이 · 시전 무기 · 대장간 → 제작 재료 (P·S 바꿈, S +2 — 겹침 피함)
+    low:  {gold_ingot: [2, 2, 3]}
+    mid:  {gold_ingot: [3, 3, 4], resonant_sinew: [6, 6, 7]}
+    high: {gold_ingot: [4, 4, 5, 6], resonant_sinew: [7, 7, 9, 11], radiant_essence: [2, 3, 3, 4]}
+  twin_light_scepter:  # 양극광 홀 · 시전 무기 · 보스 고유 → 보스 드롭 (P +2 — 일반 장비 이상 · 겹침 피함)
+    low:  {resonant_sinew: [6, 6, 7]}
+    mid:  {resonant_sinew: [7, 7, 9], mithril_ingot: [2, 2, 3]}
+    high: {resonant_sinew: [9, 11, 13, 14], mithril_ingot: [3, 3, 4, 4], tuning_fork_core: [1, 2, 0, 0], dyad_heart: [0, 0, 1, 2]}
+  geode_bastion_helm:  # 정동 성채 투구 · 투구 · 정예 · 대장간 → 제작 재료
+    low:  {resonant_sinew: [4, 4, 4]}
+    mid:  {resonant_sinew: [4, 5, 5], mithril_ingot: [1, 2, 2]}
+    high: {resonant_sinew: [5, 7, 9, 11], mithril_ingot: [2, 2, 3, 4], radiant_essence: [2, 3, 3, 4]}
+  shard_dancer_helm:  # 파편 무희의 가면 · 투구 · 정예 · 대장간 → 제작 재료 (P·S 바꿈 — 겹침 피함)
+    low:  {mithril_ingot: [2, 2, 2]}
+    mid:  {mithril_ingot: [2, 3, 3], resonant_sinew: [2, 4, 4]}
+    high: {mithril_ingot: [3, 4, 4, 5], resonant_sinew: [4, 4, 5, 7], radiant_essence: [2, 3, 3, 4]}
   geode_bastion_chest:  # 정동 성채 흉갑 · 흉갑 · 정예 · 대장간 → 제작 재료
-    low:  {amethyst_shard: [3, 3, 5]}
-    mid:  {amethyst_shard: [5, 5, 6], prism_dust: [3, 3, 3]}
-    high: {amethyst_shard: [6, 6, 8, 9], prism_dust: [3, 4, 4, 5], tuning_fork_core: [1, 1, 2, 2]}
-  shard_dancer_chest:  # 파편 무희의 조끼 · 흉갑 · 정예 · 대장간 → 제작 재료 (R 바꿈 — 겹침 피함)
-    low:  {prism_dust: [3, 3, 4]}
-    mid:  {prism_dust: [4, 4, 5], amethyst_shard: [3, 3, 3]}
-    high: {prism_dust: [5, 5, 6, 8], amethyst_shard: [3, 5, 5, 6], radiant_essence: [2, 3, 3, 4]}
-  geode_bastion_legs:  # 정동 성채 각반 · 하의 · 정예 · 대장간 → 제작 재료 (R 바꿈 — 겹침 피함)
-    low:  {amethyst_shard: [3, 3, 5]}
-    mid:  {amethyst_shard: [5, 5, 6], prism_dust: [3, 3, 3]}
-    high: {amethyst_shard: [6, 6, 8, 9], prism_dust: [3, 4, 4, 5], radiant_essence: [2, 3, 3, 4]}
-  shard_dancer_legs:  # 파편 무희의 바지 · 하의 · 정예 · 대장간 → 제작 재료
-    low:  {prism_dust: [3, 3, 4]}
-    mid:  {prism_dust: [4, 4, 5], amethyst_shard: [3, 3, 3]}
-    high: {prism_dust: [5, 5, 6, 8], amethyst_shard: [3, 5, 5, 6], tuning_fork_core: [1, 1, 2, 2]}
-  geode_bastion_boots:  # 정동 성채 철장화 · 신발 · 정예 · 대장간 → 제작 재료
-    low:  {amethyst_shard: [3, 3, 3]}
-    mid:  {amethyst_shard: [3, 5, 5], prism_dust: [1, 3, 3]}
-    high: {amethyst_shard: [5, 6, 8, 9], prism_dust: [3, 3, 4, 5], radiant_essence: [2, 3, 3, 4]}
-  shard_dancer_boots:  # 파편 무희의 장화 · 신발 · 정예 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
-    low:  {prism_dust: [3, 3, 3]}
-    mid:  {prism_dust: [3, 4, 4], amethyst_shard: [3, 4, 4]}
-    high: {prism_dust: [4, 5, 6, 8], amethyst_shard: [4, 4, 6, 7], radiant_essence: [2, 3, 3, 4]}
+    low:  {resonant_sinew: [4, 4, 5]}
+    mid:  {resonant_sinew: [5, 5, 7], mithril_ingot: [2, 2, 2]}
+    high: {resonant_sinew: [7, 7, 9, 11], mithril_ingot: [2, 3, 3, 4], tuning_fork_core: [1, 1, 2, 2]}
+  shard_dancer_chest:  # 파편 무희의 조끼 · 흉갑 · 정예 · 대장간 → 제작 재료
+    low:  {resonant_sinew: [4, 4, 5]}
+    mid:  {resonant_sinew: [5, 5, 7], mithril_ingot: [2, 2, 2]}
+    high: {resonant_sinew: [7, 7, 9, 11], mithril_ingot: [2, 3, 3, 4], radiant_essence: [2, 3, 3, 4]}
+  geode_bastion_legs:  # 정동 성채 각반 · 하의 · 정예 · 대장간 → 제작 재료 (P·S 바꿈 — 겹침 피함)
+    low:  {mithril_ingot: [2, 2, 3]}
+    mid:  {mithril_ingot: [3, 3, 4], resonant_sinew: [4, 4, 4]}
+    high: {mithril_ingot: [4, 4, 4, 5], resonant_sinew: [4, 5, 5, 7], radiant_essence: [2, 3, 3, 4]}
+  shard_dancer_legs:  # 파편 무희의 바지 · 하의 · 정예 · 대장간 → 제작 재료 (P·S 바꿈 — 겹침 피함)
+    low:  {mithril_ingot: [2, 2, 3]}
+    mid:  {mithril_ingot: [3, 3, 4], resonant_sinew: [4, 4, 4]}
+    high: {mithril_ingot: [4, 4, 4, 5], resonant_sinew: [4, 5, 5, 7], tuning_fork_core: [1, 1, 2, 2]}
+  geode_bastion_boots:  # 정동 성채 철장화 · 신발 · 정예 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
+    low:  {resonant_sinew: [4, 4, 4]}
+    mid:  {resonant_sinew: [4, 5, 5], mithril_ingot: [2, 3, 3]}
+    high: {resonant_sinew: [5, 7, 9, 11], mithril_ingot: [3, 3, 4, 5], radiant_essence: [2, 3, 3, 4]}
+  shard_dancer_boots:  # 파편 무희의 장화 · 신발 · 정예 · 대장간 → 제작 재료 (P·S 바꿈, S +1 — 겹침 피함)
+    low:  {mithril_ingot: [2, 2, 2]}
+    mid:  {mithril_ingot: [2, 3, 3], resonant_sinew: [3, 5, 5]}
+    high: {mithril_ingot: [3, 4, 4, 5], resonant_sinew: [5, 5, 6, 8], radiant_essence: [2, 3, 3, 4]}
   prism_aegis:  # 양극의 아이기스 · 방패 · 보스 고유 · 대장간 → 제작 재료
-    low:  {amethyst_shard: [3, 5, 5]}
-    mid:  {amethyst_shard: [5, 6, 6], prism_dust: [3, 3, 4]}
-    high: {amethyst_shard: [6, 8, 9, 11], prism_dust: [4, 4, 5, 6], tuning_fork_core: [1, 2, 0, 0], dyad_heart: [0, 0, 1, 2]}
+    low:  {resonant_sinew: [4, 5, 5]}
+    mid:  {resonant_sinew: [5, 7, 7], mithril_ingot: [2, 2, 3]}
+    high: {resonant_sinew: [7, 9, 11, 12], mithril_ingot: [3, 3, 4, 4], tuning_fork_core: [1, 2, 0, 0], dyad_heart: [0, 0, 1, 2]}
 
   # ════ 지하 8층 — 일반 바랜 책장 · 먹물 정수 · 정예 금서의 봉인 · 정수 찬란한 미궁 정수 · 핵 사서의 깃펜 ════
   index_war_spear:  # 색인 창 · 근접 무기 · 정예 → 정예 드롭 (S +1 — 겹침 피함)
     low:  {old_page: [3, 3, 5]}
-    mid:  {old_page: [5, 5, 6], ink_essence: [5, 5, 6]}
-    high: {old_page: [6, 8, 9, 11], ink_essence: [6, 6, 8, 10], forbidden_seal: [1, 1, 2, 2]}
-  ink_great_maul:  # 봉인 대형 망치 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (R 바꿈, S +1 — 겹침 피함)
+    mid:  {old_page: [5, 5, 6], mithril_ingot: [3, 3, 4]}
+    high: {old_page: [6, 8, 9, 11], mithril_ingot: [4, 4, 5, 5], forbidden_seal: [1, 1, 2, 2]}
+  ink_great_maul:  # 봉인 대형 망치 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (S +1 — 겹침 피함)
     low:  {old_page: [3, 3, 5]}
-    mid:  {old_page: [5, 5, 6], ink_essence: [5, 5, 6]}
-    high: {old_page: [6, 8, 9, 11], ink_essence: [6, 6, 8, 10], radiant_essence: [2, 3, 3, 4]}
+    mid:  {old_page: [5, 5, 6], mithril_ingot: [3, 3, 4]}
+    high: {old_page: [6, 8, 9, 11], mithril_ingot: [4, 4, 5, 5], radiant_essence: [2, 3, 3, 4]}
   ink_morning_star:  # 먹물 모닝스타 · 근접 무기 · 시련방 → 상자 드롭 (S +2 — 겹침 피함)
     low:  {old_page: [3, 3, 5]}
-    mid:  {old_page: [5, 5, 6], ink_essence: [6, 6, 7]}
-    high: {old_page: [6, 8, 9, 11], ink_essence: [7, 7, 9, 11], forbidden_seal: [1, 1, 2, 2]}
-  ink_rapier:  # 먹물 레이피어 · 근접 무기 · 정예 → 정예 드롭 (R 바꿈, S +2 — 겹침 피함)
+    mid:  {old_page: [5, 5, 6], mithril_ingot: [4, 4, 5]}
+    high: {old_page: [6, 8, 9, 11], mithril_ingot: [5, 5, 6, 6], forbidden_seal: [1, 1, 2, 2]}
+  ink_rapier:  # 먹물 레이피어 · 근접 무기 · 정예 → 정예 드롭 (S +2 — 겹침 피함)
     low:  {old_page: [3, 3, 5]}
-    mid:  {old_page: [5, 5, 6], ink_essence: [6, 6, 7]}
-    high: {old_page: [6, 8, 9, 11], ink_essence: [7, 7, 9, 11], radiant_essence: [2, 3, 3, 4]}
+    mid:  {old_page: [5, 5, 6], mithril_ingot: [4, 4, 5]}
+    high: {old_page: [6, 8, 9, 11], mithril_ingot: [5, 5, 6, 6], radiant_essence: [2, 3, 3, 4]}
   ink_sabre:  # 먹물 사브르 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P·S 바꿈, S +2 — 겹침 피함)
     low:  {ink_essence: [4, 4, 5]}
-    mid:  {ink_essence: [5, 5, 7], old_page: [5, 5, 7]}
-    high: {ink_essence: [7, 9, 11, 12], old_page: [7, 7, 8, 10], forbidden_seal: [1, 1, 2, 2]}
+    mid:  {ink_essence: [5, 5, 7], mithril_ingot: [4, 4, 5]}
+    high: {ink_essence: [7, 9, 11, 12], mithril_ingot: [5, 5, 6, 6], forbidden_seal: [1, 1, 2, 2]}
   ink_stiletto:  # 먹물 스틸레토 · 근접 무기 · 금고·미믹 → 드롭 재료 (P·S 바꿈, S +2 — 겹침 피함)
     low:  {ink_essence: [4, 4, 5]}
-    mid:  {ink_essence: [5, 5, 7], old_page: [5, 5, 7]}
-    high: {ink_essence: [7, 9, 11, 12], old_page: [7, 7, 8, 10], radiant_essence: [2, 3, 3, 4]}
-  inkseal_warhammer:  # 금서 봉인 망치 · 근접 무기 · 대장간 → 제작 재료 (R 바꿈, P·S 바꿈 — 겹침 피함)
+    mid:  {ink_essence: [5, 5, 7], mithril_ingot: [4, 4, 5]}
+    high: {ink_essence: [7, 9, 11, 12], mithril_ingot: [5, 5, 6, 6], radiant_essence: [2, 3, 3, 4]}
+  inkseal_warhammer:  # 금서 봉인 망치 · 근접 무기 · 대장간 → 제작 재료 (P·S 바꿈 — 겹침 피함)
     low:  {old_page: [3, 3, 5]}
-    mid:  {old_page: [5, 5, 6], ink_essence: [4, 4, 5]}
-    high: {old_page: [6, 8, 9, 11], ink_essence: [5, 5, 7, 9], radiant_essence: [2, 3, 3, 4]}
+    mid:  {old_page: [5, 5, 6], mithril_ingot: [2, 2, 3]}
+    high: {old_page: [6, 8, 9, 11], mithril_ingot: [3, 3, 4, 4], radiant_essence: [2, 3, 3, 4]}
   lore_glaive:  # 금서 언월도 · 근접 무기 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
     low:  {ink_essence: [4, 4, 5]}
-    mid:  {ink_essence: [5, 5, 7], old_page: [4, 4, 6]}
-    high: {ink_essence: [7, 9, 11, 12], old_page: [6, 6, 7, 9], forbidden_seal: [1, 1, 2, 2]}
+    mid:  {ink_essence: [5, 5, 7], mithril_ingot: [3, 3, 4]}
+    high: {ink_essence: [7, 9, 11, 12], mithril_ingot: [4, 4, 5, 5], forbidden_seal: [1, 1, 2, 2]}
   lore_sickle:  # 금서 갈고리낫 · 근접 무기 · 시련방 → 상자 드롭 (P +1 — 겹침 피함)
     low:  {old_page: [4, 4, 6]}
-    mid:  {old_page: [6, 6, 7], ink_essence: [4, 4, 5]}
-    high: {old_page: [7, 9, 10, 12], ink_essence: [5, 5, 7, 9], forbidden_seal: [1, 1, 2, 2]}
-  lorekeeper_katar:  # 금서지기의 주먹칼 · 근접 무기 · 대장간 → 제작 재료 (R 바꿈, S +1 — 겹침 피함)
+    mid:  {old_page: [6, 6, 7], mithril_ingot: [2, 2, 3]}
+    high: {old_page: [7, 9, 10, 12], mithril_ingot: [3, 3, 4, 4], forbidden_seal: [1, 1, 2, 2]}
+  lorekeeper_katar:  # 금서지기의 주먹칼 · 근접 무기 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
     low:  {ink_essence: [4, 4, 5]}
-    mid:  {ink_essence: [5, 5, 7], old_page: [4, 4, 6]}
-    high: {ink_essence: [7, 9, 11, 12], old_page: [6, 6, 7, 9], radiant_essence: [2, 3, 3, 4]}
+    mid:  {ink_essence: [5, 5, 7], mithril_ingot: [3, 3, 4]}
+    high: {ink_essence: [7, 9, 11, 12], mithril_ingot: [4, 4, 5, 5], radiant_essence: [2, 3, 3, 4]}
   index_cleaver:  # 색인 참마도 · 근접 무기 · 특별 시련 → 드롭 재료 (P +1, S +1 — 겹침 피함)
     low:  {old_page: [4, 4, 6]}
-    mid:  {old_page: [6, 6, 7], ink_essence: [5, 5, 6]}
-    high: {old_page: [7, 9, 10, 12], ink_essence: [6, 6, 8, 10], radiant_essence: [2, 3, 3, 4]}
-  index_keeper_sword:  # 색인 수호자의 넓은검 · 근접 무기 · 보스 고유 → 보스 드롭 (P +2, S +2 — 일반 장비 이상)
+    mid:  {old_page: [6, 6, 7], mithril_ingot: [3, 3, 4]}
+    high: {old_page: [7, 9, 10, 12], mithril_ingot: [4, 4, 5, 5], radiant_essence: [2, 3, 3, 4]}
+  index_keeper_sword:  # 색인 수호자의 넓은검 · 근접 무기 · 보스 고유 → 보스 드롭 (P +2, S +1 — 일반 장비 이상)
     low:  {old_page: [5, 5, 7]}
-    mid:  {old_page: [7, 7, 8], ink_essence: [6, 6, 7]}
-    high: {old_page: [8, 10, 11, 13], ink_essence: [7, 7, 9, 11], forbidden_seal: [1, 2, 0, 0], librarian_quill: [0, 0, 1, 2]}
-  nightshade_dagger:  # 야음 단검 · 근접 무기 · 보스 고유 → 보스 드롭 (P +3, S +1 — 일반 장비 이상 · 겹침 피함)
+    mid:  {old_page: [7, 7, 8], orichalcum_ingot: [3, 3, 4]}
+    high: {old_page: [8, 10, 11, 13], orichalcum_ingot: [4, 4, 5, 5], forbidden_seal: [1, 2, 0, 0], librarian_quill: [0, 0, 1, 2]}
+  nightshade_dagger:  # 야음 단검 · 근접 무기 · 보스 고유 → 보스 드롭 (P +3 — 일반 장비 이상 · 겹침 피함)
     low:  {old_page: [6, 6, 8]}
-    mid:  {old_page: [8, 8, 9], ink_essence: [5, 5, 6]}
-    high: {old_page: [9, 11, 12, 14], ink_essence: [6, 6, 8, 10], forbidden_seal: [1, 2, 0, 0], librarian_quill: [0, 0, 1, 2]}
+    mid:  {old_page: [8, 8, 9], orichalcum_ingot: [2, 2, 3]}
+    high: {old_page: [9, 11, 12, 14], orichalcum_ingot: [3, 3, 4, 4], forbidden_seal: [1, 2, 0, 0], librarian_quill: [0, 0, 1, 2]}
   ink_recurve:  # 먹물 만곡궁 · 원거리 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P +1 — 겹침 피함)
     low:  {ink_essence: [5, 5, 6]}
-    mid:  {ink_essence: [6, 6, 8], old_page: [3, 3, 5]}
-    high: {ink_essence: [8, 10, 12, 13], old_page: [5, 5, 6, 8], forbidden_seal: [1, 1, 2, 2]}
+    mid:  {ink_essence: [6, 6, 8], mithril_ingot: [2, 2, 3]}
+    high: {ink_essence: [8, 10, 12, 13], mithril_ingot: [3, 3, 4, 4], forbidden_seal: [1, 1, 2, 2]}
   ink_twin_bow:  # 먹물 쌍현 활 · 원거리 무기 · 금고·미믹 → 드롭 재료 (P +1 — 겹침 피함)
     low:  {ink_essence: [5, 5, 6]}
-    mid:  {ink_essence: [6, 6, 8], old_page: [3, 3, 5]}
-    high: {ink_essence: [8, 10, 12, 13], old_page: [5, 5, 6, 8], radiant_essence: [2, 3, 3, 4]}
+    mid:  {ink_essence: [6, 6, 8], mithril_ingot: [2, 2, 3]}
+    high: {ink_essence: [8, 10, 12, 13], mithril_ingot: [3, 3, 4, 4], radiant_essence: [2, 3, 3, 4]}
   inkquill_hornbow:  # 깃펜 각궁 · 원거리 무기 · 대장간 → 제작 재료
     low:  {ink_essence: [4, 4, 5]}
-    mid:  {ink_essence: [5, 5, 7], old_page: [3, 3, 5]}
-    high: {ink_essence: [7, 9, 11, 12], old_page: [5, 5, 6, 8], forbidden_seal: [1, 1, 2, 2]}
+    mid:  {ink_essence: [5, 5, 7], mithril_ingot: [2, 2, 3]}
+    high: {ink_essence: [7, 9, 11, 12], mithril_ingot: [3, 3, 4, 4], forbidden_seal: [1, 1, 2, 2]}
   ink_bone_bow:  # 먹물 뼈 활 · 원거리 무기 · 특별 시련 → 드롭 재료 (P +1, S +2 — 겹침 피함)
     low:  {ink_essence: [5, 5, 6]}
-    mid:  {ink_essence: [6, 6, 8], old_page: [5, 5, 7]}
-    high: {ink_essence: [8, 10, 12, 13], old_page: [7, 7, 8, 10], radiant_essence: [2, 3, 3, 4]}
-  ink_chalice:  # 먹물 잔 홀 · 시전 무기 · 대장간 → 제작 재료 (R 바꿈 — 겹침 피함)
+    mid:  {ink_essence: [6, 6, 8], mithril_ingot: [4, 4, 5]}
+    high: {ink_essence: [8, 10, 12, 13], mithril_ingot: [5, 5, 6, 6], radiant_essence: [2, 3, 3, 4]}
+  ink_chalice:  # 먹물 잔 홀 · 시전 무기 · 대장간 → 제작 재료
     low:  {ink_essence: [4, 4, 5]}
-    mid:  {ink_essence: [5, 5, 7], old_page: [3, 3, 5]}
-    high: {ink_essence: [7, 9, 11, 12], old_page: [5, 5, 6, 8], radiant_essence: [2, 3, 3, 4]}
+    mid:  {ink_essence: [5, 5, 7], mithril_ingot: [2, 2, 3]}
+    high: {ink_essence: [7, 9, 11, 12], mithril_ingot: [3, 3, 4, 4], radiant_essence: [2, 3, 3, 4]}
   ink_spiral_staff:  # 먹물 소용돌이 지팡이 · 시전 무기 · 대장간 → 제작 재료 (P·S 바꿈 — 겹침 피함)
     low:  {old_page: [3, 3, 5]}
-    mid:  {old_page: [5, 5, 6], ink_essence: [4, 4, 5]}
-    high: {old_page: [6, 8, 9, 11], ink_essence: [5, 5, 7, 9], forbidden_seal: [1, 1, 2, 2]}
-  lore_lamp_crook:  # 서고 등롱 지팡이 · 시전 무기 · 몬스터·상자 → 몬스터·상자 드롭 (R 바꿈, P·S 바꿈, P +1 — 겹침 피함)
+    mid:  {old_page: [5, 5, 6], mithril_ingot: [2, 2, 3]}
+    high: {old_page: [6, 8, 9, 11], mithril_ingot: [3, 3, 4, 4], forbidden_seal: [1, 1, 2, 2]}
+  lore_lamp_crook:  # 서고 등롱 지팡이 · 시전 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P·S 바꿈, P +1 — 겹침 피함)
     low:  {old_page: [4, 4, 6]}
-    mid:  {old_page: [6, 6, 7], ink_essence: [4, 4, 5]}
-    high: {old_page: [7, 9, 10, 12], ink_essence: [5, 5, 7, 9], radiant_essence: [2, 3, 3, 4]}
+    mid:  {old_page: [6, 6, 7], mithril_ingot: [2, 2, 3]}
+    high: {old_page: [7, 9, 10, 12], mithril_ingot: [3, 3, 4, 4], radiant_essence: [2, 3, 3, 4]}
   lore_sun_scepter:  # 금서 해 홀 · 시전 무기 · 금고·미믹 → 드롭 재료 (P +1, S +1 — 겹침 피함)
     low:  {ink_essence: [5, 5, 6]}
-    mid:  {ink_essence: [6, 6, 8], old_page: [4, 4, 6]}
-    high: {ink_essence: [8, 10, 12, 13], old_page: [6, 6, 7, 9], radiant_essence: [2, 3, 3, 4]}
+    mid:  {ink_essence: [6, 6, 8], mithril_ingot: [3, 3, 4]}
+    high: {ink_essence: [8, 10, 12, 13], mithril_ingot: [4, 4, 5, 5], radiant_essence: [2, 3, 3, 4]}
   lore_antler_staff:  # 금서 사슴뿔 지팡이 · 시전 무기 · 특별 시련 → 드롭 재료 (P·S 바꿈, P +1, S +2 — 겹침 피함)
     low:  {old_page: [4, 4, 6]}
-    mid:  {old_page: [6, 6, 7], ink_essence: [6, 6, 7]}
-    high: {old_page: [7, 9, 10, 12], ink_essence: [7, 7, 9, 11], radiant_essence: [2, 3, 3, 4]}
-  inkwell_staff:  # 먹물 서고 지팡이 · 시전 무기 · 보스 고유 → 보스 드롭 (P +2, S +3 — 일반 장비 이상)
+    mid:  {old_page: [6, 6, 7], mithril_ingot: [4, 4, 5]}
+    high: {old_page: [7, 9, 10, 12], mithril_ingot: [5, 5, 6, 6], radiant_essence: [2, 3, 3, 4]}
+  inkwell_staff:  # 먹물 서고 지팡이 · 시전 무기 · 보스 고유 → 보스 드롭 (P +2, S +1 — 일반 장비 이상)
     low:  {ink_essence: [6, 6, 7]}
-    mid:  {ink_essence: [7, 7, 9], old_page: [6, 6, 8]}
-    high: {ink_essence: [9, 11, 13, 14], old_page: [8, 8, 9, 11], forbidden_seal: [1, 2, 0, 0], librarian_quill: [0, 0, 1, 2]}
+    mid:  {ink_essence: [7, 7, 9], orichalcum_ingot: [3, 3, 4]}
+    high: {ink_essence: [9, 11, 13, 14], orichalcum_ingot: [4, 4, 5, 5], forbidden_seal: [1, 2, 0, 0], librarian_quill: [0, 0, 1, 2]}
   lorekeeper_helm:  # 서고지기의 머리띠 · 투구 · 정예 · 대장간 → 제작 재료
     low:  {ink_essence: [4, 4, 4]}
-    mid:  {ink_essence: [4, 5, 5], old_page: [2, 3, 3]}
-    high: {ink_essence: [5, 7, 9, 11], old_page: [3, 3, 5, 6], radiant_essence: [2, 3, 3, 4]}
+    mid:  {ink_essence: [4, 5, 5], mithril_ingot: [1, 2, 2]}
+    high: {ink_essence: [5, 7, 9, 11], mithril_ingot: [2, 2, 3, 4], radiant_essence: [2, 3, 3, 4]}
   index_bulwark_helm:  # 색인 방벽 투구 · 투구 · 정예 · 대장간 → 제작 재료 (P·S 바꿈, S +1 — 겹침 피함)
     low:  {ink_essence: [4, 4, 4]}
-    mid:  {ink_essence: [4, 5, 5], old_page: [3, 4, 4]}
-    high: {ink_essence: [5, 7, 9, 11], old_page: [4, 4, 6, 7], radiant_essence: [2, 3, 3, 4]}
-  inkveil_helm:  # 먹물 장막 가면 · 투구 · 보스 고유 · 대장간 → 제작 재료 (S +2 — 일반 장비 이상)
+    mid:  {ink_essence: [4, 5, 5], mithril_ingot: [2, 3, 3]}
+    high: {ink_essence: [5, 7, 9, 11], mithril_ingot: [3, 3, 4, 5], radiant_essence: [2, 3, 3, 4]}
+  inkveil_helm:  # 먹물 장막 가면 · 투구 · 보스 고유 · 대장간 → 제작 재료 (S +1 — 일반 장비 이상)
     low:  {ink_essence: [4, 4, 4]}
-    mid:  {ink_essence: [4, 5, 5], old_page: [4, 5, 5]}
-    high: {ink_essence: [5, 7, 9, 11], old_page: [5, 5, 7, 8], forbidden_seal: [1, 2, 0, 0], librarian_quill: [0, 0, 1, 2]}
-  lorekeeper_chest:  # 서고지기의 예복 · 흉갑 · 정예 · 대장간 → 제작 재료 (R 바꿈 — 겹침 피함)
+    mid:  {ink_essence: [4, 5, 5], orichalcum_ingot: [2, 3, 3]}
+    high: {ink_essence: [5, 7, 9, 11], orichalcum_ingot: [3, 3, 4, 5], forbidden_seal: [1, 2, 0, 0], librarian_quill: [0, 0, 1, 2]}
+  lorekeeper_chest:  # 서고지기의 예복 · 흉갑 · 정예 · 대장간 → 제작 재료
     low:  {ink_essence: [4, 4, 5]}
-    mid:  {ink_essence: [5, 5, 7], old_page: [3, 3, 3]}
-    high: {ink_essence: [7, 7, 9, 11], old_page: [3, 5, 5, 6], radiant_essence: [2, 3, 3, 4]}
+    mid:  {ink_essence: [5, 5, 7], mithril_ingot: [2, 2, 2]}
+    high: {ink_essence: [7, 7, 9, 11], mithril_ingot: [2, 3, 3, 4], radiant_essence: [2, 3, 3, 4]}
   index_bulwark_chest:  # 색인 방벽 흉갑 · 흉갑 · 정예 · 대장간 → 제작 재료
     low:  {old_page: [3, 3, 5]}
-    mid:  {old_page: [5, 5, 6], ink_essence: [4, 4, 4]}
-    high: {old_page: [6, 6, 8, 9], ink_essence: [4, 5, 5, 7], forbidden_seal: [1, 1, 2, 2]}
-  inkveil_chest:  # 먹물 장막 외투 · 흉갑 · 보스 고유 · 대장간 → 제작 재료 (P·S 바꿈, P +1 — 일반 장비 이상 · 겹침 피함)
-    low:  {old_page: [4, 4, 6]}
-    mid:  {old_page: [6, 6, 7], ink_essence: [4, 4, 4]}
-    high: {old_page: [7, 7, 9, 10], ink_essence: [4, 5, 5, 7], forbidden_seal: [1, 2, 0, 0], librarian_quill: [0, 0, 1, 2]}
+    mid:  {old_page: [5, 5, 6], mithril_ingot: [2, 2, 2]}
+    high: {old_page: [6, 6, 8, 9], mithril_ingot: [2, 3, 3, 4], forbidden_seal: [1, 1, 2, 2]}
+  inkveil_chest:  # 먹물 장막 외투 · 흉갑 · 보스 고유 · 대장간 → 제작 재료 (P +1, S +1 — 일반 장비 이상 · 겹침 피함)
+    low:  {ink_essence: [5, 5, 6]}
+    mid:  {ink_essence: [6, 6, 8], orichalcum_ingot: [3, 3, 3]}
+    high: {ink_essence: [8, 8, 10, 12], orichalcum_ingot: [3, 4, 4, 5], forbidden_seal: [1, 2, 0, 0], librarian_quill: [0, 0, 1, 2]}
   lorekeeper_legs:  # 서고지기의 하의 · 하의 · 정예 · 대장간 → 제작 재료
     low:  {ink_essence: [4, 4, 5]}
-    mid:  {ink_essence: [5, 5, 7], old_page: [3, 3, 3]}
-    high: {ink_essence: [7, 7, 9, 11], old_page: [3, 5, 5, 6], forbidden_seal: [1, 1, 2, 2]}
-  index_bulwark_legs:  # 색인 방벽 각반 · 하의 · 정예 · 대장간 → 제작 재료 (R 바꿈 — 겹침 피함)
+    mid:  {ink_essence: [5, 5, 7], mithril_ingot: [2, 2, 2]}
+    high: {ink_essence: [7, 7, 9, 11], mithril_ingot: [2, 3, 3, 4], forbidden_seal: [1, 1, 2, 2]}
+  index_bulwark_legs:  # 색인 방벽 각반 · 하의 · 정예 · 대장간 → 제작 재료
     low:  {old_page: [3, 3, 5]}
-    mid:  {old_page: [5, 5, 6], ink_essence: [4, 4, 4]}
-    high: {old_page: [6, 6, 8, 9], ink_essence: [4, 5, 5, 7], radiant_essence: [2, 3, 3, 4]}
-  inkveil_legs:  # 먹물 장막 바지 · 하의 · 보스 고유 · 대장간 → 제작 재료 (P +1, S +1 — 일반 장비 이상)
+    mid:  {old_page: [5, 5, 6], mithril_ingot: [2, 2, 2]}
+    high: {old_page: [6, 6, 8, 9], mithril_ingot: [2, 3, 3, 4], radiant_essence: [2, 3, 3, 4]}
+  inkveil_legs:  # 먹물 장막 바지 · 하의 · 보스 고유 · 대장간 → 제작 재료 (P +1 — 일반 장비 이상)
     low:  {ink_essence: [5, 5, 6]}
-    mid:  {ink_essence: [6, 6, 8], old_page: [4, 4, 4]}
-    high: {ink_essence: [8, 8, 10, 12], old_page: [4, 6, 6, 7], forbidden_seal: [1, 2, 0, 0], librarian_quill: [0, 0, 1, 2]}
+    mid:  {ink_essence: [6, 6, 8], orichalcum_ingot: [2, 2, 2]}
+    high: {ink_essence: [8, 8, 10, 12], orichalcum_ingot: [2, 3, 3, 4], forbidden_seal: [1, 2, 0, 0], librarian_quill: [0, 0, 1, 2]}
   lorekeeper_boots:  # 서고지기의 신발 · 신발 · 정예 · 대장간 → 제작 재료 (P·S 바꿈 — 겹침 피함)
     low:  {old_page: [3, 3, 3]}
-    mid:  {old_page: [3, 5, 5], ink_essence: [2, 4, 4]}
-    high: {old_page: [5, 6, 8, 9], ink_essence: [4, 4, 5, 7], radiant_essence: [2, 3, 3, 4]}
+    mid:  {old_page: [3, 5, 5], mithril_ingot: [1, 2, 2]}
+    high: {old_page: [5, 6, 8, 9], mithril_ingot: [2, 2, 3, 4], radiant_essence: [2, 3, 3, 4]}
   index_bulwark_boots:  # 색인 방벽 철장화 · 신발 · 정예 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
     low:  {old_page: [3, 3, 3]}
-    mid:  {old_page: [3, 5, 5], ink_essence: [3, 5, 5]}
-    high: {old_page: [5, 6, 8, 9], ink_essence: [5, 5, 6, 8], radiant_essence: [2, 3, 3, 4]}
-  inkveil_boots:  # 먹물 장막 장화 · 신발 · 보스 고유 · 대장간 → 제작 재료 (S +3 — 일반 장비 이상 · 겹침 피함)
-    low:  {ink_essence: [4, 4, 4]}
-    mid:  {ink_essence: [4, 5, 5], old_page: [5, 6, 6]}
-    high: {ink_essence: [5, 7, 9, 11], old_page: [6, 6, 8, 9], forbidden_seal: [1, 2, 0, 0], librarian_quill: [0, 0, 1, 2]}
+    mid:  {old_page: [3, 5, 5], mithril_ingot: [2, 3, 3]}
+    high: {old_page: [5, 6, 8, 9], mithril_ingot: [3, 3, 4, 5], radiant_essence: [2, 3, 3, 4]}
+  inkveil_boots:  # 먹물 장막 장화 · 신발 · 보스 고유 · 대장간 → 제작 재료 (P +1 — 일반 장비 이상 · 겹침 피함)
+    low:  {ink_essence: [5, 5, 5]}
+    mid:  {ink_essence: [5, 6, 6], orichalcum_ingot: [1, 2, 2]}
+    high: {ink_essence: [6, 8, 10, 12], orichalcum_ingot: [2, 2, 3, 4], forbidden_seal: [1, 2, 0, 0], librarian_quill: [0, 0, 1, 2]}
   inkbound_kite_shield:  # 먹물 장정 연 방패 · 방패 · 정예 · 대장간 → 제작 재료
     low:  {ink_essence: [4, 5, 5]}
-    mid:  {ink_essence: [5, 7, 7], old_page: [3, 3, 5]}
-    high: {ink_essence: [7, 9, 11, 12], old_page: [5, 5, 6, 8], forbidden_seal: [1, 1, 2, 2]}
+    mid:  {ink_essence: [5, 7, 7], mithril_ingot: [2, 2, 3]}
+    high: {ink_essence: [7, 9, 11, 12], mithril_ingot: [3, 3, 4, 4], forbidden_seal: [1, 1, 2, 2]}
 
-  # ════ 지하 9층 — 일반 놋쇠 톱니 · 태엽 용수철 · 정예 조속 진자 · 정수 태고의 미궁 정수 · 핵 태엽 심장 ════
+  # ════ 지하 9층 — 일반 태엽 기름 · 시간 가루 · 정예 조속 진자 · 정수 태고의 미궁 정수 · 핵 태엽 심장 ════
   clock_broadsword:  # 놋쇠 넓은검 · 근접 무기 · 금고·미믹 → 드롭 재료 (P·S 바꿈, S +1 — 겹침 피함)
-    low:  {mainspring: [3, 3, 5]}
-    mid:  {mainspring: [5, 5, 6], brass_gear: [5, 5, 7]}
-    high: {mainspring: [6, 8, 9, 11], brass_gear: [7, 7, 9, 11], primordial_essence: [2, 3, 3, 4]}
-  clock_falchion:  # 태엽 팔시온 · 근접 무기 · 시련방 → 상자 드롭 (P·S 바꿈, S +1 — 겹침 피함)
-    low:  {mainspring: [3, 3, 5]}
-    mid:  {mainspring: [5, 5, 6], brass_gear: [5, 5, 7]}
-    high: {mainspring: [6, 8, 9, 11], brass_gear: [7, 7, 9, 11], regulator_pendulum: [1, 1, 2, 2]}
+    low:  {chrono_dust: [2, 2, 3]}
+    mid:  {chrono_dust: [3, 3, 4], orichalcum_ingot: [3, 3, 4]}
+    high: {chrono_dust: [4, 5, 6, 7], orichalcum_ingot: [4, 4, 5, 6], primordial_essence: [2, 3, 3, 4]}
+  clock_falchion:  # 태엽 팔시온 · 근접 무기 · 시련방 → 상자 드롭 (S +1 — 겹침 피함)
+    low:  {clock_oil: [4, 4, 6]}
+    mid:  {clock_oil: [6, 6, 8], orichalcum_ingot: [3, 3, 4]}
+    high: {clock_oil: [8, 10, 12, 14], orichalcum_ingot: [4, 4, 5, 6], regulator_pendulum: [1, 1, 2, 2]}
   clock_kris:  # 태엽 물결검 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (S +2 — 겹침 피함)
-    low:  {brass_gear: [4, 4, 6]}
-    mid:  {brass_gear: [6, 6, 8], mainspring: [5, 5, 7]}
-    high: {brass_gear: [8, 10, 12, 14], mainspring: [7, 7, 8, 10], regulator_pendulum: [1, 1, 2, 2]}
-  clock_longsword:  # 태엽 장검 · 근접 무기 · 정예 → 정예 드롭 (R 바꿈, S +2 — 겹침 피함)
-    low:  {brass_gear: [4, 4, 6]}
-    mid:  {brass_gear: [6, 6, 8], mainspring: [5, 5, 7]}
-    high: {brass_gear: [8, 10, 12, 14], mainspring: [7, 7, 8, 10], primordial_essence: [2, 3, 3, 4]}
+    low:  {clock_oil: [4, 4, 6]}
+    mid:  {clock_oil: [6, 6, 8], orichalcum_ingot: [4, 4, 5]}
+    high: {clock_oil: [8, 10, 12, 14], orichalcum_ingot: [5, 5, 6, 7], regulator_pendulum: [1, 1, 2, 2]}
+  clock_longsword:  # 태엽 장검 · 근접 무기 · 정예 → 정예 드롭 (S +2 — 겹침 피함)
+    low:  {clock_oil: [4, 4, 6]}
+    mid:  {clock_oil: [6, 6, 8], orichalcum_ingot: [4, 4, 5]}
+    high: {clock_oil: [8, 10, 12, 14], orichalcum_ingot: [5, 5, 6, 7], primordial_essence: [2, 3, 3, 4]}
   clock_mace:  # 태엽 철퇴 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P·S 바꿈, S +2 — 겹침 피함)
-    low:  {mainspring: [3, 3, 5]}
-    mid:  {mainspring: [5, 5, 6], brass_gear: [6, 6, 8]}
-    high: {mainspring: [6, 8, 9, 11], brass_gear: [8, 8, 10, 12], regulator_pendulum: [1, 1, 2, 2]}
-  clock_morning_star:  # 조속기 모닝스타 · 근접 무기 · 정예 → 정예 드롭 (R 바꿈, P·S 바꿈, S +2 — 겹침 피함)
-    low:  {mainspring: [3, 3, 5]}
-    mid:  {mainspring: [5, 5, 6], brass_gear: [6, 6, 8]}
-    high: {mainspring: [6, 8, 9, 11], brass_gear: [8, 8, 10, 12], primordial_essence: [2, 3, 3, 4]}
+    low:  {chrono_dust: [2, 2, 3]}
+    mid:  {chrono_dust: [3, 3, 4], orichalcum_ingot: [4, 4, 5]}
+    high: {chrono_dust: [4, 5, 6, 7], orichalcum_ingot: [5, 5, 6, 7], regulator_pendulum: [1, 1, 2, 2]}
+  clock_morning_star:  # 조속기 모닝스타 · 근접 무기 · 정예 → 정예 드롭 (P·S 바꿈, S +2 — 겹침 피함)
+    low:  {chrono_dust: [2, 2, 3]}
+    mid:  {chrono_dust: [3, 3, 4], orichalcum_ingot: [4, 4, 5]}
+    high: {chrono_dust: [4, 5, 6, 7], orichalcum_ingot: [5, 5, 6, 7], primordial_essence: [2, 3, 3, 4]}
   clock_rime_maul:  # 태엽 서리 망치 · 근접 무기 · 시련방 → 상자 드롭 (P +1 — 겹침 피함)
-    low:  {brass_gear: [5, 5, 7]}
-    mid:  {brass_gear: [7, 7, 9], mainspring: [3, 3, 5]}
-    high: {brass_gear: [9, 11, 13, 15], mainspring: [5, 5, 6, 8], regulator_pendulum: [1, 1, 2, 2]}
+    low:  {clock_oil: [5, 5, 7]}
+    mid:  {clock_oil: [7, 7, 9], orichalcum_ingot: [2, 2, 3]}
+    high: {clock_oil: [9, 11, 13, 15], orichalcum_ingot: [3, 3, 4, 5], regulator_pendulum: [1, 1, 2, 2]}
   clockguard_mace:  # 태엽 수비 철퇴 · 근접 무기 · 대장간 → 제작 재료
-    low:  {brass_gear: [4, 4, 6]}
-    mid:  {brass_gear: [6, 6, 8], mainspring: [3, 3, 5]}
-    high: {brass_gear: [8, 10, 12, 14], mainspring: [5, 5, 6, 8], regulator_pendulum: [1, 1, 2, 2]}
-  mainspring_dagger:  # 태엽 단검 · 근접 무기 · 대장간 → 제작 재료 (R 바꿈 — 겹침 피함)
-    low:  {brass_gear: [4, 4, 6]}
-    mid:  {brass_gear: [6, 6, 8], mainspring: [3, 3, 5]}
-    high: {brass_gear: [8, 10, 12, 14], mainspring: [5, 5, 6, 8], primordial_essence: [2, 3, 3, 4]}
+    low:  {clock_oil: [4, 4, 6]}
+    mid:  {clock_oil: [6, 6, 8], orichalcum_ingot: [2, 2, 3]}
+    high: {clock_oil: [8, 10, 12, 14], orichalcum_ingot: [3, 3, 4, 5], regulator_pendulum: [1, 1, 2, 2]}
+  mainspring_dagger:  # 태엽 단검 · 근접 무기 · 대장간 → 제작 재료
+    low:  {clock_oil: [4, 4, 6]}
+    mid:  {clock_oil: [6, 6, 8], orichalcum_ingot: [2, 2, 3]}
+    high: {clock_oil: [8, 10, 12, 14], orichalcum_ingot: [3, 3, 4, 5], primordial_essence: [2, 3, 3, 4]}
   regulator_greatsword:  # 조율기 대검 · 근접 무기 · 대장간 → 제작 재료 (P·S 바꿈 — 겹침 피함)
-    low:  {mainspring: [3, 3, 5]}
-    mid:  {mainspring: [5, 5, 6], brass_gear: [4, 4, 6]}
-    high: {mainspring: [6, 8, 9, 11], brass_gear: [6, 6, 8, 10], regulator_pendulum: [1, 1, 2, 2]}
+    low:  {chrono_dust: [2, 2, 3]}
+    mid:  {chrono_dust: [3, 3, 4], orichalcum_ingot: [2, 2, 3]}
+    high: {chrono_dust: [4, 5, 6, 7], orichalcum_ingot: [3, 3, 4, 5], regulator_pendulum: [1, 1, 2, 2]}
   clock_glaive:  # 자정 언월도 · 근접 무기 · 특별 시련 → 드롭 재료 (P +1, S +1 — 겹침 피함)
-    low:  {brass_gear: [5, 5, 7]}
-    mid:  {brass_gear: [7, 7, 9], mainspring: [4, 4, 6]}
-    high: {brass_gear: [9, 11, 13, 15], mainspring: [6, 6, 7, 9], primordial_essence: [2, 3, 3, 4]}
+    low:  {clock_oil: [5, 5, 7]}
+    mid:  {clock_oil: [7, 7, 9], orichalcum_ingot: [3, 3, 4]}
+    high: {clock_oil: [9, 11, 13, 15], orichalcum_ingot: [4, 4, 5, 6], primordial_essence: [2, 3, 3, 4]}
   clock_greatsword:  # 톱니 대검 · 근접 무기 · 특별 시련 → 드롭 재료 (P +1, S +2 — 겹침 피함)
-    low:  {brass_gear: [5, 5, 7]}
-    mid:  {brass_gear: [7, 7, 9], mainspring: [5, 5, 7]}
-    high: {brass_gear: [9, 11, 13, 15], mainspring: [7, 7, 8, 10], primordial_essence: [2, 3, 3, 4]}
-  doomclock_executioner:  # 종말시계 단두도끼 · 근접 무기 · 보스 고유 → 보스 드롭 (P +3, S +1 — 일반 장비 이상)
-    low:  {brass_gear: [7, 7, 9]}
-    mid:  {brass_gear: [9, 9, 11], mainspring: [4, 4, 6]}
-    high: {brass_gear: [11, 13, 15, 17], mainspring: [6, 6, 7, 9], regulator_pendulum: [1, 2, 0, 0], clockwork_heart: [0, 0, 1, 2]}
+    low:  {clock_oil: [5, 5, 7]}
+    mid:  {clock_oil: [7, 7, 9], orichalcum_ingot: [4, 4, 5]}
+    high: {clock_oil: [9, 11, 13, 15], orichalcum_ingot: [5, 5, 6, 7], primordial_essence: [2, 3, 3, 4]}
+  doomclock_executioner:  # 종말시계 단두도끼 · 근접 무기 · 보스 고유 → 보스 드롭 (P·S 바꿈, P +1, S +2 — 일반 장비 이상)
+    low:  {chrono_dust: [3, 3, 4]}
+    mid:  {chrono_dust: [4, 4, 5], orichalcum_ingot: [4, 4, 5]}
+    high: {chrono_dust: [5, 6, 7, 8], orichalcum_ingot: [5, 5, 6, 7], regulator_pendulum: [1, 2, 0, 0], clockwork_heart: [0, 0, 1, 2]}
   clock_blade_bow:  # 태엽 날활 · 원거리 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P +1 — 겹침 피함)
-    low:  {mainspring: [4, 4, 6]}
-    mid:  {mainspring: [6, 6, 7], brass_gear: [4, 4, 6]}
-    high: {mainspring: [7, 9, 10, 12], brass_gear: [6, 6, 8, 10], regulator_pendulum: [1, 1, 2, 2]}
+    low:  {chrono_dust: [3, 3, 4]}
+    mid:  {chrono_dust: [4, 4, 5], orichalcum_ingot: [2, 2, 3]}
+    high: {chrono_dust: [5, 6, 7, 8], orichalcum_ingot: [3, 3, 4, 5], regulator_pendulum: [1, 1, 2, 2]}
   clock_bone_bow:  # 톱니 뼈 활 · 원거리 무기 · 금고·미믹 → 드롭 재료 (P +1 — 겹침 피함)
-    low:  {mainspring: [4, 4, 6]}
-    mid:  {mainspring: [6, 6, 7], brass_gear: [4, 4, 6]}
-    high: {mainspring: [7, 9, 10, 12], brass_gear: [6, 6, 8, 10], primordial_essence: [2, 3, 3, 4]}
-  springloaded_bow:  # 용수철 연발궁 · 원거리 무기 · 대장간 → 제작 재료 (R 바꿈, P·S 바꿈 — 겹침 피함)
-    low:  {mainspring: [3, 3, 5]}
-    mid:  {mainspring: [5, 5, 6], brass_gear: [4, 4, 6]}
-    high: {mainspring: [6, 8, 9, 11], brass_gear: [6, 6, 8, 10], primordial_essence: [2, 3, 3, 4]}
-  quicksilver_longbow:  # 수은 장궁 · 원거리 무기 · 보스 고유 → 보스 드롭 (P +1, S +3 — 일반 장비 이상)
-    low:  {mainspring: [4, 4, 6]}
-    mid:  {mainspring: [6, 6, 7], brass_gear: [7, 7, 9]}
-    high: {mainspring: [7, 9, 10, 12], brass_gear: [9, 9, 11, 13], regulator_pendulum: [1, 2, 0, 0], clockwork_heart: [0, 0, 1, 2]}
+    low:  {chrono_dust: [3, 3, 4]}
+    mid:  {chrono_dust: [4, 4, 5], orichalcum_ingot: [2, 2, 3]}
+    high: {chrono_dust: [5, 6, 7, 8], orichalcum_ingot: [3, 3, 4, 5], primordial_essence: [2, 3, 3, 4]}
+  springloaded_bow:  # 용수철 연발궁 · 원거리 무기 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
+    low:  {clock_oil: [4, 4, 6]}
+    mid:  {clock_oil: [6, 6, 8], orichalcum_ingot: [3, 3, 4]}
+    high: {clock_oil: [8, 10, 12, 14], orichalcum_ingot: [4, 4, 5, 6], primordial_essence: [2, 3, 3, 4]}
+  quicksilver_longbow:  # 수은 장궁 · 원거리 무기 · 보스 고유 → 보스 드롭 (P +2, S +1 — 일반 장비 이상 · 겹침 피함)
+    low:  {chrono_dust: [4, 4, 5]}
+    mid:  {chrono_dust: [5, 5, 6], orichalcum_ingot: [3, 3, 4]}
+    high: {chrono_dust: [6, 7, 8, 9], orichalcum_ingot: [4, 4, 5, 6], regulator_pendulum: [1, 2, 0, 0], clockwork_heart: [0, 0, 1, 2]}
   clock_antler_staff:  # 놋쇠 가지 지팡이 · 시전 무기 · 금고·미믹 → 드롭 재료 (P·S 바꿈, P +1 — 겹침 피함)
-    low:  {brass_gear: [5, 5, 7]}
-    mid:  {brass_gear: [7, 7, 9], mainspring: [3, 3, 5]}
-    high: {brass_gear: [9, 11, 13, 15], mainspring: [5, 5, 6, 8], primordial_essence: [2, 3, 3, 4]}
+    low:  {clock_oil: [5, 5, 7]}
+    mid:  {clock_oil: [7, 7, 9], orichalcum_ingot: [2, 2, 3]}
+    high: {clock_oil: [9, 11, 13, 15], orichalcum_ingot: [3, 3, 4, 5], primordial_essence: [2, 3, 3, 4]}
   clock_bell_scepter:  # 시보 종 홀 · 시전 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P +1, S +1 — 겹침 피함)
-    low:  {mainspring: [4, 4, 6]}
-    mid:  {mainspring: [6, 6, 7], brass_gear: [5, 5, 7]}
-    high: {mainspring: [7, 9, 10, 12], brass_gear: [7, 7, 9, 11], regulator_pendulum: [1, 1, 2, 2]}
-  clock_chime_rod:  # 태엽 풍경 홀 · 시전 무기 · 정예 → 정예 드롭 (R 바꿈, P +1, S +1 — 겹침 피함)
-    low:  {mainspring: [4, 4, 6]}
-    mid:  {mainspring: [6, 6, 7], brass_gear: [5, 5, 7]}
-    high: {mainspring: [7, 9, 10, 12], brass_gear: [7, 7, 9, 11], primordial_essence: [2, 3, 3, 4]}
+    low:  {chrono_dust: [3, 3, 4]}
+    mid:  {chrono_dust: [4, 4, 5], orichalcum_ingot: [3, 3, 4]}
+    high: {chrono_dust: [5, 6, 7, 8], orichalcum_ingot: [4, 4, 5, 6], regulator_pendulum: [1, 1, 2, 2]}
+  clock_chime_rod:  # 태엽 풍경 홀 · 시전 무기 · 정예 → 정예 드롭 (P +1, S +1 — 겹침 피함)
+    low:  {chrono_dust: [3, 3, 4]}
+    mid:  {chrono_dust: [4, 4, 5], orichalcum_ingot: [3, 3, 4]}
+    high: {chrono_dust: [5, 6, 7, 8], orichalcum_ingot: [4, 4, 5, 6], primordial_essence: [2, 3, 3, 4]}
   clock_staff_orb:  # 태엽 구슬 지팡이 · 시전 무기 · 시련방 → 상자 드롭 (P·S 바꿈, P +1, S +1 — 겹침 피함)
-    low:  {brass_gear: [5, 5, 7]}
-    mid:  {brass_gear: [7, 7, 9], mainspring: [4, 4, 6]}
-    high: {brass_gear: [9, 11, 13, 15], mainspring: [6, 6, 7, 9], regulator_pendulum: [1, 1, 2, 2]}
+    low:  {clock_oil: [5, 5, 7]}
+    mid:  {clock_oil: [7, 7, 9], orichalcum_ingot: [3, 3, 4]}
+    high: {clock_oil: [9, 11, 13, 15], orichalcum_ingot: [4, 4, 5, 6], regulator_pendulum: [1, 1, 2, 2]}
   orrery_staff:  # 태엽 천구 지팡이 · 시전 무기 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
-    low:  {brass_gear: [4, 4, 6]}
-    mid:  {brass_gear: [6, 6, 8], mainspring: [4, 4, 6]}
-    high: {brass_gear: [8, 10, 12, 14], mainspring: [6, 6, 7, 9], regulator_pendulum: [1, 1, 2, 2]}
-  pendulum_censer:  # 진자 향로 · 시전 무기 · 대장간 → 제작 재료 (R 바꿈, S +1 — 겹침 피함)
-    low:  {brass_gear: [4, 4, 6]}
-    mid:  {brass_gear: [6, 6, 8], mainspring: [4, 4, 6]}
-    high: {brass_gear: [8, 10, 12, 14], mainspring: [6, 6, 7, 9], primordial_essence: [2, 3, 3, 4]}
+    low:  {chrono_dust: [2, 2, 3]}
+    mid:  {chrono_dust: [3, 3, 4], orichalcum_ingot: [3, 3, 4]}
+    high: {chrono_dust: [4, 5, 6, 7], orichalcum_ingot: [4, 4, 5, 6], regulator_pendulum: [1, 1, 2, 2]}
+  pendulum_censer:  # 진자 향로 · 시전 무기 · 대장간 → 제작 재료
+    low:  {chrono_dust: [2, 2, 3]}
+    mid:  {chrono_dust: [3, 3, 4], orichalcum_ingot: [2, 2, 3]}
+    high: {chrono_dust: [4, 5, 6, 7], orichalcum_ingot: [3, 3, 4, 5], primordial_essence: [2, 3, 3, 4]}
   clock_thurible_rod:  # 진동 향로봉 · 시전 무기 · 특별 시련 → 드롭 재료 (P +1, S +2 — 겹침 피함)
-    low:  {mainspring: [4, 4, 6]}
-    mid:  {mainspring: [6, 6, 7], brass_gear: [6, 6, 8]}
-    high: {mainspring: [7, 9, 10, 12], brass_gear: [8, 8, 10, 12], primordial_essence: [2, 3, 3, 4]}
-  tesla_coil_staff:  # 전격 코일 지팡이 · 시전 무기 · 보스 고유 → 보스 드롭 (P +2, S +2 — 일반 장비 이상 · 겹침 피함)
-    low:  {mainspring: [5, 5, 7]}
-    mid:  {mainspring: [7, 7, 8], brass_gear: [6, 6, 8]}
-    high: {mainspring: [8, 10, 11, 13], brass_gear: [8, 8, 10, 12], regulator_pendulum: [1, 2, 0, 0], clockwork_heart: [0, 0, 1, 2]}
+    low:  {chrono_dust: [3, 3, 4]}
+    mid:  {chrono_dust: [4, 4, 5], orichalcum_ingot: [4, 4, 5]}
+    high: {chrono_dust: [5, 6, 7, 8], orichalcum_ingot: [5, 5, 6, 7], primordial_essence: [2, 3, 3, 4]}
+  tesla_coil_staff:  # 전격 코일 지팡이 · 시전 무기 · 보스 고유 → 보스 드롭 (P +3 — 일반 장비 이상 · 겹침 피함)
+    low:  {chrono_dust: [5, 5, 6]}
+    mid:  {chrono_dust: [6, 6, 7], orichalcum_ingot: [2, 2, 3]}
+    high: {chrono_dust: [7, 8, 9, 10], orichalcum_ingot: [3, 3, 4, 5], regulator_pendulum: [1, 2, 0, 0], clockwork_heart: [0, 0, 1, 2]}
   clock_astrologer_helm:  # 점성술사의 고깔 · 투구 · 특별 시련 → 드롭 재료
-    low:  {mainspring: [3, 3, 3]}
-    mid:  {mainspring: [3, 5, 5], brass_gear: [2, 4, 4]}
-    high: {mainspring: [5, 6, 8, 9], brass_gear: [4, 4, 6, 8], primordial_essence: [2, 3, 3, 4]}
+    low:  {chrono_dust: [2, 2, 2]}
+    mid:  {chrono_dust: [2, 3, 3], orichalcum_ingot: [1, 2, 2]}
+    high: {chrono_dust: [3, 4, 5, 6], orichalcum_ingot: [2, 2, 3, 4], primordial_essence: [2, 3, 3, 4]}
   clockwork_juggernaut_helm:  # 태엽 거신 투구 · 투구 · 정예 · 대장간 → 제작 재료 (P·S 바꿈, S +1 — 겹침 피함)
-    low:  {mainspring: [3, 3, 3]}
-    mid:  {mainspring: [3, 5, 5], brass_gear: [3, 5, 5]}
-    high: {mainspring: [5, 6, 8, 9], brass_gear: [5, 5, 7, 9], primordial_essence: [2, 3, 3, 4]}
-  clock_astrologer_chest:  # 점성술사의 별 예복 · 흉갑 · 특별 시련 → 드롭 재료
-    low:  {brass_gear: [4, 4, 6]}
-    mid:  {brass_gear: [6, 6, 8], mainspring: [3, 3, 3]}
-    high: {brass_gear: [8, 8, 10, 12], mainspring: [3, 5, 5, 6], primordial_essence: [2, 3, 3, 4]}
+    low:  {chrono_dust: [2, 2, 2]}
+    mid:  {chrono_dust: [2, 3, 3], orichalcum_ingot: [2, 3, 3]}
+    high: {chrono_dust: [3, 4, 5, 6], orichalcum_ingot: [3, 3, 4, 5], primordial_essence: [2, 3, 3, 4]}
+  clock_astrologer_chest:  # 점성술사의 별 예복 · 흉갑 · 특별 시련 → 드롭 재료 (P·S 바꿈 — 겹침 피함)
+    low:  {clock_oil: [4, 4, 6]}
+    mid:  {clock_oil: [6, 6, 8], orichalcum_ingot: [2, 2, 2]}
+    high: {clock_oil: [8, 8, 10, 12], orichalcum_ingot: [2, 3, 3, 4], primordial_essence: [2, 3, 3, 4]}
   clockwork_juggernaut_chest:  # 태엽 거신 흉갑 · 흉갑 · 정예 · 대장간 → 제작 재료
-    low:  {brass_gear: [4, 4, 6]}
-    mid:  {brass_gear: [6, 6, 8], mainspring: [3, 3, 3]}
-    high: {brass_gear: [8, 8, 10, 12], mainspring: [3, 5, 5, 6], regulator_pendulum: [1, 1, 2, 2]}
+    low:  {clock_oil: [4, 4, 6]}
+    mid:  {clock_oil: [6, 6, 8], orichalcum_ingot: [2, 2, 2]}
+    high: {clock_oil: [8, 8, 10, 12], orichalcum_ingot: [2, 3, 3, 4], regulator_pendulum: [1, 1, 2, 2]}
   clock_astrologer_legs:  # 점성술사의 하의 · 하의 · 특별 시련 → 드롭 재료
-    low:  {mainspring: [3, 3, 5]}
-    mid:  {mainspring: [5, 5, 6], brass_gear: [4, 4, 4]}
-    high: {mainspring: [6, 6, 8, 9], brass_gear: [4, 6, 6, 8], primordial_essence: [2, 3, 3, 4]}
+    low:  {chrono_dust: [2, 2, 3]}
+    mid:  {chrono_dust: [3, 3, 4], orichalcum_ingot: [2, 2, 2]}
+    high: {chrono_dust: [4, 4, 5, 6], orichalcum_ingot: [2, 3, 3, 4], primordial_essence: [2, 3, 3, 4]}
   clockwork_juggernaut_legs:  # 태엽 거신 각반 · 하의 · 정예 · 대장간 → 제작 재료 (P·S 바꿈 — 겹침 피함)
-    low:  {mainspring: [3, 3, 5]}
-    mid:  {mainspring: [5, 5, 6], brass_gear: [4, 4, 4]}
-    high: {mainspring: [6, 6, 8, 9], brass_gear: [4, 6, 6, 8], regulator_pendulum: [1, 1, 2, 2]}
-  clock_astrologer_boots:  # 점성술사의 신발 · 신발 · 특별 시련 → 드롭 재료
-    low:  {brass_gear: [4, 4, 4]}
-    mid:  {brass_gear: [4, 6, 6], mainspring: [2, 3, 3]}
-    high: {brass_gear: [6, 8, 10, 12], mainspring: [3, 3, 5, 6], primordial_essence: [2, 3, 3, 4]}
+    low:  {chrono_dust: [2, 2, 3]}
+    mid:  {chrono_dust: [3, 3, 4], orichalcum_ingot: [2, 2, 2]}
+    high: {chrono_dust: [4, 4, 5, 6], orichalcum_ingot: [2, 3, 3, 4], regulator_pendulum: [1, 1, 2, 2]}
+  clock_astrologer_boots:  # 점성술사의 신발 · 신발 · 특별 시련 → 드롭 재료 (P·S 바꿈 — 겹침 피함)
+    low:  {clock_oil: [4, 4, 4]}
+    mid:  {clock_oil: [4, 6, 6], orichalcum_ingot: [1, 2, 2]}
+    high: {clock_oil: [6, 8, 10, 12], orichalcum_ingot: [2, 2, 3, 4], primordial_essence: [2, 3, 3, 4]}
   clockwork_juggernaut_boots:  # 태엽 거신 철장화 · 신발 · 정예 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
-    low:  {brass_gear: [4, 4, 4]}
-    mid:  {brass_gear: [4, 6, 6], mainspring: [3, 4, 4]}
-    high: {brass_gear: [6, 8, 10, 12], mainspring: [4, 4, 6, 7], primordial_essence: [2, 3, 3, 4]}
+    low:  {clock_oil: [4, 4, 4]}
+    mid:  {clock_oil: [4, 6, 6], orichalcum_ingot: [2, 3, 3]}
+    high: {clock_oil: [6, 8, 10, 12], orichalcum_ingot: [3, 3, 4, 5], primordial_essence: [2, 3, 3, 4]}
   clockwork_bastion:  # 태엽 성벽 방패 · 방패 · 보스 고유 · 대장간 → 제작 재료
-    low:  {brass_gear: [4, 6, 6]}
-    mid:  {brass_gear: [6, 8, 8], mainspring: [3, 3, 5]}
-    high: {brass_gear: [8, 10, 12, 14], mainspring: [5, 5, 6, 8], regulator_pendulum: [1, 2, 0, 0], clockwork_heart: [0, 0, 1, 2]}
+    low:  {clock_oil: [4, 6, 6]}
+    mid:  {clock_oil: [6, 8, 8], orichalcum_ingot: [2, 2, 3]}
+    high: {clock_oil: [8, 10, 12, 14], orichalcum_ingot: [3, 3, 4, 5], regulator_pendulum: [1, 2, 0, 0], clockwork_heart: [0, 0, 1, 2]}
 
-  # ════ 지하 10층 — 일반 스컬크 촉수 · 심연의 체액 · 정예 문지기의 룬 · 정수 태고의 미궁 정수 · 핵 심연 심장 파편 ════
-  abyss_broadsword:  # 심연 넓은검 · 근접 무기 · 시련방 → 상자 드롭 (S +1 — 겹침 피함)
-    low:  {sculk_tendril: [4, 4, 5]}
-    mid:  {sculk_tendril: [5, 5, 7], abyss_ichor: [5, 5, 7]}
-    high: {sculk_tendril: [7, 9, 11, 12], abyss_ichor: [7, 7, 9, 11], gatekeeper_rune: [1, 1, 2, 2]}
-  abyss_great_maul:  # 심연 대형 망치 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (R 바꿈, S +1 — 겹침 피함)
-    low:  {sculk_tendril: [4, 4, 5]}
-    mid:  {sculk_tendril: [5, 5, 7], abyss_ichor: [5, 5, 7]}
-    high: {sculk_tendril: [7, 9, 11, 12], abyss_ichor: [7, 7, 9, 11], primordial_essence: [2, 3, 3, 4]}
-  abyss_sabre:  # 심연 사브르 · 근접 무기 · 시련방 → 상자 드롭 (S +2 — 겹침 피함)
-    low:  {sculk_tendril: [4, 4, 5]}
-    mid:  {sculk_tendril: [5, 5, 7], abyss_ichor: [6, 6, 8]}
-    high: {sculk_tendril: [7, 9, 11, 12], abyss_ichor: [8, 8, 10, 12], gatekeeper_rune: [1, 1, 2, 2]}
-  abyss_sickle:  # 심연 낫 · 근접 무기 · 대장간 → 제작 재료 (R 바꿈, P·S 바꿈 — 겹침 피함)
-    low:  {sculk_tendril: [4, 4, 5]}
-    mid:  {sculk_tendril: [5, 5, 7], abyss_ichor: [4, 4, 6]}
-    high: {sculk_tendril: [7, 9, 11, 12], abyss_ichor: [6, 6, 8, 10], primordial_essence: [2, 3, 3, 4]}
-  abyss_war_spear:  # 문지기의 창 · 근접 무기 · 정예 → 정예 드롭 (R 바꿈, S +2 — 겹침 피함)
-    low:  {sculk_tendril: [4, 4, 5]}
-    mid:  {sculk_tendril: [5, 5, 7], abyss_ichor: [6, 6, 8]}
-    high: {sculk_tendril: [7, 9, 11, 12], abyss_ichor: [8, 8, 10, 12], primordial_essence: [2, 3, 3, 4]}
-  void_falchion:  # 공허 팔시온 · 근접 무기 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
-    low:  {abyss_ichor: [4, 4, 6]}
-    mid:  {abyss_ichor: [6, 6, 8], sculk_tendril: [5, 5, 6]}
-    high: {abyss_ichor: [8, 10, 12, 14], sculk_tendril: [6, 6, 8, 10], gatekeeper_rune: [1, 1, 2, 2]}
-  void_fang_blade:  # 공허 송곳니 · 근접 무기 · 금고·미믹 → 드롭 재료 (P·S 바꿈, S +2 — 겹침 피함)
-    low:  {abyss_ichor: [4, 4, 6]}
-    mid:  {abyss_ichor: [6, 6, 8], sculk_tendril: [6, 6, 7]}
-    high: {abyss_ichor: [8, 10, 12, 14], sculk_tendril: [7, 7, 9, 11], primordial_essence: [2, 3, 3, 4]}
-  void_scythe:  # 공허의 큰낫 · 근접 무기 · 대장간 → 제작 재료 (R 바꿈, S +1 — 겹침 피함)
-    low:  {abyss_ichor: [4, 4, 6]}
-    mid:  {abyss_ichor: [6, 6, 8], sculk_tendril: [5, 5, 6]}
-    high: {abyss_ichor: [8, 10, 12, 14], sculk_tendril: [6, 6, 8, 10], primordial_essence: [2, 3, 3, 4]}
-  void_stiletto:  # 공허 스틸레토 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P·S 바꿈, S +2 — 겹침 피함)
-    low:  {abyss_ichor: [4, 4, 6]}
-    mid:  {abyss_ichor: [6, 6, 8], sculk_tendril: [6, 6, 7]}
-    high: {abyss_ichor: [8, 10, 12, 14], sculk_tendril: [7, 7, 9, 11], gatekeeper_rune: [1, 1, 2, 2]}
-  abyss_executioner_axe:  # 심연 처형 도끼 · 근접 무기 · 특별 시련 → 드롭 재료 (P +1, S +2 — 겹침 피함)
-    low:  {sculk_tendril: [5, 5, 6]}
-    mid:  {sculk_tendril: [6, 6, 8], abyss_ichor: [6, 6, 8]}
-    high: {sculk_tendril: [8, 10, 12, 13], abyss_ichor: [8, 8, 10, 12], primordial_essence: [2, 3, 3, 4]}
-  abyss_sentinel_longsword:  # 심연 파수검 · 근접 무기 · 보스 고유 → 보스 드롭 (P +2, S +2 — 일반 장비 이상)
+  # ════ 지하 10층 — 일반 심연 비늘 · 스컬크 촉수 · 정예 문지기의 룬 · 정수 태고의 미궁 정수 · 핵 심연 심장 파편 ════
+  abyss_broadsword:  # 심연 넓은검 · 근접 무기 · 시련방 → 상자 드롭
+    low:  {abyss_scale: [2, 2, 3]}
+    mid:  {abyss_scale: [3, 3, 4], orichalcum_ingot: [2, 2, 3]}
+    high: {abyss_scale: [4, 5, 6, 7], orichalcum_ingot: [3, 3, 4, 5], gatekeeper_rune: [1, 1, 2, 2]}
+  abyss_great_maul:  # 심연 대형 망치 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (S +1 — 겹침 피함)
+    low:  {abyss_scale: [2, 2, 3]}
+    mid:  {abyss_scale: [3, 3, 4], orichalcum_ingot: [3, 3, 4]}
+    high: {abyss_scale: [4, 5, 6, 7], orichalcum_ingot: [4, 4, 5, 6], primordial_essence: [2, 3, 3, 4]}
+  abyss_sabre:  # 심연 사브르 · 근접 무기 · 시련방 → 상자 드롭 (S +1 — 겹침 피함)
+    low:  {abyss_scale: [2, 2, 3]}
+    mid:  {abyss_scale: [3, 3, 4], orichalcum_ingot: [3, 3, 4]}
+    high: {abyss_scale: [4, 5, 6, 7], orichalcum_ingot: [4, 4, 5, 6], gatekeeper_rune: [1, 1, 2, 2]}
+  abyss_sickle:  # 심연 낫 · 근접 무기 · 대장간 → 제작 재료
+    low:  {abyss_ichor: [3, 3, 5]}
+    mid:  {abyss_ichor: [5, 5, 6], orichalcum_ingot: [2, 2, 3]}
+    high: {abyss_ichor: [6, 8, 9, 11], orichalcum_ingot: [3, 3, 4, 5], primordial_essence: [2, 3, 3, 4]}
+  abyss_war_spear:  # 문지기의 창 · 근접 무기 · 정예 → 정예 드롭 (P·S 바꿈, S +1 — 겹침 피함)
+    low:  {sculk_tendril: [3, 3, 4]}
+    mid:  {sculk_tendril: [4, 4, 5], orichalcum_ingot: [3, 3, 4]}
+    high: {sculk_tendril: [5, 6, 8, 9], orichalcum_ingot: [4, 4, 5, 6], primordial_essence: [2, 3, 3, 4]}
+  void_falchion:  # 공허 팔시온 · 근접 무기 · 대장간 → 제작 재료
+    low:  {abyss_ichor: [3, 3, 5]}
+    mid:  {abyss_ichor: [5, 5, 6], orichalcum_ingot: [2, 2, 3]}
+    high: {abyss_ichor: [6, 8, 9, 11], orichalcum_ingot: [3, 3, 4, 5], gatekeeper_rune: [1, 1, 2, 2]}
+  void_fang_blade:  # 공허 송곳니 · 근접 무기 · 금고·미믹 → 드롭 재료 (S +2 — 겹침 피함)
+    low:  {abyss_scale: [2, 2, 3]}
+    mid:  {abyss_scale: [3, 3, 4], orichalcum_ingot: [4, 4, 5]}
+    high: {abyss_scale: [4, 5, 6, 7], orichalcum_ingot: [5, 5, 6, 7], primordial_essence: [2, 3, 3, 4]}
+  void_scythe:  # 공허의 큰낫 · 근접 무기 · 대장간 → 제작 재료 (P·S 바꿈 — 겹침 피함)
+    low:  {abyss_scale: [2, 2, 3]}
+    mid:  {abyss_scale: [3, 3, 4], orichalcum_ingot: [2, 2, 3]}
+    high: {abyss_scale: [4, 5, 6, 7], orichalcum_ingot: [3, 3, 4, 5], primordial_essence: [2, 3, 3, 4]}
+  void_stiletto:  # 공허 스틸레토 · 근접 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P·S 바꿈, S +1 — 겹침 피함)
+    low:  {sculk_tendril: [3, 3, 4]}
+    mid:  {sculk_tendril: [4, 4, 5], orichalcum_ingot: [3, 3, 4]}
+    high: {sculk_tendril: [5, 6, 8, 9], orichalcum_ingot: [4, 4, 5, 6], gatekeeper_rune: [1, 1, 2, 2]}
+  abyss_executioner_axe:  # 심연 처형 도끼 · 근접 무기 · 특별 시련 → 드롭 재료 (P +1, S +1 — 겹침 피함)
+    low:  {abyss_scale: [3, 3, 4]}
+    mid:  {abyss_scale: [4, 4, 5], orichalcum_ingot: [3, 3, 4]}
+    high: {abyss_scale: [5, 6, 7, 8], orichalcum_ingot: [4, 4, 5, 6], primordial_essence: [2, 3, 3, 4]}
+  abyss_sentinel_longsword:  # 심연 파수검 · 근접 무기 · 보스 고유 → 보스 드롭 (P +2, S +1 — 일반 장비 이상)
+    low:  {abyss_scale: [4, 4, 5]}
+    mid:  {abyss_scale: [5, 5, 6], orichalcum_ingot: [3, 3, 4]}
+    high: {abyss_scale: [6, 7, 8, 9], orichalcum_ingot: [4, 4, 5, 6], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
+  bloodmoon_reaver:  # 혈월의 수확자 · 근접 무기 · 보스 고유 → 보스 드롭 (P +2, S +2 — 일반 장비 이상 · 겹침 피함)
+    low:  {abyss_scale: [4, 4, 5]}
+    mid:  {abyss_scale: [5, 5, 6], orichalcum_ingot: [4, 4, 5]}
+    high: {abyss_scale: [6, 7, 8, 9], orichalcum_ingot: [5, 5, 6, 7], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
+  celestial_oathkeeper:  # 천궁의 맹세수호검 · 근접 무기 · 보스 고유 → 보스 드롭 (P +3, S +1 — 일반 장비 이상 · 겹침 피함)
+    low:  {abyss_scale: [5, 5, 6]}
+    mid:  {abyss_scale: [6, 6, 7], orichalcum_ingot: [3, 3, 4]}
+    high: {abyss_scale: [7, 8, 9, 10], orichalcum_ingot: [4, 4, 5, 6], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
+  eclipse_blade:  # 일식의 칼날 · 근접 무기 · 보스 고유 → 보스 드롭 (P·S 바꿈, P +3 — 일반 장비 이상 · 겹침 피함)
     low:  {sculk_tendril: [6, 6, 7]}
-    mid:  {sculk_tendril: [7, 7, 9], abyss_ichor: [6, 6, 8]}
-    high: {sculk_tendril: [9, 11, 13, 14], abyss_ichor: [8, 8, 10, 12], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
-  bloodmoon_reaver:  # 혈월의 수확자 · 근접 무기 · 보스 고유 → 보스 드롭 (P +4 — 일반 장비 이상 · 겹침 피함)
-    low:  {sculk_tendril: [8, 8, 9]}
-    mid:  {sculk_tendril: [9, 9, 11], abyss_ichor: [4, 4, 6]}
-    high: {sculk_tendril: [11, 13, 15, 16], abyss_ichor: [6, 6, 8, 10], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
-  celestial_oathkeeper:  # 천궁의 맹세수호검 · 근접 무기 · 보스 고유 → 보스 드롭 (P +2, S +3 — 일반 장비 이상 · 겹침 피함)
-    low:  {sculk_tendril: [6, 6, 7]}
-    mid:  {sculk_tendril: [7, 7, 9], abyss_ichor: [7, 7, 9]}
-    high: {sculk_tendril: [9, 11, 13, 14], abyss_ichor: [9, 9, 11, 13], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
-  eclipse_blade:  # 일식의 칼날 · 근접 무기 · 보스 고유 → 보스 드롭 (P +3, S +2 — 일반 장비 이상 · 겹침 피함)
-    low:  {sculk_tendril: [7, 7, 8]}
-    mid:  {sculk_tendril: [8, 8, 10], abyss_ichor: [6, 6, 8]}
-    high: {sculk_tendril: [10, 12, 14, 15], abyss_ichor: [8, 8, 10, 12], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
-  viper_fang:  # 독사의 송곳니 · 근접 무기 · 보스 고유 → 보스 드롭 (P +3, S +1 — 일반 장비 이상 · 겹침 피함)
-    low:  {sculk_tendril: [7, 7, 8]}
-    mid:  {sculk_tendril: [8, 8, 10], abyss_ichor: [5, 5, 7]}
-    high: {sculk_tendril: [10, 12, 14, 15], abyss_ichor: [7, 7, 9, 11], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
-  abyss_bladebow:  # 심연 날활 · 원거리 무기 · 대장간 → 제작 재료
-    low:  {abyss_ichor: [4, 4, 6]}
-    mid:  {abyss_ichor: [6, 6, 8], sculk_tendril: [4, 4, 5]}
-    high: {abyss_ichor: [8, 10, 12, 14], sculk_tendril: [5, 5, 7, 9], gatekeeper_rune: [1, 1, 2, 2]}
-  void_bone_bow:  # 공허 뼈 활 · 원거리 무기 · 금고·미믹 → 드롭 재료 (P +1 — 겹침 피함)
-    low:  {abyss_ichor: [5, 5, 7]}
-    mid:  {abyss_ichor: [7, 7, 9], sculk_tendril: [4, 4, 5]}
-    high: {abyss_ichor: [9, 11, 13, 15], sculk_tendril: [5, 5, 7, 9], primordial_essence: [2, 3, 3, 4]}
-  void_twin_bow:  # 공허 쌍현 활 · 원거리 무기 · 몬스터·상자 → 몬스터·상자 드롭 (P +1 — 겹침 피함)
-    low:  {abyss_ichor: [5, 5, 7]}
-    mid:  {abyss_ichor: [7, 7, 9], sculk_tendril: [4, 4, 5]}
-    high: {abyss_ichor: [9, 11, 13, 15], sculk_tendril: [5, 5, 7, 9], gatekeeper_rune: [1, 1, 2, 2]}
+    mid:  {sculk_tendril: [7, 7, 8], orichalcum_ingot: [2, 2, 3]}
+    high: {sculk_tendril: [8, 9, 11, 12], orichalcum_ingot: [3, 3, 4, 5], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
+  viper_fang:  # 독사의 송곳니 · 근접 무기 · 보스 고유 → 보스 드롭 (P +3 — 일반 장비 이상 · 겹침 피함)
+    low:  {abyss_scale: [5, 5, 6]}
+    mid:  {abyss_scale: [6, 6, 7], orichalcum_ingot: [2, 2, 3]}
+    high: {abyss_scale: [7, 8, 9, 10], orichalcum_ingot: [3, 3, 4, 5], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
+  abyss_bladebow:  # 심연 날활 · 원거리 무기 · 대장간 → 제작 재료 (P·S 바꿈 — 겹침 피함)
+    low:  {sculk_tendril: [3, 3, 4]}
+    mid:  {sculk_tendril: [4, 4, 5], orichalcum_ingot: [2, 2, 3]}
+    high: {sculk_tendril: [5, 6, 8, 9], orichalcum_ingot: [3, 3, 4, 5], gatekeeper_rune: [1, 1, 2, 2]}
+  void_bone_bow:  # 공허 뼈 활 · 원거리 무기 · 금고·미믹 → 드롭 재료 (S +2 — 겹침 피함)
+    low:  {sculk_tendril: [3, 3, 4]}
+    mid:  {sculk_tendril: [4, 4, 5], orichalcum_ingot: [4, 4, 5]}
+    high: {sculk_tendril: [5, 6, 8, 9], orichalcum_ingot: [5, 5, 6, 7], primordial_essence: [2, 3, 3, 4]}
+  void_twin_bow:  # 공허 쌍현 활 · 원거리 무기 · 몬스터·상자 → 몬스터·상자 드롭 (S +2 — 겹침 피함)
+    low:  {sculk_tendril: [3, 3, 4]}
+    mid:  {sculk_tendril: [4, 4, 5], orichalcum_ingot: [4, 4, 5]}
+    high: {sculk_tendril: [5, 6, 8, 9], orichalcum_ingot: [5, 5, 6, 7], gatekeeper_rune: [1, 1, 2, 2]}
   abyss_bone_bow:  # 심연 뼈 활 · 원거리 무기 · 특별 시련 → 드롭 재료 (P +1, S +2 — 겹침 피함)
-    low:  {abyss_ichor: [5, 5, 7]}
-    mid:  {abyss_ichor: [7, 7, 9], sculk_tendril: [6, 6, 7]}
-    high: {abyss_ichor: [9, 11, 13, 15], sculk_tendril: [7, 7, 9, 11], primordial_essence: [2, 3, 3, 4]}
-  tempest_bow:  # 폭풍의 눈 · 원거리 무기 · 보스 고유 → 보스 드롭 (P +3, S +1 — 일반 장비 이상 · 겹침 피함)
-    low:  {abyss_ichor: [7, 7, 9]}
-    mid:  {abyss_ichor: [9, 9, 11], sculk_tendril: [5, 5, 6]}
-    high: {abyss_ichor: [11, 13, 15, 17], sculk_tendril: [6, 6, 8, 10], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
-  abyss_antler_staff:  # 심연 가지 지팡이 · 시전 무기 · 금고·미믹 → 드롭 재료 (P·S 바꿈, P +1 — 겹침 피함)
-    low:  {sculk_tendril: [5, 5, 6]}
-    mid:  {sculk_tendril: [6, 6, 8], abyss_ichor: [4, 4, 6]}
-    high: {sculk_tendril: [8, 10, 12, 13], abyss_ichor: [6, 6, 8, 10], primordial_essence: [2, 3, 3, 4]}
-  abyss_bell_scepter:  # 심연 울림종 홀 · 시전 무기 · 대장간 → 제작 재료 (R 바꿈 — 겹침 피함)
-    low:  {abyss_ichor: [4, 4, 6]}
-    mid:  {abyss_ichor: [6, 6, 8], sculk_tendril: [4, 4, 5]}
-    high: {abyss_ichor: [8, 10, 12, 14], sculk_tendril: [5, 5, 7, 9], primordial_essence: [2, 3, 3, 4]}
-  abyss_ring_staff:  # 심연 고리 지팡이 · 시전 무기 · 정예 → 정예 드롭 (P·S 바꿈, P +1 — 겹침 피함)
-    low:  {sculk_tendril: [5, 5, 6]}
-    mid:  {sculk_tendril: [6, 6, 8], abyss_ichor: [4, 4, 6]}
-    high: {sculk_tendril: [8, 10, 12, 13], abyss_ichor: [6, 6, 8, 10], gatekeeper_rune: [1, 1, 2, 2]}
-  abyss_thurible_rod:  # 심연 향로봉 · 시전 무기 · 정예 → 정예 드롭 (P +1, S +1 — 겹침 피함)
-    low:  {abyss_ichor: [5, 5, 7]}
-    mid:  {abyss_ichor: [7, 7, 9], sculk_tendril: [5, 5, 6]}
-    high: {abyss_ichor: [9, 11, 13, 15], sculk_tendril: [6, 6, 8, 10], gatekeeper_rune: [1, 1, 2, 2]}
-  void_fork_staff:  # 공허 갈래 지팡이 · 시전 무기 · 대장간 → 제작 재료 (P·S 바꿈 — 겹침 피함)
     low:  {sculk_tendril: [4, 4, 5]}
-    mid:  {sculk_tendril: [5, 5, 7], abyss_ichor: [4, 4, 6]}
-    high: {sculk_tendril: [7, 9, 11, 12], abyss_ichor: [6, 6, 8, 10], gatekeeper_rune: [1, 1, 2, 2]}
-  void_lamp_crook:  # 공허 등롱 지팡이 · 시전 무기 · 시련방 → 상자 드롭 (R 바꿈, P +1, S +1 — 겹침 피함)
-    low:  {abyss_ichor: [5, 5, 7]}
-    mid:  {abyss_ichor: [7, 7, 9], sculk_tendril: [5, 5, 6]}
-    high: {abyss_ichor: [9, 11, 13, 15], sculk_tendril: [6, 6, 8, 10], primordial_essence: [2, 3, 3, 4]}
-  void_spiral_staff:  # 공허 소용돌이 지팡이 · 시전 무기 · 특별 시련 → 드롭 재료 (P·S 바꿈, P +1, S +1 — 겹침 피함)
+    mid:  {sculk_tendril: [5, 5, 6], orichalcum_ingot: [4, 4, 5]}
+    high: {sculk_tendril: [6, 7, 9, 10], orichalcum_ingot: [5, 5, 6, 7], primordial_essence: [2, 3, 3, 4]}
+  tempest_bow:  # 폭풍의 눈 · 원거리 무기 · 보스 고유 → 보스 드롭 (P +2, S +2 — 일반 장비 이상 · 겹침 피함)
     low:  {sculk_tendril: [5, 5, 6]}
-    mid:  {sculk_tendril: [6, 6, 8], abyss_ichor: [5, 5, 7]}
-    high: {sculk_tendril: [8, 10, 12, 13], abyss_ichor: [7, 7, 9, 11], primordial_essence: [2, 3, 3, 4]}
-  aurora_scepter:  # 오로라 성광 홀 · 시전 무기 · 보스 고유 → 보스 드롭 (P +2, S +2 — 일반 장비 이상)
-    low:  {abyss_ichor: [6, 6, 8]}
-    mid:  {abyss_ichor: [8, 8, 10], sculk_tendril: [6, 6, 7]}
-    high: {abyss_ichor: [10, 12, 14, 16], sculk_tendril: [7, 7, 9, 11], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
-  seraph_scepter:  # 치천사의 홀 · 시전 무기 · 보스 고유 → 보스 드롭 (P +4 — 일반 장비 이상 · 겹침 피함)
-    low:  {abyss_ichor: [8, 8, 10]}
-    mid:  {abyss_ichor: [10, 10, 12], sculk_tendril: [4, 4, 5]}
-    high: {abyss_ichor: [12, 14, 16, 18], sculk_tendril: [5, 5, 7, 9], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
-  voidheart_staff:  # 공허의 심장 지팡이 · 시전 무기 · 보스 고유 → 보스 드롭 (P +2, S +3 — 일반 장비 이상 · 겹침 피함)
-    low:  {abyss_ichor: [6, 6, 8]}
-    mid:  {abyss_ichor: [8, 8, 10], sculk_tendril: [7, 7, 8]}
-    high: {abyss_ichor: [10, 12, 14, 16], sculk_tendril: [8, 8, 10, 12], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
-  abyss_walker_helm:  # 심연 보행자 두건 · 투구 · 정예 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
-    low:  {sculk_tendril: [4, 4, 4]}
-    mid:  {sculk_tendril: [4, 5, 5], abyss_ichor: [3, 5, 5]}
-    high: {sculk_tendril: [5, 7, 9, 11], abyss_ichor: [5, 5, 7, 9], primordial_essence: [2, 3, 3, 4]}
+    mid:  {sculk_tendril: [6, 6, 7], orichalcum_ingot: [4, 4, 5]}
+    high: {sculk_tendril: [7, 8, 10, 11], orichalcum_ingot: [5, 5, 6, 7], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
+  abyss_antler_staff:  # 심연 가지 지팡이 · 시전 무기 · 금고·미믹 → 드롭 재료 (P +1 — 겹침 피함)
+    low:  {sculk_tendril: [4, 4, 5]}
+    mid:  {sculk_tendril: [5, 5, 6], orichalcum_ingot: [2, 2, 3]}
+    high: {sculk_tendril: [6, 7, 9, 10], orichalcum_ingot: [3, 3, 4, 5], primordial_essence: [2, 3, 3, 4]}
+  abyss_bell_scepter:  # 심연 울림종 홀 · 시전 무기 · 대장간 → 제작 재료 (P·S 바꿈 — 겹침 피함)
+    low:  {sculk_tendril: [3, 3, 4]}
+    mid:  {sculk_tendril: [4, 4, 5], orichalcum_ingot: [2, 2, 3]}
+    high: {sculk_tendril: [5, 6, 8, 9], orichalcum_ingot: [3, 3, 4, 5], primordial_essence: [2, 3, 3, 4]}
+  abyss_ring_staff:  # 심연 고리 지팡이 · 시전 무기 · 정예 → 정예 드롭 (P·S 바꿈, S +2 — 겹침 피함)
+    low:  {abyss_scale: [2, 2, 3]}
+    mid:  {abyss_scale: [3, 3, 4], orichalcum_ingot: [4, 4, 5]}
+    high: {abyss_scale: [4, 5, 6, 7], orichalcum_ingot: [5, 5, 6, 7], gatekeeper_rune: [1, 1, 2, 2]}
+  abyss_thurible_rod:  # 심연 향로봉 · 시전 무기 · 정예 → 정예 드롭 (P +1 — 겹침 피함)
+    low:  {sculk_tendril: [4, 4, 5]}
+    mid:  {sculk_tendril: [5, 5, 6], orichalcum_ingot: [2, 2, 3]}
+    high: {sculk_tendril: [6, 7, 9, 10], orichalcum_ingot: [3, 3, 4, 5], gatekeeper_rune: [1, 1, 2, 2]}
+  void_fork_staff:  # 공허 갈래 지팡이 · 시전 무기 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
+    low:  {abyss_ichor: [3, 3, 5]}
+    mid:  {abyss_ichor: [5, 5, 6], orichalcum_ingot: [3, 3, 4]}
+    high: {abyss_ichor: [6, 8, 9, 11], orichalcum_ingot: [4, 4, 5, 6], gatekeeper_rune: [1, 1, 2, 2]}
+  void_lamp_crook:  # 공허 등롱 지팡이 · 시전 무기 · 시련방 → 상자 드롭 (P·S 바꿈, P +1 — 겹침 피함)
+    low:  {abyss_scale: [3, 3, 4]}
+    mid:  {abyss_scale: [4, 4, 5], orichalcum_ingot: [2, 2, 3]}
+    high: {abyss_scale: [5, 6, 7, 8], orichalcum_ingot: [3, 3, 4, 5], primordial_essence: [2, 3, 3, 4]}
+  void_spiral_staff:  # 공허 소용돌이 지팡이 · 시전 무기 · 특별 시련 → 드롭 재료 (P +1, S +1 — 겹침 피함)
+    low:  {sculk_tendril: [4, 4, 5]}
+    mid:  {sculk_tendril: [5, 5, 6], orichalcum_ingot: [3, 3, 4]}
+    high: {sculk_tendril: [6, 7, 9, 10], orichalcum_ingot: [4, 4, 5, 6], primordial_essence: [2, 3, 3, 4]}
+  aurora_scepter:  # 오로라 성광 홀 · 시전 무기 · 보스 고유 → 보스 드롭 (P +2, S +1 — 일반 장비 이상)
+    low:  {sculk_tendril: [5, 5, 6]}
+    mid:  {sculk_tendril: [6, 6, 7], orichalcum_ingot: [3, 3, 4]}
+    high: {sculk_tendril: [7, 8, 10, 11], orichalcum_ingot: [4, 4, 5, 6], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
+  seraph_scepter:  # 치천사의 홀 · 시전 무기 · 보스 고유 → 보스 드롭 (P +3, S +1 — 일반 장비 이상 · 겹침 피함)
+    low:  {sculk_tendril: [6, 6, 7]}
+    mid:  {sculk_tendril: [7, 7, 8], orichalcum_ingot: [3, 3, 4]}
+    high: {sculk_tendril: [8, 9, 11, 12], orichalcum_ingot: [4, 4, 5, 6], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
+  voidheart_staff:  # 공허의 심장 지팡이 · 시전 무기 · 보스 고유 → 보스 드롭 (P +4 — 일반 장비 이상 · 겹침 피함)
+    low:  {sculk_tendril: [7, 7, 8]}
+    mid:  {sculk_tendril: [8, 8, 9], orichalcum_ingot: [2, 2, 3]}
+    high: {sculk_tendril: [9, 10, 12, 13], orichalcum_ingot: [3, 3, 4, 5], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
+  abyss_walker_helm:  # 심연 보행자 두건 · 투구 · 정예 · 대장간 → 제작 재료
+    low:  {sculk_tendril: [3, 3, 3]}
+    mid:  {sculk_tendril: [3, 4, 4], orichalcum_ingot: [1, 2, 2]}
+    high: {sculk_tendril: [4, 5, 6, 8], orichalcum_ingot: [2, 2, 3, 4], primordial_essence: [2, 3, 3, 4]}
   starless_choir_helm:  # 별 없는 성가대 모자 · 투구 · 정예 · 대장간 → 제작 재료
-    low:  {abyss_ichor: [4, 4, 4]}
-    mid:  {abyss_ichor: [4, 6, 6], sculk_tendril: [2, 4, 4]}
-    high: {abyss_ichor: [6, 8, 10, 12], sculk_tendril: [4, 4, 5, 7], primordial_essence: [2, 3, 3, 4]}
-  nightmare_crown:  # 악몽의 왕관 · 투구 · 칭호 보상 → 칭호를 주는 보스 드롭 (P +1, S +1 — 일반 장비 이상)
-    low:  {abyss_ichor: [5, 5, 5]}
-    mid:  {abyss_ichor: [5, 7, 7], sculk_tendril: [3, 5, 5]}
-    high: {abyss_ichor: [7, 9, 11, 13], sculk_tendril: [5, 5, 6, 8], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
+    low:  {abyss_ichor: [3, 3, 3]}
+    mid:  {abyss_ichor: [3, 5, 5], orichalcum_ingot: [1, 2, 2]}
+    high: {abyss_ichor: [5, 6, 8, 9], orichalcum_ingot: [2, 2, 3, 4], primordial_essence: [2, 3, 3, 4]}
+  nightmare_crown:  # 악몽의 왕관 · 투구 · 칭호 보상 → 칭호를 주는 보스 드롭 (S +2 — 일반 장비 이상)
+    low:  {sculk_tendril: [3, 3, 3]}
+    mid:  {sculk_tendril: [3, 4, 4], orichalcum_ingot: [3, 4, 4]}
+    high: {sculk_tendril: [4, 5, 6, 8], orichalcum_ingot: [4, 4, 5, 6], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
   abyss_walker_chest:  # 심연 보행자 조끼 · 흉갑 · 정예 · 대장간 → 제작 재료
-    low:  {sculk_tendril: [4, 4, 5]}
-    mid:  {sculk_tendril: [5, 5, 7], abyss_ichor: [4, 4, 4]}
-    high: {sculk_tendril: [7, 7, 9, 11], abyss_ichor: [4, 6, 6, 8], gatekeeper_rune: [1, 1, 2, 2]}
-  starless_choir_chest:  # 별 없는 성가대 예복 · 흉갑 · 정예 · 대장간 → 제작 재료 (R 바꿈 — 겹침 피함)
-    low:  {abyss_ichor: [4, 4, 6]}
-    mid:  {abyss_ichor: [6, 6, 8], sculk_tendril: [4, 4, 4]}
-    high: {abyss_ichor: [8, 8, 10, 12], sculk_tendril: [4, 5, 5, 7], primordial_essence: [2, 3, 3, 4]}
-  abyss_walker_legs:  # 심연 보행자 바지 · 하의 · 정예 · 대장간 → 제작 재료 (R 바꿈 — 겹침 피함)
-    low:  {sculk_tendril: [4, 4, 5]}
-    mid:  {sculk_tendril: [5, 5, 7], abyss_ichor: [4, 4, 4]}
-    high: {sculk_tendril: [7, 7, 9, 11], abyss_ichor: [4, 6, 6, 8], primordial_essence: [2, 3, 3, 4]}
+    low:  {abyss_scale: [2, 2, 3]}
+    mid:  {abyss_scale: [3, 3, 4], orichalcum_ingot: [2, 2, 2]}
+    high: {abyss_scale: [4, 4, 5, 6], orichalcum_ingot: [2, 3, 3, 4], gatekeeper_rune: [1, 1, 2, 2]}
+  starless_choir_chest:  # 별 없는 성가대 예복 · 흉갑 · 정예 · 대장간 → 제작 재료
+    low:  {abyss_ichor: [3, 3, 5]}
+    mid:  {abyss_ichor: [5, 5, 6], orichalcum_ingot: [2, 2, 2]}
+    high: {abyss_ichor: [6, 6, 8, 9], orichalcum_ingot: [2, 3, 3, 4], primordial_essence: [2, 3, 3, 4]}
+  abyss_walker_legs:  # 심연 보행자 바지 · 하의 · 정예 · 대장간 → 제작 재료
+    low:  {sculk_tendril: [3, 3, 4]}
+    mid:  {sculk_tendril: [4, 4, 5], orichalcum_ingot: [2, 2, 2]}
+    high: {sculk_tendril: [5, 5, 6, 8], orichalcum_ingot: [2, 3, 3, 4], primordial_essence: [2, 3, 3, 4]}
   starless_choir_legs:  # 별 없는 성가대 하의 · 하의 · 정예 · 대장간 → 제작 재료
-    low:  {abyss_ichor: [4, 4, 6]}
-    mid:  {abyss_ichor: [6, 6, 8], sculk_tendril: [4, 4, 4]}
-    high: {abyss_ichor: [8, 8, 10, 12], sculk_tendril: [4, 5, 5, 7], gatekeeper_rune: [1, 1, 2, 2]}
+    low:  {abyss_ichor: [3, 3, 5]}
+    mid:  {abyss_ichor: [5, 5, 6], orichalcum_ingot: [2, 2, 2]}
+    high: {abyss_ichor: [6, 6, 8, 9], orichalcum_ingot: [2, 3, 3, 4], gatekeeper_rune: [1, 1, 2, 2]}
   abyss_walker_boots:  # 심연 보행자 장화 · 신발 · 정예 · 대장간 → 제작 재료
-    low:  {sculk_tendril: [4, 4, 4]}
-    mid:  {sculk_tendril: [4, 5, 5], abyss_ichor: [2, 4, 4]}
-    high: {sculk_tendril: [5, 7, 9, 11], abyss_ichor: [4, 4, 6, 8], primordial_essence: [2, 3, 3, 4]}
+    low:  {abyss_scale: [2, 2, 2]}
+    mid:  {abyss_scale: [2, 3, 3], orichalcum_ingot: [1, 2, 2]}
+    high: {abyss_scale: [3, 4, 5, 6], orichalcum_ingot: [2, 2, 3, 4], primordial_essence: [2, 3, 3, 4]}
   starless_choir_boots:  # 별 없는 성가대 신발 · 신발 · 정예 · 대장간 → 제작 재료 (S +1 — 겹침 피함)
-    low:  {abyss_ichor: [4, 4, 4]}
-    mid:  {abyss_ichor: [4, 6, 6], sculk_tendril: [3, 5, 5]}
-    high: {abyss_ichor: [6, 8, 10, 12], sculk_tendril: [5, 5, 6, 8], primordial_essence: [2, 3, 3, 4]}
+    low:  {abyss_ichor: [3, 3, 3]}
+    mid:  {abyss_ichor: [3, 5, 5], orichalcum_ingot: [2, 3, 3]}
+    high: {abyss_ichor: [5, 6, 8, 9], orichalcum_ingot: [3, 3, 4, 5], primordial_essence: [2, 3, 3, 4]}
   void_bulwark_shield:  # 공허의 방벽 · 방패 · 정예 · 대장간 → 제작 재료
-    low:  {abyss_ichor: [4, 6, 6]}
-    mid:  {abyss_ichor: [6, 8, 8], sculk_tendril: [4, 4, 5]}
-    high: {abyss_ichor: [8, 10, 12, 14], sculk_tendril: [5, 5, 7, 9], gatekeeper_rune: [1, 1, 2, 2]}
+    low:  {abyss_ichor: [3, 5, 5]}
+    mid:  {abyss_ichor: [5, 6, 6], orichalcum_ingot: [2, 2, 3]}
+    high: {abyss_ichor: [6, 8, 9, 11], orichalcum_ingot: [3, 3, 4, 5], gatekeeper_rune: [1, 1, 2, 2]}

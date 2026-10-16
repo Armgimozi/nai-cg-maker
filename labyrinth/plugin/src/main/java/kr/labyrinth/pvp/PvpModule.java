@@ -136,6 +136,8 @@ public final class PvpModule implements Module {
     }
 
     boolean inSafeZone(Location l) {
+        // 광산 월드는 늘 안전지대 (0.3.6 — 플레이어끼리 적이 아님, 계약 §2.2)
+        if (kr.labyrinth.mine.MineSafety.inMine(services.mine(), l)) return true;
         PvpConfig c = config;
         return c.safeZoneVillage() && zone.contains(l, c.safeZoneMargin());
     }
@@ -167,13 +169,14 @@ public final class PvpModule implements Module {
 
     // ── 월드 PvP 스위치 ───────────────────────────────────────────────────
 
-    /** 모든 월드(labyrinth_world 포함)의 바닐라 PvP 게임 규칙 = pvp.enabled. server.properties 를 몰라도 된다. */
+    /** 모든 월드(labyrinth_world 포함)의 바닐라 PvP 게임 규칙 = pvp.enabled (광산 월드는 늘 끔). server.properties 를 몰라도 된다. */
     void applyWorldRules(boolean log) {
         for (World w : Bukkit.getWorlds()) applyWorldRule(w, log);
     }
 
     void applyWorldRule(World w, boolean log) {
-        boolean want = config.enabled();
+        boolean mine = kr.labyrinth.mine.MineSafety.inMine(services.mine(), w);
+        boolean want = config.enabled() && !mine;
         try {
             Boolean cur = w.getGameRuleValue(GameRules.PVP);
             if (cur != null && cur == want) return;
@@ -182,7 +185,7 @@ public final class PvpModule implements Module {
             Log.warnOnce("pvp-rule:" + w.getName(), "월드 " + w.getName() + " 의 PvP 규칙을 바꾸지 못했습니다: " + t.getMessage());
             return;
         }
-        if (log) Log.info("월드 " + w.getName() + " PvP " + (want ? "켬" : "끔") + " (config pvp.enabled)");
+        if (log) Log.info("월드 " + w.getName() + " PvP " + (want ? "켬" : "끔") + (mine ? " (광산 — 늘 끔)" : " (config pvp.enabled)"));
     }
 
     // ── 1초마다 ───────────────────────────────────────────────────────────

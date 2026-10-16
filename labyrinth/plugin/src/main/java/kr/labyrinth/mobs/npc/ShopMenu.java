@@ -53,6 +53,30 @@ public final class ShopMenu extends Menu {
             int slot = SLOTS[i++];
             set(slot, icon(entry, def, data), ctx -> buy(ctx, entry, def));
         }
+        // 0.3.6 Q6: 날마다 바뀌는 희귀 도안 (셋째 줄부터)
+        var bp = kr.labyrinth.items.blueprint.BlueprintService.get();
+        if (bp != null && "merchant".equals(npc.role())) {
+            int j = Math.max(i, 14);
+            for (String rid : bp.shopToday()) {
+                if (j >= SLOTS.length) break;
+                ItemStack b = kr.labyrinth.items.blueprint.BlueprintItems.create(services, rid, 1);
+                if (b == null) continue;
+                int price = bp.shopPrice(rid);
+                List<Component> lore = new ArrayList<>();
+                ItemLore existing = b.getData(DataComponentTypes.LORE);
+                if (existing != null) lore.addAll(existing.lines());
+                lore.add(Component.empty());
+                lore.add(Text.item("<gray>가격: " + (data.gold() >= price ? "<gold>" : "<red>") + Text.num(price) + " G"));
+                if (bp.knows(viewer, rid)) lore.add(Text.item("<#9be89b>이미 배운 도안"));
+                lore.add(Text.item("<dark_gray>오늘의 도안 — 내일은 다른 것을 팝니다"));
+                lore.add(Text.item("<yellow>▶ 클릭해서 구매"));
+                b.setData(DataComponentTypes.LORE, ItemLore.lore(lore));
+                set(SLOTS[j++], b, ctx -> {
+                    if (ctx.isRight()) return;
+                    if (bp.buy(ctx.player(), rid)) refresh();
+                });
+            }
+        }
         set(38, sellIcon(viewer), this::openSell);
         set(40, Button.icon(Material.BARRIER, "<red>닫기", List.of()), ctx -> ctx.player().closeInventory());
     }

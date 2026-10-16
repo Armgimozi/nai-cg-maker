@@ -51,6 +51,11 @@ public class BasicItemService implements ItemService {
         if (def.lore() != null && !def.lore().isBlank()) lore.add("<dark_gray>" + Text.escape(def.lore()));
         stack.setData(DataComponentTypes.LORE, ItemLore.lore(Text.itemLines(lore)));
         stack.editPersistentDataContainer(pdc -> pdc.set(Keys.ITEM_ID, PersistentDataType.STRING, id));
+        if (def.isTool()) {   // 곡괭이 (0.3.6): 한 칸에 1개 · 구성요소는 광산(MineApi.applyPickaxe)
+            stack.setAmount(1);
+            stack.setData(DataComponentTypes.MAX_STACK_SIZE, 1);
+            stack = GearItemService.applyTool(services, stack, def);
+        }
         return stack;
     }
 
@@ -73,7 +78,7 @@ public class BasicItemService implements ItemService {
         ItemDef def = services.content().item(id);
         if (def == null || amount <= 0) return 0;
         int given = 0;
-        boolean stackable = !def.isGear();
+        boolean stackable = !def.isGear() && !def.isTool();
         while (given < amount) {
             int n = stackable ? Math.min(64, amount - given) : 1;
             ItemStack s = create(id, n);

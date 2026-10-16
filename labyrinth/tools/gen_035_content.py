@@ -18,6 +18,9 @@
     몹·상자·시련방·정예 표 다시 씀 · gear_fNN_common 삭제) + B1 활 이름 바꿈 + B2 풀 넣기, settings.own_class_bias → own_build_bias
   · recipes.yml: 새 방어구 12개 · 무기 레시피 54개 골드 ×1.5 · npcs.yml: 상인 핀 3줄
 줄 단위로 고쳐 쓰므로 손대지 않는 줄의 주석·순서·흐름 표기는 그대로 남는다. 다 쓰고 나서 YAML 을 다시 읽어 뜻이 기대와 같은지 확인한다.
+0.3.6 (Q3): 이 0.3.5 단계 다음에 같은 generate() 안에서 tools/gen_036_materials.apply() 가 돈다 (R §3-18 — 파일이 아니라 메모리 단계):
+  옛 광물 8개 → 광석·주괴 (장비 레시피 주괴 · 던전 광석) · 몹 몸에 맞는 드롭 (drops_spec) · 제련소 레시피 17 · 광부·제련공 NPC.
+  0.3.5 verify 는 0.3.5 단계 결과에서, 0.3.6 검사는 최종 결과에서 돈다. 장비 sources 는 최종 루팅으로 다시 센다.
 강화 재료(enhance.yml)는 이 다음에 tools/gen_enhance.py 로 다시 만든다.
 """
 import argparse
@@ -37,12 +40,14 @@ DATA = ROOT / "tools/data/035"
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import gen_035_looks as LOOKS_GEN  # noqa: E402
 import gen_035_unique as UNIQUE_GEN  # noqa: E402
+import gen_036_materials as MAT036  # noqa: E402
+import gen_036_blueprints as BP036  # noqa: E402  (0.3.6 Q6 도안 — generate() 마지막 단계, MAT036 뒤)
 
 ITEM_RE = re.compile(r"^  ([a-z0-9_]+):\s*(#.*)?$")
 GEAR_TYPES = ("weapon", "armor", "accessory")
 SPEC_ONLY = ("_spec", "direction", "source")
 MODEL_SPEC_ONLY = ("palette", "notes", "hold", "new_silhouette", "style")
-SOURCE_ORDER = ["drop", "chest", "elite", "boss", "trial", "special", "hoard", "craft", "shop", "reward", "starter"]
+SOURCE_ORDER = ["drop", "chest", "elite", "boss", "trial", "special", "hoard", "mine", "smelt", "craft", "shop", "reward", "starter"]
 WEAPON_KEYS = ["name", "type", "attack", "rarity", "level_req", "requires", "tier", "stats", "pool", "sources", "unique",
                "weapon_skills", "model", "texture", "lore"]
 ARMOR_KEYS = ["name", "type", "armor_slot", "armor_set", "rarity", "level_req", "requires", "tier", "stats", "set_bonus", "pool",
@@ -792,7 +797,36 @@ def generate():
     LOOKS_GEN.apply(lines, spec.looks, look_changes)
     out["items"] = "\n".join(lines)
     changes += [f"(겉모습) {c}" for c in look_changes]
-    return spec, texts, out, changes, sources
+    out035 = dict(out)
+    # ── 0.3.6 (Q3): 광석 재료 + 몹 주제 드롭 — 메모리 단계 ──
+    out, info = MAT036.apply(sys.modules[__name__], spec, out, mobs, bosses, floors, config, changes)
+    # 장비 획득처를 최종 루팅으로 다시 센다 (R §3-18) — 0.3.6 은 장비 칸을 옮기지 않으므로 보통 그대로다
+    y036 = {n: yaml.safe_load(out[n]) for n in ("items", "loot", "recipes", "npcs")}
+    sources036 = compute_sources(y036["items"]["items"], y036["loot"]["tables"], y036["recipes"]["recipes"], mobs, bosses, floors,
+                                 y036["npcs"]["npcs"], titles, config)
+    lines = out["items"].split("\n")
+    items_at = next(i for i, l in enumerate(lines) if l.startswith("items:"))
+    sets_at = next(i for i, l in enumerate(lines) if l.startswith("sets:"))
+    ib = blocks(lines, items_at + 1, sets_at)
+    for iid, src in sources036.items():
+        if iid in ib and src != sources.get(iid):
+            a, b = ib[iid]
+            k = field(lines, a, b, "sources")
+            if k is not None:
+                lines[k] = f"    sources: {flow(src)}"
+                changes.append(f"(036) {iid}: sources {src}")
+    out["items"] = "\n".join(lines)
+    # ── 0.3.6 (Q6): 도안 — 반드시 MAT036 뒤 (몹 드롭 표를 다시 쓰면 도안 항목이 지워지므로 마지막에) ──
+    out = BP036.apply(out, mobs, bosses, floors, changes)
+    return spec, texts, out, changes, sources036, out035, info
+
+
+def bp_verify(texts):
+    """0.3.6 Q6 도안 항목이 MAT036 뒤에도 남았는지 (generate() 마지막 단계)."""
+    mobs = yaml.safe_load((CONTENT / "mobs.yml").read_text(encoding="utf-8"))["mobs"]
+    bosses = yaml.safe_load((CONTENT / "bosses.yml").read_text(encoding="utf-8"))["bosses"]
+    floors = sorted(int(k) for k in yaml.safe_load((CONTENT / "floors.yml").read_text(encoding="utf-8"))["floors"])
+    return [f"(도안) {b}" for b in BP036.verify(texts, mobs, bosses, floors)]
 
 
 def main():
@@ -800,10 +834,10 @@ def main():
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
-    spec, texts, out, changes, sources = generate()
+    spec, texts, out, changes, sources, out035, info = generate()
     if a.check:
         diff = [n for n in out if out[n] != texts[n]]
-        bad = verify(texts, spec)
+        bad = verify(out035, spec) + [f"(036) {b}" for b in MAT036.verify(texts, info)] + bp_verify(texts)
         for b in bad:
             print("✘", b)
         if diff:
@@ -820,11 +854,11 @@ def main():
         if t != texts[n]:
             (CONTENT / f"{n}.yml").write_text(t, encoding="utf-8")
     # 다시 돌려도 같은지 (멱등)
-    spec2, texts2, out2, changes2, _ = generate()
+    spec2, texts2, out2, changes2, _, out035_2, info2 = generate()
     if any(out2[n] != texts2[n] for n in out2):
         print("✘ 다시 돌리면 또 바뀜 (멱등 아님):", [n for n in out2 if out2[n] != texts2[n]])
         sys.exit(1)
-    bad = verify(texts2, spec2)
+    bad = verify(out035_2, spec2) + [f"(036) {b}" for b in MAT036.verify(texts2, info2)] + bp_verify(texts2)
     for b in bad:
         print("✘", b)
     if bad:

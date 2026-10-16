@@ -105,6 +105,14 @@ glyphs:
   gui_emblem_codex: {char: "\uE04D", file: gui/emblem_codex.png, ascent: 9, height: 11, advance: 12}
   gui_emblem_records: {char: "\uE04E", file: gui/emblem_records.png, ascent: 9, height: 11, advance: 12}
   gui_enhance: {char: "\uE0E8", file: gui/enhance.png, ascent: 13, height: 222, advance: 177}
+  # ── 0.3.6 광산 (계약 visual.json menus): 제련소 · 광산 승강기 · 광산 관리소 (광부 상점은 gui_merchant) ──
+  gui_smelter: {char: "\uE012", file: gui/smelter.png, ascent: 13, height: 222, advance: 177}
+  gui_mine_lift: {char: "\uE013", file: gui/mine_lift.png, ascent: 13, height: 222, advance: 177}
+  gui_mine_office: {char: "\uE014", file: gui/mine_office.png, ascent: 13, height: 222, advance: 177}
+  gui_setup_village: {char: "\uE015", file: gui/setup_village.png, ascent: 13, height: 222, advance: 177}
+  gui_emblem_mine: {char: "\uE04F", file: gui/emblem_mine.png, ascent: 9, height: 11, advance: 12}
+  gui_emblem_smelter: {char: "\uE050", file: gui/emblem_smelter.png, ascent: 9, height: 11, advance: 12}
+  gui_emblem_lift: {char: "\uE051", file: gui/emblem_lift.png, ascent: 9, height: 11, advance: 12}
   # ── HUD 액션바: HP/MP/보호막 바 21단계(0~20) · 경험치 · 레벨 배지 · 골드 · 숫자 ──
   hud_hp_00: {char: "\uE100", file: hud/hp_00.png, ascent: -26, height: 9, advance: 83}
   hud_hp_01: {char: "\uE101", file: hud/hp_01.png, ascent: -26, height: 9, advance: 83}
@@ -397,6 +405,17 @@ menus:
       entrance_block: 38
       entrance_npc: 42
       confirm: 49
+  # 0.3.6: 미리 지은 마을 월드의 첫 설정 (입구 = 마을 게이트 — 석문·NPC 소켓 없음)
+  setup_village:
+    glyph: gui_setup_village
+    rows: 6
+    title: "서버 첫 설정"
+    title_color: "#ffe2a0"
+    slots:
+      difficulties: [10, 12, 14, 16]
+      difficulty_order: [easy, normal, hard, nightmare]
+      entrance: 40
+      confirm: 49
   entrance:
     glyph: gui_entrance
     rows: 6
@@ -523,6 +542,47 @@ menus:
     slots:
       all: "0..44"
 
+  # ── 0.3.6 광산 메뉴 (메뉴 id = interact·역할 이름: smelter · mine_lift · mine_office). 글자·층 번호는 그림에 없다
+  #    (층은 색으로만 — 버튼 아이템 이름이 층 이름). Java: UiTheme.title("smelter", 6, …) 등. ──
+  smelter:
+    glyph: gui_smelter
+    rows: 6
+    title: "제련소"
+    title_color: "#f3e3bd"
+    slots:
+      back: 0
+      tabs: [2, 4, 6]
+      tab_order: [smelt, carve, pickaxe]
+      purse: 8
+      recipes: "행 1~4 × 열 1~7 (10-16, 19-25, 28-34, 37-43)"
+      prev: 45
+      amounts: [48, 49, 50]
+      amount_order: [x1, x8, all]
+      next: 53
+  mine_lift:
+    glyph: gui_mine_lift
+    rows: 6
+    title: "광산 승강기"
+    title_color: "#f3e3bd"
+    slots:
+      town: 0
+      levels: [4, 13, 22, 31, 40, 49]
+      level_order: [shallow_drift, dripstone_drift, moss_vein, ochre_fault, geode_hollow, dragon_abyss]
+      close: 8
+  mine_office:
+    glyph: gui_mine_office
+    rows: 6
+    title: "광산 관리소"
+    title_color: "#f3e3bd"
+    slots:
+      tabs: [1, 2, 3, 5, 6, 7]
+      tab_order: [pickaxe, smelt, carve, forge, sell, status]
+      info: 4
+      content: "행 1~4 × 열 1~7 (10-16, 19-25, 28-34, 37-43)"
+      prev: 45
+      purse: 49
+      next: 53
+
 # ── 동적 메뉴 판 문장 (예비, 위 gui_panel_* 참고): 메뉴 id → gui_emblem_<값>. 없으면 generic. ──
 menu_emblems:
   main: maze
@@ -539,6 +599,10 @@ menu_emblems:
   confirm: confirm
   blacksmith: blacksmith
   setup: setup
+  setup_village: setup
+  smelter: smelter
+  mine_lift: lift
+  mine_office: mine
 
 # ── HUD 배치 (x = 핫바 왼쪽 끝 기준 px, 전체 폭 total 로 맞출 것) ──
 hud:

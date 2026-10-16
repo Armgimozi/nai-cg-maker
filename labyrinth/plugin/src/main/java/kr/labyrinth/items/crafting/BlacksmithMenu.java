@@ -30,8 +30,10 @@ import org.bukkit.inventory.ItemStack;
  * 툴팁에 보는 사람 기준(맞춤 초록 / 모자람 빨강 "(현재 22)")으로 보여 주기만 하고 제작은 막지 않는다(입을 때 가린다).
  * 거르개 (0.3.5, 분류 이름 없음): 무기 = 방식·피해 종류, 방어구 = 겉모습, 둘 다 "지금 낄 수 있는 것만".
  * 목록 순서 = 숨은 내부 레벨 → 희귀도. 배너 가운데(13) = [장비 강화] → 강화 창 (GDD §11.13).
+ * 0.3.6: {@code station: blacksmith} 레시피만 (제련·새기기·곡괭이 벼리기는 제련소 {@link SmelterMenu}).
+ * 도안 (0.3.6): 목록에는 기본 레시피(도안이 필요 없는 것)와 도안을 배운 레시피만 나온다 — 못 배운 것은 잠긴 채로 보이지 않는다.
  */
-final class BlacksmithMenu extends Menu {
+public final class BlacksmithMenu extends Menu {
 
     private static final String[] TABS = {"weapon", "armor", "accessory", "material"};
     private static final String[] TAB_NAMES = {"무기", "방어구 · 방패", "장신구", "정수 정제"};
@@ -51,20 +53,24 @@ final class BlacksmithMenu extends Menu {
     private WeaponFilter weaponFilter = WeaponFilter.ALL;
     private int look;
     private boolean wearableOnly;
+    private Player viewer;
 
     BlacksmithMenu(Services services, LabCraftingService crafting, Player viewer) {
         super(6, kr.labyrinth.ui.UiTheme.title("blacksmith", 6, "<#f3e3bd>대장장이 두르간의 대장간"));
         this.services = services;
         this.crafting = crafting;
+        this.viewer = viewer;
     }
 
     private List<RecipeDef> recipes(Map<Stat, Integer> reqStats) {
         String cat = TABS[tab];
         List<RecipeDef> out = new ArrayList<>();
         for (RecipeDef r : services.content().recipes().values()) {
+            if (!kr.labyrinth.mine.MineNames.STATION_BLACKSMITH.equals(LabCraftingService.station(r))) continue;
             if (!cat.equals(r.category() == null ? "weapon" : r.category())) continue;
             ItemDef def = services.content().item(r.result());
             if (def == null || !passes(def, reqStats)) continue;
+            if (viewer != null && !crafting.blueprintOk(viewer, r)) continue; // 0.3.6: 못 배운 도안 레시피는 숨김
             out.add(r);
         }
         // 결과 장비의 숨은 내부 레벨(items.yml level_req) → 희귀도 순 — 제작 레벨 제한은 없다
@@ -82,6 +88,7 @@ final class BlacksmithMenu extends Menu {
 
     @Override
     protected void build(Player viewer) {
+        this.viewer = viewer;
         PlayerData d = services.data().get(viewer);
         Map<Stat, Integer> reqStats = services.stats().requirementStats(viewer);
         for (int i = 0; i < TABS.length; i++) {
@@ -192,9 +199,24 @@ final class BlacksmithMenu extends Menu {
 
     private void click(Player p) { p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 0.4f, 1.2f); }
 
+    /** 재료 줄 수 (주괴는 몇 개든 한 줄). */
+    static int materialLines(int plain, int ingots) { return plain + (ingots > 0 ? 1 : 0); }
+
+    /** 대장간 목록 툴팁 꼬리 줄 수 (빈 줄 · 제목(재료 줄 6 미만일 때) · 재료 줄 · 골드 · 제작 안내) — TooltipFitTest 가 쓴다. */
+    public static int tailSize(kr.labyrinth.content.Content content, RecipeDef r) {
+        int plain = 0, ingots = 0;
+        for (String id : r.materials().keySet()) {
+            ItemDef md = content.item(id);
+            if (md != null && md.isMineMaterial()) ingots++;
+            else plain++;
+        }
+        int lines = materialLines(plain, ingots);
+        return 3 + lines + (lines < 6 ? 1 : 0);
+    }
+
     private String firstResult(String cat) {
         for (RecipeDef r : services.content().recipes().values()) {
-            if (cat.equals(r.category())) return r.result();
+            if (cat.equals(r.category()) && kr.labyrinth.mine.MineNames.STATION_BLACKSMITH.equals(LabCraftingService.station(r))) return r.result();
         }
         return null;
     }
@@ -203,15 +225,35 @@ final class BlacksmithMenu extends Menu {
         ItemDef def = services.content().item(r.result());
         List<String> tail = new ArrayList<>();
         tail.add("");
-        tail.add("<#e0a050>━━ 제작 재료 ━━");
-        boolean ok = true;
+        List<Map.Entry<String, Integer>> plain = new ArrayList<>(), ingots = new ArrayList<>();
         for (Map.Entry<String, Integer> m : r.materials().entrySet()) {
+            ItemDef md = services.content().item(m.getKey());
+            (md != null && md.isMineMaterial() ? ingots : plain).add(m);
+        }
+        // 0.3.6: 주괴는 한 줄로 묶는다 · 재료 줄이 많으면 제목 줄을 뺀다 (툴팁이 화면 안에 들어가게 — tailSize)
+        if (materialLines(plain.size(), ingots.size()) < 6) tail.add("<#e0a050>━━ 제작 재료 ━━");
+        boolean ok = true;
+        for (Map.Entry<String, Integer> m : plain) {
             ItemDef md = services.content().item(m.getKey());
             int have = crafting.count(p, m.getKey());
             boolean enough = have >= m.getValue();
             ok &= enough;
             tail.add((enough ? "<#9be89b>✔ " : "<#ff6b6b>✘ ") + (md == null ? m.getKey() : md.name()) + " <gray>"
                     + have + "/" + m.getValue());
+        }
+        if (!ingots.isEmpty()) {
+            StringBuilder line = new StringBuilder();
+            boolean all = true;
+            for (Map.Entry<String, Integer> m : ingots) {
+                ItemDef md = services.content().item(m.getKey());
+                int have = crafting.count(p, m.getKey());
+                boolean enough = have >= m.getValue();
+                all &= enough;
+                if (line.length() > 0) line.append(" <dark_gray>·</dark_gray> ");
+                line.append(enough ? "<#9be89b>" : "<#ff6b6b>").append(md.name()).append(" <gray>").append(have).append("/").append(m.getValue());
+            }
+            ok &= all;
+            tail.add((all ? "<#9be89b>✔ " : "<#ff6b6b>✘ ") + line);
         }
         long gold = crafting.goldCost(p, r);
         boolean goldOk = d.gold() >= gold;

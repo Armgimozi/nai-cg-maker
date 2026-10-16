@@ -37,7 +37,7 @@ public final class ContentLoader {
      * 서로 아이템 id 를 주고받는 콘텐츠 파일. 하나만 옛 판(직접 고쳐서 덮어쓰지 않음)으로 남고 나머지가 새 판이면 루팅·제작·강화·상점이
      * 없는 아이템을 가리켜 조용히 빠진다 — 켤 때 크게 알린다 ({@link #coupledWarnings}).
      */
-    static final List<String> COUPLED = List.of("items.yml", "loot.yml", "recipes.yml", "enhance.yml", "npcs.yml");
+    static final List<String> COUPLED = List.of("items.yml", "loot.yml", "recipes.yml", "enhance.yml", "npcs.yml", "mine.yml");
 
     private ContentLoader() {}
 

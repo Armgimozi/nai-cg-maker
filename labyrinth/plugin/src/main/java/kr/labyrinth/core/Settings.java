@@ -172,10 +172,15 @@ public final class Settings {
     }
 
     /**
-     * 시작 꾸러미 코드 기본값 (= jar 의 config.yml) — 수련생 방어구 4종 + 하급 치유 물약 10 · 하급 마나 물약 5 · 귀환 주문서 2.
-     * 골드는 {@link #DEFAULT_STARTER_GOLD}. (빵은 0.3.5.1 에서 뺌 — 허기가 늘 가득이라 먹을 수 없었다)
+     * 시작 꾸러미 코드 기본값 (= jar 의 config.yml) — 수련생 방어구 4종 + 하급 치유 물약 10 · 하급 마나 물약 5 · 귀환 주문서 2
+     * + 구리 곡괭이 1 (0.3.6 광산). 골드는 {@link #DEFAULT_STARTER_GOLD}. (빵은 0.3.5.1 에서 뺌 — 허기가 늘 가득이라 먹을 수 없었다)
      */
     public static final List<KitItem> DEFAULT_STARTER_KIT = List.of(new KitItem("novice_cap", 1),
+            new KitItem("novice_tunic", 1), new KitItem("novice_trousers", 1), new KitItem("novice_boots", 1),
+            new KitItem("minor_healing_potion", 10), new KitItem("minor_mana_potion", 5), new KitItem("return_scroll", 2),
+            new KitItem("copper_pickaxe", 1));
+    /** 0.3.5.1 기본 목록 (곡괭이 없음) — config.yml 에 그대로 남아 있으면 손대지 않은 것이므로 새 기본값(+ 구리 곡괭이)으로 올린다. */
+    public static final List<KitItem> LEGACY_STARTER_KIT_0351 = List.of(new KitItem("novice_cap", 1),
             new KitItem("novice_tunic", 1), new KitItem("novice_trousers", 1), new KitItem("novice_boots", 1),
             new KitItem("minor_healing_potion", 10), new KitItem("minor_mana_potion", 5), new KitItem("return_scroll", 2));
     /** 예전 판(0.3.2)이 config.yml 에 그대로 적어 둔 목록 — 손대지 않은 것이므로 새 기본값으로 올린다. */
@@ -395,7 +400,7 @@ public final class Settings {
         }
         // 예전 판 기본 목록을 그대로 둔 서버는 새 기본값 (직접 고친 목록은 그대로 따른다)
         return out.isEmpty() || out.equals(LEGACY_STARTER_KIT_032) || out.equals(LEGACY_STARTER_KIT_033)
-                ? DEFAULT_STARTER_KIT : List.copyOf(out);
+                || out.equals(LEGACY_STARTER_KIT_0351) ? DEFAULT_STARTER_KIT : List.copyOf(out);
     }
 
     private static double clamp(double v, double lo, double hi) { return Math.max(lo, Math.min(hi, v)); }

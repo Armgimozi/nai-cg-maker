@@ -10,6 +10,9 @@ content/*.yml + Java 소스의 하드코딩 id 가 resourcepack/dist/labyrinth-p
   npc skins  : assets/labyrinth/textures/entity/npc/<skin>.png
   fx         : fx.yml models + aura ring/secondary 모델 + params.fx 참조 + Java 리터럴 → assets/labyrinth/items/fx/<name>.json
   glyphs     : glyphs.yml 의 모든 글리프 문자가 font/ui.json 에 있는지, 메뉴 배경 줄 수가 menus.<id>.rows 와 같은지
+  mine 0.3.6 : 계약 tools/data/036 (visual·materials·mine.json) — 광석·주괴·보석·곡괭이·새 몬스터 재료 아이템
+               (+ resourcepack/generate.py MINE_EXTRA_ICONS 드롭 명세 재료), 보석 결정 mine/node_<보석> (mine.json
+               gems.*.node_model), 옛 재료 id 별칭 (두 판), 광부·제련공 스킨, 메뉴 배경 3개, 블록 덮어쓰기 0개
 사용: python3 tools/check_assets.py [pack.zip]   (종료 코드 0 = 일치)
 """
 import json
@@ -24,12 +27,29 @@ ROOT = Path(__file__).resolve().parent.parent
 CONTENT = ROOT / "plugin/src/main/resources/content"
 JAVA = ROOT / "plugin/src/main/java"
 PACK_SRC = ROOT / "resourcepack/src/voxel/weapons.py"
+PACK_GEN = ROOT / "resourcepack/generate.py"
+CONTRACT036 = ROOT / "tools/data/036"
 
 
 def bow_shapes():
     """팩의 활 모양 목록 (voxel/weapons.py 의 BOWS = (...) 한 줄 — 팩 모듈을 import 하지 않고 읽는다)."""
     m = re.search(r"^BOWS = \(([^)]*)\)", PACK_SRC.read_text(encoding="utf-8"), re.M)
     return set(re.findall(r"'([a-z_]+)'", m.group(1))) if m else set()
+
+
+def mine_extra_ids():
+    """generate.py MINE_EXTRA_ICONS 의 id (드롭 명세 새 재료 — items.yml 에 들어가기 전에도 팩이 그린다)."""
+    m = re.search(r"^MINE_EXTRA_ICONS = \{(.*?)^\}", PACK_GEN.read_text(encoding="utf-8"), re.M | re.S)
+    return re.findall(r"^\s+'([a-z_]+)':", m.group(1), re.M) if m else []
+
+
+def contract036():
+    out = {}
+    for name in ("visual", "materials", "mine"):
+        p = CONTRACT036 / f"{name}.json"
+        if p.exists():
+            out[name] = json.loads(p.read_text(encoding="utf-8"))
+    return out
 
 
 def model_refs(node, out):
@@ -167,6 +187,43 @@ def main():
                 errors.append(f"메뉴 {mid}: 배경 글리프 {md.get('glyph')} 없음")
             elif round((gd["height"] - 114) / 18) != md.get("rows"):
                 errors.append(f"메뉴 {mid}: 배경 높이 {gd['height']} 가 rows {md.get('rows')} 와 다름")
+
+    # 0.3.6 광산 (계약 tools/data/036)
+    c = contract036()
+    vis, mat, mine = c.get("visual") or {}, c.get("materials") or {}, c.get("mine") or {}
+    renamed = {"cinder_hide": "cinder_scale"}          # 계약 §0-4 (드롭 명세가 재료 id 를 정함)
+    mine_ids = [renamed.get(i, i) for i in (vis.get("icons") or {})] + mine_extra_ids() + list(vis.get("pickaxes") or {})
+    for iid in dict.fromkeys(mine_ids):
+        need(f"items/{iid}.json", f"광산 아이템 {iid}")
+        if A + f"items/{iid}.json" in names:
+            refs = set()
+            model_refs(json.loads(zf.read(A + f"items/{iid}.json")), refs)
+            for ref in sorted(refs):
+                ns, _, path = ref.partition(":")
+                if ns == "labyrinth":
+                    need(f"models/{path}.json", f"광산 아이템 {iid} 모델 {ref}")
+    for gid, gd in (mine.get("gems") or {}).items():
+        ns, _, path = (gd.get("node_model") or "").partition(":")
+        if ns == "labyrinth" and path:
+            need(f"items/{path}.json", f"보석 노드 {gid}")
+            need(f"models/item/{path}.json", f"보석 노드 {gid} 모델")
+    retired = set(mat.get("retired") or {}) | set(((mat.get("conversion") or {}).get("map")) or {})
+    for old in sorted(retired - set(items)):
+        need(f"items/{old}.json", f"옛 재료 별칭 {old} (두 판)")
+    for role, d in (vis.get("npcs") or {}).items():
+        if isinstance(d, dict) and d.get("skin"):
+            need(f"textures/entity/npc/{d['skin']}.png", f"광산 NPC {role} 스킨")
+    gmenus = (g.get("menus") or {})
+    for mid, md in (vis.get("menus") or {}).items():
+        gid = (md or {}).get("glyph") or ""
+        if gid.startswith("gui_") and " " not in gid:
+            checked += 1
+            if (gmenus.get(mid) or {}).get("glyph") != gid:
+                errors.append(f"메뉴 {mid}: glyphs.yml menus.{mid}.glyph 가 계약의 {gid} 가 아님")
+    blocks = sorted(n for n in names if re.match(r"assets/[^/]+/(blockstates/|models/block/|textures/block/)", n))
+    checked += 1
+    if blocks:
+        errors.append(f"블록 덮어쓰기 {len(blocks)}개 (계약 §3.3: 0개): " + ", ".join(blocks[:5]))
 
     print(f"검사 {checked}건 · 오류 {len(errors)}건 ({pack.name})")
     for e in errors:

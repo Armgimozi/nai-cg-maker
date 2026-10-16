@@ -1,0 +1,237 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# mine.yml — 광산 (0.3.6). tools/mine/gen_mine.py 가 계약 tools/data/036/mine.json 에서 만든 파일.
+# 자동 갱신 파일이다: 손대지 않았으면 jar 를 바꿀 때 새 판으로 바뀐다 (고친 파일은 그대로 두고 경고만).
+#
+# 층 6개는 모두 처음부터 열려 있다 — 레벨 조건이 어디에도 없다. 곡괭이 tier 는 캘 수 있는 광석(tier ≤ 곡괭이)과 빠르기만 정한다.
+# 층마다 광석·보석이 섞여 있다 (ore_weights · vein_blocks · gem_nodes). 광맥은 모두가 함께 쓴다: 누가 캐면 그 자리가 모두에게
+# 빈 광맥(depleted_block)이 되고, config.yml mine.regen_minutes 뒤 다시 찬다 (광산 월드 사람 수만큼 빨리, 최대 4배).
+#
+# 블록(block)을 바꾸면 그 층을 다시 짓는다 (청사진은 @vein:<광석> · @gem:<보석> 글자라 그대로). 블록 12개는 서로 달라야 한다.
+# 숫자·손잡이(재생 분·보석 확률·풍부한 광맥·광석 날아오기)는 config.yml mine: 에 있다.
+# ─────────────────────────────────────────────────────────────────────────────
+contract: 0.3.6
+levels:
+- n: 1
+  id: shallow_drift
+  name: 얕은 갱도
+  depth_m: 40
+  floor_y: 135
+  box: [-30, 131, -30, 30, 150, 30]
+  biome: minecraft:dripstone_caves
+  biome_y: [128, 319]
+  lighting:
+    sources: [lantern, waxed_copper_lantern]
+    vein_face_min: 8
+    floor_min: 6
+    lift_hall_min: 12
+    spacing_max: 8
+  atmosphere: 나무 받침 갱도, 레일과 통, 따뜻한 등불. 가장 밝고 아늑하다.
+  palette:
+    wall: [stone, andesite, tuff]
+    floor: [coarse_dirt, packed_mud, stone]
+    post: stripped_oak_log
+    beam: oak_log
+    decor: [rail, barrel, oak_fence, iron_chain]
+  title_color: '#E8843F'
+  regen_fx: WAX_ON
+  depleted_block: minecraft:cobblestone
+  ore_weights: {copper_ore: 62, iron_ore: 30, silver_ore: 8}
+  veins_total: 56
+  vein_blocks: {copper_ore: 35, iron_ore: 17, silver_ore: 4}
+  gem_weights: {quartz: 70, garnet: 30}
+  gem_nodes: [quartz, quartz, garnet]
+  regen_minutes_default: 8
+  gem_node_regen_minutes_default: 30
+  lift: [0, 136, 0]
+  landing: [0.5, 136, 3.5, 0.0]
+  office: true
+- n: 2
+  id: dripstone_drift
+  name: 종유 갱도
+  depth_m: 90
+  floor_y: 110
+  box: [-30, 106, -30, 30, 125, 30]
+  biome: minecraft:dripstone_caves
+  biome_y: [104, 127]
+  lighting:
+    sources: [lantern]
+    vein_face_min: 8
+    floor_min: 6
+    lift_hall_min: 12
+    spacing_max: 8
+  atmosphere: 돌과 심층암이 섞인 벽, 천장에 종유석, 쇠사슬에 매단 등불.
+  palette:
+    wall: [stone, deepslate, dripstone_block, andesite]
+    floor: [stone, tuff]
+    post: stripped_dark_oak_log
+    beam: dark_oak_log
+    decor: [pointed_dripstone, iron_chain]
+  title_color: '#C9CED6'
+  regen_fx: ELECTRIC_SPARK
+  depleted_block: minecraft:mossy_cobblestone
+  ore_weights: {copper_ore: 34, iron_ore: 46, silver_ore: 15, gold_ore: 5}
+  veins_total: 58
+  vein_blocks: {copper_ore: 20, iron_ore: 26, silver_ore: 9, gold_ore: 3}
+  gem_weights: {quartz: 30, garnet: 55, moonstone: 15}
+  gem_nodes: [quartz, garnet, garnet]
+  regen_minutes_default: 9
+  gem_node_regen_minutes_default: 30
+  lift: [0, 111, 0]
+  landing: [0.5, 111, 3.5, 0.0]
+  office: false
+- n: 3
+  id: moss_vein
+  name: 이끼빛 수맥
+  depth_m: 140
+  floor_y: 85
+  box: [-30, 81, -30, 30, 100, 30]
+  biome: minecraft:lush_caves
+  biome_y: [80, 103]
+  lighting:
+    sources: [soul_lantern, glow_lichen]
+    vein_face_min: 8
+    floor_min: 6
+    lift_hall_min: 12
+    spacing_max: 8
+  atmosphere: 심층암과 응회암, 이끼와 발광 이끼, 차가운 영혼 등불. 조용하다.
+  palette:
+    wall: [deepslate, tuff]
+    floor: [polished_deepslate, tuff, deepslate_tiles]
+    post: stripped_spruce_log
+    beam: spruce_log
+    decor: [tuff_bricks, moss_carpet, glow_lichen]
+  title_color: '#EEF3FF'
+  regen_fx: WAX_OFF
+  depleted_block: minecraft:cobbled_deepslate
+  ore_weights: {copper_ore: 14, iron_ore: 30, silver_ore: 41, gold_ore: 12, mithril_ore: 3}
+  veins_total: 60
+  vein_blocks: {copper_ore: 8, iron_ore: 18, silver_ore: 25, gold_ore: 7, mithril_ore: 2}
+  gem_weights: {garnet: 25, moonstone: 55, topaz: 20}
+  gem_nodes: [garnet, moonstone, moonstone]
+  regen_minutes_default: 9
+  gem_node_regen_minutes_default: 30
+  lift: [0, 86, 0]
+  landing: [0.5, 86, 3.5, 0.0]
+  office: false
+- n: 4
+  id: ochre_fault
+  name: 황토 단층
+  depth_m: 200
+  floor_y: 60
+  box: [-30, 56, -30, 30, 75, 30]
+  biome: minecraft:badlands
+  biome_y: [52, 79]
+  lighting:
+    sources: [ochre_froglight, lantern]
+    vein_face_min: 8
+    floor_min: 6
+    lift_hall_min: 12
+    spacing_max: 8
+  atmosphere: 붉고 노란 흙층이 비스듬히 갈라진 단층. 황토빛 개구리불이 따뜻하게 비춘다.
+  palette:
+    wall: [granite, terracotta, orange_terracotta, tuff]
+    floor: [packed_mud, terracotta, coarse_dirt]
+    post: stripped_acacia_log
+    beam: acacia_log
+    decor: [brown_terracotta, iron_chain, barrel]
+  title_color: '#F2C14E'
+  regen_fx: CRIT
+  depleted_block: minecraft:cobblestone
+  ore_weights: {copper_ore: 9, iron_ore: 14, silver_ore: 23, gold_ore: 39, mithril_ore: 12, orichalcum_ore: 3}
+  veins_total: 60
+  vein_blocks: {copper_ore: 6, iron_ore: 8, silver_ore: 14, gold_ore: 23, mithril_ore: 7, orichalcum_ore: 2}
+  gem_weights: {moonstone: 25, topaz: 55, sapphire: 20}
+  gem_nodes: [moonstone, topaz, topaz]
+  regen_minutes_default: 10
+  gem_node_regen_minutes_default: 30
+  lift: [0, 61, 0]
+  landing: [0.5, 61, 3.5, 0.0]
+  office: false
+- n: 5
+  id: geode_hollow
+  name: 청록 정동
+  depth_m: 260
+  floor_y: 35
+  box: [-30, 31, -30, 30, 50, 30]
+  biome: minecraft:warped_forest
+  biome_y: [28, 51]
+  lighting:
+    sources: [pearlescent_froglight, small_amethyst_bud, glow_lichen]
+    vein_face_min: 8
+    floor_min: 6
+    lift_hall_min: 12
+    spacing_max: 8
+  atmosphere: 둥근 정동, 자수정 군락(캐지 않음), 청록 포자가 떠다니는 푸른 빛.
+  palette:
+    wall: [deepslate, smooth_basalt, amethyst_block]
+    floor: [basalt, deepslate]
+    post: polished_basalt
+    beam: polished_basalt
+    decor: [amethyst_block, amethyst_cluster, small_amethyst_bud]
+  title_color: '#7FF2FF'
+  regen_fx: GLOW
+  depleted_block: minecraft:cobbled_deepslate
+  ore_weights: {copper_ore: 4, iron_ore: 8, silver_ore: 12, gold_ore: 22, mithril_ore: 41, orichalcum_ore: 13}
+  veins_total: 62
+  vein_blocks: {copper_ore: 3, iron_ore: 5, silver_ore: 7, gold_ore: 14, mithril_ore: 25, orichalcum_ore: 8}
+  gem_weights: {topaz: 25, sapphire: 55, dragonblood_stone: 20}
+  gem_nodes: [topaz, sapphire, sapphire]
+  regen_minutes_default: 10
+  gem_node_regen_minutes_default: 30
+  lift: [0, 36, 0]
+  landing: [0.5, 36, 3.5, 0.0]
+  office: false
+- n: 6
+  id: dragon_abyss
+  name: 용의 심연
+  depth_m: 330
+  floor_y: 10
+  box: [-30, 6, -30, 30, 25, 30]
+  biome: minecraft:basalt_deltas
+  biome_y: [-64, 27]
+  lighting:
+    sources: [end_rod, verdant_froglight]
+    vein_face_min: 8
+    floor_min: 6
+    lift_hall_min: 12
+    spacing_max: 8
+  atmosphere: 검은 현무암 동굴, 하얀 재가 별가루처럼 내리고 붉은 돌이 맥박친다. 가장 깊고 어둡다.
+  palette:
+    wall: [basalt, polished_basalt, smooth_basalt]
+    floor: [polished_blackstone, smooth_basalt]
+    post: chiseled_polished_blackstone
+    beam: polished_blackstone_bricks
+    decor: [chiseled_polished_blackstone, end_rod]
+  title_color: '#FF8A5C'
+  regen_fx: END_ROD
+  depleted_block: minecraft:blackstone
+  ore_weights: {copper_ore: 5, iron_ore: 7, silver_ore: 9, gold_ore: 13, mithril_ore: 23, orichalcum_ore: 43}
+  veins_total: 66
+  vein_blocks: {copper_ore: 3, iron_ore: 5, silver_ore: 6, gold_ore: 9, mithril_ore: 15, orichalcum_ore: 28}
+  gem_weights: {topaz: 15, sapphire: 30, dragonblood_stone: 55}
+  gem_nodes: [sapphire, dragonblood_stone, dragonblood_stone]
+  regen_minutes_default: 10
+  gem_node_regen_minutes_default: 30
+  lift: [0, 11, 0]
+  landing: [0.5, 11, 3.5, 0.0]
+  office: false
+ores:
+  copper_ore: {metal: copper, name: 구리 광석, tier: 1, block: 'minecraft:copper_ore', base_seconds: 2.5, yield: 1, gem: quartz, ingot: copper_ingot,
+    color: '#E8843F'}
+  iron_ore: {metal: iron, name: 철 광석, tier: 2, block: 'minecraft:iron_ore', base_seconds: 2.9, yield: 1, gem: garnet, ingot: iron_ingot, color: '#C9CED6'}
+  silver_ore: {metal: silver, name: 은 광석, tier: 3, block: 'minecraft:calcite', base_seconds: 3.3, yield: 1, gem: moonstone, ingot: silver_ingot,
+    color: '#EEF3FF'}
+  gold_ore: {metal: gold, name: 금 광석, tier: 4, block: 'minecraft:gold_ore', base_seconds: 3.7, yield: 1, gem: topaz, ingot: gold_ingot, color: '#F2C14E'}
+  mithril_ore: {metal: mithril, name: 미스릴 광석, tier: 5, block: 'minecraft:deepslate_diamond_ore', base_seconds: 4.1, yield: 1, gem: sapphire, ingot: mithril_ingot,
+    color: '#7FF2FF'}
+  orichalcum_ore: {metal: orichalcum, name: 오리하르콘 광석, tier: 6, block: 'minecraft:ancient_debris', base_seconds: 4.5, yield: 1, gem: dragonblood_stone,
+    ingot: orichalcum_ingot, color: '#FF8A5C'}
+gems:
+  quartz: {name: 석영, tier: 1, block: 'minecraft:nether_quartz_ore', base_seconds: 3.75, yield: 1, node_model: 'labyrinth:mine/node_quartz', color: '#F6F2EA'}
+  garnet: {name: 석류석, tier: 2, block: 'minecraft:cinnabar', base_seconds: 4.35, yield: 1, node_model: 'labyrinth:mine/node_garnet', color: '#C8102E'}
+  moonstone: {name: 월장석, tier: 3, block: 'minecraft:sea_lantern', base_seconds: 4.95, yield: 1, node_model: 'labyrinth:mine/node_moonstone', color: '#9CCAFF'}
+  topaz: {name: 황옥, tier: 4, block: 'minecraft:glowstone', base_seconds: 5.55, yield: 1, node_model: 'labyrinth:mine/node_topaz', color: '#FFC23A'}
+  sapphire: {name: 청옥, tier: 5, block: 'minecraft:deepslate_lapis_ore', base_seconds: 6.15, yield: 1, node_model: 'labyrinth:mine/node_sapphire',
+    color: '#4A7CFF'}
+  dragonblood_stone: {name: 용혈석, tier: 6, block: 'minecraft:magma_block', base_seconds: 6.75, yield: 1, node_model: 'labyrinth:mine/node_dragonblood',
+    color: '#FF3B2F'}

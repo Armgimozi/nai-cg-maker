@@ -1,0 +1,741 @@
+{
+ "recipes_changed": 184,
+ "mixed_recipes": 53,
+ "single_metal_recipes": 131,
+ "by_tier": {
+  "1": {
+   "recipes": 17,
+   "ingots": {
+    "copper": 39,
+    "iron": 9
+   },
+   "pos": [
+    1.0,
+    1.125,
+    1.5
+   ]
+  },
+  "2": {
+   "recipes": 22,
+   "ingots": {
+    "copper": 20,
+    "iron": 42
+   },
+   "pos": [
+    1.625,
+    2.0,
+    2.25
+   ]
+  },
+  "3": {
+   "recipes": 22,
+   "ingots": {
+    "iron": 67,
+    "silver": 8
+   },
+   "pos": [
+    2.25,
+    2.75
+   ]
+  },
+  "4": {
+   "recipes": 18,
+   "ingots": {
+    "silver": 62
+   },
+   "pos": [
+    2.75,
+    3.0,
+    3.25
+   ]
+  },
+  "5": {
+   "recipes": 17,
+   "ingots": {
+    "silver": 32,
+    "gold": 39
+   },
+   "pos": [
+    3.25,
+    3.5,
+    3.75
+   ]
+  },
+  "6": {
+   "recipes": 21,
+   "ingots": {
+    "gold": 89,
+    "mithril": 2
+   },
+   "pos": [
+    3.75,
+    4.0,
+    4.25,
+    4.5
+   ]
+  },
+  "7": {
+   "recipes": 17,
+   "ingots": {
+    "gold": 54,
+    "mithril": 31
+   },
+   "pos": [
+    4.25,
+    4.5,
+    5.0
+   ]
+  },
+  "8": {
+   "recipes": 21,
+   "ingots": {
+    "mithril": 98,
+    "orichalcum": 13
+   },
+   "pos": [
+    5.0,
+    5.5
+   ]
+  },
+  "9": {
+   "recipes": 13,
+   "ingots": {
+    "mithril": 20,
+    "orichalcum": 57
+   },
+   "pos": [
+    5.5,
+    5.75,
+    6.0
+   ]
+  },
+  "10": {
+   "recipes": 16,
+   "ingots": {
+    "orichalcum": 92
+   },
+   "pos": [
+    6.0
+   ]
+  }
+ },
+ "floor_metals": {
+  "1": {
+   "copper": 0.812,
+   "iron": 0.188
+  },
+  "2": {
+   "iron": 0.677,
+   "copper": 0.323
+  },
+  "3": {
+   "iron": 1.0
+  },
+  "4": {
+   "silver": 1.0
+  },
+  "5": {
+   "gold": 0.549,
+   "silver": 0.451
+  },
+  "6": {
+   "gold": 1.0
+  },
+  "7": {
+   "gold": 0.635,
+   "mithril": 0.365
+  },
+  "8": {
+   "mithril": 1.0
+  },
+  "9": {
+   "orichalcum": 0.74,
+   "mithril": 0.26
+  },
+  "10": {
+   "orichalcum": 1.0
+  }
+ },
+ "conversion": {
+  "rusted_iron": "iron_ore",
+  "slag_ingot": "gold_ore",
+  "ember_shard": "ember_soul",
+  "rime_crystal": "gold_ore",
+  "amethyst_shard": "gold_ore",
+  "prism_dust": "resonant_sinew",
+  "brass_gear": "orichalcum_ore",
+  "mainspring": "clock_oil"
+ },
+ "dungeon_ore_target": {
+  "1": 8,
+  "2": 7,
+  "3": 7,
+  "4": 8,
+  "5": 8,
+  "6": 11,
+  "7": 12,
+  "8": 11,
+  "9": 14,
+  "10": 13
+ },
+ "dungeon_ore_check": {
+  "1": {
+   "copper": 6.5,
+   "iron": 1.5
+  },
+  "2": {
+   "iron": 4.7,
+   "copper": 2.3
+  },
+  "3": {
+   "iron": 7.0
+  },
+  "4": {
+   "silver": 8.0
+  },
+  "5": {
+   "gold": 4.4,
+   "silver": 3.6
+  },
+  "6": {
+   "gold": 11.0
+  },
+  "7": {
+   "gold": 7.6,
+   "mithril": 4.4
+  },
+  "8": {
+   "mithril": 11.0
+  },
+  "9": {
+   "orichalcum": 10.4,
+   "mithril": 3.6
+  },
+  "10": {
+   "orichalcum": 13.0
+  }
+ },
+ "loot": {
+  "one_of": 24,
+  "removed": 50,
+  "rename": 30
+ },
+ "ore_entries_added": {
+  "1": 20,
+  "2": 20,
+  "3": 10,
+  "4": 10,
+  "5": 20,
+  "6": 10,
+  "7": 20,
+  "8": 10,
+  "9": 20,
+  "10": 10
+ },
+ "kits": {
+  "1": {
+   "kit": [
+    "mossvine_hornbow",
+    "wayfarer_helm",
+    "wayfarer_chest",
+    "wayfarer_legs",
+    "wayfarer_boots"
+   ],
+   "runs": 0.76,
+   "ore_need": 24,
+   "ingots": {
+    "copper_ingot": 12
+   }
+  },
+  "2": {
+   "kit": [
+    "silkguard_falchion",
+    "pit_foreman_helm",
+    "pit_foreman_chest",
+    "pit_foreman_legs",
+    "pit_foreman_boots"
+   ],
+   "runs": 0.92,
+   "ore_need": 26,
+   "ingots": {
+    "copper_ingot": 5,
+    "iron_ingot": 8
+   }
+  },
+  "3": {
+   "kit": [
+    "mycel_scythe",
+    "mycel_carapace_helm",
+    "mycel_carapace_chest",
+    "mycel_carapace_legs",
+    "mycel_carapace_boots"
+   ],
+   "runs": 1.07,
+   "ore_need": 32,
+   "ingots": {
+    "iron_ingot": 16
+   }
+  },
+  "4": {
+   "kit": [
+    "eelbone_recurve",
+    "verdigris_guard_helm",
+    "verdigris_guard_chest",
+    "verdigris_guard_legs",
+    "verdigris_guard_boots"
+   ],
+   "runs": 0.97,
+   "ore_need": 32,
+   "ingots": {
+    "silver_ingot": 16
+   }
+  },
+  "5": {
+   "kit": [
+    "cinder_fang",
+    "emberforged_helm",
+    "emberforged_chest",
+    "emberforged_legs",
+    "emberforged_boots"
+   ],
+   "runs": 1.22,
+   "ore_need": 38,
+   "ingots": {
+    "silver_ingot": 16,
+    "gold_ingot": 3
+   }
+  },
+  "6": {
+   "kit": [
+    "gravefrost_katar",
+    "rimefang_helm",
+    "rimefang_chest",
+    "rimefang_legs",
+    "rimefang_boots"
+   ],
+   "runs": 0.92,
+   "ore_need": 40,
+   "ingots": {
+    "gold_ingot": 20
+   }
+  },
+  "7": {
+   "kit": [
+    "prism_hornbow",
+    "shard_dancer_helm",
+    "shard_dancer_chest",
+    "shard_dancer_legs",
+    "shard_dancer_boots"
+   ],
+   "runs": 0.92,
+   "ore_need": 44,
+   "ingots": {
+    "gold_ingot": 13,
+    "mithril_ingot": 9
+   }
+  },
+  "8": {
+   "kit": [
+    "inkseal_warhammer",
+    "index_bulwark_helm",
+    "index_bulwark_chest",
+    "index_bulwark_legs",
+    "index_bulwark_boots"
+   ],
+   "runs": 1.24,
+   "ore_need": 56,
+   "ingots": {
+    "mithril_ingot": 28
+   }
+  },
+  "9": {
+   "kit": [
+    "pendulum_censer",
+    "clockwork_juggernaut_helm",
+    "clockwork_juggernaut_chest",
+    "clockwork_juggernaut_legs",
+    "clockwork_juggernaut_boots"
+   ],
+   "runs": 1.01,
+   "ore_need": 56,
+   "ingots": {
+    "mithril_ingot": 3,
+    "orichalcum_ingot": 25
+   }
+  },
+  "10": {
+   "kit": [
+    "void_falchion",
+    "starless_choir_helm",
+    "starless_choir_chest",
+    "starless_choir_legs",
+    "starless_choir_boots"
+   ],
+   "runs": 1.12,
+   "ore_need": 56,
+   "ingots": {
+    "orichalcum_ingot": 28
+   }
+  }
+ },
+ "enhance": {
+  "collisions": 0,
+  "unfair": [],
+  "problems": [],
+  "cheaper": {
+   "1": 0,
+   "2": 0,
+   "3": 0,
+   "4": 0,
+   "5": 0,
+   "6": 0,
+   "7": 0,
+   "8": 0,
+   "9": 0,
+   "10": 0
+  },
+  "grade_bad": 0,
+  "r_bad": 0,
+  "ingot_as_P": 75,
+  "no_ingot_mid_high": []
+ },
+ "examples": [
+  {
+   "id": "mossback_warhammer",
+   "result": "mossback_warhammer",
+   "tier": 1,
+   "rarity": "common",
+   "boss": false,
+   "cat": "weapon",
+   "B": 13,
+   "n": 3,
+   "split": [
+    [
+     "copper",
+     3
+    ]
+   ],
+   "pos": 1.0,
+   "removed": {},
+   "old": {
+    "moss_fiber": 8,
+    "beetle_shell": 5
+   },
+   "new": {
+    "moss_fiber": 8,
+    "beetle_shell": 5,
+    "copper_ingot": 3
+   }
+  },
+  {
+   "id": "silkguard_falchion",
+   "result": "silkguard_falchion",
+   "tier": 2,
+   "rarity": "uncommon",
+   "boss": false,
+   "cat": "weapon",
+   "B": 18,
+   "n": 4,
+   "split": [
+    [
+     "copper",
+     1
+    ],
+    [
+     "iron",
+     3
+    ]
+   ],
+   "pos": 1.625,
+   "removed": {
+    "rusted_iron": 8
+   },
+   "old": {
+    "spider_silk": 10,
+    "rusted_iron": 8,
+    "foreman_badge": 1,
+    "dim_essence": 1
+   },
+   "new": {
+    "spider_silk": 10,
+    "copper_ingot": 1,
+    "iron_ingot": 3,
+    "foreman_badge": 1,
+    "dim_essence": 1
+   }
+  },
+  {
+   "id": "sporecap_warhammer",
+   "result": "sporecap_warhammer",
+   "tier": 3,
+   "rarity": "rare",
+   "boss": false,
+   "cat": "weapon",
+   "B": 22,
+   "n": 4,
+   "split": [
+    [
+     "iron",
+     4
+    ]
+   ],
+   "pos": 2.25,
+   "removed": {},
+   "old": {
+    "spore_cap": 12,
+    "hypha_thread": 10,
+    "brood_core": 1,
+    "dim_essence": 2
+   },
+   "new": {
+    "spore_cap": 12,
+    "hypha_thread": 10,
+    "iron_ingot": 4,
+    "brood_core": 1,
+    "dim_essence": 2
+   }
+  },
+  {
+   "id": "anvil_oath_broadsword",
+   "result": "anvil_oath_broadsword",
+   "tier": 5,
+   "rarity": "epic",
+   "boss": false,
+   "cat": "weapon",
+   "B": 26,
+   "n": 5,
+   "split": [
+    [
+     "silver",
+     2
+    ],
+    [
+     "gold",
+     3
+    ]
+   ],
+   "pos": 3.5,
+   "removed": {
+    "slag_ingot": 14
+   },
+   "old": {
+    "slag_ingot": 14,
+    "ember_shard": 12,
+    "executioner_edge": 2,
+    "labyrinth_essence": 2
+   },
+   "new": {
+    "ember_soul": 12,
+    "silver_ingot": 2,
+    "gold_ingot": 3,
+    "executioner_edge": 2,
+    "labyrinth_essence": 2
+   }
+  },
+  {
+   "id": "frostgrave_mace",
+   "result": "frostgrave_mace",
+   "tier": 6,
+   "rarity": "epic",
+   "boss": false,
+   "cat": "weapon",
+   "B": 28,
+   "n": 6,
+   "split": [
+    [
+     "gold",
+     6
+    ]
+   ],
+   "pos": 4.0,
+   "removed": {
+    "rime_crystal": 16
+   },
+   "old": {
+    "rime_crystal": 16,
+    "grave_bone": 12,
+    "funeral_bell_shard": 1,
+    "labyrinth_essence": 2
+   },
+   "new": {
+    "grave_bone": 12,
+    "gold_ingot": 6,
+    "funeral_bell_shard": 1,
+    "labyrinth_essence": 2
+   }
+  },
+  {
+   "id": "amethyst_falchion",
+   "result": "amethyst_falchion",
+   "tier": 7,
+   "rarity": "rare",
+   "boss": false,
+   "cat": "weapon",
+   "B": 28,
+   "n": 6,
+   "split": [
+    [
+     "gold",
+     6
+    ]
+   ],
+   "pos": 4.25,
+   "removed": {
+    "amethyst_shard": 16
+   },
+   "old": {
+    "amethyst_shard": 16,
+    "prism_dust": 12,
+    "tuning_fork_core": 1,
+    "radiant_essence": 1
+   },
+   "new": {
+    "resonant_sinew": 12,
+    "gold_ingot": 6,
+    "tuning_fork_core": 1,
+    "radiant_essence": 1
+   }
+  },
+  {
+   "id": "inkseal_warhammer",
+   "result": "inkseal_warhammer",
+   "tier": 8,
+   "rarity": "epic",
+   "boss": false,
+   "cat": "weapon",
+   "B": 32,
+   "n": 6,
+   "split": [
+    [
+     "mithril",
+     6
+    ]
+   ],
+   "pos": 5.0,
+   "removed": {},
+   "old": {
+    "ink_essence": 18,
+    "old_page": 14,
+    "forbidden_seal": 1,
+    "radiant_essence": 2
+   },
+   "new": {
+    "ink_essence": 18,
+    "old_page": 14,
+    "mithril_ingot": 6,
+    "forbidden_seal": 1,
+    "radiant_essence": 2
+   }
+  },
+  {
+   "id": "clockguard_mace",
+   "result": "clockguard_mace",
+   "tier": 9,
+   "rarity": "epic",
+   "boss": false,
+   "cat": "weapon",
+   "B": 28,
+   "n": 6,
+   "split": [
+    [
+     "mithril",
+     3
+    ],
+    [
+     "orichalcum",
+     3
+    ]
+   ],
+   "pos": 5.5,
+   "removed": {
+    "brass_gear": 16
+   },
+   "old": {
+    "brass_gear": 16,
+    "mainspring": 12,
+    "regulator_pendulum": 1,
+    "primordial_essence": 1
+   },
+   "new": {
+    "clock_oil": 12,
+    "mithril_ingot": 3,
+    "orichalcum_ingot": 3,
+    "regulator_pendulum": 1,
+    "primordial_essence": 1
+   }
+  },
+  {
+   "id": "void_falchion",
+   "result": "void_falchion",
+   "tier": 10,
+   "rarity": "epic",
+   "boss": false,
+   "cat": "weapon",
+   "B": 32,
+   "n": 6,
+   "split": [
+    [
+     "orichalcum",
+     6
+    ]
+   ],
+   "pos": 6.0,
+   "removed": {},
+   "old": {
+    "abyss_ichor": 18,
+    "sculk_tendril": 14,
+    "gatekeeper_rune": 1,
+    "primordial_essence": 2
+   },
+   "new": {
+    "abyss_ichor": 18,
+    "sculk_tendril": 14,
+    "orichalcum_ingot": 6,
+    "gatekeeper_rune": 1,
+    "primordial_essence": 2
+   }
+  },
+  {
+   "id": "forge_warden_chest",
+   "result": "forge_warden_chest",
+   "tier": 5,
+   "rarity": "epic",
+   "boss": true,
+   "cat": "armor",
+   "B": 24,
+   "n": 5,
+   "split": [
+    [
+     "gold",
+     5
+    ]
+   ],
+   "pos": 3.75,
+   "removed": {
+    "slag_ingot": 14
+   },
+   "old": {
+    "forge_core": 1,
+    "slag_ingot": 14,
+    "ember_shard": 10,
+    "executioner_edge": 1,
+    "labyrinth_essence": 1
+   },
+   "new": {
+    "forge_core": 1,
+    "ember_soul": 10,
+    "gold_ingot": 5,
+    "executioner_edge": 1,
+    "labyrinth_essence": 1
+   }
+  }
+ ],
+ "ingots_all_recipes_once": {
+  "copper": 59,
+  "iron": 118,
+  "silver": 102,
+  "gold": 182,
+  "mithril": 151,
+  "orichalcum": 162
+ }
+}

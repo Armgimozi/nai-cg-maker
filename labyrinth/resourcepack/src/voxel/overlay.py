@@ -23,7 +23,7 @@ FRAMES = 16
 
 # effect preset → overlay sprite kind
 KIND = {
-    'ember_flicker': 'flame', 'sun_glow': 'flame', 'eclipse_corona': 'flame', 'soul_flicker': 'flame',
+    'ember_flicker': 'flame', 'ember_glow': 'flame', 'sun_glow': 'flame', 'eclipse_corona': 'flame', 'soul_flicker': 'flame',
     'blood_pulse': 'flame',
     'holy_pulse': 'spark', 'star_twinkle': 'spark', 'feather_glint': 'spark', 'crystal_glint': 'spark',
     'prism_cycle': 'spark', 'rune_flow': 'spark', 'aurora_wave': 'spark', 'gear_tick': 'spark',
