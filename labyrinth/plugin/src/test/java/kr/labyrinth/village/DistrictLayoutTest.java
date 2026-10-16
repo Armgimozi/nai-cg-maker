@@ -199,6 +199,14 @@ class DistrictLayoutTest {
         assertTrue(east.reason.contains("oak_planks"), east.reason);
         Plan se = plan(e, e.layout().site("south_east"), v, g);
         assertTrue(se.ok(), se.reason);
+        // 라이브 시험 c-A 의 흔적 (east 숙소 자리 북쪽 판자 집 x −88..−84 z −3..1 · 흙 기둥 (−96, 0)) — east 만 막고 south_east 는 그대로
+        //  (0.3.6.1: south_east 갈림길 길잡이를 큰길 북쪽에 두었더니 south_east 영역이 여기까지 넓어져 둘 다 막혔던 것)
+        TerrainGrid g2 = terrain(v);
+        for (int x = -88; x <= -84; x++) for (int z = -3; z <= 1; z++) g2.addFlags(x, z, Terrain.UNNATURAL, "oak_planks@68");
+        g2.addFlags(-96, 0, Terrain.UNNATURAL, "dirt@68");
+        assertFalse(plan(e, e.layout().site("east"), v, g2).ok(), "east 는 막힘");
+        Plan se2 = plan(e, e.layout().site("south_east"), v, g2);
+        assertTrue(se2.ok(), "south_east 는 통과: " + se2.reason);
         // 물 웅덩이도 막는다 (구역 영역 안 지표 물 — fill_small_water_max 0)
         TerrainGrid wet = terrain(v);
         wet.addFlags(-80, 30, Terrain.WATER, "water@66");

@@ -28,7 +28,9 @@ PIECES = [
     {"piece": "lamp_post_copper", "w": [-87, 11], "front": "south"},    # 12 가로등 (마당 서쪽 끝 북쪽)
     {"piece": "lamp_post_copper", "w": [-70, 24], "front": "west"},     # 13 가로등 (하치장 골목 동쪽)
     # south_east 자리에만 (east 는 drop) — 좌표는 z −42 해 둔 것 (그 자리가 z +42 로 옮기므로 실제 = 큰길 끝·남쪽 길가)
-    {"piece": "signpost_mine_turn", "w": [-93, 11 - 42], "front": "west", "slack": 1},   # 14 갈림길 길잡이 (실제 x −93..−91 z 11..13)
+    # 14 갈림길 길잡이 — 꺾는 곳 안쪽(남동) 실제 x −93..−91 z 18..20. 큰길 북쪽에 두면 south_east 영역이 east 자리 북쪽(숙소 자리)까지
+    #    넓어져, east 를 막은 흔적이 south_east 까지 막는다 (c-A 시험) — 그래서 남쪽에 둔다.
+    {"piece": "signpost_mine_turn", "w": [-93, 18 - 42], "front": "west", "slack": 1},
     {"piece": "lamp_post_copper", "w": [-93, 24 - 42], "front": "west"},     # 15 남쪽 길 가로등 (실제 z 24)
     {"piece": "lamp_post_copper", "w": [-93, 34 - 42], "front": "west"},     # 16 (실제 z 34)
     {"piece": "lamp_post_copper", "w": [-93, 44 - 42], "front": "west"},     # 17 (실제 z 44)

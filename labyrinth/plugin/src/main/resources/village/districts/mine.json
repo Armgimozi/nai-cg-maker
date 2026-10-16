@@ -28,7 +28,7 @@
     {"piece": "flower_bed", "at": [6, 45], "front": "east"},
     {"piece": "lamp_post_copper", "at": [5, 49], "front": "west"},
     {"piece": "lamp_post_copper", "at": [-8, 67], "front": "north"},
-    {"piece": "signpost_mine_turn", "at": [46, 44], "front": "north", "slack": 1},
+    {"piece": "signpost_mine_turn", "at": [39, 44], "front": "north", "slack": 1},
     {"piece": "lamp_post_copper", "at": [34, 44], "front": "north"},
     {"piece": "lamp_post_copper", "at": [24, 44], "front": "north"},
     {"piece": "lamp_post_copper", "at": [14, 44], "front": "north"}
