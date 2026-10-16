@@ -53,8 +53,21 @@ entrance:
 # 미리 지은 마을 (VILLAGE.md) — 주 월드 폴더에 labyrinth-village.yml 이 있을 때만 켜진다 (서버팩의 world 폴더)
 village:
   teleport_command: true     # /미궁 마을 로 광장 텔레포트
-  block_mob_spawns: true     # 마을 안 적대 몹 자연 스폰 막기
+  block_mob_spawns: true     # 마을 둘레(반경 + 8칸) 적대 몹 자연 스폰 막기 — 아래 wild.spawns 가 monsters·all 이면 그쪽이 마을 월드 전체를 막는다
   blocks_per_tick: 4000      # village build 속도 (개발용)
+
+# 야생 막기 (0.3.5.1) — 마을 밖 바닐라 요소를 막아 마을과 미궁에서 노는 서버로. 마을이 있는 world 폴더에서만 켜진다.
+#   마을 월드 = 서버팩 world 폴더(마을이 지어진 주 월드). 미궁 월드는 이 설정과 상관없다.
+#   키가 없으면 아래 값으로 켜지고, 통째로 끄려면 wild: false (바닐라 그대로). 고친 뒤 /labadmin reload · 상태는 /labadmin wild
+wild:
+  border: true          # 마을 둘레에 바닐라 월드 경계 (마을 + 보호 구역을 감싸는 정사각형). 경계 밖에 있던 사람은 광장으로 옮긴다
+                        #   끄면(false) 플러그인이 정한 경계를 예전 경계로 되돌린다. /worldborder 로 직접 정한 경계는 건드리지 않는다
+  border_margin: 30     # 마을 가장자리에서 몇 칸 더 (0 ~ 1000). 이 바깥에 지은 건물·상자는 갈 수 없게 되니 먼저 옮기세요
+  spawns: all           # 마을 월드 자연 스폰 막기: all(적대 몹 + 동물) | monsters(적대 몹만) | none(막지 않음)
+                        #   플레이어가 만든 것(번식·알·스폰 알·골렘 쌓기·명령)은 막지 않고, 이미 있는 동물은 그대로 둔다.
+                        #   있던 바닐라 적대 몹은 켤 때와 청크를 불러올 때 치운다 (이름표·길들임·끈·알로 들인 몹은 그대로)
+#   네더·엔드는 막지 않는다 (바닐라 그대로, 스폰도 그대로). 차원문·엔드에서 돌아올 때 경계 밖이면 광장으로 옮긴다.
+#   예전 village.block_mob_spawns 는 spawns: none 일 때만 따로 쓰인다 (all·monsters 가 이미 마을 월드 전체를 막음)
 
 # 초기 설정 — true 면 op 가 아니어도 서버 난이도를 정하거나 바꿀 수 있다 (/미궁 난이도, 처음 접속 시 설정 창).
 setup:

@@ -37,6 +37,8 @@ public final class Settings {
     private final Death death;
     private final ClassChange classChange;
     private final ArmorLooks armorLooks;
+    private final Wild wild;
+    private final List<String> wildWarnings;
 
     public record Entrance(String mode, String world, double x, double y, double z, float yaw, float pitch, double radius) {
         public boolean isSet() { return world != null && !world.isBlank(); }
@@ -127,6 +129,49 @@ public final class Settings {
     }
 
     /**
+     * 야생 막기 (config.yml wild, 최상위 키, 0.3.5.1) — 주 월드에 마을 메타데이터가 있을 때만 쓰인다 (village.WildService).
+     * @param border       마을 둘레에 바닐라 월드 경계 (마을 상자 + 보호 상자 ∪ → + borderMargin, 정사각형)
+     * @param borderMargin 마을 가장자리에서 몇 칸 더 (0 ~ 1000)
+     * @param spawns       마을 월드 자연 스폰 막기: ALL(적대+동물) · MONSTERS(적대만) · NONE
+     * 네더·엔드는 막지 않는다 (바닐라 그대로) — 돌아올 때 경계 밖이면 광장으로 옮기는 것은 경계가 맡는다.
+     */
+    public record Wild(boolean border, int borderMargin, Spawns spawns) {
+        /** 마을 월드 자연 스폰을 어디까지 막나. */
+        public enum Spawns {
+            /** 적대 몹 + 동물·물고기·박쥐·떠돌이 상인 등 모든 몹. */
+            ALL,
+            /** 적대 몹(Enemy)만. */
+            MONSTERS,
+            /** 막지 않음 (village.block_mob_spawns 의 마을 둘레 적대 막기만 남음). */
+            NONE;
+
+            /** "all" · "monsters" · "none" (대소문자 무시, 몇 가지 다른 표기도). 모르는 값 = null. */
+            public static Spawns parse(String s) {
+                if (s == null) return null;
+                return switch (s.trim().toLowerCase(Locale.ROOT)) {
+                    case "all", "모두", "전부" -> ALL;
+                    case "monsters", "monster", "hostile", "hostiles", "적대" -> MONSTERS;
+                    case "none", "off", "false", "없음", "끔" -> NONE;
+                    default -> null;
+                };
+            }
+
+            public String id() { return name().toLowerCase(Locale.ROOT); }
+        }
+
+        /** 코드 기본값 (= jar 의 config.yml): 경계 켬 · 30칸 · 모두 막기. 기존 서버 config 에 wild 가 없어도 켜진다. */
+        public static final Wild DEFAULT = new Wild(true, 30, Spawns.ALL);
+        /** {@code wild: false} — 바닐라 그대로 (경계 없음 · 스폰 그대로). */
+        public static final Wild OFF = new Wild(false, 30, Spawns.NONE);
+        public static final int MAX_MARGIN = 1000;
+
+        public Wild {
+            borderMargin = Math.max(0, Math.min(MAX_MARGIN, borderMargin));
+            spawns = spawns == null ? Spawns.ALL : spawns;
+        }
+    }
+
+    /**
      * 시작 꾸러미 코드 기본값 (= jar 의 config.yml) — 수련생 방어구 4종 + 하급 치유 물약 10 · 하급 마나 물약 5 · 귀환 주문서 2.
      * 골드는 {@link #DEFAULT_STARTER_GOLD}. (빵은 0.3.5.1 에서 뺌 — 허기가 늘 가득이라 먹을 수 없었다)
      */
@@ -209,6 +254,34 @@ public final class Settings {
         // 0.3.5 방어구 겉모습 장단점 (look_spec §7) — 키가 없으면 코드 기본값 (예전 서버 config 도 그대로 켜진다)
         this.armorLooks = Boolean.FALSE.equals(c.get("armor_looks")) ? ArmorLooks.OFF
                 : ArmorLooks.read(c.getConfigurationSection("armor_looks"));
+        List<String> ww = new ArrayList<>();
+        // getConfigurationSection 은 기본값(jar config)에만 있는 섹션을 서버 config 에 빈 'wild: {}' 로 만들어 저장되게 한다 — get 으로 읽음
+        Object wv = c.get("wild");
+        this.wild = Boolean.FALSE.equals(wv) ? Wild.OFF : wild(wv instanceof ConfigurationSection wsec ? wsec : null, ww);
+        this.wildWarnings = List.copyOf(ww);
+    }
+
+    /**
+     * wild — 섹션이 없으면 코드 기본값({@link Wild#DEFAULT}), 빠진 키도 기본값. 끄기 = {@code wild: false}.
+     * spawns 에 모르는 값이 있으면 기본값(all) + warnings 한 줄. spawns: false 는 none 과 같다.
+     */
+    static Wild wild(ConfigurationSection w, List<String> warnings) {
+        Wild d = Wild.DEFAULT;
+        if (w == null) return d;
+        Wild.Spawns spawns = d.spawns();
+        Object raw = w.get("spawns");
+        if (Boolean.FALSE.equals(raw)) spawns = Wild.Spawns.NONE;
+        else if (Boolean.TRUE.equals(raw)) spawns = Wild.Spawns.ALL;
+        else if (raw != null) {
+            Wild.Spawns p = Wild.Spawns.parse(String.valueOf(raw));
+            if (p != null) spawns = p;
+            else if (warnings != null) warnings.add("wild.spawns '" + raw + "' 를 모릅니다 (all · monsters · none) — all 로 읽습니다");
+        }
+        int margin = w.getInt("border_margin", d.borderMargin());
+        if (warnings != null && (margin < 0 || margin > Wild.MAX_MARGIN)) {
+            warnings.add("wild.border_margin " + margin + " 은(는) 0 ~ " + Wild.MAX_MARGIN + " 로 자릅니다");
+        }
+        return new Wild(w.getBoolean("border", d.border()), margin, spawns);
     }
 
     /**
@@ -335,6 +408,12 @@ public final class Settings {
 
     /** 방어구 겉모습 장단점 (판금·가죽·천 숨은 효과 · 4부위 효과). */
     public ArmorLooks armorLooks() { return armorLooks; }
+
+    /** 야생 막기 (월드 경계 · 마을 월드 스폰). 마을이 있는 주 월드에만 쓰인다. 네더·엔드는 막지 않는다. */
+    public Wild wild() { return wild; }
+
+    /** config wild 를 읽다 생긴 경고 (켤 때·reload 때 서버 창에 한 줄씩). */
+    public List<String> wildWarnings() { return wildWarnings; }
 
     /** 맨손 초당 공격 횟수 (config weapon_attack_speed.none). 무기는 저마다 items.yml attack.interval. */
     public double unarmedAttackSpeed() { return unarmedAttackSpeed; }

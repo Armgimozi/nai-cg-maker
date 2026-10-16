@@ -7,8 +7,8 @@ import kr.labyrinth.core.Log;
 import kr.labyrinth.core.Module;
 
 /**
- * 마을 모듈 (VILLAGE.md §4): 청사진(jar village/) 로드 → VillageService(실행 중 마을) → 명령
- * (/labadmin village … · /미궁 마을). 마을은 미리 지은 월드에만 있다 — 다른 월드에 자동으로 짓지 않는다.
+ * 마을 모듈 (VILLAGE.md §4): 청사진(jar village/) 로드 → VillageService(실행 중 마을 + 야생 막기 WildService) → 명령
+ * (/labadmin village … · /labadmin wild … · /미궁 마을). 마을은 미리 지은 월드에만 있다 — 다른 월드에 자동으로 짓지 않는다.
  */
 public final class VillageModule implements Module {
 
@@ -44,6 +44,7 @@ public final class VillageModule implements Module {
     @Override
     public void reload() {
         if (VillageJob.running() == null) loadLibrary();
+        if (service != null && service.wild() != null) service.wild().refresh("reload"); // config wild 다시 읽기 (경계·스폰)
     }
 
     void loadLibrary() {

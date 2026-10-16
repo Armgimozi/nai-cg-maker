@@ -62,6 +62,7 @@ import org.bukkit.scheduler.BukkitTask;
 /**
  * 실행 중 마을 (VILLAGE.md §4.3): 주 월드 폴더의 labyrinth-village.yml 을 읽어
  * 월드 적용(NPC·입구·처음 보는 플레이어 텔레포트) · 보호 · 적대 몹 스폰 막기 · 우클릭 메뉴 · 파티클 연출 · /미궁 마을.
+ * 야생 막기(월드 경계·마을 월드 스폰, config wild)는 {@link WildService} 가 맡는다 (0.3.5.1).
  * 메타데이터가 없으면 조용히 꺼진다 (로그 1줄).
  */
 public final class VillageService implements Listener {
@@ -99,6 +100,7 @@ public final class VillageService implements Listener {
     private final java.util.Set<String> badFx = new java.util.HashSet<>();
     private BukkitTask fx;
     private long tick;
+    private WildService wild;
 
     VillageService(VillageModule module) { this.module = module; }
 
@@ -109,14 +111,22 @@ public final class VillageService implements Listener {
         load();
         Bukkit.getPluginManager().registerEvents(this, module.plugin());
         fx = Bukkit.getScheduler().runTaskTimer(module.plugin(), this::ambient, 40L, 10L);
-        if (meta != null) Bukkit.getScheduler().runTask(module.plugin(), () -> applyIfNew(false));
+        wild = new WildService(module, this);
+        wild.enable();
+        if (meta != null) Bukkit.getScheduler().runTask(module.plugin(), () -> {
+            if (!applyIfNew(false)) wild.refresh("시작");
+        });
     }
 
     void disable() {
         HandlerList.unregisterAll(this);
+        if (wild != null) wild.disable();
         if (fx != null) fx.cancel();
         if (instance == this) instance = null;
     }
+
+    /** 야생 막기 (월드 경계 · 스폰). */
+    WildService wild() { return wild; }
 
     // ── 메타데이터 ───────────────────────────────────────────────────────
 
@@ -156,6 +166,7 @@ public final class VillageService implements Listener {
         }
         interact.putAll(m.interact);
         if (log) Log.info("[마을] 메타데이터 갱신: 보호 상자 " + m.protect.size() + "개");
+        if (log && wild != null) wild.refresh("마을 메타데이터 갱신");
     }
 
     public VillageMeta meta() { return meta; }
@@ -219,6 +230,7 @@ public final class VillageService implements Listener {
         for (Player p : Bukkit.getOnlinePlayers()) markSeen(p);
         Log.info("[마을] 월드 적용: NPC " + npcs + "/" + meta.npcs.size() + " · 입구 " + (en == null ? "없음" : "마을 게이트")
                 + (forgot > 0 ? " · 예전 석문 기록 " + forgot + "칸 버림(entrance.yml.old)" : ""));
+        if (wild != null) wild.refresh("마을 적용");
     }
 
     Location loc(VillageMeta.Pos p) { return new Location(world, p.x(), p.y(), p.z(), p.yaw(), 0f); }
@@ -439,12 +451,14 @@ public final class VillageService implements Listener {
 
     // ── 몹 ───────────────────────────────────────────────────────────────
 
+    /**
+     * 예전 마을 둘레 적대 막기 (village.block_mob_spawns) — 마을 중심 반경 radius+8 안의 적대 NATURAL·PATROL·REINFORCEMENTS.
+     * 0.3.5.1 부터는 wild.spawns(마을 월드 전체)가 이것을 덮는다. wild.spawns: none 이면 이것만 남는다.
+     */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onSpawn(CreatureSpawnEvent e) {
-        if (meta == null || !module.blockMobSpawns() || !(e.getEntity() instanceof Enemy)) return;
-        CreatureSpawnEvent.SpawnReason r = e.getSpawnReason();
-        if (r != CreatureSpawnEvent.SpawnReason.NATURAL && r != CreatureSpawnEvent.SpawnReason.PATROL
-                && r != CreatureSpawnEvent.SpawnReason.REINFORCEMENTS) return;
+        if (meta == null || !module.blockMobSpawns() || !WildSpawns.oldVillageBlock(e.getSpawnReason(), e.getEntity() instanceof Enemy)) return;
+        if (WildService.pluginTagged(e.getEntity())) return; // 플러그인 몹은 건드리지 않음
         Location l = e.getLocation();
         if (!l.getWorld().equals(world)) return;
         double dx = l.getX() - meta.center[0], dz = l.getZ() - meta.center[2], rr = meta.radius + 8;

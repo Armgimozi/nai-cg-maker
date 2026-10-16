@@ -25,7 +25,8 @@ import org.bukkit.entity.Entity;
  * {@code /labadmin village selftest} (VILLAGE.md §0 짓고 나서 검사 · §4.4). 메타데이터를 다시 읽어:
  * 조각 칸이 청사진대로인지(mismatched, '.' 칸 공기 = interior), 조각·길 겹침(overlaps), 다듬은 땅의 뜬 블록·얇은 껍질(floating),
  * 남은 나무 조각(원목·떠 있는 잎 = tree_remnants), 정문 앞 걸어 들어가기(blocked_doors), 길 칸 높이 차(path_steps),
- * NPC 자리, 우클릭 칸·스폰·입구, 회전 규칙 대조(rot_mismatch). 결과 한 줄은 서버 로그에도 남는다.
+ * NPC 자리, 우클릭 칸·스폰·입구, 회전 규칙 대조(rot_mismatch), 0.3.5.1 마을 경계 안(border — 스폰·광장·입구·NPC·보호 상자).
+ * 결과 한 줄은 서버 로그에도 남는다.
  */
 final class VillageSelfTest extends VillageJob {
 
@@ -117,7 +118,7 @@ final class VillageSelfTest extends VillageJob {
     @Override
     protected boolean tick(Budget b) throws Exception {
         if (meta == null) {
-            report(Map.of(), 0, 0, 0, 0, false, false);
+            report(Map.of(), 0, 0, 0, 0, false, false, false);
             return true;
         }
         if (future == null) {
@@ -135,7 +136,7 @@ final class VillageSelfTest extends VillageJob {
         int[] npc = npcs();
         if (npc[0] < npc[1] && waitTicks++ < 60) return false;
         int[] inter = interacts();
-        report(counts, npc[0], npc[1], inter[0], inter[1], spawnOk(), entranceOk());
+        report(counts, npc[0], npc[1], inter[0], inter[1], spawnOk(), entranceOk(), borderInside());
         return true;
     }
 
@@ -454,7 +455,35 @@ final class VillageSelfTest extends VillageJob {
         return same;
     }
 
-    private void report(Map<String, Integer> c, int npcOk, int npcTotal, int interOk, int interTotal, boolean spawn, boolean entrance) {
+    /**
+     * 0.3.5.1 야생 경계 (config wild): 월드 스폰·광장·입구·NPC·보호 상자가 마을 경계(+ border_margin) 안인가.
+     * wild.border 가 켜져 있고 지금 바닐라 경계가 마을 경계이면 그것과도 대조. 자세한 스폰·치우기·변신 점검은 labadmin wild selftest.
+     */
+    private boolean borderInside() {
+        try {
+            WildBorder.Square tgt = WildBorder.compute(meta, module.services().settings().wild().borderMargin());
+            Map<String, double[]> pts = new java.util.LinkedHashMap<>();
+            Location ws = world.getSpawnLocation();
+            pts.put("월드 스폰", new double[] {ws.getX(), ws.getZ()});
+            if (meta.spawn != null) pts.put("광장", new double[] {meta.spawn.x(), meta.spawn.z()});
+            if (meta.entrance != null) pts.put("입구", new double[] {meta.entrance.x(), meta.entrance.z()});
+            for (Map.Entry<String, VillageMeta.Pos> e : meta.npcs.entrySet()) pts.put("NPC " + e.getKey(), new double[] {e.getValue().x(), e.getValue().z()});
+            List<String> out = new ArrayList<>(WildBorder.outside(tgt, pts));
+            for (int i : WildBorder.boxesOutside(tgt, meta.protect)) out.add("보호 상자 #" + i);
+            WildService w = module.service().wild();
+            if (w != null && w.active() && module.services().settings().wild().border() && w.current().same(tgt)) {
+                for (String o : WildBorder.outside(w.current(), pts)) out.add("지금 경계 밖 " + o);
+            }
+            for (String o : out) sample("마을 경계 밖: " + o);
+            return out.isEmpty();
+        } catch (Throwable t) {
+            error("경계", t);
+            return false;
+        }
+    }
+
+    private void report(Map<String, Integer> c, int npcOk, int npcTotal, int interOk, int interTotal, boolean spawn, boolean entrance,
+                        boolean border) {
         String line = "[마을 자가 진단] 결과: 예외 " + exceptions
                 + " · checked=" + c.getOrDefault("checked", 0)
                 + " mismatched=" + c.getOrDefault("mismatched", -1)
@@ -468,10 +497,11 @@ final class VillageSelfTest extends VillageJob {
                 + " · interact=" + interOk + "/" + interTotal
                 + " · spawn=" + (spawn ? "ok" : "bad")
                 + " · entrance=" + (entrance ? "ok" : "bad")
+                + " · border=" + (border ? "ok" : "bad")
                 + " · rot_mismatch=" + rotMismatch;
         boolean pass = exceptions == 0 && c.getOrDefault("mismatched", 1) == 0 && c.getOrDefault("overlaps", 1) == 0
                 && c.getOrDefault("floating", 1) == 0 && c.getOrDefault("tree_remnants", 1) == 0 && c.getOrDefault("blocked_doors", 1) == 0
-                && npcOk == npcTotal && c.getOrDefault("path_steps", 1) == 0 && interOk == interTotal && spawn && entrance;
+                && npcOk == npcTotal && c.getOrDefault("path_steps", 1) == 0 && interOk == interTotal && spawn && entrance && border;
         Text.send(sender, (pass ? "<#7fe07f><b>마을 자가 진단 통과</b></#7fe07f>" : "<#ff6b6b><b>마을 자가 진단: 문제 있음</b></#ff6b6b>")
                 + " <gray>(" + elapsedSec() + "초)");
         Text.send(sender, "<gray>" + Text.escape(line));

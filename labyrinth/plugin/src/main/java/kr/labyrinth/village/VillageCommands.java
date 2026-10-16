@@ -22,6 +22,7 @@ import org.bukkit.entity.Player;
  * 명령: /미궁 마을 (/lab village, /lab 마을) — 광장으로 텔레포트.
  * 관리자 (콘솔 가능): /labadmin village build [here | &lt;x&gt; &lt;z&gt;] [north|east|south|west] [force] · info · dump ·
  * survey [반경] · pregen &lt;반경&gt; · selftest · apply · cancel  (VILLAGE.md §4.1 · §4.4)
+ * · /labadmin wild [info] · selftest · reasons · border apply  (야생 막기, 0.3.5.1)
  */
 final class VillageCommands {
 
@@ -67,6 +68,52 @@ final class VillageCommands {
             else Text.error(s, "진행 중인 마을 작업이 없습니다.");
         })));
         cmd.addSubcommand("labadmin", v);
+
+        // 야생 막기 (0.3.5.1, config wild)
+        LiteralArgumentBuilder<CommandSourceStack> w = Commands.literal("wild");
+        w.executes(ctx -> run(ctx, () -> wildInfo(ctx.getSource().getSender())));
+        w.then(Commands.literal("info").executes(ctx -> run(ctx, () -> wildInfo(ctx.getSource().getSender()))));
+        w.then(Commands.literal("selftest").executes(ctx -> run(ctx, () -> wildSelftest(ctx.getSource().getSender()))));
+        w.then(Commands.literal("reasons").executes(ctx -> run(ctx, () -> wildReasons(ctx.getSource().getSender()))));
+        w.then(Commands.literal("border").then(Commands.literal("apply").executes(ctx -> run(ctx, () -> {
+            WildService ws = module.service().wild();
+            if (ws == null) Text.error(ctx.getSource().getSender(), "야생 막기가 꺼져 있습니다.");
+            else ws.forceBorder(ctx.getSource().getSender());
+        }))));
+        cmd.addSubcommand("labadmin", w);
+    }
+
+    private void wildInfo(CommandSender s) {
+        WildService ws = module.service().wild();
+        if (ws == null) {
+            Text.error(s, "야생 막기가 꺼져 있습니다.");
+            return;
+        }
+        ws.info(s);
+        s.sendMessage(Text.mm(" <dark_gray>/labadmin wild selftest · reasons · border apply"));
+    }
+
+    private void wildSelftest(CommandSender s) {
+        WildService ws = module.service().wild();
+        if (ws == null || !ws.active()) {
+            Text.error(s, "이 월드에는 마을이 없습니다 — 야생 막기가 꺼져 있습니다.");
+            return;
+        }
+        new WildSelfTest(module, s, mainWorld()).start();
+    }
+
+    /** SpawnReason 마다 막음/허용과 이유 (WildSpawns). */
+    private void wildReasons(CommandSender s) {
+        Text.send(s, "<gold>마을 월드 스폰 이유</gold> <gray>(막음 = wild.spawns 범위 안의 몹일 때)");
+        for (org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason r : org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.values()) {
+            WildSpawns.Rule rule = WildSpawns.rule(r);
+            String tag = switch (rule.verdict()) {
+                case WILD -> "<#ff9a4d>막음";
+                case ACTION -> "<#7fe07f>허용";
+                case KEEP_SOURCE -> "<#7fd8ff>허용(변신)";
+            };
+            s.sendMessage(Text.mm(" " + tag + " <white>" + r.name() + "</white> <dark_gray>— <gray>" + Text.escape(rule.why())));
+        }
     }
 
     static void help(CommandSender s) {
@@ -76,6 +123,7 @@ final class VillageCommands {
                 {"village survey [반경]", "시드 고르기: 지형을 가장 덜 바꾸는 자리·방향 5곳"},
                 {"village selftest", "지은 뒤 검사 (청사진·겹침·떠 있는 지형·나무·정문·NPC)"},
                 {"village info · dump · pregen <반경> · apply · cancel", "정보 · 블록 덤프 · 청크 미리 생성 · 다시 적용 · 작업 취소"},
+                {"wild [info] · wild selftest · wild reasons · wild border apply", "야생 막기: 경계·스폰 상태 · 점검 · 스폰 이유 표 · 마을 경계로 덮어쓰기"},
         };
         for (String[] l : lines) s.sendMessage(Text.mm(" <white>/labadmin " + Text.escape(l[0]) + "</white> <dark_gray>—</dark_gray> <gray>" + l[1]));
     }
@@ -188,6 +236,10 @@ final class VillageCommands {
                     + (ok ? "<#7fe07f>배치됨" : "<#ff9a4d>자리 다름/없음")));
         }
         s.sendMessage(Text.mm(" <gray>우클릭 칸 " + m.interact.size() + " · 연출 " + m.ambient.size()));
+        WildService ws = svc.wild();
+        if (ws != null && ws.active()) {
+            s.sendMessage(Text.mm(" <gray>야생 막기: <white>" + Text.escape(ws.summary()) + "</white> <dark_gray>(자세히: labadmin wild)"));
+        }
     }
 
     private static String fmt(VillageMeta.Pos p) {

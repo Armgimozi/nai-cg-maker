@@ -984,6 +984,34 @@ special_trial:
 - **보상**: `SpecialTrial.reward(층, 조건, 깨짐, 센 값, 인원, xp_bonus)` → 표 목록(`gimmick_floor_N` 언제나 + 지켰으면 `special_trial_fNN`) · 경험치 배율.
 - **자가 진단**: 층마다 `special_trials`(확정된 특별 시련) · `special_conditions_checked`(조건 4종 × 지킴→어김) · `special_loot_items`(특별 상자를 사람 없이 굴린 개수).
 
+### 6.10 0.3.5.1 야생 막기 (config.yml `wild` — 키가 없어도 코드 기본값, GDD §2.8)
+```yaml
+wild:                 # wild: false = 통째로 끔 (Settings.Wild.OFF)
+  border: true        # 마을 둘레 바닐라 월드 경계
+  border_margin: 30   # 0 ~ 1000 (밖이면 자르고 경고 한 줄)
+  spawns: all         # all | monsters | none (모르는 값 = all + 경고)
+```
+- **소유**: `village` 패키지. `VillageService` 가 `WildService`(리스너)를 만들고 켤 때·`village apply`·메타데이터 갱신·`/labadmin reload` 에 `refresh`.
+  주 월드(`Bukkit.getWorlds().get(0)`)에 `labyrinth-village.yml` 이 있을 때만 동작 — 미궁 월드·네더·엔드에는 아무것도 하지 않는다.
+- **경계** `WildBorder`(순수, `WildBorderTest`): `compute(meta, margin)` = (center ± radius) ∪ protect 상자들 → + margin → 정사각형(블록 x0..x1 = 땅 x0 ~ x1+1).
+  `decide(켬, 지금, 목표, 기록)` → APPLY · RESTORE · ADMIN(관리자 경계 — 그대로) · FORGET · NONE. 기록 = `plugins/Labyrinth/wild-border.yml`
+  (`world_uid` · `ours` · `previous`): 바닐라 기본 경계일 때만 우리 경계를 놓고, 끌 때는 지금 경계가 아직 `ours` 일 때만 `previous` 로.
+  `/labadmin wild border apply` = `force`(관리자 경계를 `previous` 로 기억하고 덮어씀). 경고 거리 6칸.
+- **플레이어**: 접속(8틱 뒤 — 마을 '처음 보는 월드' 텔레포트 5틱 뒤) · `PlayerChangedWorldEvent` · `PlayerRespawnEvent`(침대·정박기·엔드 출구) ·
+  `PlayerTeleportEvent`·`PlayerPortalEvent`(핸들러 목록이 따로) · 2초마다 주 월드 플레이어 `isInside` → 밖이면 광장(`core.Teleports`).
+  관리자 + 크리에이티브·관전은 건너뜀. 네더 차원문 출구는 바닐라가 이미 경계 안으로 당긴다 (시험 서버: 네더 x=-199.5 → 주 월드 x=-201.5).
+- **스폰** `WildSpawns`(순수, `WildSpawnsTest`): Paper 26.3 의 SpawnReason 47가지를 default 없는 switch 로 하나씩 WILD(막음) · ACTION(허용) ·
+  KEEP_SOURCE(허용 — 막으면 Paper 가 원래 몹을 지움) 로 정한다. 범위 = monsters: `Enemy` · all: `Mob`(갑옷 거치대·마네킹 NPC·디스플레이는 몹이 아님).
+  `PreCreatureSpawnEvent`(자연·생성기, 만들기 전) + `CreatureSpawnEvent`(나머지) — 이 플러그인 PDC(`labyrinth:*`)가 달린 엔티티는 건너뜀.
+  자연 변신(번개·익사·얼음·좀비화·감염)은 `EntityTransformEvent` 를 막아 원래 몹을 남긴다. 있던 바닐라 적대 몹 = 켤 때 한 번 + `EntitiesLoadEvent`
+  (다음 틱) 에 `removeExisting`(보스·이름·길들임·끈·persistent·플러그인·플레이어와 탄 몹·플레이어 쪽 이유는 둠). 게임 규칙은 건드리지 않는다.
+- **예전 키** `village.block_mob_spawns` (마을 둘레 radius+8 적대 NATURAL·PATROL·REINFORCEMENTS) 는 그대로 — `spawns: none` 일 때만 따로 의미가 있다.
+- **설정 읽기**: `Settings.wild` 는 `c.get("wild")` 로 읽는다 — `getConfigurationSection` 은 jar 기본값에만 있는 섹션을 서버 config 에 빈 `wild: {}` 로 만든다.
+- **명령·진단**: `/labadmin wild [info]` · `wild reasons`(이유 표) · `wild border apply` · `wild selftest` → 한 줄
+  `[야생 자가 진단] 결과: 예외 0 · inside=ok · border=ours|admin|off · spawns=188/188 ok · plugin_tag=ok · existing=ok · sweep=ok · dims=ok · transform=ok`
+  (이유 47 × 좀비·소·갑옷 거치대·마네킹을 광장에 실제 소환, 네더·엔드 NATURAL 허용, 광장 40칸 위 돼지 번개). `village selftest` 줄에 `border=ok`
+  (월드 스폰·광장·입구·NPC·보호 상자가 마을 경계 안), `village info` 에 한 줄 요약.
+
 ## 7. 성능·안정성 규칙
 
 - 블록 대량 배치는 틱당 상한(예: 4,000 블록)으로 나눠서. 층 생성 중엔 입장자에게 진행 표시.

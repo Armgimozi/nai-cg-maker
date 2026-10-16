@@ -142,6 +142,7 @@ public final class Services {
                     + " 는 0.3.5 부터 읽지 않습니다 (무기마다 공격 간격이 있음). none(맨손)만 씁니다.");
         }
         for (String w : settings.armorLooks().warnings()) Log.warn("[config] " + w);
+        for (String w : settings.wildWarnings()) Log.warn("[config] " + w);
         // 툴팁 겉모습 줄은 설정 숫자를 그대로 적는다 (순수 ItemTooltip 이 읽는 값)
         kr.labyrinth.items.ItemTooltip.looks(settings.armorLooks());
     }
