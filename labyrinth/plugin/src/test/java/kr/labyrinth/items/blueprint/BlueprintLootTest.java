@@ -224,6 +224,7 @@ class BlueprintLootTest {
         assertEquals(List.of(), off, "기대 회차가 창 밖");
         double med = median(all);
         System.out.println("[도안] " + table.toString().replace(System.lineSeparator(), " · ") + "가운데값 " + String.format("%.2f", med)
+                + "회 · 가장 긴 것 " + String.format("%.2f", all.stream().mapToDouble(Double::doubleValue).max().orElse(0))
                 + "회 · 희귀도별 " + medians(byRarity));
         assertTrue(med >= 4 && med <= 8, "가운데값 " + med);
     }

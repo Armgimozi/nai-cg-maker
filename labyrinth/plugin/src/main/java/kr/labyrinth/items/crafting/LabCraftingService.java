@@ -20,7 +20,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
 /**
- * 대장장이 제작 (GDD §11.11): 레벨 → 재료 → 골드(craft_discount 할인) 확인 → 재료·골드 소모 → 결과 스탯 굴림 지급.
+ * 대장장이 제작 (GDD §11.11): 도안(0.3.6 — 희귀 이상 장비, items/blueprint) → 재료 → 골드(craft_discount 할인) 확인 → 재료·골드 소모 → 결과 스탯 굴림 지급.
  * 성공 시 {@link CraftEvent} + {@link ItemObtainEvent}(source=craft).
  */
 public final class LabCraftingService implements CraftingService {

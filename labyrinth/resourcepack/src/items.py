@@ -204,6 +204,44 @@ def item_definition(iid, bow=False):
     }}
 
 
+BLUEPRINT_DEFAULT_TINT = 0x4F9BFF   # 희귀 (Rarity.RARE 색) — 색이 없는 도안
+
+
+def _blueprint(res, iid, look, seed, img0):
+    """도안 아이콘: layer0 = 양피지(그대로), layer1 = 봉인 회색 → tints[1] = custom_model_data 색 0 (희귀도)."""
+    from PIL import Image
+    seal_look = Look(['#2a2a2a', '#6a6a6a', '#b0b0b0', '#dcdcdc', '#ffffff'], 'blueprint_seal', 'common', seed)
+    ic = icons.Icon(seal_look)
+    icons.draw(ic, 'blueprint_seal', seed)
+    seal = icons.frame_from(ic.texels())
+    g = Image.new('RGBA', seal.size, (0, 0, 0, 0))
+    sp, gp = seal.load(), g.load()
+    for y in range(seal.size[1]):
+        for x in range(seal.size[0]):
+            r, gg, b, a = sp[x, y]
+            if a:
+                v = int(min(255, 70 + 0.75 * (0.3 * r + 0.59 * gg + 0.11 * b)))
+                gp[x, y] = (v, v, v, a)
+    seal_path = f'assets/{NS}/textures/item/{iid}_seal.png'
+    res.files[seal_path] = png_bytes(g)
+    res.files[f'assets/{NS}/models/item/{iid}.json'] = jdump(
+        {'parent': 'minecraft:item/generated', 'textures': {'layer0': f'{NS}:item/{iid}', 'layer1': f'{NS}:item/{iid}_seal'}})
+    res.files[f'assets/{NS}/items/{iid}.json'] = jdump({'model': {
+        'type': 'minecraft:model', 'model': f'{NS}:item/{iid}',
+        'tints': [{'type': 'minecraft:constant', 'value': -1},
+                  {'type': 'minecraft:custom_model_data', 'index': 0, 'default': BLUEPRINT_DEFAULT_TINT}]}})
+    prev = img0.copy()
+    tint = ((BLUEPRINT_DEFAULT_TINT >> 16) & 255, (BLUEPRINT_DEFAULT_TINT >> 8) & 255, BLUEPRINT_DEFAULT_TINT & 255)
+    pp = prev.load()
+    for y in range(g.size[1]):
+        for x in range(g.size[0]):
+            v, _, _, a = gp[x, y]
+            if a:
+                pp[x, y] = (tint[0] * v // 255, tint[1] * v // 255, tint[2] * v // 255, 255)
+    res.previews.append((iid, None, None, prev))
+    return res
+
+
 def build_item(iid: str, it: dict) -> ItemResult:
     res = ItemResult(iid)
     tex = it.get('texture') or {}
@@ -241,6 +279,9 @@ def build_item(iid: str, it: dict) -> ItemResult:
         else:
             img0 = icons.frame_from(texels)
             res.files[tex_path] = png_bytes(img0)
+        if style == 'blueprint':
+            # 0.3.6 도안: 둘째 층(봉인·끈)을 플러그인이 넣는 CUSTOM_MODEL_DATA 색(장비 희귀도)으로 칠한다
+            return _blueprint(res, iid, look, seed, img0)
         res.files[f'assets/{NS}/models/item/{iid}.json'] = jdump(
             {'parent': 'minecraft:item/generated', 'textures': {'layer0': f'{NS}:item/{iid}'}})
         res.files[f'assets/{NS}/items/{iid}.json'] = jdump(item_definition(iid))
