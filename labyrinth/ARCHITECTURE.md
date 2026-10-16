@@ -1052,8 +1052,26 @@ wild:                 # wild: false = 통째로 끔 (Settings.Wild.OFF)
 - items.yml `sources` 에 `mine`·`smelt` (툴팁 "광산"·"제련소"). 도감 "광산" 탭 = 광산 재료 + 도구.
 - config `mine:` (MineConfig — 광맥 공유 regen_players_cap · 기력 없음) · `sell.mine` · `starter_kit` (+ copper_pickaxe, 0.3.5.1 기본 목록은 새 기본으로 읽음) · `blueprints:`.
 - `mine.MineApi` (Services.mine(), 광산이 꺼지면 Noop): openMine (메인 메뉴·/미궁 광산) · openLift · openOffice · openInfo · applyPickaxe · isMineWorld.
-  0.3.6 은 마을 구역(MineLinks.district)이 없다 → 구역 없음 경로(얕은 갱도 승강장).
+  0.3.6 은 마을 구역(MineLinks.district)이 없다 → 구역 없음 경로(얕은 갱도 승강장). 0.3.6.1 부터 아래 §6.12.
 - glyphs.yml 메뉴 `smelter`·`mine_lift`·`mine_office`·`setup_village` 는 소켓 배경 (UiTheme.SOCKET_LAYOUT) — 버튼 칸 = `menus.<id>.slots`.
+
+### 6.12 0.3.6.1 광산 마을 (구역 — `kr.labyrinth.village.District*`, 계약 CONTRACT §2.13, VILLAGE.md §7)
+- 청사진: jar `village/districts/index.json` · `<id>.json` (마을 좌표 배치 — `tools/village/district_mine.py` → build_all) · 조각은 마을과 같은
+  `village/pieces/` · 지문 `<id>.fp` (`tools/village/district_fingerprint.py` 가 두 배포 world.zip 에서 굽고, `--terrain` 은 시험 픽스처).
+- 기록: 주 월드 폴더 `labyrinth-district-mine.yml` (`DistrictMeta` = VillageMeta 필드 + state building|built|removed · site · village_build_id ·
+  backup · region) + 되돌리기 백업 `labyrinth-district-mine.backup.gz` (`DistrictBackup`: 짓기 전 BEFORE → 다 지은 뒤 DIFF).
+  마을 build_id 는 바꾸지 않는다. NPC 적용 열쇠는 `village-applied.yml` `districts.mine`.
+- 실행: `DistrictService` (VillageService 안) — 시작 5초 뒤 `DistrictPolicy.onStart` (없음+auto+배포 월드 → 짓기 · building → 되돌린 뒤 처음부터 ·
+  built/removed → 없음 · 배포 월드 아님 → 저절로 짓지 않음) · 보호 상자·우클릭·연출·적대 스폰(R+8)을 `VillageService.rebuildIndex` 에 더함 ·
+  `MineLinks.setDistrict` (승강장 mine_exit · mine_lift 칸) · 막히면 `plugins/Labyrinth/village/district-mine-blocked.txt` + 관리자 하루 한 번.
+- 짓기: `DistrictJob` (VillageJob, 틱 분할, 틱당 config `mine.district.blocks_per_tick`) — 자리마다 `DistrictLayout.place` → 청크 스냅샷 →
+  `Planner` 마스크 모드 (`Planner.Mask` · `FrozenCells` 얼린 칸 = 마을 보호 상자·길·다듬은 칸) → `DistrictCheck` (지문·비자연·엔티티) →
+  백업 먼저 → `PlanWriter` (마을 짓기와 같은 칸 일) → DIFF 백업 → built. 되돌리기 = 지금 블록이 우리가 놓은 것인 칸만.
+- 경계·안전지대: `WildService` 경계 = `VillageService.borderTarget` (마을 + 구역 상자). `pvp/VillageZone` 은 구역 기록의 protect + safe_margin 도 읽는다.
+- config `mine.district: {auto_build, sites, blocks_per_tick, notify_admins}` (`MineConfig.District`, 키가 없으면 기본값 true · [east, south_east] · 3000 · true).
+- 명령 `/labadmin village district info|preview|build|remove|selftest mine [east|south_east|here [방향]]` · 자가 진단 줄 `[광산 마을 자가 진단]`.
+- 새 world.zip: `tools/build_world.sh --base <예전 world.zip> [자리]` (광산 월드·자동 짓기 끔, 켜 둔 동안 random_tick_speed 0 · spawn_mobs false,
+  끝나면 게임 규칙 파일은 예전 것으로). release.sh 는 world.zip 에 지은 광산 마을 + 백업이 없거나 labyrinth_mine 이 있으면 실패.
 
 ## 7. 성능·안정성 규칙
 

@@ -30,17 +30,22 @@ public final class HeightField {
      * @param ground 원래 땅높이, fixed 고정 높이 ({@link #NONE} = 자유)
      */
     public static Result compute(int nx, int nz, int cx, int cz, int r, int b, int[] ground, int[] fixed) {
+        double[] dist = new double[nx * nz];
+        for (int z = 0; z < nz; z++) for (int x = 0; x < nx; x++) dist[z * nx + x] = Math.hypot(x - cx, z - cz);
+        return compute(nx, nz, dist, r, b, ground, fixed);
+    }
+
+    /**
+     * 거리장을 직접 받는 판 (0.3.6 구역 마스크 모드: dist = 조각·길 고정 칸까지 거리, 얼린 칸은 고정 = 원래 높이).
+     * 마을의 원 모드는 dist = 중심까지 거리.
+     */
+    public static Result compute(int nx, int nz, double[] dist, int r, int b, int[] ground, int[] fixed) {
         int n = nx * nz;
-        double[] dist = new double[n];
         boolean[] region = new boolean[n];
         boolean[] isFixed = new boolean[n];
-        for (int z = 0; z < nz; z++) {
-            for (int x = 0; x < nx; x++) {
-                int i = z * nx + x;
-                dist[i] = Math.hypot(x - cx, z - cz);
-                region[i] = dist[i] <= r + b;
-                isFixed[i] = fixed[i] != NONE;
-            }
+        for (int i = 0; i < n; i++) {
+            region[i] = dist[i] <= r + b;
+            isFixed[i] = fixed[i] != NONE;
         }
         // 1~2. Δ 보간 (가려진 라플라스, SOR — 고정 칸·영역 밖은 디리클레 조건)
         double[] delta = new double[n];

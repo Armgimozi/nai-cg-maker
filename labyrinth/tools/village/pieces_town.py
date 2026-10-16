@@ -1168,11 +1168,12 @@ _SIGN_FACE = {"front": ("north", 1, 3, 0), "right": ("east", 2, 2, 1), "left": (
               "back": ("south", 1, 3, 2)}
 
 
-def make_signpost(pid="signpost", signs=None, name="길잡이 표지판"):
+def make_signpost(pid="signpost", signs=None, name="길잡이 표지판", base="cobblestone", foundation_mix=None):
     """길잡이 표지판 조각을 만든다. signs = {면: [줄, ...]} (면 = front/right/left/back, 빠진 면은 판 없음,
-    줄은 최대 4줄 MiniMessage). 판은 가문비 기둥 옆에 붙는다 — 그 면 쪽이 그 길 방향."""
-    p = Piece(pid, name, 3, 5, 3, floor_y=0, anchor=(1, 1))
-    p.set(1, 0, 1, B("cobblestone"))
+    줄은 최대 4줄 MiniMessage). 판은 가문비 기둥 옆에 붙는다 — 그 면 쪽이 그 길 방향.
+    base = 기둥 받침돌, foundation_mix = 옹벽·기초 (0.3.6 광산 마을은 조약돌을 쓰지 않는다)."""
+    p = Piece(pid, name, 3, 5, 3, floor_y=0, anchor=(1, 1), foundation_mix=foundation_mix)
+    p.set(1, 0, 1, B(base))
     p.set(1, 1, 1, log("spruce"))
     p.set(1, 2, 1, log("spruce"))
     p.set(1, 3, 1, log("spruce"))

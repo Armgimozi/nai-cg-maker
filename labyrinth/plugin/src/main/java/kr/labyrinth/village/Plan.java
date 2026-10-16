@@ -115,6 +115,17 @@ public final class Plan {
     public HeightField.Result field;
 
     public long padCost, cut, fill, caveFill;
+    /**
+     * 마스크 모드 (0.3.6 구역): 칸마다 고정 칸까지 거리 (full 계획), 얼린 칸, R·B. 원 모드(마을)면 frozen = null, maskR = −1.
+     * {@link #inRegion} 이 짓기·나무 치우기 범위를 정한다.
+     */
+    public double[] dist;
+    public boolean[] frozen;
+    public int maskR = -1, maskB;
+    /** 발자국 아래 기초·동굴 깊이 (마을 Planner.CAVE_DEPTH, 구역 options.foundation_depth). */
+    public int caveDepth = Planner.CAVE_DEPTH;
+    /** 구역 길이 마을 길에 닿는 칸 수 (이음 검사). */
+    public int junctions;
     /** 지형·자리가 안 맞아 뺀 장식 조각 ("id (이유)"). */
     public final List<String> skipped = new ArrayList<>();
     /** 뺀 장식 하나당 점수 벌점 — 장식이 다 들어가는 자리를 먼저 고르게. */
@@ -143,6 +154,18 @@ public final class Plan {
     }
 
     public int idx(int x, int z) { return (z - gz0) * gn + (x - gx0); }
+
+    /** 계획이 손댈 수 있는 칸인가: 원 모드 = 중심에서 R+B 안, 마스크 모드 = 고정 칸에서 R+B 안 (얼린 칸 포함). */
+    public boolean inRegion(int x, int z) {
+        if (!inGrid(x, z)) return false;
+        if (maskR < 0 || dist == null) return Math.hypot(x - cx, z - cz) <= inner + blend;
+        return dist[idx(x, z)] <= maskR + maskB;
+    }
+
+    /** 얼린 칸 (마스크 모드만 — 높이·지형을 바꾸지 않음). */
+    public boolean isFrozen(int x, int z) { return frozen != null && inGrid(x, z) && frozen[idx(x, z)]; }
+
+    public boolean masked() { return maskR >= 0; }
 
     /** 목표 높이 (full 계획). 격자 밖이면 NONE. */
     public int target(int x, int z) {

@@ -6,7 +6,7 @@
   python3 tools/check_pack_host.py PACK.zip   # 다른 팩으로
 
 pack-host/ 사본은 배포 가지(claude/bold-darwin-nwa5vk)에 올라가야 raw.githubusercontent.com 주소로 받을 수 있다.
-release.sh 가 이 검사를 부르게 하는 것은 release.sh 를 맡은 쪽(광산 마을 가지)에서 합칠 때 한다.
+release.sh 가 팩과 jar 를 만든 뒤 --write 로 부른다 (새 사본이면 만들고 계속, 같은 이름인데 내용이 다르면 멈춤).
 """
 import hashlib
 import shutil

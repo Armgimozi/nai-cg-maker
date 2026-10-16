@@ -140,7 +140,7 @@ final class WildService implements Listener {
 
     WildBorder.Square target() {
         if (!active()) return null;
-        if (target == null) target = WildBorder.compute(village.meta(), cfg().borderMargin());
+        if (target == null) target = village.borderTarget(cfg().borderMargin());
         return target;
     }
 
@@ -168,7 +168,7 @@ final class WildService implements Listener {
             return;
         }
         Settings.Wild w = cfg();
-        target = WildBorder.compute(village.meta(), w.borderMargin());
+        target = village.borderTarget(w.borderMargin());
         String border;
         try {
             border = applyBorder(w, false);
@@ -616,8 +616,10 @@ final class WildService implements Listener {
         };
         s.sendMessage(Text.mm(" <gray>월드 경계: <white>" + (w.border() ? "켬" : "끔") + "</white> · 지금 <white>"
                 + Text.escape(WildBorder.describe(cur)) + "</white> · 경고 " + cur.warning() + "칸 · " + state));
+        int boxes = village.protectAll().size();
+        int own = village.meta() == null ? boxes : village.meta().protect.size();
         s.sendMessage(Text.mm(" <gray>마을 경계: <white>" + Text.escape(WildBorder.describe(tgt)) + "</white> (마을 가장자리 + "
-                + w.borderMargin() + "칸, 보호 상자 " + village.meta().protect.size() + "개 포함)"));
+                + w.borderMargin() + "칸, 보호 상자 " + boxes + "개 포함" + (boxes > own ? " — 광산 마을 포함" : "") + ")"));
         s.sendMessage(Text.mm(" <gray>스폰 막기: <white>" + w.spawns().id() + "</white> " + switch (w.spawns()) {
             case ALL -> "(적대 몹 + 동물 — 있던 동물은 그대로)";
             case MONSTERS -> "(적대 몹만)";
@@ -633,7 +635,7 @@ final class WildService implements Listener {
             Text.error(s, "이 월드에는 마을이 없습니다.");
             return;
         }
-        target = WildBorder.compute(village.meta(), cfg().borderMargin());
+        target = village.borderTarget(cfg().borderMargin());
         String r = applyBorder(cfg(), true);
         Log.info("[야생] 관리자 명령 — 경계 " + r);
         Text.send(s, "<green>월드 경계를 마을 경계로 정했습니다</green> <gray>(" + Text.escape(WildBorder.describe(target)) + ")"

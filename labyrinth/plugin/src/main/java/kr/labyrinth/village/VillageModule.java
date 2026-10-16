@@ -15,6 +15,7 @@ public final class VillageModule implements Module {
     private final Services services;
     private final IntSupplier forgetOldEntrance;
     private VillageLibrary library;
+    private DistrictLibrary districts;
     private VillageService service;
 
     /** @param forgetOldEntrance 예전 석문 기록(entrance.yml)을 복원 없이 버리는 dungeon 쪽 함수 (버린 칸 수) */
@@ -56,6 +57,13 @@ public final class VillageModule implements Module {
             Log.info("[마을] 청사진 없음 — village build/survey 는 쓸 수 없습니다 (" + String.join(" · ", library.problems) + ")");
         }
         for (String p : library.problems) Log.warn("[마을 청사진] " + p);
+        districts = DistrictLibrary.load(services.plugin());
+        for (DistrictLibrary.Entry e : districts.districts) {
+            Log.info("[마을] 구역 청사진: " + e.layout().name + " · 조각 " + e.layout().pieces.size() + " · 길 " + e.layout().paths.size()
+                    + " · 자리 " + String.join("·", e.layout().siteIds()) + " · 지문 " + (e.fp() == null ? "없음" : e.fp().worlds.size() + "개")
+                    + (e.ok() ? "" : " · 문제 " + String.join(" · ", e.problems())));
+        }
+        for (String p : districts.problems) Log.warn("[구역 청사진] " + p);
     }
 
     public Services services() { return services; }
@@ -63,6 +71,27 @@ public final class VillageModule implements Module {
     public LabyrinthPlugin plugin() { return services.plugin(); }
 
     public VillageLibrary library() { return library; }
+
+    /** 구역 청사진 (0.3.6.1 광산 마을). */
+    public DistrictLibrary districts() { return districts; }
+
+    /** config mine.district (키가 없으면 기본값 — 0.3.6 이하 config.yml 에는 이 절이 없다). */
+    kr.labyrinth.mine.MineConfig.District districtConfig() {
+        try {
+            return kr.labyrinth.mine.MineConfig.fromRoot(plugin().getConfig()).district();
+        } catch (Throwable t) {
+            return kr.labyrinth.mine.MineConfig.DEFAULT_DISTRICT;
+        }
+    }
+
+    /** config mine.enabled (광산이 꺼진 서버는 구역을 저절로 짓지 않는다). */
+    boolean mineEnabled() {
+        try {
+            return kr.labyrinth.mine.MineConfig.fromRoot(plugin().getConfig()).enabled();
+        } catch (Throwable t) {
+            return true;
+        }
+    }
 
     public VillageService service() { return service; }
 

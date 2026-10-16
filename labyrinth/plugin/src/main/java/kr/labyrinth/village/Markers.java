@@ -16,6 +16,9 @@ public final class Markers {
         public int[] first() { return pos.isEmpty() ? null : pos.get(0); }
     }
 
+    /** 이름 붙은 서 있을 자리 마커 (vlib POINT_MARKERS) → 메타 points. 0.3.6 mine_exit = 광산에서 마을로 나오는 자리. */
+    public static final java.util.Set<String> POINT_TYPES = java.util.Set.of(kr.labyrinth.mine.MineNames.MARKER_EXIT);
+
     private Markers() {}
 
     /** 정방향 조각 좌표 [x, y, z] → 월드 [x, y, z]. */
@@ -62,7 +65,9 @@ public final class Markers {
                     for (int[] q : mk.pos()) m.interact.put(VillageMeta.key(q[0], q[1], q[2]), action);
                 }
                 case "ambient" -> m.ambient.add(new VillageMeta.Ambient(w[0], w[1], w[2], mk.marker().fx() == null ? "magic" : mk.marker().fx()));
-                default -> { }
+                default -> {
+                    if (POINT_TYPES.contains(mk.marker().type())) m.points.putIfAbsent(mk.marker().type(), pos(w, mk.face()));
+                }
             }
         }
         if (m.spawn == null && !plan.pieces.isEmpty()) {
@@ -71,7 +76,7 @@ public final class Markers {
             m.spawn = new VillageMeta.Pos(a[0] + 0.5, first.floor + 1, a[1] + 0.5, first.front().yaw());
         }
         for (Plan.Placed pl : plan.pieces) {
-            int y0 = Math.min(pl.minY(), pl.floor - Planner.CAVE_DEPTH - 1) - 1;
+            int y0 = Math.min(pl.minY(), pl.floor - plan.caveDepth - 1) - 1;
             m.protect.add(new VillageMeta.Box(pl.x0 - 1, y0, pl.z0 - 1, pl.x0 + pl.w2, pl.maxY() + 1, pl.z0 + pl.d2));
             m.pieces.add(new VillageMeta.PieceRec(pl.index(), pl.bp.id, pl.turns, pl.x0, pl.z0, pl.floor, pl.dx, pl.dz));
         }

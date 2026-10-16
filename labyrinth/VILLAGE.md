@@ -379,3 +379,28 @@ wild:                        # (0.3.5.1) 야생 막기 — ARCHITECTURE §6.10
 3. 테스트 서버: `village build` 후 `village selftest` 예외 0 · mismatched=0 · npcs=5/5, 미궁 `labadmin selftest` 예외 0.
 4. 배포 zip 을 빈 폴더에 풀어 켰을 때 마을이 있고 스폰이 광장, NPC 5명, 게이트 우클릭 → 입구 메뉴.
 5. 렌더: 평지 위 마을 전체 PNG + 실제 월드 덤프 PNG — 사람이 봐서 "화려한 판타지 마을"로 보이고 지형이 자연스러울 것.
+
+
+## 7. 광산 마을 (구역, 0.3.6.1 — CONTRACT §2.13 · `tools/data/036/district.json`)
+
+마을과 같은 조각 형식·계획기·짓는 칸 일(PlanWriter)을 쓰지만, 원이 아니라 **마스크**로 계획하고 **기존 월드에 jar 교체만으로** 지을 수 있다.
+
+- 배치: `tools/village/district_mine.py` (배포 월드 좌표로 적음) → build_all 이 마을 좌표로 바꿔 `districts/mine.json`. 조각 `pieces_mine.py`
+  (mine_headframe 13×24×13 · smelter 13×18×12 · miners_lodge 11×12×9 · ore_yard · lamp_post_copper · signpost_mine + 마을 장식 조각).
+  자리: east (큰길 끝 (-104,16) 에 붙음) → south_east (z +42, 큰길에서 남쪽으로 길) → 관리자 `here [방향]`. 승강장 slack 0, 제련소·숙소 1, 참나무 2.
+- 마스크: 조각·길 상자 + R(4) = 다듬는 칸, + B(6) = 섞는 띠. **얼린 칸**(`FrozenCells`) = 마을 보호 상자 · 마을 길 · 마을이 다듬은 칸 —
+  높이·지형을 바꾸지 않고 조각·정문 앞 칸이 올 수 없다. 구역 길은 마을 길·보호 상자 칸을 건너뛰고, 다듬은 칸 위는 겉 블록만 깐다.
+  이음(junction): 구역 길 칸과 이웃한 마을 길 칸 높이 차 ≤ 1.
+- 사람 손 검사: ① 계획기 — 영역 안 비자연 블록·지표 물 → 탈락. ② 지문(`mine.fp`, 배포 월드 두 판이 열 단위로 같아 지문 하나에 build_id 둘) —
+  열마다 땅 높이 · 땅속 10칸~위 30칸 정규화 해시 · 원목 자리. 높이 차 > 2 · 땅속 새 빈칸·물 · 새 원목 → 막음. 잔디↔흙·꽃·풀·눈 층·잎·베어 낸 나무는 허용.
+  ③ 엔티티 — 갑옷 거치대·액자·그림·수레·보트·끈 매듭·주민·이름표/길들인/묶인 동물 → 막음 (그냥 동물은 조각 밖으로 옮김).
+  배포 월드가 아니면(마을 build_id 의 지문이 없음) 저절로 짓지 않는다.
+- 순서 (`DistrictJob`): 자리 조사 → 통과한 첫 자리에서 나무 계산 → **바꿀 수 있는 모든 칸의 원래 블록을 백업 파일에 먼저** → 기록 `state: building`
+  (보호 켬 · 그 자리 사람은 광장으로) → 나무·지형·조각·길·표지판 → 바뀐 칸만 백업(DIFF) → `state: built` + NPC 2명 (광부 브론 · 제련공 이그나).
+  모두 막히면 블록 0칸 · `plugins/Labyrinth/village/district-mine-blocked.txt` · 관리자 하루 한 번 안내. building 으로 꺼졌으면 다음 시작 때
+  백업으로 되돌린 뒤 처음부터. `remove` = 지금 블록이 우리가 놓은 것인 칸만 되돌리고 `state: removed` (저절로 다시 짓지 않음).
+- 배포 월드 동쪽에 지으면: 바꾼 블록 약 4,300 · 백업 약 42,000칸 · 블록 쓰기 1~2초 (틱당 3,000). 마을 자가 진단 그대로 mismatched=0.
+- 자가 진단 `[광산 마을 자가 진단] 결과: 예외 0 · checked=N mismatched=0 · overlaps=0 · floating=0 · tree_remnants=0 · blocked_doors=0 ·
+  path_steps=0 · junction=ok · npcs=2/2 · interact=a/a` (`labadmin village selftest` 가 마을 줄 다음에 이어서, 또는 `village district selftest mine`).
+- 새 world.zip: `tools/build_world.sh --base dist/world.zip east` (예전 배포 월드를 풀어 마을은 그대로, 광산 마을만 지음 → 두 자가 진단 → zip).
+

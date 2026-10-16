@@ -20,7 +20,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
  * <ol>
  *   <li>Q2 가 부르는 {@link #setDistrict} (나가는 자리 + 승강기 칸들)</li>
  *   <li>{@code <주 월드>/labyrinth-district-mine.yml} (VillageMeta 모양): {@code state: built} 일 때
- *       {@code mine_exit} / {@code exit} / {@code markers.mine_exit} ([x, y, z, yaw] 또는 {x, y, z, yaw}) 와
+ *       {@code points.mine_exit} (0.3.6.1 구역 기록) / {@code mine_exit} / {@code exit} / {@code markers.mine_exit} ([x, y, z, yaw] 또는 {x, y, z, yaw}) 와
  *       {@code interact} 의 "x,y,z" → mine_lift 칸들</li>
  * </ol>
  * 둘 다 없으면 구역 없음으로 본다 (광산은 관리소로 그대로 된다).
@@ -80,7 +80,7 @@ public final class MineLinks {
         String state = y.getString("state", "built");
         if (state != null && !state.equalsIgnoreCase("built")) return null;
         Location exit = null;
-        for (String k : new String[] {"mine_exit", "exit", "markers.mine_exit", "spawn"}) {
+        for (String k : new String[] {"points.mine_exit", "mine_exit", "exit", "markers.mine_exit", "spawn"}) {
             exit = pos(w, y.get(k));
             if (exit != null) break;
         }

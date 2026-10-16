@@ -52,14 +52,36 @@ public final class Planner {
         };
     }
 
+    /**
+     * 마스크 모드 (0.3.6 구역, CONTRACT §2.13): 원 대신 조각·길 상자 + R = 다듬는 칸, + B 더 = 섞는 띠. 얼린 칸은 높이·지형을
+     * 바꾸지 않는다 (고정 = 원래 높이, 조각·여유 칸·정문 앞 칸이 올 수 없음, 구역 길은 겉 블록만 · 마을 길·보호 상자 칸은 건너뜀).
+     * maxFill = 깎기·메우기 한도 (마을 PAD_LIMIT), foundationDepth = 발자국 아래 동굴 검사·기초 깊이 (마을 CAVE_DEPTH),
+     * smallWater = 그 수까지의 물 칸은 막지 않고 메움 (0 = 물이 있으면 그 자리 탈락, 마을과 같음).
+     */
+    public record Mask(int r, int b, FrozenCells frozen, int maxFill, int foundationDepth, int smallWater) {
+        public Mask {
+            if (frozen == null) frozen = FrozenCells.empty();
+            r = Math.max(1, r);
+            b = Math.max(1, b);
+            maxFill = Math.max(1, maxFill);
+            foundationDepth = Math.max(1, Math.min(16, foundationDepth));
+            smallWater = Math.max(0, smallWater);
+        }
+    }
+
     private final Layout layout;
     private final Blueprint[] bps;
-    /** 안쪽 반경 R (layout radius, 조각이 그보다 멀면 그만큼 넓힘). */
+    /** 안쪽 반경 R (layout radius, 조각이 그보다 멀면 그만큼 넓힘). 마스크 모드 = 조각·길이 닿는 체비셰프 거리. */
     public final int inner;
     public final int blend;
+    /** null = 마을(원). */
+    public final Mask mask;
 
-    public Planner(Layout layout, Map<String, Blueprint> blueprints) {
+    public Planner(Layout layout, Map<String, Blueprint> blueprints) { this(layout, blueprints, null); }
+
+    public Planner(Layout layout, Map<String, Blueprint> blueprints, Mask mask) {
         this.layout = layout;
+        this.mask = mask;
         this.bps = new Blueprint[layout.pieces.size()];
         if (layout.paths.size() > 64) throw new IllegalArgumentException("길은 64개까지");
         double far = 0;
@@ -74,9 +96,30 @@ public final class Planner {
             far = Math.max(far, Math.hypot(ex, ez));
         }
         for (Layout.PathDef p : layout.paths) for (int[] q : p.points()) far = Math.max(far, Math.hypot(q[0], q[1]) + p.width());
-        this.inner = Math.max(layout.radius, (int) Math.ceil(far));
-        this.blend = layout.blend;
+        if (mask == null) {
+            this.inner = Math.max(layout.radius, (int) Math.ceil(far));
+            this.blend = layout.blend;
+        } else {
+            int cheb = 0;
+            for (Layout.Entry e : layout.pieces) {
+                Blueprint bp = bps[e.index()];
+                int[] vd = Rot.dims(bp.w, bp.d, e.front().turns());
+                int s = slackOf(e, bp);
+                int x0 = e.atX() - vd[0] / 2, z0 = e.atZ() - vd[1] / 2;
+                cheb = Math.max(cheb, Math.max(Math.max(Math.abs(x0 - s), Math.abs(x0 + vd[0] - 1 + s)),
+                        Math.max(Math.abs(z0 - s), Math.abs(z0 + vd[1] - 1 + s))) + 1);
+            }
+            for (Layout.PathDef p : layout.paths) for (int[] q : p.points()) {
+                cheb = Math.max(cheb, Math.max(Math.abs(q[0]), Math.abs(q[1])) + p.width() / 2 + 2);
+            }
+            this.inner = cheb + mask.r();
+            this.blend = mask.b();
+        }
     }
+
+    private int padLimit() { return mask == null ? PAD_LIMIT : mask.maxFill(); }
+
+    int caveDepth() { return mask == null ? CAVE_DEPTH : mask.foundationDepth(); }
 
     public Layout layout() { return layout; }
 
@@ -100,6 +143,9 @@ public final class Planner {
     public static final class Ctx {
         public final int cx, cz, reach, gn, gx0, gz0;
         final int[] ground, holes, flags;
+        /** 마스크 모드: 조각(slack 포함)·길 칸까지 거리 (원 모드 = null) · 얼린 칸. */
+        double[] dist0;
+        boolean[] frozen;
         Fail fail = Fail.NONE;
         String reason = "";
         int h0, logs;
@@ -127,12 +173,15 @@ public final class Planner {
 
         int g(int x, int z) { return ground[idx(x, z)]; }
 
+        boolean frozenAt(int x, int z) { return frozen != null && in(x, z) && frozen[idx(x, z)]; }
+
         public Fail fail() { return fail; }
 
         public String reason() { return reason; }
     }
 
     public Ctx context(Terrain t, int cx, int cz) {
+        if (mask != null) return maskContext(t, cx, cz);
         int reach = reach();
         Ctx c = new Ctx(cx, cz, reach);
         double bestWater = Double.MAX_VALUE, bestStruct = Double.MAX_VALUE;
@@ -175,6 +224,102 @@ public final class Planner {
         } else if (waterWhy != null) {
             c.fail = Fail.WATER;
             c.reason = "마을 영역(R+B=" + reach + ") 안에 " + waterWhy;
+        }
+        return c;
+    }
+
+
+    /** 조각 기준 자리(slack 만큼 넓힘)·길 칸 (중심 기준 상대 좌표 → 월드). 마스크 모드 영역의 씨앗. */
+    private List<int[]> coreCells(int cx, int cz) {
+        List<int[]> out = new ArrayList<>();
+        for (Layout.Entry e : layout.pieces) {
+            Blueprint bp = bps[e.index()];
+            int[] vd = Rot.dims(bp.w, bp.d, e.front().turns());
+            int s = slackOf(e, bp);
+            int x0 = e.atX() - vd[0] / 2, z0 = e.atZ() - vd[1] / 2;
+            for (int z = z0 - s; z < z0 + vd[1] + s; z++) for (int x = x0 - s; x < x0 + vd[0] + s; x++) out.add(new int[] {cx + x, cz + z});
+        }
+        for (Layout.PathDef p : layout.paths) {
+            List<int[]> pts = new ArrayList<>();
+            for (int[] q : p.points()) pts.add(new int[] {cx + q[0], cz + q[1]});
+            for (PathRaster.Cell c : PathRaster.cells(pts, p.width())) out.add(new int[] {c.x(), c.z()});
+        }
+        return out;
+    }
+
+    /** 격자 칸마다 seeds 까지 유클리드 거리 (cap 넘으면 cap + 1). */
+    static double[] distanceField(int gx0, int gz0, int gn, List<int[]> seeds, int cap) {
+        double[] d = new double[gn * gn];
+        java.util.Arrays.fill(d, cap + 1);
+        for (int[] s : seeds) {
+            int lx = s[0] - gx0, lz = s[1] - gz0;
+            for (int dz = -cap; dz <= cap; dz++) {
+                int z = lz + dz;
+                if (z < 0 || z >= gn) continue;
+                for (int dx = -cap; dx <= cap; dx++) {
+                    int x = lx + dx;
+                    if (x < 0 || x >= gn) continue;
+                    double v = Math.hypot(dx, dz);
+                    int i = z * gn + x;
+                    if (v < d[i]) d[i] = v;
+                }
+            }
+        }
+        return d;
+    }
+
+    /**
+     * 마스크 모드 지형 묶음: 영역 = 조각(slack 포함)·길 칸에서 R+B 안. 그 안에 지형이 없으면 RANGE, 얼리지 않은 칸의 물·비자연 블록은
+     * WATER·STRUCTURE (작은 물은 smallWater 칸까지 봐줌), 기준 높이 H0 = 조각 자리 땅 높이의 가운데 값.
+     */
+    private Ctx maskContext(Terrain t, int cx, int cz) {
+        int reach = reach();
+        Ctx c = new Ctx(cx, cz, reach);
+        int n = c.gn * c.gn;
+        List<int[]> core = coreCells(cx, cz);
+        c.dist0 = distanceField(c.gx0, c.gz0, c.gn, core, mask.r() + mask.b() + 1);
+        c.frozen = new boolean[n];
+        String waterWhy = null, structWhy = null;
+        int water = 0;
+        List<Integer> h0s = new ArrayList<>();
+        java.util.Set<Long> coreSet = new java.util.HashSet<>();
+        for (int[] q : core) coreSet.add(PathRaster.key(q[0], q[1]));
+        for (int lz = 0; lz < c.gn; lz++) {
+            for (int lx = 0; lx < c.gn; lx++) {
+                int x = c.gx0 + lx, z = c.gz0 + lz, i = lz * c.gn + lx;
+                c.frozen[i] = mask.frozen().frozen(x, z);
+                if (!t.has(x, z)) {
+                    if (c.dist0[i] <= mask.r() + mask.b() + 1) {
+                        c.fail = Fail.RANGE;
+                        c.reason = "지형 조사 범위 밖 (" + x + ", " + z + ")";
+                        return c;
+                    }
+                    continue;
+                }
+                c.ground[i] = t.ground(x, z);
+                c.holes[i] = t.holes(x, z);
+                c.flags[i] = t.flags(x, z);
+                if (c.dist0[i] > mask.r() + mask.b() || c.frozen[i]) continue;
+                if ((c.flags[i] & Terrain.WATER) != 0) {
+                    water++;
+                    if (waterWhy == null) waterWhy = (t.note(x, z) == null ? "물" : t.note(x, z)) + " (" + x + ", " + z + ")";
+                }
+                if ((c.flags[i] & Terrain.UNNATURAL) != 0 && structWhy == null) {
+                    structWhy = (t.note(x, z) == null ? "비자연 블록" : t.note(x, z)) + " (" + x + ", " + z + ")";
+                }
+                c.logs += t.logs(x, z);
+                if (coreSet.contains(PathRaster.key(x, z))) h0s.add(c.ground[i]);
+            }
+        }
+        c.biome = t.biome(cx, cz);
+        h0s.sort(null);
+        c.h0 = h0s.isEmpty() ? 64 : h0s.get(h0s.size() / 2);
+        if (structWhy != null) {
+            c.fail = Fail.STRUCTURE;
+            c.reason = "구역 영역(조각·길 + " + (mask.r() + mask.b()) + "칸) 안에 " + structWhy;
+        } else if (waterWhy != null && water > mask.smallWater()) {
+            c.fail = Fail.WATER;
+            c.reason = "구역 영역(조각·길 + " + (mask.r() + mask.b()) + "칸) 안에 " + waterWhy + (water > 1 ? " 외 " + (water - 1) + "칸" : "");
         }
         return c;
     }
@@ -247,6 +392,12 @@ public final class Planner {
         p.gz0 = c.gz0;
         p.gn = c.gn;
         p.ground = c.ground;
+        p.caveDepth = caveDepth();
+        if (mask != null) {
+            p.frozen = c.frozen;
+            p.maskR = mask.r();
+            p.maskB = mask.b();
+        }
         if (c.fail != Fail.NONE) {
             p.fail = c.fail;
             p.reason = c.reason;
@@ -363,6 +514,14 @@ public final class Planner {
         int[] pathH = new int[c.gn * c.gn];
         Arrays.fill(pathH, HeightField.NONE);
         for (Plan.PathPlan pp : p.paths) pathHeights(c, p, pp, raw.get(pp.def.index()), pathH);
+        if (mask != null) {
+            String why = frozenPaths(c, p, pathH);
+            if (why != null) {
+                p.fail = Fail.PATH;
+                p.reason = why;
+                return p;
+            }
+        }
         int steep = 0;
         for (Plan.PathPlan pp : p.paths) {
             for (int[] cell : pp.cells) {
@@ -385,6 +544,13 @@ public final class Planner {
         int[] fixedH = new int[n];
         byte[] src = new byte[n];
         Arrays.fill(fixedH, HeightField.NONE);
+        if (mask != null) {
+            for (int i = 0; i < n; i++) {
+                if (!c.frozen[i] || c.dist0[i] > mask.r() + mask.b() + 1) continue;
+                fixedH[i] = c.ground[i];
+                src[i] = 6;
+            }
+        }
         for (Layout.Terrace tc : layout.terraces) {
             int vx0 = tc.atX() - tc.w() / 2, vz0 = tc.atZ() - tc.d() / 2;
             for (int vz = vz0; vz < vz0 + tc.d(); vz++) {
@@ -412,6 +578,7 @@ public final class Planner {
                 src[i] = 3;
             }
         }
+        if (mask != null) for (int i = 0; i < n; i++) if (src[i] == 6) fixedH[i] = c.ground[i];
         for (Plan.Placed pl : p.pieces) {
             Shape s = shapes[pl.index()];
             if (pl.bp.door) {
@@ -430,15 +597,68 @@ public final class Planner {
         p.fixedH = fixedH;
         p.fixedSrc = src;
         long pad = 0;
-        for (int i = 0; i < n; i++) if (fixedH[i] != HeightField.NONE) pad += Math.abs(fixedH[i] - c.ground[i]);
+        for (int i = 0; i < n; i++) if (fixedH[i] != HeightField.NONE && src[i] != 6) pad += Math.abs(fixedH[i] - c.ground[i]);
         p.padCost = pad;
         // 6. 목표 높이장
         if (full) {
-            p.field = HeightField.compute(c.gn, c.gn, c.reach + 1, c.reach + 1, inner, blend, c.ground, fixedH);
+            if (mask == null) {
+                p.field = HeightField.compute(c.gn, c.gn, c.reach + 1, c.reach + 1, inner, blend, c.ground, fixedH);
+            } else {
+                // 거리 = 고정 칸(조각·여유·정문 앞·길, 얼린 칸 제외)까지 — R 안은 다듬고 R~R+B 는 원래 높이로 섞는다
+                List<int[]> seeds = new ArrayList<>();
+                for (int i = 0; i < n; i++) if (src[i] != 0 && src[i] != 6) seeds.add(new int[] {c.gx0 + i % c.gn, c.gz0 + i / c.gn});
+                p.dist = distanceField(c.gx0, c.gz0, c.gn, seeds, mask.r() + mask.b() + 1);
+                p.field = HeightField.compute(c.gn, c.gn, p.dist, mask.r(), mask.b(), c.ground, fixedH);
+            }
             p.cut = p.field.cut();
             p.fill = p.field.fill();
         }
         return p;
+    }
+
+
+    /**
+     * 마스크 모드 길: 얼린 칸 위 길 칸은 원래 높이 그대로 (TRIM = 겉 블록만 깖), 마을 길·보호 상자 칸(PATH·PROTECT)은 구역 길에서 뺀다.
+     * 마을 길 칸에 닿는 구역 길 칸은 그 마을 길 높이와 1 이하로 이어져야 한다 (이음, CONTRACT checks junction).
+     * @return 실패 이유 (null = 통과)
+     */
+    private String frozenPaths(Ctx c, Plan p, int[] pathH) {
+        FrozenCells fz = mask.frozen();
+        for (Plan.PathPlan pp : p.paths) {
+            List<int[]> keep = new ArrayList<>();
+            for (int[] cell : pp.cells) {
+                int x = cell[0], z = cell[1];
+                FrozenCells.Kind k = fz.kind(x, z);
+                int i = c.idx(x, z);
+                if (k == FrozenCells.Kind.PATH || k == FrozenCells.Kind.PROTECT) {
+                    pathH[i] = HeightField.NONE;
+                    continue;
+                }
+                if (k == FrozenCells.Kind.TRIM) {
+                    pathH[i] = c.ground[i];
+                    keep.add(new int[] {x, z, c.ground[i]});
+                    continue;
+                }
+                keep.add(cell);
+            }
+            pp.cells.clear();
+            pp.cells.addAll(keep);
+        }
+        p.junctions = 0;
+        for (Plan.PathPlan pp : p.paths) {
+            for (int[] cell : pp.cells) {
+                for (int[] d : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+                    Integer vy = fz.pathY(cell[0] + d[0], cell[1] + d[1]);
+                    if (vy == null) continue;
+                    p.junctions++;
+                    if (Math.abs(vy - cell[2]) > 1) {
+                        return "구역 길 #" + pp.def.index() + " 이 마을 길과 만나는 칸 (" + cell[0] + ", " + cell[1] + ") 높이 차 "
+                                + Math.abs(vy - cell[2]) + " (이음은 1 이하)";
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     /** 길 끝 e 가 붙은 조각 (발자국까지 체비셰프 거리 ≤ ATTACH 중 가장 가까운 것, 같으면 장식이 아닌 쪽), 없으면 −1. */
@@ -523,11 +743,25 @@ public final class Planner {
         int bx = pl.x0 + dx, bz = pl.z0 + dz;
         int minG = Integer.MAX_VALUE, maxG = Integer.MIN_VALUE;
         double limit = c.reach - 1;
+        int padLimit = padLimit(), caveDepth = caveDepth();
+        if (mask != null && pl.bp.door) {
+            int fx = bx + s.fx, fz = bz + s.fz;
+            if (!c.in(fx, fz) || c.frozenAt(fx, fz)) {
+                return new Option(dx, dz, 0, 0, 0, Fail.RANGE, pl.bp.id + ": 정문 앞 칸이 마을(얼린 칸) 위");
+            }
+        }
         for (int pass = 0; pass < 2; pass++) {
             int[] cells = pass == 0 ? s.occ : s.margin;
             for (int k = 0; k < cells.length; k += 2) {
                 int x = bx + cells[k], z = bz + cells[k + 1];
-                if (Math.hypot(x - c.cx, z - c.cz) > limit || !c.in(x, z)) {
+                if (mask != null) {
+                    if (!c.in(x, z) || c.dist0[c.idx(x, z)] > mask.r() + mask.b()) {
+                        return new Option(dx, dz, 0, 0, 0, Fail.RANGE, pl.bp.id + ": 구역 영역 밖으로 나감");
+                    }
+                    if (c.frozen[c.idx(x, z)]) {
+                        return new Option(dx, dz, 0, 0, 0, Fail.RANGE, pl.bp.id + ": 마을(얼린 칸)에 닿음 (" + x + ", " + z + ")");
+                    }
+                } else if (Math.hypot(x - c.cx, z - c.cz) > limit || !c.in(x, z)) {
                     return new Option(dx, dz, 0, 0, 0, Fail.RANGE, pl.bp.id + ": 마을 영역 밖으로 나감");
                 }
                 int g = c.g(x, z);
@@ -535,7 +769,7 @@ public final class Planner {
                 maxG = Math.max(maxG, g);
             }
         }
-        int lo = maxG - PAD_LIMIT, hi = minG + PAD_LIMIT;
+        int lo = maxG - padLimit, hi = minG + padLimit;
         int[] link = linkRange(p, placed, pl, dx, dz);
         int floor;
         if (pl.entry.dy() != null) {
@@ -564,8 +798,8 @@ public final class Planner {
         }
         if (floor < lo || floor > hi) {
             String why = lo > hi
-                    ? pl.bp.id + ": 자리 높이 차 " + (maxG - minG) + "칸 — 깎기/메우기가 " + PAD_LIMIT + "칸을 넘음"
-                    : pl.bp.id + ": 단 높이 " + floor + " 에서 깎기/메우기가 " + PAD_LIMIT + "칸을 넘음 (광장 H0 " + c.h0 + ")";
+                    ? pl.bp.id + ": 자리 높이 차 " + (maxG - minG) + "칸 — 깎기/메우기가 " + padLimit + "칸을 넘음"
+                    : pl.bp.id + ": 단 높이 " + floor + " 에서 깎기/메우기가 " + padLimit + "칸을 넘음 (기준 H0 " + c.h0 + ")";
             return new Option(dx, dz, floor, 0, 0, Fail.LIMIT, why);
         }
         if (floor < link[0] || floor > link[1]) {
@@ -583,7 +817,7 @@ public final class Planner {
                 if (pass == 1) continue;
                 int bits = c.holes[i];
                 if (bits == 0) continue;
-                int kmin = Math.max(1, g - floor + 1), kmax = Math.min(16, g - floor + CAVE_DEPTH);
+                int kmin = Math.max(1, g - floor + 1), kmax = Math.min(16, g - floor + caveDepth);
                 int vol = 0;
                 for (int kk = kmin; kk <= kmax; kk++) if ((bits & (1 << (kk - 1))) != 0) vol++;
                 if (vol > 0) {
@@ -595,7 +829,7 @@ public final class Planner {
         int occCols = s.occ.length / 2;
         if (caveCols * 3 > occCols) {
             return new Option(dx, dz, floor, cost, caveVol, Fail.CAVE,
-                    pl.bp.id + ": 발자국 아래 " + CAVE_DEPTH + "칸 안에 동굴 (" + caveCols + "/" + occCols + "열)");
+                    pl.bp.id + ": 발자국 아래 " + caveDepth + "칸 안에 동굴 (" + caveCols + "/" + occCols + "열)");
         }
         return new Option(dx, dz, floor, cost + 0.5 * caveVol, caveVol, Fail.NONE, "");
     }

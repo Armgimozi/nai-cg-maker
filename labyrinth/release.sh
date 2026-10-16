@@ -3,7 +3,8 @@
 #   1) 리소스팩 생성 (resourcepack/generate.py → resourcepack/dist/labyrinth-pack.zip)
 #   2) 플러그인 빌드 (plugin: ./gradlew build — 테스트 포함, 최신 팩을 jar 안에 넣음)
 #   3) 플러그인 ↔ 팩 에셋 id 대조 (tools/check_assets.py)
-#   4) dist/Labyrinth-Server-<버전>.zip 조립 (폴더 Labyrinth-Server/) — 마을이 미리 지어진 world 폴더(dist/world.zip) 포함
+#   4) 리소스팩 공개 사본 pack-host/labyrinth-pack-<sha8>.zip (tools/check_pack_host.py --write — 새로 만들어지면 배포 가지에 커밋)
+#   5) dist/Labyrinth-Server-<버전>.zip 조립 (폴더 Labyrinth-Server/) — 마을이 미리 지어진 world 폴더(dist/world.zip) 포함
 # 사용: ./release.sh            (환경 변수: PYTHON=파이썬 경로, SKIP_PACK=1 이면 팩 재생성 생략, VERSION=버전 덮어쓰기)
 # 배포 zip 에는 eula.txt · paper.jar 를 넣지 않는다 (EULA 는 서버 주인이 직접 동의, Paper 는 시작기가 공식 배포처에서 받음).
 # world 폴더는 tools/build_world.sh <시드> 로 만든 dist/world.zip 을 풀어 넣는다 (VILLAGE.md §4.6). 시드는 release/server.properties
@@ -21,14 +22,14 @@ VERSION=${VERSION:-$(sed -n 's/^version = "\(.*\)"/\1/p' plugin/build.gradle.kts
 echo "== 미궁 라비린스 배포판 $VERSION =="
 
 if [ "${SKIP_PACK:-0}" != "1" ]; then
-  echo "[1/4] 리소스팩 생성"
+  echo "[1/5] 리소스팩 생성"
   (cd resourcepack && "$PY" generate.py | tail -n 6)
 else
-  echo "[1/4] 리소스팩 생성 생략 (SKIP_PACK=1)"
+  echo "[1/5] 리소스팩 생성 생략 (SKIP_PACK=1)"
 fi
 [ -f resourcepack/dist/labyrinth-pack.zip ] || { echo "리소스팩이 없습니다: resourcepack/dist/labyrinth-pack.zip"; exit 1; }
 
-echo "[2/4] 플러그인 빌드 (테스트 포함)"
+echo "[2/5] 플러그인 빌드 (테스트 포함)"
 (cd plugin && ./gradlew build -q 2>&1 | grep -v -E '^Picked up JAVA_TOOL_OPTIONS|warning: \[deprecation\]|^\s+\^|^[0-9]+ warnings?$' || true)
 JAR=$(ls -t plugin/build/libs/labyrinth-*.jar 2>/dev/null | grep -v -E 'sources|javadoc' | head -n 1 || true)
 [ -n "$JAR" ] && [ -f "$JAR" ] || { echo "플러그인 jar 가 없습니다 (빌드 실패?)"; exit 1; }
@@ -43,13 +44,24 @@ if hashlib.sha1(inner).hexdigest() != hashlib.sha1(outer).hexdigest():
 print("  jar 에 최신 리소스팩 포함 확인 (sha1 %s)" % hashlib.sha1(outer).hexdigest())
 PYEOF
 
-echo "[3/4] 에셋 id 대조"
+echo "[3/5] 에셋 id 대조"
 # (출력을 파일로 받은 뒤 첫 줄만 — head 로 바로 자르면 경고가 많을 때 BrokenPipe 로 멈춘다)
 mkdir -p dist
 "$PY" tools/check_assets.py resourcepack/dist/labyrinth-pack.zip > dist/.check_assets.log 2>&1 || { cat dist/.check_assets.log; echo "에셋 id 불일치 — 위 목록을 고치세요"; exit 1; }
 head -n 1 dist/.check_assets.log
 
-echo "[4/4] 배포 폴더 조립"
+echo "[4/5] 리소스팩 공개 사본 (config pack.public_copy 가 가리키는 파일)"
+# 팩과 jar 가 확정된 뒤. 없으면 만든다 (새로 만들어져도 배포는 계속 — 배포 가지에 커밋해 올리면 공개 주소로 받을 수 있다).
+# 같은 이름인데 내용이 다른 사본만 멈춘다 (주소는 같은데 다른 팩이 나가게 되므로).
+"$PY" tools/check_pack_host.py --write resourcepack/dist/labyrinth-pack.zip || { echo "pack-host 사본이 지금 팩과 다릅니다 — 위 안내대로 고치세요"; exit 1; }
+PACK_SHA8=$("$PY" -c 'import hashlib,sys; print(hashlib.sha1(open(sys.argv[1],"rb").read()).hexdigest()[:8])' resourcepack/dist/labyrinth-pack.zip)
+PACK_HOST_COPY="$ROOT/pack-host/labyrinth-pack-$PACK_SHA8.zip"
+echo "  공개 사본: $PACK_HOST_COPY"
+if [ -n "$(git -C "$ROOT" status --porcelain -- "pack-host/labyrinth-pack-$PACK_SHA8.zip" 2>/dev/null)" ]; then
+  echo "  (새 사본 — git add pack-host/labyrinth-pack-$PACK_SHA8.zip 후 배포 가지에 커밋해 올리세요)"
+fi
+
+echo "[5/5] 배포 폴더 조립"
 WORLD_ZIP="$OUT_WORLD"
 [ -f "$WORLD_ZIP" ] || { echo "마을 월드가 없습니다: $WORLD_ZIP — 먼저 tools/build_world.sh <시드> <x> <z> <방향>"; exit 1; }
 SEED_PROP=$(sed -n 's/^level-seed=//p' release/server.properties | head -n 1)
@@ -103,11 +115,17 @@ with zipfile.ZipFile(src) as z:
 meta = os.path.join(dst, "world", "dimensions", "minecraft", "overworld", "labyrinth-village.yml")
 if not os.path.isfile(meta):
     sys.exit("world.zip 에 마을 메타데이터(labyrinth-village.yml)가 없습니다")
-print("  마을 월드 포함: 파일 %d개" % len(names))
+# 0.3.6.1: 광산 마을이 미리 지어져 있어야 한다 (tools/build_world.sh --base <예전 world.zip>)
+dm = os.path.join(dst, "world", "dimensions", "minecraft", "overworld", "labyrinth-district-mine.yml")
+if not os.path.isfile(dm) or "\nstate: built" not in open(dm, encoding="utf-8").read():
+    sys.exit("world.zip 에 지어진 광산 마을(labyrinth-district-mine.yml state: built)이 없습니다 — tools/build_world.sh --base <예전 world.zip>")
+if not os.path.isfile(os.path.join(dst, "world", "dimensions", "minecraft", "overworld", "labyrinth-district-mine.backup.gz")):
+    sys.exit("world.zip 에 광산 마을 되돌리기 백업(labyrinth-district-mine.backup.gz)이 없습니다")
+print("  마을 월드 포함 (광산 마을 지어짐): 파일 %d개" % len(names))
 PYEOF
 
 # 금지 파일 확인 (월드 잠금·UID·미궁 공허 월드는 서버가 새로 만든다)
-for bad in eula.txt paper.jar world/session.lock world/uid.dat world/dimensions/minecraft/labyrinth_world; do
+for bad in eula.txt paper.jar world/session.lock world/uid.dat world/dimensions/minecraft/labyrinth_world world/dimensions/minecraft/labyrinth_mine; do
   [ ! -e "$DIR/$bad" ] || { echo "배포 폴더에 $bad 가 있으면 안 됩니다"; exit 1; }
 done
 
@@ -136,4 +154,5 @@ PYEOF
 rm -rf "$STAGE"
 echo
 echo "완성: $ZIP ($(du -h "$ZIP" | cut -f1))"
+echo "팩 공개 사본: $PACK_HOST_COPY"
 unzip -l "$ZIP" | sed -n '4,$p' | grep -v "Labyrinth-Server/world/." | head -n 20

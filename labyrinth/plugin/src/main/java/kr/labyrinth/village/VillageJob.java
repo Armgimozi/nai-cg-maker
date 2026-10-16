@@ -32,6 +32,7 @@ abstract class VillageJob {
     private BukkitTask task;
     private long lastReport;
     private ExecutorService pool;
+    private Runnable then;
 
     /** 이번 틱 남은 예산. */
     static final class Budget {
@@ -91,6 +92,9 @@ abstract class VillageJob {
         return true;
     }
 
+    /** 틱당 블록 예산 (마을 = config village.blocks_per_tick, 구역 = mine.district.blocks_per_tick). */
+    protected int blocksPerTick() { return module.blocksPerTick(); }
+
     /** 시작 직후 한 번 (메인 스레드). */
     protected void begin() {}
 
@@ -114,7 +118,7 @@ abstract class VillageJob {
                 finish();
                 return;
             }
-            Budget b = new Budget(module.blocksPerTick(), System.nanoTime() + TICK_NANOS);
+            Budget b = new Budget(blocksPerTick(), System.nanoTime() + TICK_NANOS);
             if (tick(b)) {
                 finish();
                 return;
@@ -141,6 +145,15 @@ abstract class VillageJob {
         }
         if (pool != null) pool.shutdownNow();
         if (running == this) running = null;
+        Runnable next = then;
+        then = null;
+        if (next != null && !cancelled) Bukkit.getScheduler().runTask(module.plugin(), next);
+    }
+
+    /** 이 작업이 (취소 없이) 끝난 다음 틱에 할 일 (자가 진단 이어 하기 등). */
+    VillageJob then(Runnable next) {
+        this.then = next;
+        return this;
     }
 
     /** 이 작업 전용 비동기 스레드 (작업 끝나면 정리). */

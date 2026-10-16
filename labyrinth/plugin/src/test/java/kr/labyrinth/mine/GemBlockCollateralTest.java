@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 /**
  * 0.3.6.1 주인 결정 ("삐쭉 튀어나온 부분이 별로 … 광석 블록 텍스쳐를 네모난걸 새로"): 보석 6종은 팩이 그림을 바꾼 바닐라 블록 하나씩.
  * 팩이 그 블록의 모습을 바꾸므로 그 블록은 이 팩의 다른 세계 어디에도 없어야 한다 — content/*.yml (미궁 층 floors.yml·경기장 arenas.yml·보스 bosses.yml …)·
- * 마을과 구역 조각(resources/village/**)·
+ * 마을과 구역 조각(resources/village/** — 0.3.6.1 광산 마을 구역 mine.json 과 그 조각, 조각을 만드는 tools/village/pieces_mine.py 포함)·
  * 광산 청사진 장식·코드가 직접 놓는 블록(Material). 12개는 서로 다르고 빈 광맥 블록과도 다르다 (계약 §3.3).
  */
 class GemBlockCollateralTest {
@@ -70,9 +70,32 @@ class GemBlockCollateralTest {
         try (Stream<Path> s = Files.list(RES.resolve("content"))) {
             for (Path p : s.filter(x -> x.toString().endsWith(".yml") && !x.endsWith("mine.yml")).sorted().toList()) scanned += scan(p, word, hits);
         }
-        // 마을 조각 · 구역 조각 (0.3.6.1 광산 마을 조각도 여기 들어온다) · 배치
+        // 마을 조각 · 구역 조각 (0.3.6.1 광산 마을 조각도 여기 들어온다) · 배치. 글 파일만 — 구역 지문(mine.fp, gzip)은
+        // 원래 월드의 땅 모양 기록이라 놓는 블록이 아니다
+        Set<Path> seen = new HashSet<>();
         try (Stream<Path> s = Files.walk(RES.resolve("village"))) {
-            for (Path p : s.filter(Files::isRegularFile).toList()) scanned += scan(p, word, hits);
+            for (Path p : s.filter(Files::isRegularFile).filter(GemBlockCollateralTest::text).toList()) {
+                scanned += scan(p, word, hits);
+                seen.add(p.normalize());
+            }
+        }
+        // 광산 마을 (0.3.6.1 통합): 구역 정의와 그 구역이 놓는 조각이 모두 위에서 검사됐는가 (조각이 다른 곳으로 옮겨져 빠지지 않게)
+        Path district = RES.resolve("village/districts/mine.json").normalize();
+        assertTrue(seen.contains(district), "구역 정의 검사 안 됨: " + district);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> dj = new Gson().fromJson(Files.readString(district, StandardCharsets.UTF_8), Map.class);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> pieces = (List<Map<String, Object>>) dj.get("pieces");
+        assertTrue(pieces != null && pieces.size() >= 4, "광산 마을 조각 목록");
+        for (Map<String, Object> pc : pieces) {
+            Path piece = RES.resolve("village/pieces/" + pc.get("piece") + ".json").normalize();
+            assertTrue(seen.contains(piece), "광산 마을 조각 검사 안 됨: " + piece);
+        }
+        // 광산 마을 조각을 만드는 도구 (tools/village/pieces_mine.py · district_mine.py) — 조각 json 을 다시 만들 때 들어오지 않게
+        for (String tool : List.of("pieces_mine.py", "district_mine.py")) {
+            Path p = Path.of("../tools/village").resolve(tool);
+            assertTrue(Files.isRegularFile(p), "도구 없음: " + p);
+            scanned += scan(p, word, hits);
         }
         // 광산 청사진: 논리 글자(@vein/@gem)가 아닌 팔레트 칸
         for (int n = 1; n <= 6; n++) {
@@ -96,6 +119,12 @@ class GemBlockCollateralTest {
         }
         assertTrue(scanned > 50, "검사한 파일 " + scanned);
         assertTrue(hits.isEmpty(), "보석 블록이 다른 세계에도 쓰임 (팩이 그 모습까지 바꿈): " + hits);
+    }
+
+    /** 글 파일인가 (gzip·그 밖의 바이너리는 뺀다). */
+    static boolean text(Path p) {
+        String n = p.getFileName().toString();
+        return n.endsWith(".json") || n.endsWith(".yml") || n.endsWith(".yaml") || n.endsWith(".txt");
     }
 
     static int scan(Path p, Pattern word, List<String> hits) throws IOException {
