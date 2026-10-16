@@ -434,7 +434,12 @@ public final class ContentParser {
             }
             return new LootTable.Entry(LootTable.Kind.PICK, null, null, 0, List.of(), null, chance, amount, minDiff, picks);
         }
-        problem("loot.yml", table, "항목 종류를 알 수 없음(item/rarity_pool/one_of/table/pick): " + e);
+        if (e.has("blueprint")) {
+            // 0.3.6 Q6: {blueprint: 단계, chance} — 그 단계(이웃 2 : 7 : 1)의 도안 하나
+            return new LootTable.Entry(LootTable.Kind.BLUEPRINT, null, null, e.integer("blueprint", 1), List.of(), null,
+                    chance, amount, minDiff);
+        }
+        problem("loot.yml", table, "항목 종류를 알 수 없음(item/rarity_pool/one_of/table/pick/blueprint): " + e);
         return null;
     }
 

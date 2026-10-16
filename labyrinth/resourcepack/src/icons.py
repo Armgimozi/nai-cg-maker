@@ -515,6 +515,24 @@ def draw(icon: Icon, style: str, seed: int):
             for k in range(6):
                 icon.add(circle(7 + k * 3.3, 20 - k * 1.6 - (k % 2), 0.9), 'accent', 0.5, 1.0, flat=True)
             icon.add(union(capsule(22, 9, 26, 13, 0.9), capsule(26, 9, 22, 13, 0.9)), 'accent', 0.85, 1.0, flat=True)
+    elif s == 'blueprint':
+        # 0.3.6 도안: 말린 양피지 한 장 + 먹선 설계도(칼 · 원 · 치수선). 봉인·끈은 둘째 층(blueprint_seal, 희귀도 색으로 칠함)
+        icon.add(poly([(6, 5), (24, 3), (27, 6), (27, 27), (8, 29), (5, 26)]), 'main', 0.72, 1.6,
+                 pattern=lambda x, y, d: -0.12 if h2(int(x), int(y), 11) < 0.10 else 0)
+        icon.add(capsule(6, 5, 24, 3, 2.2), 'main', 0.55, 1.8)
+        icon.add(capsule(8, 28.5, 27, 26.5, 2.0), 'main', 0.5, 1.6)
+        ink = 'dark'
+        icon.add(capsule(10, 22, 20, 9, 0.7), ink, 0.35, 1.0, flat=True)          # 칼날 선
+        icon.add(capsule(8.5, 20.5, 12.5, 23.5, 0.6), ink, 0.35, 1.0, flat=True)  # 손잡이 가로대
+        icon.add(sub(circle(21, 12.5, 3.2), circle(21, 12.5, 2.4)), ink, 0.35, 1.0, flat=True)
+        icon.add(capsule(9, 11, 15, 10.2, 0.45), ink, 0.42, 1.0, flat=True)       # 치수선
+        icon.add(capsule(8, 25, 14, 24.3, 0.45), ink, 0.42, 1.0, flat=True)
+    elif s == 'blueprint_seal':
+        # 도안 둘째 층 — 밝은 회색으로만 그려 아이템 정의의 tint(희귀도 색)가 그대로 먹게
+        icon.add(capsule(16, 29, 18.5, 23.5, 1.4), 'main', 0.62, 1.2)
+        icon.add(capsule(22, 29.5, 20, 23.5, 1.4), 'main', 0.55, 1.2)
+        icon.add(circle(20, 23.5, 3.9), 'main', 0.7, 2.5, gloss=True)
+        icon.add(star(20, 23.5, 2.2, 1.0, 5), 'main', 0.95, 1.0, flat=True)
     elif s == 'key':
         icon.add(sub(circle(10, 10, 6.5), circle(10, 10, 3)), 'metal', 0.6, 2.0, gloss=True)
         icon.add(capsule(14, 14, 26, 26, 2.0), 'metal', 0.55, 1.5)
@@ -616,4 +634,4 @@ def draw(icon: Icon, style: str, seed: int):
 ICON_STYLES = {'fiber', 'shard', 'ingot', 'core', 'silk_bundle', 'scale', 'bone', 'essence', 'gem', 'cloth', 'plate',
                'potion_small', 'potion', 'potion_large', 'scroll', 'key', 'rune_stone', 'gear', 'pearl', 'fang', 'spore',
                'ink_vial', 'feather', 'heart', 'dust', 'crystal', 'leaf', 'coin_pouch', 'map', 'badge', 'shell', 'crown',
-               'blade', 'bell', 'page', 'coil', 'pendulum', 'tendril'} | MINE_STYLES
+               'blade', 'bell', 'page', 'coil', 'pendulum', 'tendril', 'blueprint'} | MINE_STYLES

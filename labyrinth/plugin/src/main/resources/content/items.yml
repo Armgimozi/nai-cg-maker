@@ -9144,6 +9144,17 @@ items:
     texture: {style: feather, palette: ["#2a0a04", "#a83a10", "#ff8a2a", "#ffd27a", "#fff4d6"]}
     lore: "가방에 있으면 쓰러지는 순간 저절로 타오르며 HP 30%로 일어나 2초간 무적이 된다. (5분에 한 번)"
 
+  # ═════════ 도안 (0.3.6 — 희귀 이상 장비 레시피는 도안을 배워야 만든다. 우클릭: 영구히 배움) ═════════
+  blueprint:
+    name: "도안"
+    type: blueprint
+    rarity: rare
+    level_req: 1
+    sources: [elite, boss, chest, hoard, special, shop]
+    model: {shape: icon}
+    texture: {style: blueprint, palette: ["#3a2a18", "#7a5a34", "#d8c49a", "#f1e6c8", "#fff8e8"]}
+    lore: "장비 하나를 만드는 법이 적힌 양피지. 우클릭하면 배운다."
+
 # 세트 효과: bonuses 의 키 = 착용 개수(이상), 값 = 고정 수치(굴림 없음). look = 생성기의 장비 레이어 실루엣
 # bonuses 생략 = 세트 효과 없음 (수련생 — 장비 레이어·도감 묶음용)
 sets:

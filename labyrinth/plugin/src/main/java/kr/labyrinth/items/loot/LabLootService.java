@@ -67,7 +67,11 @@ public final class LabLootService implements LootService, Listener {
     private Map<String, Integer> rollIds(String tableId, Player looter, InstanceContext ctx, double extraMult) {
         LootRoller roller = new LootRoller(services.content(), ThreadLocalRandom.current());
         Map<String, Integer> merged = new LinkedHashMap<>();
-        for (LootRoller.Drop d : roller.roll(tableId, request(looter, ctx, extraMult))) merged.merge(d.itemId(), d.amount(), Integer::sum);
+        for (LootRoller.Drop d : roller.roll(tableId, request(looter, ctx, extraMult))) {
+            // 도안 (0.3.6 Q6): 레시피마다 따로 — 열쇠 "blueprint@<레시피>"
+            String key = d.recipe() == null ? d.itemId() : BLUEPRINT_PREFIX + d.recipe();
+            merged.merge(key, d.amount(), Integer::sum);
+        }
         return merged;
     }
 
@@ -78,8 +82,21 @@ public final class LabLootService implements LootService, Listener {
         return out;
     }
 
+    /** {@link #rollIds} 열쇠 중 도안 (0.3.6 Q6): "blueprint@&lt;레시피 id&gt;". */
+    public static final String BLUEPRINT_PREFIX = kr.labyrinth.items.blueprint.BlueprintRules.ITEM_ID + "@";
+
+    /** rollIds 열쇠 → 아이템 정의 (도안이면 blueprint). */
+    private ItemDef defOfKey(String key) {
+        return services.content().item(key.startsWith(BLUEPRINT_PREFIX) ? kr.labyrinth.items.blueprint.BlueprintRules.ITEM_ID : key);
+    }
+
     private List<ItemStack> stacks(String id, int amount) {
         List<ItemStack> out = new ArrayList<>();
+        if (id.startsWith(BLUEPRINT_PREFIX)) {
+            ItemStack bp = kr.labyrinth.items.blueprint.BlueprintItems.create(services, id.substring(BLUEPRINT_PREFIX.length()), amount);
+            if (bp != null) out.add(bp);
+            return out;
+        }
         ItemDef def = services.content().item(id);
         if (def == null) return out;
         int max = GearItemService.maxStack(def);
@@ -122,7 +139,7 @@ public final class LabLootService implements LootService, Listener {
         int count = 0;
         Rarity best = null;
         for (Map.Entry<String, Integer> e : ids.entrySet()) {
-            ItemDef def = services.content().item(e.getKey());
+            ItemDef def = defOfKey(e.getKey());
             if (def == null) continue;
             for (ItemStack s : stacks(e.getKey(), e.getValue())) {
                 count += s.getAmount();

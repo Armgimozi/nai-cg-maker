@@ -41,6 +41,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import gen_035_looks as LOOKS_GEN  # noqa: E402
 import gen_035_unique as UNIQUE_GEN  # noqa: E402
 import gen_036_materials as MAT036  # noqa: E402
+import gen_036_blueprints as BP036  # noqa: E402  (0.3.6 Q6 도안 — generate() 마지막 단계, MAT036 뒤)
 
 ITEM_RE = re.compile(r"^  ([a-z0-9_]+):\s*(#.*)?$")
 GEAR_TYPES = ("weapon", "armor", "accessory")
@@ -815,7 +816,17 @@ def generate():
                 lines[k] = f"    sources: {flow(src)}"
                 changes.append(f"(036) {iid}: sources {src}")
     out["items"] = "\n".join(lines)
+    # ── 0.3.6 (Q6): 도안 — 반드시 MAT036 뒤 (몹 드롭 표를 다시 쓰면 도안 항목이 지워지므로 마지막에) ──
+    out = BP036.apply(out, mobs, bosses, floors, changes)
     return spec, texts, out, changes, sources036, out035, info
+
+
+def bp_verify(texts):
+    """0.3.6 Q6 도안 항목이 MAT036 뒤에도 남았는지 (generate() 마지막 단계)."""
+    mobs = yaml.safe_load((CONTENT / "mobs.yml").read_text(encoding="utf-8"))["mobs"]
+    bosses = yaml.safe_load((CONTENT / "bosses.yml").read_text(encoding="utf-8"))["bosses"]
+    floors = sorted(int(k) for k in yaml.safe_load((CONTENT / "floors.yml").read_text(encoding="utf-8"))["floors"])
+    return [f"(도안) {b}" for b in BP036.verify(texts, mobs, bosses, floors)]
 
 
 def main():
@@ -826,7 +837,7 @@ def main():
     spec, texts, out, changes, sources, out035, info = generate()
     if a.check:
         diff = [n for n in out if out[n] != texts[n]]
-        bad = verify(out035, spec) + [f"(036) {b}" for b in MAT036.verify(texts, info)]
+        bad = verify(out035, spec) + [f"(036) {b}" for b in MAT036.verify(texts, info)] + bp_verify(texts)
         for b in bad:
             print("✘", b)
         if diff:
@@ -847,7 +858,7 @@ def main():
     if any(out2[n] != texts2[n] for n in out2):
         print("✘ 다시 돌리면 또 바뀜 (멱등 아님):", [n for n in out2 if out2[n] != texts2[n]])
         sys.exit(1)
-    bad = verify(out035_2, spec2) + [f"(036) {b}" for b in MAT036.verify(texts2, info2)]
+    bad = verify(out035_2, spec2) + [f"(036) {b}" for b in MAT036.verify(texts2, info2)] + bp_verify(texts2)
     for b in bad:
         print("✘", b)
     if bad:

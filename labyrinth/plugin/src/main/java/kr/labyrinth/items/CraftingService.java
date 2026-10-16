@@ -9,7 +9,8 @@ import org.bukkit.entity.Player;
  */
 public interface CraftingService {
 
-    enum Result { OK, UNKNOWN_RECIPE, LEVEL_TOO_LOW, MISSING_MATERIALS, NOT_ENOUGH_GOLD, INVENTORY_FULL, NOT_AVAILABLE }
+    /** NEEDS_BLUEPRINT (0.3.6 Q6) = 희귀 이상 장비인데 그 도안을 아직 배우지 않음. */
+    enum Result { OK, UNKNOWN_RECIPE, LEVEL_TOO_LOW, MISSING_MATERIALS, NOT_ENOUGH_GOLD, INVENTORY_FULL, NOT_AVAILABLE, NEEDS_BLUEPRINT }
 
     /** 재료·골드·레벨 확인 (소모하지 않음). */
     Result check(Player player, RecipeDef recipe);

@@ -14,6 +14,7 @@
 #      {one_of: [id, ...], chance}                    목록 중 1개 (공용 무기 · 정예 방어구 · 보스 고유 장비 묶음, guaranteed 에 두면 확정 1개)
 #      {table: 하위테이블, chance}                    다른 테이블을 통째로 굴림 (순환 금지)
 #      {pick: [{table: 하위테이블, weight: n}, …], chance}   chance 를 넘으면 무게대로 하위 테이블 하나를 골라 굴림 (0.3.5, 순환 금지)
+#      {blueprint: 단계, chance}                     도안 하나 (0.3.6) — 희귀 이상 장비 레시피 중 결과 단계가 그 단계 ±1 인 것, 이웃 단계 몫 2 : 7 : 1 (tools/gen_036_blueprints.py)
 #    공통 선택 키: min_difficulty: easy|normal|hard|nightmare  (그 난이도 이상에서만 판정)
 #  최종 확률 = min(1, chance × 난이도 drop × 파티 보상 배율 × (1 + LUK × luck_per_point) × rarity_weight)
 #  (guaranteed 와 chance 1.0 항목은 배율 무관. rarity_weight 는 장비 항목에만 — 단계 풀 band_tNN_* 안의 one_of(chance 1.0)에는 안 붙는다)
@@ -373,6 +374,7 @@ tables:
       - {pick: [{table: band_t01_elite, weight: 7}, {table: band_t02_elite, weight: 1}], chance: 1.0}
       - {table: potions_t1, chance: 0.25}
       - {table: enhance_elite_t1, chance: 1.0}
+      - {blueprint: 1, chance: 0.2}
   floor01_boss:   # 1층 보스 — 이끼 파수꾼 그로브
     rolls: 1
     guaranteed:
@@ -388,6 +390,7 @@ tables:
       - {table: enhance_boss_t1, chance: 1.0}
       - {item: copper_ore, chance: 0.4872, amount: 2}
       - {item: iron_ore, chance: 0.2256}
+      - {blueprint: 1, chance: 0.4}
   treasure_floor_1:   # 1층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [20, 40]
@@ -402,6 +405,7 @@ tables:
       - {table: mix_f01_drop, chance: 0.0532}
       - {item: copper_ore, chance: 0.3248}
       - {item: iron_ore, chance: 0.0752}
+      - {blueprint: 1, chance: 0.06}
   gimmick_floor_1:   # 1층 기믹방 보상 상자 (성공 시, 개인 루팅)
     rolls: 2
     gold: [32, 64]
@@ -437,6 +441,7 @@ tables:
       - {table: scrolls, chance: 0.1}
       - {table: tonics, chance: 0.06}
       - {table: mix_f01_drop, chance: 0.0456}
+      - {blueprint: 1, chance: 0.04}
   maze_chest_gold_f1:   # 1층 미로 금 상자 — 그 층 정예 재료 20%
     rolls: 2
     gold: [70, 150]
@@ -450,6 +455,7 @@ tables:
       - {table: tonics, chance: 0.15}
       - {table: rare_consumables, chance: 0.05}
       - {table: mix_f01_drop, chance: 0.076}
+      - {blueprint: 1, chance: 0.08}
 
   # ═════════ 지하 2층 — 거미줄 갱도 ═════════
   tunnel_skitter:   # 2층 일반 — 갱도 거미
@@ -517,6 +523,7 @@ tables:
       - {pick: [{table: band_t01_elite, weight: 2}, {table: band_t02_elite, weight: 7}, {table: band_t03_elite, weight: 1}], chance: 1.0}
       - {table: potions_t1, chance: 0.25}
       - {table: enhance_elite_t1, chance: 1.0}
+      - {blueprint: 2, chance: 0.2}
   floor02_boss:   # 2층 보스 — 실잣는 여왕 베셀라
     rolls: 1
     guaranteed:
@@ -534,6 +541,7 @@ tables:
       - {table: enhance_boss_t1, chance: 1.0}
       - {item: iron_ore, chance: 0.7109}
       - {item: copper_ore, chance: 0.3392}
+      - {blueprint: 2, chance: 0.4}
   treasure_floor_2:   # 2층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [35, 65]
@@ -547,6 +555,7 @@ tables:
       - {table: mix_f02_drop, chance: 0.0844}
       - {item: iron_ore, chance: 0.2073}
       - {item: copper_ore, chance: 0.0989}
+      - {blueprint: 2, chance: 0.06}
   gimmick_floor_2:   # 2층 기믹방 보상 상자 (성공 시, 개인 루팅)
     rolls: 2
     gold: [56, 104]
@@ -581,6 +590,7 @@ tables:
       - {table: scrolls, chance: 0.1}
       - {table: tonics, chance: 0.06}
       - {table: mix_f02_drop, chance: 0.0723}
+      - {blueprint: 2, chance: 0.04}
   maze_chest_gold_f2:   # 2층 미로 금 상자 — 그 층 정예 재료 20%
     rolls: 2
     gold: [70, 150]
@@ -594,6 +604,7 @@ tables:
       - {table: tonics, chance: 0.15}
       - {table: rare_consumables, chance: 0.05}
       - {table: mix_f02_drop, chance: 0.1206}
+      - {blueprint: 2, chance: 0.08}
 
   # ═════════ 지하 3층 — 균사 동굴 ═════════
   capcap:   # 3층 일반 — 갓꼬마
@@ -660,6 +671,7 @@ tables:
       - {table: potions_t1, chance: 0.25}
       - {table: tonics, chance: 0.08}
       - {table: enhance_elite_t1, chance: 1.0}
+      - {blueprint: 3, chance: 0.2}
   floor03_boss:   # 3층 보스 — 균사의 왕 무르노크
     rolls: 1
     guaranteed:
@@ -678,6 +690,7 @@ tables:
       - {table: enhance_boss_t1, chance: 1.0}
       - {table: enhance_preview_t2, chance: 1.0}
       - {item: iron_ore, chance: 0.525, amount: 2}
+      - {blueprint: 3, chance: 0.4}
   treasure_floor_3:   # 3층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [55, 100]
@@ -692,6 +705,7 @@ tables:
       - {table: tonics, chance: 0.08}
       - {table: mix_f03_drop, chance: 0.0586}
       - {item: iron_ore, chance: 0.35}
+      - {blueprint: 3, chance: 0.06}
   gimmick_floor_3:   # 3층 기믹방 보상 상자 (성공 시, 개인 루팅)
     rolls: 2
     gold: [88, 160]
@@ -727,6 +741,7 @@ tables:
       - {table: scrolls, chance: 0.1}
       - {table: tonics, chance: 0.06}
       - {table: mix_f03_drop, chance: 0.0503}
+      - {blueprint: 3, chance: 0.04}
   maze_chest_gold_f3:   # 3층 미로 금 상자 — 그 층 정예 재료 20%
     rolls: 2
     gold: [70, 150]
@@ -740,6 +755,7 @@ tables:
       - {table: tonics, chance: 0.15}
       - {table: rare_consumables, chance: 0.05}
       - {table: mix_f03_drop, chance: 0.0838}
+      - {blueprint: 3, chance: 0.08}
 
   # ═════════ 지하 4층 — 잠긴 수로 ═════════
   sluice_drowner:   # 4층 일반 — 수문 익사자
@@ -803,6 +819,7 @@ tables:
       - {table: potions_t1, chance: 0.25}
       - {table: tonics, chance: 0.08}
       - {table: enhance_elite_t2, chance: 1.0}
+      - {blueprint: 4, chance: 0.2}
   floor04_boss:   # 4층 보스 — 수문의 망령 오스릭
     rolls: 1
     guaranteed:
@@ -820,6 +837,7 @@ tables:
       - {table: tonics, chance: 0.2}
       - {table: enhance_boss_t2, chance: 1.0}
       - {item: silver_ore, chance: 0.6, amount: 2}
+      - {blueprint: 4, chance: 0.4}
   treasure_floor_4:   # 4층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [85, 150]
@@ -834,6 +852,7 @@ tables:
       - {table: tonics, chance: 0.08}
       - {table: mix_f04_drop, chance: 0.0524}
       - {item: silver_ore, chance: 0.35}
+      - {blueprint: 4, chance: 0.06}
   gimmick_floor_4:   # 4층 기믹방 보상 상자 (성공 시, 개인 루팅)
     rolls: 2
     gold: [136, 240]
@@ -870,6 +889,7 @@ tables:
       - {table: scrolls, chance: 0.1}
       - {table: tonics, chance: 0.06}
       - {table: mix_f04_drop, chance: 0.0449}
+      - {blueprint: 4, chance: 0.04}
   maze_chest_gold_f4:   # 4층 미로 금 상자 — 그 층 정예 재료 20%
     rolls: 2
     gold: [220, 420]
@@ -883,6 +903,7 @@ tables:
       - {table: tonics, chance: 0.15}
       - {table: rare_consumables, chance: 0.05}
       - {table: mix_f04_drop, chance: 0.0748}
+      - {blueprint: 4, chance: 0.08}
 
   # ═════════ 지하 5층 — 용광로 심장부 ═════════
   slag_golem:   # 5층 일반 — 슬래그 골렘
@@ -953,6 +974,7 @@ tables:
       - {table: potions_t2, chance: 0.25}
       - {table: tonics, chance: 0.08}
       - {table: enhance_elite_t2, chance: 1.0}
+      - {blueprint: 5, chance: 0.2}
   floor05_boss:   # 5층 보스 — 모루왕 카르둠
     rolls: 1
     guaranteed:
@@ -970,6 +992,7 @@ tables:
       - {table: enhance_boss_t2, chance: 1.0}
       - {item: gold_ore, chance: 0.6588}
       - {item: silver_ore, chance: 0.5412}
+      - {blueprint: 5, chance: 0.4}
   treasure_floor_5:   # 5층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [130, 230]
@@ -984,6 +1007,7 @@ tables:
       - {table: mix_f05_drop, chance: 0.0334}
       - {item: gold_ore, chance: 0.1922}
       - {item: silver_ore, chance: 0.1578}
+      - {blueprint: 5, chance: 0.06}
   gimmick_floor_5:   # 5층 기믹방 보상 상자 (성공 시, 개인 루팅)
     rolls: 2
     gold: [208, 368]
@@ -1020,6 +1044,7 @@ tables:
       - {table: scrolls, chance: 0.1}
       - {table: tonics, chance: 0.06}
       - {table: mix_f05_drop, chance: 0.0286}
+      - {blueprint: 5, chance: 0.04}
   maze_chest_gold_f5:   # 5층 미로 금 상자 — 그 층 정예 재료 20%
     rolls: 2
     gold: [220, 420]
@@ -1033,6 +1058,7 @@ tables:
       - {table: tonics, chance: 0.15}
       - {table: rare_consumables, chance: 0.05}
       - {table: mix_f05_drop, chance: 0.0477}
+      - {blueprint: 5, chance: 0.08}
 
   # ═════════ 지하 6층 — 서리 묘역 ═════════
   rime_mourner:   # 6층 일반 — 서리 곡하는 자
@@ -1094,6 +1120,7 @@ tables:
       - {table: potions_t2, chance: 0.25}
       - {table: tonics, chance: 0.08}
       - {table: enhance_elite_t2, chance: 1.0}
+      - {blueprint: 6, chance: 0.2}
   floor06_boss:   # 6층 보스 — 얼음관의 여제 시린
     rolls: 1
     guaranteed:
@@ -1111,6 +1138,7 @@ tables:
       - {table: rare_consumables, chance: 0.08}
       - {table: enhance_boss_t2, chance: 1.0}
       - {item: gold_ore, chance: 0.55, amount: 3}
+      - {blueprint: 6, chance: 0.4}
   treasure_floor_6:   # 6층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [190, 330]
@@ -1125,6 +1153,7 @@ tables:
       - {table: rare_consumables, chance: 0.03}
       - {table: mix_f06_drop, chance: 0.0208}
       - {item: gold_ore, chance: 0.4812}
+      - {blueprint: 6, chance: 0.06}
   gimmick_floor_6:   # 6층 기믹방 보상 상자 (성공 시, 개인 루팅)
     rolls: 2
     gold: [304, 528]
@@ -1160,6 +1189,7 @@ tables:
       - {table: scrolls, chance: 0.1}
       - {table: tonics, chance: 0.06}
       - {table: mix_f06_drop, chance: 0.0179}
+      - {blueprint: 6, chance: 0.04}
   maze_chest_gold_f6:   # 6층 미로 금 상자 — 그 층 정예 재료 20%
     rolls: 2
     gold: [220, 420]
@@ -1173,6 +1203,7 @@ tables:
       - {table: tonics, chance: 0.15}
       - {table: rare_consumables, chance: 0.05}
       - {table: mix_f06_drop, chance: 0.0298}
+      - {blueprint: 6, chance: 0.08}
 
   # ═════════ 지하 7층 — 수정 공명동 ═════════
   shard_skitterer:   # 7층 일반 — 파편 갑충
@@ -1240,6 +1271,7 @@ tables:
       - {table: potions_t2, chance: 0.25}
       - {table: tonics, chance: 0.08}
       - {table: enhance_elite_t2, chance: 1.0}
+      - {blueprint: 7, chance: 0.2}
   floor07_boss:   # 7층 보스 — 양극의 수정체 다이아드
     rolls: 1
     guaranteed:
@@ -1258,6 +1290,7 @@ tables:
       - {table: enhance_preview_t3, chance: 1.0}
       - {item: gold_ore, chance: 0.5715, amount: 2}
       - {item: mithril_ore, chance: 0.657}
+      - {blueprint: 7, chance: 0.4}
   treasure_floor_7:   # 7층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [270, 470]
@@ -1273,6 +1306,7 @@ tables:
       - {table: mix_f07_drop, chance: 0.0292}
       - {item: gold_ore, chance: 0.1905}
       - {item: mithril_ore, chance: 0.1095}
+      - {blueprint: 7, chance: 0.06}
   gimmick_floor_7:   # 7층 기믹방 보상 상자 (성공 시, 개인 루팅)
     rolls: 2
     gold: [432, 752]
@@ -1309,6 +1343,7 @@ tables:
       - {table: scrolls, chance: 0.1}
       - {table: tonics, chance: 0.06}
       - {table: mix_f07_drop, chance: 0.0251}
+      - {blueprint: 7, chance: 0.04}
   maze_chest_gold_f7:   # 7층 미로 금 상자 — 그 층 정예 재료 20%
     rolls: 2
     gold: [550, 950]
@@ -1322,6 +1357,7 @@ tables:
       - {table: tonics, chance: 0.15}
       - {table: rare_consumables, chance: 0.05}
       - {table: mix_f07_drop, chance: 0.0418}
+      - {blueprint: 7, chance: 0.08}
 
   # ═════════ 지하 8층 — 망각의 서고 ═════════
   ink_wraith:   # 8층 일반 — 먹물 원령
@@ -1387,6 +1423,7 @@ tables:
       - {table: potions_t3, chance: 0.25}
       - {table: tonics, chance: 0.08}
       - {table: enhance_elite_t3, chance: 1.0}
+      - {blueprint: 8, chance: 0.2}
   floor08_boss:   # 8층 보스 — 잉크 사서 오르벨
     rolls: 1
     guaranteed:
@@ -1405,6 +1442,7 @@ tables:
       - {table: rare_consumables, chance: 0.08}
       - {table: enhance_boss_t3, chance: 1.0}
       - {item: mithril_ore, chance: 0.55, amount: 3}
+      - {blueprint: 8, chance: 0.4}
   treasure_floor_8:   # 8층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [380, 650]
@@ -1420,6 +1458,7 @@ tables:
       - {table: rare_consumables, chance: 0.03}
       - {table: mix_f08_drop, chance: 0.0234}
       - {item: mithril_ore, chance: 0.275}
+      - {blueprint: 8, chance: 0.06}
   gimmick_floor_8:   # 8층 기믹방 보상 상자 (성공 시, 개인 루팅)
     rolls: 2
     gold: [608, 1040]
@@ -1456,6 +1495,7 @@ tables:
       - {table: scrolls, chance: 0.1}
       - {table: tonics, chance: 0.06}
       - {table: mix_f08_drop, chance: 0.0201}
+      - {blueprint: 8, chance: 0.04}
   maze_chest_gold_f8:   # 8층 미로 금 상자 — 그 층 정예 재료 20%
     rolls: 2
     gold: [550, 950]
@@ -1469,6 +1509,7 @@ tables:
       - {table: tonics, chance: 0.15}
       - {table: rare_consumables, chance: 0.05}
       - {table: mix_f08_drop, chance: 0.0334}
+      - {blueprint: 8, chance: 0.08}
 
   # ═════════ 지하 9층 — 태엽 성소 ═════════
   gear_hound:   # 9층 일반 — 톱니 사냥개
@@ -1541,6 +1582,7 @@ tables:
       - {table: potions_t3, chance: 0.25}
       - {table: tonics, chance: 0.08}
       - {table: enhance_elite_t3, chance: 1.0}
+      - {blueprint: 9, chance: 0.2}
   floor09_boss:   # 9층 보스 — 시계탑의 간수 테오라
     rolls: 1
     guaranteed:
@@ -1559,6 +1601,7 @@ tables:
       - {table: enhance_boss_t3, chance: 1.0}
       - {item: orichalcum_ore, chance: 0.518, amount: 3}
       - {item: mithril_ore, chance: 0.546}
+      - {blueprint: 9, chance: 0.4}
   treasure_floor_9:   # 9층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [520, 900]
@@ -1574,6 +1617,7 @@ tables:
       - {table: mix_f09_drop, chance: 0.0234}
       - {item: orichalcum_ore, chance: 0.259}
       - {item: mithril_ore, chance: 0.091}
+      - {blueprint: 9, chance: 0.06}
   gimmick_floor_9:   # 9층 기믹방 보상 상자 (성공 시, 개인 루팅)
     rolls: 2
     gold: [832, 1440]
@@ -1609,6 +1653,7 @@ tables:
       - {table: scrolls, chance: 0.1}
       - {table: tonics, chance: 0.06}
       - {table: mix_f09_drop, chance: 0.0201}
+      - {blueprint: 9, chance: 0.04}
   maze_chest_gold_f9:   # 9층 미로 금 상자 — 그 층 정예 재료 20%
     rolls: 2
     gold: [550, 950]
@@ -1622,6 +1667,7 @@ tables:
       - {table: tonics, chance: 0.15}
       - {table: rare_consumables, chance: 0.05}
       - {table: mix_f09_drop, chance: 0.0334}
+      - {blueprint: 9, chance: 0.08}
 
   # ═════════ 지하 10층 — 심연의 핵 ═════════
   void_stalker:   # 10층 일반 — 심연 추적자
@@ -1688,6 +1734,7 @@ tables:
       - {table: potions_t3, chance: 0.25}
       - {table: tonics, chance: 0.08}
       - {table: enhance_elite_t3, chance: 1.0}
+      - {blueprint: 10, chance: 0.2}
   floor10_boss:   # 10층 보스 — 심연의 심장 넬카르
     rolls: 1
     guaranteed:
@@ -1705,6 +1752,7 @@ tables:
       - {table: rare_consumables, chance: 0.08}
       - {table: enhance_boss_t3, chance: 1.0}
       - {item: orichalcum_ore, chance: 0.65, amount: 3}
+      - {blueprint: 10, chance: 0.4}
   treasure_floor_10:   # 10층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [700, 1200]
@@ -1720,6 +1768,7 @@ tables:
       - {table: rare_consumables, chance: 0.03}
       - {table: mix_f10_drop, chance: 0.0197}
       - {item: orichalcum_ore, chance: 0.325}
+      - {blueprint: 10, chance: 0.06}
   gimmick_floor_10:   # 10층 기믹방 보상 상자 (성공 시, 개인 루팅)
     rolls: 2
     gold: [1120, 1920]
@@ -1755,6 +1804,7 @@ tables:
       - {table: scrolls, chance: 0.1}
       - {table: tonics, chance: 0.06}
       - {table: mix_f10_drop, chance: 0.0169}
+      - {blueprint: 10, chance: 0.04}
   maze_chest_gold_f10:   # 10층 미로 금 상자 — 그 층 정예 재료 20%
     rolls: 2
     gold: [900, 1500]
@@ -1768,6 +1818,7 @@ tables:
       - {table: tonics, chance: 0.15}
       - {table: rare_consumables, chance: 0.05}
       - {table: mix_f10_drop, chance: 0.0281}
+      - {blueprint: 10, chance: 0.08}
 
   # ═════════ 단계 풀 (0.3.5 — band_tNN_<종류>, 이웃 층 셋이 PICK 으로 나눠 굴린다. 표시에 층 없음) ═════════
   band_t01_drop:
@@ -2069,42 +2120,52 @@ tables:
     rolls: 1
     entries:
       - {pick: [{table: band_t01_hoard, weight: 7}, {table: band_t02_hoard, weight: 1}], chance: 0.094}
+      - {blueprint: 1, chance: 0.1}
   hoard_f02:
     rolls: 1
     entries:
       - {pick: [{table: band_t01_hoard, weight: 2}, {table: band_t02_hoard, weight: 7}, {table: band_t03_hoard, weight: 1}], chance: 0.138}
+      - {blueprint: 2, chance: 0.1}
   hoard_f03:
     rolls: 1
     entries:
       - {pick: [{table: band_t02_hoard, weight: 2}, {table: band_t03_hoard, weight: 7}, {table: band_t04_hoard, weight: 1}], chance: 0.134}
+      - {blueprint: 3, chance: 0.1}
   hoard_f04:
     rolls: 1
     entries:
       - {pick: [{table: band_t03_hoard, weight: 2}, {table: band_t04_hoard, weight: 7}, {table: band_t05_hoard, weight: 1}], chance: 0.202}
+      - {blueprint: 4, chance: 0.1}
   hoard_f05:
     rolls: 1
     entries:
       - {pick: [{table: band_t04_hoard, weight: 2}, {table: band_t05_hoard, weight: 7}, {table: band_t06_hoard, weight: 1}], chance: 0.213}
+      - {blueprint: 5, chance: 0.1}
   hoard_f06:
     rolls: 1
     entries:
       - {pick: [{table: band_t05_hoard, weight: 2}, {table: band_t06_hoard, weight: 7}, {table: band_t07_hoard, weight: 1}], chance: 0.123}
+      - {blueprint: 6, chance: 0.1}
   hoard_f07:
     rolls: 1
     entries:
       - {pick: [{table: band_t06_hoard, weight: 2}, {table: band_t07_hoard, weight: 7}, {table: band_t08_hoard, weight: 1}], chance: 0.111}
+      - {blueprint: 7, chance: 0.1}
   hoard_f08:
     rolls: 1
     entries:
       - {pick: [{table: band_t07_hoard, weight: 2}, {table: band_t08_hoard, weight: 7}, {table: band_t09_hoard, weight: 1}], chance: 0.115}
+      - {blueprint: 8, chance: 0.1}
   hoard_f09:
     rolls: 1
     entries:
       - {pick: [{table: band_t08_hoard, weight: 2}, {table: band_t09_hoard, weight: 7}, {table: band_t10_hoard, weight: 1}], chance: 0.112}
+      - {blueprint: 9, chance: 0.1}
   hoard_f10:
     rolls: 1
     entries:
       - {pick: [{table: band_t09_hoard, weight: 2}, {table: band_t10_hoard, weight: 7}], chance: 0.17}
+      - {blueprint: 10, chance: 0.1}
 
   # ═════════ 특별 시련 상자 (special_trial_fNN — 특별 시련 성공 + 조건 지킴 때 시련방 상자에 더해 하나 더, 개인 루팅) ═════════
   special_trial_f01:
@@ -2113,67 +2174,77 @@ tables:
     guaranteed:
       - {pick: [{table: band_t01_special, weight: 8}, {table: band_t02_special, weight: 1}]}
       - {item: dim_essence, amount: 1}
-    entries: []
+    entries:
+      - {blueprint: 1, chance: 0.4}
   special_trial_f02:
     rolls: 1
     gold: [40, 80]
     guaranteed:
       - {pick: [{table: band_t01_special, weight: 1}, {table: band_t02_special, weight: 8}, {table: band_t03_special, weight: 1}]}
       - {item: dim_essence, amount: 1}
-    entries: []
+    entries:
+      - {blueprint: 2, chance: 0.4}
   special_trial_f03:
     rolls: 1
     gold: [62, 124]
     guaranteed:
       - {pick: [{table: band_t02_special, weight: 1}, {table: band_t03_special, weight: 8}, {table: band_t04_special, weight: 1}]}
       - {item: dim_essence, amount: 1}
-    entries: []
+    entries:
+      - {blueprint: 3, chance: 0.4}
   special_trial_f04:
     rolls: 1
     gold: [94, 188]
     guaranteed:
       - {pick: [{table: band_t03_special, weight: 1}, {table: band_t04_special, weight: 8}, {table: band_t05_special, weight: 1}]}
       - {item: labyrinth_essence, amount: 1}
-    entries: []
+    entries:
+      - {blueprint: 4, chance: 0.4}
   special_trial_f05:
     rolls: 1
     gold: [144, 288]
     guaranteed:
       - {pick: [{table: band_t04_special, weight: 1}, {table: band_t05_special, weight: 8}, {table: band_t06_special, weight: 1}]}
       - {item: labyrinth_essence, amount: 1}
-    entries: []
+    entries:
+      - {blueprint: 5, chance: 0.4}
   special_trial_f06:
     rolls: 1
     gold: [208, 416]
     guaranteed:
       - {pick: [{table: band_t05_special, weight: 1}, {table: band_t06_special, weight: 8}, {table: band_t07_special, weight: 1}]}
       - {item: labyrinth_essence, amount: 1}
-    entries: []
+    entries:
+      - {blueprint: 6, chance: 0.4}
   special_trial_f07:
     rolls: 1
     gold: [296, 592]
     guaranteed:
       - {pick: [{table: band_t06_special, weight: 1}, {table: band_t07_special, weight: 8}, {table: band_t08_special, weight: 1}]}
       - {item: radiant_essence, amount: 1}
-    entries: []
+    entries:
+      - {blueprint: 7, chance: 0.4}
   special_trial_f08:
     rolls: 1
     gold: [412, 824]
     guaranteed:
       - {pick: [{table: band_t07_special, weight: 1}, {table: band_t08_special, weight: 8}, {table: band_t09_special, weight: 1}]}
       - {item: radiant_essence, amount: 1}
-    entries: []
+    entries:
+      - {blueprint: 8, chance: 0.4}
   special_trial_f09:
     rolls: 1
     gold: [568, 1136]
     guaranteed:
       - {pick: [{table: band_t08_special, weight: 1}, {table: band_t09_special, weight: 8}, {table: band_t10_special, weight: 1}]}
       - {item: primordial_essence, amount: 1}
-    entries: []
+    entries:
+      - {blueprint: 9, chance: 0.4}
   special_trial_f10:
     rolls: 1
     gold: [760, 1520]
     guaranteed:
       - {pick: [{table: band_t09_special, weight: 1}, {table: band_t10_special, weight: 8}]}
       - {item: primordial_essence, amount: 1}
-    entries: []
+    entries:
+      - {blueprint: 10, chance: 0.4}

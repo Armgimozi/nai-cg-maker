@@ -21,7 +21,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
 /**
- * 대장장이 제작 (GDD §11.11): 레벨 → 재료 → 골드(craft_discount 할인) 확인 → 재료·골드 소모 → 결과 스탯 굴림 지급.
+ * 대장장이 제작 (GDD §11.11): 도안(0.3.6 — 희귀 이상 장비, items/blueprint) → 재료 → 골드(craft_discount 할인) 확인 → 재료·골드 소모 → 결과 스탯 굴림 지급.
  * 성공 시 {@link CraftEvent} + {@link ItemObtainEvent}(source=craft).
  * <p>
  * 0.3.6 제련소 (recipes.yml {@code station: smelter}): 대장간 창에는 {@code station: blacksmith} 레시피만, 제련소 창({@link SmelterMenu})에는
@@ -62,6 +62,7 @@ public final class LabCraftingService implements CraftingService {
     @Override
     public Result check(Player player, RecipeDef recipe) {
         if (recipe == null || services.content().item(recipe.result()) == null) return Result.UNKNOWN_RECIPE;
+        if (!blueprintOk(player, recipe)) return Result.NEEDS_BLUEPRINT; // 0.3.6 Q6: 희귀 이상 장비는 도안을 배워야
         PlayerData d = services.data().get(player);
         return RecipeCheck.check(recipe, d.level(), d.gold(), discount(player, recipe), id -> count(player, id));
     }
@@ -69,6 +70,12 @@ public final class LabCraftingService implements CraftingService {
     /** recipes.yml station (비면 대장간). */
     public static String station(RecipeDef r) {
         return r == null || r.station() == null || r.station().isBlank() ? MineNames.STATION_BLACKSMITH : r.station();
+    }
+
+    /** 도안 기준으로 만들 수 있는가 (도안 서비스가 없으면 막지 않는다). */
+    public boolean blueprintOk(Player player, RecipeDef recipe) {
+        kr.labyrinth.items.blueprint.BlueprintService bp = kr.labyrinth.items.blueprint.BlueprintService.get();
+        return bp == null || bp.canCraft(player, recipe);
     }
 
     @Override
@@ -229,6 +236,7 @@ public final class LabCraftingService implements CraftingService {
             case NOT_ENOUGH_GOLD -> "골드가 부족합니다.";
             case INVENTORY_FULL -> "인벤토리에 빈 칸이 없습니다.";
             case NOT_AVAILABLE -> "지금은 제작할 수 없습니다.";
+            case NEEDS_BLUEPRINT -> "도안을 먼저 배워야 합니다.";
         };
     }
 }
