@@ -52,9 +52,16 @@ public final class LabCraftingService implements CraftingService {
     @Override
     public Result check(Player player, RecipeDef recipe) {
         if (recipe == null || services.content().item(recipe.result()) == null) return Result.UNKNOWN_RECIPE;
+        if (!blueprintOk(player, recipe)) return Result.NEEDS_BLUEPRINT; // 0.3.6 Q6: 희귀 이상 장비는 도안을 배워야
         PlayerData d = services.data().get(player);
         return RecipeCheck.check(recipe, d.level(), d.gold(), services.stats().get(player).craftDiscount(),
                 id -> count(player, id));
+    }
+
+    /** 도안 기준으로 만들 수 있는가 (도안 서비스가 없으면 막지 않는다). */
+    public boolean blueprintOk(Player player, RecipeDef recipe) {
+        kr.labyrinth.items.blueprint.BlueprintService bp = kr.labyrinth.items.blueprint.BlueprintService.get();
+        return bp == null || bp.canCraft(player, recipe);
     }
 
     @Override
@@ -138,6 +145,7 @@ public final class LabCraftingService implements CraftingService {
             case NOT_ENOUGH_GOLD -> "골드가 부족합니다.";
             case INVENTORY_FULL -> "인벤토리에 빈 칸이 없습니다.";
             case NOT_AVAILABLE -> "지금은 제작할 수 없습니다.";
+            case NEEDS_BLUEPRINT -> "도안을 먼저 배워야 합니다.";
         };
     }
 }

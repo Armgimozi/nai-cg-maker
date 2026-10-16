@@ -356,3 +356,14 @@ hints:
   mode: progressive
   thresholds: [2, 4, 6]
 
+
+# 도안 (0.3.6) — 희귀 이상 장비(무기·방어구·방패·장신구)는 도안을 배워야 대장간에서 만든다. 일반·고급은 처음부터 안다.
+#   도안은 우클릭하면 영구히 배운다 (한 장 소모, 이미 알면 그대로 — 남에게 주거나 판다).
+#   나오는 곳: 정예 · 보스 · 금·철 상자 · 보물방 · 금고·미믹 · 특별 시련 (loot.yml {blueprint: …}) + 상인 핀(희귀만, 날마다 바뀜)
+#   enabled: false 면 도안 없이 모두 만든다 (예전처럼)
+#   상인 값 = shop_price_base + shop_price_step × 장비 단계 (팔 때는 재료 희귀 값 — 사서 되팔기로 골드가 늘지 않는다)
+blueprints:
+  enabled: true
+  shop_count: 3
+  shop_price_base: 200
+  shop_price_step: 40

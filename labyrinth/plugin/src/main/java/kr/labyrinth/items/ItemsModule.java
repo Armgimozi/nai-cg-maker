@@ -46,6 +46,7 @@ public final class ItemsModule implements Module {
     private EnhanceService enhance;
     private UniqueEffectService unique;
     private ArmorLookService looks;
+    private kr.labyrinth.items.blueprint.BlueprintService blueprints;
 
     public ItemsModule(Services services) { this.services = services; }
 
@@ -84,6 +85,9 @@ public final class ItemsModule implements Module {
         auras = new AuraService(services);
         auras.start();
         enhance.start();
+        // 0.3.6 Q6 도안 (희귀 이상 장비 레시피 잠금 · 우클릭 배우기 · 첫 접속 보호 · 상인 도안 · /labadmin blueprint)
+        blueprints = new kr.labyrinth.items.blueprint.BlueprintService(services);
+        blueprints.start();
 
         registerCommands();
         checkContent();
@@ -93,6 +97,7 @@ public final class ItemsModule implements Module {
     @Override
     public void disable() {
         if (auras != null) auras.stop();
+        if (blueprints != null) blueprints.stop();
         if (enhance != null) enhance.stop();
         if (weaponSkills != null) weaponSkills.stop();
         if (unique != null) {
@@ -111,6 +116,7 @@ public final class ItemsModule implements Module {
     public void reload() {
         if (auras != null) auras.reload();
         if (enhance != null) enhance.reload();
+        if (blueprints != null) blueprints.reload();
         checkContent();
         for (Player p : Bukkit.getOnlinePlayers()) services.stats().markDirty(p);
     }

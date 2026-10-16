@@ -37,6 +37,7 @@ DATA = ROOT / "tools/data/035"
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import gen_035_looks as LOOKS_GEN  # noqa: E402
 import gen_035_unique as UNIQUE_GEN  # noqa: E402
+import gen_036_blueprints as BP036  # noqa: E402  (0.3.6 Q6 도안 — generate() 마지막 단계)
 
 ITEM_RE = re.compile(r"^  ([a-z0-9_]+):\s*(#.*)?$")
 GEAR_TYPES = ("weapon", "armor", "accessory")
@@ -792,6 +793,7 @@ def generate():
     LOOKS_GEN.apply(lines, spec.looks, look_changes)
     out["items"] = "\n".join(lines)
     changes += [f"(겉모습) {c}" for c in look_changes]
+    out = BP036.apply(out, mobs, bosses, floors, changes)   # 0.3.6 Q6 도안: blueprint 아이템 + 루팅 항목 (마지막 단계)
     return spec, texts, out, changes, sources
 
 

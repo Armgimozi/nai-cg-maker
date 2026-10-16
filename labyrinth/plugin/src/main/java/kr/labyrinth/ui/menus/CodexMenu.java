@@ -88,8 +88,12 @@ public final class CodexMenu extends LabMenu {
         super(services, "codex", 6, "<#ffd36b>미궁 도감");
     }
 
+    /** 지금 보는 사람 (도안 배움 줄, 0.3.6 Q6). */
+    private Player who;
+
     @Override
     protected void draw(Player viewer) {
+        who = viewer;
         if (sources == null) sources = buildSources(services.content());
         Tab[] tabs = Tab.values();
         for (int i = 0; i < tabs.length; i++) {
@@ -247,6 +251,16 @@ public final class CodexMenu extends LabMenu {
         if (s == null || s.getType().isAir()) s = UiTheme.item(d.id(), Material.PAPER, d.name(), List.of());
         List<String> src = sources.getOrDefault(d.id(), List.of());
         if (src.isEmpty()) src = List.of("<dark_gray>알려진 획득처 없음 (관리자 지급)");
+        // 0.3.6 Q6: 희귀 이상 장비의 도안을 배웠는가
+        var bp = kr.labyrinth.items.blueprint.BlueprintService.get();
+        var gated = bp != null && bp.enabled() && who != null
+                ? kr.labyrinth.items.blueprint.BlueprintRules.recipeFor(services.content(), d.id()) : null;
+        if (gated != null) {
+            List<String> withBp = new ArrayList<>();
+            withBp.add(bp.knows(who, gated.id()) ? "<#9be89b>✔ 도안을 배웠다" : "<#ff8a8a>✘ 도안을 아직 못 배웠다");
+            withBp.addAll(src);
+            src = withBp;
+        }
         List<String> lines = d.id().equals(detail)
                 ? detailLore(services.content(), d, services.settings().armorLooks(), viewer, src)
                 : lore(services.content(), d, viewer, src);

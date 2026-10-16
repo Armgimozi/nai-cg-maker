@@ -241,6 +241,7 @@ final class SelfTest {
                 step("dungeon", () -> checkScaling(f));
                 step("dungeon", () -> checkMaze(f));
                 step("dungeon", () -> checkSpecialTrial(f));
+                step("items", () -> checkBlueprints(f));
                 step("selftest", this::spawnMobs);
             });
         });
@@ -335,6 +336,19 @@ final class SelfTest {
             } else {
                 count("special_loot_items", items);
             }
+        }
+    }
+
+    /** 0.3.6 Q6 도안: 그 층 단계 도안 하나를 뽑아 만들고 다시 읽는다 (blueprints = 확인한 층 수). */
+    private void checkBlueprints(int f) {
+        var bp = kr.labyrinth.items.blueprint.BlueprintService.get();
+        if (bp == null) return;
+        var bad = bp.selfCheck(f);
+        if (bad.isEmpty()) {
+            count("blueprints", 1);
+        } else {
+            bump(errors, "content");
+            for (String b : bad) errorSamples.add("content: " + b);
         }
     }
 

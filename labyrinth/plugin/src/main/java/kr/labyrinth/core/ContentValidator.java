@@ -545,6 +545,11 @@ public final class ContentValidator {
                     if (p.weight() <= 0) err(w + ".pick", "weight 는 1 이상: " + p.table() + " " + p.weight());
                 }
             }
+            case BLUEPRINT -> {
+                if (kr.labyrinth.items.blueprint.BlueprintRules.candidates(c, e.floor()).isEmpty()) {
+                    warn(w, "blueprint 단계 " + e.floor() + " 근처에 도안이 필요한 레시피가 없음");
+                }
+            }
             case RARITY_POOL -> {
                 if (c.poolCandidates(e.floor(), e.rarityPool()).isEmpty()) {
                     warn(w, "rarity_pool " + e.rarityPool().id() + " floor " + e.floor() + " 후보 장비가 없음");

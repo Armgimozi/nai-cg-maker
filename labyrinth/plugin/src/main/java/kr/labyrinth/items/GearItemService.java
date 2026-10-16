@@ -77,7 +77,7 @@ public final class GearItemService implements ItemService {
     public static int maxStack(ItemDef def) {
         return switch (def.type()) {
             case MATERIAL -> 64;
-            case CONSUMABLE -> 16;
+            case CONSUMABLE, BLUEPRINT -> 16;
             default -> 1;
         };
     }
@@ -129,6 +129,10 @@ public final class GearItemService implements ItemService {
      * 이름 = 강화 접두어("+7 ") + 희귀도 색(+7 부터 금빛 그라데이션), +7 부터 인챈트 광택.
      */
     public void render(ItemStack s, ItemDef def) {
+        if (def.type().isBlueprint()) { // 0.3.6 Q6: 도안 이름·설명은 PDC 의 레시피에서 (items/blueprint)
+            kr.labyrinth.items.blueprint.BlueprintItems.render(s, services.content());
+            return;
+        }
         int lv = def.isGear() ? Enhancement.level(s) : 0;
         EnhanceRules er = Enhancement.rules();
         boolean enh = lv > 0 && EnhanceRules.enhanceable(def);
