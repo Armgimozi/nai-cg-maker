@@ -102,6 +102,25 @@ public final class UniqueEffectService implements UniqueEffects, DamageService.H
         return u;
     }
 
+    /**
+     * 이 피해에 쓸 고유 효과의 무기 id (순수): 화살은 쏜 활 ({@link DamageContext#firedWith}, 0.3.6.1 — 날아가는 동안 바꿔 쥔 무기가 아님),
+     * 그 밖은 지금 든 무기. "" (미궁 활이 아닌 것으로 쏜 화살) = 없음 → null.
+     */
+    static String uniqueWeaponId(String firedWith, String heldId) {
+        if (firedWith == null) return heldId;
+        return firedWith.isEmpty() ? null : firedWith;
+    }
+
+    /** 피해 한 건의 고유 효과 — 지금 든 무기면 {@link #current}, 쏜 활이 따로면 그 활 (요구 능력치를 못 채우면 꺼짐). */
+    private UniqueDef uniqueFor(Player p, DamageContext ctx) {
+        ItemDef held = services.items().heldWeapon(p);
+        String id = uniqueWeaponId(ctx.firedWith(), held == null ? null : held.id());
+        if (id == null) return null;
+        if (held != null && id.equals(held.id())) return current(p);
+        ItemDef w = services.content().item(id);
+        return w != null && w.unique() != null && EquipRules.usable(w, services.stats().requirementStats(p)) ? w.unique() : null;
+    }
+
     @Override
     public void held(Player p, ItemDef weapon, boolean usable) {
         if (p == null) return;
@@ -148,7 +167,7 @@ public final class UniqueEffectService implements UniqueEffects, DamageService.H
         if (p == null || t == null || t.equals(p)) return;
         boolean basic = ctx.isBasicAttack(), skill = ctx.isSkill();
         if (!basic && !skill) return;
-        UniqueDef u = current(p);
+        UniqueDef u = uniqueFor(p, ctx); // 화살은 쏜 활의 고유 효과 (0.3.6.1)
         if (u == null || u.effect() == null) return;
         boolean tp = t instanceof Player;
         UUID me = p.getUniqueId();
@@ -233,7 +252,7 @@ public final class UniqueEffectService implements UniqueEffects, DamageService.H
         if (p == null || t == null || t.equals(p) || !procable(ctx)) return;
         boolean basic = ctx.isBasicAttack(), skill = ctx.isSkill();
         if (!basic && !skill) return;
-        UniqueDef u = current(p);
+        UniqueDef u = uniqueFor(p, ctx); // 화살은 쏜 활의 고유 효과 (0.3.6.1)
         if (u == null || u.effect() == null) return;
         if (ctx.killed()) onKill(p, u, t, now);
         if (ctx.evaded() || ctx.dealt() <= 0) return;

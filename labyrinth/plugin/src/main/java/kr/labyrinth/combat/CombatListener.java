@@ -237,7 +237,8 @@ final class CombatListener implements Listener {
 
     /**
      * 화살 피해를 쏜 활로 (0.3.6.1, bowfeel B1): 쏜 순간의 무기 한 방 W 와 그 활의 피해 종류. 날아가는 동안 무기를 바꿔도 그대로 —
-     * 예전에는 맞는 순간 든 무기로 셌다 (파수궁 W 17 → 단도로 바꾸면 6). 삼지창·기록 없는 화살은 그대로.
+     * 예전에는 맞는 순간 든 무기로 셌다 (파수궁 W 17 → 단도로 바꾸면 6). 고유 효과도 쏜 활로 ({@link DamageContext#firedWith} —
+     * 단도로 바꿔 쥐어도 단도의 등 찌르기·휩쓸기가 화살에 붙지 않는다). 삼지창·기록 없는 화살은 그대로.
      */
     private DamageContext arrowHit(DamageContext ctx, AbstractArrow arrow) {
         if (arrow instanceof Trident) return ctx;
@@ -245,6 +246,7 @@ final class CombatListener implements Listener {
         if (w == null) return ctx;
         ctx.weaponHit(w);
         String id = arrow.getPersistentDataContainer().get(Keys.ARROW_WEAPON, PersistentDataType.STRING);
+        ctx.firedWith(id);
         ItemDef def = id == null ? null : services.content().item(id);
         if (def != null && def.isWeapon()) ctx.kind(WeaponAttack.of(def).kind());
         return ctx;
