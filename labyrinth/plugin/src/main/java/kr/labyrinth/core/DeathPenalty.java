@@ -1,5 +1,6 @@
 package kr.labyrinth.core;
 
+import io.papermc.paper.datacomponent.DataComponentTypes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -13,7 +14,6 @@ import kr.labyrinth.core.DeathPenaltyRules.Plan;
 import kr.labyrinth.core.DeathPenaltyRules.Where;
 import kr.labyrinth.data.PlayerData;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.TranslatableComponent;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -117,7 +117,7 @@ public final class DeathPenalty {
         int[] slots = DeathPenaltyRules.pickSlots(eligible, inv.getHeldItemSlot(), c.slotsMin(), c.slotsMax(), rng);
         for (int slot : slots) {
             ItemStack it = storage[slot];
-            lost.add(new Lost(nameOf(it), it.getAmount()));
+            lost.add(new Lost(nameOf(it, s.items().defOf(it).isPresent()), it.getAmount()));
             ids.add(idOf(s, it) + "×" + it.getAmount());
             inv.setItem(slot, null);
         }
@@ -137,11 +137,14 @@ public final class DeathPenalty {
         return def != null ? def.id() : it.getType().getKey().getKey().toLowerCase(Locale.ROOT);
     }
 
-    /** 채팅용 이름: 보이는 이름 그대로 (미궁 아이템 = "+3 회랑 수비대 장검" 같은 이름), 이름 없는 바닐라 아이템은 받는 사람 언어로. */
-    static String nameOf(ItemStack it) {
-        Component c = it.effectiveName();
-        if (c instanceof TranslatableComponent t && t.children().isEmpty()) return "<lang:" + t.key() + ">";
-        String plain = Text.plain(c);
+    /**
+     * 채팅용 이름: 모루로 붙인 이름 · 미궁 아이템 이름("+3 회랑 수비대 장검", "도안: …")은 보이는 글 그대로,
+     * 이름 없는 바닐라 아이템은 {@code <lang:…>} 로 받는 사람 언어 (plain 으로 펴면 서버 영어 "Bread" 가 된다).
+     */
+    static String nameOf(ItemStack it, boolean labItem) {
+        Component custom = it.getData(DataComponentTypes.CUSTOM_NAME);
+        Component c = custom != null ? custom : labItem ? it.effectiveName() : null;
+        String plain = c == null ? "" : Text.plain(c);
         return plain.isBlank() ? "<lang:" + it.translationKey() + ">" : Text.escape(plain);
     }
 
