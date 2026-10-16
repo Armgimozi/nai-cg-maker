@@ -9,6 +9,7 @@ import kr.labyrinth.core.Log;
 import kr.labyrinth.core.Settings;
 import kr.labyrinth.core.Text;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Difficulty;
 import org.bukkit.GameRules;
 import org.bukkit.Location;
@@ -24,6 +25,7 @@ import org.bukkit.entity.Mannequin;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Pig;
 import org.bukkit.entity.PigZombie;
+import org.bukkit.entity.SpawnCategory;
 import org.bukkit.entity.Zombie;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityTransformEvent;
@@ -38,7 +40,10 @@ import org.bukkit.event.entity.EntityTransformEvent;
  *   <li>plugin_tag — 플러그인 태그가 달린 몹은 NATURAL 이어도 막지 않는가 · existing — 스폰 이유를 제대로 읽는가</li>
  *   <li>sweep — 있던 바닐라 적대 몹(NATURAL)은 치우고, 동물·이름 붙은 몹은 두는가 (태그로 들인 뒤 태그를 떼어 흉내)</li>
  *   <li>dims — 네더·엔드에서는 NATURAL 좀비·소가 막히지 않는가 (막는 것은 주 월드만)</li>
- *   <li>transform — 광장 40칸 위 공중에 돼지를 띄우고 번개 (좀비 피글린 변신이 막히는가 — 번개 소리 한 번)</li>
+ *   <li>limits — 막는 분류의 자연 스폰 상한이 0 으로 묶였는가 (all = 7분류, monsters = MONSTER, none = 없음)</li>
+ *   <li>transform — 광장 40칸 위 공중에 돼지를 띄우고 번개 (좀비 피글린 변신이 막히고 돼지가 남는가 — 번개 소리 한 번).
+ *       시험 동안 그 청크에 플러그인 티켓을 걸고 엔티티가 움직이게 된 뒤 번개를 치며, 돼지에게 zap·변신 이벤트가 실제로 왔을 때만 판정한다
+ *       (안 왔으면 skip — 번개가 안 맞은 것을 '돼지 그대로'로 잘못 읽지 않게)</li>
  * </ul>
  * 결과 한 줄은 서버 로그에도 남는다.
  */
@@ -48,13 +53,17 @@ final class WildSelfTest extends VillageJob {
     private final WildService wild;
     private final List<String> samples = new ArrayList<>();
     private int exceptions;
-    private boolean insideOk, borderOk = true, tagOk, existingOk, sweepOk, dimsOk = true, transformOk = true;
-    private String inside = "?", border = "?", sweep = "?", dims = "없음", transform = "skip";
+    private boolean insideOk, borderOk = true, tagOk, existingOk, sweepOk, dimsOk = true, transformOk = true, limitsOk = true;
+    private String inside = "?", border = "?", sweep = "?", dims = "없음", transform = "skip", limits = "?";
     private int spawnChecked, spawnMismatch, spawnBlocked, spawnAllowed;
     private Pig pig;
     private Location pigAt;
     private boolean expectTransformBlocked;
-    private int wait;
+    private Settings.Wild.Spawns transformMode;
+    /** 청크가 엔티티를 움직일 때까지 기다린 틱 (-1 = 이미 번개를 침). */
+    private int prep = -1;
+    private int wait, after;
+    private Chunk ticket, pigChunk;
 
     WildSelfTest(VillageModule module, CommandSender sender, World world) {
         super(module, sender, "야생 자가 진단");
@@ -104,6 +113,11 @@ final class WildSelfTest extends VillageJob {
             wild.selfTest(false);
         }
         try {
+            limits();
+        } catch (Throwable t) {
+            error("스폰 상한", t);
+        }
+        try {
             startTransform();
         } catch (Throwable t) {
             error("변신", t);
@@ -111,11 +125,20 @@ final class WildSelfTest extends VillageJob {
     }
 
     @Override
-    protected String status() { return pig == null ? null : "번개 기다리는 중"; }
+    protected String status() { return pig == null ? null : prep >= 0 ? "청크 준비 중" : "번개 기다리는 중"; }
 
     @Override
     protected boolean tick(Budget b) {
-        if (pig != null && wait++ < 10) return false;
+        if (pig != null && prep >= 0) {
+            // 티켓을 건 청크가 엔티티를 움직이게 될 때까지 (막 켠 서버는 몇 틱 걸림) — 그래야 번개가 맞는다
+            if (pigChunk.getLoadLevel() != Chunk.LoadLevel.ENTITY_TICKING && prep++ < 200) return false;
+            prep = -1;
+            world.strikeLightning(pigAt);
+            return false;
+        }
+        // 번개가 맞을 때까지 (최대 2초), 맞은 뒤 5틱 더 (좀비 피글린이 생겼는지)
+        if (pig != null && !wild.probeHit() && wait++ < 40) return false;
+        if (pig != null && wild.probeHit() && after++ < 5) return false;
         if (pig != null) {
             try {
                 finishTransform();
@@ -129,6 +152,11 @@ final class WildSelfTest extends VillageJob {
 
     @Override
     protected void cleanup() {
+        if (wild != null) wild.probe(null);
+        if (ticket != null) {
+            ticket.removePluginChunkTicket(module.plugin());
+            ticket = null;
+        }
         if (pig != null && pig.isValid()) pig.remove();
         if (pigAt != null) {
             for (Entity e : world.getNearbyEntities(pigAt, 6, 8, 6)) {
@@ -326,6 +354,26 @@ final class WildSelfTest extends VillageJob {
         dims = (dimsOk ? "ok" : "bad") + " (" + (sb.isEmpty() ? "네더·엔드 월드 없음" : sb) + ")";
     }
 
+    // ── 자연 스폰 상한 ───────────────────────────────────────────────────
+
+    private void limits() {
+        Settings.Wild.Spawns mode = wild.spawnMode();
+        int want = 0, zero = 0;
+        StringBuilder rest = new StringBuilder();
+        for (SpawnCategory c : SpawnCategory.values()) {
+            if (!WildSpawns.limitCategory(mode, c)) {
+                // 막지 않는 분류는 그대로인가 (끈 뒤 되돌렸는가 — 값만 보여 줌, 관리자가 0 으로 정했을 수도 있음)
+                if (c != SpawnCategory.MISC) rest.append(' ').append(c.name().toLowerCase(java.util.Locale.ROOT)).append('=').append(world.getSpawnLimit(c));
+                continue;
+            }
+            want++;
+            if (world.getSpawnLimit(c) == 0) zero++;
+            else sample("자연 스폰 상한이 0 이 아님: " + c + " = " + world.getSpawnLimit(c));
+        }
+        limitsOk = zero == want;
+        limits = (limitsOk ? "ok" : "bad") + " (0 " + zero + "/" + want + (rest.isEmpty() ? "" : " · 나머지" + rest) + ")";
+    }
+
     // ── 변신 (번개) ──────────────────────────────────────────────────────
 
     private void startTransform() {
@@ -334,6 +382,7 @@ final class WildSelfTest extends VillageJob {
             return;
         }
         Settings.Wild.Spawns mode = wild.spawnMode();
+        transformMode = mode;
         expectTransformBlocked = WildSpawns.blockTransform(mode, EntityTransformEvent.TransformReason.LIGHTNING, true, true);
         VillageMeta m = module.service().meta();
         pigAt = new Location(world, m.spawn.x(), Math.min(world.getMaxHeight() - 12, m.spawn.y() + 40), m.spawn.z());
@@ -348,15 +397,28 @@ final class WildSelfTest extends VillageJob {
             transform = "skip (돼지를 소환하지 못함)";
             return;
         }
-        world.strikeLightning(pigAt);
+        // 플레이어가 없으면 청크가 엔티티를 움직이지 않아 번개가 맞지 않는다 — 시험 동안만 플러그인 티켓 (cleanup 에서 뗌).
+        // 번개는 청크가 엔티티를 움직이게 된 뒤 tick 에서 친다
+        pigChunk = pigAt.getChunk();
+        if (pigChunk.addPluginChunkTicket(module.plugin())) ticket = pigChunk;
+        wild.probe(pig.getUniqueId());
+        prep = 0;
     }
 
     private void finishTransform() {
+        boolean hit = wild.probeHit();
         boolean stillPig = pig.isValid();
         boolean piglin = false;
         for (Entity e : world.getNearbyEntities(pigAt, 6, 8, 6)) if (e instanceof PigZombie && e.getTicksLived() < 400) piglin = true;
+        if (!hit) {
+            transform = "skip (번개 안 맞음 — 돼지 " + (stillPig ? "그대로" : "사라짐") + ")";
+            return;
+        }
+        if (wild.spawnMode() != transformMode) {
+            transform = "skip (시험 중 설정이 바뀜 — reload)";
+            return;
+        }
         boolean blocked = stillPig && !piglin;
-        if (blocked && expectTransformBlocked) wild.uncountTransform();
         transformOk = blocked == expectTransformBlocked;
         transform = (transformOk ? "ok" : "bad") + " (번개 → " + (blocked ? "돼지 그대로" : piglin ? "좀비 피글린" : "돼지 사라짐")
                 + ", 규칙 " + (expectTransformBlocked ? "막음" : "허용") + ")";
@@ -383,11 +445,12 @@ final class WildSelfTest extends VillageJob {
                 + " · existing=" + (existingOk ? "ok" : "bad")
                 + " · sweep=" + sweep
                 + " · dims=" + dims
+                + " · limits=" + limits
                 + " · transform=" + transform
                 + " · 설정 spawns=" + w.spawns().id() + " border=" + w.border() + " margin=" + w.borderMargin()
                 + rules;
         boolean pass = exceptions == 0 && insideOk && borderOk && spawnChecked > 0 && spawnMismatch == 0 && tagOk && existingOk
-                && sweepOk && dimsOk && transformOk;
+                && sweepOk && dimsOk && transformOk && limitsOk;
         Text.send(sender, (pass ? "<#7fe07f><b>야생 자가 진단 통과</b></#7fe07f>" : "<#ff6b6b><b>야생 자가 진단: 문제 있음</b></#ff6b6b>")
                 + " <gray>(" + elapsedSec() + "초)");
         Text.send(sender, "<gray>" + Text.escape(line));

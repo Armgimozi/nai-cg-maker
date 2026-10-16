@@ -994,22 +994,34 @@ wild:                 # wild: false = 통째로 끔 (Settings.Wild.OFF)
 - **소유**: `village` 패키지. `VillageService` 가 `WildService`(리스너)를 만들고 켤 때·`village apply`·메타데이터 갱신·`/labadmin reload` 에 `refresh`.
   주 월드(`Bukkit.getWorlds().get(0)`)에 `labyrinth-village.yml` 이 있을 때만 동작 — 미궁 월드·네더·엔드에는 아무것도 하지 않는다.
 - **경계** `WildBorder`(순수, `WildBorderTest`): `compute(meta, margin)` = (center ± radius) ∪ protect 상자들 → + margin → 정사각형(블록 x0..x1 = 땅 x0 ~ x1+1).
-  `decide(켬, 지금, 목표, 기록)` → APPLY · RESTORE · ADMIN(관리자 경계 — 그대로) · FORGET · NONE. 기록 = `plugins/Labyrinth/wild-border.yml`
-  (`world_uid` · `ours` · `previous`): 바닐라 기본 경계일 때만 우리 경계를 놓고, 끌 때는 지금 경계가 아직 `ours` 일 때만 `previous` 로.
+  `decide(켬, 지금, 목표, 기록)` → APPLY · RESTORE · ADMIN(관리자 경계 — 그대로) · FORGET · NONE. 기록 = **월드 폴더**
+  `<주 월드>/labyrinth-wild-border.yml` (`labyrinth-village.yml` 옆 · `ours` · `previous`, uid 는 보지 않음 — 배포 zip 에는 uid.dat 이 없다):
+  바닐라 기본 경계일 때만 우리 경계를 놓고, 끌 때는 지금 경계가 아직 `ours` 일 때만 `previous` 로. 기록이 경계(world_border)와 함께
+  world.zip·백업을 따라가야 '경계는 있는데 기록이 없어 끌 수도 넓힐 수도 없는' 서버가 생기지 않는다 (시험판의 `plugins/Labyrinth/wild-border.yml` 은
+  같은 uid 일 때 한 번 옮겨 옴). `tools/build_world.sh` 는 wild 를 끄고 짓는다 (경계를 굽지 않음 · pregen 청크에 CHUNK_GEN 동물).
   `/labadmin wild border apply` = `force`(관리자 경계를 `previous` 로 기억하고 덮어씀). 경고 거리 6칸.
+  바닐라 경계는 정사각형뿐이라 보호 상자를 한쪽에 붙이면 네 방향이 다 넓어지고 중심이 옮겨진다 (0.3.6 광산 구역 배치 때 감안).
 - **플레이어**: 접속(8틱 뒤 — 마을 '처음 보는 월드' 텔레포트 5틱 뒤) · `PlayerChangedWorldEvent` · `PlayerRespawnEvent`(침대·정박기·엔드 출구) ·
   `PlayerTeleportEvent`·`PlayerPortalEvent`(핸들러 목록이 따로) · 2초마다 주 월드 플레이어 `isInside` → 밖이면 광장(`core.Teleports`).
   관리자 + 크리에이티브·관전은 건너뜀. 네더 차원문 출구는 바닐라가 이미 경계 안으로 당긴다 (시험 서버: 네더 x=-199.5 → 주 월드 x=-201.5).
+  `PlayerPortalEvent` 의 NETHER_PORTAL 은 `setTo` 하지 않는다 — Paper 가 `getTo()` 를 차원문 찾기·만들기 중심으로 써서 광장에 차원문이 생긴다.
+  도착 뒤 `PlayerChangedWorldEvent` 검사가 맡는다.
 - **스폰** `WildSpawns`(순수, `WildSpawnsTest`): Paper 26.3 의 SpawnReason 47가지를 default 없는 switch 로 하나씩 WILD(막음) · ACTION(허용) ·
   KEEP_SOURCE(허용 — 막으면 Paper 가 원래 몹을 지움) 로 정한다. 범위 = monsters: `Enemy` · all: `Mob`(갑옷 거치대·마네킹 NPC·디스플레이는 몹이 아님).
   `PreCreatureSpawnEvent`(자연·생성기, 만들기 전) + `CreatureSpawnEvent`(나머지) — 이 플러그인 PDC(`labyrinth:*`)가 달린 엔티티는 건너뜀.
-  자연 변신(번개·익사·얼음·좀비화·감염)은 `EntityTransformEvent` 를 막아 원래 몹을 남긴다. 있던 바닐라 적대 몹 = 켤 때 한 번 + `EntitiesLoadEvent`
+  자연 변신(번개·익사·얼음·좀비화·감염)은 `EntityTransformEvent` 를 막아 원래 몹을 남긴다. 단 돼지 → 좀비 피글린은 26.3 에서
+  `EntityTransformEvent` 없이 `PigZapEvent` 만 오므로(`Pig#thunderHit` 가 `convertTo(…, null, null)` 뒤 `addFreshEntity(LIGHTNING)` — 그 스폰을
+  막아도 돼지를 지움) `EntityZapEvent`(핸들러 목록이 따로) 를 막는다 — zap 을 막으면 `thunderHit` 가 일찍 끝나 돼지가 남는다. 주민 → 마녀는 둘 다 온다
+  (한 번만 셈). 성능: NATURAL 은 `setShouldAbortSpawn(true)`, 막는 분류는 `World#setSpawnLimit(분류, 0)` (실행 중에만 — 끌 때·모드 바꿀 때
+  `-1`(서버 기본) 또는 그 전 값으로, 그 사이 누가 바꿨으면 그대로). `DEFAULT` 는 막는다 — `Entity#spawnAt(Location)` 의 기본 이유이므로
+  플러그인 코드는 주 월드에 몹을 넣을 때 CUSTOM 을 쓸 것. `POTION_EFFECT`(플레이어가 빚은 점액·감염 물약)는 허용. 있던 바닐라 적대 몹 = 켤 때 한 번 + `EntitiesLoadEvent`
   (다음 틱) 에 `removeExisting`(보스·이름·길들임·끈·persistent·플러그인·플레이어와 탄 몹·플레이어 쪽 이유는 둠). 게임 규칙은 건드리지 않는다.
 - **예전 키** `village.block_mob_spawns` (마을 둘레 radius+8 적대 NATURAL·PATROL·REINFORCEMENTS) 는 그대로 — `spawns: none` 일 때만 따로 의미가 있다.
 - **설정 읽기**: `Settings.wild` 는 `c.get("wild")` 로 읽는다 — `getConfigurationSection` 은 jar 기본값에만 있는 섹션을 서버 config 에 빈 `wild: {}` 로 만든다.
 - **명령·진단**: `/labadmin wild [info]` · `wild reasons`(이유 표) · `wild border apply` · `wild selftest` → 한 줄
-  `[야생 자가 진단] 결과: 예외 0 · inside=ok · border=ours|admin|off · spawns=188/188 ok · plugin_tag=ok · existing=ok · sweep=ok · dims=ok · transform=ok`
-  (이유 47 × 좀비·소·갑옷 거치대·마네킹을 광장에 실제 소환, 네더·엔드 NATURAL 허용, 광장 40칸 위 돼지 번개). `village selftest` 줄에 `border=ok`
+  `[야생 자가 진단] 결과: 예외 0 · inside=ok · border=ours|admin|off · spawns=188/188 ok · plugin_tag=ok · existing=ok · sweep=ok · dims=ok · limits=ok · transform=ok`
+  (이유 47 × 좀비·소·갑옷 거치대·마네킹을 광장에 실제 소환, 네더·엔드 NATURAL 허용, 스폰 상한 0, 광장 40칸 위 돼지 번개 — 시험 동안 플러그인 청크 티켓을
+  걸고 청크가 ENTITY_TICKING 이 된 뒤 번개, 돼지에게 zap·변신 이벤트가 실제로 왔을 때만 판정 · 안 왔으면 `skip (번개 안 맞음)`). `village selftest` 줄에 `border=ok`
   (월드 스폰·광장·입구·NPC·보호 상자가 마을 경계 안), `village info` 에 한 줄 요약.
 
 ## 7. 성능·안정성 규칙

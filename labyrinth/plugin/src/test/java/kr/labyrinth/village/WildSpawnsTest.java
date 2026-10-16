@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.EnumSet;
 import java.util.Set;
 import kr.labyrinth.core.Settings.Wild.Spawns;
+import org.bukkit.entity.SpawnCategory;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityTransformEvent.TransformReason;
 import org.junit.jupiter.api.Test;
@@ -19,7 +20,7 @@ class WildSpawnsTest {
     static final Set<SpawnReason> WILD = EnumSet.of(SpawnReason.NATURAL, SpawnReason.CHUNK_GEN, SpawnReason.JOCKEY, SpawnReason.OCELOT_BABY,
             SpawnReason.SPAWNER, SpawnReason.TRIAL_SPAWNER, SpawnReason.OMINOUS_ITEM_SPAWNER, SpawnReason.PATROL, SpawnReason.RAID,
             SpawnReason.VILLAGE_INVASION, SpawnReason.VILLAGE_DEFENSE, SpawnReason.REINFORCEMENTS, SpawnReason.TRAP, SpawnReason.LIGHTNING,
-            SpawnReason.SILVERFISH_BLOCK, SpawnReason.ENDER_PEARL, SpawnReason.NETHER_PORTAL, SpawnReason.SPELL, SpawnReason.POTION_EFFECT,
+            SpawnReason.SILVERFISH_BLOCK, SpawnReason.ENDER_PEARL, SpawnReason.NETHER_PORTAL, SpawnReason.SPELL,
             SpawnReason.DROWNED, SpawnReason.FROZEN, SpawnReason.INFECTION, SpawnReason.PIGLIN_ZOMBIFIED, SpawnReason.BUILD_WITHER,
             SpawnReason.DEFAULT);
 
@@ -44,7 +45,7 @@ class WildSpawnsTest {
         for (SpawnReason r : new SpawnReason[] {SpawnReason.CUSTOM, SpawnReason.COMMAND, SpawnReason.SPAWNER_EGG, SpawnReason.DISPENSE_EGG,
                 SpawnReason.BREEDING, SpawnReason.EGG, SpawnReason.BUCKET, SpawnReason.BEEHIVE, SpawnReason.SHOULDER_ENTITY, SpawnReason.CURED,
                 SpawnReason.DUPLICATION, SpawnReason.BUILD_IRONGOLEM, SpawnReason.BUILD_SNOWMAN, SpawnReason.BUILD_COPPERGOLEM,
-                SpawnReason.MOUNT, SpawnReason.REANIMATE, SpawnReason.REHYDRATION}) {
+                SpawnReason.MOUNT, SpawnReason.REANIMATE, SpawnReason.REHYDRATION, SpawnReason.POTION_EFFECT}) {
             for (Spawns mode : Spawns.values()) {
                 assertFalse(WildSpawns.blockSpawn(mode, r, true, true), mode + " " + r + " 적대");
                 assertFalse(WildSpawns.blockSpawn(mode, r, true, false), mode + " " + r + " 동물");
@@ -129,6 +130,18 @@ class WildSpawnsTest {
             assertFalse(WildSpawns.oldVillageBlock(r, false), r.name());
             // wild.spawns monsters·all 은 예전 막기를 모두 덮는다
             if (old) assertTrue(WildSpawns.blockSpawn(Spawns.MONSTERS, r, true, true), r.name());
+        }
+    }
+
+    @Test
+    void spawnLimitCategoriesFollowTheMode() {
+        // 성능용 상한 0: all = 자연 스폰 분류 전부, monsters = MONSTER 만, none = 없음. MISC 는 바닐라가 상한을 받지 않음
+        assertEquals(8, SpawnCategory.values().length, "Paper API 의 SpawnCategory 수가 바뀜 — WildSpawns.limitCategory 를 다시 볼 것");
+        for (SpawnCategory c : SpawnCategory.values()) {
+            assertFalse(WildSpawns.limitCategory(Spawns.NONE, c), c.name());
+            assertFalse(WildSpawns.limitCategory(null, c), c.name());
+            assertEquals(c != SpawnCategory.MISC, WildSpawns.limitCategory(Spawns.ALL, c), c.name());
+            assertEquals(c == SpawnCategory.MONSTER, WildSpawns.limitCategory(Spawns.MONSTERS, c), c.name());
         }
     }
 }
