@@ -47,7 +47,8 @@ import org.joml.Vector3f;
  *   <li>등급 표시: 철 상자 = 철 띠, 금 상자 = 금 띠 + 금빛 반짝임 (블록 표시 엔티티).</li>
  *   <li>미믹: 처음 연 순간 상자가 사라지고 그 자리에서 상자 괴물 미믹이 연 사람을 보고 튀어나온다({@link MimicEncounter} — 큰 미믹
  *       + 깊은 층이면 작은 미믹 하나, 층 수치 {@link MimicSpec}). 미믹이 살아 있는 동안 그 자리에는 상자가 없다(먼저 못 챙김).
- *       미믹을 잡으면(또는 {@code treasure.mimic_lock_seconds} 동안 아무도 못 잡으면 깡충 달아나고) 그 자리에 한 단계 좋은 상자가 다시 나타난다.</li>
+ *       미믹을 잡으면(또는 근처에서 {@code treasure.mimic_lock_seconds} 동안 버티면 깡충 달아나고) 그 자리에 한 단계 좋은 상자가 다시 나타난다.
+ *       멀리 가서 기다리면 시간이 흐르지 않는다({@link MimicClock}).</li>
  *   <li>금고: 잠긴 철문 — 이 층 금고 열쇠({@link VaultKeys})를 들고 우클릭하면 열린다. 열쇠는 정예 처치 또는 막다른 길 철 상자 하나에서.</li>
  * </ul>
  * 칭호 카운터: {@code titles.treasure.chest|gold_chest|vault|mimic} (titles.yml TREASURE 조건).
@@ -64,6 +65,10 @@ public final class Treasures {
     private final ChestTier[] tier;
     private final boolean[] emptied;
     private final boolean[] sprung;
+    /** 미믹이 끝나 상자가 돌아오는 중 (달아나는 몸짓 동안 — MimicEncounter.finish). */
+    private final boolean[] settling;
+    /** 쓰러뜨림으로 끝난 미믹 수 (자가 진단). */
+    private int defeats;
     private final boolean[] tamed;
     private final MimicEncounter[] encounters;
     private final List<List<BlockDisplay>> bands = new ArrayList<>();
@@ -81,6 +86,7 @@ public final class Treasures {
         this.tier = new ChestTier[n];
         this.emptied = new boolean[n];
         this.sprung = new boolean[n];
+        this.settling = new boolean[n];
         this.tamed = new boolean[n];
         this.encounters = new MimicEncounter[n];
         for (TreasurePlan.Chest c : plan.chests()) {
@@ -347,20 +353,24 @@ public final class Treasures {
         fs.actionBar(fs.allPlayers(), "<red><b>미믹이다!</b></red> <gray>상자가 이빨을 드러내고 덤벼든다", 60);
     }
 
-    /** 깨어난 미믹들: 다 잡았으면 길들임, 시간이 다 됐으면 달아나고 상자로 (2틱마다). */
+    /** 깨어난 미믹들: 큰 미믹을 쓰러뜨렸으면 길들임, 시간이 다 됐으면 달아나고 — 그 뒤 그 자리에 상자 (2틱마다). */
     private void tickMimics(long now) {
         for (int i = 0; i < sprung.length; i++) {
-            if (!sprung[i] || tamed[i]) continue;
+            if (!sprung[i] || tamed[i] || settling[i]) continue;
             MimicEncounter enc = encounters[i];
-            MimicEncounter.State st = enc == null ? MimicEncounter.State.DEFEATED : enc.tick(now);
+            MimicEncounter.State st = enc == null ? MimicEncounter.State.FLED : enc.tick(now);
             if (st == MimicEncounter.State.ALIVE) continue;
-            if (st == MimicEncounter.State.FLED) enc.flee();
-            tame(i, st == MimicEncounter.State.DEFEATED && enc != null && enc.count() > 0);
+            settling[i] = true;
+            int idx = i;
+            boolean defeated = st == MimicEncounter.State.DEFEATED;
+            if (enc == null) tame(idx, false);
+            else enc.finish(() -> tame(idx, defeated));
         }
     }
 
-    /** 미믹이 사라진 자리에 한 단계 좋은 상자가 다시 나타난다 (defeated = 잡았음 → 칭호 카운터). */
+    /** 미믹이 사라진 자리에 한 단계 좋은 상자가 다시 나타난다 (defeated = 큰 미믹을 정말로 쓰러뜨림 → 칭호 카운터). */
     private void tame(int i, boolean defeated) {
+        if (tamed[i]) return;
         tamed[i] = true;
         tier[i] = tier[i].up();
         TreasurePlan.Chest c = plan.chests().get(i);
@@ -373,6 +383,7 @@ public final class Treasures {
         band(c, tier[i] == ChestTier.GOLD ? Material.GOLD_BLOCK : Material.IRON_BLOCK);
         String name = tier[i].displayName();
         if (defeated) {
+            defeats++;
             fs.broadcast("<gold>미믹을 쓰러뜨렸다!</gold> <gray>그 자리에 " + name + "가 나타났습니다 — 각자 열어 보세요.");
             for (Player p : fs.alivePlayers()) count(p, "mimic");
         } else {
@@ -464,8 +475,9 @@ public final class Treasures {
 
     /**
      * 상자 블록이 놓였나·금고 문이 열리나·미믹이 깨어나나 (예외는 위로). 미믹: 첫 미믹 상자를 사람 없이 열어 → 상자가 사라졌나 ·
-     * 미믹이 나왔나 → 멀리 떨어뜨리면 되돌아오나(줄) → 지우고 → 그 자리에 한 단계 좋은 상자가 돌아왔나.
-     * @return [놓인 상자, 금고 열림 1/0, 미믹 몹 수, 돌아온 상자, 줄로 되돌아온 미믹]
+     * 미믹이 나왔나 → 아주 멀리 떨어뜨리면 되돌아오나(마지막 수단 줄) → 근처에 아무도 없으면 시간이 멈춰 있나 → 정말로 쓰러뜨리면
+     * (피해 경로) 그 자리에 한 단계 좋은 상자가 돌아오고 '쓰러뜨림'으로 치나.
+     * @return [놓인 상자, 금고 열림 1/0, 미믹 몹 수, 돌아온 상자, 줄로 되돌아온 미믹, 쓰러뜨림으로 끝난 미믹, 멈춰 있던 시간]
      */
     public int[] selfTest() {
         int ok = 0;
@@ -483,7 +495,7 @@ public final class Treasures {
             if (!fs.block(v.doorX(), 1, v.doorZ()).getType().isAir()) throw new IllegalStateException("금고 문이 열리지 않음");
             vault = 1;
         }
-        int mobs = 0, restored = 0, leashed = 0;
+        int mobs = 0, restored = 0, leashed = 0, defeated = 0, paused = 0;
         for (TreasurePlan.Chest c : plan.chests()) {
             if (!c.mimic()) continue;
             int i = c.index(), dy = l.elevation(c.x(), c.z()) + 1;
@@ -496,25 +508,34 @@ public final class Treasures {
             if (!enc.legacy() && !MimicSpec.isMimic(fs.services().content().mob(enc.mobs().get(0).id()))) {
                 throw new IllegalStateException("미믹 대신 다른 몹이 나옴: " + enc.mobs().get(0).id());
             }
+            long now = System.currentTimeMillis();
             if (!enc.legacy()) {
-                // 줄: 상자 자리에서 멀리 떨어뜨리면 다음 틱에 되돌아온다
+                // 마지막 수단 줄: 상자 자리에서 아주 멀리 떨어뜨리면 다음 틱에 되돌아온다
                 kr.labyrinth.mobs.CustomMob first = enc.mobs().get(0);
-                first.entity().teleport(enc.spot().add(MimicEncounter.LEASH + 4, 0, 0));
-                enc.tick(System.currentTimeMillis());
+                first.entity().teleport(enc.spot().add(MimicEncounter.HARD_LEASH + 2, 0, 0));
+                enc.tick(now);
                 if (first.location().distanceSquared(enc.spot()) > 2.25) throw new IllegalStateException("미믹이 상자 자리로 돌아오지 않음 (줄)");
                 leashed++;
+                // 근처에 아무도 없으면 달아날 시간이 흐르지 않는다 (멀리 가서 기다리기만 하면 안 됨)
+                long r0 = enc.remainingMs();
+                for (int k = 1; k <= 3; k++) enc.tick(now + k * 400L);
+                if (enc.remainingMs() != r0) throw new IllegalStateException("아무도 없는데 미믹 시간이 흐름");
+                paused++;
             }
-            enc.removeAll();
-            long t0 = System.currentTimeMillis();
+            int defeatsBefore = defeats;
+            if (enc.killAllForTest() == 0) throw new IllegalStateException("미믹이 쓰러지지 않음");
+            long t0 = now + 2_000;
             tickMimics(t0);
             tickMimics(t0 + MimicEncounter.RESTORE_DELAY_MS + 100);
             if (fs.block(c.x(), dy, c.z()).getType() != Material.CHEST || !tamed[i] || tier[i] != before.up()) {
-                throw new IllegalStateException("미믹이 사라진 뒤 한 단계 좋은 상자가 돌아오지 않음");
+                throw new IllegalStateException("미믹을 쓰러뜨린 뒤 한 단계 좋은 상자가 돌아오지 않음");
             }
+            if (defeats != defeatsBefore + 1) throw new IllegalStateException("미믹을 쓰러뜨렸는데 '쓰러뜨림'으로 치지 않음");
             restored++;
+            defeated++;
             break;
         }
-        return new int[] {ok, vault, mobs, restored, leashed};
+        return new int[] {ok, vault, mobs, restored, leashed, defeated, paused};
     }
 
     static BlockFace face(int dx, int dz) {

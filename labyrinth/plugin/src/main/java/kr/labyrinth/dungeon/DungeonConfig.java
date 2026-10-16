@@ -38,8 +38,9 @@ public record DungeonConfig(
     /**
      * 함정·미로 상자 공통 규칙 (dungeon.yml {@code traps.*}·{@code treasure.*}, GDD §5.5·§5.6).
      * disarmSeconds = 함정 옆에서 웅크리고 있어야 하는 초, shadowDisarmSeconds = 그림자 직업, shadowSense = 그림자가 함정 윤곽을 보는 거리,
-     * disarmGold = 해제 골드 (× 층), disarmXp = 해제 경험치 (× 층 일반 몹 평균), mimicLockSeconds = 미믹이 살아 있는 최대 초
- * (맞고 있으면 미룸 — 지나면 달아나고 상자가 돌아옴). 바깥 레코드의 mimicMobs 는 mobs.yml 에 미믹 몹이 없을 때만 쓴다(예전처럼 층 일반 몹 수).
+     * disarmGold = 해제 골드 (× 층), disarmXp = 해제 경험치 (× 층 일반 몹 평균), mimicLockSeconds = 미믹이 달아날 때까지의 초
+     * (상자 자리 근처에 살아 있는 파티원이 있을 때만 흐르고, 맞고 있으면 미룸 — 다 되면 달아나고 상자가 돌아옴).
+     * 바깥 레코드의 mimicMobs 는 mobs.yml 에 미믹 몹이 없을 때만 쓴다(예전처럼 층 일반 몹 수).
      */
     public record TrapRules(double disarmSeconds, double shadowDisarmSeconds, double shadowSense, int disarmGold, double disarmXp,
                             int mimicLockSeconds) {}

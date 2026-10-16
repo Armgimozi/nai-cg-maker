@@ -433,8 +433,30 @@ final class SelfTest {
             count("vaults_opened", r[1]);
             count("mimic_mobs", r[2]);       // 0.3.6: 미믹 상자 하나에 미믹 1마리 (6층부터 + 새끼 미믹 1)
             count("mimic_restored", r[3]);   // 미믹이 사라진 자리에 한 단계 좋은 상자가 돌아옴
-            count("mimic_leashed", r[4]);    // 상자 자리에서 멀리 떨어뜨린 미믹이 되돌아옴
+            count("mimic_leashed", r[4]);    // 상자 자리에서 아주 멀리 떨어뜨린 미믹이 되돌아옴 (마지막 수단 줄)
+            count("mimic_defeated", r[5]);   // 정말로 쓰러뜨린 미믹 = '쓰러뜨림' (칭호 카운터 경로)
+            count("mimic_clock_paused", r[6]); // 근처에 아무도 없으면 달아날 시간이 멈춤
         });
+        // 보물방 미믹 (방에 미믹이 없으면 첫 상자를 미믹으로): 열기 → 상자 블록 공기 → 미믹 → 시간이 다 돼 달아남(그동안 상자 없음)
+        // → 달아나는 몸짓 뒤 미믹이 사라지고 상자가 돌아옴 (쓰러뜨리는 길은 위 미로 상자 쪽)
+        for (Room r : fs.rooms()) {
+            if (!(r instanceof kr.labyrinth.dungeon.rooms.TreasureRoom tr)) continue;
+            step("dungeon", () -> {
+                int n = tr.selfTestMimic();
+                count("room_mimic_mobs", n);
+                if (n > 0) {
+                    later(kr.labyrinth.dungeon.treasure.MimicEncounter.FLEE_TICKS + 8, () -> {
+                        if (tr.selfTestMimicBack()) {
+                            count("room_mimic_restored", 1);
+                        } else {
+                            bump(errors, "dungeon");
+                            errorSamples.add("dungeon: 지하 " + f + "층 보물방 미믹이 달아난 뒤 상자가 돌아오지 않음");
+                        }
+                    });
+                }
+            });
+            break;
+        }
         fs.exploration().revealAll();
         count("map_lines", ExplorationMap.render(fs, null).size());
     }

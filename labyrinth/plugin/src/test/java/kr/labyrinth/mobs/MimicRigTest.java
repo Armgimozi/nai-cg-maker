@@ -123,4 +123,32 @@ class MimicRigTest {
             prev = h;
         }
     }
+
+    /** 깡충 뛰며 앞뒤로 젖혀도 상자 아래 모서리가 땅에 묻히지 않는다 (0.3.6 리뷰: 뛰기 시작할 때 뒤 모서리가 0.03칸 묻힘). */
+    @Test
+    void hopTiltNeverSinksTheBottomEdge() {
+        for (String id : List.of("chest_mimic", "gilded_mimic", "mimic_whelp")) {
+            List<ModelDef.Part> ps = parts(id);
+            double scale = content.mob(id).scale();
+            RigMath.Skeleton sk = new RigMath.Skeleton(ps, scale);
+            int body = idx(ps, "body");
+            ModelDef.Part bp = ps.get(body);
+            double hx = bp.sizeX() / 32.0, hz = bp.sizeZ() / 32.0, by = bp.pivotY() - bp.sizeY() / 32.0;
+            double rest = Double.MAX_VALUE;
+            RigMath.Solved still = sk.solve(st(1000, 0, -1, -1, -1, true, false), new RigMath.Gait().set(0, 0, 2))[body];
+            for (int sx = -1; sx <= 1; sx += 2) for (int sz = -1; sz <= 1; sz += 2) {
+                rest = Math.min(rest, world(still, bp, bp.pivotX() + sx * hx, by, bp.pivotZ() + sz * hz).y);
+            }
+            for (double speed : new double[] {0.03, 0.06, 0.1}) {
+                for (int k = 0; k < 100; k++) {
+                    RigMath.Solved sv = sk.solve(st(1000, speed, -1, -1, -1, true, false), new RigMath.Gait().set(k / 100.0, 0, 2))[body];
+                    double low = Double.MAX_VALUE;
+                    for (int sx = -1; sx <= 1; sx += 2) for (int sz = -1; sz <= 1; sz += 2) {
+                        low = Math.min(low, world(sv, bp, bp.pivotX() + sx * hx, by, bp.pivotZ() + sz * hz).y);
+                    }
+                    assertTrue(low >= rest - 0.004, id + " 속도 " + speed + " 위상 " + k + ": 아래 모서리 " + low + " < 땅 " + rest);
+                }
+            }
+        }
+    }
 }

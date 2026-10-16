@@ -505,6 +505,9 @@ public final class RigMath {
         private final double phaseLeft;
         /** 다리 없이 뚜껑 턱(anim lid)이 있는 몹(미믹) — 걸음 = 깡충 뛰기. */
         private final boolean hopper;
+        /** 깡충 몹 몸통(anim body)의 앞뒤 반 길이 · 바닥 높이 (블록, scale 1) — 젖힐 때 모서리가 땅에 묻히지 않게. */
+        private final double hopHalfDepth;
+        private final double hopBottom;
 
         public Skeleton(List<ModelDef.Part> parts) {
             this(parts, 1.0);
@@ -608,6 +611,14 @@ public final class RigMath {
             boolean lid = false;
             for (ModelDef.Part p : this.parts) if ("lid".equals(p.anim())) lid = true;
             hopper = lid && legs == 0;
+            double hd = 0, hb = Double.MAX_VALUE;
+            for (ModelDef.Part p : this.parts) {
+                if (!"body".equals(p.anim())) continue;
+                hd = Math.max(hd, Math.abs(p.pivotZ()) + p.sizeZ() / 32.0);
+                hb = Math.min(hb, p.pivotY() - p.sizeY() / 32.0);
+            }
+            hopHalfDepth = hd;
+            hopBottom = hb == Double.MAX_VALUE ? 0 : hb;
             restLow = legs > 0 ? low : 0;
             hangGait = hangs > 0;
             swing = hangs <= 2 ? SWING_BIPED : SWING_QUAD;
@@ -682,6 +693,17 @@ public final class RigMath {
 
         /** 깡충 뛰는 몹인가 (다리 없음 + anim lid 파트 — 미믹). 걸음 위상 = 깡충 위상. */
         public boolean hopper() { return hopper; }
+
+        /**
+         * 깡충 젖힘 보정(블록, scale 1): 몸 가운데(높이 절반)를 축으로 pitch 도 젖히면 앞뒤 아래 모서리 하나가 내려간다 —
+         * 그만큼(뜬 높이 hop 을 빼고) 몸 전체를 들어 올려 모서리가 땅에 묻히지 않게 한다.
+         */
+        double hopTiltLift(double pitchDeg, double hop) {
+            double th = Math.toRadians(pitchDeg);
+            double half = height * 0.5;
+            double lowest = half + (hopBottom + hop - half) * Math.cos(th) - hopHalfDepth * Math.abs(Math.sin(th));
+            return Math.max(0, hopBottom - lowest);
+        }
 
         /** 다리 i 의 위상 φ0 (주기, 걷는 다리가 아니면 0). */
         public double phase0(int i) { return phase0[i]; }
@@ -872,6 +894,7 @@ public final class RigMath {
             if (s.emergeTicks() >= 0 && s.emergeTicks() < EMERGE_TICKS) {
                 rise = -(1f - s.emergeTicks() / (float) EMERGE_TICKS) * (height + 0.2f);
             }
+            if (hopper && k > 0) rise += (float) hopTiltLift(pitch, hopHeight(gp, k));
             if (Math.abs(pitch) > 0.01f || rise != 0) {
                 all(jw, rw, sw, new Quaternionf().rotationX(rad(pitch)), new Vector3f(0, height * 0.5f, 0), 1f,
                         new Vector3f(0, rise, 0));
