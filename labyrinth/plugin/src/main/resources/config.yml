@@ -356,3 +356,24 @@ hints:
   mode: progressive
   thresholds: [2, 4, 6]
 
+
+# 광산 (0.3.6) — 따로 된 광산 월드 + 승강기. 층·광석·보석·블록·바이옴·캐는 초는 content/mine.yml (자동 갱신), 여기는 손잡이만.
+#   층 6개는 모두 처음부터 열려 있다 (레벨 조건 없음). 곡괭이는 캘 수 있는 광석(단단함)과 빠르기만 정한다.
+#   광맥은 모두가 함께 쓴다: 누가 캐면 모두에게 빈 광맥이 되고 regen_minutes 뒤 다시 찬다.
+#   광산 월드에 사람이 많을수록 빨리 찬다: 다시 차는 시간 = regen_minutes ÷ min(광산 사람 수, regen_players_cap).
+#   서버를 다시 켜면 모든 광맥이 다 찬 상태로 시작한다. 광산 안은 피해 없음 · PvP 끔 · 몹 없음 · 어드벤처 모드.
+#   키가 없으면 아래 기본값. 끄려면 enabled: false (또는 mine: false).
+mine:
+  enabled: true
+  world: labyrinth_mine
+  teleport_command: auto          # /미궁 광산 — auto = village.teleport_command 를 따름 · true · false (관리자는 늘 됨)
+  lift_seconds: 2.0               # 승강기 타는 시간 (움직이면 멈춤)
+  regen_minutes: [8, 9, 9, 10, 10, 10]   # 층마다 광맥이 다시 차는 분 (혼자일 때) — 얕은 갱도 … 용의 심연
+  gem_node_regen_minutes: 30      # 보석 노드가 다시 차는 분
+  regen_players_cap: 4            # 사람 수로 빨라지는 최대 배수 (4 = 넷 이상이면 4배)
+  gem_chance: 0.022               # 광석 블록마다 같은 등급 보석이 나올 확률
+  rich: {chance: 0.04, multiplier: 3}    # 다시 찰 때 풍부한 광맥(반짝임)이 될 확률 · 다음에 캔 사람 수확 배수
+  fx: {pop: true}                 # 광석 날아오기 연출
+  no_hunger: true                 # 광산 안에서 배고픔이 줄지 않음
+  safe: true                      # 광산 안 피해 0
+  district: {auto_build: true, sites: [east, south_east], blocks_per_tick: 3000, notify_admins: true}   # 광산 마을 자동 짓기 (마을 패키지)

@@ -34,4 +34,16 @@ public interface MineApi {
      * TOOLTIP_DISPLAY 로 바닐라 줄 숨김). ItemService 가 TOOL 을 만들 때·접속 때 다시 부른다. def 가 곡괭이가 아니면 stack 그대로.
      */
     ItemStack applyPickaxe(ItemStack stack, ItemDef def);
+
+    // ── 0.3.6 Q1 더함 (이름은 그대로, 더하기만) ──────────────────────────
+
+    /** 광산 월드 안 피해 0 인가 (config mine.safe, 기본 true). {@link MineSafety} 가 묻는다. */
+    default boolean safe() { return true; }
+
+    /**
+     * {@code /미궁 광산}·메인 메뉴 "광산": 구역이 있으면 승강장 앞으로, 없으면 얕은 갱도 승강장으로 (계약 §2.5). 미궁 안에서는 못 씀.
+     * config {@code mine.teleport_command} (auto = village.teleport_command) 가 끄면 관리자만. 광산 안이면 승강기 메뉴.
+     * {@link #openLift} 는 승강기 앞(광산 안·구역 승강장)에서 메뉴를, 그 밖에서는 이것과 같게 움직인다.
+     */
+    default void openMine(Player player) { openLift(player); }
 }

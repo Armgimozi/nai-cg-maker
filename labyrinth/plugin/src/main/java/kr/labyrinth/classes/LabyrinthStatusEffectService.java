@@ -131,6 +131,9 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
         long now = System.currentTimeMillis();
         if (target instanceof Player p && (p.getGameMode() == org.bukkit.GameMode.CREATIVE
                 || p.getGameMode() == org.bukkit.GameMode.SPECTATOR)) return;
+        // 광산 월드 (0.3.6): 해로운 효과·밀쳐내기·효과 피해 없음
+        if ((EffectStack.harmful(id) || id.equals("knockback") || id.equals("damage"))
+                && kr.labyrinth.mine.MineSafety.protects(services.mine(), target)) return;
         if (isBoss(target) && (id.equals("stun") || id.equals("root") || id.equals("frozen"))) return;
 
         switch (id) {
@@ -218,6 +221,7 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
         if (target == null || target.isDead() || !(perStack > 0)) return;
         if (target instanceof Player p && (p.getGameMode() == org.bukkit.GameMode.CREATIVE
                 || p.getGameMode() == org.bukkit.GameMode.SPECTATOR)) return;
+        if (EffectStack.harmful(layer) && kr.labyrinth.mine.MineSafety.protects(services.mine(), target)) return; // 광산 (0.3.6)
         long now = System.currentTimeMillis();
         double dur = Math.max(0.05, durationSeconds);
         if (target instanceof Player p) {
@@ -235,6 +239,7 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
     @Override
     public void applyFrost(LivingEntity target, int stacks, double freezeSeconds, double bossVulnerable, LivingEntity source) {
         if (target == null || target.isDead()) return;
+        if (kr.labyrinth.mine.MineSafety.protects(services.mine(), target)) return; // 광산 (0.3.6)
         State s = state(target);
         s.frostFreeze = Math.max(0, freezeSeconds);
         s.frostBossVuln = Math.max(0, bossVulnerable);
