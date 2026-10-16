@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "kr.labyrinth"
-version = "0.3.5"
+version = "0.3.5.1"
 
 repositories {
     maven("https://repo.papermc.io/repository/maven-public/")

@@ -244,7 +244,6 @@ starter_kit:
     - {item: minor_healing_potion, amount: 10}
     - {item: minor_mana_potion, amount: 5}
     - {item: return_scroll, amount: 2}
-    - {item: "minecraft:bread", amount: 16}
 
 # 직업 변경 (최상위 키) — 첫 직업 선택은 무료. 그 뒤로 바꿀 때마다:
 #   require_item: true 면 item(전직의 두루마리, 떠돌이 상인 핀이 판다) 1장이 사라진다.

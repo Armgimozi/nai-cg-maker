@@ -179,7 +179,7 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
     }
 
     /**
-     * 시작 꾸러미 (config.yml starter_kit — 수련생 방어구 4종 · 물약 · 귀환 주문서 · 빵 · 골드) 중 아직 받지 않은 몫을 지급.
+     * 시작 꾸러미 (config.yml starter_kit — 수련생 방어구 4종 · 물약 · 귀환 주문서 · 골드) 중 아직 받지 않은 몫을 지급.
      * 꾸러미를 늘린 판에서는 예전 꾸러미를 받은 사람에게 차이만 준다. 콘텐츠에 없는 아이템 줄은 건너뛰고(기록도 안 함),
      * minecraft: 로 시작하는 id 는 바닐라 아이템. 가방이 차면 발밑에 떨군다.
      */

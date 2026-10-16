@@ -23,8 +23,22 @@ class StarterKitTest {
         assertEquals(10, all.get("minor_healing_potion"));
         assertEquals(5, all.get("minor_mana_potion"));
         assertEquals(2, all.get("return_scroll"));
-        assertEquals(16, all.get("minecraft:bread"));
+        assertTrue(!all.containsKey("minecraft:bread"), "빵은 뺌 (허기가 늘 가득이라 먹을 수 없음)");
         assertEquals(300, all.get(StarterKit.GOLD));
+    }
+
+    @Test
+    void breadListFrom033IsUpgraded() {
+        // 0.3.3 ~ 0.3.5 가 복사해 둔 그대로의 목록 (빵 16 포함) → 빵 없는 새 기본값
+        YamlConfiguration y = new YamlConfiguration();
+        y.set("starter_kit.items", List.of(Map.of("item", "novice_cap", "amount", 1), Map.of("item", "novice_tunic", "amount", 1),
+                Map.of("item", "novice_trousers", "amount", 1), Map.of("item", "novice_boots", "amount", 1),
+                Map.of("item", "minor_healing_potion", "amount", 10), Map.of("item", "minor_mana_potion", "amount", 5),
+                Map.of("item", "return_scroll", "amount", 2), Map.of("item", "minecraft:bread", "amount", 16)));
+        assertEquals(Settings.DEFAULT_STARTER_KIT, new Settings(y).starterKit());
+        // 빵 개수를 직접 바꿨으면 그대로 따른다
+        y.set("starter_kit.items", List.of(Map.of("item", "minecraft:bread", "amount", 32)));
+        assertEquals(List.of(new Settings.KitItem("minecraft:bread", 32)), new Settings(y).starterKit());
     }
 
     @Test

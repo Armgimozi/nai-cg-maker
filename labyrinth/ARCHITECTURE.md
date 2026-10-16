@@ -915,9 +915,10 @@ starter_kit:               # 직업을 처음 고를 때 플레이어당 한 번
   gold: 300                #   시작 골드 (키 없으면 300)
   items: [{item: novice_cap, amount: 1}, {item: novice_tunic, amount: 1}, {item: novice_trousers, amount: 1},
           {item: novice_boots, amount: 1}, {item: minor_healing_potion, amount: 10}, {item: minor_mana_potion, amount: 5},
-          {item: return_scroll, amount: 2}, {item: "minecraft:bread", amount: 16}]
+          {item: return_scroll, amount: 2}]
   # id 가 minecraft: 로 시작하면 바닐라 아이템. 콘텐츠에 없는 id 는 경고 후 건너뜀, amount ≤ 64.
   # 0.3.2 기본 목록(수련생 4 + 하급 치유 물약 5)이 그대로면 새 기본값으로 읽는다 (Settings.LEGACY_STARTER_KIT_032).
+  # 0.3.3~0.3.5 기본 목록(빵 16 포함)도 그대로면 빵 없는 새 기본값으로 읽는다 (Settings.LEGACY_STARTER_KIT_033).
   # 받은 양 = PlayerData ext starter.kit_got ["id*개수", …, "$gold*n"] — 꾸러미를 늘리면 차이만 지급. 예전 starter.kit: true = 0.3.2 목록을 받은 것.
   # 기존 플레이어(이미 직업 있음): 접속 때 Lv.5 이하이고 dungeon.clear_floor_1 == 0 일 때만 지급, 그 밖에는 받은 것으로 기록만
 class_change:              # 직업 변경 제한 (§4.1 ClassChangeGate) — 끄기 class_change: false (또는 require_item: false + cooldown_hours: 0)
