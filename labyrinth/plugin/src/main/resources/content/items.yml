@@ -1311,7 +1311,7 @@ items:
     unique: {id: rend, name: "거미 날", pct: 0.12, duration: 4, max_stacks: 5}
     model: {shape: blade_bow, length: 1.0}
     texture: {style: bone, palette: ["#1c1814", "#3e342a", "#7a6a56", "#c8bca8", "#9a2a2a"]}
-    lore: "갱도 거미의 다리뼈를 활채에 덧대 등이 칼처럼 선 활. 화살이 떨어지면 그대로 휘둘러도 된다."
+    lore: "갱도 거미의 다리뼈를 활채에 덧대 등이 칼처럼 선 활. 휘두를 수는 있지만 쏘는 편이 낫다."
   glowcap_longbow:
     name: "빛갓 장궁"
     type: weapon

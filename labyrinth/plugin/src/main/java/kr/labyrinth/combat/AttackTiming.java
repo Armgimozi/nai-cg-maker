@@ -137,4 +137,13 @@ public final class AttackTiming {
     }
 
     public long nextReady() { return nextReady; }
+
+    /**
+     * 활 당김을 막아 둘 시간 (ms, 0.3.6.1 손맛 검토 1): 지금부터 당김을 세기 시작하는 때(다음 시각 − 허용 오차, {@link #bowDrawnMs})까지.
+     * 그 전에 당기면 화면의 활은 차는데 서버는 세지 않아 덜 당긴 화살이 나간다 — 근접 한 대·무기 바꿈 뒤 이만큼 활에 바닐라 재사용 대기
+     * (하얀 막대, 그동안 당겨지지 않음)를 건다 ({@code AttackClock}). 그 뒤에 당기기 시작하면 화면과 서버가 같다. 0 = 바로 당겨도 다 센다.
+     */
+    public long drawBlockedMs(long now, long toleranceMs) {
+        return Math.max(0, nextReady - Math.max(0, toleranceMs) - now);
+    }
 }

@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import kr.labyrinth.Services;
 import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.core.Settings;
+import kr.labyrinth.core.Text;
 import kr.labyrinth.stats.DerivedStats;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
@@ -21,13 +22,18 @@ import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.entity.EntityShootBowEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.BoundingBox;
@@ -45,7 +51,9 @@ import org.bukkit.util.Vector;
  *   <li>활: 끝까지 당겨지면 본인에게만 작은 '탁' 소리 (바닐라 활 그림은 늘 1초라서).</li>
  *   <li>활 쏘기와 근접 치기는 같은 시계 (0.3.6.1) — 공격마다 제 시간을 쓴다: 근접 한 대 = 그 뒤 간격, 화살 한 발 = 그 앞 당김 + 그 뒤
  *       다시 메기기 0.15초. 쏜 직후 단도로 바꾸면 약 0.2초 뒤에 찌르고, 근접 한 대 뒤의 당김은 그 간격이 끝난 뒤부터 센다
- *       ({@link AttackTiming#bowDrawnMs} · {@link AttackTiming#shot}). 번갈아 써도 두 무기 중 센 쪽보다 빨라지지 않는다.</li>
+ *       ({@link AttackTiming#bowDrawnMs} · {@link AttackTiming#shot}). 번갈아 써도 두 무기 중 센 쪽보다 빨라지지 않는다.
+ *       그 기다림은 활의 바닐라 재사용 대기(하얀 막대)로 보여 주고 그동안 당기지 못하게 한다 — 화면에 끝까지 당겨진 활 = 서버가 센 끝까지 당김
+ *       ({@link #gateBow}). 주손에 미궁 근접·시전 무기를 든 채 보조손 활은 당기지 않는다 ({@link #onUseBow}).</li>
  * </ul>
  * 바닐라 무기(칼·도끼·삼지창 등 아이템에 공격 속도가 있는 것)는 바닐라 게이지 그대로라 여기서 막지 않는다.
  */
@@ -155,12 +163,14 @@ final class AttackClock implements Listener {
         long lead = a.ranged() ? ms(CombatMath.bowDraw(a.interval(), as, min)) : 0;
         t.swap(System.currentTimeMillis(), ms(CombatMath.cycle(a, as, min)), SWAP_DELAY_FRACTION, lead);
         drawCued.remove(p.getUniqueId());
+        gateBow(p, t, newMain); // 근접 간격이 남았으면 그동안 활을 못 당기게 (손맛 검토 1)
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         clocks.remove(e.getPlayer().getUniqueId());
         drawCued.remove(e.getPlayer().getUniqueId());
+        offHandHinted.remove(e.getPlayer().getUniqueId());
     }
 
     // ── 1틱: 기억한 클릭 넣기 · 활 끝까지 당김 소리 ─────────────────────────
@@ -288,4 +298,89 @@ final class AttackClock implements Listener {
 
     /** 엔티티가 시계를 쓰는 플레이어인가 (디버그·자가 진단용). */
     boolean tracking(Entity e) { return e instanceof Player p && clocks.containsKey(p.getUniqueId()); }
+
+    // ── 활 당김 막기 (0.3.6.1 손맛 검토 1) · 보조손 활 ──────────────────────
+
+    /** 재사용 대기를 걸 만큼 남았는가 (ms) — 한 틱(50ms) 이하는 당김을 거의 잃지 않아 걸지 않는다. */
+    static final long GATE_MIN_MS = 50;
+    /** 보조손 활 안내를 다시 띄우기까지 (ms). */
+    static final long OFFHAND_HINT_GAP_MS = 3000;
+
+    /** 보조손 활 안내를 마지막으로 띄운 때. */
+    private final Map<UUID, Long> offHandHinted = new ConcurrentHashMap<>();
+
+    /** 막아 둘 시간(ms) → 바닐라 재사용 대기 틱 (올림 — 대기가 끝난 뒤 당기기 시작하면 서버가 다 센다). 0 = 걸지 않음. */
+    static int gateTicks(long blockedMs) {
+        return blockedMs <= GATE_MIN_MS ? 0 : (int) Math.min(Integer.MAX_VALUE, (blockedMs + 49) / 50);
+    }
+
+    /**
+     * 당김을 세기 시작할 때까지 손(주손·보조손)의 활에 바닐라 재사용 대기를 건다 ({@link AttackTiming#drawBlockedMs}): 근접 한 대 뒤·활로 바꾼 뒤
+     * 그 무기 간격이 남았을 때. 단축 칸에 하얀 막대가 보이고 그동안 당겨지지 않으므로 화면에 끝까지 당겨진 활 = 서버가 센 끝까지 당김.
+     * 예전에는 그사이 당긴 것을 조용히 세지 않아, 활로 친 직후 평소처럼 1초 당겨 놓으면 화살이 과녁까지 못 갔다. 더 긴 대기가 있으면 그대로.
+     */
+    private void gateBow(Player p, AttackTiming t, ItemStack main) {
+        int ticks = gateTicks(t.drawBlockedMs(System.currentTimeMillis(), cfg().clickToleranceMs()));
+        if (ticks <= 0) return;
+        for (ItemStack it : new ItemStack[] {main, p.getInventory().getItemInOffHand()}) {
+            if (it == null || it.getType() != Material.BOW) continue;
+            if (p.getCooldown(it) < ticks) p.setCooldown(it, ticks);
+        }
+    }
+
+    /** 근접 한 대가 통과함 (기억한 클릭을 넣은 것 포함 — 시계는 이미 그 간격만큼 갔다): 손에 활이 있으면 그동안 당김을 막는다. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onAttackPassed(PrePlayerAttackEntityEvent e) {
+        Player p = e.getPlayer();
+        AttackTiming t = clocks.get(p.getUniqueId());
+        if (t != null) gateBow(p, t, p.getInventory().getItemInMainHand());
+    }
+
+    /**
+     * 활 당기기 (우클릭):
+     * <ul>
+     *   <li>재사용 대기 중이면 서버가 거절하면서 손님 쪽 당김도 되돌린다. 대기 패킷이 닿기 전에 누른 우클릭은 손님 화면에서 먼저 당겨지는데,
+     *       바닐라는 조용히 무시만 해서 놓아도 화살이 안 나가는 빈 당김이 된다 (Paper 는 플러그인이 거절한 사용이면 '쓰는 중' 상태를 다시 보낸다).
+     *       우클릭을 누르고 있으면 대기가 끝나는 대로 손님이 다시 당긴다.</li>
+     *   <li>주손에 미궁 근접·시전 무기를 든 채 보조손 활은 당기지 않는다. 그 화살은 주손 무기의 한 방·피해 종류·고유 효과로 나가서
+     *       (0.3.5 부터) 큰 도끼를 들고 보조손 활을 쏘면 가장 좋은 활만큼 셌다. 활은 주손에 들고 쏜다.</li>
+     * </ul>
+     */
+    @EventHandler(priority = EventPriority.LOW)
+    public void onUseBow(PlayerInteractEvent e) {
+        if (e.getAction() != Action.RIGHT_CLICK_AIR && e.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+        ItemStack it = e.getItem();
+        if (it == null || it.getType() != Material.BOW) return;
+        Player p = e.getPlayer();
+        if (offHandBowWithWeapon(p, e.getHand())) {
+            e.setUseItemInHand(Event.Result.DENY);
+            offHandHint(p);
+        } else if (p.hasCooldown(it)) {
+            e.setUseItemInHand(Event.Result.DENY);
+        }
+    }
+
+    /** 보조손 활을 당기는 사이 주손을 미궁 근접·시전 무기로 바꿨으면 그 화살은 내보내지 않는다 ({@link #onUseBow} 와 같은 규칙). */
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onShootOffHand(EntityShootBowEvent e) {
+        if (e.getEntity() instanceof Player p && offHandBowWithWeapon(p, e.getHand())) {
+            e.setCancelled(true);
+            offHandHint(p);
+        }
+    }
+
+    /** 보조손으로 쓰는 활인데 주손에 미궁 근접·시전 무기가 있는가. */
+    private boolean offHandBowWithWeapon(Player p, EquipmentSlot hand) {
+        if (hand != EquipmentSlot.OFF_HAND) return false;
+        ItemDef main = services.items().heldWeapon(p);
+        return main != null && !WeaponAttack.of(main).ranged();
+    }
+
+    private void offHandHint(Player p) {
+        long now = System.currentTimeMillis();
+        Long last = offHandHinted.get(p.getUniqueId());
+        if (last != null && now - last < OFFHAND_HINT_GAP_MS) return;
+        offHandHinted.put(p.getUniqueId(), now);
+        services.hud().actionBar(p, Text.mm("<#ff6b6b>⚠ 활은 주손에 들고 쏘세요 <gray>— 주손에 무기를 들면 보조손 활은 당겨지지 않습니다"), 60);
+    }
 }

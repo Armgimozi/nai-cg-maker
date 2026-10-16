@@ -102,17 +102,20 @@ class BowFeelFixTest {
         double power = dagger.power(DamageKind.PHYSICAL);
         assertEquals(6 * power, DamageService.rawAmount(dagger, DamageContext.Base.PER_HIT, DamageKind.PHYSICAL, 1.0), EPS,
                 "바꿔 넣지 않으면 지금 든 무기");
-        assertEquals(17 * power, DamageService.rawAmount(dagger, DamageContext.Base.PER_HIT, DamageKind.PHYSICAL, 1.0, 17), EPS);
-        assertEquals(17 * power * 0.5, DamageService.rawAmount(dagger, DamageContext.Base.PER_HIT, DamageKind.PHYSICAL, 0.5, 17), EPS,
-                "세기 배율은 그대로 곱한다");
-        assertEquals(6 * power, DamageService.rawAmount(dagger, DamageContext.Base.PER_HIT, DamageKind.PHYSICAL, 1.0, Double.NaN), EPS);
+        // 화살: DamageService.deal 은 hasWeaponHit() 이고 기준이 PER_HIT 이면 이 값으로 (c0361 마법탄과 같은 길)
+        assertEquals(17 * power, DamageService.rawAmount(dagger, 17.0, DamageKind.PHYSICAL, 1.0), EPS);
+        assertEquals(17 * power * 0.5, DamageService.rawAmount(dagger, 17.0, DamageKind.PHYSICAL, 0.5), EPS, "세기 배율은 그대로 곱한다");
         assertEquals(dagger.skillPower() * power * 2.0,
-                DamageService.rawAmount(dagger, DamageContext.Base.SKILL, DamageKind.PHYSICAL, 2.0, 17), EPS, "스킬은 스킬 위력 그대로");
+                DamageService.rawAmount(dagger, DamageContext.Base.SKILL, DamageKind.PHYSICAL, 2.0), EPS, "스킬은 스킬 위력 그대로");
 
         DamageContext ctx = DamageContext.attack(null, null, 1.0, DamageType.RANGED);
         assertTrue(Double.isNaN(ctx.weaponHit()));
+        assertFalse(ctx.hasWeaponHit());
         assertEquals(17, ctx.weaponHit(17).weaponHit(), EPS);
-        assertTrue(Double.isNaN(ctx.weaponHit(0).weaponHit()), "0 이하는 무시");
+        assertTrue(ctx.hasWeaponHit());
+        assertTrue(Double.isNaN(ctx.weaponHit(0).weaponHit()), "0 이하는 '없음' (지금 든 무기)");
+        assertFalse(ctx.weaponHit(-3).hasWeaponHit());
+        assertFalse(ctx.weaponHit(Double.NaN).hasWeaponHit());
         assertEquals(1.0, ctx.attackMultiplier(), EPS, "매의 눈 판정(세기 ≥ 0.999)은 배율로 그대로");
     }
 }

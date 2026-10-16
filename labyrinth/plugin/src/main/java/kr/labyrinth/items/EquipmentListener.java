@@ -513,10 +513,17 @@ final class EquipmentListener implements Listener, StatContributor {
     void ensureArrow(Player p) {
         if (!p.isOnline()) return;
         ItemDef def = services.items().defOf(p.getInventory().getItemInMainHand()).orElse(null);
-        if (def == null || !GearItemService.isBow(def)) return;
+        // 일찍 돌아갈 때도 '가득 참' 표시를 지운다 — 남아 있으면 같은 접속에서 다시 가방이 찼을 때 알림 없이 활이 안 당겨졌다 (안전 검토 5)
+        if (def == null || !GearItemService.isBow(def)) {
+            arrowBlocked.remove(p.getUniqueId());
+            return;
+        }
         for (ItemStack s : p.getInventory().getContents()) {
             if (s != null && (s.getType() == Material.ARROW || s.getType() == Material.SPECTRAL_ARROW
-                    || s.getType() == Material.TIPPED_ARROW)) return;
+                    || s.getType() == Material.TIPPED_ARROW)) {
+                arrowBlocked.remove(p.getUniqueId());
+                return;
+            }
         }
         ItemStack arrow = ItemStack.of(Material.ARROW);
         arrow.setData(DataComponentTypes.ITEM_NAME, Text.item("<#c8d6ff>미궁 화살 <dark_gray>(무한)"));

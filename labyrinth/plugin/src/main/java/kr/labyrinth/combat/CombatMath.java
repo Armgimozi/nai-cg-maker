@@ -96,6 +96,17 @@ public final class CombatMath {
         return (x * x + 2 * x) / 3.0;
     }
 
+    /**
+     * 화살에 무기 고유 효과가 붙는 가장 낮은 세기 (0.3.6.1 안전 검토 1). 끝까지(거의) 당긴 화살만 기본 공격 고유 효과(휩쓸기·연타·방패 강타·
+     * 가속·흡혈 등)를 켠다. 고유 효과의 덧 피해는 세기와 상관없이 무기 한 방 기준이라, 3틱만 당겨 놓는 화살(세기 0.1, 0.2초마다 한 발)을
+     * 연달아 쏘면 끝까지 당길 때보다 고유 효과가 몇 배로 켜졌다. 0.9 = 끝까지 당기는 시간의 약 92% — 그보다 덜 당긴 화살은 고유 효과 없음.
+     * 이 세기 그대로 연달아 쏴도 고유 효과가 켜지는 빠르기는 끝까지 당길 때의 (당김 + 0.15) ÷ (0.924 × 당김 + 0.15) < 1.09배뿐이다.
+     */
+    public static final double ARROW_UNIQUE_MIN_FORCE = 0.9;
+
+    /** 이 세기의 화살이 무기 고유 효과를 켜는가 ({@link #ARROW_UNIQUE_MIN_FORCE}). */
+    public static boolean arrowProcsUnique(double force) { return force >= ARROW_UNIQUE_MIN_FORCE - 1e-9; }
+
     /** 바닐라 활 세기(20틱 기준)를 당긴 틱 수로 되돌림 — 서버가 당긴 시간을 못 읽을 때만. */
     public static double ticksFromVanillaForce(double force) {
         double f = clamp(force, 0, 1);

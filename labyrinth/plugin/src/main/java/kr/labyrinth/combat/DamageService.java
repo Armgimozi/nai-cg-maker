@@ -184,7 +184,9 @@ public final class DamageService implements Module {
         // 원피해 결정 (0.3.5): 기준(기본 공격 = 무기 한 방 W, 스킬 = 스킬 위력 SP) × 피해 종류의 스탯 배율 × 배율
         if (ctx.usesAttackPower()) {
             ctx.kind(resolveKind(ctx, atk));
-            ctx.amount(rawAmount(atk, ctx.base(), ctx.kind(), ctx.attackMultiplier(), ctx.weaponHit()));
+            ctx.amount(ctx.hasWeaponHit() && ctx.base() == DamageContext.Base.PER_HIT && atk != null
+                    ? rawAmount(atk, ctx.weaponHit(), ctx.kind(), ctx.attackMultiplier()) // 화살: 쏜 순간의 활 W
+                    : rawAmount(atk, ctx.base(), ctx.kind(), ctx.attackMultiplier()));
         } else if (ctx.isPercent()) {
             ctx.amount(maxHp(target) * ctx.percent());
         }
@@ -326,19 +328,15 @@ public final class DamageService implements Module {
      * 공격자 능력치가 없으면 배율 그대로 (예전과 같음).
      */
     public static double rawAmount(DerivedStats atk, DamageContext.Base base, DamageKind kind, double multiplier) {
-        return rawAmount(atk, base, kind, multiplier, Double.NaN);
+        if (atk == null) return multiplier;
+        return rawAmount(atk, base == DamageContext.Base.SKILL ? atk.skillPower() : atk.weaponDamage(), kind, multiplier);
     }
 
-    /**
-     * {@link #rawAmount(DerivedStats, DamageContext.Base, DamageKind, double)} + 기본 공격 W 바꿔 넣기 (weaponHit, NaN 이면 지금 든 무기).
-     * 화살은 쏜 순간의 활 W 를 넘긴다 — 날아가는 동안 단검으로 바꿔도 그 화살은 활 피해 (0.3.6.1, bowfeel B1).
-     */
-    public static double rawAmount(DerivedStats atk, DamageContext.Base base, DamageKind kind, double multiplier, double weaponHit) {
+    /** 기준값을 직접 주는 원피해 (화살 — 쏜 순간의 활 한 방, 0.3.6.1 bowfeel B1). 나머지 배율은 지금 능력치. */
+    public static double rawAmount(DerivedStats atk, double base, DamageKind kind, double multiplier) {
         if (atk == null) return multiplier;
-        double w = base == DamageContext.Base.PER_HIT && weaponHit > 0 ? weaponHit : atk.weaponDamage();
-        double b = base == DamageContext.Base.SKILL ? atk.skillPower() : w;
         double magic = kind == DamageKind.MAGIC ? atk.magicDamage() : kind == DamageKind.HYBRID ? 0.5 * atk.magicDamage() : 0;
-        return b * atk.power(kind) * multiplier * Math.max(0.1, 1.0 + magic);
+        return Math.max(0, base) * atk.power(kind) * multiplier * Math.max(0.1, 1.0 + magic);
     }
 
     /** 치유 (커스텀 HP 단위, 출처 = {@link HealKind#OTHER}, 전부 '최대 HP 비율' 몫). 플레이어·커스텀 몹 공통. @return 실제 회복량 */
