@@ -4,7 +4,7 @@
 설계 함수가 없는 몹·부위는 예전 상자 방식(`src/mobs.py`) 그대로 나온다.
 
 ## 등록 규칙
-- 파일마다 `DESIGNS = {mob_id: 설계함수}`. 담당: `f01_03.py` `f04_06.py` `f07_08.py` `f09_10.py` `bosses.py` (자기 파일만 고친다).
+- 파일마다 `DESIGNS = {mob_id: 설계함수}`. 담당: `f01_03.py` `f04_06.py` `f07_08.py` `f09_10.py` `bosses.py` · `mimic.py`(0.3.6 미믹 3종 — 상자 괴물, 한 설계를 셋이 같이 씀) (자기 파일만 고친다).
   이 폴더의 파일은 자동 import — import 가 깨지면 경고만 내고 그 파일만 건너뛴다(남의 작업을 막지 않음).
 - `설계함수(look, part_name, part_def, ctx) -> MobGrid | None` — 부위마다 한 번 불린다. `None` = 그 부위는 예전 방식.
   `g = ctx.grid(vs)` 로 만들고(vs = 복셀 1개의 px, 기본 `ctx.vs`), 칠해서 돌려준다. 예외가 나면 그 부위만 예전 방식 + 경고.

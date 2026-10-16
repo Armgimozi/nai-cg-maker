@@ -107,6 +107,10 @@ public final class LabMob implements CustomMob {
     long lastRepath;
     Location lastPathGoal;
     UUID lastDamager;
+    /** 부드러운 줄 가운데 (null = 줄 없음, {@link Leash}) · 길이(블록). */
+    Location leashCentre;
+    double leashRadius;
+    private boolean killed;
     private boolean dead;
     private boolean removed;
     private Component lastPlate;
@@ -232,6 +236,26 @@ public final class LabMob implements CustomMob {
 
     @Override
     public UUID lastHitPlayer() { return lastDamager; }
+
+    @Override
+    public boolean killed() { return killed; }
+
+    @Override
+    public void leash(Location centre, double radius) {
+        leashCentre = centre == null ? null : centre.clone();
+        leashRadius = Math.max(1, radius);
+    }
+
+    /** 줄 가운데에서 loc 까지 수평 거리 (줄이 없거나 다른 월드면 0). */
+    double fromLeash(Location loc) {
+        if (leashCentre == null || loc.getWorld() != leashCentre.getWorld()) return 0;
+        return MobAi.horizontal(leashCentre, loc);
+    }
+
+    /** 돌진 스킬(도약·돌격·순간이동)로 이 대상에게 덮쳐도 되나 — 줄이 있으면 대상이 줄 끝 근처일 때만. */
+    boolean mayLunge(Location targetLoc) {
+        return leashCentre == null || Leash.canLunge(fromLeash(targetLoc), leashRadius);
+    }
 
     @Override
     public double applyDamage(double amount, DamageContext dctx) {
@@ -407,6 +431,7 @@ public final class LabMob implements CustomMob {
     private void die(Player killer) {
         if (dead) return;
         dead = true;
+        killed = true;
         long now = service.now();
         deathTick = now;
         cancelHandles();

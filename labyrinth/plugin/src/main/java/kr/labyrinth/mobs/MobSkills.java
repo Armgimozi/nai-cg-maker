@@ -105,8 +105,8 @@ final class MobSkills {
         double hpRatio = m.hp / m.stats.maxHp();
         boolean see = m.entity.hasLineOfSight(t);
         return switch (type) {
-            case "leap" -> dist >= 3 && dist <= p.dbl("range", 8) && see;
-            case "charge" -> dist >= 3 && dist <= p.dbl("distance", 8) + 2 && see;
+            case "leap" -> dist >= 3 && dist <= p.dbl("range", 8) && see && m.mayLunge(t.getLocation());
+            case "charge" -> dist >= 3 && dist <= p.dbl("distance", 8) + 2 && see && m.mayLunge(t.getLocation());
             case "slam" -> {
                 double r = p.dbl("radius", 3);
                 boolean ring = "ring".equals(p.str("shape"));
@@ -118,8 +118,8 @@ final class MobSkills {
             case "breath" -> dist <= p.dbl("length", 6) && see;
             case "shield" -> hpRatio < 0.9 || (!p.bool("self_only", true) && anyHurt(m, p.dbl("radius", 8), 0.85));
             case "summon" -> aliveSummons(m) < summonMaxAlive(p, m) && m.def.raw() != null;
-            case "blink" -> p.bool("behind", false) ? dist <= p.dbl("range", 8) + 4 && dist >= 2.5
-                    : (dist < 4 || dist > 7) && dist <= p.dbl("range", 8) * 2;
+            case "blink" -> m.mayLunge(t.getLocation()) && (p.bool("behind", false) ? dist <= p.dbl("range", 8) + 4 && dist >= 2.5
+                    : (dist < 4 || dist > 7) && dist <= p.dbl("range", 8) * 2);
             case "heal_allies" -> anyHurt(m, p.dbl("radius", 10), 0.75);
             case "buff_allies" -> true;
             case "snare" -> dist <= p.dbl("range", 9);
@@ -805,6 +805,7 @@ final class MobSkills {
         double radius = p.dbl("radius", 0);
         double strength = p.dbl("strength", 1.2);
         String fx = p.str("fx");
+        Color line = hexColor(p.str("color"), Color.fromRGB(150, 150, 160));   // 끌어오는 줄 색 (미믹 혀 = 붉게)
         int w = m.windupTicks(p, 0.7);
         standStill(m, now + w + 8);
         m.castTick = now;
@@ -834,12 +835,25 @@ final class MobSkills {
                 hit(m, e, m.skillDamage(p, "damage", 0.8), DamageType.MELEE, "pull", 0);
                 for (double s = 0; s < len; s += 0.6) {
                     Vector dir = e.getLocation().add(0, 1, 0).toVector().subtract(me.toVector()).normalize();
-                    MobFx.dust(me.clone().add(dir.multiply(s)), Color.fromRGB(150, 150, 160), 0.8f, 1, 0);
+                    MobFx.dust(me.clone().add(dir.multiply(s)), line, 0.8f, 1, 0);
                 }
                 if (tether != null) Bukkit.getScheduler().runTaskLater(m.services.plugin(), () -> m.service.fx().discard(tether), 8L);
             }
         }));
         return true;
+    }
+
+    /** "#rrggbb" → 색 (없거나 틀리면 def). */
+    static Color hexColor(String hex, Color def) {
+        if (hex == null) return def;
+        String h = hex.trim();
+        if (h.startsWith("#")) h = h.substring(1);
+        if (h.length() != 6) return def;
+        try {
+            return Color.fromRGB(Integer.parseInt(h, 16));
+        } catch (IllegalArgumentException e) {
+            return def;
+        }
     }
 
     private static boolean debuff(LabMob m, Params p, LivingEntity t, long now) {

@@ -125,6 +125,20 @@ public final class MobServiceImpl implements MobService, Listener {
         }
     }
 
+    @Override
+    public CustomMob spawnDef(MobDef def, Location loc, InstanceContext ctx) {
+        if (def == null || loc == null || loc.getWorld() == null) {
+            Log.warn("[몹] 스폰 실패: 정의 없음 또는 위치 오류 (" + (def == null ? "null" : def.id()) + ")");
+            return null;
+        }
+        try {
+            return doSpawn(def, loc, ctx, false);
+        } catch (Throwable t) {
+            Log.error("[몹] 스폰 오류 (" + def.id() + ")", t);
+            return null;
+        }
+    }
+
     private LabMob doSpawn(MobDef def, Location loc, InstanceContext ctxIn, boolean eliteVariant) {
         InstanceContext ctx = ctxIn != null ? ctxIn
                 : InstanceContext.adhoc(Math.max(1, def.floor()), 1, services.settings().difficulty(), services.settings().party());

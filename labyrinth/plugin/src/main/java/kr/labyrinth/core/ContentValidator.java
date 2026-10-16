@@ -20,6 +20,7 @@ import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.ItemSetDef;
 import kr.labyrinth.content.ItemType;
 import kr.labyrinth.content.LootTable;
+import kr.labyrinth.content.ModelDef;
 import kr.labyrinth.content.MobDef;
 import kr.labyrinth.content.NpcDef;
 import kr.labyrinth.content.Params;
@@ -433,7 +434,7 @@ public final class ContentValidator {
             if (!MOB_RANKS.contains(m.rank())) err(w, "rank 가 올바르지 않음: " + m.rank());
             if (m.hp() <= 0) err(w, "hp 는 양수");
             if (m.drops() != null) requireTable(w + ".drops", m.drops());
-            else if (!m.isAdd()) warn(w, "drops 가 없음(소환물이 아닌데)");
+            else if (!m.isAdd() && !kr.labyrinth.dungeon.treasure.MimicSpec.isMimic(m)) warn(w, "drops 가 없음(소환물이 아닌데)");
             if (!isEntityType(m.base())) err(w, "base 엔티티 타입이 올바르지 않음: " + m.base());
             mobSkills(w, m.skills());
             boolean flies = m.flying() || (m.base() != null && FLYING_BASES.contains(m.base().toUpperCase(java.util.Locale.ROOT)));
@@ -442,7 +443,34 @@ public final class ContentValidator {
                 if ("burrow".equals(s.type()) && flies) err(w + ".skills.burrow", "burrow 는 땅 위 몹만 쓸 수 있음");
             }
             if (m.model().parts().isEmpty()) err(w, "model.parts 가 비어 있음");
+            mimic(w, m);
         }
+    }
+
+    /** 미믹 (mobs.yml {@code mimic:} — dungeon.treasure.MimicSpec): floors 범위 · 배율 · companion. floor 0 은 미믹만. */
+    private void mimic(String w, MobDef m) {
+        boolean isMimic = kr.labyrinth.dungeon.treasure.MimicSpec.isMimic(m);
+        if (!isMimic) {
+            if (m.floor() == 0) warn(w, "floor 0(모든 층)은 미믹(mimic: 블록)만 씀");
+            return;
+        }
+        Params k = m.raw().sub("mimic");
+        int[] r = kr.labyrinth.dungeon.treasure.MimicSpec.floors(m);
+        if (r != null && (r[0] < 1 || r[1] > Math.max(1, c.maxFloor()))) err(w + ".mimic.floors", "층 범위가 1~" + c.maxFloor() + " 밖: " + r[0] + "~" + r[1]);
+        for (String key : List.of("hp", "damage", "defense", "xp", "gold")) {
+            if (k.has(key) && k.dbl(key, 1) < 0) err(w + ".mimic." + key, "배율은 0 이상");
+        }
+        if (k.dbl("hp", 1) <= 0) err(w + ".mimic.hp", "hp 배율은 양수");
+        String comp = k.str("companion");
+        if (comp != null) {
+            MobDef d = c.mob(comp);
+            if (d == null) err(w + ".mimic.companion", "없는 몹 '" + comp + "'");
+            else if (!kr.labyrinth.dungeon.treasure.MimicSpec.isMimic(d)) warn(w + ".mimic.companion", "'" + comp + "' 에 mimic: 블록이 없음 (층 수치가 안 맞음)");
+            else if (comp.equals(m.id())) err(w + ".mimic.companion", "자기 자신");
+        }
+        boolean hasLid = false;
+        for (ModelDef.Part p : m.model().parts()) if ("lid".equals(p.anim())) hasLid = true;
+        if (!hasLid) warn(w + ".model", "미믹인데 anim lid 파트(뚜껑 턱)가 없음");
     }
 
     private static boolean isEntityType(String name) {

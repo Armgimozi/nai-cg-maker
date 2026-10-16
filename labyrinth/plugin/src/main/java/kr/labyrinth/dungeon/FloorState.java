@@ -424,6 +424,21 @@ public final class FloorState {
         }
     }
 
+    /** 정의를 직접 넘겨 소환 (층 수치로 바꾼 미믹 사본 — MimicSpec). 실패하면 null. */
+    public CustomMob spawnMob(MobDef def, Location at) {
+        if (def == null) return null;
+        try {
+            CustomMob m = services().mobs().spawnDef(def, at, ctx);
+            if (m != null && m.entity() != null) {
+                m.entity().getPersistentDataContainer().set(Keys.INSTANCE, PersistentDataType.STRING, ctx.id());
+            }
+            return m;
+        } catch (Throwable t) {
+            Log.error("몹 소환 실패: " + def.id(), t);
+            return null;
+        }
+    }
+
     /** 층 일반 몹 중 무작위. */
     public String randomFloorMob(java.util.SplittableRandom rng) {
         List<String> list = def.mobs();

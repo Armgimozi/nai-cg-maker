@@ -187,7 +187,7 @@ public final class Settings {
             new KitItem("novice_tunic", 1), new KitItem("novice_trousers", 1), new KitItem("novice_boots", 1),
             new KitItem("minor_healing_potion", 10), new KitItem("minor_mana_potion", 5), new KitItem("return_scroll", 2),
             new KitItem("minecraft:bread", 16));
-    /** 파티 최대 인원 기본값 (0.3.6 부터 5명 — 5 대 5 파티 대전에 맞춤). */
+    /** 파티 최대 인원 기본값 (0.3.5.1 부터 5명 — 5 대 5 파티 대전에 맞춤). */
     public static final int DEFAULT_PARTY_MAX = 5;
     /** 0.3.5 까지의 기본값. config.yml 에 그대로 남아 있으면 손대지 않은 것으로 보고 새 기본값으로 읽는다. */
     public static final int LEGACY_PARTY_MAX = 10;

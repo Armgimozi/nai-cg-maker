@@ -52,8 +52,10 @@ wipe_return_seconds: 5
 treasure:
   chests: 3
   mimic_chance: 0.3
-  mimic_mobs: 2              # 미믹이 부르는 몹 수 (미로 상자는 + 층/4)
-  mimic_lock_seconds: 30     # 미로 미믹 상자가 잠겨 있는 최대 초 (몹을 다 잡으면 바로 풀림 → 한 단계 좋은 상자)
+  # 0.3.6: 미믹 상자는 상자가 사라지고 상자 괴물(mobs.yml chest_mimic · gilded_mimic)이 튀어나온다 — 미믹 1마리, 6층부터 + 새끼 미믹 1.
+  # mimic_mobs 는 이제 mobs.yml 에 미믹 몹이 없을 때(직접 고친 옛 mobs.yml)만 쓴다: 그때는 예전처럼 층 일반 몹 이만큼 (미로 상자는 + 층/4).
+  mimic_mobs: 2
+  mimic_lock_seconds: 30     # 미믹이 달아날 때까지의 초 — 상자 자리 12칸 안에 살아 있는 사람이 있을 때만 흐름 (맞고 있으면 마지막으로 맞은 뒤 12초까지 미룸). 다 되면 깡충 달아난다. 잡거나 달아나면 그 자리에 상자가 돌아온다 (미로 상자는 한 단계 좋게)
 # 미로 함정 (층별 종류·밀도는 floors.yml traps, GDD §5.5)
 traps:
   disarm_seconds: 3          # 함정 칸 옆에서 웅크린 채 이만큼 → 해제
