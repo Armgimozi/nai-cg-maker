@@ -387,9 +387,15 @@ public final class PackService implements Module, Listener {
                     ok = PackUrlChoice.matches(r.body(), wantSha);
                     state = ok ? "받음 (sha1 맞음)" : "받았지만 sha1 다름";
                 }
+            } catch (java.net.http.HttpTimeoutException ex) {
+                ok = false;
+                state = "시간 초과";
+            } catch (java.net.ConnectException ex) {
+                ok = false;
+                state = "연결 안 됨";
             } catch (Exception ex) {
                 ok = false;
-                state = "받지 못함 (" + ex.getClass().getSimpleName() + ")";
+                state = "받지 못함";
             }
             boolean fok = ok;
             String fstate = state;
