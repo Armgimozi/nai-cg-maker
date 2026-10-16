@@ -38,7 +38,8 @@ public record DungeonConfig(
     /**
      * 함정·미로 상자 공통 규칙 (dungeon.yml {@code traps.*}·{@code treasure.*}, GDD §5.5·§5.6).
      * disarmSeconds = 함정 옆에서 웅크리고 있어야 하는 초, shadowDisarmSeconds = 그림자 직업, shadowSense = 그림자가 함정 윤곽을 보는 거리,
-     * disarmGold = 해제 골드 (× 층), disarmXp = 해제 경험치 (× 층 일반 몹 평균), mimicLockSeconds = 미믹 상자가 잠겨 있는 최대 초.
+     * disarmGold = 해제 골드 (× 층), disarmXp = 해제 경험치 (× 층 일반 몹 평균), mimicLockSeconds = 미믹이 살아 있는 최대 초
+ * (맞고 있으면 미룸 — 지나면 달아나고 상자가 돌아옴). 바깥 레코드의 mimicMobs 는 mobs.yml 에 미믹 몹이 없을 때만 쓴다(예전처럼 층 일반 몹 수).
      */
     public record TrapRules(double disarmSeconds, double shadowDisarmSeconds, double shadowSense, int disarmGold, double disarmXp,
                             int mimicLockSeconds) {}
@@ -116,7 +117,7 @@ public record DungeonConfig(
                 Math.max(1, c.getInt("wipe_return_seconds", 5)),
                 Math.max(1, Math.min(6, c.getInt("treasure.chests", 3))),
                 Math.max(0, Math.min(1, c.getDouble("treasure.mimic_chance", 0.3))),
-                Math.max(1, c.getInt("treasure.mimic_mobs", 2)),
+                Math.max(1, c.getInt("treasure.mimic_mobs", 2)),   // 0.3.6~: mobs.yml 에 미믹 몹이 없을 때만 (MimicEncounter)
                 Math.max(8, c.getDouble("spectator_leash", 28)),
                 Math.max(0, c.getDouble("fall_damage", 0.10)),
                 c.getBoolean("require_near_entrance", true),

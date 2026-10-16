@@ -412,7 +412,7 @@ final class SelfTest {
             }
         }
         if (dumpDir != null) blockDump(f, java.nio.file.Path.of(dumpDir), "after");
-        // 함정·미로 상자·금고·비밀방 (GDD §5.5·§5.6): 개수 + 사람 없이 한 번씩 발동·해제, 상자 블록·금고 문 열기·미믹 소환
+        // 함정·미로 상자·금고·비밀방 (GDD §5.5·§5.6): 개수 + 사람 없이 한 번씩 발동·해제, 상자 블록·금고 문 열기·미믹이 깨어나고 상자가 돌아옴
         count("traps", fs.traps().count());
         count("chests", fs.treasures().chestCount());
         count("vaults", fs.treasures().vaultCount());
@@ -431,7 +431,9 @@ final class SelfTest {
             int[] r = fs.treasures().selfTest();
             count("chests_ok", r[0]);
             count("vaults_opened", r[1]);
-            count("mimic_mobs", r[2]);
+            count("mimic_mobs", r[2]);       // 0.3.6: 미믹 상자 하나에 미믹 1마리 (6층부터 + 새끼 미믹 1)
+            count("mimic_restored", r[3]);   // 미믹이 사라진 자리에 한 단계 좋은 상자가 돌아옴
+            count("mimic_leashed", r[4]);    // 상자 자리에서 멀리 떨어뜨린 미믹이 되돌아옴
         });
         fs.exploration().revealAll();
         count("map_lines", ExplorationMap.render(fs, null).size());

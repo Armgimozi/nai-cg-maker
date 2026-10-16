@@ -403,17 +403,37 @@ public final class CodexMenu extends LabMenu {
         return out;
     }
 
+    /** 배율 글자: 1.35 → "1.35", 4.0 → "4". */
+    static String times(double v) {
+        String t = String.format(java.util.Locale.ROOT, "%.2f", v);
+        while (t.contains(".") && (t.endsWith("0") || t.endsWith("."))) t = t.substring(0, t.length() - 1);
+        return t;
+    }
+
     private List<ItemStack> mobEntries() {
         List<MobDef> list = new ArrayList<>(services.content().mobs().values());
-        list.sort(Comparator.comparingInt(MobDef::floor).thenComparing(m -> m.isElite() ? 1 : 0).thenComparing(MobDef::id));
+        // floor 0 (미믹 — 모든 층의 보물 상자)은 맨 뒤
+        list.sort(Comparator.comparingInt((MobDef m) -> m.floor() <= 0 ? Integer.MAX_VALUE : m.floor())
+                .thenComparing(m -> m.isElite() ? 1 : 0).thenComparing(MobDef::id));
         List<ItemStack> out = new ArrayList<>();
         for (MobDef m : list) {
             List<String> lore = new ArrayList<>();
             String rank = m.isElite() ? "<#ffb52e>정예" : m.isAdd() ? "<gray>소환물" : "<white>일반";
-            lore.add("<gray>지하 <white>" + m.floor() + "</white>층 · " + rank);
-            lore.add("<gray>HP <white>" + Text.num(m.hp()) + "</white> · 공격 <white>" + Text.num(m.damage()) + "</white> · 방어 <white>"
-                    + Text.num(m.defense()) + "</white> <dark_gray>(보통·보정 전)");
-            lore.add("<gray>경험치 <white>" + Text.num(m.xp()));
+            if (kr.labyrinth.dungeon.treasure.MimicSpec.isMimic(m)) {
+                // 미믹: 수치는 나오는 층 일반 몹 평균 × 배율 (MimicSpec)
+                var k = m.raw().sub("mimic");
+                int[] fl = kr.labyrinth.dungeon.treasure.MimicSpec.floors(m);
+                String where = fl == null ? "큰 미믹과 함께" : fl[0] == fl[1] ? "지하 " + fl[0] + "층" : "지하 " + fl[0] + "~" + fl[1] + "층";
+                lore.add("<gray>" + where + " 보물 상자 속 · " + rank);
+                lore.add("<gray>HP <white>그 층 몬스터 ×" + times(k.dbl("hp", 4)) + "</white> · 공격 <white>×"
+                        + times(k.dbl("damage", 1.3)) + "</white> · 방어 <white>×" + times(k.dbl("defense", 1)) + "</white>");
+                lore.add("<gray>경험치 <white>그 층 몬스터 ×" + times(k.dbl("xp", 3)));
+            } else {
+                lore.add("<gray>지하 <white>" + m.floor() + "</white>층 · " + rank);
+                lore.add("<gray>HP <white>" + Text.num(m.hp()) + "</white> · 공격 <white>" + Text.num(m.damage()) + "</white> · 방어 <white>"
+                        + Text.num(m.defense()) + "</white> <dark_gray>(보통·보정 전)");
+                lore.add("<gray>경험치 <white>" + Text.num(m.xp()));
+            }
             lore.addAll(wrap(m.description(), 26, "<dark_gray>"));
             List<String> drops = dropLines(m.drops());
             if (!drops.isEmpty()) {

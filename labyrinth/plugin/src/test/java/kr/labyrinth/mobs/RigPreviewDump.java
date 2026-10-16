@@ -94,10 +94,10 @@ class RigPreviewDump {
     /** 걸음 한 주기 = 12프레임 (그 속도의 박자로 틱 간격을 정함). */
     static final int WALK_FRAMES = 12;
 
-    /** 걷기 클립: 속도 v 에서 걸음 위상 한 주기 (다리가 없는 몹은 예전 14틱). */
+    /** 걷기 클립: 속도 v 에서 걸음 위상 한 주기 (깡충 뛰는 미믹은 깡충 한 번, 다리가 없는 그 밖의 몹은 예전 14틱). */
     static Clip walkClip(String name, RigMath.Skeleton sk, double v, int arm, boolean flying) {
         RigMath.Skeleton.Cadence c = sk.cadence(v, 2);
-        double period = sk.walkingLegs() > 0 ? c.ticksPerCycle() : 14;
+        double period = sk.walkingLegs() > 0 || sk.hopper() ? c.ticksPerCycle() : 14;
         List<Frame> fr = new ArrayList<>();
         for (int k = 0; k < WALK_FRAMES; k++) {
             long tick = 1000 + Math.round(k * period / WALK_FRAMES);
