@@ -56,6 +56,10 @@ import org.bukkit.util.Vector;
  *       ({@link #gateBow}). 주손에 미궁 근접·시전 무기를 든 채 보조손 활은 당기지 않는다 ({@link #onUseBow}).</li>
  * </ul>
  * 바닐라 무기(칼·도끼·삼지창 등 아이템에 공격 속도가 있는 것)는 바닐라 게이지 그대로라 여기서 막지 않는다.
+ * <p>
+ * 시전 무기 마법탄 (0.3.6.1, {@link CasterBolts}): 같은 시계를 쓴다. 손 닿는 적을 직접 클릭하면 바닐라 공격을 막고 통과하면 그 적에게 바로
+ * 마법탄({@link #casterClick}), 허공 클릭은 {@code CasterBolts} 가 여기로 넘긴다 (대상 {@link AttackTiming#AIR}). 기억한 클릭은 시각이 되면
+ * 그 적이 아직 손 닿고 보이면 바로, 아니면 그때 바라보는 쪽으로 쏜다.
  */
 final class AttackClock implements Listener {
 
@@ -79,6 +83,8 @@ final class AttackClock implements Listener {
     private BukkitTask task;
     /** 기억한 클릭을 넣는 중 (그 공격의 PrePlayerAttackEntityEvent 는 그대로 통과). */
     private UUID releasing;
+    /** 시전 무기 마법탄 (null = 없음). */
+    private CasterBolts bolts;
 
     AttackClock(Services services) { this.services = services; }
 
@@ -86,6 +92,8 @@ final class AttackClock implements Listener {
         Bukkit.getPluginManager().registerEvents(this, services.plugin());
         task = Bukkit.getScheduler().runTaskTimer(services.plugin(), this::tick, 1L, 1L);
     }
+
+    void bolts(CasterBolts b) { this.bolts = b; }
 
     void stop() {
         if (task != null) task.cancel();
@@ -116,6 +124,11 @@ final class AttackClock implements Listener {
         if (!(e.getAttacked() instanceof LivingEntity target) || target.isDead() || !e.willAttack()) return;
         if (p.getGameMode() == GameMode.SPECTATOR || !services.stats().attackClocked(p)) return;
         if (!services.targets().isEnemy(p, target)) return;
+        if (bolts != null && CasterBoltRules.entityClick(bolts.ready(p), true) == CasterBoltRules.EntityClick.BOLT_STRIKE) {
+            e.setCancelled(true); // 시전 무기는 휘두르지 않는다 — 같은 시계로 마법탄 한 발 (두 번 맞지 않게)
+            if (!bolts.firedThisClick(p)) casterClick(p, target); // 허공 휘두름이 먼저 와서 이미 쐈으면 같은 클릭
+            return;
+        }
         DerivedStats s = services.stats().get(p);
         Settings.Combat c = cfg();
         long now = System.currentTimeMillis();
@@ -124,9 +137,34 @@ final class AttackClock implements Listener {
                 target.getUniqueId(), weaponKey(p));
         if (r == AttackTiming.Result.ACCEPT) return;
         e.setCancelled(true);
-        if (r == AttackTiming.Result.EARLY && c.earlyClickSound() && t.whoosh(now, WHOOSH_GAP_MS)) {
-            float pitch = (float) Math.max(0.5, Math.min(2.0, 1.6 - 0.6 * s.attackInterval()));
-            p.playSound(p, Sound.ENTITY_PLAYER_ATTACK_NODAMAGE, SoundCategory.PLAYERS, 0.25f, pitch);
+        if (r == AttackTiming.Result.EARLY) whoosh(p, t, s, now);
+    }
+
+    /** 너무 이른 클릭: 본인에게만 작은 '휙' 소리 (150ms 에 한 번까지). */
+    private void whoosh(Player p, AttackTiming t, DerivedStats s, long now) {
+        if (!cfg().earlyClickSound() || !t.whoosh(now, WHOOSH_GAP_MS)) return;
+        float pitch = (float) Math.max(0.5, Math.min(2.0, 1.6 - 0.6 * s.attackInterval()));
+        p.playSound(p, Sound.ENTITY_PLAYER_ATTACK_NODAMAGE, SoundCategory.PLAYERS, 0.25f, pitch);
+    }
+
+    /**
+     * 시전 무기 좌클릭 하나 (0.3.6.1). 근접·활과 같은 시계: 통과하면 마법탄 한 발, 간격 끝 기억창 안이면 한 번 기억, 더 이르면 '휙'.
+     * 허공 클릭의 기억창은 0.5초 이상 ({@link CasterBoltRules#airBufferMs}) — 클라이언트가 허공 클릭 뒤 0.5초 동안 다음 클릭을 보내지 않아서.
+     * @param target 직접 클릭한 손 닿는 적 (바로 맞음), null = 허공·먼 적 (조준선으로)
+     */
+    void casterClick(Player p, LivingEntity target) {
+        if (bolts == null || p.getGameMode() == GameMode.SPECTATOR) return;
+        DerivedStats s = services.stats().get(p);
+        Settings.Combat c = cfg();
+        long now = System.currentTimeMillis();
+        AttackTiming t = clock(p);
+        long buffer = target == null ? CasterBoltRules.airBufferMs(c.earlyClickBuffer()) : ms(c.earlyClickBuffer());
+        AttackTiming.Result r = t.click(now, ms(s.attackInterval()), c.clickToleranceMs(), buffer,
+                target == null ? AttackTiming.AIR : target.getUniqueId(), weaponKey(p));
+        switch (r) {
+            case ACCEPT -> bolts.fire(p, target);
+            case EARLY -> whoosh(p, t, s, now);
+            case BUFFER -> { } // 시각이 되면 tick() 이 쏜다
         }
     }
 
@@ -186,6 +224,10 @@ final class AttackClock implements Listener {
             }
             if (!t.bufferReady(now)) continue;
             Player p = Bukkit.getPlayer(en.getKey());
+            if (p != null && bolts != null && (AttackTiming.AIR.equals(t.bufferedTarget()) || bolts.ready(p))) {
+                releaseCaster(p, t, now);
+                continue;
+            }
             LivingEntity target = p == null ? null : Bukkit.getEntity(t.bufferedTarget()) instanceof LivingEntity le ? le : null;
             if (p == null || target == null || !canRelease(p, target, t)) {
                 t.clearBuffer();
@@ -195,6 +237,24 @@ final class AttackClock implements Listener {
             release(p, target);
         }
         if (cfg().bowFullDrawCue()) drawCue();
+    }
+
+    /** 시전 무기의 기억한 클릭: 그 적이 아직 손 닿고 보이면 바로, 아니면 지금 바라보는 쪽으로 (무기를 바꿨거나 기절했으면 버림). */
+    private void releaseCaster(Player p, AttackTiming t, long now) {
+        if (!p.isOnline() || p.isDead() || p.getGameMode() == GameMode.SPECTATOR || !weaponKey(p).equals(t.bufferedWeapon())
+                || !bolts.ready(p) || bolts.busy(p)) {
+            t.clearBuffer();
+            return;
+        }
+        LivingEntity target = AttackTiming.AIR.equals(t.bufferedTarget()) ? null
+                : Bukkit.getEntity(t.bufferedTarget()) instanceof LivingEntity le ? le : null;
+        if (target != null && !canRelease(p, target, t)) target = null;
+        t.fireBuffered(now, ms(services.stats().get(p).attackInterval()), cfg().clickToleranceMs());
+        try {
+            bolts.fire(p, target);
+        } catch (Throwable ex) {
+            kr.labyrinth.core.Log.error("기억한 마법탄 넣기 오류", ex);
+        }
     }
 
     private boolean canRelease(Player p, LivingEntity target, AttackTiming t) {

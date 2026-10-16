@@ -87,7 +87,8 @@ class TooltipFitTest {
             assertNotNull(atk, d.id() + "\n" + String.join("\n", l));
             assertTrue(Text.strip(atk).endsWith("· " + a.kind().displayName()), d.id() + ": " + atk);
             assertFalse(Text.strip(atk).contains("공격력 +"), "공격력은 부호 없이: " + atk);
-            String speed = "공격 속도 초당 " + ItemTooltip.perSecond(1.0 / a.interval()) + "회";
+            String speed = "공격 속도 초당 " + ItemTooltip.perSecond(1.0 / a.interval()) + "회"
+                    + (a.caster() ? " · 좌클릭 마법탄" : ""); // 0.3.6.1 시전 무기
             int at = l.indexOf(atk);
             assertEquals(speed, Text.strip(l.get(at + 1)), d.id() + " — 공격력 바로 아래 공격 속도");
             // 미리보기(굴림 없음)도 같은 두 줄

@@ -319,7 +319,7 @@ public final class CodexMenu extends LabMenu {
             String style = switch (a.style()) {
                 case MELEE -> "근접";
                 case RANGED -> "원거리 (당겨 쏘기)";
-                case CASTER -> "시전";
+                case CASTER -> a.firesBolt() ? "시전 (" + ItemTooltip.CASTER_BOLT + ")" : "시전";
             };
             out.add("<gray>공격 방식 <white>" + style + "</white> · 피해 <white>" + a.kind().displayName());
             out.add("<gray>공격 간격 <white>" + ItemTooltip.trim(Math.round(a.interval() * 100) / 100.0) + "초</white> <dark_gray>(초당 "

@@ -78,19 +78,30 @@ public final class DamageService implements Module {
 
     private AttackClock clock;
     private CombatListener listener;
+    private CasterBolts bolts;
 
     @Override
     public void enable() {
         clock = new AttackClock(services);
         clock.start();
-        listener = new CombatListener(services, this, clock);
+        bolts = new CasterBolts(services, this);
+        bolts.start(clock);
+        clock.bolts(bolts);
+        listener = new CombatListener(services, this, clock, bolts);
         Bukkit.getPluginManager().registerEvents(listener, services.plugin());
     }
 
     @Override
     public void disable() {
         if (clock != null) clock.stop();
+        if (bolts != null) bolts.stop();
         if (listener != null) org.bukkit.event.HandlerList.unregisterAll(listener);
+    }
+
+    /** /labadmin reload: combat.caster_bolt 다시 읽기. */
+    @Override
+    public void reload() {
+        if (bolts != null) bolts.configure();
     }
 
     /**
@@ -185,7 +196,7 @@ public final class DamageService implements Module {
         if (ctx.usesAttackPower()) {
             ctx.kind(resolveKind(ctx, atk));
             ctx.amount(ctx.hasWeaponHit() && ctx.base() == DamageContext.Base.PER_HIT && atk != null
-                    ? rawAmount(atk, ctx.weaponHit(), ctx.kind(), ctx.attackMultiplier()) // 화살: 쏜 순간의 활 W
+                    ? rawAmount(atk, ctx.weaponHit(), ctx.kind(), ctx.attackMultiplier()) // 화살·마법탄: 쏜 순간의 무기 W
                     : rawAmount(atk, ctx.base(), ctx.kind(), ctx.attackMultiplier()));
         } else if (ctx.isPercent()) {
             ctx.amount(maxHp(target) * ctx.percent());
@@ -332,7 +343,7 @@ public final class DamageService implements Module {
         return rawAmount(atk, base == DamageContext.Base.SKILL ? atk.skillPower() : atk.weaponDamage(), kind, multiplier);
     }
 
-    /** 기준값을 직접 주는 원피해 (화살 — 쏜 순간의 활 한 방, 0.3.6.1 bowfeel B1). 나머지 배율은 지금 능력치. */
+    /** 기준값을 직접 주는 원피해 (화살 — 쏜 순간의 활 한 방 · 마법탄 — 쏜 순간의 시전 무기 한 방, 0.3.6.1). 나머지 배율은 지금 능력치. */
     public static double rawAmount(DerivedStats atk, double base, DamageKind kind, double multiplier) {
         if (atk == null) return multiplier;
         double magic = kind == DamageKind.MAGIC ? atk.magicDamage() : kind == DamageKind.HYBRID ? 0.5 * atk.magicDamage() : 0;

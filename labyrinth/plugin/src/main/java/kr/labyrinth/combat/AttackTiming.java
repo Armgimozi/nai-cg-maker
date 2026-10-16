@@ -8,7 +8,7 @@ import java.util.UUID;
  *   <li>{@link #click}: 다음 공격 가능 시각 − 허용 오차(50ms) 이후면 {@link Result#ACCEPT} (온전한 피해). 다음 시각 =
  *       (아직 안 된 시각이었으면 그 시각, 아니면 지금) + 간격 — 틱(50ms) 반올림으로 속도가 새지 않는다.</li>
  *   <li>너무 이르면 막는다. 남은 시간이 기억창(0.35초, 간격이 더 짧으면 간격) 안이면 {@link Result#BUFFER} — 그 대상을 한 번 기억했다가
- *       시각이 되면 넣는다(새 클릭이 오면 대상만 바꿈). 더 이르면 {@link Result#EARLY}.</li>
+ *       시각이 되면 넣는다(새 클릭이 오면 대상만 바꿈). 더 이르면 {@link Result#EARLY}. 대상 {@link #AIR} = 시전 무기의 허공 클릭(마법탄).</li>
  *   <li>기억한 클릭을 넣으면 다음 시각 = 그 시각 + 간격.</li>
  *   <li>무기를 바꾸면 새 무기의 첫 공격 = 지금 + 새 주기 × 0.5 뒤부터 ({@link #swap}), 기억한 클릭은 지운다.</li>
  *   <li>활도 같은 시계를 쓴다 (0.3.6.1 규칙, 주인 결정 3) — <b>공격마다 제 시간을 쓰고 겹치지 않는다</b>:
@@ -25,6 +25,11 @@ import java.util.UUID;
 public final class AttackTiming {
 
     public enum Result { ACCEPT, BUFFER, EARLY }
+
+    /**
+     * 기억할 대상이 '허공' (0.3.6.1 시전 무기 마법탄 — 몹이 아니라 조준선으로 쏘는 클릭). 시각이 되면 그때 바라보는 쪽으로 나간다.
+     */
+    public static final UUID AIR = new UUID(0L, 0L);
 
     private long nextReady = Long.MIN_VALUE / 4;
     private UUID bufferedTarget;

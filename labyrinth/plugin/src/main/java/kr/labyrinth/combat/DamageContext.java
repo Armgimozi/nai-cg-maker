@@ -45,8 +45,9 @@ public final class DamageContext {
     private double critDamageAdd;
     private String sourceId;
     private double weaponHit = Double.NaN;
-    /** 화살을 쏜 활의 아이템 id (null = 화살 아님 → 지금 든 무기의 고유 효과, "" = 고유 효과 없음). */
+    /** 화살을 쏜 활·마법탄을 쏜 시전 무기의 아이템 id (null = 지금 든 무기의 고유 효과, "" = 고유 효과 없음). */
     private String firedWith;
+    private boolean casterBolt;
 
     // 결과
     private double finalDamage;
@@ -130,12 +131,17 @@ public final class DamageContext {
     /** 이 피해 한 건의 치명 피해 가산 (0.45 = 치명 피해 +45%p, 고유 효과 피 냄새). 누적된다. PvP 의 critDamageScale 은 그 뒤에 곱한다. */
     public DamageContext critDamageAdd(double add) { this.critDamageAdd += add; return this; }
     /**
-     * 기본 공격 한 방 W 를 지금 든 무기 대신 이 값으로 (0.3.6.1 화살 — 쏜 순간의 활 W, 날아가는 동안 무기를 바꿔도 그대로).
-     * 기준이 {@link Base#PER_HIT} 일 때만 쓴다. 0 이하·NaN 은 '없음'(지금 든 무기 — {@link #hasWeaponHit()} 거짓).
+     * 기본 공격 한 방 W 를 지금 든 무기 대신 이 값으로 (0.3.6.1 화살 — 쏜 순간의 활 W · 마법탄 — 쏜 순간의 시전 무기 W.
+     * 날아가는 동안 무기를 바꿔도 그대로). 기준이 {@link Base#PER_HIT} 일 때만 쓴다. 0 이하·NaN 은 '없음'(지금 든 무기 — {@link #hasWeaponHit()} 거짓).
      */
     public DamageContext weaponHit(double w) { this.weaponHit = w > 0 ? w : Double.NaN; return this; }
-    /** 화살: 쏜 활의 아이템 id — 고유 효과도 맞는 순간 든 무기가 아니라 쏜 활로 (0.3.6.1). null 은 "" (고유 효과 없음 — 미궁 활이 아닌 것으로 쐈거나 덜 당긴 화살). */
+    /**
+     * 쏜 무기의 아이템 id — 고유 효과도 맞는 순간 든 무기가 아니라 쏜 무기로 (0.3.6.1 화살 = 쏜 활, 마법탄 = 쏜 시전 무기).
+     * null 은 "" (고유 효과 없음 — 미궁 활이 아닌 것으로 쐈거나 덜 당긴 화살).
+     */
     public DamageContext firedWith(String weaponId) { this.firedWith = weaponId == null ? "" : weaponId; return this; }
+    /** 시전 무기 마법탄 (0.3.6.1) — 기본 공격 (유형은 마법). '기본 공격 적중' 효과(광전사 피의 분노 MP 등)가 근접처럼 붙는다. */
+    public DamageContext casterBolt() { this.casterBolt = true; return this; }
 
     // ── 입력 접근 ─────────────────────────────────────────────────────────
     public LivingEntity attacker() { return attacker; }
@@ -171,8 +177,10 @@ public final class DamageContext {
     /** 정해 둔 기본 공격 한 방 (없으면 NaN — 지금 든 무기의 W). */
     public double weaponHit() { return weaponHit; }
     public boolean hasWeaponHit() { return !Double.isNaN(weaponHit); }
-    /** 쏜 활의 id ({@link #firedWith(String)}), 화살이 아니면 null (= 지금 든 무기). */
+    /** 쏜 무기의 id ({@link #firedWith(String)}) — 화살·마법탄, 그 밖은 null (= 지금 든 무기). */
     public String firedWith() { return firedWith; }
+    /** 시전 무기 마법탄인가 (기본 공격, 유형 마법). */
+    public boolean isCasterBolt() { return casterBolt; }
     /** 기본 공격인가 — 플레이어가 무기로 친 한 대 (스킬·보스 패턴·지속 피해·고유 효과 피해·출처 붙은 피해가 아님). */
     public boolean isBasicAttack() {
         return attacker instanceof Player && !skill && !pattern && sourceId == null && usesAttackPower() && base == Base.PER_HIT;
