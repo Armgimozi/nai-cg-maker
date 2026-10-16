@@ -98,12 +98,12 @@ final class MineBuilder {
                 if (s.rebuild()) {
                     int total = bp.w * bp.h * bp.d;
                     while (cursor < total && checks < CHECKS_PER_TICK && sets < SETS_PER_TICK) {
+                        // 시간 검사는 칸을 고르기 전에 (끊긴 칸을 건너뛰지 않게)
+                        if ((++checks & 255) == 0 && System.nanoTime() > deadline) break;
                         int x = cursor % bp.w;
                         int z = (cursor / bp.w) % bp.d;
                         int y = cursor / (bp.w * bp.d);
                         cursor++;
-                        checks++;
-                        if ((checks & 255) == 0 && System.nanoTime() > deadline) break;
                         BlockData want = l.expected(bp.cell(x, y, z));
                         if (want == null) continue;
                         Block b = w.getBlockAt(bp.ox + x, bp.oy + y, bp.oz + z);
