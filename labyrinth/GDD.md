@@ -1384,9 +1384,11 @@ LOD: 보는 사람이 24칸 밖이면 입자 절반, 48칸 밖이면 링만. 같
 #### 0.3.6.1 광산 손보기 (주인 결정 — 위 줄보다 앞선다, 계약 CONTRACT §0.1)
 - **한 단계 위까지**: 곡괭이 tier t 는 광석·보석 tier ≤ t + 1 을 캔다 ("구리 곡괭이로 철을 캘 수 있고 철 괭이로 은을 캐는 식").
   한 단계 위 = 그 광석 제 곡괭이 빠르기 × 0.6 (구리 곡괭이 · 철 광석 4.0초, 철 곡괭이 2.4초). t + 2 부터 "곡괭이가 약해 캘 수 없습니다".
-  `ToolSpec.maxHardness·isSlow` · `TierRule.slow` · items.yml `tool.speed` 에 t + 1 칸 (생성기). 0.6 의 까닭 = CONTRACT §5 표 G.
-- **곡괭이 레시피 = 제 금속**: `<금속>_pickaxe` = 앞 곡괭이 + 제 금속 주괴 + 같은 등급 보석 + 정수 + 골드 (철 12 · 은 16 · 금 20 · 미스릴 24 · 오리하르콘 24,
-  보석 2 · 2 · 3 · 3 · 3). 새로 온 사람의 첫 철 곡괭이 = 던전 1회 + 광산 약 5~7분 (표 D).
+  `ToolSpec.maxHardness·isSlow` · `TierRule.slow` · items.yml `tool.speed` 에 t + 1 칸 (생성기, 없으면 파서가 다음 곡괭이 × 0.6 으로 채움).
+  0.6 의 까닭 = CONTRACT §5 표 G (한 블록은 1.67배 느리지만 1분당 모으는 양은 2~15% 차이 — 곡괭이를 올리는 까닭은 두 단계 위 광석).
+- **곡괭이 레시피 = 제 금속**: `<금속>_pickaxe` = 앞 곡괭이 + 제 금속 주괴 + 같은 등급 보석 + 정수 + 골드 (철 12 · 은 16 · 금 20 · 미스릴 24 · 오리하르콘 12,
+  보석 2 · 2 · 3 · 3 · 2). 새로 온 사람의 첫 철 곡괭이 = 던전 1회 + 광산 약 5~7분 (표 D). 미스릴 곡괭이가 이미 오리하르콘·용혈석을 캐므로
+  오리하르콘 곡괭이는 더 여는 것 없이 가장 빨리 캐는 마지막 곡괭이 — 그래서 재료가 적다 (CONTRACT §5 표 D 아래).
 - **보석 노드 = 네모난 광석 블록**: 결정 ItemDisplay 없음. 보석 블록은 좀벌레 돌 6개(석영 infested_stone_bricks · 석류석 infested_cobblestone ·
   월장석 infested_mossy_stone_bricks · 황옥 infested_deepslate · 청옥 infested_chiseled_stone_bricks · 용혈석 infested_cracked_stone_bricks)이고
   팩이 그 모습만 광산 벽 돌 바탕 + 보석 색 알갱이 16×16 그림으로 바꾼다 (`resourcepack/src/mine_blocks.py`). 이 팩의 다른 세계에는 없는 블록이다.

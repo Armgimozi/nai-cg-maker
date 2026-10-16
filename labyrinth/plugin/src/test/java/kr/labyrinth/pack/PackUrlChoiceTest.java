@@ -93,12 +93,33 @@ class PackUrlChoiceTest {
         assertEquals("deadbeef", p.sha1(), "주인이 적은 sha1 그대로");
         assertFalse(p.verify());
         assertNull(p.fallbackUrl());
+        // 시각 검토 5: 적힌 sha1 이 jar 팩과 다르면 (옛 팩일 수 있음) 한 줄 남기되 주소·sha1 은 그대로
+        assertNotNull(p.notice(), "옛 팩일 수 있다는 한 줄");
+        assertTrue(p.notice().contains("deadbeef") && p.notice().contains(JAR.substring(0, 8)), p.notice());
+        PackUrlChoice.Plan same = PackUrlChoice.decide(url, JAR.toUpperCase(), "", TPL, JAR);
+        assertNull(same.notice(), "jar 팩과 같은 sha1 이면 조용히");
         PackUrlChoice.Plan noSha = PackUrlChoice.decide(url, "", "", TPL, JAR);
         assertEquals(JAR, noSha.sha1(), "sha1 이 비면 jar 팩 것");
+        assertNull(noSha.notice());
         // 이름만 비슷한 주소 (pack-host 아님) 도 직접 적은 주소
         assertEquals(PackUrlChoice.Mode.CUSTOM_URL, PackUrlChoice.decide("https://x/labyrinth-pack-065e6258.zip", "", "", TPL, JAR).mode());
         // jar 팩을 모르면 (팩 없음) 바꾸지 않는다
         assertEquals(OWNER_URL, PackUrlChoice.decide(OWNER_URL, OLD, "", TPL, "").url());
+    }
+
+    @Test
+    void retryGoesToTheOtherAddressOnce() {
+        // (a) 내장 주소를 못 받음 → 확인된 사본 · 사본 확인 실패면 다시 보내지 않음
+        assertEquals(PackUrlChoice.Retry.COPY, PackUrlChoice.retry(PackUrlChoice.Mode.BUILTIN, true, false, true, true));
+        assertEquals(PackUrlChoice.Retry.NONE, PackUrlChoice.retry(PackUrlChoice.Mode.BUILTIN, true, false, false, true));
+        // 사본을 못 받음 → 내장 주소 (열려 있으면) — (b) 사본으로 보낸 뒤 GitHub 를 못 쓰는 손님
+        assertEquals(PackUrlChoice.Retry.BUILTIN, PackUrlChoice.retry(PackUrlChoice.Mode.PUBLIC_COPY, false, true, true, true));
+        assertEquals(PackUrlChoice.Retry.NONE, PackUrlChoice.retry(PackUrlChoice.Mode.PUBLIC_COPY, false, true, true, false));
+        // (b) 확인 전 내장 주소를 받은 사람이 못 받음 → 확인된 사본
+        assertEquals(PackUrlChoice.Retry.COPY, PackUrlChoice.retry(PackUrlChoice.Mode.PUBLIC_COPY, true, false, true, true));
+        // (c) 직접 적은 주소는 다시 보내지 않음 · 모르는 팩 id 도
+        assertEquals(PackUrlChoice.Retry.NONE, PackUrlChoice.retry(PackUrlChoice.Mode.CUSTOM_URL, false, false, true, true));
+        assertEquals(PackUrlChoice.Retry.NONE, PackUrlChoice.retry(PackUrlChoice.Mode.BUILTIN, false, false, true, true));
     }
 
     @Test

@@ -23,7 +23,7 @@ BASES = {
     'stone': {'ramp': ['#646464', '#737373', '#808080', '#8c8c8c', '#999999'], 'grain': 'blotch'},
     'tuff': {'ramp': ['#42433f', '#585b53', '#6e7168', '#82877c', '#9ca094'], 'grain': 'speck'},
     'deepslate': {'ramp': ['#26262b', '#393940', '#4c4c53', '#5e5e67', '#75757d'], 'grain': 'layer'},
-    'basalt': {'ramp': ['#242426', '#36363c', '#484850', '#5c5c63', '#72727d'], 'grain': 'streak'},
+    'basalt': {'ramp': ['#2c2c2f', '#3f3f46', '#53535b', '#68686f', '#7f7f89'], 'grain': 'streak'},   # 바닐라 현무암 옆면 73 (검토: 바탕이 벽보다 어두웠음)
 }
 
 
@@ -119,32 +119,31 @@ def _clusters(rnd: random.Random, n: int, margin=1, min_dist=4.6):
 
 
 def _veins(img, rnd, ramp):
-    """용혈석: 현무암 바탕에 붉게 타는 갈라진 결 (짧은 걸음 3줄) + 작은 덩이 3개."""
+    """용혈석: 현무암 바탕에 붉게 타는 갈라진 결 3줄 (서로 떨어진 자리에서 7~9걸음) + 작은 덩이 4개.
+    0.3.6.1 검토: 결 둘레를 사방으로 그을리면 가장 어두운 6층(빛 8)에서 노드가 벽보다 어둡고 결만 겨우 보였다 →
+    그을음은 결 아래쪽에만 (그림자), 결 몸은 붉은 몸·어두운 몸을 번갈아, 1/3 은 밝은 심."""
     px = img.load()
-    hot = set()
-    for _ in range(3):
-        x, y = rnd.randint(2, 13), rnd.randint(2, 13)
+    hot = []
+    for (x0, y0) in _clusters(rnd, 3, margin=2, min_dist=5.5):
+        x, y = x0, y0 + 1
         dx = rnd.choice((-1, 1))
-        for step in range(rnd.randint(5, 7)):
-            if 1 <= x <= 14 and 1 <= y <= 14:
-                hot.add((x, y))
-            y += 1 if rnd.random() < 0.6 else 0
-            x += dx if rnd.random() < 0.7 else 0
-    for (x, y) in hot:                       # 결 둘레 그을음
-        for ax, ay in ((1, 0), (0, 1), (-1, 0), (0, -1)):
-            q = (x + ax, y + ay)
-            if q not in hot and 0 <= q[0] < SIZE and 0 <= q[1] < SIZE:
-                px[q] = ramp[0] + (255,)
-    for (x, y) in hot:
-        px[x, y] = ramp[1] + (255,)
-    core = rnd.sample(sorted(hot), max(3, len(hot) // 3))
-    for (x, y) in core:
-        px[x, y] = ramp[2] + (255,)
-    for (x, y) in core[: max(2, len(core) // 3)]:
+        for _ in range(rnd.randint(7, 9)):
+            if 1 <= x <= 14 and 1 <= y <= 14 and (x, y) not in hot:
+                hot.append((x, y))
+            y += 1 if rnd.random() < 0.55 else 0
+            x += dx if rnd.random() < 0.75 else 0
+    hs = set(hot)
+    for (x, y) in hot:                       # 결 아래 그을음 (그림자)
+        q = (x, y + 1)
+        if q not in hs and q[1] < SIZE:
+            px[q] = ramp[0] + (255,)
+    for i, (x, y) in enumerate(hot):
+        px[x, y] = (ramp[2] if i % 2 == 0 else ramp[1]) + (255,)
+    for (x, y) in rnd.sample(hot, max(4, len(hot) // 3)):
         px[x, y] = ramp[3] + (255,)
-    for (cx, cy) in _clusters(rnd, 3, margin=2, min_dist=4.0):
-        for (dx, dy, role) in SHAPES['grain'][2]:  # noqa: B007
-            if (cx + dx, cy + dy) not in hot:
+    for (cx, cy) in _clusters(rnd, 4, margin=2, min_dist=4.0):
+        for (dx, dy, role) in SHAPES['grain'][2]:
+            if (cx + dx, cy + dy) not in hs:
                 px[cx + dx, cy + dy] = ramp[(3, 2, 1, 0)[3 - role]] + (255,)
     return img
 

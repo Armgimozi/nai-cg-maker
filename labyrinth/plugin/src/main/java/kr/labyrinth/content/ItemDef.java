@@ -162,6 +162,12 @@ public record ItemDef(
                 mineLevel, mineKind, tool);
     }
 
+    /** 곡괭이 구성만 바꾼 사본 (파서가 한 단계 위 빠르기를 채울 때). */
+    public ItemDef withTool(ToolSpec t) {
+        return new ItemDef(id, name, type, attack, armorSlot, armorSet, rarity, levelReq, requires, classes, stats, setBonus,
+                aura, weaponSkills, floor, pool, sources, use, model, texture, lore, raw, unique, look, mineLevel, mineKind, t);
+    }
+
     /** 겉모습만 바꾼 사본 (파서가 세트 겉모습을 정할 때). */
     public ItemDef withLook(ArmorLook l) {
         return new ItemDef(id, name, type, attack, armorSlot, armorSet, rarity, levelReq, requires, classes, stats, setBonus,

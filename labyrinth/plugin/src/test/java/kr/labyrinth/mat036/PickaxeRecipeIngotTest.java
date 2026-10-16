@@ -25,6 +25,7 @@ class PickaxeRecipeIngotTest {
     void eachPickaxeUsesItsOwnMetalAndGem() {
         Content c = Mat036.content();
         int prevIngots = 0;
+        long prevGold = 0;
         for (int t = 2; t <= 6; t++) {
             String metal = Mat036.METALS.get(t - 1);
             String id = metal + "_pickaxe";
@@ -51,9 +52,13 @@ class PickaxeRecipeIngotTest {
                 }
             }
             assertTrue(ingots >= 10 && gems >= 2 && ess >= 2, id + " 개수 " + ingots + "/" + gems + "/" + ess);
-            assertTrue(ingots >= prevIngots, id + " 주괴 개수가 앞 곡괭이보다 적지 않다");
+            if (t < 6) assertTrue(ingots >= prevIngots, id + " 주괴 개수가 앞 곡괭이보다 적지 않다");
+            // 경제 검토 (0.3.6.1): 미스릴 곡괭이가 이미 오리하르콘·용혈석을 캐므로 오리하르콘 곡괭이는 더 여는 것 없는 마지막 곡괭이 —
+            // 재료를 줄였다 (주괴 24 → 12, 10단계 한 벌 주괴 28 의 절반 아래). 골드는 사다리대로 오른다.
+            else assertTrue(ingots <= 14 && gems <= 2, id + " 는 가장 빠를 뿐이라 재료가 적다: " + ingots + "/" + gems);
             prevIngots = ingots;
-            assertTrue(r.gold() > 0, id + " 골드");
+            assertTrue(r.gold() > prevGold, id + " 골드가 앞 곡괭이보다 많다");
+            prevGold = r.gold();
             // 앞 곡괭이로 그 주괴의 광석과 보석을 캘 수 있다 (한 단계 위, 느리게)
             ItemDef prev = c.item(prevPick);
             var ore = c.mine().ores().get(metal + "_ore");

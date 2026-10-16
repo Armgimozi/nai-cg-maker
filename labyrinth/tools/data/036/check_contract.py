@@ -25,8 +25,8 @@ errors, notes = [], []
 METALS = ['copper', 'iron', 'silver', 'gold', 'mithril', 'orichalcum']
 GEMS = ['quartz', 'garnet', 'moonstone', 'topaz', 'sapphire', 'dragonblood_stone']
 REACH_ABOVE = 1               # 0.3.6.1 주인 결정 1: 곡괭이 tier t 는 tier ≤ t + 1 을 캔다 (한 단계 위는 느림)
-GOLD_WITH_SALE_MAX = 0.25     # 광산 G/분 ÷ 던전 G/분 (판매 포함) — 0.3.6 은 0.20, 0.3.6.1 한 단계 위로 2단계 22%
-GOLD_DROP_MAX = 0.30          # 드롭 골드만 — 0.3.6 은 0.25, 0.3.6.1 2단계 28%
+GOLD_WITH_SALE_MAX = 0.20     # 광산 G/분 ÷ 던전 G/분 (판매 포함, 그 단계 금속을 캘 수 있는 가장 낮은 곡괭이) — 0.3.6 과 같음
+GOLD_DROP_MAX = 0.25          # 드롭 골드만 — 0.3.6 과 같음 (곡괭이를 일찍 올린 사람은 표 E 참고 칸)
 MONSTER = ['ember_soul', 'resonant_sinew', 'clock_oil']          # §0 결정 4: 5층은 불씨 혼 (잿불 가죽 없음)
 DROP_PARTS = ['moss_scale', 'tunnel_fang', 'cinder_scale', 'rime_talon', 'chrono_dust', 'abyss_scale']   # §0 결정 4: 몹 몸에 맞는 새 부위
 PRE_RELEASE = {'cinder_hide': 'cinder_scale'}                  # 배포 전 시험 서버에만 있던 id
@@ -85,12 +85,13 @@ def paper_api_names():
 
 
 def collateral_uses(blocks):
-    """블록 이름(minecraft:…)이 미궁 층(floors.yml)·마을/구역 조각(resources/village/**)·광산 청사진 팔레트(@vein/@gem 빼고)에 나오는 곳."""
+    """블록 이름(minecraft:…)이 content/*.yml (mine.yml 빼고 — 미궁 층·경기장·보스 무대 …)·마을/구역 조각(resources/village/**)·
+    광산 청사진 팔레트(@vein/@gem 빼고)에 나오는 곳."""
     names = {b.split(':', 1)[1] for b in blocks}
     pat = re.compile(r'(?<![a-z0-9_])(' + '|'.join(sorted(map(re.escape, names))) + r')(?![a-z0-9_])', re.I)
     hits = []
     res = LAB / 'plugin/src/main/resources'
-    files = [res / 'content/floors.yml'] + sorted((res / 'village').rglob('*.json'))
+    files = [f for f in sorted((res / 'content').glob('*.yml')) if f.name != 'mine.yml'] + sorted((res / 'village').rglob('*'))
     for f in files:
         if f.is_file():
             for m in pat.finditer(f.read_text(encoding='utf-8', errors='replace')):
@@ -453,7 +454,9 @@ def main():
             c = r['craft']
             need(c['delta_solo'] <= 0.30, f"{r['tier']} 솔로 제작 시간 +{c['delta_solo'] * 100:.0f}% > 30%")
             need(c['delta_4p'] <= 0.45, f"{r['tier']} 4인 제작 시간 +{c['delta_4p'] * 100:.0f}% > 45%")
-            # 0.3.6.1: 한 단계 위를 캐서 2·3단계 광산 골드가 조금 오름 (철 곡괭이로 은 광석) — 한도 20/25% → 25/30% (CONTRACT §9-2)
+            # 0.3.6.1: '그 단계 곡괭이' = 그 단계 금속을 캘 수 있는 가장 낮은 곡괭이 (한 단계 위까지 캠) — 한도는 0.3.6 그대로 20/25%
+            need(r['gold']['band_pickaxe'] == picks[max(0, max(METALS.index(k) for k in r['craft']['new_solo']['ingots']) - REACH_ABOVE)]
+                 if r['craft']['new_solo']['ingots'] else True, f"{r['tier']} 표 E 곡괭이가 그 단계 금속을 캘 수 있는 가장 낮은 곡괭이가 아님")
             need(r['gold']['ratio_with_sale'] <= GOLD_WITH_SALE_MAX, f"{r['tier']} 광산 골드 {r['gold']['ratio_with_sale'] * 100:.0f}% (판매 포함) > {GOLD_WITH_SALE_MAX:.0%}")
             need(r['gold']['ratio'] <= GOLD_DROP_MAX, f"{r['tier']} 광산 골드 {r['gold']['ratio'] * 100:.0f}% (드롭만) > {GOLD_DROP_MAX:.0%}")
         st = eco.get('stretch') or {}

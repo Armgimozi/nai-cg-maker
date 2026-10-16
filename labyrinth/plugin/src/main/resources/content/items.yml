@@ -8844,7 +8844,7 @@ items:
     sources: [mine]
     model: {shape: icon}
     texture: {style: gem_prism, palette: ["#7a756f", "#b5afa8", "#e7e3dd", "#ffffff", "#fffaf0"]}
-    lore: "맑은 결정. 하급 강화석을 새기거나 곡괭이를 벼릴 때 쓴다."
+    lore: "맑은 결정. 하급 강화석을 새길 때 쓴다."
   garnet:
     name: "석류석"
     type: material
@@ -8894,7 +8894,7 @@ items:
     sources: [mine]
     model: {shape: icon}
     texture: {style: gem_drop, palette: ["#1a0204", "#4a060c", "#a0121c", "#ff4a3a", "#ffb04a"]}
-    lore: "잠든 용의 피가 굳었다는 붉은 돌. 안쪽에서 불씨가 맥박친다. 최상급 강화석을 새길 때 쓴다."
+    lore: "잠든 용의 피가 굳었다는 붉은 돌. 안쪽에서 불씨가 맥박친다. 최상급 강화석을 새기거나 곡괭이를 벼릴 때 쓴다."
 
   # ═════════ 광산 도구 (0.3.6 — 곡괭이 type: tool. 장비 아님: 능력치·강화·판매 없음, 한 칸 1개, 레벨 조건 없음) ═════════
   copper_pickaxe:

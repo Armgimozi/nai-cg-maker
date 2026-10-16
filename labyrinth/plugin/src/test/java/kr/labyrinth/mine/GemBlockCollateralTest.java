@@ -23,7 +23,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * 0.3.6.1 주인 결정 ("삐쭉 튀어나온 부분이 별로 … 광석 블록 텍스쳐를 네모난걸 새로"): 보석 6종은 팩이 그림을 바꾼 바닐라 블록 하나씩.
- * 팩이 그 블록의 모습을 바꾸므로 그 블록은 이 팩의 다른 세계 어디에도 없어야 한다 — 미궁 층(floors.yml)·마을과 구역 조각(resources/village/**)·
+ * 팩이 그 블록의 모습을 바꾸므로 그 블록은 이 팩의 다른 세계 어디에도 없어야 한다 — content/*.yml (미궁 층 floors.yml·경기장 arenas.yml·보스 bosses.yml …)·
+ * 마을과 구역 조각(resources/village/**)·
  * 광산 청사진 장식·코드가 직접 놓는 블록(Material). 12개는 서로 다르고 빈 광맥 블록과도 다르다 (계약 §3.3).
  */
 class GemBlockCollateralTest {
@@ -65,8 +66,10 @@ class GemBlockCollateralTest {
         Pattern word = Pattern.compile("(?<![a-z0-9_])(" + String.join("|", names) + ")(?![a-z0-9_])", Pattern.CASE_INSENSITIVE);
         List<String> hits = new ArrayList<>();
         int scanned = 0;
-        // 미궁 층 팔레트·기믹 블록
-        scanned += scan(RES.resolve("content/floors.yml"), word, hits);
+        // content/*.yml 전부 (미궁 층 팔레트·기믹 블록 floors.yml · 경기장 팔레트 arenas.yml · 보스 무대 bosses.yml …) — mine.yml 은 보석 블록 표 자체라 뺀다
+        try (Stream<Path> s = Files.list(RES.resolve("content"))) {
+            for (Path p : s.filter(x -> x.toString().endsWith(".yml") && !x.endsWith("mine.yml")).sorted().toList()) scanned += scan(p, word, hits);
+        }
         // 마을 조각 · 구역 조각 (0.3.6.1 광산 마을 조각도 여기 들어온다) · 배치
         try (Stream<Path> s = Files.walk(RES.resolve("village"))) {
             for (Path p : s.filter(Files::isRegularFile).toList()) scanned += scan(p, word, hits);

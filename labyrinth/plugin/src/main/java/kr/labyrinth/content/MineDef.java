@@ -17,7 +17,7 @@ public record MineDef(List<Level> levels, Map<String, Node> ores, Map<String, No
 
     public static final MineDef EMPTY = new MineDef(List.of(), Map.of(), Map.of());
 
-    /** 광석 또는 보석 하나. tier = 단단함 등급 (곡괭이 tier 이상이어야 캠). gem·ingot 은 광석만, nodeModel 은 보석만. */
+    /** 광석 또는 보석 하나. tier = 단단함 등급 (곡괭이 tier + 1 까지 캠 — 한 단계 위는 느림, 0.3.6.1). gem·ingot 은 광석만, nodeModel 은 보석만. */
     public record Node(String id, String kind, String name, int tier, String block, double baseSeconds, String gem, String ingot,
                        String nodeModel, String color) {
         public boolean isOre() { return "ore".equals(kind); }

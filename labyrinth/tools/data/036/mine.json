@@ -1011,8 +1011,8 @@
     "category": "tool",
     "materials": {
      "mithril_pickaxe": 1,
-     "orichalcum_ingot": 24,
-     "dragonblood_stone": 3,
+     "orichalcum_ingot": 12,
+     "dragonblood_stone": 2,
      "radiant_essence": 3
     },
     "gold": 10000

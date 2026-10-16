@@ -8,7 +8,8 @@
   B. 금속 하나만 노리고 여러 층을 돌 때 1분당 광석 (곡괭이별)
   C. 단계별 대표 한 벌(무기 1 + 방어구 4부위) 제작 총시간 (솔로 / 4인, 던전 분 + 광산 분) — 0.3.5 와 비교, +5 까지도
   D. 곡괭이 준비 (0.3.6.1: 앞 곡괭이로 제 금속·같은 등급 보석을 한 단계 위라 느리게 캐는 분)
-  E. 골드: 광산 다 팔기 G/분 ÷ 던전 G/분 (그 단계 곡괭이, ≤ 0.20) + 친구가 준 가장 좋은 곡괭이로 낮은 단계에서
+  E. 골드: 광산 다 팔기 G/분 ÷ 던전 G/분 (그 단계 곡괭이, 판매 포함 ≤ 0.20 · 드롭만 ≤ 0.25) + 곡괭이를 일찍 하나 더 올렸을 때 (참고)
+     + 친구가 준 가장 좋은 곡괭이로 낮은 단계에서.  '그 단계 곡괭이' = 그 단계 금속을 캘 수 있는 가장 낮은 곡괭이 (0.3.6.1: 꼭대기 금속 − 1)
   F. (기력 없음 — 계약 §0-1)
   G. 한 단계 위 광석 (0.3.6.1): 앞 곡괭이로 캐는 초 · 제 곡괭이와 1분당 광석 견줌
 결과: out/economy.json · out/economy.md (CONTRACT.md 표)
@@ -99,7 +100,8 @@ def block(c, enh, cfg, sup, refine, t, party, goal, old=False):
         got = sup[t].get(P.METAL[k]['ore'], 0) * runs
         from_dungeon[k] = round(got, 1)
         ore_need[k] = max(0.0, n * P.ORE_PER_INGOT - got)
-    pick = max(RANK[k] for k in metals) if metals else 1
+    # 0.3.6.1: 그 단계 금속을 캘 수 있는 가장 낮은 곡괭이 (한 단계 위까지 캠 — 꼭대기 금속보다 한 단계 아래)
+    pick = max(1, max(RANK[k] for k in metals) - P.REACH_ABOVE) if metals else 1
     need = {k: v for k, v in ore_need.items() if v > 0}
     for g, n in gem.items():
         need[g] = n
@@ -196,12 +198,16 @@ def main():
         # E. 골드
         pick = RANK[P.METAL[row['craft']['new_solo']['pickaxe'].replace('_pickaxe', '')]['key']]
         gp = M.gold_plan(pick, price_ore, price_gem)
+        early = min(6, pick + P.REACH_ABOVE)          # 곡괭이를 일찍 하나 더 올린 사람 (꼭대기 금속의 제 곡괭이)
+        ge = M.gold_plan(early, price_ore, price_gem)
         top = M.gold_plan(6, price_ore, price_gem)
         dpm = gold_new[t] / P.RUN_MINUTES[t]
         dpm_sale = (gold_new[t] + sale_new[t]) / P.RUN_MINUTES[t]
         row['gold'] = {'dungeon_per_run': round(gold_new[t]), 'dungeon_per_min': round(dpm, 1), 'band_pickaxe': P.BY_RANK[pick]['pickaxe'],
                        'dungeon_with_sale_per_min': round(dpm_sale, 1), 'ratio_with_sale': round(gp[0] / dpm_sale, 3),
                        'mine_per_min': round(gp[0], 1), 'mine_levels': list(gp[1]), 'ratio': round(gp[0] / dpm, 3),
+                       'early_pickaxe': P.BY_RANK[early]['pickaxe'], 'early_per_min': round(ge[0], 1), 'early_ratio': round(ge[0] / dpm, 3),
+                       'early_ratio_with_sale': round(ge[0] / dpm_sale, 3),
                        'gift_top_pickaxe_per_min': round(top[0], 1), 'gift_ratio': round(top[0] / dpm, 3)}
         rows.append(row)
 
@@ -290,12 +296,16 @@ def render_md(res):
     L.append('')
     L.append('### 표 E. 골드 — 광산에서 캔 것을 다 팔 때 G/분 ÷ 던전 G/분')
     L.append('')
-    L.append('| 단계 | 던전 G/분 (드롭 골드만) | + 재료 판매 | 그 단계 곡괭이 | 광산 G/분 | 비율 (드롭만 / 판매 포함) | 가장 좋은 곡괭이를 받았을 때 | 비율 (드롭만) |')
-    L.append('|---|---|---|---|---|---|---|---|')
+    L.append('그 단계 곡괭이 = 그 단계 금속을 캘 수 있는 가장 낮은 곡괭이 (한 단계 위까지 캐므로 꼭대기 금속보다 한 단계 아래). '
+             '"일찍 올림" = 곡괭이를 하나 더 올린 사람 (참고 — 한도 검사는 그 단계 곡괭이로).')
+    L.append('')
+    L.append('| 단계 | 던전 G/분 (드롭 골드만) | + 재료 판매 | 그 단계 곡괭이 | 광산 G/분 | 비율 (드롭만 / 판매 포함) | 일찍 올림: 곡괭이 · G/분 · 비율 | 가장 좋은 곡괭이를 받았을 때 | 비율 (드롭만) |')
+    L.append('|---|---|---|---|---|---|---|---|---|')
     for r in res['rows']:
         g = r['gold']
         L.append(f"| {r['tier']} | {g['dungeon_per_min']} | {g['dungeon_with_sale_per_min']} | {picks[RANK[g['band_pickaxe'].replace('_pickaxe', '')]]} | {g['mine_per_min']} | "
-                 f"{g['ratio'] * 100:.0f}% / {g['ratio_with_sale'] * 100:.0f}% | {g['gift_top_pickaxe_per_min']} | {g['gift_ratio'] * 100:.0f}% |")
+                 f"{g['ratio'] * 100:.0f}% / {g['ratio_with_sale'] * 100:.0f}% | {picks[RANK[g['early_pickaxe'].replace('_pickaxe', '')]]} · {g['early_per_min']} · "
+                 f"{g['early_ratio'] * 100:.0f}% / {g['early_ratio_with_sale'] * 100:.0f}% | {g['gift_top_pickaxe_per_min']} | {g['gift_ratio'] * 100:.0f}% |")
     L.append('')
     L.append('기력은 없다 (계약 §0-1) — 표 F 는 쓰지 않는다.')
     return '\n'.join(L) + '\n'

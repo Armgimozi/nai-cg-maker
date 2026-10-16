@@ -14,8 +14,9 @@ import java.util.regex.Pattern;
  *       받지 못하면(FAILED_DOWNLOAD · INVALID_URL) 이 jar 팩의 공개 사본({@code pack.public_copy}, 시작 때 받아 보고 SHA-1 이 맞을 때만)으로
  *       한 번 더 보낸다.</li>
  *   <li>(b) pack.url 이 {@code …/pack-host/labyrinth-pack-<sha8>.zip} (공개 사본) 인데 sha8 이 jar 팩과 다르면: 옛 팩이므로 jar 팩의 공개 사본
- *       주소로 바꿔 보내고 한 줄 남긴다 (주인 config 는 065e6258 을 가리킨다). 그 사본을 받을 수 없으면 내장 주소로 돌아간다.</li>
- *   <li>(c) 공개 사본 꼴이 아닌 pack.url 은 늘 그대로 쓴다 (주인이 직접 올린 곳).</li>
+ *       주소로 바꿔 보내고 한 줄 남긴다 (주인 config 는 065e6258 을 가리킨다). 그 사본을 받아 SHA-1 을 맞춰 보기 전에는, 그리고 받을 수 없으면
+ *       내장 주소로 보낸다. 사본을 못 받은 사람에게는 내장 주소로 한 번 더.</li>
+ *   <li>(c) 공개 사본 꼴이 아닌 pack.url 은 늘 그대로 쓴다 (주인이 직접 올린 곳). 적힌 pack.sha1 이 jar 팩과 다르면 한 줄 남긴다.</li>
  * </ol>
  * {@code pack.public_copy} 의 {@code {sha8}}·{@code {sha1}} 은 jar 팩 SHA-1 의 앞 8글자·전체로 바뀐다. "" 이면 (a) 의 다시 보내기를 끈다
  * ((b) 는 그때 pack.url 의 sha8 만 바꾼 주소를 쓴다).
@@ -80,8 +81,13 @@ public final class PackUrlChoice {
         if (!u.isEmpty()) {
             String sha8 = hostedSha8(u);
             if (sha8 == null || jar.length() < 8) {
-                // (c) 주인이 직접 올린 주소 (또는 jar 팩을 모름) — 그대로
-                return new Plan(Mode.CUSTOM_URL, u, cfg.isEmpty() ? jar : cfg, null, false, null);
+                // (c) 주인이 직접 올린 주소 (또는 jar 팩을 모름) — 그대로. 적힌 sha1 이 jar 팩과 다르면 옛 팩일 수 있어 한 줄 남긴다
+                // (0.3.6 팩이면 보석 노드가 그냥 석재 벽돌·조약돌·심층암으로 보인다 — 주소는 그래도 바꾸지 않음)
+                String note = !cfg.isEmpty() && jar.length() >= 8 && !cfg.equals(jar)
+                        ? "[리소스팩] pack.url 의 팩(sha1 " + cfg.substring(0, Math.min(8, cfg.length())) + ")이 이 jar 팩(" + jar.substring(0, 8)
+                          + ")과 달라 새 광석 그림이 안 보일 수 있습니다 — 새 팩을 올리고 pack.sha1 을 고치거나, pack.url 을 비우세요."
+                        : null;
+                return new Plan(Mode.CUSTOM_URL, u, cfg.isEmpty() ? jar : cfg, null, false, note);
             }
             String jar8 = jar.substring(0, 8);
             if (sha8.equals(jar8)) {
@@ -89,7 +95,7 @@ public final class PackUrlChoice {
                         ? "[리소스팩] config 의 pack.sha1 이 이 팩과 달라 jar 팩의 sha1(" + jar8 + ")을 씁니다." : null;
                 return new Plan(Mode.PUBLIC_COPY, u, jar, null, false, note);
             }
-            // (b) 옛 팩 사본 — jar 팩 사본으로
+            // (b) 옛 팩 사본 — jar 팩 사본으로 (PackService 는 그 사본을 받아 SHA-1 을 맞춰 본 뒤에야 그 주소로 보낸다 — 그 전에는 내장 서버)
             String fixed = publicCopyUrl(template, jar);
             if (fixed == null) {
                 Matcher m = PACK_HOST.matcher(u);
@@ -102,6 +108,20 @@ public final class PackUrlChoice {
         boolean noHost = publicHost == null || publicHost.isBlank();
         String fb = noHost ? publicCopyUrl(template, jar) : null;
         return new Plan(Mode.BUILTIN, null, jar, fb, fb != null, null);
+    }
+
+    /** 받지 못한 사람에게 한 번 더 보낼 곳. */
+    public enum Retry { COPY, BUILTIN, NONE }
+
+    /**
+     * 클라이언트가 팩을 받지 못했을 때 (FAILED_DOWNLOAD · INVALID_URL) 한 번 더 보낼 곳 — 접속마다 한 번만 ({@link PackService}).
+     * 내장 주소를 못 받았으면 확인을 마친 공개 사본, 공개 사본을 못 받았으면 내장 주소(열려 있으면). 직접 적은 pack.url 은 다시 보내지 않는다.
+     */
+    public static Retry retry(Mode planMode, boolean failedWasBuiltin, boolean failedWasCopy, boolean copyVerified, boolean builtinUp) {
+        if (planMode == null || planMode == Mode.CUSTOM_URL) return Retry.NONE;
+        if (failedWasCopy) return builtinUp ? Retry.BUILTIN : Retry.NONE;
+        if (failedWasBuiltin) return copyVerified ? Retry.COPY : Retry.NONE;
+        return Retry.NONE;
     }
 
     /** 받은 파일이 그 팩인가 (SHA-1 이 같다). */

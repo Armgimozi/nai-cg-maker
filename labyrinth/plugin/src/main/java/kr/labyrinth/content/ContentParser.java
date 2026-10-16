@@ -64,6 +64,9 @@ public final class ContentParser {
         itemsRoot.sub("sets").children().forEach((id, p) -> sets.put(id, parseSet(id, p)));
         // 방어구 겉모습 (look_spec §1.1): 단품 look → 방패 판금 → 세트 look (look_effects: false 면 평상복) → 평상복
         items.replaceAll((id, d) -> d.type() == ItemType.ARMOR && d.look() == null ? d.withLook(lookFromSet(d, sets)) : d);
+        // 0.3.6.1 곡괭이: 한 단계 위 배율이 없으면 (손으로 고친 items.yml) 그 광석 제 곡괭이 빠르기 × 0.6 — 생성기·계약과 같은 식
+        Map<Integer, Double> ownSpeed = ToolSpec.ownSpeeds(items.values().stream().filter(ItemDef::isTool).map(ItemDef::tool).toList());
+        items.replaceAll((id, d) -> d.isTool() ? d.withTool(d.tool().withStretch(ownSpeed)) : d);
 
         Map<String, MobDef> mobs = new LinkedHashMap<>();
         mobsRoot.sub("mobs").children().forEach((id, p) -> mobs.put(id, parseMob(id, p)));

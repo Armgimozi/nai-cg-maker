@@ -69,7 +69,7 @@ BY_RANK = {m['rank']: m for m in METALS}
 
 GEMS = [
     {'rank': 1, 'id': 'quartz', 'ko': '석영', 'rarity': 'rare', 'color': '#F6F2EA',
-     'lore': '맑은 결정. 하급 강화석을 새기거나 곡괭이를 벼릴 때 쓴다.'},
+     'lore': '맑은 결정. 하급 강화석을 새길 때 쓴다.'},
     {'rank': 2, 'id': 'garnet', 'ko': '석류석', 'rarity': 'rare', 'color': '#C8102E',
      'lore': '광맥 사이에 박힌 짙은 붉은 보석. 하급 강화석을 새기거나 곡괭이를 벼릴 때 쓴다.'},
     {'rank': 3, 'id': 'moonstone', 'ko': '월장석', 'rarity': 'rare', 'color': '#9CCAFF',
@@ -79,7 +79,7 @@ GEMS = [
     {'rank': 5, 'id': 'sapphire', 'ko': '청옥', 'rarity': 'epic', 'color': '#4A7CFF',
      'lore': '깊은 바다빛 보석. 최상급 강화석을 새기거나 곡괭이를 벼릴 때 쓴다.'},
     {'rank': 6, 'id': 'dragonblood_stone', 'ko': '용혈석', 'rarity': 'legendary', 'color': '#FF3B2F',
-     'lore': '잠든 용의 피가 굳었다는 붉은 돌. 안쪽에서 불씨가 맥박친다. 최상급 강화석을 새길 때 쓴다.'},
+     'lore': '잠든 용의 피가 굳었다는 붉은 돌. 안쪽에서 불씨가 맥박친다. 최상급 강화석을 새기거나 곡괭이를 벼릴 때 쓴다.'},
 ]
 GEM = {g['id']: g for g in GEMS}
 GEM_BY_RANK = {g['rank']: g for g in GEMS}
@@ -142,7 +142,9 @@ PICK_BONUS = {1: 0.0, 2: 0.02, 3: 0.04, 4: 0.06, 5: 0.08, 6: 0.10}     # 광석 
 # 한 단계 위 (0.3.6.1 주인 결정: "구리 곡괭이로 철을 캘 수 있고 철 괭이로 은을 캐는 식이었으면 좋겠어").
 # 곡괭이 tier t 는 tier ≤ t + REACH_ABOVE 인 광석·보석을 캔다 (t + 2 부터는 그대로 "곡괭이가 약해 캘 수 없습니다").
 # 한 단계 위 광석은 그 광석 제 곡괭이 빠르기 × STRETCH_FACTOR 로 캔다 — 구리 곡괭이로 철 광석 = 2.9 ÷ (1.2 × 0.6) = 4.0초,
-# 철 곡괭이로는 2.4초. 고른 까닭은 economy.py 표 D·G (곡괭이를 올리면 같은 광석을 1.4~1.7배 빨리 모은다).
+# 철 곡괭이로는 2.4초. 고른 까닭 (economy.py 표 G): 한 블록은 1.67배 느려 손에 느껴지지만, 광맥이 8~10분마다 다시 차서
+# 1분당 모으는 양은 2~15% 차이뿐이다 (0.3~1.0 어느 값이어도 오리하르콘은 ×1.02). 곡괭이를 올리는 까닭은 두 단계 위 광석을 여는 것.
+# 0.6 이면 한 단계 위 보석 노드가 5.6~6.0초, 0.5 면 6.8~7.3초로 길어진다. 0.7 이면 철·은도 1.08~1.13배로 줄어 느린 맛이 약하다.
 REACH_ABOVE = 1
 STRETCH_FACTOR = 0.6
 GEM_NODE_FACTOR = 1.5          # 보석 노드는 같은 등급 광석의 1.5배 시간
@@ -164,7 +166,7 @@ PICK_RECIPES = {
     'silver_pickaxe': {'prev': 'iron_pickaxe', 'ingot': ('silver_ingot', 16), 'gem': ('moonstone', 2), 'essence': ('dim_essence', 4), 'gold': 1000},
     'gold_pickaxe': {'prev': 'silver_pickaxe', 'ingot': ('gold_ingot', 20), 'gem': ('topaz', 3), 'essence': ('labyrinth_essence', 2), 'gold': 2500},
     'mithril_pickaxe': {'prev': 'gold_pickaxe', 'ingot': ('mithril_ingot', 24), 'gem': ('sapphire', 3), 'essence': ('labyrinth_essence', 4), 'gold': 5000},
-    'orichalcum_pickaxe': {'prev': 'mithril_pickaxe', 'ingot': ('orichalcum_ingot', 24), 'gem': ('dragonblood_stone', 3), 'essence': ('radiant_essence', 3), 'gold': 10000},
+    'orichalcum_pickaxe': {'prev': 'mithril_pickaxe', 'ingot': ('orichalcum_ingot', 12), 'gem': ('dragonblood_stone', 2), 'essence': ('radiant_essence', 3), 'gold': 10000},
 }
 COPPER_PICKAXE_PRICE = 50      # 잃어버렸을 때 (광부·관리소). 첫 1개는 무료 (ext mine.free_pickaxe) + 시작 꾸러미
 
@@ -205,13 +207,16 @@ GEM_BLOCK_NATURAL = {
     'minecraft:infested_chiseled_stone_bricks': '이글루 지하 · 좀벌레가 숨은 조각된 석재 벽돌',
     'minecraft:infested_cracked_stone_bricks': '자연 생성 없음 — 좀벌레가 금 간 석재 벽돌에 숨을 때만 (요새 차원문 방 등)',
 }
-# 보석 블록 그림 (resourcepack/src/mine_blocks.py): 바탕 = 광산 벽 돌, 결정 무늬, 팔레트 = 어두운 테 → 밝은 빛 4색
+# 보석 블록 그림 (resourcepack/src/mine_blocks.py): 바탕 = 그 보석 노드가 박힌 광산 벽 돌, 결정 무늬, 팔레트 = 어두운 테 → 밝은 빛 4색.
+# 바탕은 노드 자리 둘레 벽에 맞춘다 (L1~L6 청사진): 석영 1·2층 돌 · 석류석 1~3층 돌 · 월장석 3·4층 응회암 (심층암이면 미스릴과 헷갈림) ·
+# 황옥 4층 화강암·테라코타 / 4층 응회암 / 5층 심층암 — 한 바탕이 셋에 다 맞지 않아 가장 덜 어긋나는 심층암 (화강암이면 5층 노드가 크게 어긋남) ·
+# 청옥 5층 심층암·매끄러운 현무암 + 6층 현무암 → 현무암 (세로 결이라 가로 결 심층암 다이아 = 미스릴과 갈림) · 용혈석 6층 현무암.
 GEM_BLOCK_LOOK = {
     'quartz': {'base': 'stone', 'style': 'shard', 'palette': ['#6e6a64', '#c9c3b8', '#efebe3', '#ffffff']},
     'garnet': {'base': 'stone', 'style': 'grain', 'palette': ['#3a0610', '#7e0c20', '#c8102e', '#ff7a88']},
     'moonstone': {'base': 'tuff', 'style': 'cabochon', 'palette': ['#3a4f78', '#7aa2d8', '#b8d6ff', '#f2f8ff']},
     'topaz': {'base': 'deepslate', 'style': 'shard', 'palette': ['#5a3606', '#b67c10', '#ffc23a', '#fff1a8']},
-    'sapphire': {'base': 'stone', 'style': 'hex', 'palette': ['#0c1a5c', '#2244b8', '#4a7cff', '#b4ccff']},
+    'sapphire': {'base': 'basalt', 'style': 'hex', 'palette': ['#0c1a5c', '#2244b8', '#4a7cff', '#b4ccff']},
     'dragonblood_stone': {'base': 'basalt', 'style': 'vein', 'palette': ['#2a0404', '#8a120c', '#ff3b2f', '#ffb070']},
 }
 BLOCK_WHY = {
@@ -225,7 +230,7 @@ BLOCK_WHY = {
     'garnet': '0.3.6.1: 좀벌레 조약돌 → 돌 바탕 + 짙은 붉은 알갱이 (0.3.6 은 진사 + 결정)',
     'moonstone': '0.3.6.1: 좀벌레 이끼 낀 석재 벽돌 → 응회암 바탕 + 젖빛 푸른 알 (0.3.6 은 바다 랜턴 + 결정)',
     'topaz': '0.3.6.1: 좀벌레 심층암 → 심층암 바탕 + 노란 조각 (금 광석과 바탕이 달라 안 헷갈림, 0.3.6 은 발광석 + 결정)',
-    'sapphire': '0.3.6.1: 좀벌레 조각된 석재 벽돌 → 돌 바탕 + 짙은 파란 육각 결정 (미스릴 = 심층암 바탕 청록과 다름, 0.3.6 은 심층암 청금석 + 결정)',
+    'sapphire': '0.3.6.1: 좀벌레 조각된 석재 벽돌 → 현무암 바탕 + 짙은 파란 육각 결정 (5·6층 어두운 벽에 맞춤, 미스릴 = 가로 결 심층암 바탕 청록과 다름, 0.3.6 은 심층암 청금석 + 결정)',
     'dragonblood_stone': '0.3.6.1: 좀벌레 금 간 석재 벽돌 → 현무암 바탕 + 붉게 타는 결 (0.3.6 은 마그마 블록 + 결정)',
 }
 FORBIDDEN_BLOCKS = ['minecraft:redstone_ore', 'minecraft:deepslate_redstone_ore', 'minecraft:gravel', 'minecraft:sand',

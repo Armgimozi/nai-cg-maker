@@ -852,6 +852,11 @@ public final class ContentValidator {
                     Double slow = t.speed().get(up);
                     Double own = t.speed().get(t.tier());
                     if (slow != null && own != null && slow > own) warn(w, "tool.speed 한 단계 위(" + up + ") 배율이 제 등급보다 빠름 — 곡괭이를 올릴 까닭이 줄어듦");
+                    // 손으로 고친 items.yml: 파서가 다음 곡괭이 빠르기 × 0.6 으로 채웠다 (ContentParser · ToolSpec.withStretch)
+                    kr.labyrinth.content.Params rawSpeed = d.raw() == null ? null : d.raw().sub("tool").sub("speed");
+                    if (rawSpeed != null && !rawSpeed.isEmpty() && !rawSpeed.has(String.valueOf(up)))
+                        warn(w, "tool.speed 에 한 단계 위(등급 " + up + ") 배율이 없음 — "
+                                + (slow != null ? "다음 곡괭이 빠르기 × 0.6 = " + slow + " 으로 채움" : "제 등급 × 0.6 으로 캠"));
                 }
                 if (!d.stats().isEmpty()) err(w, "도구에는 능력치(stats)가 없다");
                 if (d.raw() != null && d.raw().has("level_req")) warn(w, "도구에 level_req 가 있음 — 광산에는 레벨 조건이 없다 (무시)");

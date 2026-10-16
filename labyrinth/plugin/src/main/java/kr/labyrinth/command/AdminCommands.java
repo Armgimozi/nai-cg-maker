@@ -141,7 +141,7 @@ final class AdminCommands {
             // 0.3.6.1: 방식마다 쓰는 주소 (내장 · pack.url · 공개 사본) — PackService.describe
             for (String line : pack.describe(s instanceof Player pl ? pl : null)) Text.send(s, line);
             if (s instanceof Player p && pack.isAvailable()) {
-                Text.send(s, "<gray>지금 보내는 주소: <white>" + Text.escape(pack.urlFor(p)));
+                Text.send(s, "<gray>지금 보내는 주소: <white>" + Text.escape(pack.sendUrlFor(p)));
                 pack.send(p);
             }
         })));
