@@ -26,7 +26,7 @@ difficulties:
 #         골드·드롭 ×(1 + reward_per_member×(n−1))
 #   솔로(1명)일 때만 몹·보스 HP ×solo_hp, 피해 ×solo_damage (보상은 그대로). 끄려면 둘 다 1.0
 party:
-  max_size: 10
+  max_size: 5               # 최대 인원 (0.3.6 부터 5 — 예전 기본값 10 이 남아 있으면 5 로 읽음)
   hp_per_member: 0.6
   dmg_per_member: 0.08
   reward_per_member: 0.05
