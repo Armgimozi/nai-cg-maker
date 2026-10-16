@@ -20,11 +20,15 @@ class ToolSpecTest {
         assertNotNull(t);
         assertTrue(t.isPickaxe());
         assertTrue(t.canMine(1) && t.canMine(3));
-        assertFalse(t.canMine(4), "광석 tier > 곡괭이 tier 면 못 캠");
+        assertTrue(t.canMine(4), "0.3.6.1: 한 단계 위까지 캔다");
+        assertTrue(t.isSlow(4) && !t.isSlow(3), "한 단계 위만 느림");
+        assertFalse(t.canMine(5), "두 단계 위는 못 캠");
         assertFalse(t.canMine(0));
-        assertEquals(0.0, t.speedFor(4));
+        assertEquals(4, t.maxHardness());
+        assertEquals(1.4 * ToolSpec.STRETCH_FALLBACK, t.speedFor(4), 1e-9, "표에 없으면 제 등급 × 0.6");
+        assertEquals(0.0, t.speedFor(5));
         assertEquals(2.5 / 1.4, t.seconds(2.5, 1), 1e-9);
-        assertTrue(Double.isInfinite(t.seconds(3.7, 4)));
+        assertTrue(Double.isInfinite(t.seconds(4.1, 5)));
         assertEquals(0.04, t.bonus(), 1e-9);
     }
 

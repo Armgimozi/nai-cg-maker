@@ -8901,16 +8901,16 @@ items:
     name: "구리 곡괭이"
     type: tool
     rarity: common
-    tool: {kind: pickaxe, tier: 1, speed: {"1": 1.0}, bonus: 0.0}
+    tool: {kind: pickaxe, tier: 1, speed: {"1": 1.0, "2": 0.72}, bonus: 0.0}
     sources: [shop, starter]
     model: {shape: pickaxe, length: 1.0}
     texture: {style: copper, palette: ["#3a190c", "#783818", "#bd6630", "#f2a462", "#3fb090"]}
-    lore: "광부 브론이 처음 오는 이에게 쥐여 주는 곡괭이. 구리 광석과 석영만 캘 수 있다."
+    lore: "광부 브론이 처음 오는 이에게 쥐여 주는 곡괭이. 구리는 잘 캐고, 철은 더디게 캔다."
   iron_pickaxe:
     name: "철 곡괭이"
     type: tool
     rarity: uncommon
-    tool: {kind: pickaxe, tier: 2, speed: {"1": 1.2, "2": 1.2}, bonus: 0.02}
+    tool: {kind: pickaxe, tier: 2, speed: {"1": 1.2, "2": 1.2, "3": 0.84}, bonus: 0.02}
     sources: [craft]
     model: {shape: pickaxe, length: 1.0}
     texture: {style: steel, palette: ["#1e2128", "#3c424d", "#646c79", "#9aa3b0", "#7a5a30", "#d9a54e"]}
@@ -8919,7 +8919,7 @@ items:
     name: "은 곡괭이"
     type: tool
     rarity: rare
-    tool: {kind: pickaxe, tier: 3, speed: {"1": 1.4, "2": 1.4, "3": 1.4}, bonus: 0.04}
+    tool: {kind: pickaxe, tier: 3, speed: {"1": 1.4, "2": 1.4, "3": 1.4, "4": 0.96}, bonus: 0.04}
     sources: [craft]
     model: {shape: pickaxe, length: 1.0}
     texture: {style: silver, palette: ["#4a5060", "#8a92a4", "#d0d6e2", "#ffffff", "#6f9cff"]}
@@ -8928,7 +8928,7 @@ items:
     name: "금 곡괭이"
     type: tool
     rarity: rare
-    tool: {kind: pickaxe, tier: 4, speed: {"1": 1.6, "2": 1.6, "3": 1.6, "4": 1.6}, bonus: 0.06}
+    tool: {kind: pickaxe, tier: 4, speed: {"1": 1.6, "2": 1.6, "3": 1.6, "4": 1.6, "5": 1.08}, bonus: 0.06}
     sources: [craft]
     model: {shape: pickaxe, length: 1.0}
     texture: {style: gold, palette: ["#4a3208", "#8a6014", "#d9a52a", "#ffe07a", "#7a4a20", "#ffd24a"]}
@@ -8937,7 +8937,7 @@ items:
     name: "미스릴 곡괭이"
     type: tool
     rarity: epic
-    tool: {kind: pickaxe, tier: 5, speed: {"1": 1.8, "2": 1.8, "3": 1.8, "4": 1.8, "5": 1.8}, bonus: 0.08}
+    tool: {kind: pickaxe, tier: 5, speed: {"1": 1.8, "2": 1.8, "3": 1.8, "4": 1.8, "5": 1.8, "6": 1.2}, bonus: 0.08}
     sources: [craft]
     model: {shape: pickaxe, length: 1.0}
     texture: {style: crystal, palette: ["#1d3848", "#3e6f88", "#7ec4d8", "#dafcff", "#4a7cff"]}

@@ -10,7 +10,7 @@ import org.bukkit.inventory.ItemStack;
  * 기본 구현 {@link NoopMineApi} = 광산 꺼짐 (안내만).
  * <p>
  * 계약 (tools/data/036/mine.json · design/036/CONTRACT.md): 광산 6층은 모두 열려 있고 레벨 조건이 어디에도 없다. 곡괭이 tier 는
- * 캘 수 있는 광석 (tier ≤ 곡괭이) 과 빠르기만 정한다. 광산 월드 안은 피해 0 · PvP 끔 · 어드벤처 (규칙만, 기억 없음).
+ * 캘 수 있는 광석 (tier ≤ 곡괭이 + 1, 한 단계 위는 느림) 과 빠르기만 정한다. 광산 월드 안은 피해 0 · PvP 끔 · 어드벤처 (규칙만, 기억 없음).
  */
 public interface MineApi {
 

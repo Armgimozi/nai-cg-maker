@@ -801,7 +801,7 @@ public final class ContentValidator {
 
     /**
      * 0.3.6 광산 재료·곡괭이 (계약 tools/data/036): items.yml {@code mine_kind}·{@code mine_level}·{@code tool} 과 mine.yml 을 맞대어 본다.
-     * 광석·보석 id 는 mine.yml ores·gems 와, 등급은 tier 와 같아야 한다. 주괴 = 광석의 ingot. 곡괭이는 tier 1~6, 캘 수 있는 등급마다 speed,
+     * 광석·보석 id 는 mine.yml ores·gems 와, 등급은 tier 와 같아야 한다. 주괴 = 광석의 ingot. 곡괭이는 tier 1~6, 제 등급 이하마다 speed (한 단계 위는 있으면 쓰고 없으면 제 등급 × 0.6),
      * 레벨 조건·능력치 없음. mine.yml 이 없으면(광산 꺼짐) items.yml 쪽 모양만 본다.
      */
     private void mine() {
@@ -846,7 +846,13 @@ public final class ContentValidator {
                     Double sp = t.speed().get(o);
                     if (sp == null || sp <= 0) err(w, "tool.speed 에 등급 " + o + " 배율이 없음");
                 }
-                for (Integer k : t.speed().keySet()) if (k < 1 || k > t.tier()) warn(w, "tool.speed 등급 " + k + " 는 캘 수 없는 등급 (무시)");
+                for (Integer k : t.speed().keySet()) if (k < 1 || k > t.maxHardness()) warn(w, "tool.speed 등급 " + k + " 는 캘 수 없는 등급 (무시)");
+                int up = t.maxHardness();
+                if (up > t.tier()) {
+                    Double slow = t.speed().get(up);
+                    Double own = t.speed().get(t.tier());
+                    if (slow != null && own != null && slow > own) warn(w, "tool.speed 한 단계 위(" + up + ") 배율이 제 등급보다 빠름 — 곡괭이를 올릴 까닭이 줄어듦");
+                }
                 if (!d.stats().isEmpty()) err(w, "도구에는 능력치(stats)가 없다");
                 if (d.raw() != null && d.raw().has("level_req")) warn(w, "도구에 level_req 가 있음 — 광산에는 레벨 조건이 없다 (무시)");
             }

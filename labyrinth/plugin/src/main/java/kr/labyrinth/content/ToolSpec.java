@@ -7,9 +7,11 @@ import java.util.TreeMap;
 /**
  * 곡괭이 (items.yml {@code type: tool} 의 {@code tool:} 블록, 0.3.6 — 계약 tools/data/036/mine.json {@code pickaxes}).
  * <ul>
- *   <li>{@code tier} 1~6: 이 곡괭이로 캘 수 있는 가장 단단한 광석·보석 등급. 광석 tier ≤ 곡괭이 tier 일 때만 캔다 —
- *       아니면 진행 없음 + 액션바 "곡괭이가 약해 캘 수 없습니다". 플레이어 레벨 조건은 없다 (주인 결정 2).</li>
- *   <li>{@code speed}: 광석 등급 → 채굴 속도 배율. 블록 하나 = 광석 base_seconds ÷ 배율 (좋은 곡괭이일수록 모든 광석에서 빠름).</li>
+ *   <li>{@code tier} 1~6: 곡괭이 등급. 광석·보석 tier ≤ 곡괭이 tier + {@link #REACH_ABOVE} 일 때만 캔다 (0.3.6.1 주인 결정:
+ *       "구리 곡괭이로 철을 캘 수 있고 철 괭이로 은을 캐는 식") — 그보다 단단하면 진행 없음 + 액션바 "곡괭이가 약해 캘 수 없습니다".
+ *       플레이어 레벨 조건은 없다 (주인 결정 2).</li>
+ *   <li>{@code speed}: 광석 등급 → 채굴 속도 배율. 블록 하나 = 광석 base_seconds ÷ 배율 (좋은 곡괭이일수록 모든 광석에서 빠름).
+ *       한 단계 위(tier + 1) 배율은 그 광석 제 곡괭이보다 느리다 (생성기: 제 곡괭이 × 0.6). 표에 없으면 제 등급 배율 × {@link #STRETCH_FALLBACK}.</li>
  *   <li>{@code bonus}: 광석 1개 더 나올 확률.</li>
  * </ul>
  * 순수 값 객체 (Bukkit 없음). 곡괭이 구성요소(Tool 규칙·CAN_BREAK·UNBREAKABLE)는 {@code mine.MineApi#applyPickaxe} 가 쓴다.
@@ -18,6 +20,10 @@ public record ToolSpec(String kind, int tier, Map<Integer, Double> speed, double
 
     public static final String PICKAXE = "pickaxe";
     public static final int MAX_TIER = 6;
+    /** 곡괭이 tier 보다 몇 단계 단단한 것까지 캐나 (0.3.6.1 주인 결정: 한 단계 위까지, 느리게). */
+    public static final int REACH_ABOVE = 1;
+    /** items.yml speed 에 한 단계 위 배율이 없을 때 = 제 등급 배율 × 이 값 (손으로 고친 items.yml 대비). */
+    public static final double STRETCH_FALLBACK = 0.6;
 
     public ToolSpec {
         kind = kind == null || kind.isBlank() ? PICKAXE : kind;
@@ -49,14 +55,21 @@ public record ToolSpec(String kind, int tier, Map<Integer, Double> speed, double
 
     public boolean isPickaxe() { return PICKAXE.equals(kind); }
 
-    /** 광석·보석 등급 hardness 를 캘 수 있나 (hardness ≤ tier). */
-    public boolean canMine(int hardness) { return hardness >= 1 && hardness <= tier; }
+    /** 캘 수 있는 가장 단단한 등급 (tier + 1, 최대 6). 곡괭이가 아니거나 tier 0 이면 0. */
+    public int maxHardness() { return tier < 1 ? 0 : Math.min(MAX_TIER, tier + REACH_ABOVE); }
 
-    /** 그 등급에 쓰는 속도 배율 (못 캐면 0, 표에 없으면 1). */
+    /** 광석·보석 등급 hardness 를 캘 수 있나 (1 ≤ hardness ≤ tier + 1). */
+    public boolean canMine(int hardness) { return hardness >= 1 && hardness <= maxHardness(); }
+
+    /** 캘 수는 있지만 곡괭이보다 단단해 느린 등급인가 (tier &lt; hardness ≤ tier + 1). */
+    public boolean isSlow(int hardness) { return canMine(hardness) && hardness > tier; }
+
+    /** 그 등급에 쓰는 속도 배율 (못 캐면 0, 표에 없으면 제 등급 이하 1 · 한 단계 위는 제 등급 배율 × {@link #STRETCH_FALLBACK}). */
     public double speedFor(int hardness) {
         if (!canMine(hardness)) return 0;
         Double v = speed.get(hardness);
-        return v == null || v <= 0 ? 1.0 : v;
+        if (v != null && v > 0) return v;
+        return hardness > tier ? speedFor(tier) * STRETCH_FALLBACK : 1.0;
     }
 
     /** 블록 하나 캐는 초 = baseSeconds ÷ speedFor (못 캐면 +∞). */

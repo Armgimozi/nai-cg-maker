@@ -47,11 +47,14 @@ public final class MineShopMenu extends Menu {
         ItemDef pick = services.content().item(PICKAXE);
         boolean free = freeLeft(d);
         if (pick != null) {
+            List<String> reach = new java.util.ArrayList<>(kr.labyrinth.items.ItemTooltip.reachLines(services.content(), pick.tool()));
+            while (reach.size() < 2) reach.add("");
             ItemStack icon = services.items().create(PICKAXE, 1);
             if (icon == null) icon = ItemStack.of(Material.PAPER);
             icon.setData(io.papermc.paper.datacomponent.DataComponentTypes.ITEM_NAME, Text.item("<" + pick.rarity().color() + ">" + pick.name()));
             icon.setData(io.papermc.paper.datacomponent.DataComponentTypes.LORE, io.papermc.paper.datacomponent.item.ItemLore.lore(Text.itemLines(List.of(
-                    "<gray>구리 광석과 석영을 캡니다.",
+                    "<gray>" + Text.escape(reach.get(0)),
+                    "<gray>" + Text.escape(reach.get(1)),
                     "<gray>제련소에서 더 좋은 곡괭이로 벼릴 수 있습니다.",
                     "",
                     free ? "<#9be89b>처음 한 개는 무료" : (d.gold() >= PICKAXE_PRICE ? "<#ffd27a>" : "<#ff6b6b>") + "가격 " + PICKAXE_PRICE + " G",

@@ -11,7 +11,7 @@ import kr.labyrinth.content.ToolSpec;
  * <ul>
  *   <li>Tool 규칙: 캘 수 있는 광석·보석 블록마다 speed = {@link MineMath#toolSpeed}(단단함, 초), correct_for_drops = TRUE.
  *       그 밖의 블록 = 맨손 빠르기 1.0, 블록마다 내구 0.</li>
- *   <li>CAN_BREAK (어드벤처에서 부술 수 있는 것) = 같은 블록들 (tier ≤ 곡괭이 tier). 약한 곡괭이는 센 광석에 금도 안 간다.</li>
+ *   <li>CAN_BREAK (어드벤처에서 부술 수 있는 것) = 같은 블록들 (tier ≤ 곡괭이 tier + 1 — 한 단계 위는 느린 speed). 두 단계 위 광석에는 금도 안 간다.</li>
  *   <li>UNBREAKABLE · 공격 속성 비움 · TOOLTIP_DISPLAY 로 바닐라 줄(도구·부술 수 있음·파괴 불가·속성) 숨김 · 바탕 PAPER · 한 칸 1개.</li>
  * </ul>
  * 블록 설정(mine.yml block·base_seconds)이 바뀌면 {@link #signature} 가 달라져 접속 때 다시 쓴다.

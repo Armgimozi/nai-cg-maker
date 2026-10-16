@@ -307,29 +307,73 @@ public final class ItemTooltip {
     }
 
     /**
-     * 곡괭이 줄 (0.3.6): 캘 수 있는 광석 · 구리 광석 하나 캐는 초 · 하나 더 나올 확률 · 부서지지 않음.
-     * 단계·tier 숫자는 쓰지 않는다 (광석 이름으로만).
+     * 곡괭이 줄 (0.3.6 · 0.3.6.1): 캘 수 있는 광석 (한 단계 위 포함) · 제 등급 광석과 한 단계 위 광석 하나 캐는 초 · 하나 더 나올 확률 ·
+     * 부서지지 않음. 단계·tier 숫자는 쓰지 않는다 (광석 이름으로만).
      */
     public static List<String> toolLines(Content content, ItemDef def) {
         List<String> out = new ArrayList<>();
         kr.labyrinth.content.ToolSpec t = def.tool();
         if (t == null) return out;
         List<String> ores = new ArrayList<>();
-        kr.labyrinth.content.MineDef.Node fastest = null;
+        kr.labyrinth.content.MineDef.Node own = null, slow = null;
         for (kr.labyrinth.content.MineDef.Node n : content.mine().ores().values()) {
             if (!t.canMine(n.tier())) continue;
             ores.add(Text.escape(n.name().replace(" 광석", "")));
-            if (fastest == null) fastest = n;
+            if (t.isSlow(n.tier())) {
+                if (slow == null) slow = n;
+            } else if (own == null || n.tier() > own.tier()) {
+                own = n;
+            }
         }
         if (ores.isEmpty()) return out;
         out.add("<#e8c58a>⛏ 캘 수 있는 광석 <white>" + String.join("·", ores));
-        if (fastest != null && fastest.baseSeconds() > 0) {
-            double sec = kr.labyrinth.mine.MineMath.seconds(fastest, t);
-            out.add("<gray>" + Text.escape(fastest.name()) + " 하나 <white>" + trim(Math.round(sec * 10) / 10.0) + "초"
-                    + (t.bonus() > 0 ? " <dark_gray>·</dark_gray> <gray>하나 더 <white>" + Text.pct(t.bonus()) : ""));
+        List<String> secs = new ArrayList<>();
+        if (own != null && own.baseSeconds() > 0) secs.add("<gray>" + Text.escape(own.name()) + " <white>" + seconds(kr.labyrinth.mine.MineMath.seconds(own, t)) + "초");
+        if (slow != null && slow.baseSeconds() > 0) {
+            secs.add("<gray>" + Text.escape(slow.name()) + " <white>" + seconds(kr.labyrinth.mine.MineMath.seconds(slow, t)) + "초 <gray>(느림)");
         }
+        if (!secs.isEmpty()) out.add(String.join(" <dark_gray>·</dark_gray> ", secs));
+        if (t.bonus() > 0) out.add("<gray>광석이 하나 더 나올 확률 <white>" + Text.pct(t.bonus()));
         out.add("<dark_gray>부서지지 않음 · 광산에서만 캔다");
         return out;
+    }
+
+    /**
+     * 곡괭이가 캐는 것을 글 두 줄로 (광산 관리소 곡괭이 칸): 제 등급 광석·보석 "을 캡니다", 한 단계 위 "은 느리게 캡니다".
+     * 예 (구리 곡괭이): "구리 광석과 석영을 캡니다." · "철 광석과 석류석은 느리게 캡니다."
+     */
+    public static List<String> reachLines(Content content, kr.labyrinth.content.ToolSpec t) {
+        List<String> out = new ArrayList<>();
+        if (t == null || content.mine().isEmpty()) return out;
+        List<String> own = new ArrayList<>(), slow = new ArrayList<>();
+        List<kr.labyrinth.content.MineDef.Node> nodes = new ArrayList<>(content.mine().ores().values());
+        nodes.addAll(content.mine().gems().values());
+        for (kr.labyrinth.content.MineDef.Node n : nodes) {
+            if (n.tier() == t.tier()) own.add(n.name());
+            else if (t.isSlow(n.tier())) slow.add(n.name());
+        }
+        if (!own.isEmpty()) out.add(joinAnd(own) + josa(own.get(own.size() - 1), "을", "를") + " 캡니다.");
+        if (!slow.isEmpty()) out.add(joinAnd(slow) + josa(slow.get(slow.size() - 1), "은", "는") + " 느리게 캡니다.");
+        return out;
+    }
+
+    private static String joinAnd(List<String> names) {
+        if (names.size() == 1) return names.get(0);
+        String head = String.join(", ", names.subList(0, names.size() - 1));
+        String last = names.get(names.size() - 2);
+        return head + josa(last, "과", "와") + " " + names.get(names.size() - 1);
+    }
+
+    /** 마지막 글자 받침이 있으면 a (을·은·과), 없으면 b (를·는·와). 한글이 아니면 a. */
+    static String josa(String word, String a, String b) {
+        if (word == null || word.isEmpty()) return a;
+        char ch = word.charAt(word.length() - 1);
+        if (ch < 0xAC00 || ch > 0xD7A3) return a;
+        return (ch - 0xAC00) % 28 == 0 ? b : a;
+    }
+
+    private static String seconds(double sec) {
+        return trim(Math.round(sec * 10) / 10.0);
     }
 
     /** 첫 줄 분류: 무기 = "무기" (종류 없음), 방어구 = "판금 흉갑"·"방패"(판금)·"흉갑"(평상복), 그 밖 = {@link #category}. */

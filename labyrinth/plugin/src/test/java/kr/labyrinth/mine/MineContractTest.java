@@ -92,7 +92,7 @@ class MineContractTest {
             assertEquals(prevTier + 1, t.tier());
             prevTier = t.tier();
             for (MineDef.Node n : mine.ores().values()) {
-                assertEquals(n.tier() <= t.tier(), t.canMine(n.tier()), id + " → " + n.id());
+                assertEquals(n.tier() <= t.tier() + 1, t.canMine(n.tier()), id + " → " + n.id());
                 if (t.canMine(n.tier())) assertTrue(t.seconds(n.baseSeconds(), n.tier()) >= 1.0, id + " " + n.id());
             }
         }

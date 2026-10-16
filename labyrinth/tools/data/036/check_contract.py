@@ -24,6 +24,9 @@ errors, notes = [], []
 
 METALS = ['copper', 'iron', 'silver', 'gold', 'mithril', 'orichalcum']
 GEMS = ['quartz', 'garnet', 'moonstone', 'topaz', 'sapphire', 'dragonblood_stone']
+REACH_ABOVE = 1               # 0.3.6.1 주인 결정 1: 곡괭이 tier t 는 tier ≤ t + 1 을 캔다 (한 단계 위는 느림)
+GOLD_WITH_SALE_MAX = 0.25     # 광산 G/분 ÷ 던전 G/분 (판매 포함) — 0.3.6 은 0.20, 0.3.6.1 한 단계 위로 2단계 22%
+GOLD_DROP_MAX = 0.30          # 드롭 골드만 — 0.3.6 은 0.25, 0.3.6.1 2단계 28%
 MONSTER = ['ember_soul', 'resonant_sinew', 'clock_oil']          # §0 결정 4: 5층은 불씨 혼 (잿불 가죽 없음)
 DROP_PARTS = ['moss_scale', 'tunnel_fang', 'cinder_scale', 'rime_talon', 'chrono_dust', 'abyss_scale']   # §0 결정 4: 몹 몸에 맞는 새 부위
 PRE_RELEASE = {'cinder_hide': 'cinder_scale'}                  # 배포 전 시험 서버에만 있던 id
@@ -149,15 +152,24 @@ def main():
         need(d['tier'] == k == mat['items'][p]['tier'] == mat['items'][p]['tool']['tier'], f'{p} 등급')
         need(d['level_req'] is None and mat['items'][p].get('level_req') is None, f'{p} 레벨 조건이 있음 (주인 결정 2)')
         need(mat['items'][p]['sellable'] is False, f'{p} 팔 수 있음')
-        want = [o for o in ores if mine['ores'][o]['tier'] <= k] + [g for g in GEMS if mine['gems'][g]['tier'] <= k]
-        need(sorted(d['mines']) == sorted(want), f'{p} mines = tier ≤ {k} 가 아님')
-        need(set(d['speed']) == {str(o) for o in range(1, k + 1)}, f'{p} speed 키 = 1..{k}')
+        top = min(6, k + REACH_ABOVE)   # 0.3.6.1 주인 결정: 한 단계 위까지 캔다 (느리게)
+        want = [o for o in ores if mine['ores'][o]['tier'] <= top] + [g for g in GEMS if mine['gems'][g]['tier'] <= top]
+        need(sorted(d['mines']) == sorted(want), f'{p} mines = tier ≤ {top} 가 아님')
+        need(sorted(d.get('slow') or []) == sorted(x for x in want if (mine['ores'].get(x) or mine['gems'].get(x))['tier'] > k), f'{p} slow = 한 단계 위')
+        need(set(d['speed']) == {str(o) for o in range(1, top + 1)}, f'{p} speed 키 = 1..{top}')
+        for o in range(1, k + 1):
+            need(abs(d['speed'][str(o)] - d['speed']['1']) < 1e-9, f'{p} 제 등급 이하 속도가 같지 않음')
+        if top > k:
+            own = mine['pickaxes'][picks[top - 1]]['speed'][str(top)]
+            slow = d['speed'][str(top)]
+            need(0.5 <= slow / own <= 0.75, f'{p} 한 단계 위 속도 {slow} 가 제 곡괭이 {own} 의 0.5~0.75 배가 아님 (느리지만 캘 만해야)')
+            need(abs(slow / own - mine['rules']['stretch_factor']) < 0.01, f'{p} 한 단계 위 속도 ≠ rules.stretch_factor')
         need(d['speed'] == mat['items'][p]['tool']['speed'], f'{p} speed mine ↔ materials')
         need(abs(d['bonus'] - mat['items'][p]['tool']['bonus']) < 1e-9, f'{p} bonus mine ↔ materials')
-    for o in range(1, 7):   # 좋은 곡괭이일수록 모든 광석에서 빠름
+    for o in range(1, 7):   # 좋은 곡괭이일수록 모든 광석에서 빠름 (한 단계 아래 곡괭이 = 느림 → 제 곡괭이 → 위 곡괭이)
         prev = None
         for k, p in enumerate(picks, 1):
-            if k < o:
+            if k + REACH_ABOVE < o:
                 continue
             s = mine['ores'][ores[o - 1]]['base_seconds'] / mine['pickaxes'][p]['speed'][str(o)]
             need(abs(s - mine['pickaxes'][p]['seconds'][ores[o - 1]]) < 0.011, f'{p} {ores[o - 1]} 초 표')
@@ -265,8 +277,12 @@ def main():
     for k, r in enumerate(pr, 2):
         mats = r['materials']
         need(mats.get(picks[k - 2]) == 1, f"{r['id']} 앞 곡괭이")
-        need(ingots[k - 2] in mats and GEMS[k - 2] in mats, f"{r['id']} 앞 금속 주괴·앞 보석")
-        need(not any(m in mats for m in ingots[k - 1:] + GEMS[k - 1:]), f"{r['id']} 자기·윗 금속을 씀 (순환)")
+        # 0.3.6.1 주인 결정: "철 곡괭이로 업글하려면 철 주괴가 필요한게 정상" — 제 금속 주괴 + 같은 등급 보석 (앞 곡괭이로 느리게 캠)
+        need(ingots[k - 1] in mats and GEMS[k - 1] in mats, f"{r['id']} 제 금속 주괴·같은 등급 보석")
+        need(not any(m in mats for m in ingots[:k - 1] + GEMS[:k - 1]), f"{r['id']} 앞 금속·앞 보석을 씀 (주인 결정과 다름)")
+        need(not any(m in mats for m in ingots[k:] + GEMS[k:]), f"{r['id']} 윗 금속을 씀 (앞 곡괭이로 못 캠)")
+        prev_mines = set(mine['pickaxes'][picks[k - 2]]['mines'])
+        need(ores[k - 1] in prev_mines and GEMS[k - 1] in prev_mines, f"{r['id']} 재료를 앞 곡괭이로 캘 수 없음 (순환)")
         need(r['station'] == 'smelter' and r['category'] == 'tool' and 'level_req' not in r, f"{r['id']} station/category/레벨 조건")
         for m in mats:
             need(m in items_now or m in mat['items'], f"{r['id']} 재료 없음: {m}")
@@ -406,8 +422,13 @@ def main():
             c = r['craft']
             need(c['delta_solo'] <= 0.30, f"{r['tier']} 솔로 제작 시간 +{c['delta_solo'] * 100:.0f}% > 30%")
             need(c['delta_4p'] <= 0.45, f"{r['tier']} 4인 제작 시간 +{c['delta_4p'] * 100:.0f}% > 45%")
-            need(r['gold']['ratio_with_sale'] <= 0.20, f"{r['tier']} 광산 골드 {r['gold']['ratio_with_sale'] * 100:.0f}% (판매 포함) > 20%")
-            need(r['gold']['ratio'] <= 0.25, f"{r['tier']} 광산 골드 {r['gold']['ratio'] * 100:.0f}% (드롭만) > 25%")
+            # 0.3.6.1: 한 단계 위를 캐서 2·3단계 광산 골드가 조금 오름 (철 곡괭이로 은 광석) — 한도 20/25% → 25/30% (CONTRACT §9-2)
+            need(r['gold']['ratio_with_sale'] <= GOLD_WITH_SALE_MAX, f"{r['tier']} 광산 골드 {r['gold']['ratio_with_sale'] * 100:.0f}% (판매 포함) > {GOLD_WITH_SALE_MAX:.0%}")
+            need(r['gold']['ratio'] <= GOLD_DROP_MAX, f"{r['tier']} 광산 골드 {r['gold']['ratio'] * 100:.0f}% (드롭만) > {GOLD_DROP_MAX:.0%}")
+        st = eco.get('stretch') or {}
+        need(st.get('reach_above') == REACH_ABOVE and abs(st.get('factor', 0) - mine['rules']['stretch_factor']) < 1e-9, 'economy.json 한 단계 위 표 (표 G)')
+        for k, v in (st.get('by_metal') or {}).items():
+            need(v['own_seconds'] < v['slow_seconds'] and v['own_per_min'] >= v['slow_per_min'], f'{k}: 제 곡괭이가 한 단계 아래 곡괭이보다 빠르지 않음')
         need('stamina' not in eco, 'economy.json 에 기력이 남음 (계약 §0-1)')
         pj = json.loads((HERE / 'model/out/proto036.json').read_text(encoding='utf-8'))
         for f, tgt in pj['dungeon_ore_target'].items():

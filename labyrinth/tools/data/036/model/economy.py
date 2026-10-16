@@ -7,9 +7,10 @@
   A. 곡괭이 × 층: 한 층에 머물며 캘 수 있는 것을 다 캘 때 1분당 광석 (금속별)
   B. 금속 하나만 노리고 여러 층을 돌 때 1분당 광석 (곡괭이별)
   C. 단계별 대표 한 벌(무기 1 + 방어구 4부위) 제작 총시간 (솔로 / 4인, 던전 분 + 광산 분) — 0.3.5 와 비교, +5 까지도
-  D. 곡괭이 준비 (그 앞 곡괭이로 그 앞 금속·보석을 캐는 분)
+  D. 곡괭이 준비 (0.3.6.1: 앞 곡괭이로 제 금속·같은 등급 보석을 한 단계 위라 느리게 캐는 분)
   E. 골드: 광산 다 팔기 G/분 ÷ 던전 G/분 (그 단계 곡괭이, ≤ 0.20) + 친구가 준 가장 좋은 곡괭이로 낮은 단계에서
   F. (기력 없음 — 계약 §0-1)
+  G. 한 단계 위 광석 (0.3.6.1): 앞 곡괭이로 캐는 초 · 제 곡괭이와 1분당 광석 견줌
 결과: out/economy.json · out/economy.md (CONTRACT.md 표)
 """
 import collections
@@ -115,15 +116,34 @@ def block(c, enh, cfg, sup, refine, t, party, goal, old=False):
 
 
 def pickaxe_prep():
+    """곡괭이마다 (0.3.6.1): 앞 곡괭이로 제 금속 주괴·같은 등급 보석을 캐는 분 (한 단계 위라 느림).
+    minutes = 계약 모델 (보석 노드도 1분당 몫으로만), fresh = 처음 들어간 사람 (도는 층 노드가 다 차 있음)."""
     out = {}
     for pid, d in P.PICK_RECIPES.items():
-        prev = P.METAL[pid.replace('_pickaxe', '')]['rank'] - 1
-        m = P.BY_RANK[prev]
+        m = P.METAL[pid.replace('_pickaxe', '')]
+        prev = m['rank'] - 1
         ing_id, k = d['ingot']
         gid, g = d['gem']
-        plan = M.best_plan(prev, {m['key']: k * P.ORE_PER_INGOT, gid: g})
-        out[pid] = {'with': m['pickaxe'], 'ingots': k, 'gems': g, 'essence': {d['essence'][0]: d['essence'][1]},
-                    'minutes': round(plan[0], 1), 'levels': list(plan[1]), 'gold': d['gold'] + k * m['smelt_gold']}
+        need = {m['key']: k * P.ORE_PER_INGOT, gid: g}
+        plan = M.best_plan(prev, need)
+        fresh = M.best_plan_fresh(prev, need)
+        out[pid] = {'with': P.BY_RANK[prev]['pickaxe'], 'ingot': ing_id, 'ingots': k, 'gem': gid, 'gems': g,
+                    'essence': {d['essence'][0]: d['essence'][1]},
+                    'minutes': round(plan[0], 1), 'levels': list(plan[1]), 'fresh_minutes': round(fresh[0], 1), 'fresh_levels': list(fresh[1]),
+                    'gold': d['gold'] + k * m['smelt_gold']}
+    return out
+
+
+def stretch_table():
+    """표 G (0.3.6.1): 한 단계 위 광석 — 앞 곡괭이(느림) 와 제 곡괭이의 초 · 그 금속만 노려 여러 층을 돌 때 1분당 광석."""
+    out = {}
+    for m in P.METALS[1:]:
+        r = m['rank']
+        a, sa = M.focused_rate(r - 1, m['key'])
+        b, sb = M.focused_rate(r, m['key'])
+        out[m['key']] = {'slow_pickaxe': P.BY_RANK[r - 1]['pickaxe'], 'slow_seconds': round(P.mine_seconds(r, r - 1), 2),
+                         'own_seconds': round(P.mine_seconds(r, r), 2), 'slow_per_min': round(a, 2), 'own_per_min': round(b, 2),
+                         'gain': round(b / a, 3) if a else None}
     return out
 
 
@@ -149,14 +169,14 @@ def main():
     table_b = {}
     for p in range(1, 7):
         for m in P.METALS:
-            if m['rank'] > p:
+            if not P.can_mine(m['rank'], p):
                 continue
             r, S = M.focused_rate(p, m['key'])
             table_b[f"{p}:{m['key']}"] = {'ore_per_min': round(r, 2), 'levels': list(S)}
     gem_b = {}
     for p in range(1, 7):
         for g in P.GEMS:
-            if g['rank'] > p:
+            if not P.can_mine(g['rank'], p):
                 continue
             b = M.best_plan(p, {g['id']: 10.0}, [P.BY_RANK[g['rank']]['key']])
             gem_b[f"{p}:{g['id']}"] = round(10.0 / b[0], 3) if b else 0.0
@@ -188,7 +208,7 @@ def main():
     prep = pickaxe_prep()
 
     res = {'table_a_single_level': table_a, 'table_b_focused': table_b, 'gem_focused': gem_b, 'rows': rows,
-           'pickaxe_prep': prep,
+           'pickaxe_prep': prep, 'stretch': {'factor': P.STRETCH_FACTOR, 'reach_above': P.REACH_ABOVE, 'by_metal': stretch_table()},
            'assumptions': {'run_minutes': P.RUN_MINUTES, 'party_time': P.PARTY_TIME, 'party_bonus': P.PARTY_BONUS,
                            'aim_s': P.AIM_S, 'cluster_s': P.CLUSTER_S, 'loop_s': P.LOOP_S, 'lift_trip_s': P.LIFT_TRIP_S,
                            'ing_share': P.ING_SHARE}}
@@ -249,15 +269,24 @@ def render_md(res):
         L.append(f"| {r['tier']} | {c['old_solo']['total_min']:.0f}분 | {c['new_solo']['dungeon_min']:.0f} + {c['new_solo']['mine_min']:.0f} = "
                  f"{c['new_solo']['total_min']:.0f}분 | {pct(c['delta_solo'])} |")
     L.append('')
-    L.append('### 표 D. 곡괭이 준비 (앞 곡괭이로 앞 금속 주괴·보석을 캐는 분, 한 번)')
+    L.append('### 표 D. 곡괭이 준비 (0.3.6.1 — 앞 곡괭이로 제 금속 주괴·같은 등급 보석을 한 단계 위라 느리게 캐는 분, 한 번)')
     L.append('')
-    L.append('| 곡괭이 | 재료 | 광산 분 | 골드 (제련 포함) |')
-    L.append('|---|---|---|---|')
+    L.append('| 곡괭이 | 재료 | 광산 분 (모델) | 처음 온 사람 (노드 다 참) | 골드 (제련 포함) |')
+    L.append('|---|---|---|---|---|')
     for pid, d in res['pickaxe_prep'].items():
         m = P.METAL[pid.replace('_pickaxe', '')]
         prev = P.BY_RANK[m['rank'] - 1]
-        L.append(f"| {m['pick_name']} | {prev['pick_name']} · {prev['ingot_name']} {d['ingots']} · {P.GEM_BY_RANK[m['rank'] - 1]['ko']} {d['gems']} · "
-                 f"{'·'.join(f'{ESS_KO.get(k, k)} {v}' for k, v in d['essence'].items())} | {d['minutes']:.0f}분 | {d['gold']:,}G |")
+        L.append(f"| {m['pick_name']} | {prev['pick_name']} · {m['ingot_name']} {d['ingots']} · {P.GEM[d['gem']]['ko']} {d['gems']} · "
+                 f"{'·'.join(f'{ESS_KO.get(k, k)} {v}' for k, v in d['essence'].items())} | {d['minutes']:.0f}분 | {d['fresh_minutes']:.0f}분 | {d['gold']:,}G |")
+    L.append('')
+    st = res['stretch']
+    L.append(f"### 표 G. 한 단계 위 광석 (곡괭이 tier t 는 tier ≤ t + {st['reach_above']} 을 캠, 한 단계 위는 제 곡괭이 빠르기 × {st['factor']})")
+    L.append('')
+    L.append('| 광석 | 앞 곡괭이로 (초) | 제 곡괭이로 (초) | 그 금속만 노릴 때 1분당 (앞 → 제 곡괭이) |')
+    L.append('|---|---|---|---|')
+    for k, d in st['by_metal'].items():
+        L.append(f"| {P.METAL[k]['ore_name']} | {P.METAL[P.BY_RANK[P.METAL[k]['rank'] - 1]['key']]['pick_name']} {d['slow_seconds']:.2f} | "
+                 f"{d['own_seconds']:.2f} | {d['slow_per_min']:.1f} → {d['own_per_min']:.1f} (×{d['gain']:.2f}) |")
     L.append('')
     L.append('### 표 E. 골드 — 광산에서 캔 것을 다 팔 때 G/분 ÷ 던전 G/분')
     L.append('')

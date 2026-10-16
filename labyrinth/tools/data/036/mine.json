@@ -6,7 +6,7 @@
   "levels": 6,
   "level_binding": false,
   "all_levels_open": true,
-  "tier_rule": "ore_tier <= pickaxe_tier",
+  "tier_rule": "ore_tier <= pickaxe_tier + 1",
   "mixed_levels": true
  },
  "world": {
@@ -754,15 +754,23 @@
    "name": "구리 곡괭이",
    "tier": 1,
    "speed": {
-    "1": 1.0
+    "1": 1.0,
+    "2": 0.72
    },
    "bonus": 0.0,
    "mines": [
     "copper_ore",
-    "quartz"
+    "iron_ore",
+    "quartz",
+    "garnet"
+   ],
+   "slow": [
+    "iron_ore",
+    "garnet"
    ],
    "seconds": {
-    "copper_ore": 2.5
+    "copper_ore": 2.5,
+    "iron_ore": 4.03
    },
    "recipe": null,
    "obtain": [
@@ -777,18 +785,26 @@
    "tier": 2,
    "speed": {
     "1": 1.2,
-    "2": 1.2
+    "2": 1.2,
+    "3": 0.84
    },
    "bonus": 0.02,
    "mines": [
     "copper_ore",
     "iron_ore",
+    "silver_ore",
     "quartz",
-    "garnet"
+    "garnet",
+    "moonstone"
+   ],
+   "slow": [
+    "silver_ore",
+    "moonstone"
    ],
    "seconds": {
     "copper_ore": 2.08,
-    "iron_ore": 2.42
+    "iron_ore": 2.42,
+    "silver_ore": 3.93
    },
    "recipe": {
     "id": "iron_pickaxe",
@@ -796,8 +812,8 @@
     "category": "tool",
     "materials": {
      "copper_pickaxe": 1,
-     "copper_ingot": 12,
-     "quartz": 2,
+     "iron_ingot": 12,
+     "garnet": 2,
      "dim_essence": 2
     },
     "gold": 300
@@ -813,21 +829,29 @@
    "speed": {
     "1": 1.4,
     "2": 1.4,
-    "3": 1.4
+    "3": 1.4,
+    "4": 0.96
    },
    "bonus": 0.04,
    "mines": [
     "copper_ore",
     "iron_ore",
     "silver_ore",
+    "gold_ore",
     "quartz",
     "garnet",
-    "moonstone"
+    "moonstone",
+    "topaz"
+   ],
+   "slow": [
+    "gold_ore",
+    "topaz"
    ],
    "seconds": {
     "copper_ore": 1.79,
     "iron_ore": 2.07,
-    "silver_ore": 2.36
+    "silver_ore": 2.36,
+    "gold_ore": 3.85
    },
    "recipe": {
     "id": "silver_pickaxe",
@@ -835,8 +859,8 @@
     "category": "tool",
     "materials": {
      "iron_pickaxe": 1,
-     "iron_ingot": 16,
-     "garnet": 2,
+     "silver_ingot": 16,
+     "moonstone": 2,
      "dim_essence": 4
     },
     "gold": 1000
@@ -853,7 +877,8 @@
     "1": 1.6,
     "2": 1.6,
     "3": 1.6,
-    "4": 1.6
+    "4": 1.6,
+    "5": 1.08
    },
    "bonus": 0.06,
    "mines": [
@@ -861,16 +886,23 @@
     "iron_ore",
     "silver_ore",
     "gold_ore",
+    "mithril_ore",
     "quartz",
     "garnet",
     "moonstone",
-    "topaz"
+    "topaz",
+    "sapphire"
+   ],
+   "slow": [
+    "mithril_ore",
+    "sapphire"
    ],
    "seconds": {
     "copper_ore": 1.56,
     "iron_ore": 1.81,
     "silver_ore": 2.06,
-    "gold_ore": 2.31
+    "gold_ore": 2.31,
+    "mithril_ore": 3.8
    },
    "recipe": {
     "id": "gold_pickaxe",
@@ -878,8 +910,8 @@
     "category": "tool",
     "materials": {
      "silver_pickaxe": 1,
-     "silver_ingot": 20,
-     "moonstone": 3,
+     "gold_ingot": 20,
+     "topaz": 3,
      "labyrinth_essence": 2
     },
     "gold": 2500
@@ -897,7 +929,8 @@
     "2": 1.8,
     "3": 1.8,
     "4": 1.8,
-    "5": 1.8
+    "5": 1.8,
+    "6": 1.2
    },
    "bonus": 0.08,
    "mines": [
@@ -906,18 +939,25 @@
     "silver_ore",
     "gold_ore",
     "mithril_ore",
+    "orichalcum_ore",
     "quartz",
     "garnet",
     "moonstone",
     "topaz",
-    "sapphire"
+    "sapphire",
+    "dragonblood_stone"
+   ],
+   "slow": [
+    "orichalcum_ore",
+    "dragonblood_stone"
    ],
    "seconds": {
     "copper_ore": 1.39,
     "iron_ore": 1.61,
     "silver_ore": 1.83,
     "gold_ore": 2.06,
-    "mithril_ore": 2.28
+    "mithril_ore": 2.28,
+    "orichalcum_ore": 3.75
    },
    "recipe": {
     "id": "mithril_pickaxe",
@@ -925,8 +965,8 @@
     "category": "tool",
     "materials": {
      "gold_pickaxe": 1,
-     "gold_ingot": 24,
-     "topaz": 3,
+     "mithril_ingot": 24,
+     "sapphire": 3,
      "labyrinth_essence": 4
     },
     "gold": 5000
@@ -962,6 +1002,7 @@
     "sapphire",
     "dragonblood_stone"
    ],
+   "slow": [],
    "seconds": {
     "copper_ore": 1.25,
     "iron_ore": 1.45,
@@ -976,8 +1017,8 @@
     "category": "tool",
     "materials": {
      "mithril_pickaxe": 1,
-     "mithril_ingot": 28,
-     "sapphire": 4,
+     "orichalcum_ingot": 24,
+     "dragonblood_stone": 3,
      "radiant_essence": 3
     },
     "gold": 10000
@@ -989,7 +1030,9 @@
   }
  },
  "rules": {
-  "tier": "광석·보석 tier ≤ 곡괭이 tier 일 때만 캔다. 아니면 진행 없음 + 액션바 한 줄 \"곡괭이가 약해 캘 수 없습니다\" (1초에 1번). 레벨 조건은 어디에도 없다",
+  "tier": "광석·보석 tier ≤ 곡괭이 tier + 1 일 때만 캔다 (0.3.6.1 주인 결정 — 한 단계 위는 그 광석 제 곡괭이 빠르기 × 0.6). 아니면 진행 없음 + 액션바 한 줄 \"곡괭이가 약해 캘 수 없습니다\" (1초에 1번). 레벨 조건은 어디에도 없다",
+  "reach_above": 1,
+  "stretch_factor": 0.6,
   "too_weak_actionbar": "곡괭이가 약해 캘 수 없습니다",
   "seconds": "base_seconds(광석 tier) ÷ 곡괭이 speed[광석 tier] (보석 노드는 gems.base_seconds). 서버가 Tool 규칙 speed = 30·단단함(Material#getHardness) ÷ (20·초) 로 바꿈, correct_for_drops = TRUE",
   "min_seconds": 1.0,
@@ -1155,21 +1198,26 @@
  },
  "economy": {
   "focused_ore_per_min": {
-   "1:copper": 8.73,
+   "1:copper": 8.71,
+   "1:iron": 7.46,
    "2:copper": 8.91,
    "2:iron": 8.61,
-   "3:copper": 9.2,
-   "3:iron": 8.81,
+   "2:silver": 6.47,
+   "3:copper": 9.09,
+   "3:iron": 8.78,
    "3:silver": 7.28,
-   "4:copper": 9.6,
-   "4:iron": 9.23,
+   "3:gold": 6.08,
+   "4:copper": 9.54,
+   "4:iron": 9.18,
    "4:silver": 7.42,
    "4:gold": 6.54,
+   "4:mithril": 5.63,
    "5:copper": 9.78,
-   "5:iron": 9.64,
-   "5:silver": 7.6,
+   "5:iron": 9.55,
+   "5:silver": 7.56,
    "5:gold": 6.66,
    "5:mithril": 5.74,
+   "5:orichalcum": 4.43,
    "6:copper": 9.96,
    "6:iron": 9.88,
    "6:silver": 7.84,

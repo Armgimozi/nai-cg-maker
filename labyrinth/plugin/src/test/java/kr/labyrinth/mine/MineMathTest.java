@@ -51,7 +51,7 @@ class MineMathTest {
                 }
             }
         }
-        assertEquals(21, checked, "표 §3.4 의 칸 수");
+        assertEquals(26, checked, "표 §3.4 의 칸 수 (0.3.6.1: 한 단계 위 5칸 더)");
     }
 
     @Test

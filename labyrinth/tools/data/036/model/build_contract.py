@@ -73,10 +73,11 @@ def build_mine(lay, eco):
                    'materials': {d['prev']: 1, d['ingot'][0]: d['ingot'][1], d['gem'][0]: d['gem'][1], d['essence'][0]: d['essence'][1]},
                    'gold': d['gold']}
         picks[m['pickaxe']] = {
-            'name': m['pick_name'], 'tier': r, 'speed': {str(o): P.PICK_SPEED[r] for o in range(1, r + 1)},
+            'name': m['pick_name'], 'tier': r, 'speed': {str(o): v for o, v in P.pick_speed(r).items()},
             'bonus': P.PICK_BONUS[r],
-            'mines': [x['ore'] for x in P.METALS if x['rank'] <= r] + [g['id'] for g in P.GEMS if g['rank'] <= r],
-            'seconds': {x['ore']: round(P.mine_seconds(x['rank'], r), 2) for x in P.METALS if x['rank'] <= r},
+            'mines': [x['ore'] for x in P.METALS if P.can_mine(x['rank'], r)] + [g['id'] for g in P.GEMS if P.can_mine(g['rank'], r)],
+            'slow': [x['ore'] for x in P.METALS if P.can_mine(x['rank'], r) and x['rank'] > r] + [g['id'] for g in P.GEMS if P.can_mine(g['rank'], r) and g['rank'] > r],
+            'seconds': {x['ore']: round(P.mine_seconds(x['rank'], r), 2) for x in P.METALS if P.can_mine(x['rank'], r)},
             'recipe': rec,
             'obtain': (['starter_kit', 'mine_office 첫 1개 무료 (ext mine.free_pickaxe)', f"mine_office·광부 {P.COPPER_PICKAXE_PRICE}G"]
                        if r == 1 else ['제련소·광산 관리소 곡괭이 탭 (앞 곡괭이를 재료로 넣어 다시 벼림)']),
@@ -103,7 +104,9 @@ def build_mine(lay, eco):
         'levels': levels,
         'ores': ores, 'gems': gems, 'pickaxes': picks,
         'rules': {
-            'tier': '광석·보석 tier ≤ 곡괭이 tier 일 때만 캔다. 아니면 진행 없음 + 액션바 한 줄 "' + P.OWNER['too_weak_actionbar'] + '" (1초에 1번). 레벨 조건은 어디에도 없다',
+            'tier': f'광석·보석 tier ≤ 곡괭이 tier + {P.REACH_ABOVE} 일 때만 캔다 (0.3.6.1 주인 결정 — 한 단계 위는 그 광석 제 곡괭이 빠르기 × {P.STRETCH_FACTOR}). '
+                    '아니면 진행 없음 + 액션바 한 줄 "' + P.OWNER['too_weak_actionbar'] + '" (1초에 1번). 레벨 조건은 어디에도 없다',
+            'reach_above': P.REACH_ABOVE, 'stretch_factor': P.STRETCH_FACTOR,
             'too_weak_actionbar': P.OWNER['too_weak_actionbar'],
             'seconds': 'base_seconds(광석 tier) ÷ 곡괭이 speed[광석 tier] (보석 노드는 gems.base_seconds). 서버가 Tool 규칙 speed = 30·단단함(Material#getHardness) ÷ (20·초) 로 바꿈, correct_for_drops = TRUE',
             'min_seconds': P.MIN_SECONDS,
@@ -200,7 +203,7 @@ def build_materials(proto, eco):
         r = m['rank']
         items[m['pickaxe']] = {'name': m['pick_name'], 'type': 'tool', 'kind': 'pickaxe', 'tier': r, 'rarity': m['pick_rarity'],
                                'sell': None, 'sellable': False, 'stack': 1, 'level_req': None,
-                               'tool': {'kind': 'pickaxe', 'tier': r, 'speed': {str(o): P.PICK_SPEED[r] for o in range(1, r + 1)}, 'bonus': P.PICK_BONUS[r]},
+                               'tool': {'kind': 'pickaxe', 'tier': r, 'speed': {str(o): v for o, v in P.pick_speed(r).items()}, 'bonus': P.PICK_BONUS[r]},
                                'sources': ['starter', 'shop'] if r == 1 else ['craft'],
                                'sources_text': (f'시작 꾸러미 · 광산 관리소·광부 (처음 1개 무료, 이후 {P.COPPER_PICKAXE_PRICE}G)' if r == 1
                                                 else '제련소·광산 관리소 곡괭이 벼리기'),

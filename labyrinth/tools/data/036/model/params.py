@@ -15,7 +15,7 @@ OWNER = {
     'gem_order': ['quartz', 'garnet', 'moonstone', 'topaz', 'sapphire', 'dragonblood_stone'],
     'level_binding': False,          # 곡괭이·승강기·광산 층 어디에도 플레이어 레벨 조건 없음
     'all_levels_open': True,         # 승강기는 처음부터 모든 층으로
-    'tier_rule': 'ore_tier <= pickaxe_tier',
+    'tier_rule': 'ore_tier <= pickaxe_tier + 1',   # 0.3.6.1 주인: "구리 곡괭이로 철을 캘 수 있고 철 괭이로 은을 캐는 식" (한 단계 위는 느림)
     'too_weak_actionbar': '곡괭이가 약해 캘 수 없습니다',
     'ing_share': 0.20,
     'mixed_levels': True,
@@ -30,7 +30,7 @@ METALS = [
      'ore_rarity': 'common', 'ingot_rarity': 'uncommon', 'pick_rarity': 'common',
      'ore_lore': '광산 얕은 곳 어디서나 보이는 붉은 광석. 제련소에서 녹이면 구리 주괴가 된다.',
      'ingot_lore': '구리 광석을 녹여 부은 주괴. 무르지만 다루기 쉬워 처음 벼리는 장비에 두루 쓴다.',
-     'pick_lore': '광부 브론이 처음 오는 이에게 쥐여 주는 곡괭이. 구리 광석과 석영만 캘 수 있다.'},
+     'pick_lore': '광부 브론이 처음 오는 이에게 쥐여 주는 곡괭이. 구리는 잘 캐고, 철은 더디게 캔다.'},
     {'rank': 2, 'key': 'iron', 'ko': '철', 'smelt_gold': 4, 'color': '#C9CED6',
      'ore_rarity': 'common', 'ingot_rarity': 'uncommon', 'pick_rarity': 'uncommon',
      'ore_lore': '갱도 벽의 검붉은 광석. 무겁고 단단하다. 녹이면 철 주괴가 된다.',
@@ -139,6 +139,12 @@ RETIRED = {
 ORE_BASE_SECONDS = {1: 2.5, 2: 2.9, 3: 3.3, 4: 3.7, 5: 4.1, 6: 4.5}   # 곡괭이 속도 ×1.0 으로 한 블록 캐는 초
 PICK_SPEED = {1: 1.0, 2: 1.2, 3: 1.4, 4: 1.6, 5: 1.8, 6: 2.0}          # 곡괭이 등급 → 모든 광석에 같은 배율 (좋을수록 빠름)
 PICK_BONUS = {1: 0.0, 2: 0.02, 3: 0.04, 4: 0.06, 5: 0.08, 6: 0.10}     # 광석 1개 더 나올 확률
+# 한 단계 위 (0.3.6.1 주인 결정: "구리 곡괭이로 철을 캘 수 있고 철 괭이로 은을 캐는 식이었으면 좋겠어").
+# 곡괭이 tier t 는 tier ≤ t + REACH_ABOVE 인 광석·보석을 캔다 (t + 2 부터는 그대로 "곡괭이가 약해 캘 수 없습니다").
+# 한 단계 위 광석은 그 광석 제 곡괭이 빠르기 × STRETCH_FACTOR 로 캔다 — 구리 곡괭이로 철 광석 = 2.9 ÷ (1.2 × 0.6) = 4.0초,
+# 철 곡괭이로는 2.4초. 고른 까닭은 economy.py 표 D·G (곡괭이를 올리면 같은 광석을 1.4~1.7배 빨리 모은다).
+REACH_ABOVE = 1
+STRETCH_FACTOR = 0.6
 GEM_NODE_FACTOR = 1.5          # 보석 노드는 같은 등급 광석의 1.5배 시간
 GEM_CHANCE = 0.022             # 광석 블록마다 같은 등급 보석이 덤으로 나올 확률
 RICH = {'chance': 0.04, 'multiplier': 3}   # 다시 찰 때 그 사람에게만 풍부한 광맥 (×3)
@@ -150,12 +156,15 @@ REACH_CLIENT = 4.5
 REACH_SERVER_SLACK = 0.25
 
 # 곡괭이 레시피 (제련소 station: smelter, category: tool — 마을 대장간 없이 광산 관리소에서도 된다). 레벨 조건 없음.
+# 0.3.6.1 주인 결정: "철 곡괭이로 업글하려면 철 주괴가 필요한게 정상 아닐까" → 그 곡괭이 제 금속 주괴 + 같은 등급 보석 + 앞 곡괭이
+# + 정수 + 골드. 제 금속·보석은 앞 곡괭이로 느리게 캔다 (한 단계 위). 개수는 economy.py 표 D 로 골랐다:
+# 새로 온 사람의 첫 철 곡괭이 = 던전 1회(정수·골드) + 광산 약 5~7분, 그 뒤 곡괭이마다 조금씩 길어짐.
 PICK_RECIPES = {
-    'iron_pickaxe': {'prev': 'copper_pickaxe', 'ingot': ('copper_ingot', 12), 'gem': ('quartz', 2), 'essence': ('dim_essence', 2), 'gold': 300},
-    'silver_pickaxe': {'prev': 'iron_pickaxe', 'ingot': ('iron_ingot', 16), 'gem': ('garnet', 2), 'essence': ('dim_essence', 4), 'gold': 1000},
-    'gold_pickaxe': {'prev': 'silver_pickaxe', 'ingot': ('silver_ingot', 20), 'gem': ('moonstone', 3), 'essence': ('labyrinth_essence', 2), 'gold': 2500},
-    'mithril_pickaxe': {'prev': 'gold_pickaxe', 'ingot': ('gold_ingot', 24), 'gem': ('topaz', 3), 'essence': ('labyrinth_essence', 4), 'gold': 5000},
-    'orichalcum_pickaxe': {'prev': 'mithril_pickaxe', 'ingot': ('mithril_ingot', 28), 'gem': ('sapphire', 4), 'essence': ('radiant_essence', 3), 'gold': 10000},
+    'iron_pickaxe': {'prev': 'copper_pickaxe', 'ingot': ('iron_ingot', 12), 'gem': ('garnet', 2), 'essence': ('dim_essence', 2), 'gold': 300},
+    'silver_pickaxe': {'prev': 'iron_pickaxe', 'ingot': ('silver_ingot', 16), 'gem': ('moonstone', 2), 'essence': ('dim_essence', 4), 'gold': 1000},
+    'gold_pickaxe': {'prev': 'silver_pickaxe', 'ingot': ('gold_ingot', 20), 'gem': ('topaz', 3), 'essence': ('labyrinth_essence', 2), 'gold': 2500},
+    'mithril_pickaxe': {'prev': 'gold_pickaxe', 'ingot': ('mithril_ingot', 24), 'gem': ('sapphire', 3), 'essence': ('labyrinth_essence', 4), 'gold': 5000},
+    'orichalcum_pickaxe': {'prev': 'mithril_pickaxe', 'ingot': ('orichalcum_ingot', 24), 'gem': ('dragonblood_stone', 3), 'essence': ('radiant_essence', 3), 'gold': 10000},
 }
 COPPER_PICKAXE_PRICE = 50      # 잃어버렸을 때 (광부·관리소). 첫 1개는 무료 (ext mine.free_pickaxe) + 시작 꾸러미
 
@@ -291,11 +300,23 @@ def sell_value(kind, rank):
     return max(1, half_up(SELL_MINE[kind] * (1 + SELL_MINE['rank_bonus'] * (rank - 1))))
 
 
+def pick_speed(pick_rank):
+    """곡괭이 등급 p 의 속도 표 {광석 등급: 배율} — 1..p 는 PICK_SPEED[p], p + 1 은 그 광석 제 곡괭이 × STRETCH_FACTOR."""
+    out = {o: PICK_SPEED[pick_rank] for o in range(1, pick_rank + 1)}
+    for o in range(pick_rank + 1, min(6, pick_rank + REACH_ABOVE) + 1):
+        out[o] = round(PICK_SPEED[o] * STRETCH_FACTOR, 3)
+    return out
+
+
+def can_mine(ore_rank, pick_rank):
+    return 1 <= ore_rank <= pick_rank + REACH_ABOVE and ore_rank <= 6
+
+
 def mine_seconds(ore_rank, pick_rank, node=False):
-    """곡괭이 등급 p 로 등급 o 광석(또는 보석 노드) 한 블록 캐는 초. o > p 면 None (못 캠)."""
-    if ore_rank > pick_rank:
+    """곡괭이 등급 p 로 등급 o 광석(또는 보석 노드) 한 블록 캐는 초. o > p + 1 이면 None (못 캠)."""
+    if not can_mine(ore_rank, pick_rank):
         return None
-    s = ORE_BASE_SECONDS[ore_rank] / PICK_SPEED[pick_rank]
+    s = ORE_BASE_SECONDS[ore_rank] / pick_speed(pick_rank)[ore_rank]
     return s * (GEM_NODE_FACTOR if node else 1.0)
 
 

@@ -8,7 +8,7 @@ import kr.labyrinth.content.MineDef;
 import kr.labyrinth.content.ToolSpec;
 import org.junit.jupiter.api.Test;
 
-/** 단단함 규칙 (주인 결정 2): 광석·보석 tier ≤ 곡괭이 tier 만, 레벨 조건 없음, 못 캐면 액션바 한 줄. */
+/** 단단함 규칙 (주인 결정 2 + 0.3.6.1): 광석·보석 tier ≤ 곡괭이 tier + 1 만 (한 단계 위는 느림), 레벨 조건 없음, 못 캐면 액션바 한 줄. */
 class TierRuleTest {
 
     @Test
@@ -17,10 +17,12 @@ class TierRuleTest {
         for (ToolSpec t : MineTestData.pickaxes().values()) {
             for (MineDef.Node n : mine.ores().values()) {
                 TierRule.Verdict v = TierRule.check(t, n.tier());
-                assertEquals(n.tier() <= t.tier() ? TierRule.Verdict.OK : TierRule.Verdict.TOO_WEAK, v, t.tier() + " · " + n.id());
+                assertEquals(n.tier() <= t.tier() + 1 ? TierRule.Verdict.OK : TierRule.Verdict.TOO_WEAK, v, t.tier() + " · " + n.id());
+                assertEquals(n.tier() == t.tier() + 1, TierRule.slow(t, n.tier()), t.tier() + " · " + n.id() + " 느림");
             }
             for (MineDef.Node g : mine.gems().values()) {
-                assertEquals(g.tier() <= t.tier() ? TierRule.Verdict.OK : TierRule.Verdict.TOO_WEAK, TierRule.check(t, g.tier()), g.id());
+                assertEquals(g.tier() <= t.tier() + 1 ? TierRule.Verdict.OK : TierRule.Verdict.TOO_WEAK, TierRule.check(t, g.tier()), g.id());
+                assertEquals(g.tier() == t.tier() + 1, TierRule.slow(t, g.tier()), g.id() + " 느림");
             }
         }
     }
@@ -39,7 +41,8 @@ class TierRuleTest {
     @Test
     void messages() {
         ToolSpec copper = new ToolSpec(ToolSpec.PICKAXE, 1, Map.of(1, 1.0), 0);
-        assertEquals("곡괭이가 약해 캘 수 없습니다", TierRule.message(TierRule.check(copper, 2)));
+        assertEquals("곡괭이가 약해 캘 수 없습니다", TierRule.message(TierRule.check(copper, 3)), "두 단계 위는 그대로 못 캠");
+        assertNull(TierRule.message(TierRule.check(copper, 2)), "구리 곡괭이로 철 (주인 결정)");
         assertEquals(MineNames.TOO_WEAK, TierRule.message(TierRule.Verdict.TOO_WEAK));
         assertNull(TierRule.message(TierRule.check(copper, 1)));
         assertEquals(TierRule.Verdict.NO_PICKAXE, TierRule.check(null, 1));

@@ -84,7 +84,7 @@ def floor_commons(items):
 # ───────────────────────── items ─────────────────────────
 def tool_block(m):
     r = m['rank']
-    return {'kind': 'pickaxe', 'tier': r, 'speed': {o: P.PICK_SPEED[r] for o in range(1, r + 1)}, 'bonus': P.PICK_BONUS[r]}
+    return {'kind': 'pickaxe', 'tier': r, 'speed': P.pick_speed(r), 'bonus': P.PICK_BONUS[r]}
 
 
 def build_items(items0):

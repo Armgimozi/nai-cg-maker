@@ -1,6 +1,7 @@
 package kr.labyrinth.mat036;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -77,18 +78,21 @@ class MineLadderTest {
             Params pm = mine.sub(id);
             assertEquals(pm.integer("tier", -1), s.tier(), id);
             assertEquals(pm.dbl("bonus", -1), s.bonus(), 1e-9, id);
-            for (int o = 1; o <= t; o++) {
+            for (int o = 1; o <= Math.min(6, t + 1); o++) {
                 assertEquals(pm.sub("speed").dbl(String.valueOf(o), -1), s.speedFor(o), 1e-9, id + " 등급 " + o);
-                if (prev != null && o <= prev.tool().tier()) assertTrue(s.speedFor(o) >= prev.tool().speedFor(o), id + " 은 앞 곡괭이보다 느리지 않다");
+                if (prev != null && prev.tool().canMine(o)) assertTrue(s.speedFor(o) > prev.tool().speedFor(o), id + " 은 앞 곡괭이보다 빠르다 (등급 " + o + ")");
             }
-            assertEquals(0, s.speedFor(t + 1), 1e-9, id + " 은 더 단단한 광석을 못 캔다");
+            if (t < 6) assertTrue(s.speedFor(t + 1) < s.speedFor(t), id + " 은 한 단계 위를 느리게 캔다");
+            if (t + 2 <= 6) assertEquals(0, s.speedFor(t + 2), 1e-9, id + " 은 두 단계 위 광석을 못 캔다");
             if (prev != null) {
                 RecipeDef r = c.recipes().get(id);
                 assertNotNull(r, id + " 벼리기");
                 assertEquals(MineNames.CATEGORY_TOOL, r.category());
                 assertEquals(1, r.materials().get(prev.id()), id + " 는 앞 곡괭이를 재료로 먹는다");
-                assertTrue(r.materials().containsKey(Mat036.METALS.get(t - 2) + "_ingot"), id + " 앞 금속 주괴");
-                assertTrue(r.materials().containsKey(Mat036.GEMS.get(t - 2)), id + " 앞 등급 보석");
+                // 0.3.6.1 주인 결정: 철 곡괭이 ← 철 주괴 (제 금속) + 같은 등급 보석 — 앞 곡괭이로 느리게 캔다
+                assertTrue(r.materials().containsKey(Mat036.METALS.get(t - 1) + "_ingot"), id + " 제 금속 주괴");
+                assertTrue(r.materials().containsKey(Mat036.GEMS.get(t - 1)), id + " 같은 등급 보석");
+                assertFalse(r.materials().containsKey(Mat036.METALS.get(t - 2) + "_ingot"), id + " 앞 금속 주괴는 안 씀");
             } else {
                 assertTrue(d.sources().contains("starter"), "구리 곡괭이는 시작 꾸러미");
             }

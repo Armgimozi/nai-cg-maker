@@ -467,7 +467,8 @@
     "kind": "pickaxe",
     "tier": 1,
     "speed": {
-     "1": 1.0
+     "1": 1.0,
+     "2": 0.72
     },
     "bonus": 0.0
    },
@@ -476,7 +477,7 @@
     "shop"
    ],
    "sources_text": "시작 꾸러미 · 광산 관리소·광부 (처음 1개 무료, 이후 50G)",
-   "lore": "광부 브론이 처음 오는 이에게 쥐여 주는 곡괭이. 구리 광석과 석영만 캘 수 있다.",
+   "lore": "광부 브론이 처음 오는 이에게 쥐여 주는 곡괭이. 구리는 잘 캐고, 철은 더디게 캔다.",
    "model": {
     "shape": "pickaxe"
    }
@@ -496,7 +497,8 @@
     "tier": 2,
     "speed": {
      "1": 1.2,
-     "2": 1.2
+     "2": 1.2,
+     "3": 0.84
     },
     "bonus": 0.02
    },
@@ -525,7 +527,8 @@
     "speed": {
      "1": 1.4,
      "2": 1.4,
-     "3": 1.4
+     "3": 1.4,
+     "4": 0.96
     },
     "bonus": 0.04
    },
@@ -555,7 +558,8 @@
      "1": 1.6,
      "2": 1.6,
      "3": 1.6,
-     "4": 1.6
+     "4": 1.6,
+     "5": 1.08
     },
     "bonus": 0.06
    },
@@ -586,7 +590,8 @@
      "2": 1.8,
      "3": 1.8,
      "4": 1.8,
-     "5": 1.8
+     "5": 1.8,
+     "6": 1.2
     },
     "bonus": 0.08
    },
@@ -817,8 +822,8 @@
    "category": "tool",
    "materials": {
     "copper_pickaxe": 1,
-    "copper_ingot": 12,
-    "quartz": 2,
+    "iron_ingot": 12,
+    "garnet": 2,
     "dim_essence": 2
    },
    "gold": 300,
@@ -831,8 +836,8 @@
    "category": "tool",
    "materials": {
     "iron_pickaxe": 1,
-    "iron_ingot": 16,
-    "garnet": 2,
+    "silver_ingot": 16,
+    "moonstone": 2,
     "dim_essence": 4
    },
    "gold": 1000,
@@ -845,8 +850,8 @@
    "category": "tool",
    "materials": {
     "silver_pickaxe": 1,
-    "silver_ingot": 20,
-    "moonstone": 3,
+    "gold_ingot": 20,
+    "topaz": 3,
     "labyrinth_essence": 2
    },
    "gold": 2500,
@@ -859,8 +864,8 @@
    "category": "tool",
    "materials": {
     "gold_pickaxe": 1,
-    "gold_ingot": 24,
-    "topaz": 3,
+    "mithril_ingot": 24,
+    "sapphire": 3,
     "labyrinth_essence": 4
    },
    "gold": 5000,
@@ -873,8 +878,8 @@
    "category": "tool",
    "materials": {
     "mithril_pickaxe": 1,
-    "mithril_ingot": 28,
-    "sapphire": 4,
+    "orichalcum_ingot": 24,
+    "dragonblood_stone": 3,
     "radiant_essence": 3
    },
    "gold": 10000,

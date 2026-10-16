@@ -13,7 +13,7 @@ import kr.labyrinth.content.MineDef;
 import kr.labyrinth.content.ToolSpec;
 import org.junit.jupiter.api.Test;
 
-/** 곡괭이 구성요소 계획 (계약 §2.6): Tool 규칙 · CAN_BREAK (tier 이하만) · UNBREAKABLE · 바탕 PAPER · 블록이 바뀌면 지문이 바뀜. */
+/** 곡괭이 구성요소 계획 (계약 §2.6): Tool 규칙 · CAN_BREAK (tier + 1 이하만, 0.3.6.1) · UNBREAKABLE · 바탕 PAPER · 블록이 바뀌면 지문이 바뀜. */
 class PickaxeComponentTest {
 
     @Test
@@ -26,10 +26,10 @@ class PickaxeComponentTest {
             Set<String> want = new HashSet<>();
             for (String id : json.sub(e.getKey()).strings("mines")) want.add(mine.node(id).block());
             assertEquals(want, new HashSet<>(plan.canBreak()), e.getKey() + " CAN_BREAK");
-            assertEquals(2 * t.tier(), plan.rules().size(), e.getKey() + " 광석 tier 개 + 보석 tier 개");
+            assertEquals(2 * t.maxHardness(), plan.rules().size(), e.getKey() + " 광석 (tier + 1) 개 + 보석 (tier + 1) 개");
             for (PickaxePlan.Rule r : plan.rules()) {
                 MineDef.Node n = mine.node(r.node());
-                assertTrue(n.tier() <= t.tier());
+                assertTrue(n.tier() <= t.tier() + 1);
                 assertEquals(n.block(), r.block());
                 assertEquals(MineMath.seconds(n, t), r.seconds(), 1e-9);
                 assertEquals(MineMath.toolSpeed(MineTestData.hardness(r.block()), r.seconds()), r.speed(), 1e-6);
@@ -45,8 +45,9 @@ class PickaxeComponentTest {
     void weakPickaxeCannotBreakHarderBlocks() {
         MineDef mine = MineTestData.mine();
         PickaxePlan copper = PickaxePlan.of(MineTestData.pickaxes().get("copper_pickaxe"), mine, MineTestData::hardness);
-        assertEquals(List.of("minecraft:copper_ore", "minecraft:nether_quartz_ore"), copper.canBreak());
-        assertTrue(!copper.canBreak().contains("minecraft:iron_ore"), "철 광석에 금도 안 감");
+        assertEquals(List.of(mine.ores().get("copper_ore").block(), mine.ores().get("iron_ore").block(),
+                mine.gems().get("quartz").block(), mine.gems().get("garnet").block()), copper.canBreak(), "구리 곡괭이: 구리·철 광석 + 석영·석류석");
+        assertTrue(!copper.canBreak().contains(mine.ores().get("silver_ore").block()), "은 광석에 금도 안 감");
         PickaxePlan ori = PickaxePlan.of(MineTestData.pickaxes().get("orichalcum_pickaxe"), mine, MineTestData::hardness);
         assertEquals(12, ori.canBreak().size());
         assertEquals(2.5, copper.rules().get(0).seconds(), 1e-9, "구리 곡괭이로 구리 2.5초");

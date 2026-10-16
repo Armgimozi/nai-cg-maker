@@ -4,7 +4,8 @@
 한 층을 한 번 도는 시간 = LOOP_S + LIFT_TRIP_S + 그 층에서 캐기로 한 블록들의 시간.
 광맥은 사람마다 따로 재생 R 분 → 층 L 의 광석 o 공급 = n(L,o) / R(L) 블록/분.
 여러 층 돌기: 층 묶음 S 를 고르면 1분에 쓰는 시간 몫 u = Σ (한 번 도는 초) / (60·R). u > 1 이면 다 못 따라가서 공급이 1/u 로 준다.
-수확 = 블록 × (1 + 곡괭이 덤) × 풍부 (1 + 0.04×2). 보석 = 같은 등급 광석 블록 × 2.2% + 보석 노드 (30분, 등급 ≤ 곡괭이).
+수확 = 블록 × (1 + 곡괭이 덤) × 풍부 (1 + 0.04×2). 보석 = 같은 등급 광석 블록 × 2.2% + 보석 노드 (30분, 등급 ≤ 곡괭이 + 1).
+0.3.6.1: 곡괭이는 한 단계 위 광석·보석도 캔다 (params.can_mine · 느림 STRETCH_FACTOR).
 """
 import itertools
 import json
@@ -56,7 +57,7 @@ def visit(L, pick, metals):
     nodes = {}
     for g in NODES[L]:
         r = P.GEM[g]['rank']
-        if r <= pick:
+        if P.can_mine(r, pick):
             nodes[g] = nodes.get(g, 0) + 1
     return secs, blocks, nodes
 
@@ -106,6 +107,35 @@ def best_plan(pick, need, metals=None):
                 continue
             if best is None or t < best[0] - 1e-9:
                 best = (t, S, ore, gem, bpm)
+    return best
+
+
+def best_plan_fresh(pick, need, metals=None):
+    """best_plan 과 같되 처음 들어간 사람 기준: 도는 층의 보석 노드가 다 차 있다 (그 층 노드 수만큼 바로 캠).
+    걸리는 분 = max(그 층 묶음 한 바퀴, 남은 것 ÷ 1분당). → (분, 묶음)"""
+    metals = set(metals or [k for k in need if k in RANK])
+    best = None
+    for r in range(1, 7):
+        for S in itertools.combinations(sorted(LEVELS), r):
+            ore, gem, bpm, u = plan_rates(pick, metals, S)
+            stock = {}
+            for L in S:
+                for g in NODES[L]:
+                    if P.can_mine(P.GEM[g]['rank'], pick):
+                        stock[g] = stock.get(g, 0) + 1
+            t = sum(visit(L, pick, metals)[0] for L in S) / 60.0
+            ok = True
+            for k, v in need.items():
+                left = v - stock.get(k, 0)
+                if left <= 0:
+                    continue
+                rate = ore.get(k, gem.get(k, 0.0))
+                if rate <= 1e-9:
+                    ok = False
+                    break
+                t = max(t, left / rate)
+            if ok and (best is None or t < best[0] - 1e-9):
+                best = (t, S)
     return best
 
 

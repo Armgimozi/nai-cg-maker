@@ -3,8 +3,9 @@ package kr.labyrinth.mine;
 import kr.labyrinth.content.ToolSpec;
 
 /**
- * 단단함 규칙 (주인 결정 2, 계약 §2.3): 광석·보석 tier ≤ 곡괭이 tier 일 때만 캔다. 레벨 조건은 어디에도 없다 —
- * 친구가 준 곡괭이를 써도 된다. 못 캐면 금도 안 가고(CAN_BREAK 밖) 액션바 한 줄. 순수.
+ * 단단함 규칙 (주인 결정 2, 계약 §2.3 + 0.3.6.1 주인 결정 "구리 곡괭이로 철을 캘 수 있고 철 괭이로 은을 캐는 식"):
+ * 광석·보석 tier ≤ 곡괭이 tier + 1 일 때 캔다. 한 단계 위(tier + 1)는 느리게 ({@link #slow}), 두 단계 위부터는 못 캔다.
+ * 레벨 조건은 어디에도 없다 — 친구가 준 곡괭이를 써도 된다. 못 캐면 금도 안 가고(CAN_BREAK 밖) 액션바 한 줄. 순수.
  */
 public final class TierRule {
 
@@ -16,6 +17,11 @@ public final class TierRule {
     public static Verdict check(ToolSpec tool, int nodeTier) {
         if (tool == null || !tool.isPickaxe()) return Verdict.NO_PICKAXE;
         return tool.canMine(nodeTier) ? Verdict.OK : Verdict.TOO_WEAK;
+    }
+
+    /** 캘 수는 있지만 곡괭이보다 한 단계 단단해 느린가. */
+    public static boolean slow(ToolSpec tool, int nodeTier) {
+        return tool != null && tool.isPickaxe() && tool.isSlow(nodeTier);
     }
 
     /** 액션바 글 (OK 면 null). */
