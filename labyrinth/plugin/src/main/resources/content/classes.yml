@@ -164,8 +164,10 @@ classes:
     passive:
       id: keen_eye
       name: "매의 눈"
-      description: "끝까지 당긴 화살은 피해 +30%, 적중 시 MP 3 회복. 12칸 이상 떨어진 적에게 치명타 확률 +8%."
-      params: {full_draw_bonus: 0.30, mana_on_full_draw: 3, far_distance: 12, far_crit: 0.08}
+      description: "끝까지 당긴 화살은 피해 +30%, 적중 시 MP 3 회복. 12칸 이상 떨어진 적에게 치명타 확률 +8%. 미궁 안에서는 활을 당기는 동안에도 평소의 60% 속도로 걷는다 (다른 직업은 20%)."
+      # draw_move (0.3.6.1): 미궁 안에서 미궁 활을 당기는 동안 걷기 배율 (바닐라 0.2, 달리기는 그대로 꺼짐). 미궁 밖(야생·마을, PvP)은 바닐라.
+      #   활 아이템의 use_effects 구성요소로 넣는다 (combat/BowDrawMove · items/EquipmentListener). 0.2 = 끔
+      params: {full_draw_bonus: 0.30, mana_on_full_draw: 3, far_distance: 12, far_crit: 0.08, draw_move: 0.60}
     skills:
       - id: piercing_arrow
         kind: physical

@@ -102,6 +102,11 @@ final class CombatListener implements Listener {
         proj.getPersistentDataContainer().set(Keys.ARROW_FORCE, PersistentDataType.FLOAT, force);
         ItemDef bow = services.items().heldWeapon(p);
         if (bow != null) proj.getPersistentDataContainer().set(Keys.ARROW_WEAPON, PersistentDataType.STRING, bow.id());
+        // 쏜 순간의 무기 한 방 W — 맞을 때 든 무기로 세지 않게 (0.3.6.1, bowfeel B1). 쇠뇌·바닐라 활도 쏜 순간 값
+        if (!crossbow) {
+            double w = services.stats().get(p).weaponDamage();
+            if (w > 0) proj.getPersistentDataContainer().set(Keys.ARROW_HIT, PersistentDataType.DOUBLE, w);
+        }
         if (!crossbow && proj instanceof AbstractArrow arrow) {
             org.bukkit.util.Vector v = arrow.getVelocity();
             if (v.lengthSquared() > 1e-6) arrow.setVelocity(v.normalize().multiply(BOW_MAX_SPEED * Math.max(0.1, force)));
@@ -128,7 +133,7 @@ final class CombatListener implements Listener {
                 e.setCancelled(true);
                 if (!services.targets().isEnemy(player, target)) return;
                 if (damager instanceof AbstractArrow arrow) {
-                    damage.deal(DamageContext.attack(player, target, rangedMult(player, arrow, be.isCritical()), DamageType.RANGED));
+                    damage.deal(arrowHit(DamageContext.attack(player, target, rangedMult(player, arrow, be.isCritical()), DamageType.RANGED), arrow));
                     if (!(arrow instanceof Trident)) arrow.remove(); // 삼지창은 지우면 잃어버린다 — 바닐라처럼 튕겨 떨어지게
                 } else if (isMelee(be, damager, player)) {
                     damage.deal(DamageContext.attack(player, target, meleeMult(player, be), DamageType.MELEE));
@@ -145,7 +150,7 @@ final class CombatListener implements Listener {
                     if (melee) {
                         damage.deal(DamageContext.attack(player, target, meleeMult(player, be), DamageType.MELEE));
                     } else {
-                        damage.deal(DamageContext.attack(player, target, rangedMult(player, arrow, be.isCritical()), DamageType.RANGED));
+                        damage.deal(arrowHit(DamageContext.attack(player, target, rangedMult(player, arrow, be.isCritical()), DamageType.RANGED), arrow));
                         arrow.remove();
                     }
                     return;
@@ -229,6 +234,21 @@ final class CombatListener implements Listener {
         return mult;
     }
 
+    /**
+     * 화살 피해를 쏜 활로 (0.3.6.1, bowfeel B1): 쏜 순간의 무기 한 방 W 와 그 활의 피해 종류. 날아가는 동안 무기를 바꿔도 그대로 —
+     * 예전에는 맞는 순간 든 무기로 셌다 (파수궁 W 17 → 단도로 바꾸면 6). 삼지창·기록 없는 화살은 그대로.
+     */
+    private DamageContext arrowHit(DamageContext ctx, AbstractArrow arrow) {
+        if (arrow instanceof Trident) return ctx;
+        Double w = arrow.getPersistentDataContainer().get(Keys.ARROW_HIT, PersistentDataType.DOUBLE);
+        if (w == null) return ctx;
+        ctx.weaponHit(w);
+        String id = arrow.getPersistentDataContainer().get(Keys.ARROW_WEAPON, PersistentDataType.STRING);
+        ItemDef def = id == null ? null : services.content().item(id);
+        if (def != null && def.isWeapon()) ctx.kind(WeaponAttack.of(def).kind());
+        return ctx;
+    }
+
     /** 화살: 서버가 잰 활 세기(없으면 0.6, 최소 0.1). 삼지창: 바닐라 던지기 피해 8 × 스탯 배율. */
     private double rangedMult(Player p, AbstractArrow arrow, boolean critical) {
         if (arrow instanceof Trident) {
@@ -263,7 +283,7 @@ final class CombatListener implements Listener {
             // 쏜 무기 정보가 없는 투사체
         }
         double kb = arrow instanceof Trident ? 1.0 : 0.6 + 1.5 * punch;
-        DamageContext ctx = damage.deal(DamageContext.attack(shooter, victim, rangedMult(shooter, arrow, critical), DamageType.RANGED)
+        DamageContext ctx = damage.deal(arrowHit(DamageContext.attack(shooter, victim, rangedMult(shooter, arrow, critical), DamageType.RANGED), arrow)
                 .knockback(kb)); // 맞는 쪽 밀려남 저항(힘·버팀·넉백 면역)은 DamageService 가 곱한다
         if (landed(ctx)) {
             if (arrow.getFireTicks() > 0) igniteLater(victim, 100);

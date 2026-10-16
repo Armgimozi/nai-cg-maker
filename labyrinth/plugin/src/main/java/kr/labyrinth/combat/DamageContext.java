@@ -25,6 +25,8 @@ public final class DamageContext {
     private final LivingEntity target;
     private double amount;
     private double attackMultiplier = Double.NaN;
+    /** 기본 공격 원피해의 무기 한 방 W 를 이 값으로 (NaN = 지금 든 무기). 화살 = 쏜 순간의 활 W. */
+    private double weaponHit = Double.NaN;
     private double percent = Double.NaN;
     private DamageType type;
     private DamageKind kind;
@@ -122,6 +124,8 @@ public final class DamageContext {
     public DamageContext critBonus(double add) { this.critBonus += add; return this; }
     /** 대상 방어를 얼마나 셀지 (1 = 그대로, 0 = 방어 무시). PvP 훅이 before() 에서 바꾼다 (pvp.defense_weight). */
     public DamageContext defenseScale(double s) { this.defenseScale = Math.max(0, s); return this; }
+    /** 기본 공격의 무기 한 방 W 를 지금 든 무기 대신 이 값으로 (화살: 쏜 순간의 활 — 날아가는 동안 무기를 바꿔도 그대로). 0 이하·NaN 은 무시. */
+    public DamageContext weaponHit(double w) { this.weaponHit = w > 0 ? w : Double.NaN; return this; }
     /** 치명 '추가' 피해 배율 (1 = 그대로, 0.6 = 치명 피해 2.5 → 1.9). PvP 훅이 before() 에서 바꾼다 (pvp.crit_damage_scale). */
     public DamageContext critDamageScale(double s) { this.critDamageScale = Math.max(0, s); return this; }
     /** 이 피해 한 건의 치명 피해 가산 (0.45 = 치명 피해 +45%p, 고유 효과 피 냄새). 누적된다. PvP 의 critDamageScale 은 그 뒤에 곱한다. */
@@ -158,6 +162,8 @@ public final class DamageContext {
     public double defenseScale() { return defenseScale; }
     public double critDamageScale() { return critDamageScale; }
     public double critDamageAdd() { return critDamageAdd; }
+    /** 기본 공격 W 를 바꿔 넣었으면 그 값, 아니면 NaN ({@link #weaponHit(double)}). */
+    public double weaponHit() { return weaponHit; }
     /** 기본 공격인가 — 플레이어가 무기로 친 한 대 (스킬·보스 패턴·지속 피해·고유 효과 피해·출처 붙은 피해가 아님). */
     public boolean isBasicAttack() {
         return attacker instanceof Player && !skill && !pattern && sourceId == null && usesAttackPower() && base == Base.PER_HIT;

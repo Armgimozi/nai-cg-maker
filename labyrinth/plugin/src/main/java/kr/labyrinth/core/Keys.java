@@ -44,6 +44,8 @@ public final class Keys {
     public static final NamespacedKey ARROW_FORCE = key("arrow_force");
     /** String: 화살을 쏜 무기 아이템 id. */
     public static final NamespacedKey ARROW_WEAPON = key("arrow_weapon");
+    /** Double: 쏜 순간의 무기 한 방 W (0.3.6.1 — 날아가는 동안 무기를 바꿔도 쏜 활로 셈). */
+    public static final NamespacedKey ARROW_HIT = key("arrow_hit");
 
     /** String: 엔티티를 만든 서버 세션 id. 현재 세션이 아닌 임시 엔티티는 청크 로드 시 청소된다. */
     public static final NamespacedKey SESSION = key("session");
