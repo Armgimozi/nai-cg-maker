@@ -518,6 +518,7 @@ public final class ContentValidator {
                     if (isFxKey(pk) && p.get(pk) instanceof String s) requireFx(w + ".patterns." + k, s);
                 }
             });
+            answer(w, b);
             if (b.model().parts().isEmpty()) err(w, "model.parts 가 비어 있음");
             // 점진 힌트 단서 (GDD "보스 문구 규칙"): 없으면 단서 없음, 있으면 3단계 권장
             Object hints = b.raw().get("hints");
@@ -526,6 +527,28 @@ public final class ContentValidator {
                 warn(w + ".hints", "단서는 3단계(흐릿 → 조금 분명 → 거의 정답)로 쓰는 것을 권장 (지금 " + l.size() + "줄)");
             }
         }
+    }
+
+    /**
+     * 보스별 대응 (GDD §8.6, {@code patterns.answer}): 쓰는 패턴(use)·대체(fallback)·같이 막는 패턴(shares)이 patterns 에 있어야 하고,
+     * 대응 쿨 6초 이상·최소 간격 0 초과, rotation 에는 넣지 않는다 (스케줄러가 고르면 안 됨).
+     */
+    private void answer(String w, BossDef b) {
+        if (!b.patterns().containsKey("answer")) return;
+        String aw = w + ".patterns.answer";
+        Params a = b.pattern("answer");
+        String use = a.str("use");
+        if (use == null || use.equals("answer") || !b.patterns().containsKey(use)) err(aw, "use 패턴이 patterns 에 없음: " + use);
+        String fb = a.str("fallback");
+        if (fb != null && (fb.equals("answer") || !b.patterns().containsKey(fb))) err(aw, "fallback 패턴이 patterns 에 없음: " + fb);
+        for (String k : a.strings("shares")) {
+            if (k.equals("answer") || !b.patterns().containsKey(k)) err(aw, "shares 패턴이 patterns 에 없음: " + k);
+        }
+        if (a.dbl("cooldown", 0) < 6) err(aw, "cooldown 은 6초 이상이어야 함 (" + a.dbl("cooldown", 0) + ")");
+        if (a.dbl("min_gap", 0) <= 0) err(aw, "min_gap 은 0 보다 커야 함");
+        b.rotation().forEach((phase, keys) -> {
+            if (keys.contains("answer")) err(w + ".rotation." + phase, "answer 는 rotation 에 넣지 않음 (못 닿을 때만 쓰는 대응)");
+        });
     }
 
     private void floors() {

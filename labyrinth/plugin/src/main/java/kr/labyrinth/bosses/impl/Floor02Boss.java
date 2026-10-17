@@ -9,6 +9,7 @@ import kr.labyrinth.bosses.Boss;
 import kr.labyrinth.bosses.BossAnim;
 import kr.labyrinth.bosses.BossFx;
 import kr.labyrinth.bosses.BossMath;
+import kr.labyrinth.bosses.BossReach;
 import kr.labyrinth.bosses.Mechanics;
 import kr.labyrinth.bosses.ObjectTarget;
 import kr.labyrinth.bosses.Telegraph;
@@ -29,6 +30,8 @@ import org.bukkit.util.Vector;
  * 홀수·솔로의 남는 사람은 아레나 가장자리 은실 말뚝에 묶인다.
  * 패턴: venom_spit(선 → 착탄 원 + 독 웅덩이) · foreleg_sweep(부채꼴 120°) · silk_tether(20초 간격) ·
  * egg_sacs(벽 둥지 알주머니, 15초 안에 못 깨면 부화) · ceiling_ambush(천장 매복 → 낙하) · cocoon(고치 — 동료가 깨기, 솔로는 웅크리기 연타).
+ * 대응 (GDD §8.6): 못 닿는 틈에서 맞으면 짧은 천장 낙하 — 원은 그 순간 대상 발 자리에 고정, 몸은 대상 옆 설 자리에 내려앉는다
+ * (설 자리가 없으면 독침).
  */
 public final class Floor02Boss extends Boss {
 
@@ -37,6 +40,8 @@ public final class Floor02Boss extends Boss {
     private final Map<UUID, ObjectTarget> cocoons = new HashMap<>();
     private final Map<UUID, Location> cocoonAt = new HashMap<>();
     private boolean airborne;
+    /** 공중에 있을 때 내려앉을 자리 (대응 = 대상 옆 설 자리, 로테이션 = 원 가운데). 페이즈 전환·안전 착지가 쓴다. */
+    private Location landAt;
 
     public Floor02Boss(Init init) { super(init); }
 
@@ -84,9 +89,12 @@ public final class Floor02Boss extends Boss {
     // ── 독침 ─────────────────────────────────────────────────────────────
 
     private int venomSpit() {
-        Params p = def.pattern("venom_spit");
         Player t = scaling().solo() ? target() : randomTarget();
-        if (t == null) return 0;
+        return t == null ? 0 : venomSpit(t);
+    }
+
+    private int venomSpit(Player t) {
+        Params p = def.pattern("venom_spit");
         int w = windup(p, 0.8);
         Location impact = ground(t.getLocation());
         Location mouth = entity.getLocation().add(facingTo(impact).multiply(1.2)).add(0, 1.1, 0);
@@ -321,7 +329,69 @@ public final class Floor02Boss extends Boss {
         int air = Math.max(ticks(p.dbl("airborne_time", 6)), w + 20);
         double r = p.dbl("radius", 4);
         double dmg = dmg(p, "damage", 2.0);
+        rise(null, center.clone());
+        after(air - w, () -> {
+            Player t = scaling().solo() ? target() : randomTarget();
+            Location at = t == null ? randomPoint(0, arenaRadius * 0.6) : ground(t.getLocation());
+            Telegraph.Shape c = Telegraph.Shape.circle(at, r);
+            telegraph(c, w, Telegraph.RED, null, () -> {
+                Location land = c.origin().clone();
+                land.setYaw(entity.getLocation().getYaw());
+                land(land);
+                slam(c, dmg, land, r);
+            });
+            if (t != null) notify(t, "<red><b>⚠ 머리 위!</b></red>");
+        });
+        safetyLanding(air + 10);
+        return cast("ceiling_ambush", "천장 매복", air, air + 16, BossAnim.NONE, null, false);
+    }
+
+    /**
+     * 대응 — 짧은 천장 낙하: 1초 동안 천장으로 → 그 순간 대상 발 자리에 원 r4 고정(경고 2초, 천장에서 은실이 늘어짐) →
+     * 몸은 대상 옆 설 자리에 내려앉고 원 안 피해·밀침 (ceiling_ambush 수치 그대로).
+     */
+    private int ceilingDrop(Player t, Location spot) {
+        Params p = def.pattern("ceiling_ambush");
+        Params ad = answerDef();
+        int w = windup(p, 2.0);
+        int rise = Math.max(20, ticks(ad.dbl("rise", 1.0)));
+        int air = rise + w;
+        double r = p.dbl("radius", 4);
+        double dmg = dmg(p, "damage", 2.0);
+        Location from = entity.getLocation().clone();
+        rise(t, spot);
+        after(rise, () -> {
+            if (!validPlayer(t)) return;
+            Location at = ground(t.getLocation());
+            Telegraph.Shape c = Telegraph.Shape.circle(at, r);
+            Location ceiling = at.clone();
+            ceiling.setY(Math.min(floorY + arenaHeight - 1, at.getY() + 9));
+            Telegraph tg = new Telegraph(fx, c, w, Telegraph.RED, null, () -> {
+                // 내려앉을 자리: 고른 설 자리 (그새 막혔으면 그 둘레, 그것도 없으면 뛰기 전 자리)
+                Location land = bodyFits(spot) ? spot.clone() : nearestFit(spot, 2.0);
+                if (land == null) land = from.clone();
+                land.setYaw(BossMath.yawOf(at.getX() - land.getX(), at.getZ() - land.getZ()));
+                land(land);
+                slam(c, dmg, land, r);
+            });
+            tg.onTick(g -> {
+                if (g.elapsed() % 3 == 0 && t.isValid()) {
+                    Location head = t.getLocation().add(0, 2.0, 0);
+                    BossFx.dustLine(ceiling, head, Color.fromRGB(235, 240, 255), 0.7f, 0.9);
+                    if (g.elapsed() % 9 == 0) BossFx.particle(Particle.END_ROD, head.clone().add(0, 1.2, 0), 1, 0.05, 0.4, 0.05, 0);
+                }
+            });
+            run(tg);
+            notify(t, "<red><b>⚠ 머리 위!</b></red>");
+        });
+        safetyLanding(air + 10);
+        return cast("ceiling_ambush", "천장 낙하", air, air + 16, BossAnim.NONE, null, false);
+    }
+
+    /** 천장으로: 도약 애니 → 1초 뒤 숨음·무적·중력 끔·위로. land = 안전 착지 자리. */
+    private void rise(Player t, Location land) {
         airborne = true;
+        landAt = land == null ? center.clone() : land.clone();
         setPathing(false);
         rig.play(BossAnim.LEAP, 24, now);
         BossFx.sound(entity.getLocation(), Sound.ENTITY_SPIDER_AMBIENT, 1.8f, 0.3f);
@@ -333,39 +403,69 @@ public final class Floor02Boss extends Boss {
             up.setY(Math.min(floorY + arenaHeight - 3, floorY + 8));
             entity.teleport(up);
             broadcastBar("<gray>베셀라가 천장 어둠 속으로 사라졌다… 머리 위에서 실이 흔들린다</gray>");
+            if (t != null) notify(t, "<gray>천장에서 실 한 가닥이 늘어진다…</gray>");
         });
-        after(air - w, () -> {
-            Player t = scaling().solo() ? target() : randomTarget();
-            Location at = t == null ? randomPoint(0, arenaRadius * 0.6) : ground(t.getLocation());
-            Telegraph.Shape c = Telegraph.Shape.circle(at, r);
-            telegraph(c, w, Telegraph.RED, null, () -> {
-                Location land = c.origin().clone();
-                land.setYaw(entity.getLocation().getYaw());
-                entity.teleport(land);
-                entity.setGravity(true);
-                rig.setHidden(false);
-                rig.play(BossAnim.DROP, 24, now);
-                setUntargetable(false);
-                airborne = false;
-                setPathing(true);
-                hitShape(c, dmg, "ceiling_ambush", DamageType.MELEE, pl -> push(pl, pl.getLocation().toVector().subtract(land.toVector()), 0.8, 0.4));
-                BossFx.sound(land, Sound.ENTITY_GENERIC_EXPLODE, 1.2f, 0.6f);
-                BossFx.particle(Particle.EXPLOSION, land.clone().add(0, 0.5, 0), 3, r * 0.4, 0.2, r * 0.4, 0);
-            });
-            if (t != null) notify(t, "<red><b>⚠ 머리 위!</b></red>");
+    }
+
+    /** 내려앉기: 몸 보임·중력·무적 풂·길찾기 켬, 블록에 끼었으면 빼냄. */
+    private void land(Location at) {
+        entity.teleport(at);
+        entity.setGravity(true);
+        rig.setHidden(false);
+        rig.play(BossAnim.DROP, 24, now);
+        setUntargetable(false);
+        airborne = false;
+        setPathing(true);
+        unstick();
+    }
+
+    private void slam(Telegraph.Shape c, double dmg, Location land, double r) {
+        Location o = c.origin();
+        hitShape(c, dmg, "ceiling_ambush", DamageType.MELEE, pl -> push(pl, pl.getLocation().toVector().subtract(o.toVector()), 0.8, 0.4));
+        BossFx.sound(land, Sound.ENTITY_GENERIC_EXPLODE, 1.2f, 0.6f);
+        BossFx.particle(Particle.EXPLOSION, land.clone().add(0, 0.5, 0), 3, r * 0.4, 0.2, r * 0.4, 0);
+    }
+
+    /** 페이즈 전환 등으로 취소돼도 반드시 착지시키는 안전장치 (내려앉을 자리 = 설 자리 또는 원 가운데). */
+    private void safetyLanding(int ticks) {
+        afterPersistent(ticks, () -> {
+            if (airborne) landNow();
         });
-        // 페이즈 전환 등으로 취소돼도 반드시 착지시키는 안전장치
-        afterPersistent(air + 10, () -> {
-            if (!airborne) return;
-            airborne = false;
-            entity.setGravity(true);
-            Location land = center.clone();
-            entity.teleport(land);
-            rig.setHidden(false);
-            setUntargetable(false);
-            setPathing(true);
-        });
-        return cast("ceiling_ambush", "천장 매복", air, air + 16, BossAnim.NONE, null, false);
+    }
+
+    private void landNow() {
+        Location at = landAt != null && landAt.getWorld() == entity.getWorld() ? landAt.clone() : center.clone();
+        if (!bodyFits(at)) {
+            Location near = nearestFit(at, 2.0);
+            at = near != null ? near : center.clone();
+        }
+        at.setYaw(entity.getLocation().getYaw());
+        land(at);
+    }
+
+    @Override
+    protected void onPhase(int newPhase) {
+        // 공중에서 페이즈가 바뀌면 (경고는 이미 정리됨) 곧바로 내려앉는다 — 숨은 채·무적인 채 남지 않게
+        if (airborne) landNow();
+    }
+
+    // ── 대응 (GDD §8.6) ──────────────────────────────────────────────────
+
+    @Override
+    protected boolean canAnswer(Player t) {
+        return !airborne && !cocoons.containsKey(t.getUniqueId());
+    }
+
+    @Override
+    protected int answer(Answer a) {
+        Player t = a.target();
+        if (t == null || !t.isValid()) return 0;
+        Location s = standSpot(t, ground(t.getLocation()), BossReach.Order.NEAR);
+        if (s == null) {
+            answerUses("venom_spit");
+            return venomSpit(t);
+        }
+        return ceilingDrop(t, s);
     }
 
     // ── 고치 ─────────────────────────────────────────────────────────────

@@ -4,10 +4,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.file.Path;
 import java.util.List;
+import kr.labyrinth.content.BossDef;
+import kr.labyrinth.content.Content;
+import kr.labyrinth.core.ContentLoader;
 import org.junit.jupiter.api.Test;
 
-/** bs362: 보스 기본 공격 닿음 — 히트박스 겉면 거리(맞대응) · 옛 규칙 · 시야 · 도약 궤적 수학. */
+/** bs362 → bs363: 보스 기본 공격 = 보스별 거리(0.3.6.1) + 시야 · 칼끝 띠(판단 전용) · 설 자리 순서. 맞대응 거리·도약 궤적은 없다. */
 class BossReachTest {
 
     /** 1층 그로브 히트박스 (철 골렘 2.24 × 4.32, SCALE 1.6) 를 원점에. */
@@ -16,10 +20,10 @@ class BossReachTest {
     private static final double R1 = 2.0 + 0.7 * 1.6;
     private static final double EYE = 1.62;
 
-    private static boolean hits(double px, double py, double pz, BossReach.Box b, double reach, double slack) {
-        double eyeBox = BossReach.pointToBox(px, py + EYE, pz, b);
-        double cx = (b.minX() + b.maxX()) / 2, cz = (b.minZ() + b.maxZ()) / 2;
-        return BossReach.inReach(Math.hypot(px - cx, pz - cz), py - b.minY(), reach, eyeBox, BossReach.PLAYER_REACH, slack);
+    /** 0.3.6.1 Boss.chase 그대로 옮긴 기본 공격 판정 (휘두를 때): dist ≤ reach && |dy| < 3.5, reach = 2.0 + scale × 0.7. */
+    private static boolean old0361Swing(double dist, double dy, double scale) {
+        double reach = 2.0 + scale * 0.7;
+        return dist <= reach && Math.abs(dy) < 3.5;
     }
 
     @Test
@@ -35,57 +39,60 @@ class BossReachTest {
     }
 
     @Test
-    void mirrorClosesTheMeleeBandOfBigHitboxes() {
-        // 옛 규칙만으로는 중심 3.12칸까지 — 플레이어 칼은 겉면 3.0칸 = 중심 4.12칸까지 닿았다 (그 띠가 무적 자리)
-        assertTrue(BossReach.legacy(3.1, 0, R1));
-        assertFalse(BossReach.legacy(3.5, 0, R1));
-        assertTrue(hits(3.5, 0, 0, GOLEM, R1, 0), "플레이어가 칠 수 있으면 보스도 친다");
-        assertTrue(hits(4.1, 0, 0, GOLEM, R1, 0));
-        assertFalse(hits(4.2, 0, 0, GOLEM, R1, 0), "플레이어 칼이 안 닿는 거리는 그대로 안전");
-        // 대각선 (모서리): 겉면까지 3.0
-        double diag = 1.12 + 3.0 / Math.sqrt(2) - 0.01;
-        assertTrue(hits(diag, 0, diag, GOLEM, R1, 0));
-        assertFalse(hits(diag + 0.05, 0, diag + 0.05, GOLEM, R1, 0));
+    void openFieldReachEquals0361ForEveryBoss() {
+        // bs363: 보스마다 자기 거리 (맞대응 거리 없음). bosses.yml 의 모든 보스 scale 로, 트인 곳 격자 전체에서 0.3.6.1 과 같다.
+        Content c = ContentLoader.load(Path.of("src/main/resources/content")).content();
+        assertEquals(10, c.bosses().size());
+        for (BossDef d : c.bosses().values()) {
+            double r = BossReach.reach(d.scale());
+            assertEquals(2.0 + d.scale() * 0.7, r, 1e-12, d.id());
+            for (double dist = 0; dist <= 8; dist += 0.05) {
+                for (double dy = -5; dy <= 5; dy += 0.25) {
+                    assertEquals(old0361Swing(dist, dy, d.scale()), BossReach.legacy(dist, dy, r), d.id() + " dist " + dist + " dy " + dy);
+                }
+            }
+            // 3틱 뒤 맞힐 때 여유도 0.3.6.1 과 같다 (reach + 0.8)
+            assertTrue(BossReach.legacy(r + BossReach.CONFIRM_SLACK - 1e-9, 0, r + BossReach.CONFIRM_SLACK), d.id());
+            assertFalse(BossReach.legacy(r + BossReach.CONFIRM_SLACK + 0.01, 0, r + BossReach.CONFIRM_SLACK), d.id());
+        }
+        // 보스마다 다르다: 1층 3.12 · 2층 3.54 · 10층 3.68
+        assertEquals(R1, BossReach.reach(c.boss("floor01_moss_warden").scale()), 1e-9);
+        assertEquals(2.0 + 0.7 * 2.2, BossReach.reach(c.boss("floor02_silk_queen").scale()), 1e-9);
+        assertEquals(2.0 + 0.7 * 2.4, BossReach.reach(c.boss("floor10_abyss_heart").scale()), 1e-9);
     }
 
     @Test
-    void ownerSpotOnFloorOneIsNowInReach() {
-        // 실서버 재현: 보스 중심에서 3.49칸, 봇 눈 → 히트박스 1.94칸 → 옛 규칙 0번, 이제는 닿는다
-        double d = 3.49;
+    void ownerSpotOnFloorOneIsOutOfReachButInTheBand() {
+        // 실서버 재현: 보스 중심에서 3.37칸, 봇 눈 → 히트박스 약 2.25칸. 기본 공격은 보스 자기 거리(3.12)라 안 닿고,
+        // 플레이어 칼은 닿는 칼끝 띠 안 → 막힘이면 설 자리로 걷거나 보스 자기 패턴으로 답한다 (거리를 늘리지 않음)
+        double d = 3.37;
         assertFalse(BossReach.legacy(d, 0, R1));
         double eyeBox = BossReach.pointToBox(d, EYE, 0, GOLEM);
-        assertTrue(eyeBox < 3.0);
-        assertTrue(BossReach.inReach(d, 0, R1, eyeBox, BossReach.PLAYER_REACH, 0));
+        assertTrue(eyeBox < BossReach.PLAYER_REACH);
+        assertTrue(BossReach.inBand(eyeBox, BossReach.PLAYER_REACH, AnswerWatch.BAND_SLACK));
     }
 
     @Test
-    void confirmSlackMatchesOldRule() {
-        // 3틱 뒤 판정: 옛 규칙은 reach + 0.8, 맞대응도 + 0.8
-        assertTrue(hits(4.8, 0, 0, GOLEM, R1, BossReach.CONFIRM_SLACK));
-        assertFalse(hits(5.0, 0, 0, GOLEM, R1, BossReach.CONFIRM_SLACK));
-        assertTrue(BossReach.legacy(R1 + 0.8, 0, R1 + 0.8));
+    void bandIsPlayerReachPlusSlackFromTheEye() {
+        double pr = BossReach.PLAYER_REACH, slack = AnswerWatch.BAND_SLACK;
+        assertTrue(BossReach.inBand(pr + slack, pr, slack));
+        assertFalse(BossReach.inBand(pr + slack + 0.01, pr, slack));
+        assertTrue(BossReach.inBand(0, pr, slack));
+        // 골렘 옆면: 눈 → 상자 3.5 = 중심 4.62 까지가 띠, 그 밖(원거리 카이팅)은 띠 아님
+        assertTrue(BossReach.inBand(BossReach.pointToBox(4.6, EYE, 0, GOLEM), pr, slack));
+        assertFalse(BossReach.inBand(BossReach.pointToBox(4.7, EYE, 0, GOLEM), pr, slack));
+        assertFalse(BossReach.inBand(BossReach.pointToBox(9, EYE, 0, GOLEM), pr, slack));
+        // 손 닿음 속성이 길면 띠도 길다
+        assertTrue(BossReach.inBand(4.9, BossReach.playerReach(4.5), slack));
     }
 
     @Test
-    void smallHitboxKeepsOldReachWhereItIsLonger() {
-        // 4층 허스크 (1.14 × 3.71, scale 1.9): 옛 3.33 · 맞대응 0.57 + 3.0 = 3.57 — 어느 쪽이든 짧아지지 않는다
-        BossReach.Box husk = BossReach.Box.of(0, 0, 0, 0.57, 3.71);
-        double r4 = 2.0 + 0.7 * 1.9;
-        assertTrue(hits(3.3, 0, 0, husk, r4, 0));
-        assertTrue(hits(3.55, 0, 0, husk, r4, 0));
-        assertFalse(hits(3.6, 0, 0, husk, r4, 0));
-        // 높이: 옛 규칙은 발 높이 차 3.5 미만
+    void legacyHeightLimitIsThreeAndAHalf() {
+        double r4 = BossReach.reach(1.9);
         assertFalse(BossReach.legacy(1.0, 3.5, r4));
-        assertTrue(BossReach.legacy(1.0, 3.4, r4));
-    }
-
-    @Test
-    void standingOnTopOfSomethingIsMirrored() {
-        // 5칸 기둥 위 (발 +5, 눈 +6.62), 히트박스 겉면에서 수평 1.5칸: 눈 → 상자 = √(1.5² + 2.3²) ≈ 2.75 → 서로 닿음
-        assertTrue(hits(1.12 + 1.5, 5, 0, GOLEM, R1, 0));
-        // 더 높으면 (발 +7) 칼이 안 닿으니 보스도 안 닿음 (거리 좁히기가 맡는다)
-        assertFalse(hits(1.12 + 1.5, 7, 0, GOLEM, R1, 0));
-        // 옛 규칙은 높이 차 5 라서 못 쳤다
+        assertTrue(BossReach.legacy(1.0, 3.49, r4));
+        assertFalse(BossReach.legacy(1.0, -3.5, r4));
+        // 5칸 기둥 위는 보스 자기 거리로는 못 친다 (그 자리는 대응이 맡는다)
         assertFalse(BossReach.legacy(2.62, 5, R1));
     }
 
@@ -143,7 +150,7 @@ class BossReachTest {
         assertTrue(BossReach.sees(3.0, EYE, 0, GOLEM, post));
     }
 
-    // ── 거리 안 시야 (맞대응 규칙) ───────────────────────────────────────
+    // ── 거리 안 시야 (칼끝 띠 판단) ──────────────────────────────────────
 
     /** 막는 블록 상자들 (선분 ↔ 상자 교차 = 막힘). */
     private static BossReach.Ray blocks(BossReach.Box... boxes) {
@@ -181,14 +188,14 @@ class BossReachTest {
         assertFalse(BossReach.legacy(ex, 0, R1));
         BossReach.Ray ray = blocks(PEDESTAL);
         assertTrue(BossReach.sees(ex, EYE, 0, GOLEM, ray), "어느 점이든 (옛 규칙용): 윗몸은 보인다");
-        assertFalse(BossReach.sees(ex, EYE, 0, GOLEM, ray, BossReach.PLAYER_REACH), "손 닿음 안에서 보이는 점이 없다 → 서로 못 친다");
+        assertFalse(BossReach.sees(ex, EYE, 0, GOLEM, ray, BossReach.PLAYER_REACH), "손 닿음 안에서 보이는 점이 없다 → 플레이어도 못 친다");
         // 3틱 뒤 판정 여유(+0.8) 안에는 윗몸이 들어온다 (휘두를 때 막히니 이 여유로 새로 맞지는 않는다)
         assertTrue(BossReach.sees(ex, EYE, 0, GOLEM, ray, BossReach.PLAYER_REACH + BossReach.CONFIRM_SLACK));
     }
 
     @Test
     void lowWallInsideReachStillSeesOverTheTop() {
-        // 받침이 더 가까이 (x 1.6 ~ 2.0): 받침 위로 보이는 윗몸이 3칸 안 → 플레이어도 치고 보스도 친다
+        // 받침이 더 가까이 (x 1.6 ~ 2.0): 받침 위로 보이는 윗몸이 3칸 안 → 플레이어 칼이 닿는다 (칼끝 띠)
         BossReach.Ray ray = blocks(new BossReach.Box(1.6, 0, -5, 2.0, 2.0, 5));
         assertFalse(ray.clear(3.0, EYE, 0, 1.12, EYE, 0), "가장 가까운 점은 가린다");
         assertTrue(BossReach.sees(3.0, EYE, 0, GOLEM, ray, BossReach.PLAYER_REACH));
@@ -247,7 +254,7 @@ class BossReachTest {
         assertTrue(n[0] <= BossReach.MAX_REACH_RAYS && n[0] >= 8, "광선 " + n[0]);
     }
 
-    // ── 직접 다가가기·도약 ───────────────────────────────────────────────
+    // ── 곧장 걷기·설 자리 고리 ───────────────────────────────────────────
 
     @Test
     void walkSpeedMatchesVanillaGroundSpeed() {
@@ -275,45 +282,52 @@ class BossReachTest {
         }
     }
 
+    // ── 설 자리 순서 ─────────────────────────────────────────────────────
+
     @Test
-    void arcSamplesAreDenseAndAboveTheLine() {
-        List<double[]> pts = BossReach.arc(0, 64, 0, 6, 64, 0, 2.0, 0.45);
-        assertFalse(pts.isEmpty());
-        double[] prev = {0, 64, 0};
-        double top = 0;
-        for (double[] p : pts) {
-            double step = Math.sqrt(Math.pow(p[0] - prev[0], 2) + Math.pow(p[1] - prev[1], 2) + Math.pow(p[2] - prev[2], 2));
-            assertTrue(step <= 0.46, "표본 간격 " + step);
-            assertTrue(p[1] >= 64 - 1e-9);
-            top = Math.max(top, p[1] - 64);
-            prev = p;
+    void standOrderKeepsReachMarginAndStaysOffTheTargetsBody() {
+        double tx = 3, tz = -2, hw = 1.12;
+        List<double[]> c = BossReach.standOrder(tx, tz, hw, R1, 0, 0, 14, 0, 0);
+        assertFalse(c.isEmpty());
+        for (double[] p : c) {
+            double d = Math.hypot(p[0] - tx, p[1] - tz);
+            assertTrue(d >= hw + BossReach.STAND_CLEAR - 1e-9, "대상 몸 위 " + d);
+            assertTrue(d <= R1 - BossReach.STAND_MARGIN + 1e-9, "자기 거리 − 0.3 밖 " + d);
+            // 서면 보스 자기 거리로 닿는다
+            assertTrue(BossReach.legacy(d, 0, R1));
         }
-        assertEquals(2.0, top, 0.01);
-        double[] mid = BossReach.arcAt(0, 64, 0, 6, 64, 0, 2.0, 0.5);
-        assertEquals(3, mid[0], 1e-9);
-        assertEquals(66, mid[1], 1e-9);
-        double[] end = BossReach.arcAt(0, 64, 0, 6, 66, 0, 2.0, 1.0);
-        assertEquals(6, end[0], 1e-9);
-        assertEquals(66, end[1], 1e-9);
+        // 아레나 안 (중심에서 반경 − 반폭 − 0.3)
+        for (double[] p : BossReach.standOrder(12.5, 0, hw, R1, 0, 0, 14, 0, 0)) {
+            assertTrue(Math.hypot(p[0], p[1]) <= 14 - hw - 0.3 + 1e-9);
+        }
+        // 대상 몸이 너무 커서(반폭 + 0.5 > reach − 0.3) 후보 없음
+        assertTrue(BossReach.standOrder(0, 0, 3.0, R1, 0, 0, 14, 0, 0).isEmpty());
     }
 
     @Test
-    void arcRisesBeforeMovingSoAWallAtTheFeetIsCleared() {
-        // 2칸 받침에 몸이 붙어 있어도 (수평 0.1칸 안에) 먼저 2칸 넘게 솟는다
-        double apex = BossReach.apexOptions(4.6)[1];
-        for (double[] p : BossReach.arc(0, 0, 0, 4.6, 2, 0, apex, 0.45)) {
-            if (p[0] > 0.1 && p[0] < 4.5) assertTrue(p[1] > 2.0, "x=" + p[0] + " y=" + p[1]);
+    void standOrderSortsByReferencePointThenTargetAndIsDeterministic() {
+        double tx = 5, tz = 5, hw = 0.57;
+        double r = BossReach.reach(1.9);
+        // BOSS 순서 = 보스 자리에서 가까운 순 (보스가 서쪽 (0, 5) 에 있으면 첫 후보는 대상 서쪽)
+        List<double[]> boss = BossReach.standOrder(tx, tz, hw, r, 0, 0, 16, 0, 5);
+        assertTrue(boss.get(0)[0] < tx, "서쪽 먼저 " + boss.get(0)[0]);
+        double last = -1;
+        for (double[] p : boss) {
+            double d = Math.hypot(p[0], p[1] - 5);
+            assertTrue(d >= last - 1e-9, "가까운 순");
+            last = d;
         }
-    }
-
-    @Test
-    void apexAndFlightStayShort() {
-        double[] a = BossReach.apexOptions(2);
-        assertEquals(1.5, a[0], 1e-9);
-        assertTrue(a[1] > a[0] && a[2] > a[1]);
-        assertEquals(3.0, BossReach.apexOptions(40)[0], 1e-9);
-        assertEquals(8, BossReach.flightTicks(1));
-        assertEquals(10, BossReach.flightTicks(6));
-        assertEquals(16, BossReach.flightTicks(40));
+        // NEAR 순서 = 주어진 점에서 가까운 순 (대상 발 = 같은 거리 → 대상에 가까운 고리 먼저)
+        List<double[]> near = BossReach.standOrder(tx, tz, hw, r, 0, 0, 16, tx, tz);
+        double first = Math.hypot(near.get(0)[0] - tx, near.get(0)[1] - tz);
+        for (double[] p : near) assertTrue(Math.hypot(p[0] - tx, p[1] - tz) >= first - 1e-9);
+        assertEquals(hw + BossReach.STAND_CLEAR, first, 0.7, "가장 안쪽 고리");
+        // 결정적
+        List<double[]> again = BossReach.standOrder(tx, tz, hw, r, 0, 0, 16, 0, 5);
+        assertEquals(boss.size(), again.size());
+        for (int i = 0; i < boss.size(); i++) {
+            assertEquals(boss.get(i)[0], again.get(i)[0], 0);
+            assertEquals(boss.get(i)[1], again.get(i)[1], 0);
+        }
     }
 }

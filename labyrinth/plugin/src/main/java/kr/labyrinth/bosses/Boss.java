@@ -54,7 +54,8 @@ import org.bukkit.util.Vector;
 
 /**
  * 층 보스 공통 기반 (GDD §8): 자체 HP 풀(DamageService 경로), 페이즈(bosses.yml phases), 패턴 스케줄러(가중치·쿨다운·간격·상시),
- * 광폭화 타이머, 보스바(이름·칭호·페이즈) + 시전 바, 아레나 경계, 위협 표, 추격·기본 공격, {@link BossRig} 시전 애니메이션,
+ * 광폭화 타이머, 보스바(이름·칭호·페이즈) + 시전 바, 아레나 경계, 위협 표, 추격·기본 공격(보스별 거리 + 시야, 막힘 → 설 자리로 걷기),
+ * 보스별 대응({@link #answer} — 못 닿는 자리에서 맞고 있으면 그 보스 자기 패턴으로 답함, {@link AnswerWatch}), {@link BossRig} 시전 애니메이션,
  * 기믹 부품(경고 장판·투사체·표식·테더·오브젝트·쫄 소환·넉백)과 정리(블록 복원 포함).
  * <p>
  * 하위 클래스(impl/FloorNNBoss)는 {@link #onSpawn()}(아레나 배치) · {@link #startPattern(String)}(쿨다운 패턴) ·
@@ -130,8 +131,10 @@ public abstract class Boss implements BossHandle {
     private Location lastLoc;
     private long lastRepath;
 
-    // 막힘 감시 (bs362): 직접 다가가기 · 도약/땅 울림
+    // 막힘 감시 (bs362 → bs363): 설 자리로 곧장 걷기 → 돌아가기 → 자리 지키기
     private final ChaseGuard guard = new ChaseGuard();
+    /** 이번 틱 추격에서 보스가 걸어 막힘 창이 다시 잡혔다 (대응 감시의 −10). */
+    private boolean guardMoved;
     /** 플레이어별 마지막으로 보스를 때린 틱 (교전 판정). */
     private final Map<UUID, Long> lastHitAt = new HashMap<>();
     /**
@@ -142,15 +145,44 @@ public abstract class Boss implements BossHandle {
     private UUID sightFor;
     private long sightTick = -100;
     private boolean sightOk;
-    /** 거리 안 시야 (맞대응 규칙) 기억 — 같은 대상·같은 거리 5틱. */
-    private UUID nearFor;
-    private long nearTick = -100;
-    private double nearMax;
-    private boolean nearOk;
-    /** 돌아가기: 도약·땅 울림을 못 하고 안 보일 때, 대상을 칠 수 있는 자리까지 길찾기로 걸어간다 (기둥 반대편 등). 그 대상에게만. */
+    /** 칼끝 띠 기억 — 같은 대상·같은 거리 5틱. */
+    private UUID bandFor;
+    private long bandTick = -100;
+    private double bandMax;
+    private boolean bandOk;
+    /** 돌아가기: 곧장 걸어서 못 가는 설 자리까지 길찾기로 걸어간다 (그 대상에게만, 최대 5초). */
     private Location detourTo;
     private UUID detourFor;
     private long detourUntil;
+    /** 걷기용 설 자리 (대상 둘레, 보스 자기 거리 안). 대상이 1칸 넘게 움직이면 다시 찾는다. */
+    private Location spot;
+    private long spotChecked;
+    private int spotStall;
+    private long nextSearch;
+    private int spotFails;
+    /** 걸어서 갈 설 자리가 없다 (PERCH 대응 조건). */
+    private boolean noSpot;
+    private UUID pocketFor;
+    private double pocketX, pocketZ;
+    /** 못 가는 설 자리 (좌표 키 → 풀리는 틱). */
+    private final Map<Long, Long> badSpots = new HashMap<>();
+
+    // 대응 (bs363, GDD §8.6): 못 닿는 자리에서 맞고 있으면 보스 자기 패턴으로 답한다
+    private final AnswerWatch watch = new AnswerWatch();
+    /** 지금 시전을 멈춘 채 시작했는가 (바쁜 틱의 대응 셈). */
+    private boolean castStalled;
+    /** 지금 시전을 시작한 자리 (끝날 때 1칸 넘게 옮겨졌으면 대응 셈 0). */
+    private Location castFrom;
+    /** 대응이 대체 패턴을 썼으면 그 키 ({@link #answerUses}). */
+    private String answerUsed;
+    // 기록 칸 (실서버 확인 도구가 반사로 읽는다)
+    private int answersFired;
+    private String lastAnswerKey;
+    private String lastAnswerKind;
+    private long lastAnswerAt = -1;
+    private int answerArm;
+    private long answerNanos;
+    private long answerTicks;
 
     // 소유물
     private final List<Ticking> running = new ArrayList<>();
@@ -407,13 +439,16 @@ public abstract class Boss implements BossHandle {
         if (stunned) {
             stopPath();
             if (rig.current(now) != BossAnim.STUN) rig.play(BossAnim.STUN, 20, now);
+            answerStep(false);
         } else {
             if (rig.current(now) == BossAnim.STUN) rig.stop();
             if (now >= busyUntil) {
                 if (casting != null) endCast();
+                castEnded();
                 lockedYaw = null;
                 chase();
-                if (now >= busyUntil) {
+                boolean answered = answerStep(true); // 쏘면 이번 틱은 로테이션을 건너뛴다
+                if (!answered && now >= busyUntil) {
                     String key = scheduler.next(now, k -> !stunned() && canUse(k));
                     if (key != null) {
                         int busy = 0;
@@ -425,11 +460,14 @@ public abstract class Boss implements BossHandle {
                         if (busy > 0) {
                             busyUntil = now + busy;
                             scheduler.busyUntil(busyUntil);
+                            castStalled = guard.stalled() || stationary();
+                            castFrom = entity.getLocation();
                         }
                     }
                 }
             } else {
                 stopPath();
+                answerStep(false);
             }
         }
         face();
@@ -488,44 +526,65 @@ public abstract class Boss implements BossHandle {
 
     // ── 추격·기본 공격 ───────────────────────────────────────────────────
 
-    /** 옛 기본 공격 거리 (보스 중심 ↔ 플레이어 발 수평). 맞대응 규칙(눈 → 히트박스)은 {@link BossReach}. */
-    protected double reach() { return 2.0 + def.scale() * 0.7; }
-
-    /** 도약 최대 수평 거리. */
-    private static final double LEAP_MAX = 12;
-    /** 땅 울림 최대 수평 거리. */
-    private static final double QUAKE_MAX = 10;
-    /** 땅 울림 반경. */
-    private static final double QUAKE_RADIUS = 1.8;
-    /** 거리 좁히기 한 번에 궤적을 검사할 착지 후보 수 (가까운 순). */
-    private static final int LEAP_TRIES = 8;
+    /**
+     * 기본 공격 거리 (GDD §8.6): 보스 중심 ↔ 플레이어 발 수평 — 보스마다 다르다 (0.3.6.1 그대로). 트인 곳의 거리 재기·피하기가
+     * 보스마다 달라지는 까닭이다. 칼끝 띠({@link #band})는 판단에만 쓰고 이 거리를 늘리지 않는다.
+     */
+    protected final double reach() { return BossReach.reach(def.scale()); }
 
     private void chase() {
         Player t = target();
         if (t == null) {
             stopPath();
-            guard.update(new ChaseGuard.Input(null, false, false, 0, false, false, Long.MAX_VALUE, 0, 0));
+            guard.update(new ChaseGuard.Input(null, false, false, 0, false, false, 0, 0, 0, 0, false));
+            guardMoved = false;
             return;
         }
         Location bl = entity.getLocation(), tl = t.getLocation();
         double dist = horizontal(bl, tl);
         boolean sees = sight(t, false);
         boolean inReach = canHit(t, 0, false);
-        long since = now - lastHitAt.getOrDefault(t.getUniqueId(), Long.MIN_VALUE / 4);
-        // 길 없음(거리 무관 곧장 다가가기)은 떠다니는 보스만 — 땅 보스는 길 끝에 서면 멈춤 감시가 잡는다.
-        // (moveTo 의 false 는 "이미 끝난 길과 같음" 도 뜻해서, 그걸로 켜면 카이팅 중에도 길찾기 없이 곧장 걸어 장애물에 걸렸다)
-        ChaseGuard.Output o = guard.update(new ChaseGuard.Input(t.getUniqueId(), pathing, inReach, dist,
-                def.flying(), sees, since, bl.getX(), bl.getZ()));
         if (detourTo != null && (!pathing || inReach || now >= detourUntil || detourTo.getWorld() != bl.getWorld()
                 || !t.getUniqueId().equals(detourFor) || horizontal(bl, detourTo) < 0.8)) {
+            // 돌아가기가 끝났는데 닿지도 않고 설 자리에서 1.5칸 넘게 남았다 → 못 가는 자리
+            if (!inReach && pathing && t.getUniqueId().equals(detourFor) && detourTo.getWorld() == bl.getWorld()
+                    && horizontal(bl, detourTo) > 1.5) {
+                badSpot(detourTo);
+            }
             detourTo = null;
         }
+        // 길 없음(거리 무관 곧장 다가가기)은 떠다니는 보스만 — 땅 보스는 길 끝에 서면 멈춤 감시가 잡는다.
+        // (moveTo 의 false 는 "이미 끝난 길과 같음" 도 뜻해서, 그걸로 켜면 카이팅 중에도 길찾기 없이 곧장 걸어 장애물에 걸렸다)
+        ChaseGuard.Output o = guard.update(new ChaseGuard.Input(t.getUniqueId(), pathing, inReach, dist, def.flying(), sees,
+                bl.getX(), bl.getZ(), tl.getX(), tl.getZ(), detourTo != null));
+        guardMoved = o.moved();
+        long t0 = System.nanoTime();
+        walkSpot(t, inReach, o);
+        answerNanos += System.nanoTime() - t0; // 틱 비용 (감시 + 띠 + 설 자리 합)
         ChaseGuard.Move move = detourTo != null ? ChaseGuard.Move.PATH : o.move();
+        // 설 자리로 곧장 걷는데 다시 0.5초 멈춤 → 길찾기로 돌아가기 (길이 없거나 어긋나면 그 자리는 못 가는 자리)
+        if (move == ChaseGuard.Move.STEER && spot != null && o.stalled()) {
+            if (++spotStall >= ChaseGuard.WINDOW) {
+                spotStall = 0;
+                Location s = spot;
+                if (detour(t, s)) move = ChaseGuard.Move.PATH;
+                else badSpot(s);
+            }
+        } else {
+            spotStall = 0;
+        }
         switch (move) {
-            case HOLD -> stopPath();
+            case HOLD -> {
+                stopPath();
+                if (guard.latched()) {
+                    // 자리 지키기: 곧장 걷던 관성으로 미끄러져 나가지 않게
+                    Vector v = entity.getVelocity();
+                    if (v.getX() * v.getX() + v.getZ() * v.getZ() > 1e-6) entity.setVelocity(new Vector(0, def.flying() ? 0 : v.getY(), 0));
+                }
+            }
             case STEER -> {
                 stopPath();
-                steer(t);
+                steer(t, spot);
             }
             case PATH -> {
                 if (def.flying()) {
@@ -535,7 +594,10 @@ public abstract class Boss implements BossHandle {
                 } else if (detourTo != null) {
                     if (now - lastRepath >= 10 || (!moveFailed && !entity.getPathfinder().hasPath())) {
                         moveFailed = !entity.getPathfinder().moveTo(detourTo, 1.0);
-                        if (moveFailed) detourTo = null;
+                        if (moveFailed) {
+                            badSpot(detourTo);
+                            detourTo = null;
+                        }
                         lastRepath = now;
                     }
                 } else if (dist > reach() * 0.85 || !inReach) {
@@ -548,10 +610,6 @@ public abstract class Boss implements BossHandle {
                 }
             }
         }
-        if (o.closeGap()) {
-            closeGap(t);
-            return;
-        }
         if (now >= nextAttack && canHit(t, 0, true)) {
             nextAttack = now + 40;
             attackTick = now;
@@ -561,12 +619,13 @@ public abstract class Boss implements BossHandle {
                 if (p != null && validPlayer(p) && canHit(p, BossReach.CONFIRM_SLACK, true)) {
                     services.damage().deal(DamageContext.raw(entity, p, damage(), DamageType.MELEE).source("basic_attack"));
                     BossFx.sound(p.getLocation(), Sound.ENTITY_PLAYER_ATTACK_STRONG, 0.8f, 0.6f);
+                    watch.landed(id);
                 }
             }, true));
         }
     }
 
-    /** 이 플레이어의 손 닿음 (맞대응 규칙 거리). */
+    /** 이 플레이어의 손 닿음 (칼끝 띠 판단용). */
     protected static double playerReach(Player p) {
         AttributeInstance a = p.getAttribute(Attribute.ENTITY_INTERACTION_RANGE);
         return BossReach.playerReach(a == null ? Double.NaN : a.getValue());
@@ -576,25 +635,37 @@ public abstract class Boss implements BossHandle {
         return new BossReach.Box(bb.getMinX(), bb.getMinY(), bb.getMinZ(), bb.getMaxX(), bb.getMaxY(), bb.getMaxZ());
     }
 
+    private static double halfWidth(BoundingBox bb) { return Math.max(bb.getWidthX(), bb.getWidthZ()) / 2; }
+
     /**
-     * 기본 공격이 닿는가 (기하 + 시야). 옛 규칙(중심 ↔ 발)이 맞으면 히트박스 어느 점이든 보이면 되고({@link #sight}),
-     * 맞대응 규칙(눈 → 히트박스)만 맞으면 플레이어 손 닿음(+ slack) 안에서 보이는 점이 있어야 한다 — 플레이어 칼이 닿는 점과 같은 잣대라
-     * 등불 받침 너머 손 닿음 밖 윗몸만 보이는 자리에서는 서로 못 친다. fresh = false 면 시야를 같은 대상 5틱 기억.
+     * 기본 공격이 닿는가 (GDD §8.6): 보스 자기 거리({@link #reach()} + slack, 발 높이 차 3.5 미만) + 시야(플레이어 눈과 히트박스
+     * 사이에 막는 블록 없음 — 벽 너머 공격 없음). fresh = false 면 시야를 같은 대상 5틱 기억.
      */
     protected boolean canHit(Player p, double slack, boolean fresh) {
-        Location bl = entity.getLocation(), pl = p.getLocation(), eye = p.getEyeLocation();
-        if (BossReach.legacy(horizontal(bl, pl), pl.getY() - bl.getY(), reach() + slack)) return sight(p, fresh);
-        BossReach.Box b = box(entity.getBoundingBox());
-        double max = playerReach(p) + slack;
-        if (!BossReach.mirror(BossReach.pointToBox(eye.getX(), eye.getY(), eye.getZ(), b), max)) return false;
-        if (!fresh && p.getUniqueId().equals(nearFor) && now - nearTick < 5 && nearMax == max) return nearOk;
+        Location bl = entity.getLocation(), pl = p.getLocation();
+        return BossReach.legacy(horizontal(bl, pl), pl.getY() - bl.getY(), reach() + slack) && sight(p, fresh);
+    }
+
+    /**
+     * 칼끝 띠 (판단 전용 — 피해에는 안 씀): 플레이어 눈 → 보스 히트박스 ≤ 플레이어 손 닿음 + 0.5, 그 거리 안에 보이는 점이 있음.
+     * "플레이어 칼은 닿는데 보스 기본 공격은 안 닿는 자리" 를 알아보는 잣대. 같은 대상 5틱 기억.
+     */
+    protected boolean band(Player t) {
+        Location bl = entity.getLocation(), tl = t.getLocation();
+        if (tl.getWorld() != bl.getWorld()) return false;
+        BoundingBox bb = entity.getBoundingBox();
+        double pr = playerReach(t), max = pr + AnswerWatch.BAND_SLACK;
+        if (horizontal(bl, tl) - halfWidth(bb) * 1.42 > max) return false; // 광선 없이 빠른 거절
+        Location eye = t.getEyeLocation();
+        BossReach.Box b = box(bb);
+        if (!BossReach.inBand(BossReach.pointToBox(eye.getX(), eye.getY(), eye.getZ(), b), pr, AnswerWatch.BAND_SLACK)) return false;
+        if (t.getUniqueId().equals(bandFor) && now - bandTick < 5 && bandMax == max) return bandOk;
         World w = entity.getWorld();
-        boolean ok = p.getWorld() == w && BossReach.sees(eye.getX(), eye.getY(), eye.getZ(), b,
-                (ax, ay, az, bx, by, bz) -> rayClear(w, ax, ay, az, bx, by, bz), max);
-        nearFor = p.getUniqueId();
-        nearTick = now;
-        nearMax = max;
-        nearOk = ok;
+        boolean ok = BossReach.sees(eye.getX(), eye.getY(), eye.getZ(), b, (ax, ay, az, bx, by, bz) -> rayClear(w, ax, ay, az, bx, by, bz), max);
+        bandFor = t.getUniqueId();
+        bandTick = now;
+        bandMax = max;
+        bandOk = ok;
         return ok;
     }
 
@@ -620,14 +691,18 @@ public abstract class Boss implements BossHandle {
         return r == null;
     }
 
-    /** 대상 쪽으로 곧장 걷기 (길찾기가 길을 못 내는 1칸 틈·벽 앞 · 떠다니는 보스). 벽은 바닐라 충돌이 막는다. */
-    private void steer(Player t) {
-        Location bl = entity.getLocation(), tl = t.getLocation();
-        double dx = tl.getX() - bl.getX(), dz = tl.getZ() - bl.getZ();
+    /**
+     * 곧장 걷기 (길찾기가 길을 못 내는 1칸 틈·벽 앞 · 떠다니는 보스). aim = 설 자리(있으면, 0.15칸까지) 아니면 대상(몸 반폭 + 0.35칸 앞까지).
+     * 벽은 바닐라 충돌이 막는다.
+     */
+    private void steer(Player t, Location aim) {
+        Location bl = entity.getLocation();
+        boolean toSpot = aim != null && aim.getWorld() == bl.getWorld();
+        Location to = toSpot ? aim : t.getLocation();
+        double dx = to.getX() - bl.getX(), dz = to.getZ() - bl.getZ();
         double len = Math.hypot(dx, dz);
-        BoundingBox bb = entity.getBoundingBox();
-        double hw = Math.max(bb.getWidthX(), bb.getWidthZ()) / 2;
-        double keep = hw + 0.35; // 플레이어를 밀고 들어가지 않는다
+        double hw = halfWidth(entity.getBoundingBox());
+        double keep = toSpot ? 0.15 : hw + 0.35; // 플레이어를 밀고 들어가지 않는다
         double vy = def.flying() ? 0 : entity.getVelocity().getY();
         AttributeInstance ms = entity.getAttribute(Attribute.MOVEMENT_SPEED);
         double v = Math.min(BossReach.walkSpeed(ms == null ? 0.22 : ms.getValue()), len - keep);
@@ -675,73 +750,135 @@ public abstract class Boss implements BossHandle {
         return top;
     }
 
-    // ── 거리 좁히기 (bs362) ──────────────────────────────────────────────
+    // ── 설 자리 (bs363) ──────────────────────────────────────────────────
 
     /**
-     * 기본 공격이 못 닿는 자리에서 교전 중인 대상에게: 대상 옆 설 자리로 경고 장판 뒤 도약(벽은 넘지 않음 — 궤적의 몸 상자가
-     * 블록에 닿으면 그 자리 포기), 도약할 수 없으면 대상 발밑 땅 울림(시야가 있을 때만). 피해는 기본 공격과 같은 값.
-     * 둘 다 안 되면(기둥 반대편처럼 안 보이고 넘어갈 수도 없음) 그 설 자리까지 길찾기로 돌아간다.
-     * @return 시작했는가
+     * 걷기용 설 자리 관리: 대상이 1칸 넘게 움직이면(또는 대상이 바뀌면) 처음부터. 멈췄을 때만, 10틱에 한 번까지 찾는다.
+     * 고른 자리는 20틱마다 다시 확인한다 (블록이 바뀌었거나 대상 눈에서 안 보이게 됐으면 버림).
      */
-    private boolean closeGap(Player t) {
+    private void walkSpot(Player t, boolean inReach, ChaseGuard.Output o) {
+        Location tl = t.getLocation();
+        UUID id = t.getUniqueId();
+        if (!id.equals(pocketFor) || Math.hypot(tl.getX() - pocketX, tl.getZ() - pocketZ) > 1.0) {
+            pocketFor = id;
+            pocketX = tl.getX();
+            pocketZ = tl.getZ();
+            spot = null;
+            noSpot = false;
+            spotFails = 0;
+            nextSearch = now;
+        }
+        if (inReach || !pathing) return;
+        if (spot != null && now - spotChecked >= 20) {
+            spotChecked = now;
+            if (!spotStillGood(t, spot)) spot = null;
+        }
+        if (spot == null && o.stalled() && now >= nextSearch) {
+            nextSearch = now + 10;
+            spot = standSpot(t, null, BossReach.Order.BOSS);
+            if (spot != null) {
+                spotChecked = now;
+                noSpot = false;
+            } else {
+                noSpot = true;
+                nextSearch = now + 20;
+            }
+        }
+    }
+
+    /** 못 가는 설 자리로 60틱 적어 두고 다음 후보로. 이 대상 자리에서 두 번 실패하면 "갈 곳 없음" (200틱 동안 더 안 찾음). */
+    private void badSpot(Location s) {
+        if (s != null) badSpots.put(spotKey(s.getX(), s.getZ()), now + 60);
+        badSpots.values().removeIf(until -> until <= now);
+        spot = null;
+        if (++spotFails >= 2) {
+            spotFails = 0;
+            noSpot = true;
+            nextSearch = now + 200;
+        }
+    }
+
+    private static long spotKey(double x, double z) {
+        return ((long) Math.round(x * 4) << 32) ^ (Math.round(z * 4) & 0xffffffffL);
+    }
+
+    /**
+     * 대상 옆 설 자리 (GDD §8.6): 대상 둘레 고리에서 대상 발까지 수평 ≤ 보스 자기 거리 − 0.3, 대상 몸 위 아님, 발 높이 차 3.2 미만,
+     * 아레나 안, 용암·불 아님, 몸이 들어가고(블록과 안 겹침) 땅 보스는 발판이 받쳐짐, 대상 눈에서 그 자리의 몸이 보임 — 서면 기본 공격이 닿는다.
+     * 순서: BOSS = 지금 보스 자리에서 가까운 순 (걷기, 못 가는 자리 건너뜀), NEAR = near 에서 가까운 순 (착지·순간이동).
+     * 시야 광선은 통과 후보 앞 4곳까지만. 떠다니는 보스는 높이 = 지금 보스 높이.
+     * @return 설 자리 (없으면 null)
+     */
+    protected Location standSpot(Player t, Location near, BossReach.Order order) {
         World w = entity.getWorld();
+        Location tl = t.getLocation(), bl = entity.getLocation();
+        if (tl.getWorld() != w) return null;
         BoundingBox bb = entity.getBoundingBox();
-        double hw = Math.max(bb.getWidthX(), bb.getWidthZ()) / 2, h = bb.getHeight();
-        Location from = entity.getLocation(), tl = t.getLocation(), eye = t.getEyeLocation();
-        double want = playerReach(t) - 0.5; // 착지 뒤 기본 공격이 넉넉히 닿게
-        BossReach.Ray ray = (ax, ay, az, bx, by, bz) -> rayClear(w, ax, ay, az, bx, by, bz);
-        List<Location> walkTo = new ArrayList<>(); // 도약도 땅 울림도 안 될 때 걸어갈 후보 (가까운 순 4곳)
-        int arcTries = 0; // 궤적 검사는 비싸서 (높이 3 × 표본 수백) 가까운 후보 몇 곳만
-        for (double[] c : BossReach.landingRing(tl.getX(), tl.getZ())) {
-            if (arcTries >= LEAP_TRIES && walkTo.size() >= 4) break;
-            double x = c[0], z = c[1];
-            if (Math.hypot(x - center.getX(), z - center.getZ()) > arenaRadius - hw - 0.3) continue;
-            double y = landY(w, x, tl.getY(), z);
-            if (Double.isNaN(y) || y < floorY - 1.5 || y + h > floorY + arenaHeight - 0.5) continue;
-            BossReach.Box at = BossReach.Box.of(x, y, z, hw, h);
-            if (BossReach.pointToBox(eye.getX(), eye.getY(), eye.getZ(), at) > want) continue;
-            if (!fits(w, at) || !standable(w, x, y, z, hw)) continue;
-            // 착지한 뒤 기본 공격이 닿게: 손 닿음(want) 안에서 보이는 점이 있는 자리만 (맞대응 규칙과 같은 잣대)
-            if (!BossReach.sees(eye.getX(), eye.getY(), eye.getZ(), at, ray, want)) continue;
-            double leap = Math.hypot(x - from.getX(), z - from.getZ());
-            if (leap < 0.6) break; // 이미 가장 좋은 자리에 있다 — 옮겨도 소용없음
-            if (walkTo.size() < 4) walkTo.add(new Location(w, x, y, z));
-            if (leap > LEAP_MAX || arcTries >= LEAP_TRIES) continue;
-            arcTries++;
-            double apex = clearApex(w, from, x, y, z, hw, h);
-            if (Double.isNaN(apex)) continue;
-            leap(t, new Location(w, x, y, z), hw, h);
-            return true;
+        double hw = halfWidth(bb), h = bb.getHeight();
+        boolean walk = order == BossReach.Order.BOSS;
+        Location ref = !walk && near != null && near.getWorld() == w ? near : bl;
+        int rays = 0;
+        for (double[] c : BossReach.standOrder(tl.getX(), tl.getZ(), hw, reach(), center.getX(), center.getZ(), arenaRadius,
+                ref.getX(), ref.getZ())) {
+            if (walk) {
+                Long until = badSpots.get(spotKey(c[0], c[1]));
+                if (until != null && now < until) continue;
+            }
+            double y = def.flying() ? bl.getY() : landY(w, c[0], tl.getY(), c[1]);
+            if (!placeOk(w, tl, c[0], y, c[1], hw, h)) continue;
+            if (rays >= 4) return null;
+            rays++;
+            if (seenFrom(t, c[0], y, c[1], hw, h)) return new Location(w, c[0], y, c[1], bl.getYaw(), 0);
         }
-        if (quake(t)) return true;
-        return detour(t, walkTo);
+        return null;
+    }
+
+    private boolean placeOk(World w, Location tl, double x, double y, double z, double hw, double h) {
+        if (Double.isNaN(y) || Math.abs(y - tl.getY()) >= 3.2) return false;
+        if (y < floorY - 1.5 || y + h > floorY + arenaHeight - 0.5) return false;
+        if (!fits(w, BossReach.Box.of(x, y, z, hw, h))) return false;
+        return def.flying() || standable(w, x, y, z, hw);
+    }
+
+    private boolean seenFrom(Player t, double x, double y, double z, double hw, double h) {
+        World w = entity.getWorld();
+        Location eye = t.getEyeLocation();
+        return BossReach.sees(eye.getX(), eye.getY(), eye.getZ(), BossReach.Box.of(x, y, z, hw, h),
+                (ax, ay, az, bx, by, bz) -> rayClear(w, ax, ay, az, bx, by, bz));
+    }
+
+    private boolean spotStillGood(Player t, Location s) {
+        World w = entity.getWorld();
+        if (s.getWorld() != w || t.getWorld() != w) return false;
+        BoundingBox bb = entity.getBoundingBox();
+        double hw = halfWidth(bb), h = bb.getHeight();
+        if (horizontal(s, t.getLocation()) > reach() - BossReach.STAND_MARGIN + 1e-6) return false;
+        return placeOk(w, t.getLocation(), s.getX(), s.getY(), s.getZ(), hw, h) && seenFrom(t, s.getX(), s.getY(), s.getZ(), hw, h);
     }
 
     /**
-     * 돌아가기: 후보 자리 가운데 길찾기 길의 끝이 그 자리 2.5칸 안에 닿는 첫 곳으로 걸어간다 (최대 5초).
+     * 돌아가기: 설 자리까지 길찾기 길의 끝이 그 자리 2.5칸 안에 닿으면 걸어간다 (최대 5초, 대상이 바뀌면 그만).
      * 큰 몸 길찾기는 발판 모서리 기준이라 끝이 1~2칸 어긋날 수 있어 2.5칸까지 받는다. 지금 자리보다 가까워지지 않으면 안 간다.
+     * @return 걷기 시작했는가 (false = 못 가는 자리)
      */
-    private boolean detour(Player t, List<Location> spots) {
-        if (spots.isEmpty() || !pathing || def.flying()) return false;
+    private boolean detour(Player t, Location to) {
+        if (to == null || !pathing || def.flying() || to.getWorld() != entity.getWorld()) return false;
         Location here = entity.getLocation();
-        for (Location to : spots) {
-            var path = entity.getPathfinder().findPath(to);
-            if (path == null || path.getFinalPoint() == null) continue;
-            Location fin = path.getFinalPoint();
-            double miss = Math.hypot(fin.getX() - to.getX(), fin.getZ() - to.getZ());
-            if (miss > 2.5 || miss + 0.5 >= horizontal(here, to)) continue;
-            detourTo = to;
-            detourFor = t.getUniqueId(); // 대상이 바뀌면 그만 (새 대상을 두고 옛 대상 쪽으로 걷지 않게)
-            detourUntil = now + 100;
-            moveFailed = !entity.getPathfinder().moveTo(path, 1.0);
-            lastRepath = now;
-            return true;
-        }
-        return false;
+        var path = entity.getPathfinder().findPath(to);
+        if (path == null || path.getFinalPoint() == null) return false;
+        Location fin = path.getFinalPoint();
+        double miss = Math.hypot(fin.getX() - to.getX(), fin.getZ() - to.getZ());
+        if (miss > 2.5 || miss + 0.5 >= horizontal(here, to)) return false;
+        detourTo = to;
+        detourFor = t.getUniqueId(); // 대상이 바뀌면 그만 (새 대상을 두고 옛 대상 쪽으로 걷지 않게)
+        detourUntil = now + 100;
+        moveFailed = !entity.getPathfinder().moveTo(path, 1.0);
+        lastRepath = now;
+        return true;
     }
 
-    /** 발 높이: 대상 발 1칸 위에서 아래로 10칸 안 첫 충돌 윗면. 용암·불을 먼저 만나면 NaN. */
-    private static double landY(World w, double x, double refY, double z) {
+    /** 발 높이: refY 1칸 위에서 아래로 10칸 안 첫 충돌 윗면. 용암·불을 먼저 만나면 NaN. */
+    protected static double landY(World w, double x, double refY, double z) {
         int bx = (int) Math.floor(x), bz = (int) Math.floor(z);
         int top = (int) Math.floor(refY + 1.01);
         for (int yy = top; yy >= top - 10; yy--) {
@@ -753,13 +890,14 @@ public abstract class Boss implements BossHandle {
         return Double.NaN;
     }
 
-    private static boolean fits(World w, BossReach.Box b) {
+    /** 몸 상자가 블록과 겹치지 않는가 (겉면 0.03 안쪽). */
+    protected static boolean fits(World w, BossReach.Box b) {
         return !w.hasCollisionsIn(new BoundingBox(b.minX() + 0.03, b.minY() + 0.03, b.minZ() + 0.03, b.maxX() - 0.03, b.maxY() - 0.03,
                 b.maxZ() - 0.03));
     }
 
     /** 몸 발판 가운데·네 모서리가 모두 받쳐지고(1칸 아래까지) 용암·불이 없다. */
-    private static boolean standable(World w, double x, double y, double z, double hw) {
+    protected static boolean standable(World w, double x, double y, double z, double hw) {
         double in = Math.max(0, hw - 0.15);
         double[][] pts = {{0, 0}, {in, in}, {-in, in}, {in, -in}, {-in, -in}};
         int fy = (int) Math.floor(y - 0.01);
@@ -772,107 +910,189 @@ public abstract class Boss implements BossHandle {
         return true;
     }
 
-    /** 도약 궤적의 몸 상자가 블록에 안 닿는 가장 낮은 높이 (없으면 NaN). */
-    private double clearApex(World w, Location from, double x, double y, double z, double hw, double h) {
-        double leap = Math.hypot(x - from.getX(), z - from.getZ());
-        double ceiling = floorY + arenaHeight - 0.3;
-        for (double apex : BossReach.apexOptions(leap)) {
-            if (Math.max(from.getY(), y) + apex + h > ceiling + 1.5) break;
-            boolean ok = true;
-            for (double[] p : BossReach.arc(from.getX(), from.getY(), from.getZ(), x, y, z, apex, 0.45)) {
-                BoundingBox b = new BoundingBox(p[0] - hw + 0.05, p[1] + 0.05, p[2] - hw + 0.05, p[0] + hw - 0.05, p[1] + h - 0.05,
-                        p[2] + hw - 0.05);
-                if (w.hasCollisionsIn(b)) {
-                    ok = false;
-                    break;
-                }
-            }
-            if (ok) return apex;
+    /** 이 자리에 보스 몸이 설 수 있는가 (블록과 안 겹침 + 땅 보스는 받쳐짐). */
+    protected boolean bodyFits(Location at) {
+        if (at == null || at.getWorld() != entity.getWorld()) return false;
+        BoundingBox bb = entity.getBoundingBox();
+        double hw = halfWidth(bb), h = bb.getHeight();
+        World w = at.getWorld();
+        if (!fits(w, BossReach.Box.of(at.getX(), at.getY(), at.getZ(), hw, h))) return false;
+        return def.flying() || standable(w, at.getX(), at.getY(), at.getZ(), hw);
+    }
+
+    /** around 둘레 maxR 칸 안에서 몸이 설 수 있는 가장 가까운 자리 (없으면 null). */
+    protected Location nearestFit(Location around, double maxR) {
+        if (around == null || around.getWorld() != entity.getWorld()) return null;
+        World w = around.getWorld();
+        BoundingBox bb = entity.getBoundingBox();
+        double hw = halfWidth(bb), h = bb.getHeight();
+        for (double[] c : BossReach.landingRing(around.getX(), around.getZ())) {
+            if (Math.hypot(c[0] - around.getX(), c[1] - around.getZ()) > maxR + 1e-9) break;
+            double y = def.flying() ? around.getY() : landY(w, c[0], around.getY(), c[1]);
+            if (Double.isNaN(y) || !fits(w, BossReach.Box.of(c[0], y, c[1], hw, h))) continue;
+            if (!def.flying() && !standable(w, c[0], y, c[1], hw)) continue;
+            return new Location(w, c[0], y, c[1], around.getYaw(), around.getPitch());
         }
-        return Double.NaN;
+        return null;
     }
 
-    /** 도약: 착지 원 경고(몸 반폭 + 1칸) → 포물선 비행 → 착지 피해(기본 공격 값, 원 안). */
-    private void leap(Player t, Location land, double hw, double h) {
-        int w = windupSec(0.8);
-        double r = hw + 1.0;
-        Telegraph.Shape circle = Telegraph.Shape.circle(land, r);
-        final UUID tid = t.getUniqueId();
-        double dist = horizontal(entity.getLocation(), land);
-        int flight = BossReach.flightTicks(dist);
-        telegraph(circle, w, Telegraph.RED, null, () -> fly(land, circle, flight, hw, h, tid));
-        BossFx.sound(entity.getLocation(), Sound.ENTITY_RAVAGER_STEP, 1.4f, 0.6f);
-        int busy = cast("gap_leap", "도약", w, w + flight + 12, BossAnim.CHARGE, t.getLocation(), false);
-        busyFor(busy);
-    }
-
-    private void fly(Location land, Telegraph.Shape circle, int flight, double hw, double h, UUID tid) {
-        if (dead || ended || !entity.isValid()) return;
+    /**
+     * 끼임 빼기: 몸 상자가 블록과 겹쳐 있으면 2칸 안에서 몸이 들어가고 받쳐지는 가장 가까운 곳으로 옮긴다 (돌진 끝·착지 뒤).
+     * @return 옮겼는가
+     */
+    protected boolean unstick() {
+        if (!entity.isValid()) return false;
         World w = entity.getWorld();
-        Location s = entity.getLocation();
-        double apex = clearApex(w, s, land.getX(), land.getY(), land.getZ(), hw, h);
-        if (Double.isNaN(apex)) {
-            releaseBusy(); // 그새 막혔다 — 도약 취소
-            return;
-        }
-        boolean gravity = entity.hasGravity();
-        entity.setGravity(false);
-        stopPath();
-        float yaw = BossMath.yawOf(land.getX() - s.getX(), land.getZ() - s.getZ());
-        lockYaw(yaw);
-        rig.play(BossAnim.SLAM, flight + 8, flight / (double) (flight + 8), now);
-        BossFx.sound(s, Sound.ENTITY_IRON_GOLEM_ATTACK, 1.4f, 0.6f);
-        BossFx.particle(Particle.CLOUD, s.clone().add(0, 0.2, 0), 10, hw * 0.6, 0.1, hw * 0.6, 0.02);
-        final double sx = s.getX(), sy = s.getY(), sz = s.getZ();
-        final boolean[] landed = {false};
-        // 페이즈에 묶는다: 비행 중 페이즈 전환·기절이면 곧바로 착지 자리로 옮기고 중력을 되돌린 뒤(착지 피해 없음)
-        // onPhase·기절이 이어진다 — 6층 껍질 이동·8층 공중 부양을 남은 비행이 덮어쓰지 않게.
-        run(new Mechanics.Repeat(flight, 1, tt -> {
-            double[] p = BossReach.arcAt(sx, sy, sz, land.getX(), land.getY(), land.getZ(), apex, (tt + 1) / (double) flight);
-            entity.teleport(new Location(w, p[0], p[1], p[2], yaw, 0));
-            entity.setVelocity(new Vector());
-            if (tt + 1 >= flight) landed[0] = true;
-            return tt + 1 < flight;
-        }, () -> {
-            if (entity.isValid()) {
-                entity.teleport(new Location(w, land.getX(), land.getY(), land.getZ(), yaw, 0));
-                entity.setGravity(gravity);
-            }
-            lockYaw(null);
-            if (dead || ended || !landed[0]) return;
-            BossFx.sound(land, Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 0.7f);
-            BossFx.particle(Particle.EXPLOSION, land.clone().add(0, 0.4, 0), 2, hw * 0.5, 0.1, hw * 0.5, 0);
-            BossFx.particle(Particle.CAMPFIRE_COSY_SMOKE, land.clone().add(0, 0.2, 0), 12, circle.size() * 0.5, 0.1, circle.size() * 0.5, 0.02);
-            for (Player p : players()) {
-                if (!circle.contains(p.getLocation()) || !sight(p, true)) continue; // 원 안이어도 벽 너머는 무사
-                services.damage().deal(DamageContext.raw(entity, p, damage(), DamageType.MELEE).source("basic_attack"));
-                if (p.getUniqueId().equals(tid)) nextAttack = Math.max(nextAttack, now + 40);
-            }
-        }, true));
+        if (fits(w, box(entity.getBoundingBox()))) return false;
+        Location l = entity.getLocation();
+        Location to = nearestFit(l, 2.0);
+        if (to == null) return false;
+        to.setYaw(l.getYaw());
+        to.setPitch(l.getPitch());
+        entity.teleport(to);
+        return true;
     }
 
-    /** 땅 울림: 대상 발밑 원 경고 → 원 안·보스가 보이는 사람에게 기본 공격 값 + 보스 쪽으로 끌어내림. */
-    private boolean quake(Player t) {
+    // ── 대응 (bs363, GDD §8.6) ───────────────────────────────────────────
+
+    /**
+     * 대응 한 번의 정보.
+     * @param target 대상 (위협 1위·도발)
+     * @param kind   종류 (칼끝 띠 · 높은 곳 · 걷지 않는 보스)
+     * @param pocket 무장했을 때 대상 발 자리
+     * @param spot   걷기용 설 자리 (없으면 null)
+     * @param gap    보스 중심 ↔ 대상 수평 거리
+     * @param dy     대상 발 − 보스 발 높이
+     */
+    public record Answer(Player target, AnswerWatch.Kind kind, Location pocket, Location spot, double gap, double dy) {}
+
+    /** 대응 정의 = bosses.yml {@code patterns.answer} {use, cooldown, min_gap, shares, name, …}. 없으면 대응 없음(움직임만). */
+    protected final Params answerDef() { return def.pattern("answer"); }
+
+    /** 걷지 않는 보스 (기본: bosses.yml speed ≤ 0 → 10층). */
+    protected boolean stationary() { return def.speed() <= 0; }
+
+    /** 지금 이 대상에게 대응할 수 있는가 (공중·껍질·색인·분신·추격 단계·밸브 등). 기본 true. */
+    protected boolean canAnswer(Player t) { return true; }
+
+    /**
+     * 대응 시작 — 그 보스 자기 패턴(경고·피해 그대로)으로 "못 닿는 자리" 에 답한다.
+     * @return &gt;0 묶이는 틱(보통 cast 반환값) · 0 = 지금 못 함(10틱 뒤 다시) · −1 = 이 보스는 대응 없음
+     */
+    protected int answer(Answer a) { return -1; }
+
+    /** 대응이 대체 패턴을 썼으면 그 키를 알린다 (그 패턴의 쿨이 다시 돈다, 기본 = answer.use). */
+    protected final void answerUses(String key) { answerUsed = key; }
+
+    /** 시전이 끝났다: 패턴이 몸을 1칸 넘게 옮겼으면 대응 셈 0 (돌진·낙하·순간이동 뒤 새 자리에서 다시 잰다). */
+    private void castEnded() {
+        if (castFrom == null) return;
+        if (castFrom.getWorld() == entity.getWorld() && horizontal(castFrom, entity.getLocation()) > 1.0) watch.bodyMoved();
+        castFrom = null;
+    }
+
+    /** 대응 감시 한 틱 (바쁠 때·기절 중에도 셈만). @return 이번 틱에 대응을 시작했는가 */
+    private boolean answerStep(boolean free) {
+        if (watch.disabled()) return false;
+        Params ad = answerDef();
+        if (ad.isEmpty()) {
+            watch.none();
+            return false;
+        }
+        long t0 = System.nanoTime();
+        try {
+            return answerTick(free, ad);
+        } catch (Throwable ex) {
+            Log.error("보스 대응 감시 오류 (" + def.id() + ")", ex);
+            watch.none();
+            return false;
+        } finally {
+            answerNanos += System.nanoTime() - t0;
+            answerTicks++;
+        }
+    }
+
+    private boolean answerTick(boolean free, Params ad) {
+        Player t = target();
+        if (t == null) {
+            watch.update(new AnswerWatch.Input(null, 0, 0, 0, free, stationary(), false, false, false, Long.MAX_VALUE / 4,
+                    Long.MAX_VALUE / 4, false, false, false, false, false, false, now));
+            answerArm = 0;
+            return false;
+        }
         Location tl = t.getLocation();
-        if (horizontal(entity.getLocation(), tl) > QUAKE_MAX || !sight(t, true)) return false;
-        final UUID tid = t.getUniqueId();
-        int w = windupSec(1.0);
-        Telegraph.Shape circle = Telegraph.Shape.circle(ground(tl), QUAKE_RADIUS);
-        telegraph(circle, w, Telegraph.RED, null, () -> {
-            Location o = circle.origin();
-            BossFx.sound(o, Sound.ENTITY_GENERIC_EXPLODE, 0.9f, 0.6f);
-            BossFx.particle(Particle.EXPLOSION, o.clone().add(0, 0.4, 0), 1, 0.3, 0.1, 0.3, 0);
-            BossFx.particle(Particle.CAMPFIRE_COSY_SMOKE, o.clone().add(0, 0.2, 0), 10, QUAKE_RADIUS * 0.5, 0.1, QUAKE_RADIUS * 0.5, 0.02);
-            for (Player p : players()) {
-                if (!circle.contains(p.getLocation()) || !sight(p, true)) continue; // 벽 너머는 무사
-                services.damage().deal(DamageContext.raw(entity, p, damage(), DamageType.MELEE).source("basic_attack"));
-                pull(p, feet(), 0.9);
-                // 끌려와 닿는 거리에 들어와도 곧바로 기본 공격이 또 들어가지 않게 (도약 착지와 같다)
-                if (p.getUniqueId().equals(tid)) nextAttack = Math.max(nextAttack, now + 40);
-            }
-        });
-        int busy = cast("gap_quake", "땅 울림", w, w + 10, BossAnim.SLAM, tl, false);
-        busyFor(busy);
+        long never = Long.MIN_VALUE / 4;
+        long tHit = now - lastHitAt.getOrDefault(t.getUniqueId(), never);
+        long last = never;
+        for (long v : lastHitAt.values()) last = Math.max(last, v);
+        long anyHit = now - last;
+        boolean reached = canHit(t, 0, false);
+        boolean engagedish = !reached && (tHit <= AnswerWatch.ENGAGE_TICKS || anyHit <= AnswerWatch.ENGAGE_TICKS);
+        boolean b = engagedish && band(t);
+        boolean sees = sight(t, false);
+        boolean allowed = engagedish && !stunned() && !invulnerable() && canAnswerSafe(t);
+        String use = ad.str("use");
+        double mult = scheduler.cooldownMult();
+        long lastUse = scheduler.lastUse(use);
+        for (String k : ad.strings("shares")) lastUse = Math.max(lastUse, scheduler.lastUse(k));
+        boolean gapOk = now - lastUse >= Math.round(ad.dbl("min_gap", 0) * 20 * mult);
+        AnswerWatch.Kind k = watch.update(new AnswerWatch.Input(t.getUniqueId(), tl.getX(), tl.getY(), tl.getZ(), free, stationary(),
+                reached, b, sees, tHit, anyHit, guard.stalled(), castStalled, free && guardMoved, noSpot, allowed, gapOk, now));
+        answerArm = Math.max(watch.arm(), Math.max(watch.still(), watch.perch()));
+        if (k == null || !free) return false;
+        return fireAnswer(t, k, ad, use, mult);
+    }
+
+    private boolean canAnswerSafe(Player t) {
+        try {
+            return canAnswer(t);
+        } catch (Throwable ex) {
+            Log.error("보스 대응 조건 오류 (" + def.id() + ")", ex);
+            return false;
+        }
+    }
+
+    private boolean fireAnswer(Player t, AnswerWatch.Kind k, Params ad, String use, double mult) {
+        Location bl = entity.getLocation(), tl = t.getLocation();
+        Answer a = new Answer(t, k, tl.clone(), spot == null ? null : spot.clone(), horizontal(bl, tl), tl.getY() - bl.getY());
+        double cd = ad.dbl("cooldown", 10) * 20 * mult;
+        int arm = answerArm;
+        answerUsed = null;
+        int busy;
+        try {
+            busy = answer(a);
+        } catch (Throwable ex) {
+            Log.error("보스 대응 시작 오류 (" + def.id() + ")", ex);
+            busy = -1;
+        }
+        if (busy < 0) {
+            watch.none();
+            return false;
+        }
+        if (busy == 0) {
+            watch.zero(now, cd);
+            return false;
+        }
+        // 로테이션과 같은 길: 묶임 → 그 패턴 쿨 다시 돎 → 대응 쿨 → 기본 공격 1초 쉼
+        busyUntil = now + busy;
+        scheduler.busyUntil(busyUntil);
+        String used = answerUsed != null ? answerUsed : use;
+        scheduler.markUsed(used, now);
+        long gap = Math.round(ad.dbl("min_gap", 0) * 20 * mult);
+        for (String s : ad.strings("shares")) scheduler.delay(s, now + gap);
+        watch.fired(now, cd);
+        guard.reset();
+        nextAttack = Math.max(nextAttack, now + busy + 20);
+        castFrom = entity.getLocation();
+        castStalled = stationary();
+        detourTo = null;
+        spot = null;
+        spotStall = 0;
+        answersFired++;
+        lastAnswerKey = used;
+        lastAnswerKind = k.name();
+        lastAnswerAt = now;
+        Log.debug("answer " + def.id() + " → " + t.getName() + " " + k + " arm=" + arm + " key=" + used);
         return true;
     }
 
@@ -1104,7 +1324,7 @@ public abstract class Boss implements BossHandle {
             Player p = Bukkit.getPlayer(u);
             return p == null || !p.isOnline() || p.getWorld() != center.getWorld();
         });
-        lastHitAt.values().removeIf(t -> now - t > ChaseGuard.ENGAGE_TICKS * 4L);
+        lastHitAt.values().removeIf(t -> now - t > AnswerWatch.ENGAGE_TICKS * 4L);
     }
 
     // ── 피해·효과 헬퍼 ───────────────────────────────────────────────────

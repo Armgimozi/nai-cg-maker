@@ -350,4 +350,44 @@ class Floor10LogicTest {
         assertTrue(content.fxModels().containsKey("chain_anchor"));
         assertTrue(content.fxModels().containsKey("marker_target"));
     }
+
+    // ── 대응: 맥동 고리 (bs363, GDD §8.6) ────────────────────────────────
+
+    @Test
+    void pulseRingPullStopsAtHolesAndWarnings() {
+        AbyssLogic.Grid g = new AbyssLogic.Grid(AbyssLogic.chamberTiles(18, 3), 3);
+        double inner = kr.labyrinth.bosses.BossReach.reach(boss.scale()) - boss.pattern("answer").dbl("inner_pad", 0.2);
+        // 심장(0, 0) 에서 동쪽 4.5칸: 길이 멀쩡하면 끈다
+        assertTrue(AbyssLogic.pullClear(g, 4.5, 0.5, 0.5, 0.5, inner, true));
+        // 대상 → 안 반경 사이 타일이 무너졌으면 끌지 않는다
+        int k = g.tileAtBlock(4, 0);
+        assertTrue(k >= 0);
+        g.collapse(k, 500);
+        assertFalse(AbyssLogic.pullClear(g, 4.5, 0.5, 0.5, 0.5, inner, true));
+        g.restore(k);
+        assertTrue(AbyssLogic.pullClear(g, 4.5, 0.5, 0.5, 0.5, inner, true));
+        // 무너질 경고 중이어도 끌지 않는다
+        g.warn(k, 900);
+        assertFalse(AbyssLogic.pullClear(g, 4.5, 0.5, 0.5, 0.5, inner, true));
+        // 가장자리 단계는 단 안쪽이라 늘 끈다
+        assertTrue(AbyssLogic.pullClear(g, 4.5, 0.5, 0.5, 0.5, inner, false));
+        // 이미 안 반경 안이면 끌 거리 없음 → 참
+        assertTrue(AbyssLogic.pullClear(g, 2.0, 0.5, 0.5, 0.5, inner, true));
+    }
+
+    @Test
+    void pulseRingCoversOnlyTheBladeBand() {
+        // 고리 안 반경 = 자기 거리 − 0.2 (바짝 붙은 사람은 기본 공격), 밖 = 6칸 (멀리서는 그대로)
+        Params a = boss.pattern("answer");
+        double reach = kr.labyrinth.bosses.BossReach.reach(boss.scale());
+        double inner = reach - a.dbl("inner_pad", 0.2);
+        assertEquals(2.0 + 0.7 * 2.4 - 0.2, inner, 1e-9);
+        assertTrue(inner < reach, "고리와 기본 공격이 이어진다 (빈틈 없음)");
+        assertEquals(6.0, a.dbl("outer", 0), 1e-9);
+        assertTrue(kr.labyrinth.bosses.BossMath.inRing(0, 0, inner, 6.0, 4.5, 0), "칼끝 띠 (4.5칸)");
+        assertFalse(kr.labyrinth.bosses.BossMath.inRing(0, 0, inner, 6.0, 3.0, 0), "바짝 붙음 (3칸) = 기본 공격 쪽");
+        assertFalse(kr.labyrinth.bosses.BossMath.inRing(0, 0, inner, 6.0, 8.0, 0), "원거리 8칸 = 그대로");
+        assertEquals("tendril_lash", a.str("use"));
+        assertTrue(boss.speed() <= 0, "걷지 않는 보스 → STATIONARY 대응");
+    }
 }

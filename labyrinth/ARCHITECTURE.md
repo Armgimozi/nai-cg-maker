@@ -460,7 +460,7 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 - **Boss 기반이 해 주는 것**: 자체 HP 풀(DamageService 경로·위협 표·도발), 페이즈(`phases`, 전환 시 진행 중 경고 정리 + 1.5초 무적 + 대사 +
   보스바 깜빡임), `PatternScheduler`(GDD §8.3: cooldown/interval/system, 가중치 `weight`, 직전과 다른 패턴 우선, 최소 1.2초 간격),
   광폭화 타이머, 보스바(이름·칭호·페이즈·광폭/기절) + 시전 바(`boss_cast` 키, 끊을 수 있는 시전은 파란색), 아레나 경계(이탈 시 복귀),
-  추격·기본 공격(GDD §8.6 — `BossReach` 맞대응 거리·시야, `ChaseGuard` 막힘 → 곧장 다가가기 → 도약/땅 울림), `BossRig` 시전 애니메이션(`BossAnim`: SLAM·SWEEP·CHARGE·ROAR·THROW·CAST·POUR·LEAP·DROP·SPIN·STUN·DEATH — 팔·머리 파트 +
+  추격·기본 공격(GDD §8.6 — 보스별 거리 + 시야(`BossReach`), `ChaseGuard` 막힘 → 설 자리로 곧장 → 돌아가기 → 지키기, `AnswerWatch` → 보스별 `answer()`), `BossRig` 시전 애니메이션(`BossAnim`: SLAM·SWEEP·CHARGE·ROAR·THROW·CAST·POUR·LEAP·DROP·SPIN·STUN·DEATH — 팔·머리 파트 +
   몸 전체 회전/이동 오버레이), 보상(경험치·골드·`loot.drop(…,"boss")`·`MobKillEvent(boss=true)`), 정리(쫄·오브젝트·디스플레이·설치 블록 복원).
 - **하위 클래스가 채우는 것**: `onSpawn()`(아레나 배치) · `startPattern(key)`(쿨다운 패턴 → 묶이는 틱 반환, 보통 `cast(...)` 의 반환값) ·
   `runInterval(key)` · `tickSystem(key)` · `onPhase(n)` · 필요 시 `canUse/onTick/onSneak/onPlayerVanillaDamage/knockbackImmune/outgoingMult/incomingReduction/onEnd`.
@@ -864,6 +864,9 @@ hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100,
 - `arena` 4층: `platform_block`/`platform_base`(단상 블록, 기본 PRISMARINE_BRICKS/DARK_PRISMARINE), `valve_block`(기본 WAXED_OXIDIZED_COPPER).
 - 보스 최상위 `hints`: 점진 힌트 단서 목록 `[흐릿, 조금 분명, 거의 정답]` (GDD §19.3, `Hints.bossClues(def)` = `def.raw().strings("hints")`).
   없으면 단서 없음, 리스트가 아니면 검증 오류, 3줄이 아니면 경고. MiniMessage(`<key:key.sneak>` 등) 가능.
+- `patterns.answer` (0.3.6.3, GDD §8.6): 못 닿는 자리에서 맞으면 쓰는 보스 자기 패턴 — `{use, name, cooldown, min_gap, shares, fallback, …보스별 키}`.
+  rotation 에 넣지 않는다(검증 오류). `use`·`fallback`·`shares` 는 patterns 에 있어야 하고 `cooldown` ≥ 6, `min_gap` &gt; 0 (`ContentValidator`).
+  쓰면 그 패턴의 로테이션 쿨이 다시 돈다(`PatternScheduler.markUsed`). 구현은 `Boss.answer(Answer)` / `canAnswer(Player)` 를 층 보스가 덮어쓴다.
 
 - `arena` 6층: `sigil_ring_radius`(인장 링, 기본 10), `floor_thaw`(기본 true — 전투 동안 아레나 바닥의 원래 얼음을 눈·방해석으로 덮어
   영구 동토 얼음판만 미끄럽게, 끝나면 복원). 6층 `glacier_shell.role_damage` = classes.yml `role` → 깰 수 있는 인장 유형(melee|ranged|magic).

@@ -251,4 +251,65 @@ class Floor09LogicTest {
             assertTrue(c.fxModels().containsKey(m), "fx.yml 에 없음: " + m);
         }
     }
+
+    // ── 대응: 벽을 따라가는 진자 (bs363, GDD §8.6) ───────────────────────
+
+    /** 차선 가운데 위치 (보스 코드와 같은 식) 에서 대상까지 차선 방향 거리 ≤ 반 길이 → 차선이 대상을 지난다. */
+    private static boolean laneCoversTarget(double[] lane, double tx, double tz, double length) {
+        double half = Math.min(lane[4] / 2, length / 2);
+        double st = (tx - lane[2]) * lane[0] + (tz - lane[3]) * lane[1];
+        double mid = ClockLogic.laneCenter(st, lane[4], half);
+        double lat = Math.abs((tx - lane[2]) * lane[1] - (tz - lane[3]) * lane[0]);
+        return Math.abs(st - mid) <= half + 1e-9 && lat < 1e-6;
+    }
+
+    @Test
+    void answerLaneFollowsTheWallNearTheEdge() {
+        // 아레나 반경 14, 대상이 벽 3칸 안 (중심에서 12.5) 동쪽, 보스는 안쪽
+        double r = 14, tx = 12.5, tz = 0;
+        double[] lane = ClockLogic.answerLane(tx, tz, 9, 0, 0, 0, r, 3.0, 0.5);
+        assertNotNull(lane);
+        // 방향 = 접선 (중심 → 대상에 수직)
+        assertEquals(0, lane[0] * tx + lane[1] * tz, 1e-9, "접선");
+        assertEquals(1, Math.hypot(lane[0], lane[1]), 1e-9);
+        // 현 반경 = r + 0.5: 길이 2√(14.5² − 12.5²)
+        assertEquals(2 * Math.sqrt(14.5 * 14.5 - 12.5 * 12.5), lane[4], 1e-9);
+        assertTrue(laneCoversTarget(lane, tx, tz, 18), "차선이 대상을 지남");
+        // 벽 바로 앞 (13.6) 도 벽을 따라간다
+        double[] edge = ClockLogic.answerLane(0, -13.6, 0, -9, 0, 0, r, 3.0, 0.5);
+        assertNotNull(edge);
+        assertEquals(0, edge[0] * 0 + edge[1] * -13.6, 1e-9);
+        assertTrue(laneCoversTarget(edge, 0, -13.6, 18));
+    }
+
+    @Test
+    void answerLaneInsideRunsFromBossToTarget() {
+        // 안쪽 (중심에서 6): 방향 = 보스 → 대상, 현 반경 r − 1 (로테이션과 같음)
+        double r = 14;
+        double[] lane = ClockLogic.answerLane(6, 0, 2, 3, 0, 0, r, 3.0, 0.5);
+        assertNotNull(lane);
+        double dx = 4 / 5.0, dz = -3 / 5.0;
+        assertEquals(dx, lane[0], 1e-9);
+        assertEquals(dz, lane[1], 1e-9);
+        double[] ch = ClockLogic.chord(6, 0, dx, dz, 0, 0, r - 1);
+        assertEquals(ch[2], lane[4], 1e-9);
+        assertTrue(laneCoversTarget(lane, 6, 0, 18));
+    }
+
+    @Test
+    void answerLaneFallsBackOnShortChords() {
+        // 벽 밖까지 밀려난 대상 (중심에서 14.6 > r + 0.5): 접선 현 없음 → 보스 → 대상 · r − 1
+        double[] lane = ClockLogic.answerLane(14.6, 0, 10, 0, 0, 0, 14, 3.0, 0.5);
+        assertNotNull(lane);
+        assertEquals(1, lane[0], 1e-9);
+        assertEquals(0, lane[1], 1e-9);
+        // 접선 현이 4칸보다 짧은 자리 (14.4: 2√(14.5² − 14.4²) ≈ 3.4) → 되돌림
+        double[] short4 = ClockLogic.answerLane(14.4, 0, 10, 0, 0, 0, 14, 3.0, 0.5);
+        assertNotNull(short4);
+        assertEquals(1, short4[0], 1e-9, "보스 → 대상");
+        // 그래도 현이 없으면 null (아주 작은 원)
+        assertNull(ClockLogic.answerLane(30, 0, 29, 1, 0, 0, 3, 3.0, 0.5));
+        // 보스가 대상 위에 서 있어도 (방향 없음) 결정적 방향
+        assertNotNull(ClockLogic.answerLane(2, 0, 2, 0, 0, 0, 14, 3.0, 0.5));
+    }
 }

@@ -217,7 +217,7 @@ class Floor06LogicTest {
         assertEquals(26000, d.hp(), EPS);
         assertEquals(15, d.arena().dbl("radius", 0), EPS);
         assertEquals(10, d.arena().dbl("sigil_ring_radius", 0), EPS);
-        Set<String> implemented = Set.of("scepter_sweep", "glacial_spikes", "frostbite", "glacier_shell", "blizzard", "permafrost");
+        Set<String> implemented = Set.of("scepter_sweep", "glacial_spikes", "frostbite", "glacier_shell", "blizzard", "permafrost", "answer");
         assertEquals(implemented, d.patterns().keySet());
         for (List<String> rot : d.rotation().values()) for (String k : rot) assertTrue(d.patterns().containsKey(k), "rotation 키: " + k);
         // 페이즈별 활성 (GDD 표의 페이즈 열)

@@ -212,7 +212,7 @@ class Floor08LogicTest {
         assertEquals(8, d.floor());
         assertEquals("puzzle_phase", d.core());
         assertEquals(List.of(1.0, 0.7, 0.4), d.phases());
-        Set<String> implemented = Set.of("ink_lash", "quill_barrage", "forbidden_index", "ink_doubles", "erasure");
+        Set<String> implemented = Set.of("ink_lash", "quill_barrage", "forbidden_index", "ink_doubles", "erasure", "answer");
         for (String k : d.patterns().keySet()) assertTrue(implemented.contains(k), "패턴 미구현: " + k);
         for (List<String> rot : d.rotation().values()) for (String k : rot) assertTrue(d.patterns().containsKey(k), "rotation 키: " + k);
         // 금서 색인 = 페이즈 트리거 (rotation 에 없음, cooldown/interval 없음)

@@ -254,7 +254,8 @@ class BossScalingTest {
                 "venom_spit", "foreleg_sweep", "silk_tether", "egg_sacs", "ceiling_ambush", "cocoon",
                 "cap_slam", "puffball_toss", "spore_brand", "symbiosis_bloom", "brand_and_bloom", "mycelium_network",
                 "key_strike", "anchor_hurl", "tidal_sweep", "rising_flood", "whirlpool", "floodling_tide",
-                "hammer_swing", "forge_quake", "chain_grip", "molten_pour", "hammer_toss", "bellows_gale", "anvil_crush");
+                "hammer_swing", "forge_quake", "chain_grip", "molten_pour", "hammer_toss", "bellows_gale", "anvil_crush",
+                "answer"); // 대응 (GDD §8.6) — Boss.answer() 가 쓴다
         int checked = 0;
         for (BossDef d : c.bosses().values()) {
             if (d.floor() > 5) continue;

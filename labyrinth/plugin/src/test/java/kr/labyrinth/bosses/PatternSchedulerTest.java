@@ -177,4 +177,47 @@ class PatternSchedulerTest {
         assertNull(s.next(100 + PatternScheduler.MIN_GAP_TICKS - 1, null));
         assertNotNull(s.next(100 + PatternScheduler.MIN_GAP_TICKS, null));
     }
+
+    // ── 대응 연결 (bs363, GDD §8.6) ──────────────────────────────────────
+
+    @Test
+    void markUsedRestartsAnActivePatternsCooldown() {
+        // 대응으로 쓴 패턴은 로테이션에서 방금 고른 것처럼 쿨이 다시 돈다 (배율 포함), 최소 간격도 건다
+        PatternScheduler s = new PatternScheduler(new Random(8));
+        s.setPhase(List.of("vine_lash", "root_snare", "rampage_charge"), grove(), 0);
+        s.setCooldownMult(0.85); // 3페이즈·악몽 배율
+        s.markUsed("rampage_charge", 500);
+        assertEquals(500 + Math.round(320 * 0.85), s.entry("rampage_charge").readyAt());
+        assertEquals("rampage_charge", s.last());
+        assertEquals(500, s.lastUse("rampage_charge"));
+        assertNull(s.next(500 + PatternScheduler.MIN_GAP_TICKS - 1, null), "대응 직후 1.2초 안에는 다른 패턴도 없음");
+        // 다른 패턴의 쿨은 그대로
+        assertEquals(60, s.entry("vine_lash").readyAt());
+        assertTrue(s.lastUse("vine_lash") < -1_000_000, "안 쓴 패턴은 아주 옛날");
+    }
+
+    @Test
+    void markUsedOnAPatternOutsideThePhaseOnlyRecordsLastUse() {
+        // 2층 1페이즈의 천장 매복처럼 지금 rotation 에 없는 패턴: 마지막 사용만 적고 스케줄은 그대로
+        PatternScheduler s = new PatternScheduler(new Random(9));
+        s.setPhase(List.of("vine_lash"), grove(), 0);
+        String lastBefore = s.last();
+        s.markUsed("rampage_charge", 300);
+        assertEquals(300, s.lastUse("rampage_charge"));
+        assertFalse(s.active("rampage_charge"));
+        assertEquals(lastBefore, s.last());
+        assertEquals("vine_lash", s.next(300, null), "최소 간격도 안 건다");
+        // 페이즈가 바뀌어 들어오면 처음 쓰는 패턴과 같다 (절반 쿨)
+        s.setPhase(List.of("vine_lash", "rampage_charge"), grove(), 400);
+        assertEquals(400 + 160, s.entry("rampage_charge").readyAt());
+    }
+
+    @Test
+    void nextRecordsLastUse() {
+        PatternScheduler s = new PatternScheduler(new Random(10));
+        s.setPhase(List.of("vine_lash"), grove(), 0);
+        assertEquals("vine_lash", s.next(60, null));
+        assertEquals(60, s.lastUse("vine_lash"));
+        assertEquals("vine_lash", s.last());
+    }
 }

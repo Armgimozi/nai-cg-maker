@@ -4,16 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 보스 기본 공격이 닿는가 (bs362, Bukkit 무관 — 단위 테스트 대상).
+ * 보스 기본 공격·칼끝 띠·설 자리 수학 (bs362 → bs363, Bukkit 무관 — 단위 테스트 대상).
  * <p>
- * <b>옛 규칙</b>: 보스 중심 ↔ 플레이어 발 수평 거리 ≤ reach (= 2.0 + 0.7 × scale), 높이 차 &lt; 3.5.
- * <b>맞대응 규칙</b>: 플레이어 눈 → 보스 히트박스 겉면 ≤ 플레이어 손 닿음(바닐라 3.0) — 플레이어가 칼로 칠 수 있는 거리면
- * 보스도 친다. 히트박스가 큰 보스(골렘·판다 바탕)는 옛 규칙보다 이쪽이 약 1칸 길다 — 그 띠가 "플레이어만 치는 자리"였다.
+ * <b>기본 공격 (보스마다 다른 거리)</b>: 보스 중심 ↔ 플레이어 발 수평 거리 ≤ reach (= 2.0 + 0.7 × scale), 발 높이 차 &lt; 3.5
+ * ({@link #legacy}) — 0.3.6.1 과 같다. 여기에 시야가 있어야 한다: 플레이어 눈과 히트박스 사이에 막는 블록이 없음
+ * ({@link #sees(double, double, double, Box, Ray)}) — 벽 너머로 안 친다. 휘두른 뒤 3틱 뒤 판정은 {@link #CONFIRM_SLACK} 만큼 여유.
  * <p>
- * 둘 중 하나면 닿고, 시야(플레이어 눈과 히트박스 사이에 막는 블록 없음)가 있어야 한다 — 벽 너머로 안 친다.
- * 옛 규칙이 맞으면 히트박스 어느 점이든 보이면 되고({@link #sees(double, double, double, Box, Ray)}), 맞대응 규칙만 맞으면
- * 손 닿음 안에서 보이는 점이 있어야 한다({@link #sees(double, double, double, Box, Ray, double)}) — 플레이어 칼이 닿는 점과 같은 잣대.
- * 휘두른 뒤 3틱 뒤 판정은 둘 다 {@link #CONFIRM_SLACK} 만큼 여유 (옛 규칙 그대로).
+ * <b>칼끝 띠</b> ({@link #inBand}): 플레이어 눈 → 보스 히트박스 겉면 ≤ 플레이어 손 닿음 + 여유. 보스가 "못 닿는데 맞고 있다" 를
+ * 판단할 때만 쓴다(대응 감시 {@link AnswerWatch}) — 피해 판정에는 절대 안 쓴다.
+ * <p>
+ * <b>설 자리</b> ({@link #standOrder}): 대상 둘레 고리에서 보스 자기 거리 − 0.3 안, 대상 몸 위가 아닌 후보를 정해진 순서로.
+ * 블록 검사(몸이 들어가는가·받쳐지는가·보이는가)는 {@link Boss} 가 한다.
  */
 public final class BossReach {
 
@@ -61,28 +62,23 @@ public final class BossReach {
         return new double[] {clamp(px, b.minX(), b.maxX()), clamp(py, b.minY(), b.maxY()), clamp(pz, b.minZ(), b.maxZ())};
     }
 
-    /** 옛 규칙 (중심 ↔ 발 수평 ≤ reach, 높이 차 &lt; 3.5). */
+    /** 보스 기본 공격 거리 (보스 중심 ↔ 플레이어 발 수평): 2.0 + 0.7 × scale — 보스마다 다르다 (0.3.6.1 그대로). */
+    public static double reach(double scale) { return 2.0 + 0.7 * scale; }
+
+    /** 기본 공격 기하 (중심 ↔ 발 수평 ≤ reach, 높이 차 &lt; 3.5 — 0.3.6.1 그대로). */
     public static boolean legacy(double horizontal, double dy, double reach) {
         return horizontal <= reach && Math.abs(dy) < LEGACY_DY;
     }
 
-    /** 맞대응 규칙 (플레이어 눈 → 보스 상자 ≤ 플레이어 손 닿음). */
-    public static boolean mirror(double eyeToBox, double playerReach) {
-        return eyeToBox <= playerReach;
-    }
-
     /**
-     * 기하로 닿는가 (시야는 따로 {@link #sees}). slack = 0 은 휘두를 때, {@link #CONFIRM_SLACK} 는 3틱 뒤 맞힐 때.
-     * @param horizontal 보스 중심 ↔ 플레이어 발 수평 거리
-     * @param dy         플레이어 발 − 보스 발 높이
-     * @param reach      보스 옛 reach
-     * @param eyeToBox   플레이어 눈 → 보스 히트박스
+     * 칼끝 띠: 플레이어 눈 → 보스 상자 ≤ 플레이어 손 닿음 + slack. 판단 전용 (피해 아님) — 보스 기본 공격이 안 닿는데
+     * 플레이어 칼은 닿는 자리인가.
      */
-    public static boolean inReach(double horizontal, double dy, double reach, double eyeToBox, double playerReach, double slack) {
-        return legacy(horizontal, dy, reach + slack) || mirror(eyeToBox, playerReach + slack);
+    public static boolean inBand(double eyeToBox, double playerReach, double slack) {
+        return eyeToBox <= playerReach + slack;
     }
 
-    /** 플레이어 손 닿음 속성값 → 맞대응 거리 (바닐라 3.0 아래로는 줄이지 않는다). */
+    /** 플레이어 손 닿음 속성값 → 칼끝 띠 거리 (바닐라 3.0 아래로는 줄이지 않는다). */
     public static double playerReach(double attributeValue) {
         return Double.isNaN(attributeValue) ? PLAYER_REACH : Math.max(PLAYER_REACH, attributeValue);
     }
@@ -126,9 +122,9 @@ public final class BossReach {
     static final double REACH_GRID = 0.3;
 
     /**
-     * 거리 안 시야 (맞대응 규칙): 플레이어 눈에서 maxDist 안에 있는 히트박스 겉면 점 중 하나라도 막힘 없이 보이면 true.
+     * 거리 안 시야 (칼끝 띠 판단): 플레이어 눈에서 maxDist 안에 있는 히트박스 겉면 점 중 하나라도 막힘 없이 보이면 true.
      * 플레이어 칼이 실제로 닿는 점(손 닿음 안 + 보임)과 같은 잣대 — 가까운 점은 등불 받침에 가리고 받침 위로 보이는 윗몸은
-     * 손 닿음 밖이면, 플레이어도 못 치니 보스도 못 친다. 표본은 가장 가까운 점, 그다음 눈을 향한 면 위 격자(거리 안)에서
+     * 손 닿음 밖이면 플레이어도 못 친다 (그 자리는 칼끝 띠가 아니다). 표본은 가장 가까운 점, 그다음 눈을 향한 면 위 격자(거리 안)에서
      * 이미 고른 점과 가장 멀리 떨어진 점 순 (위·옆으로 고루 퍼짐), 광선 최대 {@link #MAX_REACH_RAYS}개. 눈이 상자 안이면 보인다.
      * maxDist 가 무한이면 {@link #sees(double, double, double, Box, Ray)} 와 같다.
      */
@@ -201,7 +197,7 @@ public final class BossReach {
         return ray.clear(ex, ey, ez, x, y, z);
     }
 
-    // ── 직접 다가가기·도약 ───────────────────────────────────────────────
+    // ── 직접 다가가기·설 자리 ────────────────────────────────────────────
 
     /**
      * 걷기와 같은 직접 다가가기 속도 (블록/틱). 바닐라 땅 이동의 정상 속도 ≈ 2.16 × 이동 속도² (마찰 0.546, 입력 × 0.98) —
@@ -212,12 +208,12 @@ public final class BossReach {
         return Math.max(0.04, Math.min(0.3, 2.16 * s * s));
     }
 
-    /** 도약 착지 후보 반경(대상 기준). 0 = 대상 자리 바로 위(내려찍기). */
+    /** 설 자리 후보 반경(대상 기준). 0 = 대상 자리 (설 자리에서는 빠짐 — 몸 위). */
     static final double[] LANDING_RADII = {0, 0.6, 1.2, 1.8, 2.4, 3.0, 3.6};
     /** 고리마다 방향 수. */
     static final int LANDING_DIRS = 16;
 
-    /** 도약 착지 후보 (대상 둘레 고리, 가까운 순 · 같은 고리는 동쪽부터 시계 반대 — 결정적). */
+    /** 설 자리·끼임 빼기 후보 (대상 둘레 고리, 가까운 순 · 같은 고리는 동쪽부터 시계 반대 — 결정적). */
     public static List<double[]> landingRing(double tx, double tz) {
         List<double[]> out = new ArrayList<>();
         for (double r : LANDING_RADII) {
@@ -233,45 +229,37 @@ public final class BossReach {
         return out;
     }
 
+    /** 설 자리 순서 잣대: BOSS = 보스 자리에서 가까운 순 (걷기), NEAR = 주어진 점에서 가까운 순 (착지·순간이동). */
+    public enum Order { BOSS, NEAR }
+
+    /** 설 자리 거리 여유: 보스 자기 거리 − 이만큼 안 (닿은 뒤 대상이 조금 움직여도 닿게). */
+    public static final double STAND_MARGIN = 0.3;
+    /** 대상 몸 위에 서지 않게: 대상 발 ↔ 후보 수평 ≥ 반폭 + 이만큼. */
+    public static final double STAND_CLEAR = 0.5;
+
     /**
-     * 도약 궤적 표본 (양 끝 제외). 궤적은 "뛰어오르기 → 건너가기 → 내려앉기" 모양이라 벽·받침에 붙어 서 있어도
-     * 먼저 위로 솟는다 ({@link #arcAt}). 표본 간격(3차원) ≤ step — 한 칸 두께 벽도 건너뛰지 않게.
-     * @return {x, y, z} 목록 (발 위치)
+     * 설 자리 후보 (블록 검사 전): 대상 발 둘레 {@link #landingRing} 가운데 대상과 수평 {@code hw + 0.5} 이상(몸 위가 아님),
+     * {@code reach − 0.3} 이하(서면 자기 거리로 닿음), 아레나 중심에서 {@code arenaR − hw − 0.3} 이하인 점.
+     * 순서는 (ox, oz) 에서 가까운 순, 같으면 대상에 가까운 순, 그것도 같으면 고리 순서 — 결정적.
+     * @return {x, z} 목록
      */
-    public static List<double[]> arc(double sx, double sy, double sz, double ex, double ey, double ez, double apex, double step) {
-        double horizontal = Math.hypot(ex - sx, ez - sz);
-        double worst = 3 * horizontal + 6 * Math.max(0, apex) + 3 * Math.abs(ey - sy); // 단위 t 당 최대 이동
-        int n = Math.max(2, (int) Math.ceil(worst / Math.max(0.05, step)));
+    public static List<double[]> standOrder(double tx, double tz, double hw, double reach, double cx, double cz, double arenaR,
+                                            double ox, double oz) {
         List<double[]> out = new ArrayList<>();
-        for (int i = 1; i < n; i++) out.add(arcAt(sx, sy, sz, ex, ey, ez, apex, i / (double) n));
+        double min = hw + STAND_CLEAR, max = reach - STAND_MARGIN, inside = arenaR - hw - 0.3;
+        for (double[] c : landingRing(tx, tz)) {
+            double d = Math.hypot(c[0] - tx, c[1] - tz);
+            if (d < min - 1e-9 || d > max + 1e-9) continue;
+            if (Math.hypot(c[0] - cx, c[1] - cz) > inside) continue;
+            out.add(c);
+        }
+        // 안정 정렬 (같은 값이면 고리 순서 그대로)
+        out.sort((a, b) -> {
+            int k = Double.compare(Math.hypot(a[0] - ox, a[1] - oz), Math.hypot(b[0] - ox, b[1] - oz));
+            if (k != 0) return k;
+            return Double.compare(Math.hypot(a[0] - tx, a[1] - tz), Math.hypot(b[0] - tx, b[1] - tz));
+        });
         return out;
-    }
-
-    /**
-     * 궤적 위 t (0~1) 지점: 처음 1/4 동안 apex 만큼 솟고, 가운데 절반 동안 수평으로 건너가고(높이는 시작 → 끝 높이로),
-     * 마지막 1/4 동안 내려앉는다. 수평·높이 모두 부드럽게 (smoothstep).
-     */
-    public static double[] arcAt(double sx, double sy, double sz, double ex, double ey, double ez, double apex, double t) {
-        double k = Math.max(0, Math.min(1, t));
-        double across = smooth((k - 0.25) / 0.5);
-        double bump = k < 0.25 ? smooth(k / 0.25) : k > 0.75 ? smooth((1 - k) / 0.25) : 1;
-        return new double[] {sx + (ex - sx) * across, sy + (ey - sy) * across + Math.max(0, apex) * bump, sz + (ez - sz) * across};
-    }
-
-    private static double smooth(double x) {
-        double c = Math.max(0, Math.min(1, x));
-        return c * c * (3 - 2 * c);
-    }
-
-    /** 도약 높이 후보: 짧은 도약은 낮게, 막히면 더 높게. */
-    public static double[] apexOptions(double horizontal) {
-        double base = Math.max(1.2, Math.min(3.0, 1.0 + horizontal * 0.25));
-        return new double[] {base, base + 1.5, base + 3.0};
-    }
-
-    /** 비행 틱 수 (0.6칸/틱 · 8~16틱). */
-    public static int flightTicks(double horizontal) {
-        return (int) Math.max(8, Math.min(16, Math.round(horizontal / 0.6)));
     }
 
     private static double clamp(double v, double lo, double hi) { return Math.max(lo, Math.min(hi, v)); }

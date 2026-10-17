@@ -132,6 +132,35 @@ public final class ClockLogic {
         return x >= lo && x <= hi;
     }
 
+    /**
+     * 대응 진자 차선 (GDD §8.6): 대상이 벽 wallBand 칸 안(중심에서 r − wallBand 이상)이면 차선이 벽을 따라간다 — 방향 = 접선
+     * (중심 → 대상에 수직), 현 반경 r + pad. 아니면 방향 = 보스 → 대상, 현 반경 r − 1 (로테이션과 같음). 현이 없거나 4칸보다 짧으면
+     * 보스 → 대상 · r − 1 로 다시, 그래도 없으면 null. 현은 대상을 지난다 (차선 가운데는 {@link #laneCenter} 로 대상 쪽에 잡힌다).
+     * @return {방향 x, 방향 z, 현 시작 x, 현 시작 z, 현 길이}
+     */
+    public static double[] answerLane(double tx, double tz, double bx, double bz, double cx, double cz, double r, double wallBand,
+                                      double pad) {
+        double ox = tx - cx, oz = tz - cz;
+        double d = Math.hypot(ox, oz);
+        if (d > 1e-6 && d >= r - wallBand) {
+            double dx = -oz / d, dz = ox / d;
+            double[] ch = chord(tx, tz, dx, dz, cx, cz, r + pad);
+            if (ch != null && ch[2] >= 4) return new double[] {dx, dz, ch[0], ch[1], ch[2]};
+        }
+        double dx = tx - bx, dz = tz - bz;
+        double len = Math.hypot(dx, dz);
+        if (len < 1e-6) {
+            dx = 1;
+            dz = 0;
+        } else {
+            dx /= len;
+            dz /= len;
+        }
+        double[] ch = chord(tx, tz, dx, dz, cx, cz, r - 1);
+        if (ch != null && ch[2] >= 4) return new double[] {dx, dz, ch[0], ch[1], ch[2]};
+        return null;
+    }
+
     // ── 톱니 폭풍 ────────────────────────────────────────────────────────
 
     /**
