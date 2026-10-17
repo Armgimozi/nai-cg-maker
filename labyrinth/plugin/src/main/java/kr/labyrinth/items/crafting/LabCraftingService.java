@@ -22,7 +22,7 @@ import org.bukkit.inventory.PlayerInventory;
 
 /**
  * 대장장이 제작 (GDD §11.11): 도안(0.3.6 — 희귀 이상 장비, items/blueprint) → 재료 → 골드(craft_discount 할인) 확인 → 재료·골드 소모 → 결과 스탯 굴림 지급.
- * 성공 시 {@link CraftEvent} + {@link ItemObtainEvent}(source=craft).
+ * 성공 시 {@link CraftEvent} + {@link ItemObtainEvent}(source=craft). 신화를 만들면 서버 방송 (0.3.7 — 신화 드롭 방송과 같은 꼴).
  * <p>
  * 0.3.6 제련소 (recipes.yml {@code station: smelter}): 대장간 창에는 {@code station: blacksmith} 레시피만, 제련소 창({@link SmelterMenu})에는
  * smelter 레시피만 보인다. 제련은 ×1·×8·전부({@link #craftMany}), 곡괭이 벼리기는 앞 곡괭이를 재료로 받아 없앤다(레시피 재료 그대로).
@@ -165,8 +165,26 @@ public final class LabCraftingService implements CraftingService {
             GearItemService.deliver(player, s);
             Bukkit.getPluginManager().callEvent(new ItemObtainEvent(player, result, s, source));
         }
-        if (!made.isEmpty()) Bukkit.getPluginManager().callEvent(new CraftEvent(player, r, made.get(0)));
+        if (!made.isEmpty()) {
+            Bukkit.getPluginManager().callEvent(new CraftEvent(player, r, made.get(0)));
+            if (result.isGear() && result.rarity() == kr.labyrinth.content.Rarity.MYTHIC) announceMythic(player, result);
+        }
         return Result.OK;
+    }
+
+    /** 신화를 대장간에서 만들었을 때 서버 방송 + 소리 (loot.yml announce_rarity 가 신화보다 높으면 하지 않음). */
+    private void announceMythic(Player player, ItemDef result) {
+        kr.labyrinth.content.Rarity announce = services.content().lootSettings().announceRarity();
+        if (announce == null || !result.rarity().atLeast(announce)) return;
+        Bukkit.getServer().sendMessage(Text.mm(mythicCraftLine(player.getName(), result)));
+        for (Player o : Bukkit.getOnlinePlayers()) o.playSound(o.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.7f, 0.8f);
+    }
+
+    /** 신화 제작 방송 글 (MiniMessage) — 신화 드롭 방송과 같은 꼴. */
+    public static String mythicCraftLine(String player, ItemDef result) {
+        kr.labyrinth.content.Rarity r = result.rarity();
+        return Text.PREFIX + "<white>" + Text.escape(player) + "</white><gray> 님이 대장간에서 </gray><" + r.color() + "><b>["
+                + r.displayName() + "]</b> " + result.name() + "<gray> 을(를) 만들었습니다!";
     }
 
     /** 곡괭이 벼리기처럼 한 칸짜리 도구를 재료로 없애면 가방이 꽉 차 있어도 그 칸에 새 것이 들어간다. */

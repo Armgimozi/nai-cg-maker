@@ -38,7 +38,7 @@ import org.bukkit.util.Vector;
 /**
  * 개인 루팅 (GDD §11.10). 처치 기여자 각자 따로 굴리고, 결과는 <b>그 사람에게만 보이는</b> 아이템 엔티티로 떨군다
  * (setVisibleByDefault(false) + showEntity, 주인만 줍기). 위치가 없거나 다른 월드면 바로 인벤토리로.
- * 줍는 순간 {@link ItemObtainEvent} + 전설 이상 파티 알림 / 신화 서버 방송.
+ * 줍는 순간 {@link ItemObtainEvent} + 전설 이상 파티 알림 / 신화 서버 방송. 신화 도안(0.3.7)은 파티 알림 (방송은 만들 때 — 대장간).
  */
 public final class LabLootService implements LootService, Listener {
 
@@ -215,6 +215,10 @@ public final class LabLootService implements LootService, Listener {
 
     private void obtained(Player p, ItemDef def, ItemStack s, String source) {
         Bukkit.getPluginManager().callEvent(new ItemObtainEvent(p, def, s, source));
+        if (def.type() == kr.labyrinth.content.ItemType.BLUEPRINT) {
+            mythicBlueprint(p, s);
+            return;
+        }
         Rarity announce = services.content().lootSettings().announceRarity();
         if (announce == null || !def.isGear() || !def.rarity().atLeast(announce)) return;
         Component msg = Text.mm(Text.PREFIX + "<white>" + Text.escape(p.getName()) + "</white><gray> 님이 </gray><"
@@ -228,6 +232,28 @@ public final class LabLootService implements LootService, Listener {
                 m.playSound(m.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.6f, 1.6f);
             }
         }
+    }
+
+    /** 신화 도안을 주웠을 때 (0.3.7): 파티에 알림 + 소리 — 전설 줍기와 같은 수준 (서버 방송은 대장간에서 만들 때). */
+    private void mythicBlueprint(Player p, ItemStack s) {
+        String rid = kr.labyrinth.items.blueprint.BlueprintItems.recipeOf(s);
+        var c = services.content();
+        var r = rid == null ? null : c.recipes().get(rid);
+        if (r == null || !kr.labyrinth.items.blueprint.BlueprintRules.isMythic(c, r)) return;
+        Rarity announce = c.lootSettings().announceRarity();
+        if (announce == null || !Rarity.MYTHIC.atLeast(announce)) return;
+        Component msg = Text.mm(mythicBlueprintLine(p.getName(), c.item(r.result())));
+        for (Player m : services.party().onlineMembers(p)) {
+            m.sendMessage(msg);
+            m.playSound(m.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.6f, 1.6f);
+        }
+    }
+
+    /** 신화 도안 파티 알림 글 (MiniMessage) — 장비 줍기 알림과 같은 꼴. */
+    public static String mythicBlueprintLine(String player, ItemDef result) {
+        Rarity r = result.rarity();
+        return Text.PREFIX + "<white>" + Text.escape(player) + "</white><gray> 님이 </gray><" + r.color() + "><b>[" + r.displayName()
+                + "]</b> 도안: " + result.name() + "<gray> 을(를) 얻었습니다!";
     }
 
     /** 관리자 테스트: 테이블을 굴려 바로 지급하고 결과를 알려 준다. */
