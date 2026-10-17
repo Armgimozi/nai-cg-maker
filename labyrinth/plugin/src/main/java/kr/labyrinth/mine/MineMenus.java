@@ -57,9 +57,10 @@ final class MineMenus {
             set(3, UiTheme.item("quartz", Material.QUARTZ, "<#9ccaff>새기기",
                     List.of("<gray>보석과 정수로 강화석을 만듭니다.", "", "<yellow>클릭: 열기")),
                     ctx -> s.crafting().openSmelter(ctx.player(), "carve"));
-            set(4, Button.icon(Material.LANTERN, "<#e8c58a>광산 관리소",
-                    List.of("<gray>여섯 층 모두 처음부터 열려 있습니다.", "<gray>곡괭이보다 한 단계 단단한 광석도",
-                            "<gray>캘 수 있지만 느립니다.", "<gray>좋은 곡괭이일수록 빨리 캡니다.", "<gray>광맥은 모두가 함께 씁니다.")), null);
+            List<String> guide = new ArrayList<>(List.of("<gray>여섯 층 모두 처음부터 열려 있습니다.", "<gray>곡괭이보다 한 단계 단단한 광석도",
+                    "<gray>캘 수 있지만 느립니다.", "<gray>좋은 곡괭이일수록 빨리 캡니다.", "<gray>광맥은 모두가 함께 씁니다."));
+            if (module.pvpEnabled()) guide.add(MinePvpRules.OFFICE_LORE); // 0.3.7
+            set(4, Button.icon(Material.LANTERN, "<#e8c58a>광산 관리소", guide), null);
             set(5, UiTheme.item("iron_pickaxe", Material.DIAMOND_PICKAXE, "<#c9ced6>곡괭이 벼리기",
                     List.of("<gray>쓰던 곡괭이를 더 단단한 곡괭이로", "<gray>다시 벼립니다.", "", "<yellow>클릭: 열기")),
                     ctx -> s.crafting().openSmelter(ctx.player(), "pickaxe"));

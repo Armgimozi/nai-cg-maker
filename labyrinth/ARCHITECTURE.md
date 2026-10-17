@@ -1121,8 +1121,29 @@ wild:                 # wild: false = 경계·스폰 끔 (Settings.Wild.OFF) —
 - items.yml `sources` 에 `mine`·`smelt` (툴팁 "광산"·"제련소"). 도감 "광산" 탭 = 광산 재료 + 도구.
 - config `mine:` (MineConfig — 광맥 공유 · 정해진 재생 regen_minutes (벽시계, 사람 수 무관 — 0.3.7) · 기력 없음) · `sell.mine` · `starter_kit` (+ copper_pickaxe, 0.3.5.1 기본 목록은 새 기본으로 읽음) · `blueprints:`.
 - `mine.MineApi` (Services.mine(), 광산이 꺼지면 Noop): openMine (메인 메뉴·/미궁 광산) · openLift · openOffice · openInfo · applyPickaxe · isMineWorld.
+- config `mine:` (MineConfig — 광맥 공유, 사람 수와 관계 없이 정해진 분 · 기력 없음) · `sell.mine` · `starter_kit` (+ copper_pickaxe, 0.3.5.1 기본 목록은 새 기본으로 읽음) · `blueprints:`.
+- `mine.MineApi` (Services.mine(), 광산이 꺼지면 Noop): openMine (메인 메뉴·/미궁 광산) · openLift · openOffice · openInfo · applyPickaxe · isMineWorld
+  (+ 0.3.7 광산 PvP 메서드, 아래).
   0.3.6 은 마을 구역(MineLinks.district)이 없다 → 구역 없음 경로(얕은 갱도 승강장). 0.3.6.1 부터 아래 §6.12.
 - glyphs.yml 메뉴 `smelter`·`mine_lift`·`mine_office`·`setup_village` 는 소켓 배경 (UiTheme.SOCKET_LAYOUT) — 버튼 칸 = `menus.<id>.slots`.
+- **0.3.7 광산 PvP** (GDD §11.14 끝, 주인 결정 — 0.3.6 계약 "PvP 끔" 보다 앞선다. 계약 파일 `design/036`·`tools/data/036` 은 역사라 그대로):
+  - config `mine.pvp: {enabled, penalty, safe_margin}` = `MineConfig.Pvp` (`DEFAULT_PVP` 켬·켬·3, 키가 없으면 기본값 — 파일을 고쳐 쓰지 않음).
+  - 순수: `MineSafeZones` (층마다 승강기 홀 + 벽감 + 둘레 사각형, lift·office 마커, 층 상자 y) · `MineCombat` (10초 '싸우는 중' 시계: 때림·맞음 둘 다) ·
+    `MinePvpRules` (바닐라 피해 원인 표 · `where(penalty)` · 시전 초 · `combatQuit(Config, penalty, MineQuit)` · 글).
+  - 런타임 `MinePvp` (MineModule 이 켤 때 등록, DamageService 훅 하나): 피해 문 `allowVanilla` (MineListener LOWEST·HIGHEST 가 묻는다) ·
+    바닐라 PvP MONITOR 로 시계 · 죽음 HIGH(ignoreCancelled) 취소 → 다음 틱 `knockDown` → `DeathPenalty.onMineDown` → `MineModule.entrance()` ·
+    PvP 아닌 죽음 MONITOR + 부활 HIGHEST · 끊김 LOW (`DeathPenalty.onMineCombatQuit` + ext `mine.pvp_down`) · 내보냄 MONITOR · 접속 NORMAL ·
+    광산 밖 순간이동 NORMAL(막기) · `holdExit` 시전 · 0.5초 구역 액션바 · 처음 안내 ext `mine.pvp_notice`.
+  - `MineApi` 더한 기본 메서드 (Noop = 0.3.6 처럼 PvP 없음): `pvpEnabled` · `pvpSafeAt(Location)` · `pvpAllows(a, v)` · `holdExit(p, go)` ·
+    `inPvpCombat(p)` · `pvpPenalty` · `safeZoneCount`.
+  - `MineSafety.protects(api, target, source)` (때린 사람이 `pvpAllows` 면 통과) — `DamageService.deal`·`applyToPlayer`, 상태 이상 `apply`·`applyStacks`·`applyFrost`.
+    `MineSafety.noPvp(api, l)` — `PvpModule.inSafeZone` (광산 = 안전 구역만). `PvpModule.applyWorldRule` 광산 월드 = `pvp.enabled && mine.pvpEnabled()`.
+  - `DeathPenaltyRules.Where.MINE_PVP` (`plan` 이 `DUNGEON_RUN` 과 같음) · `exitCastSeconds(Config, Where, alive, since)` · `mineNotice` · `menuLines(c, minePvp)`.
+    `DeathPenalty.down(…, Where)` 로 넓힘 (옛 호출은 DUNGEON_RUN).
+  - 나가는 길: `VillageService.teleport` 가 `holdExit` · `MineLift.go` 가 `MinePvp.exitCastSeconds` (PvP 구역이면 5초 · 맞으면 멈춤, 도착 순간이동은 `runBypassed`) ·
+    `DungeonManager.enter` 가 `inPvpCombat` 이면 거절.
+  - 이벤트 차례 (`MinePvpOrderTest`): MineListener LOWEST 문 → CombatListener HIGH (근접·화살 → DamageService, PvP 공식) → PvpListener HIGHEST (바닐라 PvP 배율) →
+    MineListener HIGHEST 문 · 죽음 HIGH (DungeonManager 와 같음, DeathKeep HIGHEST·MONITOR 는 ignoreCancelled 라 건너뜀) · 끊김 LOW (저장 MONITOR 보다 먼저).
 
 ### 6.12 0.3.6.1 광산 마을 (구역 — `kr.labyrinth.village.District*`, 계약 CONTRACT §2.13, VILLAGE.md §7)
 - 청사진: jar `village/districts/index.json` · `<id>.json` (마을 좌표 배치 — `tools/village/district_mine.py` → build_all) · 조각은 마을과 같은

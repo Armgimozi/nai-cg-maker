@@ -404,4 +404,78 @@ class DeathPenaltyRulesTest {
         assertEquals("싸우는 중이라 5초 뒤에 나갑니다. 그동안 맞으면 끊깁니다.", Text.strip(DeathPenaltyRules.exitCastText(5)));
         assertEquals("2.5", DeathPenaltyRules.seconds(2.5));
     }
+    // ── 0.3.7 광산 PvP (주인 결정 "던전과 같게") ─────────────────────────
+
+    /** 시험할 config 조합: 기본 · 꺼짐 · 물건만 · 골드만 · 경험치만 · 0칸 · 1칸 · 상한 없음 · 시전 0. */
+    private static List<Config> combos() {
+        DeathPenaltyRules.GoldLoss off = DeathPenaltyRules.GoldLoss.OFF;
+        return List.of(Config.DEFAULT, Config.OFF,
+                new Config(false, true, 2, 3, Set.of()).withGold(off),
+                new Config(false, false, 2, 3, Set.of()),
+                new Config(true, false, 2, 3, Set.of()).withGold(off),
+                new Config(true, true, 0, 0, Set.of()),
+                new Config(true, true, 1, 1, Set.of("bread")),
+                Config.DEFAULT.withGold(new DeathPenaltyRules.GoldLoss(true, 10, 10, 0)),
+                new Config(true, true, 2, 3, Set.of(), 0));
+    }
+
+    @Test
+    void minePvpDownLosesExactlyWhatADungeonDownLoses() {
+        for (Config c : combos()) {
+            assertEquals(DeathPenaltyRules.plan(c, Where.DUNGEON_RUN, false), DeathPenaltyRules.plan(c, Where.MINE_PVP, false), c.toString());
+            assertEquals(DeathPenaltyRules.plan(c, Where.DUNGEON_RUN, true), DeathPenaltyRules.plan(c, Where.MINE_PVP, true), "관리자 시험 플래그도 같게");
+        }
+        assertEquals(new Plan(true, true, true), DeathPenaltyRules.plan(Config.DEFAULT, Where.MINE_PVP, false), "경험치 + 물건 2~3칸 + 골드");
+        assertEquals(new Plan(true, false, false), DeathPenaltyRules.plan(Config.DEFAULT, Where.OUTSIDE, false), "mine.pvp.penalty: false = 경험치만");
+    }
+
+    @Test
+    void mineExitCastMatchesTheDungeonCast() {
+        for (Config c : combos()) {
+            for (long since : new long[] {-1, 0, 4_000, 9_999, 10_000, 30_000}) {
+                assertEquals(DeathPenaltyRules.exitCastSeconds(c, false, true, since),
+                        DeathPenaltyRules.exitCastSeconds(c, Where.MINE_PVP, true, since), c + " · " + since);
+            }
+        }
+        assertEquals(5.0, DeathPenaltyRules.exitCastSeconds(Config.DEFAULT, Where.MINE_PVP, true, 1_200));
+        assertEquals(0.0, DeathPenaltyRules.exitCastSeconds(Config.DEFAULT, Where.MINE_PVP, false, 1_200), "쓰러져 있음");
+        assertEquals(5.0, DeathPenaltyRules.exitCastSeconds(Config.DEFAULT, Where.OUTSIDE, true, 1_200), "penalty false 여도 경험치를 잃으니 시전");
+        Config noXp = new Config(false, true, 2, 3, Set.of());
+        assertEquals(0.0, DeathPenaltyRules.exitCastSeconds(noXp, Where.OUTSIDE, true, 0), "잃을 것이 없으면 바로");
+        assertEquals(0.0, DeathPenaltyRules.exitCastSeconds(Config.OFF, Where.MINE_PVP, true, 0), "death.penalty: false");
+        assertEquals(0.0, DeathPenaltyRules.exitCastSeconds(null, Where.MINE_PVP, true, 0));
+        assertEquals(0.0, DeathPenaltyRules.exitCastSeconds(Config.DEFAULT, (Where) null, true, 0));
+    }
+
+    @Test
+    void mineNoticeTexts() {
+        String at = "얕은 갱도 승강장";
+        assertEquals("광산은 승강기 홀 밖에서 PvP 가 됩니다. 다른 플레이어에게 쓰러지면 가방 속 물건 2~3칸과 골드 5~25%(최대 15,000G)를 잃고 "
+                + "얕은 갱도 승강장에서 다시 시작합니다. 장비·열쇠·곡괭이는 안전합니다.", Text.strip(DeathPenaltyRules.mineNotice(Config.DEFAULT, true, at)));
+        assertEquals("광산은 승강기 홀 밖에서 PvP 가 됩니다. 다른 플레이어에게 쓰러지면 골드 5~25%(최대 15,000G)를 잃고 "
+                + "얕은 갱도 승강장에서 다시 시작합니다.", Text.strip(DeathPenaltyRules.mineNotice(new Config(true, false, 2, 3, Set.of()), true, at)), "골드만");
+        assertEquals("광산은 승강기 홀 밖에서 PvP 가 됩니다. 다른 플레이어에게 쓰러지면 가방 속 물건 2~3칸을 잃고 "
+                + "얕은 갱도 승강장에서 다시 시작합니다. 장비·열쇠·곡괭이는 안전합니다.",
+                Text.strip(DeathPenaltyRules.mineNotice(Config.DEFAULT.withGold(DeathPenaltyRules.GoldLoss.OFF), true, at)), "물건만");
+        assertEquals("광산은 승강기 홀 밖에서 PvP 가 됩니다. 쓰러지면 얕은 갱도 승강장에서 다시 시작합니다. 이번 레벨 경험치는 처음으로 돌아갑니다.",
+                Text.strip(DeathPenaltyRules.mineNotice(Config.DEFAULT, false, at)), "mine.pvp.penalty: false");
+        assertEquals("광산은 승강기 홀 밖에서 PvP 가 됩니다. 쓰러지면 얕은 갱도 승강장에서 다시 시작합니다.",
+                Text.strip(DeathPenaltyRules.mineNotice(Config.OFF, true, at)), "death.penalty: false");
+        assertNotNull(Text.mm(DeathPenaltyRules.mineNotice(Config.DEFAULT, true, at)));
+        assertEquals("얕은 갱도 승강장에서 다시 시작합니다.", Text.strip(DeathPenaltyRules.mineRestartText(at)));
+    }
+
+    @Test
+    void menuLinesWithMinePvp() {
+        List<String> base = DeathPenaltyRules.menuLines(Config.DEFAULT);
+        List<String> mine = DeathPenaltyRules.menuLines(Config.DEFAULT, true);
+        assertEquals(base.size() + 1, mine.size());
+        assertEquals(base, mine.subList(0, base.size()), "옛 줄은 그대로");
+        assertEquals("광산에서 다른 플레이어에게 쓰러져도 같이 잃습니다.", mine.get(mine.size() - 1));
+        assertEquals(base, DeathPenaltyRules.menuLines(Config.DEFAULT, false), "광산 PvP 꺼짐 · penalty false");
+        Config xpOnly = new Config(true, false, 2, 3, Set.of()).withGold(DeathPenaltyRules.GoldLoss.OFF);
+        assertEquals(DeathPenaltyRules.menuLines(xpOnly), DeathPenaltyRules.menuLines(xpOnly, true), "미궁에서도 경험치만이면 덧붙일 것 없음");
+        assertTrue(DeathPenaltyRules.menuLines(Config.OFF, true).isEmpty());
+        assertTrue(DeathPenaltyRules.menuLines(null, true).isEmpty());
+    }
 }

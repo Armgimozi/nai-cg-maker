@@ -116,6 +116,11 @@ final class SelfTest {
             count("codex_gear_with_source", known);
             count("codex_gear_total", gear);
         });
+        // 0.3.7 광산 PvP: 안전 구역이 있는 층 수 · 광산 PvP 켜짐 (광산이 꺼져 있으면 둘 다 0)
+        step("mine", () -> {
+            count("mine_safe_zones", services.mine().safeZoneCount());
+            count("mine_pvp", services.mine().pvpEnabled() ? 1 : 0);
+        });
         // 시작 꾸러미: 설정의 아이템 id 가 콘텐츠에 있는지 (없으면 지급할 때 그 줄만 건너뛴다)
         step("content", () -> {
             for (var k : services.settings().starterKit()) {

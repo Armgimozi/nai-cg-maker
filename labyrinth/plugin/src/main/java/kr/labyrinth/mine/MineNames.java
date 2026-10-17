@@ -51,6 +51,15 @@ public final class MineNames {
     /** 지금 쓰는 ext 키 (계약 §0 뒤). */
     public static final List<String> EXT_KEYS = List.of(EXT_FREE_PICKAXE, EXT_MAT036_NOTICE);
 
+    /**
+     * 0.3.7 광산 PvP: 처음 들어올 때 안내를 본 판 (int, 지금 {@link #PVP_NOTICE_VERSION}). 0.3.6 계약 밖이라 {@link #EXT_KEYS} 에는 넣지 않는다.
+     */
+    public static final String EXT_PVP_NOTICE = "mine.pvp_notice";
+    /** 안내 판 — 규칙이 바뀌면 올린다. */
+    public static final int PVP_NOTICE_VERSION = 1;
+    /** 0.3.7: true = PvP 구역에서 싸우다 접속을 끊어 쓰러진 것으로 침 → 다시 들어오면 얕은 갱도 승강장으로 (보면 지움). */
+    public static final String EXT_PVP_DOWN = "mine.pvp_down";
+
     /** 주인 늦은 결정(계약 §0)으로 없앤 ext 키 (개인 광맥·기력) — 계약 mine.json 에서도 뺐다. */
     public static final List<String> EXT_REMOVED_036 = List.of("mine.depleted", "mine.hash", "mine.stamina", "mine.stamina_at");
 

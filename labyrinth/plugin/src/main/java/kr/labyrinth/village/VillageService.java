@@ -323,6 +323,8 @@ public final class VillageService implements Listener {
             Text.error(p, "마을 스폰 위치가 없습니다.");
             return;
         }
+        // 0.3.7 광산 PvP: PvP 구역에서 싸우는 중이면 5초 시전 (맞으면 끊김) 뒤 다시 이리로 — 그때는 바로 보낸다
+        if (services().mine().holdExit(p, () -> teleport(p))) return;
         p.setFallDistance(0);
         kr.labyrinth.core.Teleports.to(p, to);
         p.playSound(to, Sound.ENTITY_ENDERMAN_TELEPORT, 0.6f, 1.3f);

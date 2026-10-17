@@ -166,14 +166,19 @@ final class MineListener implements Listener {
 
     // ── 안전 ────────────────────────────────────────────────────────────
 
+    /**
+     * 광산 월드의 바닐라 피해는 모두 막는다 — 0.3.7 광산 PvP 가 통과시키는 것({@link MinePvp#allowVanilla}: 다른 파티 플레이어가 PvP 구역의
+     * 플레이어에게 준 근접·투사체·피해 물약·가시·폭죽, 미궁 피해 처리가 이미 판정한 막타)만 빼고. 근접·화살은 이어서 CombatListener(HIGH) 가
+     * 바닐라를 취소하고 DamageService(PvP 공식)로 넘긴다. 떨어짐·불·독·몹·{@code /kill} 은 그대로 0.
+     */
     @EventHandler(priority = EventPriority.LOWEST)
     public void onDamageEarly(EntityDamageEvent e) {
-        if (module.config().safe() && mine(e.getEntity().getWorld())) e.setCancelled(true);
+        if (module.config().safe() && mine(e.getEntity().getWorld()) && !module.pvp().allowVanilla(e)) e.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onDamageLate(EntityDamageEvent e) {
-        if (module.config().safe() && mine(e.getEntity().getWorld())) e.setCancelled(true);
+        if (module.config().safe() && mine(e.getEntity().getWorld()) && !module.pvp().allowVanilla(e)) e.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -187,10 +192,18 @@ final class MineListener implements Listener {
         if (e.getFoodLevel() < e.getEntity().getFoodLevel()) e.setCancelled(true);
     }
 
+    /**
+     * 화이트리스트 밖은 생기지 않는다. Paper 26.3 의 {@link ProjectileLaunchEvent} 는 자기 HandlerList 가 없어 이 처리기도 받는다 —
+     * 0.3.7: 광산 PvP 가 켜져 있으면 플레이어가 쏜·던진 투사체(화살·삼지창·물약·폭죽·낚싯찌)는 통과 (엔더 진주는 {@link #onLaunch} 가 막고,
+     * 돌풍구와 잔류 물약 구름은 그대로 막힘 — 피해 없이 안전 구역 사람을 밀어내거나 효과를 걸 수 있어서). 꺼져 있으면 예전처럼 모두 막는다.
+     */
     @EventHandler(priority = EventPriority.HIGH)
     public void onSpawn(EntitySpawnEvent e) {
         if (!mine(e.getLocation().getWorld())) return;
-        if (!SPAWN_WHITELIST.contains(e.getEntityType())) e.setCancelled(true);
+        if (SPAWN_WHITELIST.contains(e.getEntityType())) return;
+        if (e instanceof ProjectileLaunchEvent pl && module.pvpEnabled() && pl.getEntity().getShooter() instanceof Player
+                && !(pl.getEntity() instanceof org.bukkit.entity.AbstractWindCharge)) return; // 돌풍구는 그대로 막음 (안전 구역 사람을 밀어낼 수 있음)
+        e.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.HIGH)
