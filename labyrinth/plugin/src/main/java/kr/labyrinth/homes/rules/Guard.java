@@ -109,7 +109,9 @@ public final class Guard {
         String msg = switch (where) {
             case OWN -> switch (act) {
                 case PRIME -> "TNT 와 리스폰 정박기는 쓸 수 없습니다.";
-                case FIRE -> kr.labyrinth.core.NetherLock.isOpen() ? "불은 모닥불·초·차원문에만 붙일 수 있습니다." : "불은 모닥불·초에만 붙일 수 있습니다.";
+                case FIRE -> kr.labyrinth.core.NetherLock.isOpen() ? "불은 모닥불·초·차원문에만 붙일 수 있습니다."
+                        : at != null && at.getType() == org.bukkit.Material.OBSIDIAN ? "네더는 닫혀 있어 차원문이 열리지 않습니다."
+                        : "불은 모닥불·초에만 붙일 수 있습니다.";
                 default -> "그것은 이 서버에서 쓸 수 없습니다.";
             };
             case GUEST, STRANGER -> {

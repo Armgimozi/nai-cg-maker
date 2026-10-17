@@ -1008,7 +1008,7 @@ special_trial:
 
 ### 6.10 0.3.5.1 야생 막기 (config.yml `wild` — 키가 없어도 코드 기본값, GDD §2.8)
 ```yaml
-wild:                 # wild: false = 통째로 끔 (Settings.Wild.OFF)
+wild:                 # wild: false = 경계·스폰 끔 (Settings.Wild.OFF) — 네더는 막힌 채 (nether 는 섹션 안 키만 봄)
   border: true        # 마을 둘레 바닐라 월드 경계
   border_margin: 30   # 0 ~ 1000 (밖이면 자르고 경고 한 줄)
   spawns: all         # all | monsters | none (모르는 값 = all + 경고)
@@ -1048,12 +1048,20 @@ wild:                 # wild: false = 통째로 끔 (Settings.Wild.OFF)
   (돌아오는 짝·네더 쪽 불·END_PLATFORM·엔드 차원문/관문은 그대로).
   리스너 (전부 LOWEST·ignoreCancelled — 집터 `CrossZoneListener` LOW 보다 먼저라 글이 겹치지 않음): `PortalCreateEvent` ·
   Paper `EntityPortalReadyEvent` (플레이어·몹·물건·탈것 모두 — 취소하면 차원문 기다림이 처음으로, 가장 먼저 막는 곳) · `PlayerPortalEvent` ·
-  `EntityPortalEvent` (한 번 더). 예외 = labyrinth.admin + 크리에이티브 (`Guard.bypass` 와 같음, 탈것이면 탄 사람 중 하나) — 액션바로 "관리자라 지나갑니다".
-  막을 때 액션바 "네더는 닫혀 있습니다." 1초에 한 번 (탈것은 탄 사람 모두에게).
+  `EntityPortalEvent` (한 번 더). 예외 = labyrinth.admin + 크리에이티브 (`Guard.bypass` 와 같음, 탈것이면 탄 사람이 **모두** 그럴 때만 —
+  친구가 같이 타면 막고 관리자에게 "같이 탄 사람이 있어 관리자도 막힙니다.") — 액션바로 "관리자라 지나갑니다".
+  막을 때 액션바 "네더는 닫혀 있습니다." 1초에 한 번 (탈것은 탄 사람 모두에게). 막힌 물건·몹은 한 번만 센다 — `Entity.handlePortal` 이
+  `getPortalDestination`(여기서 Ready 이벤트) 앞에서 `setPortalCooldown()` (사람 아닌 것 300틱) 을 부르고, 문 안에 있는 동안 `setAsInsidePortal` 이
+  쿨다운을 다시 채우므로 매 틱 다시 오지 않는다 (실서버: 4마리 +4).
+  리스폰: `PlayerRespawnEvent` HIGHEST (야생 경계 HIGH 뒤) — `NetherRule.blocksRespawn(open, 죽은 월드, 다시 태어날 월드)` = 네더 밖 → 네더
+  (리스폰 정박기 · Paper 는 엔드 출구도 `RespawnReason.END_PORTAL` 리스폰 이벤트) 이면 광장(없으면 주 월드 스폰)으로 `setRespawnLocation`,
+  2틱 뒤 한 줄. 정박기 자리는 지우지 않는다 (다시 열면 그대로). 네더에서 죽어 네더 정박기 = 그대로.
+  집터 규칙과 맞춤: `PlotRules.ignitable(block, portals)` — 흑요석은 `NetherLock.isOpen()` 일 때만 IGNITE (닫혀 있으면 FIRE, 글
+  "네더는 닫혀 있어 차원문이 열리지 않습니다."). `VillageService.teleport` 는 네더 안 + 닫힘이면 `village.teleport_command: false` 여도 된다.
   나가기 보장: `PortalCreateEvent` MONITOR(ignoreCancelled=false) 에서 오버월드 쪽 NETHER_PAIR 가 (집터 규칙에) 취소됐고 지나가는 사람이 아직 네더면
   다음 틱에 광장(`VillageService.spawn`, 없으면 그 월드 스폰)으로 `Teleports.to` — 그때 집터 규칙의 "/미궁 마을" 글은 쓰지 않는다 (`NetherLock.isOpen()`).
-  네더에서 접속 → 2초 뒤 한 줄 ("여기 차원문으로 돌아갈 수 있습니다" + 마을 텔레포트가 되면 /미궁 마을).
-  진단: `NetherLock.selfTestLine()` = `[네더 막기 자가 진단] 결과: 예외 0 · 네더=막음 · rules=ok(n/n) · live=ok(n/n) · listeners=ok(5/5) · 네더 월드=…`
+  네더에서 접속 → 2초 뒤 한 줄 ("네더는 닫혔습니다. 네더 차원문으로 돌아갈 수 있습니다." + 마을이 있으면 /미궁 마을).
+  진단: `NetherLock.selfTestLine()` = `[네더 막기 자가 진단] 결과: 예외 0 · 네더=막음 · rules=ok(n/n) · live=ok(n/n) · listeners=ok(6/6) · 네더 월드=…`
   (live = 이 리스너에 PortalCreateEvent·EntityPortalEvent·EntityPortalReadyEvent 를 직접 만들어 넣음 — 주 월드 스폰에 잠깐 만든 Marker 하나, 세지도 알리지도 않음).
   `labadmin plot selftest` · `village selftest`(집 줄 끝) · `wild selftest`(맨 앞) 에 붙고, `labadmin wild` 에 상태 한 줄. 시험 `NetherLockTest`(가짜 World·Player
   Proxy 로 실제 이벤트) · `NetherConfigTest`. 집 자재(`housing.yml`)에서 흑요석·부싯돌을 뺀 짝 (`HousingCatalog.banReason` 이 다시 막음).

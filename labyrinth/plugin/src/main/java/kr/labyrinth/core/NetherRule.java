@@ -12,6 +12,7 @@ import org.bukkit.event.world.PortalCreateEvent.CreateReason;
  * <ul>
  *   <li>들어가기만 막는다: 네더가 아닌 월드(오버월드·엔드·미궁·광산)에서 네더로 가는 네더 차원문.</li>
  *   <li>나가기는 늘 된다: 네더에서 나가는 차원문, 네더 쪽에서 불로 여는 차원문, 오버월드 쪽에 생기는 돌아오는 짝.</li>
+ *   <li>다시 태어나기: 네더 밖에서 죽거나 엔드에서 나올 때 네더의 리스폰 정박기로 가는 것도 들어가기 — 막는다 (네더 안에서 죽으면 그대로).</li>
  *   <li>엔드 차원문·엔드 관문·엔드 발판은 건드리지 않는다.</li>
  *   <li>{@code open} (config wild.nether: true) 이면 아무것도 막지 않는다.</li>
  * </ul>
@@ -55,6 +56,18 @@ public final class NetherRule {
     }
 
     /**
+     * 다시 태어날 자리가 네더인데 막나 — 리스폰 정박기 (0.3.5.1 부터 네더가 열려 있었으니 이미 있을 수 있다). 죽은 곳(또는 엔드 출구로 나오는
+     * 엔드)이 네더가 아니면 네더로 들어가는 길이므로 막는다. 네더 안에서 죽어 네더 정박기에서 일어나는 것은 그대로.
+     *
+     * @param from 지금 있는 월드 (죽은 곳 · 엔드 출구면 엔드, null = 모름 → 막지 않음)
+     * @param to   다시 태어날 월드 (null = 모름 → 막지 않음)
+     */
+    public static boolean blocksRespawn(boolean open, Environment from, Environment to) {
+        if (open || from == null || to == null) return false;
+        return to == Environment.NETHER && from != Environment.NETHER;
+    }
+
+    /**
      * 차원문이 생기는 것을 막나.
      * FIRE = 흑요석 틀에 불 (네더가 아닌 월드면 네더로 가는 문) · NETHER_PAIR = 지나간 쪽에 게임이 만드는 짝
      * (네더 안에 생기면 누가 네더로 들어가는 중) · END_PLATFORM = 엔드 발판 (그대로).
@@ -73,6 +86,8 @@ public final class NetherRule {
     record Travel(boolean open, Portal portal, Environment from, Environment to, boolean blocked) {}
 
     record Create(boolean open, CreateReason reason, Environment world, boolean blocked) {}
+
+    record Respawn(boolean open, Environment from, Environment to, boolean blocked) {}
 
     static List<Travel> travelTable() {
         Environment O = Environment.NORMAL, N = Environment.NETHER, E = Environment.THE_END, C = Environment.CUSTOM;
@@ -113,6 +128,22 @@ public final class NetherRule {
         return t;
     }
 
+    static List<Respawn> respawnTable() {
+        Environment O = Environment.NORMAL, N = Environment.NETHER, E = Environment.THE_END, C = Environment.CUSTOM;
+        List<Respawn> t = new ArrayList<>();
+        t.add(new Respawn(false, O, N, true));   // 오버월드에서 죽음 → 네더 정박기
+        t.add(new Respawn(false, E, N, true));   // 엔드 출구 → 네더 정박기
+        t.add(new Respawn(false, C, N, true));   // 광산에서 죽음 → 네더 정박기
+        t.add(new Respawn(false, N, N, false));  // 네더에서 죽음 → 네더 정박기 (이미 네더)
+        t.add(new Respawn(false, N, O, false));  // 네더에서 죽음 → 침대·스폰
+        t.add(new Respawn(false, O, O, false));
+        t.add(new Respawn(false, E, O, false));  // 엔드 출구 → 침대·스폰
+        t.add(new Respawn(false, null, N, false));
+        t.add(new Respawn(false, O, null, false));
+        t.add(new Respawn(true, O, N, false));   // wild.nether: true
+        return t;
+    }
+
     /** 표대로 나오나 → [맞음, 전체]. */
     public static int[] selfCheck() {
         int ok = 0, n = 0;
@@ -123,6 +154,10 @@ public final class NetherRule {
         for (Create c : createTable()) {
             n++;
             if (blocksCreate(c.open(), c.reason(), c.world()) == c.blocked()) ok++;
+        }
+        for (Respawn c : respawnTable()) {
+            n++;
+            if (blocksRespawn(c.open(), c.from(), c.to()) == c.blocked()) ok++;
         }
         for (TeleportCause c : TeleportCause.values()) {
             n++;

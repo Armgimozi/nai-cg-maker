@@ -308,7 +308,9 @@ public final class VillageService implements Listener {
 
     /** /미궁 마을. */
     void teleport(Player p) {
-        if (!module.teleportCommand() && !p.hasPermission(CommandService.PERM_ADMIN)) {
+        // 네더를 막은 서버의 네더 안 = 나가는 길 (차원문이 없으면 네더에서는 흑요석을 만들 수 없다) — 마을 텔레포트를 꺼도 된다
+        boolean netherExit = p.getWorld().getEnvironment() == org.bukkit.World.Environment.NETHER && !kr.labyrinth.core.NetherLock.isOpen();
+        if (!module.teleportCommand() && !p.hasPermission(CommandService.PERM_ADMIN) && !netherExit) {
             Text.error(p, "이 서버에서는 마을 텔레포트를 쓰지 않습니다. (config village.teleport_command)");
             return;
         }

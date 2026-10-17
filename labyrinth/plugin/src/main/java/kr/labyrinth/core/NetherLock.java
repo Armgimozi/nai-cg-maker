@@ -26,6 +26,7 @@ import org.bukkit.event.entity.EntityPortalEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.world.PortalCreateEvent;
 import org.bukkit.plugin.RegisteredListener;
 
@@ -37,10 +38,13 @@ import org.bukkit.plugin.RegisteredListener;
  *   <li>네더로 가는 차원문 지나가기를 막는다: {@link EntityPortalReadyEvent} (플레이어·몹·물건·탈것 모두, 가장 먼저) →
  *       {@link PlayerPortalEvent} · {@link EntityPortalEvent} (한 번 더). 네더 안에 새 짝이 생기는 것도 막는다.</li>
  *   <li>네더에서 나가기는 늘 된다. 돌아오는 짝을 다른 규칙(집터 — {@code homes.rules.CrossZoneListener})이 막아 못 나오면
- *       광장(마을이 없으면 그 월드 스폰)으로 옮긴다. 네더에서 접속하면 돌아가는 길을 한 줄 알려 준다.</li>
+ *       광장(마을이 없으면 그 월드 스폰)으로 옮긴다. 네더에서 접속하면 돌아가는 길을 한 줄 알려 준다
+ *       (네더 안에서는 {@code village.teleport_command: false} 여도 /미궁 마을 이 된다 — {@code VillageService#teleport}).</li>
+ *   <li>네더 밖에서 죽거나 엔드에서 나올 때 다시 태어날 자리가 네더의 리스폰 정박기면 광장에서 일어나게 한다 ({@link PlayerRespawnEvent}).</li>
  *   <li>엔드 차원문·엔드 관문은 건드리지 않는다.</li>
  *   <li>관리자(labyrinth.admin)가 크리에이티브일 때는 지나간다 — 지형 잠금 ({@code homes.rules.Guard#bypass}) 과 같은 예외.
- *       그때 액션바에 "관리자라 지나갑니다" 를 띄워, 시험할 때 헷갈리지 않게 한다.</li>
+ *       그때 액션바에 "관리자라 지나갑니다" 를 띄워, 시험할 때 헷갈리지 않게 한다. 탈것은 탄 사람이 모두 그런 관리자일 때만
+ *       (친구가 같이 타면 다 막힘).</li>
  * </ul>
  * 안내는 액션바 (HUD 위 2.5초), 한 사람에게 1초에 한 번.
  */
@@ -50,6 +54,8 @@ public final class NetherLock implements Module, Listener {
     static final String NO_PORTAL = "네더는 닫혀 있어 차원문이 열리지 않습니다.";
     static final String ADMIN = "관리자(크리에이티브)라 지나갑니다. 다른 사람은 막힙니다.";
     static final String ADMIN_OPEN = "관리자(크리에이티브)라 문이 열립니다. 다른 사람은 막힙니다.";
+    static final String ADMIN_RIDE = "같이 탄 사람이 있어 관리자도 막힙니다.";
+    static final String JOIN = "네더는 닫혔습니다. 네더 차원문으로 돌아갈 수 있습니다.";
 
     private static volatile NetherLock instance;
 
@@ -57,7 +63,9 @@ public final class NetherLock implements Module, Listener {
     private final BooleanSupplier openFlag;
     private final Map<UUID, Long> lastNote = new HashMap<>();
     private boolean quiet; // 자가 진단 중 — 세지도 알리지도 않음
-    long blockedTravel, blockedCreate, sentHome;
+    long blockedTravel, blockedCreate, sentHome, movedRespawn;
+    /** 네더 밖으로 보낼 자리 (광장, 마을이 없으면 주 월드 스폰) — 시험에서 바꾼다. */
+    java.util.function.Supplier<Location> homeSpot = NetherLock::plazaOrSpawn;
 
     public NetherLock(Services services) { this(services, () -> services.settings().netherOpen()); }
 
@@ -146,13 +154,51 @@ public final class NetherLock implements Module, Listener {
 
     private void sendHome(Player p, World target) {
         if (p == null || !p.isOnline() || p.getWorld().getEnvironment() != Environment.NETHER) return; // 그새 나갔음
-        kr.labyrinth.village.VillageService v = kr.labyrinth.village.VillageService.get();
-        Location plaza = v == null ? null : v.spawn();
+        Location plaza = plaza();
         Location to = plaza != null ? plaza : target.getSpawnLocation();
         p.setFallDistance(0);
         if (!Teleports.to(p, to)) return;
         sentHome++;
         Text.send(p, "<gray>여기에는 돌아오는 차원문을 만들 수 없어 " + (plaza != null ? "광장" : "스폰") + "으로 옮겼습니다.");
+    }
+
+    /** 마을 광장 (마을이 없으면 null). */
+    private static Location plaza() {
+        kr.labyrinth.village.VillageService v = kr.labyrinth.village.VillageService.get();
+        return v == null ? null : v.spawn();
+    }
+
+    /** 광장, 마을이 없으면 주 월드 스폰. */
+    static Location plazaOrSpawn() {
+        Location plaza = plaza();
+        if (plaza != null) return plaza;
+        List<World> worlds = Bukkit.getWorlds();
+        return worlds.isEmpty() ? null : worlds.get(0).getSpawnLocation();
+    }
+
+    // ── 다시 태어나기 ────────────────────────────────────────────────────
+
+    /**
+     * 네더의 리스폰 정박기 — 네더 밖에서 죽거나 엔드 출구로 나올 때 (Paper 는 엔드 출구도 PlayerRespawnEvent END_PORTAL) 거기서 일어나면
+     * 네더로 들어가는 길이 된다 → 광장에서 일어나게. 네더 안에서 죽은 사람은 그대로 (이미 네더). 정박기 자리는 지우지 않는다 (다시 열면 그대로).
+     * HIGHEST — 야생 경계(HIGH)·미궁(HIGHEST, 미궁 월드만) 이 정한 자리를 본다.
+     */
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onRespawn(PlayerRespawnEvent e) {
+        Player p = e.getPlayer();
+        if (!NetherRule.blocksRespawn(open(), env(p.getWorld()), env(e.getRespawnLocation())) || bypass(p)) return;
+        Location to = homeSpot.get();
+        if (to == null || env(to) == null || env(to) == Environment.NETHER) return;
+        e.setRespawnLocation(to);
+        if (quiet) return;
+        movedRespawn++;
+        if (services == null) return; // 시험
+        String where = plaza() != null ? "광장" : "스폰";
+        UUID id = p.getUniqueId();
+        Bukkit.getScheduler().runTaskLater(services.plugin(), () -> {
+            Player q = Bukkit.getPlayer(id);
+            if (q != null && q.isOnline()) Text.send(q, "<gray>네더는 닫혀 있어 " + where + "에서 일어났습니다.");
+        }, 2L);
     }
 
     // ── 지나가기 ─────────────────────────────────────────────────────────
@@ -186,7 +232,7 @@ public final class NetherLock implements Module, Listener {
         e.setCancelled(true);
         if (quiet) return;
         blockedTravel++;
-        notePlayers(en, CLOSED);
+        for (Player p : players(en)) note(p, bypass(p) ? ADMIN_RIDE : CLOSED); // 크리에이티브 관리자도 친구와 같이 타면 막힘
     }
 
     // ── 네더에서 접속 ────────────────────────────────────────────────────
@@ -199,10 +245,9 @@ public final class NetherLock implements Module, Listener {
         Bukkit.getScheduler().runTaskLater(services.plugin(), () -> {
             Player q = Bukkit.getPlayer(id);
             if (q == null || !q.isOnline() || q.getWorld().getEnvironment() != Environment.NETHER || open()) return;
-            boolean tp = services.plugin().getConfig().getBoolean("village.teleport_command", true)
-                    && kr.labyrinth.village.VillageService.present();
-            Text.send(q, "<gray>네더로 가는 길은 닫혔습니다. 여기 차원문으로 돌아갈 수 있습니다."
-                    + (tp ? " <white>/미궁 마을</white> 도 됩니다." : ""));
+            // /미궁 마을 은 네더 안에서는 village.teleport_command: false 여도 된다 (VillageService#teleport — 차원문이 없는 사람)
+            boolean tp = kr.labyrinth.village.VillageService.present();
+            Text.send(q, "<gray>" + JOIN + (tp ? " <white>/미궁 마을</white> 도 됩니다." : ""));
         }, 40L);
     }
 
@@ -224,10 +269,15 @@ public final class NetherLock implements Module, Listener {
         for (Entity r : en.getPassengers()) collect(r, out, depth + 1);
     }
 
-    /** 지나가는 것이 관리자 예외인가 — 플레이어 자신, 또는 탈것에 탄 사람 중 하나 (보트에 같이 탄 친구도 함께 지나간다). */
+    /**
+     * 지나가는 것이 관리자 예외인가 — 플레이어 자신, 또는 탈것에 탄 사람이 모두 크리에이티브 관리자 ({@link #bypass}).
+     * 친구가 같이 타면 막힌다 (관리자 예외는 관리자 자신만 — 지형 잠금과 같음). 사람이 안 탄 탈것·몹·물건은 막힌다.
+     */
     static boolean bypassRide(Entity en) {
-        for (Player p : players(en)) if (bypass(p)) return true;
-        return false;
+        List<Player> ps = players(en);
+        if (ps.isEmpty()) return false;
+        for (Player p : ps) if (!bypass(p)) return false;
+        return true;
     }
 
     private void notePlayers(Entity en, String msg) {
@@ -250,17 +300,20 @@ public final class NetherLock implements Module, Listener {
 
     // ── 상태 · 자가 진단 ─────────────────────────────────────────────────
 
-    /** "네더: 막음 (wild.nether: false) · 막은 횟수 지나가기 n · 문 열기 n · 광장으로 n". */
+    /** "네더: 막음 (wild.nether: false) · 엔드: 열림 · 막은 횟수 지나가기 n · 문 열기 n · 광장으로 n · 정박기 대신 광장 n". */
     public static String statusLine() {
         NetherLock l = instance;
         boolean open = isOpen();
         String s = "네더: " + (open ? "열림 (wild.nether: true)" : "막음 (wild.nether: false)") + " · 엔드: 열림";
-        if (l != null && !open) s += " · 막은 횟수 지나가기 " + l.blockedTravel + " · 문 열기 " + l.blockedCreate + " · 광장으로 " + l.sentHome;
+        if (l != null && !open) {
+            s += " · 막은 횟수 지나가기 " + l.blockedTravel + " · 문 열기 " + l.blockedCreate + " · 광장으로 " + l.sentHome
+                    + " · 정박기 대신 광장 " + l.movedRespawn;
+        }
         return s;
     }
 
     /**
-     * "[네더 막기 자가 진단] 결과: 예외 0 · 네더=막음 · rules=ok(n/n) · live=ok(n/n) · listeners=ok(5/5) · 네더 월드=world_nether".
+     * "[네더 막기 자가 진단] 결과: 예외 0 · 네더=막음 · rules=ok(n/n) · live=ok(n/n) · listeners=ok(6/6) · 네더 월드=world_nether".
      * live = 이 리스너에 실제 이벤트를 만들어 넣어 본다 (주 월드·네더 월드 · 잠깐 만든 표지 엔티티 하나, 끝나면 지움).
      */
     public static String selfTestLine() {
@@ -295,7 +348,7 @@ public final class NetherLock implements Module, Listener {
         }
         int reg = 0;
         HandlerList[] lists = {PortalCreateEvent.getHandlerList(), PlayerPortalEvent.getHandlerList(), EntityPortalEvent.getHandlerList(),
-                EntityPortalReadyEvent.getHandlerList(), PlayerJoinEvent.getHandlerList()};
+                EntityPortalReadyEvent.getHandlerList(), PlayerJoinEvent.getHandlerList(), PlayerRespawnEvent.getHandlerList()};
         for (HandlerList hl : lists) {
             for (RegisteredListener rl : hl.getRegisteredListeners()) {
                 if (rl.getListener() == this) {

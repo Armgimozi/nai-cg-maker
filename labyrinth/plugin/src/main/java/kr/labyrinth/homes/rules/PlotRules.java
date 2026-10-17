@@ -153,24 +153,29 @@ public final class PlotRules {
         return k.equals("farmland") || k.equals("turtle_egg") || k.equals("sniffer_egg") ? Act.TRAMPLE : Act.PRESSURE;
     }
 
-    /** 부싯돌이 붙일 수 있는 블록 (모닥불·초·차원문 틀) — 내 집에서 이것만 IGNITE, 나머지는 FIRE. */
-    public static boolean ignitable(String block) {
+    /**
+     * 부싯돌이 붙일 수 있는 블록 (모닥불·초, 네더가 열려 있으면 차원문 틀 흑요석도) — 내 집에서 이것만 IGNITE, 나머지는 FIRE.
+     *
+     * @param portals 네더 차원문을 쓸 수 있나 ({@code core.NetherLock.isOpen()}, config wild.nether) — 닫혀 있으면 흑요석에 불을 붙일 까닭이 없다
+     */
+    public static boolean ignitable(String block, boolean portals) {
         String k = key(block);
         return k.equals("campfire") || k.equals("soul_campfire") || k.equals("candle") || k.endsWith("_candle") || k.endsWith("candle_cake")
-                || k.equals("obsidian");
+                || (portals && k.equals("obsidian"));
     }
 
     /**
      * 손에 든 아이템으로 블록을 우클릭 → 행동 (없으면 null = 아이템 쓰기는 상관없음).
      *
      * @param changesBlocks VillageService.changesBlocks(아이템) (괭이·삽·도끼·양동이·염료·뼛가루·밀랍·부싯돌 …)
+     * @param portals       네더 차원문을 쓸 수 있나 ({@link #ignitable(String, boolean)})
      */
-    public static Act itemUse(String item, String clicked, boolean changesBlocks, List<String> denyUse, List<String> denyPlace) {
+    public static Act itemUse(String item, String clicked, boolean changesBlocks, List<String> denyUse, List<String> denyPlace, boolean portals) {
         String i = key(item);
         if (i.isEmpty() || i.equals("air")) return null;
         if (denyUse != null && denyUse.contains(i)) return Act.USE_BANNED;
         if (denyPlace != null && denyPlace.contains(i) && ENTITY_ITEMS.contains(i)) return Act.PLACE_BANNED; // 블록은 BlockPlaceEvent 가 봄
-        if (i.equals("flint_and_steel") || i.equals("fire_charge")) return ignitable(clicked) ? Act.IGNITE : Act.FIRE;
+        if (i.equals("flint_and_steel") || i.equals("fire_charge")) return ignitable(clicked, portals) ? Act.IGNITE : Act.FIRE;
         if (i.equals("lead") && key(clicked).endsWith("_fence")) return Act.HANGING; // 끈 매듭
         if (i.equals("milk_bucket")) return null; // 마시기
         if (i.equals("potion")) return isDirt(clicked) ? Act.TOOL : null; // 물병 → 진흙만 (마시기는 그대로)

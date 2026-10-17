@@ -26,6 +26,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.EntityPortalEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.event.world.PortalCreateEvent;
 import org.bukkit.event.world.PortalCreateEvent.CreateReason;
@@ -197,9 +198,8 @@ class NetherLockTest {
         assertFalse(playerPortal(l, admin, OVER, NETHER, TeleportCause.NETHER_PORTAL), "크리에이티브 관리자는 지나감");
         assertFalse(create(l, OVER, admin.player, CreateReason.FIRE));
         assertEquals(1, admin.bars.size(), "관리자라 지나간다는 안내 (1초에 한 번)");
-        Fake friend = new Fake();
-        Boat boat = entity(Boat.class, OVER, List.of(admin.player, friend.player));
-        assertFalse(entityPortal(l, boat, OVER, NETHER, PortalType.NETHER), "관리자가 탄 보트");
+        Boat alone = entity(Boat.class, OVER, List.of(admin.player));
+        assertFalse(entityPortal(l, alone, OVER, NETHER, PortalType.NETHER), "관리자 혼자 탄 보트");
         Fake survival = new Fake();
         survival.admin = true; // 관리자여도 서바이벌이면 막힘
         assertTrue(playerPortal(l, survival, OVER, NETHER, TeleportCause.NETHER_PORTAL));
@@ -208,6 +208,63 @@ class NetherLockTest {
         assertTrue(playerPortal(l, creative, OVER, NETHER, TeleportCause.NETHER_PORTAL));
         assertEquals(0, l.blockedCreate);
         assertEquals(2, l.blockedTravel);
+    }
+
+    @Test
+    void adminExemptionIsForTheAdminOnly() {
+        NetherLock l = closed();
+        Fake admin = new Fake();
+        admin.admin = true;
+        admin.mode = GameMode.CREATIVE;
+        Fake friend = new Fake();
+        Boat boat = entity(Boat.class, OVER, List.of(admin.player, friend.player));
+        assertTrue(entityPortal(l, boat, OVER, NETHER, PortalType.NETHER), "크리에이티브 관리자와 친구가 탄 보트 = 막힘 (친구가 따라 들어가지 않게)");
+        assertEquals(1, friend.bars.size(), "친구에게 안내");
+        assertEquals(1, admin.bars.size(), "관리자에게도 왜 막혔는지");
+        assertEquals(1, l.blockedTravel);
+        Fake admin2 = new Fake();
+        admin2.admin = true;
+        admin2.mode = GameMode.CREATIVE;
+        Boat two = entity(Boat.class, OVER, List.of(admin2.player, entity(Boat.class, OVER, List.of(admin.player))));
+        assertFalse(entityPortal(l, two, OVER, NETHER, PortalType.NETHER), "탄 사람이 모두 크리에이티브 관리자면 지나감");
+        assertTrue(entityPortal(l, entity(Boat.class, OVER, List.of()), OVER, NETHER, PortalType.NETHER), "빈 보트");
+        assertFalse(NetherLock.bypassRide(null));
+        assertFalse(NetherLock.bypassRide(entity(Item.class, OVER, List.of())));
+    }
+
+    static Location respawn(NetherLock l, Fake f, World died, World at) {
+        f.world = died;
+        PlayerRespawnEvent e = new PlayerRespawnEvent(f.player, at(at), false, false, false, PlayerRespawnEvent.RespawnReason.DEATH);
+        l.onRespawn(e);
+        return e.getRespawnLocation();
+    }
+
+    @Test
+    void netherAnchorRespawnGoesToThePlaza() {
+        NetherLock l = closed();
+        Location plaza = new Location(OVER, 0, 64, 0);
+        l.homeSpot = () -> plaza;
+        Fake f = new Fake();
+        assertEquals(plaza, respawn(l, f, OVER, NETHER), "오버월드에서 죽음 + 네더 정박기 → 광장");
+        assertEquals(plaza, respawn(l, f, END, NETHER), "엔드 출구 + 네더 정박기 → 광장");
+        assertEquals(plaza, respawn(l, f, MINE, NETHER), "광산에서 죽음 → 광장");
+        assertEquals(NETHER, respawn(l, f, NETHER, NETHER).getWorld(), "네더에서 죽으면 네더 정박기 그대로");
+        assertEquals(OVER, respawn(l, f, OVER, OVER).getWorld(), "침대·스폰은 그대로");
+        assertEquals(new Location(OVER, 10, 70, 10), respawn(l, f, NETHER, OVER), "네더에서 죽어 침대로");
+        assertEquals(3, l.movedRespawn);
+        Fake admin = new Fake();
+        admin.admin = true;
+        admin.mode = GameMode.CREATIVE;
+        assertEquals(NETHER, respawn(l, admin, OVER, NETHER).getWorld(), "크리에이티브 관리자는 지나감 (지형 잠금과 같음)");
+        l.homeSpot = () -> new Location(NETHER, 0, 64, 0);
+        assertEquals(NETHER, respawn(l, f, OVER, NETHER).getWorld(), "보낼 곳이 네더면 (잘못된 광장) 건드리지 않음");
+        l.homeSpot = () -> null;
+        assertEquals(NETHER, respawn(l, f, OVER, NETHER).getWorld(), "보낼 곳이 없으면 건드리지 않음");
+        AtomicBoolean open = new AtomicBoolean(true);
+        NetherLock o = new NetherLock(null, open::get);
+        o.homeSpot = () -> plaza;
+        assertEquals(NETHER, respawn(o, f, OVER, NETHER).getWorld(), "wild.nether: true");
+        assertEquals(0, o.movedRespawn);
     }
 
     @Test
@@ -237,5 +294,7 @@ class NetherLockTest {
         assertTrue(h.get("PortalCreateEvent").stream().anyMatch(a -> a.priority() == EventPriority.MONITOR && !a.ignoreCancelled()),
                 "막힌 돌아오는 짝을 보는 MONITOR");
         assertTrue(h.containsKey("PlayerJoinEvent"), "네더에서 접속하면 안내");
+        assertTrue(h.get("PlayerRespawnEvent").stream().anyMatch(a -> a.priority() == EventPriority.HIGHEST),
+                "네더 정박기 → 광장 (야생 경계 HIGH 뒤에)");
     }
 }

@@ -176,7 +176,7 @@ public final class TerrainLockListener implements Listener {
         ItemStack it = e.getItem();
         if (it == null || e.useItemInHand() == Event.Result.DENY) return;
         PlotRules.Act use = PlotRules.itemUse(it.getType().name(), b.getType().name(), VillageService.changesBlocks(it.getType()),
-                service.config().denyUse(), service.config().denyPlace());
+                service.config().denyUse(), service.config().denyPlace(), kr.labyrinth.core.NetherLock.isOpen());
         if (use == null) return;
         boolean onBlock = use == PlotRules.Act.TOOL || use == PlotRules.Act.HANGING || use == PlotRules.Act.IGNITE || use == PlotRules.Act.FIRE
                 || use == PlotRules.Act.USE_BANNED;
@@ -281,7 +281,7 @@ public final class TerrainLockListener implements Listener {
         Player p = e.getPlayer();
         if (p == null && e.getIgnitingEntity() != null) p = Guard.playerOf(e.getIgnitingEntity());
         if (p == null) return; // 자연 불은 CrossZone
-        // 내 집의 부싯돌은 우클릭 단계에서 모닥불·초·차원문 틀만 남겼다 → 여기서는 IGNITE
+        // 내 집의 부싯돌은 우클릭 단계에서 모닥불·초 (네더가 열려 있으면 차원문 틀도) 만 남겼다 → 여기서는 IGNITE
         if (guard.deny(p, PlotRules.Act.IGNITE, guard.where(p, b), b, false)) e.setCancelled(true);
     }
 

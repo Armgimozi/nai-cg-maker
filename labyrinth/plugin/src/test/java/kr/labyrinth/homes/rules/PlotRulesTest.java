@@ -1,6 +1,7 @@
 package kr.labyrinth.homes.rules;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -158,7 +159,11 @@ class PlotRulesTest {
         assertEquals(Act.IGNITE, item(Material.FLINT_AND_STEEL, "campfire"));
         assertEquals(Act.IGNITE, item(Material.FLINT_AND_STEEL, "white_candle"));
         assertEquals(Act.IGNITE, item(Material.FLINT_AND_STEEL, "candle_cake"));
-        assertEquals(Act.IGNITE, item(Material.FLINT_AND_STEEL, "obsidian"), "차원문 틀");
+        assertEquals(Act.FIRE, item(Material.FLINT_AND_STEEL, "obsidian"), "네더를 막으면 (0.3.7 기본) 흑요석에 불 = FIRE");
+        assertEquals(Act.IGNITE, PlotRules.itemUse("FLINT_AND_STEEL", "obsidian", true, DENY_USE, DENY_PLACE, true), "wild.nether: true 면 차원문 틀");
+        assertEquals(Act.IGNITE, PlotRules.itemUse("FLINT_AND_STEEL", "campfire", true, DENY_USE, DENY_PLACE, true));
+        assertEquals(Act.FIRE, PlotRules.itemUse("FLINT_AND_STEEL", "oak_planks", true, DENY_USE, DENY_PLACE, true));
+        assertFalse(PlotRules.ignitable("crying_obsidian", true), "우는 흑요석은 틀이 아님");
         assertEquals(Act.FIRE, item(Material.FLINT_AND_STEEL, "oak_planks"));
         assertEquals(Act.PLACE_BANNED, item(Material.TNT_MINECART, "rail"));
         assertEquals(Act.PLACE_BANNED, item(Material.END_CRYSTAL, "obsidian"));
@@ -177,7 +182,7 @@ class PlotRulesTest {
     }
 
     private static Act item(Material m, String clicked) {
-        return PlotRules.itemUse(m.name(), clicked, VillageService.changesBlocks(m), DENY_USE, DENY_PLACE);
+        return PlotRules.itemUse(m.name(), clicked, VillageService.changesBlocks(m), DENY_USE, DENY_PLACE, false); // 네더 막음 (기본)
     }
 
     @Test

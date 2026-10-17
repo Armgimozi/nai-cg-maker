@@ -71,5 +71,21 @@ class NetherConfigTest {
         assertTrue(text.contains("nether: false"), "wild 아래 nether: false");
         assertTrue(text.contains("true 로 바꾸면 네더 차원문을 다시 쓸 수 있습니다"), "서버장이 보는 안내 글");
         assertFalse(text.contains("네더 차원문용 흑요석"), "자재에서 흑요석·부싯돌을 뺐다");
+        assertFalse(text.contains("통째로 끄려면 wild: false (바닐라 그대로)"), "wild: false 여도 네더는 막힌 채 — 예전 글은 틀림");
+        assertTrue(text.contains("wild: false = 경계·스폰만 바닐라 (네더는 막힌 채)"));
+        assertTrue(text.contains("border: false · spawns: none · nether: true"), "네더까지 여는 법");
+    }
+
+    @Test
+    void openingTheNetherFromWildFalseKeepsBorderAndSpawnsOff() {
+        // 예전에 wild: false 였던 서버장이 config.yml 글대로 세 줄을 적음 → 경계·스폰은 여전히 바닐라, 네더만 열림
+        Settings s = new Settings(WildConfigTest.yaml("wild:\n  border: false\n  spawns: none\n  nether: true\n"));
+        assertTrue(s.netherOpen());
+        assertFalse(s.wild().border());
+        assertEquals(Settings.Wild.Spawns.NONE, s.wild().spawns());
+        // nether: true 한 줄만 적으면 경계·스폰 막기가 기본값으로 다시 켜진다 (그래서 글이 세 줄을 말함)
+        Settings one = new Settings(WildConfigTest.yaml("wild:\n  nether: true\n"));
+        assertTrue(one.wild().border());
+        assertEquals(Settings.Wild.Spawns.ALL, one.wild().spawns());
     }
 }

@@ -21,7 +21,23 @@ class NetherRuleTest {
     void selfCheckTableIsAllOk() {
         int[] r = NetherRule.selfCheck();
         assertEquals(r[1], r[0], "자가 진단 표");
-        assertTrue(r[1] >= 27 + TeleportCause.values().length + PortalType.values().length);
+        assertTrue(r[1] >= 37 + TeleportCause.values().length + PortalType.values().length);
+    }
+
+    @Test
+    void respawnAnchorInTheNetherIsAWayIn() {
+        assertTrue(NetherRule.blocksRespawn(false, O, N), "오버월드에서 죽음 → 네더 정박기");
+        assertTrue(NetherRule.blocksRespawn(false, E, N), "엔드 출구 → 네더 정박기 (Paper: END_PORTAL 리스폰)");
+        assertTrue(NetherRule.blocksRespawn(false, C, N), "광산·미궁 월드에서 죽음");
+        assertFalse(NetherRule.blocksRespawn(false, N, N), "네더에서 죽어 네더 정박기 = 이미 네더");
+        assertFalse(NetherRule.blocksRespawn(false, N, O), "네더에서 죽어 집으로");
+        assertFalse(NetherRule.blocksRespawn(false, O, O));
+        assertFalse(NetherRule.blocksRespawn(false, E, O), "엔드 출구 → 침대·스폰");
+        assertFalse(NetherRule.blocksRespawn(false, null, N), "모름");
+        assertFalse(NetherRule.blocksRespawn(false, O, null));
+        for (Environment from : new Environment[] {O, N, E, C, null}) {
+            for (Environment to : new Environment[] {O, N, E, C, null}) assertFalse(NetherRule.blocksRespawn(true, from, to), "wild.nether: true");
+        }
     }
 
     @Test
