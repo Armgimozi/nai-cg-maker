@@ -26,6 +26,8 @@ import org.bukkit.util.Vector;
  * 3페이즈 2연속 돌진의 방패), 남은 기둥이 0이면 3페이즈 피해 +30%.
  * 패턴: vine_lash(부채꼴) · root_snare(발밑 원 + 속박) · rampage_charge(표식→화살표→돌진) · spore_burst(자기 중심 원 + 독)
  * · sproutling_call(기둥에서 새싹) · overgrowth(3페이즈 2연속 돌진).
+ * 대응 (GDD §8.6, bosses.yml {@code answer}): 못 닿는 틈에서 맞으면 그 대상에게 돌진 한 번 — 받침·벽 앞에서 멈춰 틈 앞에 서고,
+ * 기둥 위에 숨으면 기둥을 들이받아 무너뜨린다.
  */
 public final class Floor01Boss extends Boss {
 
@@ -221,8 +223,22 @@ public final class Floor01Boss extends Boss {
         Params og = def.pattern("overgrowth");
         boolean doubleCharge = phase() >= og.integer("phase", 3) && og.bool("double_charge", true);
         startCharge(t, p, doubleCharge, null);
+        return chargeBusy(p);
+    }
+
+    private int chargeBusy(Params p) {
         int mark = windupSec(p.dbl("mark_time", 2.0));
         return mark + ticks(p.dbl("max_distance", 28) / Math.max(0.2, p.dbl("speed", 1.4))) + 30;
+    }
+
+    /** 대응: 그 대상에게 돌진 한 번 (대번성 2연속 없음, 대상 고정 — 무작위 아님). 수치·경고는 rampage_charge 그대로. */
+    @Override
+    protected int answer(Answer a) {
+        Player t = a.target();
+        if (t == null || !t.isValid()) return 0;
+        Params p = def.pattern("rampage_charge");
+        startCharge(t, p, false, null);
+        return chargeBusy(p);
     }
 
     private void startCharge(Player t, Params p, boolean chainNext, Player previous) {
@@ -320,6 +336,7 @@ public final class Floor01Boss extends Boss {
             if (tt % 3 == 0) BossFx.sound(from, Sound.ENTITY_IRON_GOLEM_STEP, 1.4f, 0.6f);
             return true;
         }, () -> {
+            unstick(); // 큰 몸이 벽·기둥 옆을 스치며 블록에 끼었으면 빼낸다 (돌진의 모든 끝)
             if (!stunned()) afterPersistent(ticks(p.dbl("wall_recover", 1.0)), () -> setPathing(true));
             else setPathing(true);
         }, true));

@@ -42,6 +42,7 @@ import org.joml.Vector3f;
  * 보조: 종말 시계 {@code doom_clock} — 보스바 아래 4:00 카운트다운, 0 이면 "시간 종언"(전원 최대 HP 999%), 1분마다 보스 피해 +10%.
  * 패턴: hand_strike(부채꼴 90°) · pendulum_sweep(폭 3 차선 왕복 2회, 통과마다) · rewind_echo(각자 6초 전 자리 원 r2.5) ·
  * gear_storm(폭 2 선을 굴러가는 거대 톱니, 3 + ⌊(n−1)×0.34⌋줄).
+ * 대응 (GDD §8.6): 못 닿는 자리에서 맞으면 그 대상에게 진자 베기 — 벽 3칸 안이면 차선이 벽을 따라 놓여 안쪽(테오라 쪽)으로 피해야 한다.
  * <p>
  * 문구 규칙(GDD 보스 문구 규칙): 공지·이름표에는 분위기·단서만, 조작법은 bosses.yml {@code hints} 3단계로.
  */
@@ -534,10 +535,8 @@ public final class Floor09Boss extends Boss {
     // ── 진자 베기 ────────────────────────────────────────────────────────
 
     private int pendulumSweep() {
-        Params p = def.pattern("pendulum_sweep");
         Player t = randomTarget();
         if (t == null) return 0;
-        double width = p.dbl("width", 3);
         double ang = rng.nextDouble() * 360;
         Vector dir = new Vector(BossMath.ax(ang), 0, BossMath.az(ang));
         Location tl = t.getLocation();
@@ -546,6 +545,33 @@ public final class Floor09Boss extends Boss {
             ch = ClockLogic.chord(center.getX(), center.getZ(), dir.getX(), dir.getZ(), center.getX(), center.getZ(), arenaRadius - 1);
             if (ch == null) return 0;
         }
+        return pendulumSweep(t, dir, ch);
+    }
+
+    // ── 대응 (GDD §8.6) ──────────────────────────────────────────────────
+
+    /** 종말 시계가 0 처리 중이면 답하지 않는다. */
+    @Override
+    protected boolean canAnswer(Player t) { return doomTicks > 0; }
+
+    @Override
+    protected int answer(Answer a) {
+        Player t = a.target();
+        if (t == null || !t.isValid()) return 0;
+        Params ad = answerDef();
+        Location tl = t.getLocation(), bl = entity.getLocation();
+        double[] lane = ClockLogic.answerLane(tl.getX(), tl.getZ(), bl.getX(), bl.getZ(), center.getX(), center.getZ(), arenaRadius,
+                ad.dbl("wall_band", 3.0), ad.dbl("chord_pad", 0.5));
+        if (lane == null) return 0;
+        notify(t, "<#e8b060>시계추가 벽을 따라 흔들린다…</#e8b060>");
+        return pendulumSweep(t, new Vector(lane[0], 0, lane[1]), new double[] {lane[2], lane[3], lane[4]});
+    }
+
+    /** 진자 베기: 대상이 선 현(ch = {시작 x, 시작 z, 길이}, 방향 dir) 위 폭 3 차선을 진자가 2왕복 (수치 그대로). */
+    private int pendulumSweep(Player t, Vector dir, double[] ch) {
+        Params p = def.pattern("pendulum_sweep");
+        double width = p.dbl("width", 3);
+        Location tl = t.getLocation();
         double half = Math.min(ch[2] / 2, p.dbl("length", 18) / 2);
         double st = (tl.getX() - ch[0]) * dir.getX() + (tl.getZ() - ch[1]) * dir.getZ();
         double midS = ClockLogic.laneCenter(st, ch[2], half);

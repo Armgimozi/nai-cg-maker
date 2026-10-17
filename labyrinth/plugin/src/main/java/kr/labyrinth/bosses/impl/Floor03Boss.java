@@ -25,6 +25,7 @@ import org.bukkit.entity.Player;
  * 지하 3층 — 균사의 왕 무르노크 (GDD §7.3, core {@code stack_spread}).
  * 핵심: 포자 낙인(흩어지기 — 낙인마다 r5 폭발, 겹친 사람도 맞음, 자리에 독 웅덩이) / 공생의 꽃(모이기 — 총 피해를 원 안 인원수로 나눔).
  * 2페이즈부터 둘을 동시에(꽃은 3초 늦게), 3페이즈엔 균사망이 타일을 감염시키며 번진다.
+ * 대응 (GDD §8.6): 못 닿는 구석에서 맞으면 구석 낙인 — 그 자리에 독 포자 웅덩이(낙인 웅덩이 수치 그대로) + 그 대상에게 포자 낙인.
  */
 public final class Floor03Boss extends Boss {
 
@@ -34,6 +35,8 @@ public final class Floor03Boss extends Boss {
     private final Set<Long> validTiles = new HashSet<>();
     private final Map<Long, ItemDisplay> infected = new HashMap<>();
     private long nextSpread;
+    /** 포자 낙인이 터지는 틱 (대상별) — 이미 낙인이 있는 사람에게는 구석 낙인을 다시 걸지 않는다. */
+    private final Map<java.util.UUID, Long> brandedUntil = new HashMap<>();
 
     public Floor03Boss(Init init) { super(init); }
 
@@ -63,7 +66,7 @@ public final class Floor03Boss extends Boss {
             case "cap_slam" -> capSlam();
             case "puffball_toss" -> puffballToss();
             case "spore_brand" -> {
-                List<Player> branded = sporeBrand(0);
+                List<Player> branded = sporeBrand(0, null, null);
                 yield branded.isEmpty() ? 0 : cast("spore_brand", "포자 낙인", 20, 24, BossAnim.CAST, null, false);
             }
             case "symbiosis_bloom" -> {
@@ -118,18 +121,24 @@ public final class Floor03Boss extends Boss {
 
     // ── 포자 낙인 (흩어지기) ─────────────────────────────────────────────
 
-    /** @param extraDelay 추가 지연 틱 (조합 패턴용). @return 낙인 대상 */
-    private List<Player> sporeBrand(int extraDelay) {
+    /**
+     * @param extraDelay 추가 지연 틱 (조합 패턴용)
+     * @param forced     낙인 대상을 정해 줌 (대응), null = 무작위 count 명
+     * @param notice     대상에게 보일 공지 (null = 원래 문구)
+     * @return 낙인 대상
+     */
+    private List<Player> sporeBrand(int extraDelay, List<Player> forced, String notice) {
         Params p = def.pattern("spore_brand");
         int count = scaling().count(p, "count", 1, p.integer("max", 5));
-        List<Player> ts = pickTargets(count, null, false);
+        List<Player> ts = forced != null ? new ArrayList<>(forced) : pickTargets(count, null, false);
         if (ts.isEmpty()) return ts;
         int dur = windupSec(p.dbl("duration", 5.0)) + extraDelay;
         double r = p.dbl("radius", 5);
         double dmg = dmg(p, "damage", 1.6);
         String marker = p.str("fx", "marker_spread");
         for (Player t : ts) {
-            notify(t, "<blue><b>포자 낙인!</b></blue> <gray>몸 안에서 무언가 부풀어 오른다…");
+            brandedUntil.put(t.getUniqueId(), now + dur);
+            notify(t, notice != null ? notice : "<blue><b>포자 낙인!</b></blue> <gray>몸 안에서 무언가 부풀어 오른다…");
             run(new Mechanics.Marker(fx, marker, t, dur, null));
             Telegraph tg = new Telegraph(fx, Telegraph.Shape.circle(ground(t.getLocation()), r), dur, Telegraph.BLUE, "", null);
             tg.follow(t);
@@ -142,17 +151,53 @@ public final class Floor03Boss extends Boss {
                 BossFx.particle(Particle.SPORE_BLOSSOM_AIR, at.clone().add(0, 1, 0), 80, r * 0.5, 0.8, r * 0.5, 0);
                 BossFx.dust(at.clone().add(0, 1, 0), Telegraph.BLUE, 2f, 40, r * 0.4);
                 BossFx.sound(at, Sound.ENTITY_GENERIC_EXPLODE, 1f, 1.3f);
-                double patchR = p.dbl("patch_radius", 3);
-                double patchDmg = dmg(p, "patch_damage", 0.2);
-                run(new Mechanics.Zone(fx, Telegraph.Shape.circle(at, patchR), ticks(p.dbl("patch_duration", 10)), 20, "telegraph_circle",
-                        Telegraph.GREEN, Particle.SPORE_BLOSSOM_AIR, this::players, pl -> {
-                    hit(pl, patchDmg, "spore_patch", DamageType.TRUE);
-                    effect(pl, "poison", 2, 0);
-                }));
+                sporePatch(at, p);
             });
         }
         BossFx.sound(entity.getLocation(), Sound.BLOCK_SCULK_SENSOR_CLICKING, 1.6f, 0.5f);
         return ts;
+    }
+
+    /** 독 포자 웅덩이 (낙인 웅덩이 수치: patch_radius · patch_duration · 20틱마다 patch_damage TRUE + 독 2초). */
+    private void sporePatch(Location at, Params p) {
+        double patchR = p.dbl("patch_radius", 3);
+        double patchDmg = dmg(p, "patch_damage", 0.2);
+        run(new Mechanics.Zone(fx, Telegraph.Shape.circle(at, patchR), ticks(p.dbl("patch_duration", 10)), 20, "telegraph_circle",
+                Telegraph.GREEN, Particle.SPORE_BLOSSOM_AIR, this::players, pl -> {
+            hit(pl, patchDmg, "spore_patch", DamageType.TRUE);
+            effect(pl, "poison", 2, 0);
+        }));
+    }
+
+    // ── 대응: 구석 낙인 (GDD §8.6) ───────────────────────────────────────
+
+    /**
+     * 못 닿는 구석에서 맞으면: 대상 발 자리에 초록 원이 1초 자라난 뒤 독 포자 웅덩이(10초)가 남고, 같은 순간 그 대상 한 명에게
+     * 포자 낙인(5초 뒤 r5 폭발 + 그 자리 웅덩이). 그 구석은 10초 동안 막힌다. 이미 낙인이 있으면 지금은 못 함(0).
+     */
+    @Override
+    protected int answer(Answer a) {
+        Player t = a.target();
+        if (t == null || !t.isValid()) return 0;
+        if (brandedUntil.getOrDefault(t.getUniqueId(), Long.MIN_VALUE) > now) return 0;
+        Params p = def.pattern("spore_brand");
+        Location pocket = ground(t.getLocation());
+        int pw = windupSec(answerDef().dbl("patch_windup", 1.0));
+        double r = p.dbl("patch_radius", 3);
+        Telegraph grow = new Telegraph(fx, Telegraph.Shape.circle(pocket, r), pw, Telegraph.GREEN, null, () -> {
+            sporePatch(pocket, p);
+            BossFx.particle(Particle.SPORE_BLOSSOM_AIR, pocket.clone().add(0, 0.8, 0), 40, r * 0.5, 0.5, r * 0.5, 0);
+            BossFx.sound(pocket, Sound.BLOCK_SCULK_SPREAD, 1.4f, 0.6f);
+        });
+        grow.onTick(g -> {
+            if (g.elapsed() % 3 == 0) {
+                double f = Math.min(1.0, (g.elapsed() + 1) / (double) Math.max(1, g.total()));
+                BossFx.dustRing(pocket.clone().add(0, 0.15, 0), Math.max(0.4, r * f), Telegraph.GREEN, 1.3f, 18);
+            }
+        });
+        run(grow);
+        sporeBrand(0, List.of(t), "<blue><b>포자 낙인!</b></blue> <gray>발밑에서 균사가 피어오른다…");
+        return cast("spore_brand", "구석 낙인", 20, 24, BossAnim.CAST, t.getLocation(), false);
     }
 
     // ── 공생의 꽃 (모이기) ───────────────────────────────────────────────
@@ -194,7 +239,7 @@ public final class Floor03Boss extends Boss {
 
     private int brandAndBloom() {
         Params p = def.pattern("brand_and_bloom");
-        List<Player> branded = sporeBrand(0);
+        List<Player> branded = sporeBrand(0, null, null);
         int delay = ticks(p.dbl("bloom_delay", 3.0));
         boolean bloom = symbiosisBloom(delay, branded);
         if (branded.isEmpty() && !bloom) return 0;

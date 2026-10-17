@@ -320,6 +320,25 @@ final class AbyssLogic {
 
     // ── 회전 응시 ────────────────────────────────────────────────────────
 
+    /**
+     * 맥동 고리 끌기 (GDD §8.6): 심장실 단계면 대상 → 고리 안 반경까지 0.5칸마다 발밑 타일을 보고, 무너졌거나 무너질 경고 중인 타일이
+     * 하나라도 있으면 끌지 않는다 (피해·잔류만 — 구멍 너머로 끌려 떨어지지 않게). 가장자리 단계는 단 안쪽이라 늘 끈다.
+     * 좌표는 심장실 중심 블록에서의 오프셋 (블록 = floor).
+     */
+    static boolean pullClear(Grid grid, double tx, double tz, double hx, double hz, double inner, boolean chamber) {
+        if (!chamber || grid == null) return true;
+        double dx = hx - tx, dz = hz - tz;
+        double d = Math.hypot(dx, dz);
+        double travel = d - inner;
+        if (travel <= 0 || d < 1e-9) return true;
+        for (double s = 0; s <= travel + 1e-9; s += 0.5) {
+            double x = tx + dx / d * s, z = tz + dz / d * s;
+            int k = grid.tileAtBlock((int) Math.floor(x), (int) Math.floor(z));
+            if (k >= 0 && grid.state(k) != State.SOLID) return false;
+        }
+        return true;
+    }
+
     /** k 번째 광선 각도(도): 시작각 + 등분 + 방향 × 속도 × 경과초. */
     static double beamAngle(double start, int k, int beams, double degPerSec, double seconds, int dir) {
         return start + k * 360.0 / Math.max(1, beams) + dir * degPerSec * seconds;

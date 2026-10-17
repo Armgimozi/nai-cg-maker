@@ -26,6 +26,9 @@ public final class Log {
 
     public static void error(String msg, Throwable t) { logger.log(Level.SEVERE, msg, t); }
 
+    /** 진단 기록 (FINE — 기본 설정에서는 안 찍힘). */
+    public static void debug(String msg) { logger.fine(msg); }
+
     /** 같은 key 로는 한 번만 경고한다 (기본 구현이 불렸을 때). */
     public static void notImplemented(String key) {
         if (WARNED.add(key)) {

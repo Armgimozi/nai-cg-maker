@@ -52,6 +52,7 @@ import org.joml.Vector3f;
  * 사냥꾼 표식은 분신에 남지 않는다(번져 지워짐). 진짜가 최대 HP 5% 피해를 받으면 분신 소멸. 분신 2 + ⌊(n−1)×0.34⌋ (최대 5).
  * <p>
  * 패턴: ink_lash(부채꼴 90°·길이 6) · quill_barrage(대상마다 5갈래 깃펜) · ink_doubles · erasure(3페이즈, 앞 부채꼴 90°·반경 16).
+ * 대응 (GDD §8.6): 못 닿는 자리에서 맞으면 그 대상 한 명에게 깃펜 난사 (깃펜은 블록에 막힌다). 색인·부양·분신 중에는 안 함.
  */
 public final class Floor08Boss extends Boss {
 
@@ -318,7 +319,23 @@ public final class Floor08Boss extends Boss {
         List<Player> all = targets();
         if (all.isEmpty()) return 0;
         int n = Math.min(all.size(), scaling().count(p, "targets", 1, all.size()));
-        List<Player> ts = pickTargets(n, null, false);
+        return quillBarrage(pickTargets(n, null, false));
+    }
+
+    // ── 대응 (GDD §8.6) ──────────────────────────────────────────────────
+
+    @Override
+    protected boolean canAnswer(Player t) { return index == null && hoverTarget == null && doubles.isEmpty(); }
+
+    @Override
+    protected int answer(Answer a) {
+        Player t = a.target();
+        return t == null || !t.isValid() ? 0 : quillBarrage(List.of(t));
+    }
+
+    /** 깃펜 난사: 대상마다 부채꼴 갈래 (원래 수치). */
+    private int quillBarrage(List<Player> ts) {
+        Params p = def.pattern("quill_barrage");
         if (ts.isEmpty()) return 0;
         int w = windup(p, 0.8);
         Location from = feet();

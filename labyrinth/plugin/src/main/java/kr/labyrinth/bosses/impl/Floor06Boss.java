@@ -13,6 +13,7 @@ import kr.labyrinth.bosses.Boss;
 import kr.labyrinth.bosses.BossAnim;
 import kr.labyrinth.bosses.BossFx;
 import kr.labyrinth.bosses.BossMath;
+import kr.labyrinth.bosses.BossReach;
 import kr.labyrinth.bosses.Mechanics;
 import kr.labyrinth.bosses.ObjectTarget;
 import kr.labyrinth.bosses.Telegraph;
@@ -45,6 +46,8 @@ import org.joml.Vector3f;
  * 못 깨면 전원 9.0배. 껍질 중에는 2초마다 위협 1위에게 얼어붙은 응시(0.6배).
  * 패턴: scepter_sweep(부채꼴 80°) · glacial_spikes(선 폭 2 길이 16, 3페이즈 3갈래 35°) · frostbite(2초마다 1.5칸 미만 이동 = 서리 1중첩,
  * 5중첩 빙결 — 동료 4회 타격·사제 정화) · blizzard(10초 시야 입자 + 우박 원) · permafrost(3×3 타일 30% 얼음판 — 미끄러짐).
+ * 대응 (GDD §8.6): 못 닿는 틈에서 맞으면 서리 걸음 — 대상 곁 설 자리에 서리 고리가 피고, 경고 뒤 그 자리로 순간이동하며
+ * 서리 폭발(홀 휩쓸기 피해 + 동상 1중첩). 설 자리가 없으면 그 대상에게 빙창.
  * <p>
  * 영구 동토는 인스턴스 안에서는 실제 푸른 얼음 블록(바닐라 미끄러짐 그대로, 끝나면 복원)이고, 블록을 못 놓는 곳(관리자 소환)은
  * {@link FrostLogic#slide} 로 이동 관성을 흉내 낸다. 아레나 바닥의 원래 얼음은 전투 동안 눈·방해석으로 덮어 얼음판과 구별되게 한다.
@@ -236,7 +239,11 @@ public final class Floor06Boss extends Boss {
     private int glacialSpikes() {
         Params p = def.pattern("glacial_spikes");
         Player t = scaling().solo() || "threat".equals(p.str("target", "random")) ? target() : randomTarget();
-        if (t == null) return 0;
+        return t == null ? 0 : glacialSpikes(t);
+    }
+
+    private int glacialSpikes(Player t) {
+        Params p = def.pattern("glacial_spikes");
         int w = windup(p, 1.2);
         int count = Math.max(1, (int) Math.round(p.phased("count", phase(), 1)));
         double spread = p.phased("spread", phase(), 35);
@@ -294,6 +301,63 @@ public final class Floor06Boss extends Boss {
         }
         BossFx.sound(entity.getLocation(), Sound.ITEM_TRIDENT_THROW, 1.6f, 0.6f);
         BossFx.sound(entity.getLocation(), Sound.BLOCK_GLASS_BREAK, 1.4f, 0.7f);
+    }
+
+    // ── 대응: 서리 걸음 (GDD §8.6) ───────────────────────────────────────
+
+    @Override
+    protected boolean canAnswer(Player t) { return !shellActive; }
+
+    @Override
+    protected int answer(Answer a) {
+        Player t = a.target();
+        if (t == null || !t.isValid()) return 0;
+        Location s = standSpot(t, ground(t.getLocation()), BossReach.Order.NEAR);
+        if (s == null) {
+            answerUses("glacial_spikes");
+            return glacialSpikes(t);
+        }
+        return frostStep(t, s);
+    }
+
+    /**
+     * 서리 걸음: 설 자리에 서리 고리(반경 = 자기 거리 + 0.4)가 빙창 경고 시간 동안 피고, 끝나면 여제가 그 자리로 순간이동(그새 막혔으면
+     * 제자리) + 원 안 모두 홀 휩쓸기 피해(마법) + 동상 1중첩. 껍질 이동과 같은 결의 이동, 피해·경고 수치는 기존 패턴 그대로.
+     */
+    private int frostStep(Player t, Location spot) {
+        Params sweep = def.pattern("scepter_sweep");
+        Params spikes = def.pattern("glacial_spikes");
+        Params bite = def.pattern("frostbite");
+        int w = windup(spikes, 1.2);
+        double r = reach() + 0.4;
+        Location at = spot.clone();
+        Telegraph.Shape c = Telegraph.Shape.circle(at, r);
+        double dmg = dmg(sweep, "damage", 1.3);
+        double decay = bite.dbl("stack_decay", 6.0);
+        nova(at, r, w);
+        notify(t, "<#bfe6ff>곁에서 서리가 피어난다…</#bfe6ff>");
+        BossFx.sound(at, Sound.BLOCK_POWDER_SNOW_STEP, 1.6f, 0.5f);
+        run(new Mechanics.Repeat(w, 4, tt -> {
+            BossFx.particle(Particle.SNOWFLAKE, entity.getLocation().add(0, 1.4, 0), 6, 0.5, 0.9, 0.5, 0.02);
+            return true;
+        }, null, true));
+        telegraph(c, w, Telegraph.RED, null, () -> {
+            Location from = entity.getLocation();
+            if (bodyFits(at)) {
+                Location to = at.clone();
+                Location tl = t.isValid() ? t.getLocation() : at;
+                to.setYaw(BossMath.yawOf(tl.getX() - to.getX(), tl.getZ() - to.getZ()));
+                to.setPitch(0);
+                BossFx.particle(Particle.SNOWFLAKE, from.clone().add(0, 1.5, 0), 40, 0.6, 1.0, 0.6, 0.05);
+                entity.teleport(to);
+            }
+            hitShape(c, dmg, "scepter_sweep", DamageType.MAGIC, pl -> effect(pl, "frost", decay, 1));
+            BossFx.sound(at, Sound.BLOCK_GLASS_BREAK, 1.6f, 0.6f);
+            BossFx.sound(at, Sound.ENTITY_PLAYER_HURT_FREEZE, 1.2f, 0.8f);
+            BossFx.particle(Particle.SNOWFLAKE, at.clone().add(0, 1, 0), 80, r * 0.5, 0.6, r * 0.5, 0.08);
+            BossFx.dustRing(at.clone().add(0, 0.3, 0), r, FROST, 1.6f, 36);
+        });
+        return cast("scepter_sweep", "서리 걸음", w, w + 10, BossAnim.CAST, t.getLocation(), false);
     }
 
     // ── 동상 (interval) ──────────────────────────────────────────────────

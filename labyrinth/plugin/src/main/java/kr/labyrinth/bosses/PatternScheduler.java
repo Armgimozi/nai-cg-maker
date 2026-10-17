@@ -2,6 +2,7 @@ package kr.labyrinth.bosses;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +51,8 @@ public final class PatternScheduler {
     }
 
     private final Map<String, Entry> entries = new LinkedHashMap<>();
+    /** 패턴 키 → 마지막으로 쓴 틱 (로테이션 + 대응). 최소 간격 판정용. */
+    private final Map<String, Long> lastUse = new HashMap<>();
     private final Random rng;
     private String last;
     private long nextAllowed;
@@ -134,7 +137,25 @@ public final class PatternScheduler {
         e.readyAt = now + Math.max(MIN_GAP_TICKS, Math.round(e.cooldownTicks * cooldownMult));
         last = e.key;
         nextAllowed = now + MIN_GAP_TICKS;
+        lastUse.put(e.key, now);
     }
+
+    /**
+     * 로테이션 밖에서 패턴을 썼다 (보스별 대응, GDD §8.6): 방금 고른 것처럼 그 패턴의 쿨다운을 다시 돌린다.
+     * 지금 페이즈에 없는 패턴(예: 2층 1페이즈의 천장 매복)은 마지막 사용 틱만 적는다.
+     */
+    public void markUsed(String key, long now) {
+        if (key == null) return;
+        lastUse.put(key, now);
+        Entry e = entries.get(key);
+        if (e == null || e.kind != Kind.COOLDOWN) return;
+        e.readyAt = now + Math.max(MIN_GAP_TICKS, Math.round(e.cooldownTicks * cooldownMult));
+        last = key;
+        nextAllowed = Math.max(nextAllowed, now + MIN_GAP_TICKS);
+    }
+
+    /** 패턴을 마지막으로 쓴 틱 (로테이션·대응, 없으면 아주 옛날). */
+    public long lastUse(String key) { return lastUse.getOrDefault(key, Long.MIN_VALUE / 4); }
 
     /**
      * 패턴이 끝난 뒤 다음 패턴까지 최소 간격을 다시 건다 (시전 시간이 긴 패턴 뒤 숨 돌릴 틈).

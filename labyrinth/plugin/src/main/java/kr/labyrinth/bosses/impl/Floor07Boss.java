@@ -43,6 +43,7 @@ import org.bukkit.util.Vector;
  * split_beam(빛 광선 → 어둠 대상, 어둠 광선 → 빛 대상 — 같은 극성이 끼어들면 0.6배 흡수, 없으면 대상 3.0배) ·
  * prism_refraction(6초 수정 껍질 — 얼굴과 같은 극성 공격은 피해의 50% 반사).
  * 극성 피해 배율·반사는 {@link DamageInterceptor} 로 이 보스에게 들어오는 피해에만 건다(종료 때 해제).
+ * 대응 (GDD §8.6): 늘 곧장 다가가지만 그래도 못 닿는 자리(높은 곳)에서 맞으면 그 대상 발밑에 수정비 원 하나.
  */
 public final class Floor07Boss extends Boss {
 
@@ -479,20 +480,39 @@ public final class Floor07Boss extends Boss {
             if (!clash || tries > count * 6) spots.add(ground(l));
         }
         if (spots.isEmpty()) return 0;
-        for (Location s : spots) {
-            Telegraph.Shape c = Telegraph.Shape.circle(s, r);
-            Location top = s.clone().add(0, 10, 0);
-            run(new Mechanics.Projectile(fx, model, 2.2f, Mechanics.Projectile.straight(top, new Vector(0, -1, 0), 9.6 / Math.max(1, w)), w, 0,
-                    false, Particle.END_ROD, List::of, pl -> { }, null));
-            telegraph(c, w, Telegraph.RED, null, () -> {
-                hitShape(c, dmg, "crystal_rain", DamageType.MAGIC, null);
-                BossFx.sound(s, Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 1.6f, 0.7f + rng.nextFloat() * 0.4f);
-                BossFx.dust(s.clone().add(0, 0.4, 0), rng.nextBoolean() ? LIGHT : DARK, 1.4f, 16, r * 0.4);
-                BossFx.particle(Particle.END_ROD, s.clone().add(0, 0.3, 0), 6, r * 0.3, 0.2, r * 0.3, 0.04);
-            });
-        }
+        for (Location s : spots) rainAt(s, r, dmg, w, model);
         BossFx.sound(entity.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 2f, 0.5f);
         return cast("crystal_rain", "수정비", Math.min(w, 20), 20, BossAnim.CAST, null, false);
+    }
+
+    /** 원 r 하나: 위에서 수정이 떨어지고 경고가 끝나면 원 안 피해. */
+    private void rainAt(Location s, double r, double dmg, int w, String model) {
+        Telegraph.Shape c = Telegraph.Shape.circle(s, r);
+        Location top = s.clone().add(0, 10, 0);
+        run(new Mechanics.Projectile(fx, model, 2.2f, Mechanics.Projectile.straight(top, new Vector(0, -1, 0), 9.6 / Math.max(1, w)), w, 0,
+                false, Particle.END_ROD, List::of, pl -> { }, null));
+        telegraph(c, w, Telegraph.RED, null, () -> {
+            hitShape(c, dmg, "crystal_rain", DamageType.MAGIC, null);
+            BossFx.sound(s, Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 1.6f, 0.7f + rng.nextFloat() * 0.4f);
+            BossFx.dust(s.clone().add(0, 0.4, 0), rng.nextBoolean() ? LIGHT : DARK, 1.4f, 16, r * 0.4);
+            BossFx.particle(Particle.END_ROD, s.clone().add(0, 0.3, 0), 6, r * 0.3, 0.2, r * 0.3, 0.04);
+        });
+    }
+
+    // ── 대응: 수정비 한 원 (GDD §8.6) ────────────────────────────────────
+
+    @Override
+    protected boolean canAnswer(Player t) { return !refracting; }
+
+    /** 못 닿는 자리(높은 곳 등)에서 맞으면 그 대상 발밑에만 수정비 원 하나 (다른 사람·무작위 원 없음, 수치 그대로). */
+    @Override
+    protected int answer(Answer a) {
+        Player t = a.target();
+        if (t == null || !t.isValid()) return 0;
+        Params p = def.pattern("crystal_rain");
+        rainAt(ground(t.getLocation()), p.dbl("radius", 2.5), dmg(p, "damage", 1.2), windup(p, 1.3), p.str("fx", "proj_crystal"));
+        BossFx.sound(entity.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 2f, 0.5f);
+        return cast("crystal_rain", "수정비", Math.min(windup(p, 1.3), 20), 20, BossAnim.CAST, t.getLocation(), false);
     }
 
     // 극성 파동 (핵심) ────────────────────────────────────────────────────

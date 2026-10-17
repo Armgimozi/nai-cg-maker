@@ -180,7 +180,7 @@ class Floor07DyadTest {
         assertEquals(36000, d.hp(), 1e-9);
         assertEquals(List.of(1.0, 0.6, 0.3), d.phases());
         Set<String> implemented = Set.of("polarity_assign", "face_shift", "polarity_wave", "split_beam", "prism_refraction",
-                "crystal_rain", "shard_orbit");
+                "crystal_rain", "shard_orbit", "answer");
         for (String k : d.patterns().keySet()) assertTrue(implemented.contains(k), "패턴 미구현: " + k);
         for (String k : implemented) assertTrue(d.patterns().containsKey(k), "YAML 에 없음: " + k);
         for (List<String> rot : d.rotation().values()) for (String k : rot) assertTrue(d.patterns().containsKey(k), "rotation 키: " + k);

@@ -28,6 +28,7 @@ import org.bukkit.util.Vector;
  * 보스가 물에 잠기면 받는 피해 −25%·주는 피해 +15%. 벽면 밸브를 전부(웅크린 채 3초씩) 제한 시간 안에 돌리면 배수 →
  * 보스 5초 기절 + 받는 피해 +40%, 8초 뒤 다시 차오름. 단상(높이 2) 위는 해일에서 안전.
  * 패턴: key_strike · anchor_hurl(가장 먼 대상, 끌어당김) · tidal_sweep(폭 4 직사각형) · rising_flood(상시) · whirlpool · floodling_tide.
+ * 대응 (GDD §8.6): 못 닿는 자리(단상 가운데 등)에서 맞으면 그 대상에게 닻 던지기 — 맞으면 보스 앞으로 끌려온다.
  */
 public final class Floor04Boss extends Boss {
 
@@ -292,7 +293,30 @@ public final class Floor04Boss extends Boss {
     private int anchorHurl() {
         Params p = def.pattern("anchor_hurl");
         Player t = "farthest".equals(p.str("target", "farthest")) ? farthest() : randomTarget();
-        if (t == null) return 0;
+        return t == null ? 0 : anchorHurl(t);
+    }
+
+    // ── 대응 (GDD §8.6): 닻 던지기, 대상 고정 ────────────────────────────
+
+    /** 밸브를 돌리는 중(웅크림 + 열리지 않은 밸브 곁)인 사람에게는 답하지 않는다 — 수문 기믹을 끊지 않게. */
+    @Override
+    protected boolean canAnswer(Player t) {
+        if (stage <= 0 || !t.isSneaking()) return true;
+        for (Valve v : valves) if (!v.done && horizontal(t.getLocation(), v.at) <= 2.3) return false;
+        return true;
+    }
+
+    @Override
+    protected int answer(Answer a) {
+        Player t = a.target();
+        if (t == null || !t.isValid()) return 0;
+        notify(t, "<#5aa8a0>닻 사슬이 철렁인다…</#5aa8a0>");
+        return anchorHurl(t);
+    }
+
+    /** 닻 던지기 (그 대상에게): 선 + 착탄 원 → 피해 + 보스 쪽으로 끌어당김. */
+    private int anchorHurl(Player t) {
+        Params p = def.pattern("anchor_hurl");
         int w = windup(p, 1.0);
         Location impact = ground(t.getLocation());
         Vector dir = dirTo(impact);

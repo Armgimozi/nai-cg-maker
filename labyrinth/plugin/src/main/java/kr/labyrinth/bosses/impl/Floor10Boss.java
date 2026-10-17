@@ -53,6 +53,8 @@ import org.joml.Vector3f;
  *   <li>2~3페이즈 가장자리: 회전 응시(광선 2·3개 초당 30°), 심연 균열(원 + 잔류), 촉수 채찍·공허 구체(1~2).</li>
  *   <li>3페이즈: 지난 층의 메아리(20초마다 1~9층 상징 패턴을 위력 70%·경고 ×1.2 로), 심장 박동(30초마다 전원, 매번 +15%).</li>
  *   <li>떨어짐(실제 낙하 또는 판정 칸) = 최대 HP 25% + 가장 가까운 안전한 칸으로 + 3초간 받는 피해 +20%.</li>
+ *   <li>대응 (GDD §8.6): 걷지 않는 심장의 칼끝 거리(기본 공격 밖, 칼은 닿음)에서 때리면 맥동 고리 — 고리(자기 거리 −0.2 ~ 6칸) 안
+ *       촉수 채찍 피해 + 심장 쪽 끌기 + 4초 잔류. 바짝 붙은 사람은 기본 공격, 멀리서는 그대로.</li>
  * </ul>
  * 문구는 분위기·단서만 (조작법은 bosses.yml {@code hints} 의 점진 힌트로).
  */
@@ -336,6 +338,53 @@ public final class Floor10Boss extends Boss {
             BossFx.sound(entity.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1.2f, 0.5f);
         });
         return cast("tendril_lash", "촉수 채찍", w, w + 8, BossAnim.SWEEP, t.getLocation(), false);
+    }
+
+    // ── 대응: 맥동 고리 (GDD §8.6) ───────────────────────────────────────
+
+    @Override
+    protected boolean canAnswer(Player t) { return stage != Stage.PURSUIT && !gazeActive; }
+
+    /**
+     * 심장 발밑 고리(안 = 자기 거리 − inner_pad, 밖 = outer) 경고 → 고리 안 모두 촉수 채찍 피해 + 심장 쪽으로 끌기(구멍 너머면 끌기 없음)
+     * + 심연 균열 잔류(linger 초, linger_dps). 칼끝 거리에 머물지 말고 붙거나 물러나야 한다.
+     */
+    @Override
+    protected int answer(Answer a) {
+        Player t = a.target();
+        if (t == null || !t.isValid() || geo == null) return 0;
+        Params ad = answerDef();
+        Params tp = def.pattern("tendril_lash");
+        Params rp = def.pattern("abyss_rift");
+        int w = windup(tp, 1.0);
+        double inner = Math.max(0.5, reach() - ad.dbl("inner_pad", 0.2));
+        double outer = Math.max(inner + 0.5, ad.dbl("outer", 6.0));
+        double pull = ad.dbl("pull", 0.9);
+        Location c = feet();
+        Telegraph.Shape ring = Telegraph.Shape.ring(c, inner, outer);
+        double dmg = dmg(tp, "damage", 1.4);
+        int linger = ticks(rp.dbl("linger", 4));
+        double ld = dmg(rp, "linger_dps", 0.3);
+        broadcastBar("<dark_aqua>심장 둘레가 크게 고동친다…</dark_aqua>");
+        run(new Mechanics.Repeat(w, 10, tt -> {
+            BossFx.sound(c, Sound.ENTITY_WARDEN_HEARTBEAT, 1.8f, 0.6f);
+            BossFx.dustRing(c.clone().add(0, 0.3, 0), inner + (outer - inner) * Math.min(1, tt / (double) Math.max(1, w)), HEART, 1.6f, 32);
+            return true;
+        }, null, true));
+        telegraph(ring, w, Telegraph.RED, "telegraph_ring", () -> {
+            Location hc = entity.getLocation();
+            boolean chamber = stage == Stage.CHAMBER;
+            hitShape(ring, dmg, "tendril_lash", DamageType.MELEE, pl -> {
+                Location l = pl.getLocation();
+                if (AbyssLogic.pullClear(grid, l.getX() - cx, l.getZ() - cz, hc.getX() - cx, hc.getZ() - cz, inner, chamber)) pull(pl, c, pull);
+            });
+            BossFx.sound(c, Sound.ENTITY_WARDEN_ATTACK_IMPACT, 1.8f, 0.5f);
+            BossFx.particle(Particle.SQUID_INK, c.clone().add(0, 0.6, 0), 40, outer * 0.5, 0.3, outer * 0.5, 0.05);
+            BossFx.particle(Particle.SCULK_SOUL, c.clone().add(0, 0.6, 0), 20, outer * 0.5, 0.3, outer * 0.5, 0.02);
+            run(new Mechanics.Zone(fx, ring, linger, 20, "telegraph_ring", VOID, Particle.REVERSE_PORTAL, this::players,
+                    pl -> hit(pl, ld, "tendril_lash", DamageType.MAGIC)));
+        });
+        return cast("tendril_lash", "맥동 고리", w, w + 8, BossAnim.SLAM, null, false);
     }
 
     // ── 공허 구체 ────────────────────────────────────────────────────────

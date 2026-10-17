@@ -35,6 +35,7 @@ import org.bukkit.util.Vector;
  * (바닐라 용암 피해는 취소, DamageService 경로).
  * 패턴: hammer_swing · forge_quake · molten_pour(평행선 3줄 + 쇳물 장판) · hammer_toss(왕복) · bellows_gale(한 방향 바람)
  * · anvil_crush(돌풍 → 1초 뒤 같은 방향 진동).
+ * 대응 (GDD §8.6): 못 닿는 자리에서 맞으면 그 대상에게 망치 투척 (갈 때·올 때 같은 길).
  */
 public final class Floor05Boss extends Boss {
 
@@ -279,9 +280,19 @@ public final class Floor05Boss extends Boss {
     }
 
     private int hammerToss() {
-        Params p = def.pattern("hammer_toss");
         Player t = randomTarget();
-        if (t == null) return 0;
+        return t == null ? 0 : hammerToss(t);
+    }
+
+    /** 대응 (GDD §8.6): 그 대상에게 망치 투척 (갈 때·올 때, 수치 그대로). */
+    @Override
+    protected int answer(Answer a) {
+        Player t = a.target();
+        return t == null || !t.isValid() ? 0 : hammerToss(t);
+    }
+
+    private int hammerToss(Player t) {
+        Params p = def.pattern("hammer_toss");
         int w = windup(p, 1.2);
         double len = p.dbl("length", 16);
         double width = p.dbl("width", 2.5);
