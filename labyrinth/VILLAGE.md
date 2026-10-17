@@ -279,7 +279,7 @@ plugin_version: 0.1.7
 - **적대 몹 자연 스폰 취소**: center 반경 radius+8 안 `CreatureSpawnEvent` NATURAL/`Enemy` (`village.block_mob_spawns`). PATROL·REINFORCEMENTS 도.
   (0.3.5.1) `wild.spawns`(기본 all) 가 마을 월드 전체를 막으므로 `spawns: none` 일 때만 따로 의미가 있다. 플러그인 몹(PDC labyrinth)은 건너뜀.
 - **야생 막기** (0.3.5.1, `WildService` — ARCHITECTURE §6.10): 마을 + 보호 상자 + `wild.border_margin` 둘레 바닐라 월드 경계, 마을 월드 자연 스폰 막기.
-  네더·엔드는 막지 않는다. `/labadmin wild …`. 경계 기록은 월드 폴더(`labyrinth-village.yml` 옆) `labyrinth-wild-border.yml`.
+  엔드는 막지 않는다. 네더는 0.3.7 부터 막는다 (`core.NetherLock`, `wild.nether: false` — 모든 월드, ARCHITECTURE §6.10). `/labadmin wild …`. 경계 기록은 월드 폴더(`labyrinth-village.yml` 옆) `labyrinth-wild-border.yml`.
   배포 월드를 지을 때(`tools/build_world.sh`)는 wild 를 끈다 — 경계가 world.zip 에 구워지지 않고, pregen 청크에 동물이 생기게.
 - **상호작용**: interact 칸 우클릭 → 메뉴 (`entrance`→openEntrance, `blacksmith`→openBlacksmith, `class`→openClass, `titles`→openTitles,
   `merchant`→ 상인 NPC 와 같은 상점, `main`→openMain). protect 안의 문·다락문·울타리 문·종·작업대·침대는 허용, 그 밖의 컨테이너·모루·숫돌·

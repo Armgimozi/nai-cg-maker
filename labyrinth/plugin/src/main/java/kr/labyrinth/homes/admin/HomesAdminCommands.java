@@ -131,6 +131,9 @@ public final class HomesAdminCommands {
         m.then(Commands.literal("selftest").executes(ctx -> run(ctx, () -> {
             CommandSender s = ctx.getSource().getSender();
             for (String line : svc().selfTestLines()) Text.send(s, "<gray>" + Text.escape(line));
+            String nether = kr.labyrinth.core.NetherLock.selfTestLine(); // 0.3.7 네더 막기 (집 자재에서 흑요석·부싯돌을 뺀 짝)
+            Text.send(s, "<gray>" + Text.escape(nether));
+            kr.labyrinth.core.Log.info(nether);
         })));
         cmd.addSubcommand("labadmin", m);
     }

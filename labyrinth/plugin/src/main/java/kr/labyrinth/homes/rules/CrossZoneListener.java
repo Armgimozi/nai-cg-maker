@@ -406,7 +406,8 @@ public final class CrossZoneListener implements Listener {
             }
             if (!CrossZone.portalPair(zones, own)) {
                 e.setCancelled(true);
-                if (p != null) guard.warnText(p, "여기에는 돌아오는 차원문을 만들 수 없습니다. /미궁 마을 로 돌아가세요.");
+                // 네더를 막은 서버 (0.3.7 기본) 에서는 core.NetherLock 이 다음 틱에 광장으로 옮기고 그쪽에서 한 줄 알린다
+                if (p != null && kr.labyrinth.core.NetherLock.isOpen()) guard.warnText(p, "여기에는 돌아오는 차원문을 만들 수 없습니다. /미궁 마을 로 돌아가세요.");
             }
         }
     }

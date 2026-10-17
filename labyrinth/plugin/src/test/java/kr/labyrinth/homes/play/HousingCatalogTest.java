@@ -20,7 +20,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
- * 관리인 자재 목록 (0.3.7, review R5 · R16): 387가지 · 돌 도끼 없음 · 금지 0 (금속·녹이면 조각이 나오는 도구·갑옷·무기·폭발물·레드스톤 장치 …) ·
+ * 관리인 자재 목록 (0.3.7, review R5 · R16): 385가지 · 돌 도끼 없음 · 흑요석·부싯돌 없음 (서버장 결정 "네더 막아") · 금지 0 (금속·녹이면 조각이 나오는 도구·갑옷·무기·폭발물·레드스톤 장치 …) ·
  * 도구는 건축 도구 허용 목록만 · 블록 id 는 blockdata.json 에 · 값 규칙 (기본 블록 0.25~1G, 원목 ≥ 판자 4, 계단 ≥ 1.5배, 반블록 ≥ 0.5배) ·
  * 값 배율 0.1 아래 자름 · 환불.
  */
@@ -32,7 +32,7 @@ class HousingCatalogTest {
     /** 블록이 아닌데 파는 것 (생성기 ITEMS 와 같음). */
     static final Set<String> ITEMS = Set.of("item_frame", "painting", "armor_stand", "water_bucket", "wheat_seeds", "carrot", "potato",
             "beetroot_seeds", "pumpkin_seeds", "melon_seeds", "sweet_berries", "bone_meal", "wooden_hoe", "stone_hoe", "stone_shovel",
-            "stone_pickaxe", "shears", "flint_and_steel");
+            "stone_pickaxe", "shears");
 
     @BeforeAll
     static void load() throws Exception {
@@ -46,13 +46,13 @@ class HousingCatalogTest {
     @Test
     void sizeAndTabs() {
         assertTrue(cat.problems().isEmpty(), () -> String.join("\n", cat.problems()));
-        assertEquals(387, cat.size(), "설계 386 − 돌 도끼 (R5) + 흑요석·부싯돌 (0.3.7 fix, 네더 차원문)");
-        assertEquals(387, cat.declared());
+        assertEquals(385, cat.size(), "설계 386 − 돌 도끼 (R5) · 흑요석·부싯돌은 뺌 (네더 막음)");
+        assertEquals(385, cat.declared());
         assertEquals(9, cat.tabs().size());
         assertEquals(0, cat.banned());
         assertEquals(0, cat.unknown());
         for (HousingCatalog.Tab t : cat.tabs()) assertFalse(t.items().isEmpty(), t.id());
-        assertEquals(387, byId.size(), "id 가 겹치지 않음");
+        assertEquals(385, byId.size(), "id 가 겹치지 않음");
     }
 
     @Test
@@ -92,16 +92,19 @@ class HousingCatalogTest {
                 "raw_gold", "gold_block", "copper_ingot", "raw_copper", "copper_block", "cut_copper", "copper_lantern", "diamond", "diamond_block",
                 "emerald", "emerald_ore", "netherite_scrap", "netherite_ingot", "ancient_debris",
                 "wooden_sword", "stone_sword", "bow", "crossbow", "arrow", "trident", "mace", "leather_helmet", "turtle_helmet",
-                "tnt", "tnt_minecart", "fire_charge", "lava_bucket",
+                "tnt", "tnt_minecart", "flint_and_steel", "fire_charge", "lava_bucket",
                 "piston", "sticky_piston", "dispenser", "dropper", "crafter", "observer", "rail", "powered_rail", "minecart",
                 "redstone", "redstone_torch", "repeater", "comparator", "ender_pearl", "ender_chest", "shulker_box", "white_shulker_box",
                 "beacon", "spawner", "cow_spawn_egg", "egg", "command_block", "lapis_lazuli", "lapis_block", "quartz", "quartz_block",
-                "crying_obsidian", "anvil", "enchanting_table", "brewing_stand", "fishing_rod", "brush", "cod_bucket")) {
+                "obsidian", "crying_obsidian", "anvil", "enchanting_table", "brewing_stand", "fishing_rod", "brush", "cod_bucket")) {
             assertNotNull(HousingCatalog.banReason(id), "팔면 안 됨: " + id);
         }
+        // 네더 막음 (서버장 결정): 흑요석·부싯돌은 목록에 없다
+        assertNull(cat.find("obsidian"), "흑요석은 팔지 않음 (네더 막음)");
+        assertNull(cat.find("flint_and_steel"), "부싯돌은 팔지 않음 (네더 막음)");
         // 쇠가 들어 있어도 되돌릴 길이 없는 것은 괜찮다 (R5)
         for (String id : List.of("iron_bars", "iron_chain", "lantern", "hopper", "cauldron", "water_bucket", "shears", "smithing_table",
-                "stonecutter", "redstone_lamp", "obsidian", "flint_and_steel")) { // 흑요석·부싯돌 = 네더 차원문 (0.3.7 fix)
+                "stonecutter", "redstone_lamp")) {
             assertNull(HousingCatalog.banReason(id), id);
             assertNotNull(cat.find(id), "목록에 있음: " + id);
         }
@@ -166,8 +169,8 @@ class HousingCatalogTest {
     @Test
     void generatorDataMatches() throws Exception {
         JsonObject data = JsonParser.parseString(Files.readString(Path.of("../tools/data/037/housing_catalog.json"))).getAsJsonObject();
-        assertEquals(387, data.get("count").getAsInt());
-        assertEquals(387, data.getAsJsonArray("catalog").size());
+        assertEquals(385, data.get("count").getAsInt());
+        assertEquals(385, data.getAsJsonArray("catalog").size());
     }
 
     @Test

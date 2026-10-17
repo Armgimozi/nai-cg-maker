@@ -100,6 +100,9 @@ final class VillageCommands {
     }
 
     private void wildSelftest(CommandSender s) {
+        String nether = kr.labyrinth.core.NetherLock.selfTestLine(); // 0.3.7 네더 막기 — 마을이 없어도
+        Text.send(s, "<gray>" + Text.escape(nether));
+        kr.labyrinth.core.Log.info(nether);
         WildService ws = module.service().wild();
         if (ws == null || !ws.active()) {
             Text.error(s, "이 월드에는 마을이 없습니다 — 야생 막기가 꺼져 있습니다.");
@@ -333,7 +336,9 @@ final class VillageCommands {
                 Text.send(s, "<gray>" + Text.escape(line));
                 kr.labyrinth.core.Log.info(line);
             }
-            for (String line : module.services().homes().selfTestLines()) {
+            List<String> lines = new java.util.ArrayList<>(module.services().homes().selfTestLines());
+            lines.add(kr.labyrinth.core.NetherLock.selfTestLine()); // 0.3.7 네더 막기
+            for (String line : lines) {
                 if (line == null || line.isBlank()) continue;
                 Text.send(s, "<gray>" + Text.escape(line));
                 kr.labyrinth.core.Log.info(line);
