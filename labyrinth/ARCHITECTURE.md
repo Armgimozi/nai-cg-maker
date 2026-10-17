@@ -1096,6 +1096,12 @@ wild:                 # wild: false = 통째로 끔 (Settings.Wild.OFF)
 - 새 world.zip: `tools/build_world.sh --base <예전 world.zip> [자리]` (광산 월드·자동 짓기 끔, 켜 둔 동안 random_tick_speed 0 · spawn_mobs false,
   끝나면 게임 규칙 파일은 예전 것으로). release.sh 는 world.zip 에 지은 광산 마을 + 백업이 없거나 labyrinth_mine 이 있으면 실패.
 
+### 6.13 0.3.6.2 (jar 만 바꿈 — 월드·content 그대로)
+- 평면 아이콘 83개 = 16×16 손그림 `resourcepack/src/pixel_icons/` (§2 '2D 아이콘'). 팩 sha 가 바뀌어 `pack.public_copy` 새 사본
+  (`pack-host/labyrinth-pack-<sha8>.zip`, `tools/check_pack_host.py`)이 배포 가지에 올라가야 예전 사본 주소가 이 판으로 바뀐다.
+- 죽음 페널티: 장비 안전 · 셜커·꾸러미 속 장비 아닌 것만 · 골드 5~25% (`death.penalty.gold_loss`, 키 없으면 기본값) ·
+  싸우는 중 접속 끊김 = 쓰러짐 (§5 '죽음 페널티', GDD §2.6.1). 새 config 키는 `gold_loss` 하나 — 예전 config.yml 그대로 켜진다.
+
 ## 7. 성능·안정성 규칙
 
 - 블록 대량 배치는 틱당 상한(예: 4,000 블록)으로 나눠서. 층 생성 중엔 입장자에게 진행 표시.
