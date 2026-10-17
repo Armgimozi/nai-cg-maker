@@ -25,7 +25,7 @@ class ToolSpecTest {
         assertFalse(t.canMine(5), "두 단계 위는 못 캠");
         assertFalse(t.canMine(0));
         assertEquals(4, t.maxHardness());
-        assertEquals(1.4 * ToolSpec.STRETCH_FALLBACK, t.speedFor(4), 1e-9, "표에 없으면 제 등급 × 0.6");
+        assertEquals(1.4 * ToolSpec.STRETCH_FALLBACK, t.speedFor(4), 1e-9, "표에 없으면 제 등급 × 0.5");
         assertEquals(0.0, t.speedFor(5));
         assertEquals(2.5 / 1.4, t.seconds(2.5, 1), 1e-9);
         assertTrue(Double.isInfinite(t.seconds(4.1, 5)));
@@ -34,19 +34,20 @@ class ToolSpecTest {
 
     @Test
     void missingStretchSpeedUsesNextPickaxe() {
-        // 경제 검토 (0.3.6.1): 손으로 고친 items.yml 에 한 단계 위 칸이 없으면, 제 곡괭이 × 0.6 (0.60) 이 아니라
-        // 생성기·계약처럼 그 광석 제 곡괭이(철) 빠르기 × 0.6 (0.72) — 구리 곡괭이로 철 광석 2.9초 ÷ 0.72 = 4.03초
+        // 경제 검토 (0.3.6.1): 손으로 고친 items.yml 에 한 단계 위 칸이 없으면, 제 곡괭이 × 0.5 (0.50) 이 아니라
+        // 생성기·계약처럼 그 광석 제 곡괭이(철) 빠르기 × 0.5 (0.8) — 구리 곡괭이로 철 광석 3.6초 ÷ 0.8 = 4.5초 (0.3.7)
         Map<String, Object> items = new LinkedHashMap<>();
         items.put("copper_pickaxe", Map.of("name", "구리 곡괭이", "type", "tool", "rarity", "common",
                 "tool", Map.of("kind", "pickaxe", "tier", 1, "speed", Map.of("1", 1.0), "bonus", 0.0)));
         items.put("iron_pickaxe", Map.of("name", "철 곡괭이", "type", "tool", "rarity", "common",
-                "tool", Map.of("kind", "pickaxe", "tier", 2, "speed", Map.of("1", 1.2, "2", 1.2, "3", 0.9), "bonus", 0.02)));
+                "tool", Map.of("kind", "pickaxe", "tier", 2, "speed", Map.of("1", 1.6, "2", 1.6, "3", 1.25), "bonus", 0.02)));
         Content c = new ContentParser().parse(Map.of("items.yml", Map.of("items", items)));
         ToolSpec copper = c.item("copper_pickaxe").tool();
-        assertEquals(0.72, copper.speedFor(2), 1e-9, "다음 곡괭이 빠르기 1.2 × 0.6");
-        assertEquals(2.9 / 0.72, copper.seconds(2.9, 2), 1e-9);
-        assertEquals(0.9, c.item("iron_pickaxe").tool().speedFor(3), 1e-9, "적힌 값은 그대로");
-        assertEquals(Map.of(1, 1.0, 2, 1.2), ToolSpec.ownSpeeds(List.of(copper, c.item("iron_pickaxe").tool())));
+        assertEquals(0.8, copper.speedFor(2), 1e-9, "다음 곡괭이 빠르기 1.6 × 0.5");
+        assertEquals(3.6 / 0.8, copper.seconds(3.6, 2), 1e-9);
+        assertEquals(4.5, copper.seconds(3.6, 2), 1e-9);
+        assertEquals(1.25, c.item("iron_pickaxe").tool().speedFor(3), 1e-9, "적힌 값은 그대로");
+        assertEquals(Map.of(1, 1.0, 2, 1.6), ToolSpec.ownSpeeds(List.of(copper, c.item("iron_pickaxe").tool())));
         ToolSpec lone = ToolSpec.parse(Params.of(Map.of("tier", 3, "speed", Map.of("1", 1.4, "2", 1.4, "3", 1.4))));
         assertTrue(lone.withStretch(Map.of()) == lone, "다음 곡괭이를 모르면 그대로");
         assertTrue(copper.withStretch(Map.of(2, 5.0)) == copper, "이미 있으면 그대로");

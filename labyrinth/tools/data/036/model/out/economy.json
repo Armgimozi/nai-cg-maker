@@ -1,31 +1,31 @@
 {
  "table_a_single_level": {
   "1:1": {
-   "ore_per_min": 11.58,
+   "ore_per_min": 11.97,
    "by_metal": {
-    "copper": 7.79,
-    "iron": 3.79
+    "copper": 8.06,
+    "iron": 3.91
    },
-   "blocks_per_min": 10.72,
-   "loop_min": 4.8
+   "blocks_per_min": 11.08,
+   "loop_min": 4.7
   },
   "1:2": {
-   "ore_per_min": 10.62,
+   "ore_per_min": 10.53,
    "by_metal": {
-    "iron": 6.0,
-    "copper": 4.62
+    "iron": 5.95,
+    "copper": 4.58
    },
-   "blocks_per_min": 9.83,
+   "blocks_per_min": 9.75,
    "loop_min": 4.7
   },
   "1:3": {
-   "ore_per_min": 8.94,
+   "ore_per_min": 8.73,
    "by_metal": {
-    "iron": 6.19,
-    "copper": 2.75
+    "iron": 6.04,
+    "copper": 2.69
    },
-   "blocks_per_min": 8.28,
-   "loop_min": 3.1
+   "blocks_per_min": 8.08,
+   "loop_min": 3.2
   },
   "1:4": {
    "ore_per_min": 5.04,
@@ -55,44 +55,44 @@
    "loop_min": 1.6
   },
   "2:1": {
-   "ore_per_min": 13.67,
+   "ore_per_min": 15.23,
    "by_metal": {
-    "copper": 8.55,
-    "iron": 4.15,
-    "silver": 0.98
+    "copper": 9.52,
+    "iron": 4.62,
+    "silver": 1.09
    },
-   "blocks_per_min": 12.41,
-   "loop_min": 4.5
+   "blocks_per_min": 13.83,
+   "loop_min": 4.0
   },
   "2:2": {
-   "ore_per_min": 13.01,
+   "ore_per_min": 13.56,
    "by_metal": {
-    "iron": 6.15,
-    "copper": 4.73,
-    "silver": 2.13
+    "iron": 6.41,
+    "copper": 4.93,
+    "silver": 2.22
    },
-   "blocks_per_min": 11.81,
-   "loop_min": 4.7
+   "blocks_per_min": 12.31,
+   "loop_min": 4.5
   },
   "2:3": {
-   "ore_per_min": 11.55,
+   "ore_per_min": 10.91,
    "by_metal": {
-    "silver": 5.66,
-    "iron": 4.08,
-    "copper": 1.81
+    "silver": 5.35,
+    "iron": 3.85,
+    "copper": 1.71
    },
-   "blocks_per_min": 10.48,
-   "loop_min": 4.9
+   "blocks_per_min": 9.9,
+   "loop_min": 5.2
   },
   "2:4": {
-   "ore_per_min": 9.96,
+   "ore_per_min": 9.52,
    "by_metal": {
-    "silver": 4.98,
-    "iron": 2.85,
-    "copper": 2.13
+    "silver": 4.76,
+    "iron": 2.72,
+    "copper": 2.04
    },
-   "blocks_per_min": 9.04,
-   "loop_min": 3.1
+   "blocks_per_min": 8.64,
+   "loop_min": 3.2
   },
   "2:5": {
    "ore_per_min": 5.51,
@@ -102,7 +102,7 @@
     "copper": 1.1
    },
    "blocks_per_min": 5.0,
-   "loop_min": 2.1
+   "loop_min": 2.2
   },
   "2:6": {
    "ore_per_min": 5.14,
@@ -115,58 +115,58 @@
    "loop_min": 2.0
   },
   "3:1": {
-   "ore_per_min": 15.21,
+   "ore_per_min": 18.55,
    "by_metal": {
-    "copper": 9.51,
-    "iron": 4.62,
-    "silver": 1.09
+    "copper": 11.59,
+    "iron": 5.63,
+    "silver": 1.32
    },
-   "blocks_per_min": 13.54,
-   "loop_min": 4.1
+   "blocks_per_min": 16.51,
+   "loop_min": 3.4
   },
   "3:2": {
-   "ore_per_min": 14.68,
+   "ore_per_min": 16.51,
    "by_metal": {
-    "iron": 6.58,
-    "copper": 5.06,
-    "silver": 2.28,
-    "gold": 0.76
+    "iron": 7.4,
+    "copper": 5.69,
+    "silver": 2.56,
+    "gold": 0.85
    },
-   "blocks_per_min": 13.07,
-   "loop_min": 4.4
+   "blocks_per_min": 14.7,
+   "loop_min": 3.9
   },
   "3:3": {
-   "ore_per_min": 13.89,
+   "ore_per_min": 14.06,
    "by_metal": {
-    "silver": 5.99,
-    "iron": 4.31,
-    "copper": 1.92,
-    "gold": 1.68
+    "silver": 6.06,
+    "iron": 4.36,
+    "copper": 1.94,
+    "gold": 1.7
    },
-   "blocks_per_min": 12.36,
-   "loop_min": 4.7
+   "blocks_per_min": 12.52,
+   "loop_min": 4.6
   },
   "3:4": {
-   "ore_per_min": 12.17,
+   "ore_per_min": 10.96,
    "by_metal": {
-    "gold": 5.49,
-    "silver": 3.34,
-    "iron": 1.91,
-    "copper": 1.43
+    "gold": 4.94,
+    "silver": 3.01,
+    "iron": 1.72,
+    "copper": 1.29
    },
-   "blocks_per_min": 10.83,
-   "loop_min": 4.7
+   "blocks_per_min": 9.76,
+   "loop_min": 5.2
   },
   "3:5": {
-   "ore_per_min": 10.47,
+   "ore_per_min": 9.49,
    "by_metal": {
-    "gold": 5.05,
-    "silver": 2.53,
-    "iron": 1.81,
-    "copper": 1.08
+    "gold": 4.58,
+    "silver": 2.29,
+    "iron": 1.64,
+    "copper": 0.98
    },
-   "blocks_per_min": 9.32,
-   "loop_min": 3.1
+   "blocks_per_min": 8.45,
+   "loop_min": 3.4
   },
   "3:6": {
    "ore_per_min": 8.61,
@@ -177,423 +177,425 @@
     "copper": 1.12
    },
    "blocks_per_min": 7.67,
-   "loop_min": 2.6
+   "loop_min": 2.8
   },
   "4:1": {
-   "ore_per_min": 16.39,
+   "ore_per_min": 21.36,
    "by_metal": {
-    "copper": 10.24,
-    "iron": 4.97,
-    "silver": 1.17
+    "copper": 13.35,
+    "iron": 6.49,
+    "silver": 1.53
    },
-   "blocks_per_min": 14.31,
-   "loop_min": 3.9
+   "blocks_per_min": 18.66,
+   "loop_min": 3.0
   },
   "4:2": {
-   "ore_per_min": 16.07,
+   "ore_per_min": 19.93,
    "by_metal": {
-    "iron": 7.2,
-    "copper": 5.54,
-    "silver": 2.49,
-    "gold": 0.83
+    "iron": 8.94,
+    "copper": 6.87,
+    "silver": 3.09,
+    "gold": 1.03
    },
-   "blocks_per_min": 14.04,
-   "loop_min": 4.1
+   "blocks_per_min": 17.41,
+   "loop_min": 3.3
   },
   "4:3": {
-   "ore_per_min": 15.41,
+   "ore_per_min": 17.3,
    "by_metal": {
-    "silver": 6.42,
-    "iron": 4.62,
-    "copper": 2.05,
-    "gold": 1.8,
-    "mithril": 0.51
+    "silver": 7.21,
+    "iron": 5.19,
+    "copper": 2.31,
+    "gold": 2.02,
+    "mithril": 0.58
    },
-   "blocks_per_min": 13.46,
-   "loop_min": 4.5
-  },
-  "4:4": {
-   "ore_per_min": 14.41,
-   "by_metal": {
-    "gold": 5.71,
-    "silver": 3.48,
-    "iron": 1.99,
-    "mithril": 1.74,
-    "copper": 1.49
-   },
-   "blocks_per_min": 12.59,
-   "loop_min": 4.6
-  },
-  "4:5": {
-   "ore_per_min": 12.64,
-   "by_metal": {
-    "mithril": 5.85,
-    "gold": 3.28,
-    "silver": 1.64,
-    "iron": 1.17,
-    "copper": 0.7
-   },
-   "blocks_per_min": 11.04,
-   "loop_min": 4.9
-  },
-  "4:6": {
-   "ore_per_min": 11.98,
-   "by_metal": {
-    "mithril": 4.73,
-    "gold": 2.84,
-    "silver": 1.89,
-    "iron": 1.58,
-    "copper": 0.95
-   },
-   "blocks_per_min": 10.46,
-   "loop_min": 3.6
-  },
-  "5:1": {
-   "ore_per_min": 17.47,
-   "by_metal": {
-    "copper": 10.92,
-    "iron": 5.3,
-    "silver": 1.25
-   },
-   "blocks_per_min": 14.98,
-   "loop_min": 3.7
-  },
-  "5:2": {
-   "ore_per_min": 17.18,
-   "by_metal": {
-    "iron": 7.7,
-    "copper": 5.92,
-    "silver": 2.67,
-    "gold": 0.89
-   },
-   "blocks_per_min": 14.72,
-   "loop_min": 3.9
-  },
-  "5:3": {
-   "ore_per_min": 16.67,
-   "by_metal": {
-    "silver": 6.95,
-    "iron": 5.0,
-    "copper": 2.22,
-    "gold": 1.94,
-    "mithril": 0.56
-   },
-   "blocks_per_min": 14.29,
-   "loop_min": 4.2
-  },
-  "5:4": {
-   "ore_per_min": 15.87,
-   "by_metal": {
-    "gold": 6.08,
-    "silver": 3.7,
-    "iron": 2.12,
-    "mithril": 1.85,
-    "copper": 1.59,
-    "orichalcum": 0.53
-   },
-   "blocks_per_min": 13.6,
-   "loop_min": 4.4
-  },
-  "5:5": {
-   "ore_per_min": 14.92,
-   "by_metal": {
-    "mithril": 6.02,
-    "gold": 3.37,
-    "orichalcum": 1.93,
-    "silver": 1.68,
-    "iron": 1.2,
-    "copper": 0.72
-   },
-   "blocks_per_min": 12.79,
-   "loop_min": 4.8
-  },
-  "5:6": {
-   "ore_per_min": 13.71,
-   "by_metal": {
-    "orichalcum": 5.82,
-    "mithril": 3.12,
-    "gold": 1.87,
-    "silver": 1.25,
-    "iron": 1.04,
-    "copper": 0.62
-   },
-   "blocks_per_min": 11.75,
-   "loop_min": 5.6
-  },
-  "6:1": {
-   "ore_per_min": 18.48,
-   "by_metal": {
-    "copper": 11.55,
-    "iron": 5.61,
-    "silver": 1.32
-   },
-   "blocks_per_min": 15.56,
-   "loop_min": 3.6
-  },
-  "6:2": {
-   "ore_per_min": 18.2,
-   "by_metal": {
-    "iron": 8.16,
-    "copper": 6.28,
-    "silver": 2.82,
-    "gold": 0.94
-   },
-   "blocks_per_min": 15.32,
-   "loop_min": 3.8
-  },
-  "6:3": {
-   "ore_per_min": 17.72,
-   "by_metal": {
-    "silver": 7.38,
-    "iron": 5.31,
-    "copper": 2.36,
-    "gold": 2.07,
-    "mithril": 0.59
-   },
-   "blocks_per_min": 14.91,
+   "blocks_per_min": 15.11,
    "loop_min": 4.0
   },
-  "6:4": {
-   "ore_per_min": 17.07,
+  "4:4": {
+   "ore_per_min": 14.04,
    "by_metal": {
-    "gold": 6.54,
-    "silver": 3.98,
-    "iron": 2.28,
-    "mithril": 1.99,
-    "copper": 1.71,
+    "gold": 5.57,
+    "silver": 3.39,
+    "iron": 1.94,
+    "mithril": 1.69,
+    "copper": 1.45
+   },
+   "blocks_per_min": 12.26,
+   "loop_min": 4.7
+  },
+  "4:5": {
+   "ore_per_min": 10.63,
+   "by_metal": {
+    "mithril": 4.92,
+    "gold": 2.76,
+    "silver": 1.38,
+    "iron": 0.98,
+    "copper": 0.59
+   },
+   "blocks_per_min": 9.29,
+   "loop_min": 5.8
+  },
+  "4:6": {
+   "ore_per_min": 10.55,
+   "by_metal": {
+    "mithril": 4.16,
+    "gold": 2.5,
+    "silver": 1.67,
+    "iron": 1.39,
+    "copper": 0.83
+   },
+   "blocks_per_min": 9.22,
+   "loop_min": 4.1
+  },
+  "5:1": {
+   "ore_per_min": 21.77,
+   "by_metal": {
+    "copper": 13.61,
+    "iron": 6.61,
+    "silver": 1.56
+   },
+   "blocks_per_min": 18.67,
+   "loop_min": 2.9
+  },
+  "5:2": {
+   "ore_per_min": 22.22,
+   "by_metal": {
+    "iron": 9.96,
+    "copper": 7.66,
+    "silver": 3.45,
+    "gold": 1.15
+   },
+   "blocks_per_min": 19.05,
+   "loop_min": 3.0
+  },
+  "5:3": {
+   "ore_per_min": 20.59,
+   "by_metal": {
+    "silver": 8.58,
+    "iron": 6.18,
+    "copper": 2.74,
+    "gold": 2.4,
+    "mithril": 0.69
+   },
+   "blocks_per_min": 17.65,
+   "loop_min": 3.4
+  },
+  "5:4": {
+   "ore_per_min": 17.2,
+   "by_metal": {
+    "gold": 6.59,
+    "silver": 4.01,
+    "iron": 2.29,
+    "mithril": 2.01,
+    "copper": 1.72,
     "orichalcum": 0.57
    },
-   "blocks_per_min": 14.37,
-   "loop_min": 4.2
+   "blocks_per_min": 14.75,
+   "loop_min": 4.1
+  },
+  "5:5": {
+   "ore_per_min": 13.6,
+   "by_metal": {
+    "mithril": 5.48,
+    "gold": 3.07,
+    "orichalcum": 1.76,
+    "silver": 1.54,
+    "iron": 1.1,
+    "copper": 0.66
+   },
+   "blocks_per_min": 11.66,
+   "loop_min": 5.3
+  },
+  "5:6": {
+   "ore_per_min": 10.89,
+   "by_metal": {
+    "orichalcum": 4.62,
+    "mithril": 2.47,
+    "gold": 1.48,
+    "silver": 0.99,
+    "iron": 0.82,
+    "copper": 0.49
+   },
+   "blocks_per_min": 9.33,
+   "loop_min": 7.1
+  },
+  "6:1": {
+   "ore_per_min": 22.18,
+   "by_metal": {
+    "copper": 13.86,
+    "iron": 6.73,
+    "silver": 1.58
+   },
+   "blocks_per_min": 18.67,
+   "loop_min": 2.8
+  },
+  "6:2": {
+   "ore_per_min": 22.97,
+   "by_metal": {
+    "iron": 10.3,
+    "copper": 7.92,
+    "silver": 3.56,
+    "gold": 1.19
+   },
+   "blocks_per_min": 19.33,
+   "loop_min": 2.9
+  },
+  "6:3": {
+   "ore_per_min": 22.82,
+   "by_metal": {
+    "silver": 9.51,
+    "iron": 6.85,
+    "copper": 3.04,
+    "gold": 2.66,
+    "mithril": 0.76
+   },
+   "blocks_per_min": 19.21,
+   "loop_min": 3.1
+  },
+  "6:4": {
+   "ore_per_min": 20.43,
+   "by_metal": {
+    "gold": 7.83,
+    "silver": 4.77,
+    "iron": 2.72,
+    "mithril": 2.38,
+    "copper": 2.04,
+    "orichalcum": 0.68
+   },
+   "blocks_per_min": 17.19,
+   "loop_min": 3.5
   },
   "6:5": {
-   "ore_per_min": 16.51,
+   "ore_per_min": 17.57,
    "by_metal": {
-    "mithril": 6.66,
-    "gold": 3.73,
-    "orichalcum": 2.13,
-    "silver": 1.86,
-    "iron": 1.33,
-    "copper": 0.8
+    "mithril": 7.08,
+    "gold": 3.97,
+    "orichalcum": 2.27,
+    "silver": 1.98,
+    "iron": 1.42,
+    "copper": 0.85
    },
-   "blocks_per_min": 13.9,
-   "loop_min": 4.5
+   "blocks_per_min": 14.79,
+   "loop_min": 4.2
   },
   "6:6": {
-   "ore_per_min": 16.37,
+   "ore_per_min": 15.6,
    "by_metal": {
-    "orichalcum": 6.95,
-    "mithril": 3.72,
-    "gold": 2.23,
-    "silver": 1.49,
-    "iron": 1.24,
-    "copper": 0.74
+    "orichalcum": 6.62,
+    "mithril": 3.55,
+    "gold": 2.13,
+    "silver": 1.42,
+    "iron": 1.18,
+    "copper": 0.71
    },
-   "blocks_per_min": 13.78,
-   "loop_min": 4.8
+   "blocks_per_min": 13.13,
+   "loop_min": 5.0
   }
  },
  "table_b_focused": {
   "1:copper": {
-   "ore_per_min": 11.35,
+   "ore_per_min": 12.44,
    "levels": [
     1
    ]
   },
   "1:iron": {
-   "ore_per_min": 8.27,
+   "ore_per_min": 7.79,
    "levels": [
     2
    ]
   },
   "2:copper": {
-   "ore_per_min": 12.51,
+   "ore_per_min": 13.47,
    "levels": [
-    1
+    1,
+    2
    ]
   },
   "2:iron": {
-   "ore_per_min": 9.96,
+   "ore_per_min": 10.22,
    "levels": [
     2,
     3
    ]
   },
   "2:silver": {
-   "ore_per_min": 8.44,
+   "ore_per_min": 7.42,
    "levels": [
     3
    ]
   },
   "3:copper": {
-   "ore_per_min": 13.1,
+   "ore_per_min": 15.16,
    "levels": [
-    1
+    1,
+    2
    ]
   },
   "3:iron": {
-   "ore_per_min": 10.74,
+   "ore_per_min": 11.96,
    "levels": [
     2,
     3
    ]
   },
   "3:silver": {
-   "ore_per_min": 9.74,
+   "ore_per_min": 9.52,
    "levels": [
     3,
     4
    ]
   },
   "3:gold": {
-   "ore_per_min": 8.46,
+   "ore_per_min": 6.92,
    "levels": [
     4
    ]
   },
   "4:copper": {
-   "ore_per_min": 13.36,
+   "ore_per_min": 16.6,
    "levels": [
-    1
+    1,
+    2
    ]
   },
   "4:iron": {
-   "ore_per_min": 11.43,
+   "ore_per_min": 13.52,
    "levels": [
     2,
     3
    ]
   },
   "4:silver": {
-   "ore_per_min": 10.39,
+   "ore_per_min": 11.25,
    "levels": [
     3,
     4
    ]
   },
   "4:gold": {
-   "ore_per_min": 9.75,
+   "ore_per_min": 9.09,
    "levels": [
     4,
     5
    ]
   },
   "4:mithril": {
-   "ore_per_min": 8.93,
+   "ore_per_min": 6.79,
    "levels": [
     5
    ]
   },
   "5:copper": {
-   "ore_per_min": 13.88,
+   "ore_per_min": 16.93,
    "levels": [
     1,
     2
    ]
   },
   "5:iron": {
-   "ore_per_min": 12.06,
+   "ore_per_min": 14.78,
    "levels": [
     2,
     3
    ]
   },
   "5:silver": {
-   "ore_per_min": 10.98,
+   "ore_per_min": 12.72,
    "levels": [
     3,
     4
    ]
   },
   "5:gold": {
-   "ore_per_min": 10.34,
+   "ore_per_min": 10.83,
    "levels": [
     4,
     5
    ]
   },
   "5:mithril": {
-   "ore_per_min": 10.35,
+   "ore_per_min": 9.72,
    "levels": [
-    5,
-    6
+    5
    ]
   },
   "5:orichalcum": {
-   "ore_per_min": 9.47,
+   "ore_per_min": 6.55,
    "levels": [
     6
    ]
   },
   "6:copper": {
-   "ore_per_min": 14.55,
+   "ore_per_min": 17.25,
    "levels": [
     1,
     2
    ]
   },
   "6:iron": {
-   "ore_per_min": 12.64,
+   "ore_per_min": 15.27,
    "levels": [
     2,
     3
    ]
   },
   "6:silver": {
-   "ore_per_min": 11.52,
+   "ore_per_min": 13.86,
    "levels": [
     3,
     4
    ]
   },
   "6:gold": {
-   "ore_per_min": 10.87,
+   "ore_per_min": 12.26,
    "levels": [
     4,
     5
    ]
   },
   "6:mithril": {
-   "ore_per_min": 10.93,
+   "ore_per_min": 11.04,
    "levels": [
     5,
     6
    ]
   },
   "6:orichalcum": {
-   "ore_per_min": 11.09,
+   "ore_per_min": 9.99,
    "levels": [
     6
    ]
   }
  },
  "gem_focused": {
-  "1:quartz": 0.291,
-  "1:garnet": 0.227,
-  "2:quartz": 0.315,
-  "2:garnet": 0.261,
-  "2:moonstone": 0.23,
-  "3:quartz": 0.323,
-  "3:garnet": 0.276,
-  "3:moonstone": 0.257,
-  "3:topaz": 0.231,
-  "4:quartz": 0.323,
-  "4:garnet": 0.288,
-  "4:moonstone": 0.269,
-  "4:topaz": 0.257,
-  "4:sapphire": 0.234,
-  "5:quartz": 0.327,
-  "5:garnet": 0.298,
-  "5:moonstone": 0.279,
-  "5:topaz": 0.267,
-  "5:sapphire": 0.262,
-  "5:dragonblood_stone": 0.237,
-  "6:quartz": 0.336,
-  "6:garnet": 0.307,
-  "6:moonstone": 0.288,
-  "6:topaz": 0.275,
-  "6:sapphire": 0.271,
-  "6:dragonblood_stone": 0.272
+  "1:quartz": 0.319,
+  "1:garnet": 0.214,
+  "2:quartz": 0.336,
+  "2:garnet": 0.267,
+  "2:moonstone": 0.202,
+  "3:quartz": 0.371,
+  "3:garnet": 0.307,
+  "3:moonstone": 0.252,
+  "3:topaz": 0.189,
+  "4:quartz": 0.398,
+  "4:garnet": 0.34,
+  "4:moonstone": 0.292,
+  "4:topaz": 0.239,
+  "4:sapphire": 0.178,
+  "5:quartz": 0.398,
+  "5:garnet": 0.365,
+  "5:moonstone": 0.324,
+  "5:topaz": 0.28,
+  "5:sapphire": 0.25,
+  "5:dragonblood_stone": 0.164,
+  "6:quartz": 0.399,
+  "6:garnet": 0.37,
+  "6:moonstone": 0.346,
+  "6:topaz": 0.311,
+  "6:sapphire": 0.274,
+  "6:dragonblood_stone": 0.245
  },
  "rows": [
   {
@@ -652,10 +654,10 @@
      "mine_levels": [
       1
      ],
-     "mine_min": 1.7,
-     "mine_bpm": 10.51,
-     "total_min": 13.1,
-     "share_mine": 0.128
+     "mine_min": 1.5,
+     "mine_bpm": 11.52,
+     "total_min": 13.0,
+     "share_mine": 0.118
     },
     "new_4p": {
      "kit": [
@@ -682,13 +684,13 @@
      "mine_levels": [
       1
      ],
-     "mine_min": 1.7,
-     "mine_bpm": 10.51,
-     "total_min": 9.6,
-     "share_mine": 0.174
+     "mine_min": 1.5,
+     "mine_bpm": 11.52,
+     "total_min": 9.5,
+     "share_mine": 0.161
     },
-    "delta_solo": 0.149,
-    "delta_4p": 0.2
+    "delta_solo": 0.14,
+    "delta_4p": 0.188
    },
    "plus5": {
     "old_solo": {
@@ -744,10 +746,10 @@
      "mine_levels": [
       1
      ],
-     "mine_min": 3.4,
-     "mine_bpm": 10.51,
-     "total_min": 29.2,
-     "share_mine": 0.115
+     "mine_min": 3.1,
+     "mine_bpm": 11.52,
+     "total_min": 28.9,
+     "share_mine": 0.106
     },
     "new_4p": {
      "kit": [
@@ -774,31 +776,31 @@
      "mine_levels": [
       1
      ],
-     "mine_min": 3.4,
-     "mine_bpm": 10.51,
-     "total_min": 21.4,
-     "share_mine": 0.157
+     "mine_min": 3.1,
+     "mine_bpm": 11.52,
+     "total_min": 21.1,
+     "share_mine": 0.146
     },
-    "delta_solo": 0.007,
-    "delta_4p": 0.059
+    "delta_solo": -0.003,
+    "delta_4p": 0.045
    },
    "gold": {
     "dungeon_per_run": 884,
     "dungeon_per_min": 58.9,
     "band_pickaxe": "copper_pickaxe",
     "dungeon_with_sale_per_min": 83.1,
-    "ratio_with_sale": 0.162,
-    "mine_per_min": 13.4,
+    "ratio_with_sale": 0.167,
+    "mine_per_min": 13.9,
     "mine_levels": [
      1
     ],
-    "ratio": 0.228,
+    "ratio": 0.235,
     "early_pickaxe": "iron_pickaxe",
-    "early_per_min": 19.6,
-    "early_ratio": 0.332,
-    "early_ratio_with_sale": 0.236,
-    "gift_top_pickaxe_per_min": 42.5,
-    "gift_ratio": 0.722
+    "early_per_min": 18.7,
+    "early_ratio": 0.318,
+    "early_ratio_with_sale": 0.225,
+    "gift_top_pickaxe_per_min": 41.4,
+    "gift_ratio": 0.703
    }
   },
   {
@@ -861,9 +863,9 @@
       2
      ],
      "mine_min": 2.0,
-     "mine_bpm": 9.72,
+     "mine_bpm": 9.65,
      "total_min": 16.6,
-     "share_mine": 0.118
+     "share_mine": 0.119
     },
     "new_4p": {
      "kit": [
@@ -894,9 +896,9 @@
       2
      ],
      "mine_min": 2.0,
-     "mine_bpm": 9.72,
+     "mine_bpm": 9.65,
      "total_min": 12.2,
-     "share_mine": 0.161
+     "share_mine": 0.163
     },
     "delta_solo": 0.107,
     "delta_4p": 0.173
@@ -958,10 +960,10 @@
      "mine_levels": [
       3
      ],
-     "mine_min": 10.0,
-     "mine_bpm": 8.23,
-     "total_min": 38.6,
-     "share_mine": 0.258
+     "mine_min": 10.2,
+     "mine_bpm": 8.03,
+     "total_min": 38.9,
+     "share_mine": 0.262
     },
     "new_4p": {
      "kit": [
@@ -991,31 +993,31 @@
      "mine_levels": [
       3
      ],
-     "mine_min": 10.0,
-     "mine_bpm": 8.23,
-     "total_min": 29.9,
-     "share_mine": 0.333
+     "mine_min": 10.2,
+     "mine_bpm": 8.03,
+     "total_min": 30.2,
+     "share_mine": 0.338
     },
-    "delta_solo": 0.132,
-    "delta_4p": 0.262
+    "delta_solo": 0.141,
+    "delta_4p": 0.274
    },
    "gold": {
     "dungeon_per_run": 1097,
     "dungeon_per_min": 68.6,
     "band_pickaxe": "copper_pickaxe",
     "dungeon_with_sale_per_min": 88.4,
-    "ratio_with_sale": 0.152,
-    "mine_per_min": 13.4,
+    "ratio_with_sale": 0.157,
+    "mine_per_min": 13.9,
     "mine_levels": [
      1
     ],
-    "ratio": 0.196,
+    "ratio": 0.202,
     "early_pickaxe": "iron_pickaxe",
-    "early_per_min": 19.6,
-    "early_ratio": 0.285,
-    "early_ratio_with_sale": 0.222,
-    "gift_top_pickaxe_per_min": 42.5,
-    "gift_ratio": 0.62
+    "early_per_min": 18.7,
+    "early_ratio": 0.273,
+    "early_ratio_with_sale": 0.212,
+    "gift_top_pickaxe_per_min": 41.4,
+    "gift_ratio": 0.604
    }
   },
   {
@@ -1074,10 +1076,10 @@
      "mine_levels": [
       2
      ],
-     "mine_min": 3.0,
-     "mine_bpm": 7.65,
-     "total_min": 22.2,
-     "share_mine": 0.134
+     "mine_min": 3.1,
+     "mine_bpm": 7.22,
+     "total_min": 22.4,
+     "share_mine": 0.141
     },
     "new_4p": {
      "kit": [
@@ -1104,13 +1106,13 @@
      "mine_levels": [
       2
      ],
-     "mine_min": 3.0,
-     "mine_bpm": 7.65,
-     "total_min": 16.3,
-     "share_mine": 0.181
+     "mine_min": 3.1,
+     "mine_bpm": 7.22,
+     "total_min": 16.5,
+     "share_mine": 0.19
     },
-    "delta_solo": 0.156,
-    "delta_4p": 0.216
+    "delta_solo": 0.167,
+    "delta_4p": 0.231
    },
    "plus5": {
     "old_solo": {
@@ -1166,10 +1168,10 @@
      "mine_levels": [
       2
      ],
-     "mine_min": 5.7,
-     "mine_bpm": 7.65,
-     "total_min": 53.1,
-     "share_mine": 0.108
+     "mine_min": 6.1,
+     "mine_bpm": 7.22,
+     "total_min": 53.5,
+     "share_mine": 0.114
     },
     "new_4p": {
      "kit": [
@@ -1196,31 +1198,31 @@
      "mine_levels": [
       2
      ],
-     "mine_min": 5.7,
-     "mine_bpm": 7.65,
-     "total_min": 38.7,
-     "share_mine": 0.148
+     "mine_min": 6.1,
+     "mine_bpm": 7.22,
+     "total_min": 39.1,
+     "share_mine": 0.155
     },
-    "delta_solo": 0.062,
-    "delta_4p": 0.115
+    "delta_solo": 0.07,
+    "delta_4p": 0.127
    },
    "gold": {
     "dungeon_per_run": 1336,
     "dungeon_per_min": 74.2,
     "band_pickaxe": "copper_pickaxe",
     "dungeon_with_sale_per_min": 101.2,
-    "ratio_with_sale": 0.133,
-    "mine_per_min": 13.4,
+    "ratio_with_sale": 0.137,
+    "mine_per_min": 13.9,
     "mine_levels": [
      1
     ],
-    "ratio": 0.181,
+    "ratio": 0.187,
     "early_pickaxe": "iron_pickaxe",
-    "early_per_min": 19.6,
-    "early_ratio": 0.264,
-    "early_ratio_with_sale": 0.193,
-    "gift_top_pickaxe_per_min": 42.5,
-    "gift_ratio": 0.573
+    "early_per_min": 18.7,
+    "early_ratio": 0.252,
+    "early_ratio_with_sale": 0.185,
+    "gift_top_pickaxe_per_min": 41.4,
+    "gift_ratio": 0.558
    }
   },
   {
@@ -1279,10 +1281,10 @@
      "mine_levels": [
       3
      ],
-     "mine_min": 2.9,
-     "mine_bpm": 7.66,
-     "total_min": 22.3,
-     "share_mine": 0.128
+     "mine_min": 3.3,
+     "mine_bpm": 6.73,
+     "total_min": 22.7,
+     "share_mine": 0.144
     },
     "new_4p": {
      "kit": [
@@ -1309,13 +1311,13 @@
      "mine_levels": [
       3
      ],
-     "mine_min": 2.9,
-     "mine_bpm": 7.66,
-     "total_min": 16.4,
-     "share_mine": 0.175
+     "mine_min": 3.3,
+     "mine_bpm": 6.73,
+     "total_min": 16.8,
+     "share_mine": 0.194
     },
-    "delta_solo": 0.144,
-    "delta_4p": 0.215
+    "delta_solo": 0.164,
+    "delta_4p": 0.244
    },
    "plus5": {
     "old_solo": {
@@ -1371,10 +1373,10 @@
      "mine_levels": [
       3
      ],
-     "mine_min": 4.1,
-     "mine_bpm": 7.66,
-     "total_min": 60.1,
-     "share_mine": 0.069
+     "mine_min": 4.7,
+     "mine_bpm": 6.73,
+     "total_min": 60.7,
+     "share_mine": 0.078
     },
     "new_4p": {
      "kit": [
@@ -1401,31 +1403,31 @@
      "mine_levels": [
       3
      ],
-     "mine_min": 4.1,
-     "mine_bpm": 7.66,
-     "total_min": 43.1,
-     "share_mine": 0.096
+     "mine_min": 4.7,
+     "mine_bpm": 6.73,
+     "total_min": 43.7,
+     "share_mine": 0.108
     },
-    "delta_solo": 0.073,
-    "delta_4p": 0.105
+    "delta_solo": 0.084,
+    "delta_4p": 0.121
    },
    "gold": {
     "dungeon_per_run": 2960,
     "dungeon_per_min": 148.0,
     "band_pickaxe": "iron_pickaxe",
     "dungeon_with_sale_per_min": 188.9,
-    "ratio_with_sale": 0.104,
-    "mine_per_min": 19.6,
+    "ratio_with_sale": 0.099,
+    "mine_per_min": 18.7,
     "mine_levels": [
-     3
+     1
     ],
-    "ratio": 0.132,
+    "ratio": 0.127,
     "early_pickaxe": "silver_pickaxe",
-    "early_per_min": 24.4,
-    "early_ratio": 0.165,
-    "early_ratio_with_sale": 0.129,
-    "gift_top_pickaxe_per_min": 42.5,
-    "gift_ratio": 0.287
+    "early_per_min": 24.7,
+    "early_ratio": 0.167,
+    "early_ratio_with_sale": 0.131,
+    "gift_top_pickaxe_per_min": 41.4,
+    "gift_ratio": 0.28
    }
   },
   {
@@ -1487,10 +1489,10 @@
      "mine_levels": [
       3
      ],
-     "mine_min": 3.2,
-     "mine_bpm": 9.93,
-     "total_min": 28.8,
-     "share_mine": 0.11
+     "mine_min": 3.4,
+     "mine_bpm": 9.18,
+     "total_min": 29.1,
+     "share_mine": 0.118
     },
     "new_4p": {
      "kit": [
@@ -1520,13 +1522,13 @@
      "mine_levels": [
       3
      ],
-     "mine_min": 3.2,
-     "mine_bpm": 9.93,
-     "total_min": 21.0,
-     "share_mine": 0.151
+     "mine_min": 3.4,
+     "mine_bpm": 9.18,
+     "total_min": 21.3,
+     "share_mine": 0.161
     },
-    "delta_solo": 0.125,
-    "delta_4p": 0.18
+    "delta_solo": 0.137,
+    "delta_4p": 0.197
    },
    "plus5": {
     "old_solo": {
@@ -1585,10 +1587,10 @@
      "mine_levels": [
       3
      ],
-     "mine_min": 7.9,
-     "mine_bpm": 9.93,
-     "total_min": 47.3,
-     "share_mine": 0.168
+     "mine_min": 8.6,
+     "mine_bpm": 9.18,
+     "total_min": 47.9,
+     "share_mine": 0.179
     },
     "new_4p": {
      "kit": [
@@ -1618,31 +1620,31 @@
      "mine_levels": [
       3
      ],
-     "mine_min": 7.9,
-     "mine_bpm": 9.93,
-     "total_min": 35.3,
-     "share_mine": 0.225
+     "mine_min": 8.6,
+     "mine_bpm": 9.18,
+     "total_min": 35.9,
+     "share_mine": 0.238
     },
-    "delta_solo": 0.002,
-    "delta_4p": 0.076
+    "delta_solo": 0.015,
+    "delta_4p": 0.095
    },
    "gold": {
     "dungeon_per_run": 3657,
     "dungeon_per_min": 174.1,
     "band_pickaxe": "silver_pickaxe",
     "dungeon_with_sale_per_min": 223.6,
-    "ratio_with_sale": 0.109,
-    "mine_per_min": 24.4,
+    "ratio_with_sale": 0.11,
+    "mine_per_min": 24.7,
     "mine_levels": [
      3
     ],
-    "ratio": 0.14,
+    "ratio": 0.142,
     "early_pickaxe": "gold_pickaxe",
-    "early_per_min": 28.7,
-    "early_ratio": 0.165,
-    "early_ratio_with_sale": 0.129,
-    "gift_top_pickaxe_per_min": 42.5,
-    "gift_ratio": 0.244
+    "early_per_min": 30.6,
+    "early_ratio": 0.176,
+    "early_ratio_with_sale": 0.137,
+    "gift_top_pickaxe_per_min": 41.4,
+    "gift_ratio": 0.238
    }
   },
   {
@@ -1701,10 +1703,10 @@
      "mine_levels": [
       4
      ],
-     "mine_min": 3.5,
-     "mine_bpm": 7.53,
-     "total_min": 24.6,
-     "share_mine": 0.144
+     "mine_min": 4.3,
+     "mine_bpm": 6.16,
+     "total_min": 25.4,
+     "share_mine": 0.17
     },
     "new_4p": {
      "kit": [
@@ -1731,13 +1733,13 @@
      "mine_levels": [
       4
      ],
-     "mine_min": 3.5,
-     "mine_bpm": 7.53,
-     "total_min": 18.2,
-     "share_mine": 0.194
+     "mine_min": 4.3,
+     "mine_bpm": 6.16,
+     "total_min": 19.0,
+     "share_mine": 0.228
     },
-    "delta_solo": 0.038,
-    "delta_4p": 0.103
+    "delta_solo": 0.072,
+    "delta_4p": 0.152
    },
    "plus5": {
     "old_solo": {
@@ -1793,10 +1795,10 @@
      "mine_levels": [
       4
      ],
-     "mine_min": 12.8,
-     "mine_bpm": 7.53,
-     "total_min": 56.4,
-     "share_mine": 0.226
+     "mine_min": 15.6,
+     "mine_bpm": 6.16,
+     "total_min": 59.3,
+     "share_mine": 0.263
     },
     "new_4p": {
      "kit": [
@@ -1823,31 +1825,31 @@
      "mine_levels": [
       4
      ],
-     "mine_min": 12.8,
-     "mine_bpm": 7.53,
-     "total_min": 43.2,
-     "share_mine": 0.296
+     "mine_min": 15.6,
+     "mine_bpm": 6.16,
+     "total_min": 46.0,
+     "share_mine": 0.339
     },
-    "delta_solo": -0.038,
-    "delta_4p": 0.059
+    "delta_solo": 0.012,
+    "delta_4p": 0.127
    },
    "gold": {
     "dungeon_per_run": 4494,
     "dungeon_per_min": 195.4,
     "band_pickaxe": "silver_pickaxe",
     "dungeon_with_sale_per_min": 251.8,
-    "ratio_with_sale": 0.097,
-    "mine_per_min": 24.4,
+    "ratio_with_sale": 0.098,
+    "mine_per_min": 24.7,
     "mine_levels": [
      3
     ],
-    "ratio": 0.125,
+    "ratio": 0.126,
     "early_pickaxe": "gold_pickaxe",
-    "early_per_min": 28.7,
-    "early_ratio": 0.147,
-    "early_ratio_with_sale": 0.114,
-    "gift_top_pickaxe_per_min": 42.5,
-    "gift_ratio": 0.218
+    "early_per_min": 30.6,
+    "early_ratio": 0.157,
+    "early_ratio_with_sale": 0.122,
+    "gift_top_pickaxe_per_min": 41.4,
+    "gift_ratio": 0.212
    }
   },
   {
@@ -1908,12 +1910,12 @@
      "pickaxe": "gold_pickaxe",
      "mine_levels": [
       4,
-      5
+      6
      ],
-     "mine_min": 3.2,
-     "mine_bpm": 9.63,
-     "total_min": 25.2,
-     "share_mine": 0.128
+     "mine_min": 3.9,
+     "mine_bpm": 7.63,
+     "total_min": 25.9,
+     "share_mine": 0.152
     },
     "new_4p": {
      "kit": [
@@ -1942,15 +1944,15 @@
      "pickaxe": "gold_pickaxe",
      "mine_levels": [
       4,
-      5
+      6
      ],
-     "mine_min": 3.2,
-     "mine_bpm": 9.63,
-     "total_min": 18.5,
-     "share_mine": 0.174
+     "mine_min": 3.9,
+     "mine_bpm": 7.63,
+     "total_min": 19.2,
+     "share_mine": 0.204
     },
-    "delta_solo": -0.056,
-    "delta_4p": -0.005
+    "delta_solo": -0.03,
+    "delta_4p": 0.032
    },
    "plus5": {
     "old_solo": {
@@ -2009,10 +2011,10 @@
      "mine_levels": [
       5
      ],
-     "mine_min": 12.9,
-     "mine_bpm": 9.52,
-     "total_min": 59.1,
-     "share_mine": 0.218
+     "mine_min": 16.4,
+     "mine_bpm": 7.47,
+     "total_min": 62.6,
+     "share_mine": 0.262
     },
     "new_4p": {
      "kit": [
@@ -2042,31 +2044,31 @@
      "mine_levels": [
       5
      ],
-     "mine_min": 12.9,
-     "mine_bpm": 9.52,
-     "total_min": 45.0,
-     "share_mine": 0.286
+     "mine_min": 16.4,
+     "mine_bpm": 7.47,
+     "total_min": 48.5,
+     "share_mine": 0.338
     },
-    "delta_solo": -0.03,
-    "delta_4p": 0.061
+    "delta_solo": 0.028,
+    "delta_4p": 0.144
    },
    "gold": {
     "dungeon_per_run": 9096,
     "dungeon_per_min": 379.0,
     "band_pickaxe": "gold_pickaxe",
     "dungeon_with_sale_per_min": 453.8,
-    "ratio_with_sale": 0.063,
-    "mine_per_min": 28.7,
+    "ratio_with_sale": 0.067,
+    "mine_per_min": 30.6,
     "mine_levels": [
-     4
+     3
     ],
-    "ratio": 0.076,
+    "ratio": 0.081,
     "early_pickaxe": "mithril_pickaxe",
-    "early_per_min": 35.7,
-    "early_ratio": 0.094,
-    "early_ratio_with_sale": 0.079,
-    "gift_top_pickaxe_per_min": 42.5,
-    "gift_ratio": 0.112
+    "early_per_min": 36.3,
+    "early_ratio": 0.096,
+    "early_ratio_with_sale": 0.08,
+    "gift_top_pickaxe_per_min": 41.4,
+    "gift_ratio": 0.109
    }
   },
   {
@@ -2125,10 +2127,10 @@
      "mine_levels": [
       5
      ],
-     "mine_min": 4.7,
-     "mine_bpm": 7.8,
-     "total_min": 36.9,
-     "share_mine": 0.129
+     "mine_min": 6.2,
+     "mine_bpm": 5.93,
+     "total_min": 38.4,
+     "share_mine": 0.162
     },
     "new_4p": {
      "kit": [
@@ -2155,13 +2157,13 @@
      "mine_levels": [
       5
      ],
-     "mine_min": 4.7,
-     "mine_bpm": 7.8,
-     "total_min": 27.1,
-     "share_mine": 0.175
+     "mine_min": 6.2,
+     "mine_bpm": 5.93,
+     "total_min": 28.6,
+     "share_mine": 0.218
     },
-    "delta_solo": 0.146,
-    "delta_4p": 0.21
+    "delta_solo": 0.193,
+    "delta_4p": 0.277
    },
    "plus5": {
     "old_solo": {
@@ -2217,10 +2219,10 @@
      "mine_levels": [
       5
      ],
-     "mine_min": 8.3,
-     "mine_bpm": 7.8,
-     "total_min": 74.9,
-     "share_mine": 0.111
+     "mine_min": 11.0,
+     "mine_bpm": 5.93,
+     "total_min": 77.5,
+     "share_mine": 0.142
     },
     "new_4p": {
      "kit": [
@@ -2247,31 +2249,31 @@
      "mine_levels": [
       5
      ],
-     "mine_min": 8.3,
-     "mine_bpm": 7.8,
-     "total_min": 54.7,
-     "share_mine": 0.153
+     "mine_min": 11.0,
+     "mine_bpm": 5.93,
+     "total_min": 57.3,
+     "share_mine": 0.192
     },
-    "delta_solo": 0.075,
-    "delta_4p": 0.128
+    "delta_solo": 0.112,
+    "delta_4p": 0.181
    },
    "gold": {
     "dungeon_per_run": 12471,
     "dungeon_per_min": 479.6,
     "band_pickaxe": "gold_pickaxe",
     "dungeon_with_sale_per_min": 612.5,
-    "ratio_with_sale": 0.047,
-    "mine_per_min": 28.7,
+    "ratio_with_sale": 0.05,
+    "mine_per_min": 30.6,
     "mine_levels": [
-     4
+     3
     ],
-    "ratio": 0.06,
+    "ratio": 0.064,
     "early_pickaxe": "mithril_pickaxe",
-    "early_per_min": 35.7,
-    "early_ratio": 0.074,
-    "early_ratio_with_sale": 0.058,
-    "gift_top_pickaxe_per_min": 42.5,
-    "gift_ratio": 0.089
+    "early_per_min": 36.3,
+    "early_ratio": 0.076,
+    "early_ratio_with_sale": 0.059,
+    "gift_top_pickaxe_per_min": 41.4,
+    "gift_ratio": 0.086
    }
   },
   {
@@ -2333,10 +2335,10 @@
      "mine_levels": [
       6
      ],
-     "mine_min": 5.3,
-     "mine_bpm": 9.79,
-     "total_min": 32.6,
-     "share_mine": 0.163
+     "mine_min": 7.4,
+     "mine_bpm": 7.01,
+     "total_min": 34.7,
+     "share_mine": 0.214
     },
     "new_4p": {
      "kit": [
@@ -2366,13 +2368,13 @@
      "mine_levels": [
       6
      ],
-     "mine_min": 5.3,
-     "mine_bpm": 9.79,
-     "total_min": 24.3,
-     "share_mine": 0.219
+     "mine_min": 7.4,
+     "mine_bpm": 7.01,
+     "total_min": 26.4,
+     "share_mine": 0.281
     },
-    "delta_solo": 0.156,
-    "delta_4p": 0.24
+    "delta_solo": 0.23,
+    "delta_4p": 0.347
    },
    "plus5": {
     "old_solo": {
@@ -2431,10 +2433,10 @@
      "mine_levels": [
       6
      ],
-     "mine_min": 11.8,
-     "mine_bpm": 8.12,
-     "total_min": 63.5,
-     "share_mine": 0.185
+     "mine_min": 17.0,
+     "mine_bpm": 5.62,
+     "total_min": 68.7,
+     "share_mine": 0.247
     },
     "new_4p": {
      "kit": [
@@ -2464,31 +2466,31 @@
      "mine_levels": [
       6
      ],
-     "mine_min": 11.8,
-     "mine_bpm": 8.12,
-     "total_min": 47.7,
-     "share_mine": 0.246
+     "mine_min": 17.0,
+     "mine_bpm": 5.62,
+     "total_min": 53.0,
+     "share_mine": 0.321
     },
-    "delta_solo": 0.069,
-    "delta_4p": 0.155
+    "delta_solo": 0.157,
+    "delta_4p": 0.283
    },
    "gold": {
     "dungeon_per_run": 14932,
     "dungeon_per_min": 553.1,
     "band_pickaxe": "mithril_pickaxe",
     "dungeon_with_sale_per_min": 703.4,
-    "ratio_with_sale": 0.051,
-    "mine_per_min": 35.7,
+    "ratio_with_sale": 0.052,
+    "mine_per_min": 36.3,
     "mine_levels": [
-     6
+     3
     ],
-    "ratio": 0.065,
+    "ratio": 0.066,
     "early_pickaxe": "orichalcum_pickaxe",
-    "early_per_min": 42.5,
-    "early_ratio": 0.077,
-    "early_ratio_with_sale": 0.06,
-    "gift_top_pickaxe_per_min": 42.5,
-    "gift_ratio": 0.077
+    "early_per_min": 41.4,
+    "early_ratio": 0.075,
+    "early_ratio_with_sale": 0.059,
+    "gift_top_pickaxe_per_min": 41.4,
+    "gift_ratio": 0.075
    }
   },
   {
@@ -2547,10 +2549,10 @@
      "mine_levels": [
       6
      ],
-     "mine_min": 4.4,
-     "mine_bpm": 8.12,
-     "total_min": 37.9,
-     "share_mine": 0.115
+     "mine_min": 6.3,
+     "mine_bpm": 5.62,
+     "total_min": 39.9,
+     "share_mine": 0.159
     },
     "new_4p": {
      "kit": [
@@ -2577,13 +2579,13 @@
      "mine_levels": [
       6
      ],
-     "mine_min": 4.4,
-     "mine_bpm": 8.12,
-     "total_min": 27.7,
-     "share_mine": 0.158
+     "mine_min": 6.3,
+     "mine_bpm": 5.62,
+     "total_min": 29.7,
+     "share_mine": 0.213
     },
-    "delta_solo": 0.128,
-    "delta_4p": 0.189
+    "delta_solo": 0.188,
+    "delta_4p": 0.275
    },
    "plus5": {
     "old_solo": {
@@ -2639,10 +2641,10 @@
      "mine_levels": [
       6
      ],
-     "mine_min": 7.1,
-     "mine_bpm": 8.12,
-     "total_min": 89.5,
-     "share_mine": 0.079
+     "mine_min": 10.2,
+     "mine_bpm": 5.62,
+     "total_min": 92.7,
+     "share_mine": 0.11
     },
     "new_4p": {
      "kit": [
@@ -2669,13 +2671,13 @@
      "mine_levels": [
       6
      ],
-     "mine_min": 7.1,
-     "mine_bpm": 8.12,
-     "total_min": 64.4,
-     "share_mine": 0.11
+     "mine_min": 10.2,
+     "mine_bpm": 5.62,
+     "total_min": 67.6,
+     "share_mine": 0.151
     },
-    "delta_solo": 0.086,
-    "delta_4p": 0.122
+    "delta_solo": 0.125,
+    "delta_4p": 0.178
    },
    "gold": {
     "dungeon_per_run": 22603,
@@ -2683,17 +2685,17 @@
     "band_pickaxe": "mithril_pickaxe",
     "dungeon_with_sale_per_min": 920.9,
     "ratio_with_sale": 0.039,
-    "mine_per_min": 35.7,
+    "mine_per_min": 36.3,
     "mine_levels": [
-     6
+     3
     ],
-    "ratio": 0.047,
+    "ratio": 0.048,
     "early_pickaxe": "orichalcum_pickaxe",
-    "early_per_min": 42.5,
-    "early_ratio": 0.056,
-    "early_ratio_with_sale": 0.046,
-    "gift_top_pickaxe_per_min": 42.5,
-    "gift_ratio": 0.056
+    "early_per_min": 41.4,
+    "early_ratio": 0.055,
+    "early_ratio_with_sale": 0.045,
+    "gift_top_pickaxe_per_min": 41.4,
+    "gift_ratio": 0.055
    }
   }
  ],
@@ -2707,11 +2709,11 @@
    "essence": {
     "dim_essence": 2
    },
-   "minutes": 8.8,
+   "minutes": 9.3,
    "levels": [
     2
    ],
-   "fresh_minutes": 3.3,
+   "fresh_minutes": 3.5,
    "fresh_levels": [
     2
    ],
@@ -2726,11 +2728,11 @@
    "essence": {
     "dim_essence": 4
    },
-   "minutes": 8.7,
+   "minutes": 9.9,
    "levels": [
     3
    ],
-   "fresh_minutes": 3.8,
+   "fresh_minutes": 4.3,
    "fresh_levels": [
     3
    ],
@@ -2745,11 +2747,11 @@
    "essence": {
     "labyrinth_essence": 2
    },
-   "minutes": 13.0,
+   "minutes": 15.9,
    "levels": [
     4
    ],
-   "fresh_minutes": 4.7,
+   "fresh_minutes": 5.8,
    "fresh_levels": [
     4
    ],
@@ -2764,11 +2766,11 @@
    "essence": {
     "labyrinth_essence": 4
    },
-   "minutes": 12.8,
+   "minutes": 16.9,
    "levels": [
     5
    ],
-   "fresh_minutes": 5.4,
+   "fresh_minutes": 7.1,
    "fresh_levels": [
     5
    ],
@@ -2783,11 +2785,11 @@
    "essence": {
     "radiant_essence": 3
    },
-   "minutes": 8.5,
+   "minutes": 12.2,
    "levels": [
     6
    ],
-   "fresh_minutes": 3.4,
+   "fresh_minutes": 4.9,
    "fresh_levels": [
     6
    ],
@@ -2795,48 +2797,48 @@
   }
  },
  "stretch": {
-  "factor": 0.6,
+  "factor": 0.5,
   "reach_above": 1,
   "by_metal": {
    "iron": {
     "slow_pickaxe": "copper_pickaxe",
-    "slow_seconds": 4.03,
-    "own_seconds": 2.42,
-    "slow_per_min": 8.27,
-    "own_per_min": 9.96,
-    "gain": 1.205
+    "slow_seconds": 4.5,
+    "own_seconds": 2.25,
+    "slow_per_min": 7.79,
+    "own_per_min": 10.22,
+    "gain": 1.311
    },
    "silver": {
     "slow_pickaxe": "iron_pickaxe",
-    "slow_seconds": 3.93,
-    "own_seconds": 2.36,
-    "slow_per_min": 8.44,
-    "own_per_min": 9.74,
-    "gain": 1.153
+    "slow_seconds": 5.0,
+    "own_seconds": 2.5,
+    "slow_per_min": 7.42,
+    "own_per_min": 9.52,
+    "gain": 1.284
    },
    "gold": {
     "slow_pickaxe": "silver_pickaxe",
-    "slow_seconds": 3.85,
-    "own_seconds": 2.31,
-    "slow_per_min": 8.46,
-    "own_per_min": 9.75,
-    "gain": 1.153
+    "slow_seconds": 5.6,
+    "own_seconds": 2.8,
+    "slow_per_min": 6.92,
+    "own_per_min": 9.09,
+    "gain": 1.313
    },
    "mithril": {
     "slow_pickaxe": "gold_pickaxe",
-    "slow_seconds": 3.8,
-    "own_seconds": 2.28,
-    "slow_per_min": 8.93,
-    "own_per_min": 10.35,
-    "gain": 1.159
+    "slow_seconds": 6.19,
+    "own_seconds": 3.09,
+    "slow_per_min": 6.79,
+    "own_per_min": 9.72,
+    "gain": 1.432
    },
    "orichalcum": {
     "slow_pickaxe": "mithril_pickaxe",
-    "slow_seconds": 3.75,
-    "own_seconds": 2.25,
-    "slow_per_min": 9.47,
-    "own_per_min": 11.09,
-    "gain": 1.171
+    "slow_seconds": 7.0,
+    "own_seconds": 3.5,
+    "slow_per_min": 6.55,
+    "own_per_min": 9.99,
+    "gain": 1.524
    }
   }
  },

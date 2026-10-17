@@ -107,7 +107,7 @@ def build_mine(lay, eco):
                     '아니면 진행 없음 + 액션바 한 줄 "' + P.OWNER['too_weak_actionbar'] + '" (1초에 1번). 레벨 조건은 어디에도 없다',
             'reach_above': P.REACH_ABOVE, 'stretch_factor': P.STRETCH_FACTOR,
             'too_weak_actionbar': P.OWNER['too_weak_actionbar'],
-            'seconds': 'base_seconds(광석 tier) ÷ 곡괭이 speed[광석 tier] (보석 노드는 gems.base_seconds). 서버가 Tool 규칙 speed = 30·단단함(Material#getHardness) ÷ (20·초) 로 바꿈, correct_for_drops = TRUE',
+            'seconds': 'max(min_seconds, base_seconds(광석 tier) ÷ 곡괭이 speed[광석 tier]) (보석 노드는 gems.base_seconds). 서버가 Tool 규칙 speed = 30·단단함(Material#getHardness) ÷ (20·초) 로 바꿈, correct_for_drops = TRUE',
             'min_seconds': P.MIN_SECONDS,
             'can_break': '곡괭이 CAN_BREAK = mines 의 블록들 (광산 블록 표에서). 블록 설정이 바뀌면 접속 때 곡괭이 구성요소를 다시 씀',
             'outside_mine': '광산 월드 밖(오버월드·네더·엔드·미궁 월드 모두)에서 그 곡괭이로 광산 블록 12종을 부수면 취소 + 안내 1초에 1번 (R §3-15). '

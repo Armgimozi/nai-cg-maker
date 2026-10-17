@@ -219,20 +219,20 @@ levels:
   landing: [0.5, 11, 3.5, 0.0]
   office: false
 ores:
-  copper_ore: {metal: copper, name: 구리 광석, tier: 1, block: 'minecraft:copper_ore', base_seconds: 2.5, yield: 1, gem: quartz, ingot: copper_ingot,
+  copper_ore: {metal: copper, name: 구리 광석, tier: 1, block: 'minecraft:copper_ore', base_seconds: 2.0, yield: 1, gem: quartz, ingot: copper_ingot,
     color: '#E8843F'}
-  iron_ore: {metal: iron, name: 철 광석, tier: 2, block: 'minecraft:iron_ore', base_seconds: 2.9, yield: 1, gem: garnet, ingot: iron_ingot, color: '#C9CED6'}
-  silver_ore: {metal: silver, name: 은 광석, tier: 3, block: 'minecraft:calcite', base_seconds: 3.3, yield: 1, gem: moonstone, ingot: silver_ingot,
+  iron_ore: {metal: iron, name: 철 광석, tier: 2, block: 'minecraft:iron_ore', base_seconds: 3.6, yield: 1, gem: garnet, ingot: iron_ingot, color: '#C9CED6'}
+  silver_ore: {metal: silver, name: 은 광석, tier: 3, block: 'minecraft:calcite', base_seconds: 6.25, yield: 1, gem: moonstone, ingot: silver_ingot,
     color: '#EEF3FF'}
-  gold_ore: {metal: gold, name: 금 광석, tier: 4, block: 'minecraft:gold_ore', base_seconds: 3.7, yield: 1, gem: topaz, ingot: gold_ingot, color: '#F2C14E'}
-  mithril_ore: {metal: mithril, name: 미스릴 광석, tier: 5, block: 'minecraft:deepslate_diamond_ore', base_seconds: 4.1, yield: 1, gem: sapphire, ingot: mithril_ingot,
-    color: '#7FF2FF'}
-  orichalcum_ore: {metal: orichalcum, name: 오리하르콘 광석, tier: 6, block: 'minecraft:ancient_debris', base_seconds: 4.5, yield: 1, gem: dragonblood_stone,
+  gold_ore: {metal: gold, name: 금 광석, tier: 4, block: 'minecraft:gold_ore', base_seconds: 11.2, yield: 1, gem: topaz, ingot: gold_ingot, color: '#F2C14E'}
+  mithril_ore: {metal: mithril, name: 미스릴 광석, tier: 5, block: 'minecraft:deepslate_diamond_ore', base_seconds: 19.8, yield: 1, gem: sapphire,
+    ingot: mithril_ingot, color: '#7FF2FF'}
+  orichalcum_ore: {metal: orichalcum, name: 오리하르콘 광석, tier: 6, block: 'minecraft:ancient_debris', base_seconds: 35.0, yield: 1, gem: dragonblood_stone,
     ingot: orichalcum_ingot, color: '#FF8A5C'}
 gems:
-  quartz: {name: 석영, tier: 1, block: 'minecraft:infested_stone_bricks', base_seconds: 3.75, yield: 1, color: '#F6F2EA'}
-  garnet: {name: 석류석, tier: 2, block: 'minecraft:infested_cobblestone', base_seconds: 4.35, yield: 1, color: '#C8102E'}
-  moonstone: {name: 월장석, tier: 3, block: 'minecraft:infested_mossy_stone_bricks', base_seconds: 4.95, yield: 1, color: '#9CCAFF'}
-  topaz: {name: 황옥, tier: 4, block: 'minecraft:infested_deepslate', base_seconds: 5.55, yield: 1, color: '#FFC23A'}
-  sapphire: {name: 청옥, tier: 5, block: 'minecraft:infested_chiseled_stone_bricks', base_seconds: 6.15, yield: 1, color: '#4A7CFF'}
-  dragonblood_stone: {name: 용혈석, tier: 6, block: 'minecraft:infested_cracked_stone_bricks', base_seconds: 6.75, yield: 1, color: '#FF3B2F'}
+  quartz: {name: 석영, tier: 1, block: 'minecraft:infested_stone_bricks', base_seconds: 3.0, yield: 1, color: '#F6F2EA'}
+  garnet: {name: 석류석, tier: 2, block: 'minecraft:infested_cobblestone', base_seconds: 5.4, yield: 1, color: '#C8102E'}
+  moonstone: {name: 월장석, tier: 3, block: 'minecraft:infested_mossy_stone_bricks', base_seconds: 9.375, yield: 1, color: '#9CCAFF'}
+  topaz: {name: 황옥, tier: 4, block: 'minecraft:infested_deepslate', base_seconds: 16.8, yield: 1, color: '#FFC23A'}
+  sapphire: {name: 청옥, tier: 5, block: 'minecraft:infested_chiseled_stone_bricks', base_seconds: 29.7, yield: 1, color: '#4A7CFF'}
+  dragonblood_stone: {name: 용혈석, tier: 6, block: 'minecraft:infested_cracked_stone_bricks', base_seconds: 52.5, yield: 1, color: '#FF3B2F'}

@@ -8901,7 +8901,7 @@ items:
     name: "구리 곡괭이"
     type: tool
     rarity: common
-    tool: {kind: pickaxe, tier: 1, speed: {"1": 1.0, "2": 0.72}, bonus: 0.0}
+    tool: {kind: pickaxe, tier: 1, speed: {"1": 1.0, "2": 0.8}, bonus: 0.0}
     sources: [shop, starter]
     model: {shape: pickaxe, length: 1.0}
     texture: {style: copper, palette: ["#3a190c", "#783818", "#bd6630", "#f2a462", "#3fb090"]}
@@ -8910,7 +8910,7 @@ items:
     name: "철 곡괭이"
     type: tool
     rarity: uncommon
-    tool: {kind: pickaxe, tier: 2, speed: {"1": 1.2, "2": 1.2, "3": 0.84}, bonus: 0.02}
+    tool: {kind: pickaxe, tier: 2, speed: {"1": 1.6, "2": 1.6, "3": 1.25}, bonus: 0.02}
     sources: [craft]
     model: {shape: pickaxe, length: 1.0}
     texture: {style: steel, palette: ["#1e2128", "#3c424d", "#646c79", "#9aa3b0", "#7a5a30", "#d9a54e"]}
@@ -8919,7 +8919,7 @@ items:
     name: "은 곡괭이"
     type: tool
     rarity: rare
-    tool: {kind: pickaxe, tier: 3, speed: {"1": 1.4, "2": 1.4, "3": 1.4, "4": 0.96}, bonus: 0.04}
+    tool: {kind: pickaxe, tier: 3, speed: {"1": 2.5, "2": 2.5, "3": 2.5, "4": 2.0}, bonus: 0.04}
     sources: [craft]
     model: {shape: pickaxe, length: 1.0}
     texture: {style: silver, palette: ["#4a5060", "#8a92a4", "#d0d6e2", "#ffffff", "#6f9cff"]}
@@ -8928,7 +8928,7 @@ items:
     name: "금 곡괭이"
     type: tool
     rarity: rare
-    tool: {kind: pickaxe, tier: 4, speed: {"1": 1.6, "2": 1.6, "3": 1.6, "4": 1.6, "5": 1.08}, bonus: 0.06}
+    tool: {kind: pickaxe, tier: 4, speed: {"1": 4.0, "2": 4.0, "3": 4.0, "4": 4.0, "5": 3.2}, bonus: 0.06}
     sources: [craft]
     model: {shape: pickaxe, length: 1.0}
     texture: {style: gold, palette: ["#4a3208", "#8a6014", "#d9a52a", "#ffe07a", "#7a4a20", "#ffd24a"]}
@@ -8937,7 +8937,7 @@ items:
     name: "미스릴 곡괭이"
     type: tool
     rarity: epic
-    tool: {kind: pickaxe, tier: 5, speed: {"1": 1.8, "2": 1.8, "3": 1.8, "4": 1.8, "5": 1.8, "6": 1.2}, bonus: 0.08}
+    tool: {kind: pickaxe, tier: 5, speed: {"1": 6.4, "2": 6.4, "3": 6.4, "4": 6.4, "5": 6.4, "6": 5.0}, bonus: 0.08}
     sources: [craft]
     model: {shape: pickaxe, length: 1.0}
     texture: {style: crystal, palette: ["#1d3848", "#3e6f88", "#7ec4d8", "#dafcff", "#4a7cff"]}
@@ -8946,7 +8946,7 @@ items:
     name: "오리하르콘 곡괭이"
     type: tool
     rarity: legendary
-    tool: {kind: pickaxe, tier: 6, speed: {"1": 2.0, "2": 2.0, "3": 2.0, "4": 2.0, "5": 2.0, "6": 2.0}, bonus: 0.1}
+    tool: {kind: pickaxe, tier: 6, speed: {"1": 10.0, "2": 10.0, "3": 10.0, "4": 10.0, "5": 10.0, "6": 10.0}, bonus: 0.1}
     sources: [craft]
     model: {shape: pickaxe, length: 1.0}
     texture: {style: ember, palette: ["#2a0e06", "#5a2010", "#a8442a", "#ff9a6a", "#3a1408", "#ffd86e"], animated: true, frames: 8, frametime: 2, effect: ember_glow}

@@ -28,6 +28,8 @@ REACH_ABOVE = 1               # 0.3.6.1 주인 결정 1: 곡괭이 tier t 는 ti
 GOLD_WITH_SALE_MAX = 0.20     # 광산 G/분 ÷ 던전 G/분 (판매 포함, 그 단계 금속을 캘 수 있는 가장 낮은 곡괭이) — 0.3.6 과 같음
 GOLD_DROP_MAX = 0.25          # 드롭 골드만 — 0.3.6 과 같음 (곡괭이를 일찍 올린 사람은 표 E 참고 칸)
 REGEN_DEFAULT = [3, 3, 3, 3, 3, 3]   # 0.3.7: 층마다 3분 (사람 수와 관계 없음)
+FEEL_TIER_UP_MIN = 1.35       # 0.3.7: 같은 곡괭이로 한 등급 위 광석은 1.35배 이상 오래 (바닥 쌍 빼고)
+FEEL_PICK_UP_MAX = 0.65       # 0.3.7: 같은 광석을 한 단계 위 곡괭이로 0.65배 이하 (바닥 쌍 빼고)
 MONSTER = ['ember_soul', 'resonant_sinew', 'clock_oil']          # §0 결정 4: 5층은 불씨 혼 (잿불 가죽 없음)
 DROP_PARTS = ['moss_scale', 'tunnel_fang', 'cinder_scale', 'rime_talon', 'chrono_dust', 'abyss_scale']   # §0 결정 4: 몹 몸에 맞는 새 부위
 PRE_RELEASE = {'cinder_hide': 'cinder_scale'}                  # 배포 전 시험 서버에만 있던 id
@@ -187,17 +189,45 @@ def main():
             need(abs(slow / own - mine['rules']['stretch_factor']) < 0.01, f'{p} 한 단계 위 속도 ≠ rules.stretch_factor')
         need(d['speed'] == mat['items'][p]['tool']['speed'], f'{p} speed mine ↔ materials')
         need(abs(d['bonus'] - mat['items'][p]['tool']['bonus']) < 1e-9, f'{p} bonus mine ↔ materials')
-    for o in range(1, 7):   # 좋은 곡괭이일수록 모든 광석에서 빠름 (한 단계 아래 곡괭이 = 느림 → 제 곡괭이 → 위 곡괭이)
+    min_s = mine['rules']['min_seconds']
+
+    def raw_s(o, k):   # 바닥 없이 base ÷ speed (못 캐면 None)
+        sp = mine['pickaxes'][picks[k - 1]]['speed'].get(str(o))
+        return None if sp is None else mine['ores'][ores[o - 1]]['base_seconds'] / sp
+
+    def secs(o, k):    # 캐는 초 = max(min_seconds, base ÷ speed) — params.mine_seconds · MineMath.seconds 와 같음
+        r = raw_s(o, k)
+        return None if r is None else max(min_s, r)
+
+    for o in range(1, 7):   # 좋은 곡괭이일수록 모든 광석에서 빠름 (한 단계 아래 곡괭이 = 느림 → 제 곡괭이 → 위 곡괭이, 바닥이면 같아도 됨)
         prev = None
         for k, p in enumerate(picks, 1):
             if k + REACH_ABOVE < o:
                 continue
-            s = mine['ores'][ores[o - 1]]['base_seconds'] / mine['pickaxes'][p]['speed'][str(o)]
+            s = secs(o, k)
             need(abs(s - mine['pickaxes'][p]['seconds'][ores[o - 1]]) < 0.011, f'{p} {ores[o - 1]} 초 표')
-            need(s >= mine['rules']['min_seconds'] - 1e-9, f'{p} {ores[o - 1]} {s:.2f}초 < 최소')
+            need(s >= min_s - 1e-9, f'{p} {ores[o - 1]} {s:.2f}초 < 최소')
             if prev is not None:
-                need(s < prev - 1e-9, f'{p} 가 {ores[o - 1]} 에서 앞 곡괭이보다 빠르지 않음')
+                need(s < prev - 1e-9 or abs(s - min_s) < 1e-9, f'{p} 가 {ores[o - 1]} 에서 앞 곡괭이보다 빠르지 않음')
             prev = s
+    # 0.3.7 주인: "철 캐는 속도랑 구리 캐는 속도랑 별로 차이가 없어 보이는데" — 등급마다 확실히 다르게 (바닥 0.5초에 닿은 쌍은 뺌)
+    for k in range(1, 7):
+        for o in range(1, min(6, k + REACH_ABOVE)):
+            a, b = secs(o, k), secs(o + 1, k)
+            if b is not None and raw_s(o, k) >= min_s - 1e-9:
+                need(b / a >= FEEL_TIER_UP_MIN - 1e-9, f'{picks[k - 1]}: {ores[o]} 이 {ores[o - 1]} 의 {b / a:.2f}배 — {FEEL_TIER_UP_MIN}배 이상 걸려야')
+    for o in range(1, 7):
+        for k in range(max(1, o - REACH_ABOVE), 6):
+            a, b = secs(o, k), secs(o, k + 1)
+            if a is not None and raw_s(o, k + 1) >= min_s - 1e-9:
+                need(b / a <= FEEL_PICK_UP_MAX + 1e-9, f'{ores[o - 1]}: {picks[k]} 이 {picks[k - 1]} 의 {b / a:.2f}배 — {FEEL_PICK_UP_MAX}배 이하로 빨라야')
+    own = [secs(o, o) for o in range(1, 7)]
+    need(own == sorted(own) and 1.9 <= own[0] <= 2.1 and 3.4 <= own[-1] <= 3.6,
+         f'제 곡괭이로 캐는 초가 구리 2.0 → 오리하르콘 3.5 로 조금씩 오르지 않음: {[round(x, 2) for x in own]}')
+    for o in range(2, 7):
+        need(abs(secs(o, o - 1) / secs(o, o) - 1 / mine['rules']['stretch_factor']) < 0.01, f'{ores[o - 1]}: 앞 곡괭이 ÷ 제 곡괭이 ≠ 1 / stretch_factor')
+    for k, g in enumerate(GEMS, 1):   # 보석 노드도 같은 곡선 (같은 등급 광석 × 1.5)
+        need(abs(mine['gems'][g]['base_seconds'] / mine['ores'][ores[k - 1]]['base_seconds'] - 1.5) < 1e-3, f'{g} 노드 초 ≠ 같은 등급 광석 × 1.5')
     bonus = [mine['pickaxes'][p]['bonus'] for p in picks]
     need(bonus == sorted(bonus), '곡괭이 덤이 등급 순이 아님')
     base = [mine['ores'][o]['base_seconds'] for o in ores]

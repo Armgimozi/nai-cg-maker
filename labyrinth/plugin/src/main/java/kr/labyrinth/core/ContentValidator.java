@@ -801,7 +801,7 @@ public final class ContentValidator {
 
     /**
      * 0.3.6 광산 재료·곡괭이 (계약 tools/data/036): items.yml {@code mine_kind}·{@code mine_level}·{@code tool} 과 mine.yml 을 맞대어 본다.
-     * 광석·보석 id 는 mine.yml ores·gems 와, 등급은 tier 와 같아야 한다. 주괴 = 광석의 ingot. 곡괭이는 tier 1~6, 제 등급 이하마다 speed (한 단계 위는 있으면 쓰고 없으면 제 등급 × 0.6),
+     * 광석·보석 id 는 mine.yml ores·gems 와, 등급은 tier 와 같아야 한다. 주괴 = 광석의 ingot. 곡괭이는 tier 1~6, 제 등급 이하마다 speed (한 단계 위는 있으면 쓰고 없으면 제 등급 × STRETCH_FALLBACK 0.5),
      * 레벨 조건·능력치 없음. mine.yml 이 없으면(광산 꺼짐) items.yml 쪽 모양만 본다.
      */
     private void mine() {
@@ -852,11 +852,12 @@ public final class ContentValidator {
                     Double slow = t.speed().get(up);
                     Double own = t.speed().get(t.tier());
                     if (slow != null && own != null && slow > own) warn(w, "tool.speed 한 단계 위(" + up + ") 배율이 제 등급보다 빠름 — 곡괭이를 올릴 까닭이 줄어듦");
-                    // 손으로 고친 items.yml: 파서가 다음 곡괭이 빠르기 × 0.6 으로 채웠다 (ContentParser · ToolSpec.withStretch)
+                    // 손으로 고친 items.yml: 파서가 다음 곡괭이 빠르기 × STRETCH_FALLBACK 으로 채웠다 (ContentParser · ToolSpec.withStretch)
                     kr.labyrinth.content.Params rawSpeed = d.raw() == null ? null : d.raw().sub("tool").sub("speed");
                     if (rawSpeed != null && !rawSpeed.isEmpty() && !rawSpeed.has(String.valueOf(up)))
                         warn(w, "tool.speed 에 한 단계 위(등급 " + up + ") 배율이 없음 — "
-                                + (slow != null ? "다음 곡괭이 빠르기 × 0.6 = " + slow + " 으로 채움" : "제 등급 × 0.6 으로 캠"));
+                                + (slow != null ? "다음 곡괭이 빠르기 × " + kr.labyrinth.content.ToolSpec.STRETCH_FALLBACK + " = " + slow + " 으로 채움"
+                                        : "제 등급 × " + kr.labyrinth.content.ToolSpec.STRETCH_FALLBACK + " 으로 캠"));
                 }
                 if (!d.stats().isEmpty()) err(w, "도구에는 능력치(stats)가 없다");
                 if (d.raw() != null && d.raw().has("level_req")) warn(w, "도구에 level_req 가 있음 — 광산에는 레벨 조건이 없다 (무시)");
