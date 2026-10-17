@@ -163,13 +163,30 @@ REACH_SERVER_SLACK = 0.25
 # 0.3.6.1 주인 결정: "철 곡괭이로 업글하려면 철 주괴가 필요한게 정상 아닐까" → 그 곡괭이 제 금속 주괴 + 같은 등급 보석 + 앞 곡괭이
 # + 정수 + 골드. 제 금속·보석은 앞 곡괭이로 느리게 캔다 (한 단계 위). 개수는 economy.py 표 D 로 골랐다:
 # 새로 온 사람의 첫 철 곡괭이 = 던전 1회(정수·골드) + 광산 약 5~7분, 그 뒤 곡괭이마다 조금씩 길어짐.
+# 0.3.7 (주인 "광질로도 충분히 돈을 벌 수 있으면 좋을듯"): 광산이 돈이 되므로 은·금·미스릴·오리하르콘 곡괭이에 그 층 정예 재료 3개를
+# 더한다 (gate — 레벨 조건이 아니라 미궁 진행 문, 보통 그 층 한 번 돌면 3~5개). 그래야 일찍 올린 곡괭이로 던전보다 더 벌지 않는다
+# (표 E "혼자 만들 수 있는 가장 좋은 곡괭이" ≤ 80%). 철 곡괭이는 문 없음. 이미 만든 곡괭이는 그대로.
 PICK_RECIPES = {
     'iron_pickaxe': {'prev': 'copper_pickaxe', 'ingot': ('iron_ingot', 12), 'gem': ('garnet', 2), 'essence': ('dim_essence', 2), 'gold': 300},
-    'silver_pickaxe': {'prev': 'iron_pickaxe', 'ingot': ('silver_ingot', 16), 'gem': ('moonstone', 2), 'essence': ('dim_essence', 4), 'gold': 1000},
-    'gold_pickaxe': {'prev': 'silver_pickaxe', 'ingot': ('gold_ingot', 20), 'gem': ('topaz', 3), 'essence': ('labyrinth_essence', 2), 'gold': 2500},
-    'mithril_pickaxe': {'prev': 'gold_pickaxe', 'ingot': ('mithril_ingot', 24), 'gem': ('sapphire', 3), 'essence': ('labyrinth_essence', 4), 'gold': 5000},
-    'orichalcum_pickaxe': {'prev': 'mithril_pickaxe', 'ingot': ('orichalcum_ingot', 12), 'gem': ('dragonblood_stone', 2), 'essence': ('radiant_essence', 3), 'gold': 10000},
+    'silver_pickaxe': {'prev': 'iron_pickaxe', 'ingot': ('silver_ingot', 16), 'gem': ('moonstone', 2), 'essence': ('dim_essence', 4), 'gold': 1000,
+                       'gate': ('verdigris_plate', 3)},
+    'gold_pickaxe': {'prev': 'silver_pickaxe', 'ingot': ('gold_ingot', 20), 'gem': ('topaz', 3), 'essence': ('labyrinth_essence', 2), 'gold': 2500,
+                     'gate': ('tuning_fork_core', 3)},
+    'mithril_pickaxe': {'prev': 'gold_pickaxe', 'ingot': ('mithril_ingot', 24), 'gem': ('sapphire', 3), 'essence': ('labyrinth_essence', 4), 'gold': 5000,
+                        'gate': ('regulator_pendulum', 3)},
+    'orichalcum_pickaxe': {'prev': 'mithril_pickaxe', 'ingot': ('orichalcum_ingot', 12), 'gem': ('dragonblood_stone', 2), 'essence': ('radiant_essence', 3), 'gold': 10000,
+                           'gate': ('gatekeeper_rune', 3)},
 }
+# gate 재료가 나오는 미궁 층 = 혼자 그 곡괭이를 처음 만들 수 있는 단계 (표 E). 녹청 등판 4층 · 조율 소리굽쇠 7층 · 조속 진자 9층 · 문지기의 룬 10층 (모두 rare 정예 재료)
+PICK_GATE_FLOOR = {'silver_pickaxe': 4, 'gold_pickaxe': 7, 'mithril_pickaxe': 9, 'orichalcum_pickaxe': 10}
+
+
+def pick_materials(d):
+    """곡괭이 레시피 재료 (차례: 앞 곡괭이 · 주괴 · 보석 · 정수 · 정예 재료 문)."""
+    out = {d['prev']: 1, d['ingot'][0]: d['ingot'][1], d['gem'][0]: d['gem'][1], d['essence'][0]: d['essence'][1]}
+    if d.get('gate'):
+        out[d['gate'][0]] = d['gate'][1]
+    return out
 COPPER_PICKAXE_PRICE = 50      # 잃어버렸을 때 (광부·관리소). 첫 1개는 무료 (ext mine.free_pickaxe) + 시작 꾸러미
 
 # 강화석 새기기 (제련소, 결과 2개) — 정수가 들어가 광산만으로는 못 만든다
@@ -322,14 +339,22 @@ MIX_BAND = (0.375, 0.625)      # pos 의 소수부가 이 안(양끝 포함)이�
 DUNGEON_ORE_SPLIT = {'mob': 0.45, 'elite': 0.05, 'boss': 0.15, 'chest': 0.35}
 DUNGEON_ORE_SHARE = 0.25       # 목표 = 그 층 대표 한 벌 광석 수요 ÷ 던전 횟수 × 0.25 (proto036 이 계산, 계약에 고정)
 
-# 판매 (config sell.mine) — 값 = 반올림(base × (1 + rank_bonus × (등급 − 1))), 최소 1
-SELL_MINE = {'ore': 1, 'ingot': 3, 'gem': 6, 'rank_bonus': 0.35}
+# 판매 (config sell.mine) — 0.3.7: 등급 1~6 값 목록 (주인 "광질로도 충분히 돈을 벌 수 있으면 좋을듯").
+# 그 단계 곡괭이로 다 팔면 던전(드롭 골드 + 재료 판매)의 약 50~70% (표 E). 높은 등급일수록 1분에 적게 캐므로 하나가 비싸다.
+# 주괴 = 광석 2 + 제련 골드 − 1 → 녹여 팔면 늘 1 G 손해 (제련은 제작용). 보석은 가끔 조금 큰 것 (0.7~1.5분 벌이).
+# 0.3.6.1 값 (ore 1 · ingot 3 · gem 6 · rank_bonus 0.35 → 광석 1~3 · 주괴 3~8 · 보석 6~17 G) 은 SellPrices.Mine.LEGACY_0361.
+SELL_MINE = {'ore': [3, 4, 5, 15, 36, 46], 'ingot': [7, 11, 17, 41, 89, 116], 'gem': [25, 35, 45, 130, 400, 700]}
+SELL_MINE_0361 = {'ore': 1, 'ingot': 3, 'gem': 6, 'rank_bonus': 0.35}
 
 # 밸런스 가정 (T 와 같음 — 주인 서버 records.yml 로 맞추기 전까지)
 RUN_MINUTES = {1: 15, 2: 16, 3: 18, 4: 20, 5: 21, 6: 23, 7: 24, 8: 26, 9: 27, 10: 30}
 PARTY_TIME = 0.8
 PARTY_BONUS = 0.15
-GOLD_RATIO_MAX = 0.20          # 광산 G/분 ÷ 던전 G/분 (그 단계, 그 단계 곡괭이)
+# 광산 G/분 ÷ 던전 G/분 (드롭 골드 + 재료 판매, 판매 포함) 한도 — 0.3.7 (0.3.6.1 은 ≤ 0.20)
+GOLD_BAND_MAX = 0.70           # 그 단계 곡괭이 (그 단계 금속을 캘 수 있는 가장 낮은 곡괭이)
+GOLD_REACH_MIN = 0.45          # 혼자 만들 수 있는 가장 좋은 곡괭이 (PICK_GATE_FLOOR) — 광산이 돈이 될 만큼
+GOLD_REACH_MAX = 0.80          #   … 그래도 던전이 낫게 (죽으면 골드를 잃는 위험·장비가 있으니)
+GOLD_TOUR_MAX = 0.85           # 노드만 걷으러 다른 층까지 도는 사람도 넘지 않음
 
 
 def half_up(x):
@@ -337,7 +362,17 @@ def half_up(x):
 
 
 def sell_value(kind, rank):
-    return max(1, half_up(SELL_MINE[kind] * (1 + SELL_MINE['rank_bonus'] * (rank - 1))))
+    return SELL_MINE[kind][rank - 1]
+
+
+def sell_value_0361(kind, rank):
+    """0.3.6.1 판매가 (비교용): 반올림(base × (1 + rank_bonus × (등급 − 1))), 최소 1."""
+    return max(1, half_up(SELL_MINE_0361[kind] * (1 + SELL_MINE_0361['rank_bonus'] * (rank - 1))))
+
+
+def ore_sale(rank):
+    """광석 한 개를 파는 가장 좋은 길: 그대로 · 녹여서 (주괴 − 제련 골드) ÷ 2 — 주괴 = 광석 2 + 제련 − 1 이라 늘 그대로가 낫다."""
+    return max(sell_value('ore', rank), (sell_value('ingot', rank) - BY_RANK[rank]['smelt_gold']) / ORE_PER_INGOT)
 
 
 def pick_speed(pick_rank):

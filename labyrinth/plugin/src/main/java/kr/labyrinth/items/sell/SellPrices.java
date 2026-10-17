@@ -1,5 +1,6 @@
 package kr.labyrinth.items.sell;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -24,8 +25,9 @@ import org.bukkit.configuration.ConfigurationSection;
  *       (장비에는 층 글자를 붙이지 않는다, 0.3.5)</li>
  *   <li>소모품: 핀이 파는 것이면 산 값 × consumable_shop_ratio, 아니면 재료 표</li>
  *   <li>핀이 파는 물건은 무엇이든 산 값 × shop_item_cap 이하, 그리고 언제나 산 값보다 1 G 이상 싸다 (사서 되팔아 버는 일 없음)</li>
- *   <li>광산 재료 (0.3.6 — items.yml {@code mine_kind}): 값 = 반올림(sell.mine 의 종류 기본값 × (1 + rank_bonus × (등급 − 1))), 최소 1.
- *       등급 = {@code mine_level}. 기본값 광석 1 · 주괴 3 · 보석 6 · rank_bonus 0.35 → 녹여 팔면 언제나 손해 (주괴 &lt; 광석 2개 + 제련 골드)</li>
+ *   <li>광산 재료 (items.yml {@code mine_kind}, 0.3.7): 값 = sell.mine 의 종류 목록[등급 − 1] (등급 = {@code mine_level} 1~6).
+ *       기본값 광석 3~46 · 주괴 7~116 · 보석 25~700 G — 주괴 = 광석 2 + 제련 골드 − 1 이라 녹여 팔면 늘 1 G 손해.
+ *       0.3.6 꼴 (종류 기본값 · rank_bonus) 도 읽는다 ({@link Mine#from})</li>
  *   <li>팔 수 없음: 열쇠류(type: key — 금고 열쇠·직업 문장), 도구(type: tool — 곡괭이), 시작 지급품(sources 에 starter), 전직의 두루마리,
  *       unsellable 목록</li>
  * </ul>
@@ -160,27 +162,88 @@ public final class SellPrices {
     }
 
     /**
-     * config.yml {@code sell.mine} (0.3.6 광산 재료): 종류마다 기본값 · 등급 덤 (계약 tools/data/036/materials.json {@code sell}).
-     * 값 = 반올림(기본값 × (1 + rankBonus × (등급 − 1))), 최소 1.
+     * config.yml {@code sell.mine} (광산 재료, 0.3.7 — 주인 "광질로도 충분히 돈을 벌 수 있으면 좋을듯"): 종류마다 등급 1~6 값 목록
+     * (계약 tools/data/036/materials.json {@code sell}). 6칸으로 맞춘다 — 모자라면 기본값, 음수면 0 (0 = 팔지 않음).
+     * 기본값의 주괴 = 광석 2 + 제련 골드 − 1 → 녹여 팔면 늘 1 G 손해.
      */
-    public record Mine(int ore, int ingot, int gem, double rankBonus) {
-        public static final Mine DEFAULT = new Mine(1, 3, 6, 0.35);
+    public record Mine(List<Integer> ore, List<Integer> ingot, List<Integer> gem) {
+        public static final int LEVELS = 6;
+        static final List<Integer> DEFAULT_ORE = List.of(3, 4, 5, 15, 36, 46);
+        static final List<Integer> DEFAULT_INGOT = List.of(7, 11, 17, 41, 89, 116);
+        static final List<Integer> DEFAULT_GEM = List.of(25, 35, 45, 130, 400, 700);
+        public static final Mine DEFAULT = new Mine(DEFAULT_ORE, DEFAULT_INGOT, DEFAULT_GEM);
+        /** 0.3.6·0.3.6.1 의 꼴과 기본값 — config 에 이것이 그대로면 손대지 않은 것으로 보고 {@link #DEFAULT} 로 읽는다. */
+        public static final Legacy LEGACY_0361 = new Legacy(1, 3, 6, 0.35);
 
         public Mine {
-            ore = Math.max(0, ore);
-            ingot = Math.max(0, ingot);
-            gem = Math.max(0, gem);
-            rankBonus = Math.max(0, rankBonus);
+            ore = fill(ore, DEFAULT_ORE);
+            ingot = fill(ingot, DEFAULT_INGOT);
+            gem = fill(gem, DEFAULT_GEM);
         }
 
-        /** 섹션이 없으면 기본값 (기존 서버 config.yml 에는 sell.mine 이 없다). */
+        static List<Integer> fill(List<Integer> v, List<Integer> def) {
+            List<Integer> out = new ArrayList<>(LEVELS);
+            for (int i = 0; i < LEVELS; i++) {
+                Integer x = v != null && i < v.size() ? v.get(i) : null;
+                out.add(x == null ? def.get(i) : Math.max(0, x));
+            }
+            return List.copyOf(out);
+        }
+
+        /**
+         * 0.3.6 꼴 {@code {ore, ingot, gem, rank_bonus}}: 값 = 반올림(기본값 × (1 + rankBonus × (등급 − 1))), 최소 1 (기본값 0 = 팔지 않음).
+         * 주인이 고친 옛 꼴은 이 식으로 6칸을 펼쳐 그대로 지킨다.
+         */
+        public record Legacy(int ore, int ingot, int gem, double rankBonus) {
+            public Legacy {
+                ore = Math.max(0, ore);
+                ingot = Math.max(0, ingot);
+                gem = Math.max(0, gem);
+                rankBonus = Math.max(0, rankBonus);
+            }
+
+            static int value(int base, double bonus, int level) {
+                if (base <= 0) return 0;
+                return (int) Math.max(1, Math.floor(base * (1 + bonus * (Math.max(1, level) - 1)) + 0.5 + 1e-9));
+            }
+
+            List<Integer> row(int base) {
+                List<Integer> out = new ArrayList<>(LEVELS);
+                for (int l = 1; l <= LEVELS; l++) out.add(value(base, rankBonus, l));
+                return out;
+            }
+
+            public Mine expand() { return new Mine(row(ore), row(ingot), row(gem)); }
+        }
+
+        /**
+         * 섹션이 없으면 기본값. 목록 꼴({@code ore: [3, 4, …]})이면 그대로, 옛 꼴이면 0.3.6 기본값 그대로일 때 {@link #DEFAULT},
+         * 고친 값이면 옛 식으로 펼친다.
+         */
         public static Mine from(ConfigurationSection s) {
             if (s == null) return DEFAULT;
-            return new Mine(s.getInt("ore", DEFAULT.ore), s.getInt("ingot", DEFAULT.ingot), s.getInt("gem", DEFAULT.gem),
-                    s.getDouble("rank_bonus", DEFAULT.rankBonus));
+            if (s.isList("ore") || s.isList("ingot") || s.isList("gem")) {
+                return new Mine(ints(s, "ore"), ints(s, "ingot"), ints(s, "gem"));
+            }
+            Legacy l = new Legacy(s.getInt("ore", LEGACY_0361.ore()), s.getInt("ingot", LEGACY_0361.ingot()), s.getInt("gem", LEGACY_0361.gem()),
+                    s.getDouble("rank_bonus", LEGACY_0361.rankBonus()));
+            return l.equals(LEGACY_0361) ? DEFAULT : l.expand();
         }
 
-        public int base(kr.labyrinth.content.MineKind kind) {
+        private static List<Integer> ints(ConfigurationSection s, String key) {
+            if (!s.isList(key)) return null;
+            List<Integer> out = new ArrayList<>();
+            for (Object o : s.getList(key, List.of())) {
+                try {
+                    out.add((int) Math.round(Double.parseDouble(String.valueOf(o).trim())));
+                } catch (NumberFormatException e) {
+                    out.add(null);   // 숫자가 아닌 칸은 기본값
+                }
+            }
+            return out;
+        }
+
+        public List<Integer> row(kr.labyrinth.content.MineKind kind) {
             return switch (kind) {
                 case ORE -> ore;
                 case INGOT -> ingot;
@@ -188,11 +251,27 @@ public final class SellPrices {
             };
         }
 
-        /** 한 개 값 (등급 1~6, 반올림 — .5 는 올림, 최소 1). 기본값이 0 이면 0 (팔지 않음). */
+        /** 한 개 값 (등급 1~6 — 범위 밖은 가까운 끝). 0 이면 팔지 않음. */
         public int value(kr.labyrinth.content.MineKind kind, int level) {
-            int b = base(kind);
-            if (b <= 0) return 0;
-            return (int) Math.max(1, Math.floor(b * (1 + rankBonus * (Math.max(1, level) - 1)) + 0.5 + 1e-9));
+            return row(kind).get(Math.max(1, Math.min(LEVELS, level)) - 1);
+        }
+
+        /**
+         * 녹여 팔면 이득인 등급 (경고 글, 없으면 빈 목록): 주괴 값 ≥ 광석 n개 값 + 제련 골드.
+         * @param smelt 등급 → {광석 수, 제련 골드} (제련소 레시피)
+         */
+        public List<String> smeltWarnings(Map<Integer, int[]> smelt) {
+            List<String> out = new ArrayList<>();
+            if (smelt == null) return out;
+            for (Map.Entry<Integer, int[]> e : new java.util.TreeMap<>(smelt).entrySet()) {
+                int lv = e.getKey(), ores = e.getValue()[0], gold = e.getValue()[1];
+                int ing = value(kr.labyrinth.content.MineKind.INGOT, lv), o = value(kr.labyrinth.content.MineKind.ORE, lv);
+                if (ing > 0 && ing >= ores * o + gold) {
+                    out.add("sell.mine 값으로는 등급 " + lv + " 주괴를 녹여 팔면 이득입니다 (주괴 " + ing + " G ≥ 광석 " + ores + " × " + o
+                            + " + 제련 " + gold + " G) — 주괴 값을 " + (ores * o + gold - 1) + " G 이하로 두세요.");
+                }
+            }
+            return out;
         }
     }
 
@@ -285,8 +364,8 @@ public final class SellPrices {
                 "<gray>장비 <dark_gray>(× 1 + " + pct(c.gearFloorBonus()) + " × 장비 단계 · × 1 + " + pct(c.enhanceBonus()) + " × 강화)",
                 "<white>" + row(c.gear()),
                 "<gray>소모품: 핀이 파는 것은 산 값의 <white>" + pct(c.consumableShopRatio()) + "</white>, 그 밖은 재료 값",
-                "<gray>광석 <white>" + c.mine().ore() + " G</white> · 주괴 <white>" + c.mine().ingot() + " G</white> · 보석 <white>"
-                        + c.mine().gem() + " G</white> 부터 <dark_gray>(귀한 것일수록 비쌈)",
+                "<gray>광석 <white>" + c.mine().ore().get(0) + " G</white> · 주괴 <white>" + c.mine().ingot().get(0) + " G</white> · 보석 <white>"
+                        + c.mine().gem().get(0) + " G</white> 부터 <dark_gray>(귀한 것일수록 비쌈)",
                 "<gray>핀이 파는 물건은 언제나 산 값보다 쌉니다.",
                 "",
                 "<#ff8a8a>팔 수 없음: <gray>시작 지급품 · 열쇠·문장 · 도구 · 전직의 두루마리",

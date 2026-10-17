@@ -787,20 +787,31 @@
    "gold": {
     "dungeon_per_run": 884,
     "dungeon_per_min": 58.9,
+    "dungeon_ore_sale_per_run": 25.5,
+    "dungeon_with_sale_per_min": 84.8,
+    "dungeon_party4_per_person_per_min": 121.4,
     "band_pickaxe": "copper_pickaxe",
-    "dungeon_with_sale_per_min": 83.1,
-    "ratio_with_sale": 0.167,
-    "mine_per_min": 13.9,
+    "mine_per_min": 48.1,
     "mine_levels": [
      1
     ],
-    "ratio": 0.235,
-    "early_pickaxe": "iron_pickaxe",
-    "early_per_min": 18.7,
-    "early_ratio": 0.318,
-    "early_ratio_with_sale": 0.225,
-    "gift_top_pickaxe_per_min": 41.4,
-    "gift_ratio": 0.703
+    "mine_metals": [
+     "copper",
+     "iron"
+    ],
+    "ratio": 0.816,
+    "ratio_with_sale": 0.567,
+    "band_tour_ratio_with_sale": 0.593,
+    "reach_pickaxe": "iron_pickaxe",
+    "reach_per_min": 63.3,
+    "reach_ratio": 1.074,
+    "reach_ratio_with_sale": 0.746,
+    "reach_tour_per_min": 67.4,
+    "reach_tour_ratio_with_sale": 0.795,
+    "band_four_same_ratio_with_sale": 0.345,
+    "band_four_split_vs_party4": 0.33,
+    "gift_top_pickaxe_per_min": 693.9,
+    "gift_ratio_with_sale": 8.182
    }
   },
   {
@@ -1004,20 +1015,31 @@
    "gold": {
     "dungeon_per_run": 1097,
     "dungeon_per_min": 68.6,
+    "dungeon_ore_sale_per_run": 25.7,
+    "dungeon_with_sale_per_min": 90.0,
+    "dungeon_party4_per_person_per_min": 128.8,
     "band_pickaxe": "copper_pickaxe",
-    "dungeon_with_sale_per_min": 88.4,
-    "ratio_with_sale": 0.157,
-    "mine_per_min": 13.9,
+    "mine_per_min": 48.1,
     "mine_levels": [
      1
     ],
-    "ratio": 0.202,
-    "early_pickaxe": "iron_pickaxe",
-    "early_per_min": 18.7,
-    "early_ratio": 0.273,
-    "early_ratio_with_sale": 0.212,
-    "gift_top_pickaxe_per_min": 41.4,
-    "gift_ratio": 0.604
+    "mine_metals": [
+     "copper",
+     "iron"
+    ],
+    "ratio": 0.701,
+    "ratio_with_sale": 0.535,
+    "band_tour_ratio_with_sale": 0.559,
+    "reach_pickaxe": "iron_pickaxe",
+    "reach_per_min": 63.3,
+    "reach_ratio": 0.923,
+    "reach_ratio_with_sale": 0.703,
+    "reach_tour_per_min": 67.4,
+    "reach_tour_ratio_with_sale": 0.749,
+    "band_four_same_ratio_with_sale": 0.326,
+    "band_four_split_vs_party4": 0.311,
+    "gift_top_pickaxe_per_min": 693.9,
+    "gift_ratio_with_sale": 7.712
    }
   },
   {
@@ -1209,20 +1231,31 @@
    "gold": {
     "dungeon_per_run": 1336,
     "dungeon_per_min": 74.2,
+    "dungeon_ore_sale_per_run": 28.0,
+    "dungeon_with_sale_per_min": 102.8,
+    "dungeon_party4_per_person_per_min": 147.2,
     "band_pickaxe": "copper_pickaxe",
-    "dungeon_with_sale_per_min": 101.2,
-    "ratio_with_sale": 0.137,
-    "mine_per_min": 13.9,
+    "mine_per_min": 48.1,
     "mine_levels": [
      1
     ],
-    "ratio": 0.187,
-    "early_pickaxe": "iron_pickaxe",
-    "early_per_min": 18.7,
-    "early_ratio": 0.252,
-    "early_ratio_with_sale": 0.185,
-    "gift_top_pickaxe_per_min": 41.4,
-    "gift_ratio": 0.558
+    "mine_metals": [
+     "copper",
+     "iron"
+    ],
+    "ratio": 0.648,
+    "ratio_with_sale": 0.468,
+    "band_tour_ratio_with_sale": 0.489,
+    "reach_pickaxe": "iron_pickaxe",
+    "reach_per_min": 63.3,
+    "reach_ratio": 0.853,
+    "reach_ratio_with_sale": 0.616,
+    "reach_tour_per_min": 67.4,
+    "reach_tour_ratio_with_sale": 0.656,
+    "band_four_same_ratio_with_sale": 0.285,
+    "band_four_split_vs_party4": 0.272,
+    "gift_top_pickaxe_per_min": 693.9,
+    "gift_ratio_with_sale": 6.75
    }
   },
   {
@@ -1414,20 +1447,31 @@
    "gold": {
     "dungeon_per_run": 2960,
     "dungeon_per_min": 148.0,
+    "dungeon_ore_sale_per_run": 40.0,
+    "dungeon_with_sale_per_min": 190.9,
+    "dungeon_party4_per_person_per_min": 273.8,
     "band_pickaxe": "iron_pickaxe",
-    "dungeon_with_sale_per_min": 188.9,
-    "ratio_with_sale": 0.099,
-    "mine_per_min": 18.7,
+    "mine_per_min": 63.3,
     "mine_levels": [
      1
     ],
-    "ratio": 0.127,
-    "early_pickaxe": "silver_pickaxe",
-    "early_per_min": 24.7,
-    "early_ratio": 0.167,
-    "early_ratio_with_sale": 0.131,
-    "gift_top_pickaxe_per_min": 41.4,
-    "gift_ratio": 0.28
+    "mine_metals": [
+     "copper",
+     "iron"
+    ],
+    "ratio": 0.428,
+    "ratio_with_sale": 0.332,
+    "band_tour_ratio_with_sale": 0.353,
+    "reach_pickaxe": "silver_pickaxe",
+    "reach_per_min": 129.7,
+    "reach_ratio": 0.876,
+    "reach_ratio_with_sale": 0.679,
+    "reach_tour_per_min": 132.3,
+    "reach_tour_ratio_with_sale": 0.693,
+    "band_four_same_ratio_with_sale": 0.197,
+    "band_four_split_vs_party4": 0.212,
+    "gift_top_pickaxe_per_min": 693.9,
+    "gift_ratio_with_sale": 3.635
    }
   },
   {
@@ -1631,20 +1675,30 @@
    "gold": {
     "dungeon_per_run": 3657,
     "dungeon_per_min": 174.1,
+    "dungeon_ore_sale_per_run": 83.9,
+    "dungeon_with_sale_per_min": 227.6,
+    "dungeon_party4_per_person_per_min": 326.6,
     "band_pickaxe": "silver_pickaxe",
-    "dungeon_with_sale_per_min": 223.6,
-    "ratio_with_sale": 0.11,
-    "mine_per_min": 24.7,
+    "mine_per_min": 129.7,
     "mine_levels": [
-     3
+     4
     ],
-    "ratio": 0.142,
-    "early_pickaxe": "gold_pickaxe",
-    "early_per_min": 30.6,
-    "early_ratio": 0.176,
-    "early_ratio_with_sale": 0.137,
-    "gift_top_pickaxe_per_min": 41.4,
-    "gift_ratio": 0.238
+    "mine_metals": [
+     "gold"
+    ],
+    "ratio": 0.745,
+    "ratio_with_sale": 0.57,
+    "band_tour_ratio_with_sale": 0.581,
+    "reach_pickaxe": "silver_pickaxe",
+    "reach_per_min": 129.7,
+    "reach_ratio": 0.745,
+    "reach_ratio_with_sale": 0.57,
+    "reach_tour_per_min": 132.3,
+    "reach_tour_ratio_with_sale": 0.581,
+    "band_four_same_ratio_with_sale": 0.309,
+    "band_four_split_vs_party4": 0.323,
+    "gift_top_pickaxe_per_min": 693.9,
+    "gift_ratio_with_sale": 3.049
    }
   },
   {
@@ -1836,20 +1890,30 @@
    "gold": {
     "dungeon_per_run": 4494,
     "dungeon_per_min": 195.4,
+    "dungeon_ore_sale_per_run": 165.0,
+    "dungeon_with_sale_per_min": 259.0,
+    "dungeon_party4_per_person_per_min": 370.5,
     "band_pickaxe": "silver_pickaxe",
-    "dungeon_with_sale_per_min": 251.8,
-    "ratio_with_sale": 0.098,
-    "mine_per_min": 24.7,
+    "mine_per_min": 129.7,
     "mine_levels": [
-     3
+     4
     ],
-    "ratio": 0.126,
-    "early_pickaxe": "gold_pickaxe",
-    "early_per_min": 30.6,
-    "early_ratio": 0.157,
-    "early_ratio_with_sale": 0.122,
-    "gift_top_pickaxe_per_min": 41.4,
-    "gift_ratio": 0.212
+    "mine_metals": [
+     "gold"
+    ],
+    "ratio": 0.664,
+    "ratio_with_sale": 0.501,
+    "band_tour_ratio_with_sale": 0.511,
+    "reach_pickaxe": "silver_pickaxe",
+    "reach_per_min": 129.7,
+    "reach_ratio": 0.664,
+    "reach_ratio_with_sale": 0.501,
+    "reach_tour_per_min": 132.3,
+    "reach_tour_ratio_with_sale": 0.511,
+    "band_four_same_ratio_with_sale": 0.271,
+    "band_four_split_vs_party4": 0.284,
+    "gift_top_pickaxe_per_min": 693.9,
+    "gift_ratio_with_sale": 2.68
    }
   },
   {
@@ -2055,20 +2119,30 @@
    "gold": {
     "dungeon_per_run": 9096,
     "dungeon_per_min": 379.0,
+    "dungeon_ore_sale_per_run": 272.0,
+    "dungeon_with_sale_per_min": 465.1,
+    "dungeon_party4_per_person_per_min": 666.9,
     "band_pickaxe": "gold_pickaxe",
-    "dungeon_with_sale_per_min": 453.8,
-    "ratio_with_sale": 0.067,
-    "mine_per_min": 30.6,
+    "mine_per_min": 318.6,
     "mine_levels": [
-     3
+     5
     ],
-    "ratio": 0.081,
-    "early_pickaxe": "mithril_pickaxe",
-    "early_per_min": 36.3,
-    "early_ratio": 0.096,
-    "early_ratio_with_sale": 0.08,
-    "gift_top_pickaxe_per_min": 41.4,
-    "gift_ratio": 0.109
+    "mine_metals": [
+     "mithril"
+    ],
+    "ratio": 0.841,
+    "ratio_with_sale": 0.685,
+    "band_tour_ratio_with_sale": 0.712,
+    "reach_pickaxe": "gold_pickaxe",
+    "reach_per_min": 318.6,
+    "reach_ratio": 0.841,
+    "reach_ratio_with_sale": 0.685,
+    "reach_tour_per_min": 331.0,
+    "reach_tour_ratio_with_sale": 0.712,
+    "band_four_same_ratio_with_sale": 0.386,
+    "band_four_split_vs_party4": 0.389,
+    "gift_top_pickaxe_per_min": 693.9,
+    "gift_ratio_with_sale": 1.492
    }
   },
   {
@@ -2260,20 +2334,30 @@
    "gold": {
     "dungeon_per_run": 12471,
     "dungeon_per_min": 479.6,
+    "dungeon_ore_sale_per_run": 396.0,
+    "dungeon_with_sale_per_min": 627.8,
+    "dungeon_party4_per_person_per_min": 900.6,
     "band_pickaxe": "gold_pickaxe",
-    "dungeon_with_sale_per_min": 612.5,
-    "ratio_with_sale": 0.05,
-    "mine_per_min": 30.6,
+    "mine_per_min": 318.6,
     "mine_levels": [
-     3
+     5
     ],
-    "ratio": 0.064,
-    "early_pickaxe": "mithril_pickaxe",
-    "early_per_min": 36.3,
-    "early_ratio": 0.076,
-    "early_ratio_with_sale": 0.059,
-    "gift_top_pickaxe_per_min": 41.4,
-    "gift_ratio": 0.086
+    "mine_metals": [
+     "mithril"
+    ],
+    "ratio": 0.664,
+    "ratio_with_sale": 0.508,
+    "band_tour_ratio_with_sale": 0.527,
+    "reach_pickaxe": "gold_pickaxe",
+    "reach_per_min": 318.6,
+    "reach_ratio": 0.664,
+    "reach_ratio_with_sale": 0.508,
+    "reach_tour_per_min": 331.0,
+    "reach_tour_ratio_with_sale": 0.527,
+    "band_four_same_ratio_with_sale": 0.286,
+    "band_four_split_vs_party4": 0.288,
+    "gift_top_pickaxe_per_min": 693.9,
+    "gift_ratio_with_sale": 1.105
    }
   },
   {
@@ -2477,20 +2561,31 @@
    "gold": {
     "dungeon_per_run": 14932,
     "dungeon_per_min": 553.1,
+    "dungeon_ore_sale_per_run": 607.7,
+    "dungeon_with_sale_per_min": 726.0,
+    "dungeon_party4_per_person_per_min": 1041.7,
     "band_pickaxe": "mithril_pickaxe",
-    "dungeon_with_sale_per_min": 703.4,
-    "ratio_with_sale": 0.052,
-    "mine_per_min": 36.3,
+    "mine_per_min": 473.8,
     "mine_levels": [
-     3
+     5
     ],
-    "ratio": 0.066,
-    "early_pickaxe": "orichalcum_pickaxe",
-    "early_per_min": 41.4,
-    "early_ratio": 0.075,
-    "early_ratio_with_sale": 0.059,
-    "gift_top_pickaxe_per_min": 41.4,
-    "gift_ratio": 0.075
+    "mine_metals": [
+     "mithril",
+     "orichalcum"
+    ],
+    "ratio": 0.857,
+    "ratio_with_sale": 0.653,
+    "band_tour_ratio_with_sale": 0.721,
+    "reach_pickaxe": "mithril_pickaxe",
+    "reach_per_min": 473.8,
+    "reach_ratio": 0.857,
+    "reach_ratio_with_sale": 0.653,
+    "reach_tour_per_min": 523.1,
+    "reach_tour_ratio_with_sale": 0.721,
+    "band_four_same_ratio_with_sale": 0.423,
+    "band_four_split_vs_party4": 0.387,
+    "gift_top_pickaxe_per_min": 693.9,
+    "gift_ratio_with_sale": 0.956
    }
   },
   {
@@ -2682,23 +2777,369 @@
    "gold": {
     "dungeon_per_run": 22603,
     "dungeon_per_min": 753.4,
+    "dungeon_ore_sale_per_run": 598.0,
+    "dungeon_with_sale_per_min": 940.9,
+    "dungeon_party4_per_person_per_min": 1350.7,
     "band_pickaxe": "mithril_pickaxe",
-    "dungeon_with_sale_per_min": 920.9,
-    "ratio_with_sale": 0.039,
-    "mine_per_min": 36.3,
+    "mine_per_min": 473.8,
     "mine_levels": [
-     3
+     5
     ],
-    "ratio": 0.048,
-    "early_pickaxe": "orichalcum_pickaxe",
-    "early_per_min": 41.4,
-    "early_ratio": 0.055,
-    "early_ratio_with_sale": 0.045,
-    "gift_top_pickaxe_per_min": 41.4,
-    "gift_ratio": 0.055
+    "mine_metals": [
+     "mithril",
+     "orichalcum"
+    ],
+    "ratio": 0.629,
+    "ratio_with_sale": 0.504,
+    "band_tour_ratio_with_sale": 0.556,
+    "reach_pickaxe": "orichalcum_pickaxe",
+    "reach_per_min": 693.9,
+    "reach_ratio": 0.921,
+    "reach_ratio_with_sale": 0.738,
+    "reach_tour_per_min": 718.2,
+    "reach_tour_ratio_with_sale": 0.763,
+    "band_four_same_ratio_with_sale": 0.327,
+    "band_four_split_vs_party4": 0.298,
+    "gift_top_pickaxe_per_min": 693.9,
+    "gift_ratio_with_sale": 0.738
    }
   }
  ],
+ "mine_by_pickaxe": {
+  "1": {
+   "pickaxe": "copper_pickaxe",
+   "per_min": 48.1,
+   "levels": [
+    1
+   ],
+   "metals": [
+    "copper",
+    "iron"
+   ],
+   "blocks_per_min": 10.98,
+   "gem_share": 0.179,
+   "gems_per_hour": 18.3,
+   "top_gem": "garnet",
+   "top_gem_every_min": 10.0,
+   "top_gem_minutes_of_income": 0.73,
+   "tour_per_min": 50.3,
+   "tour_levels": [
+    1
+   ],
+   "tour_node_levels": [
+    2
+   ],
+   "four_same_per_person": 29.3,
+   "four_same_share": 0.609,
+   "four_split_per_person": 40.1,
+   "four_split_share": 0.834,
+   "four_split_plan": [
+    [
+     [
+      1
+     ],
+     2
+    ],
+    [
+     [
+      2
+     ],
+     1
+    ],
+    [
+     [
+      3
+     ],
+     1
+    ]
+   ]
+  },
+  "2": {
+   "pickaxe": "iron_pickaxe",
+   "per_min": 63.3,
+   "levels": [
+    1
+   ],
+   "metals": [
+    "copper",
+    "iron"
+   ],
+   "blocks_per_min": 14.23,
+   "gem_share": 0.176,
+   "gems_per_hour": 23.7,
+   "top_gem": "moonstone",
+   "top_gem_every_min": null,
+   "top_gem_minutes_of_income": 0.71,
+   "tour_per_min": 67.4,
+   "tour_levels": [
+    1,
+    2
+   ],
+   "tour_node_levels": [
+    3
+   ],
+   "four_same_per_person": 37.6,
+   "four_same_share": 0.593,
+   "four_split_per_person": 58.1,
+   "four_split_share": 0.917,
+   "four_split_plan": [
+    [
+     [
+      1
+     ],
+     1
+    ],
+    [
+     [
+      2
+     ],
+     1
+    ],
+    [
+     [
+      3
+     ],
+     1
+    ],
+    [
+     [
+      4
+     ],
+     1
+    ]
+   ]
+  },
+  "3": {
+   "pickaxe": "silver_pickaxe",
+   "per_min": 129.7,
+   "levels": [
+    4
+   ],
+   "metals": [
+    "gold"
+   ],
+   "blocks_per_min": 6.16,
+   "gem_share": 0.199,
+   "gems_per_hour": 13.0,
+   "top_gem": "topaz",
+   "top_gem_every_min": 5.3,
+   "top_gem_minutes_of_income": 1.0,
+   "tour_per_min": 132.3,
+   "tour_levels": [
+    4
+   ],
+   "tour_node_levels": [
+    3,
+    5
+   ],
+   "four_same_per_person": 70.3,
+   "four_same_share": 0.542,
+   "four_split_per_person": 105.4,
+   "four_split_share": 0.813,
+   "four_split_plan": [
+    [
+     [
+      3
+     ],
+     1
+    ],
+    [
+     [
+      4
+     ],
+     1
+    ],
+    [
+     [
+      5
+     ],
+     1
+    ],
+    [
+     [
+      2,
+      6
+     ],
+     1
+    ]
+   ]
+  },
+  "4": {
+   "pickaxe": "gold_pickaxe",
+   "per_min": 318.6,
+   "levels": [
+    5
+   ],
+   "metals": [
+    "mithril"
+   ],
+   "blocks_per_min": 5.93,
+   "gem_share": 0.233,
+   "gems_per_hour": 12.1,
+   "top_gem": "sapphire",
+   "top_gem_every_min": 5.6,
+   "top_gem_minutes_of_income": 1.26,
+   "tour_per_min": 331.0,
+   "tour_levels": [
+    5
+   ],
+   "tour_node_levels": [
+    4,
+    6
+   ],
+   "four_same_per_person": 179.4,
+   "four_same_share": 0.563,
+   "four_split_per_person": 259.6,
+   "four_split_share": 0.815,
+   "four_split_plan": [
+    [
+     [
+      4
+     ],
+     1
+    ],
+    [
+     [
+      5
+     ],
+     2
+    ],
+    [
+     [
+      6
+     ],
+     1
+    ]
+   ]
+  },
+  "5": {
+   "pickaxe": "mithril_pickaxe",
+   "per_min": 473.8,
+   "levels": [
+    5
+   ],
+   "metals": [
+    "mithril",
+    "orichalcum"
+   ],
+   "blocks_per_min": 8.16,
+   "gem_share": 0.228,
+   "gems_per_hour": 15.2,
+   "top_gem": "dragonblood_stone",
+   "top_gem_every_min": 23.0,
+   "top_gem_minutes_of_income": 1.48,
+   "tour_per_min": 523.1,
+   "tour_levels": [
+    5,
+    6
+   ],
+   "tour_node_levels": [],
+   "four_same_per_person": 307.2,
+   "four_same_share": 0.648,
+   "four_split_per_person": 402.7,
+   "four_split_share": 0.85,
+   "four_split_plan": [
+    [
+     [
+      4
+     ],
+     1
+    ],
+    [
+     [
+      5
+     ],
+     1
+    ],
+    [
+     [
+      6
+     ],
+     2
+    ]
+   ]
+  },
+  "6": {
+   "pickaxe": "orichalcum_pickaxe",
+   "per_min": 693.9,
+   "levels": [
+    6
+   ],
+   "metals": [
+    "mithril",
+    "orichalcum"
+   ],
+   "blocks_per_min": 10.24,
+   "gem_share": 0.255,
+   "gems_per_hour": 17.8,
+   "top_gem": "dragonblood_stone",
+   "top_gem_every_min": 5.1,
+   "top_gem_minutes_of_income": 1.01,
+   "tour_per_min": 718.2,
+   "tour_levels": [
+    6
+   ],
+   "tour_node_levels": [
+    5
+   ],
+   "four_same_per_person": 380.7,
+   "four_same_share": 0.549,
+   "four_split_per_person": 511.0,
+   "four_split_share": 0.736,
+   "four_split_plan": [
+    [
+     [
+      4
+     ],
+     1
+    ],
+    [
+     [
+      5
+     ],
+     1
+    ],
+    [
+     [
+      6
+     ],
+     2
+    ]
+   ]
+  }
+ },
+ "prices": {
+  "ore": [
+   3,
+   4,
+   5,
+   15,
+   36,
+   46
+  ],
+  "ingot": [
+   7,
+   11,
+   17,
+   41,
+   89,
+   116
+  ],
+  "gem": [
+   25,
+   35,
+   45,
+   130,
+   400,
+   700
+  ]
+ },
+ "limits": {
+  "band_max": 0.7,
+  "reach_min": 0.45,
+  "reach_max": 0.8,
+  "tour_max": 0.85
+ },
  "pickaxe_prep": {
   "iron_pickaxe": {
    "with": "copper_pickaxe",
@@ -2709,6 +3150,7 @@
    "essence": {
     "dim_essence": 2
    },
+   "gate": null,
    "minutes": 9.3,
    "levels": [
     2
@@ -2728,6 +3170,10 @@
    "essence": {
     "dim_essence": 4
    },
+   "gate": [
+    "verdigris_plate",
+    3
+   ],
    "minutes": 9.9,
    "levels": [
     3
@@ -2747,6 +3193,10 @@
    "essence": {
     "labyrinth_essence": 2
    },
+   "gate": [
+    "tuning_fork_core",
+    3
+   ],
    "minutes": 15.9,
    "levels": [
     4
@@ -2766,6 +3216,10 @@
    "essence": {
     "labyrinth_essence": 4
    },
+   "gate": [
+    "regulator_pendulum",
+    3
+   ],
    "minutes": 16.9,
    "levels": [
     5
@@ -2785,6 +3239,10 @@
    "essence": {
     "radiant_essence": 3
    },
+   "gate": [
+    "gatekeeper_rune",
+    3
+   ],
    "minutes": 12.2,
    "levels": [
     6

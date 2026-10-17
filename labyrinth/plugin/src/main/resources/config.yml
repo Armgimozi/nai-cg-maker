@@ -374,9 +374,13 @@ sell:
   confirm_rarity: epic
   confirm_enhance: 1
   unsellable: [class_change_scroll]
-  # 광산 재료 (0.3.6) — 값 = 반올림(기본값 × (1 + rank_bonus × (광물 등급 − 1))), 최소 1. 등급은 items.yml mine_level (구리·석영 1 … 오리하르콘·용혈석 6).
-  # 주괴를 녹여 팔면 언제나 손해다 (주괴 값 < 광석 2개 + 제련 골드). 곡괭이(도구)는 팔 수 없다.
-  mine: {ore: 1, ingot: 3, gem: 6, rank_bonus: 0.35}
+  # 광산 재료 (0.3.7) — 등급 1~6 값 (구리·석영 … 오리하르콘·용혈석, items.yml mine_level). 0 = 팔지 않음.
+  #   주괴 = 광석 2 + 제련 골드 − 1 이라 녹여 팔면 늘 1 G 손해다 (주괴 값을 올리면 켤 때 경고). 곡괭이(도구)는 팔 수 없다.
+  #   0.3.6 꼴 {ore: 1, ingot: 3, gem: 6, rank_bonus: 0.35} 이 그대로 있으면 이 기본값으로 읽는다 (고친 옛 꼴은 옛 식 그대로).
+  mine:
+    ore:   [3, 4, 5, 15, 36, 46]
+    ingot: [7, 11, 17, 41, 89, 116]
+    gem:   [25, 35, 45, 130, 400, 700]
 
 # 몬스터
 mobs:

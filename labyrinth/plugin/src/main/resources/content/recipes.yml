@@ -1461,23 +1461,23 @@ recipes:
     result: silver_pickaxe
     category: tool
     station: smelter
-    materials: {iron_pickaxe: 1, silver_ingot: 16, moonstone: 2, dim_essence: 4}
+    materials: {iron_pickaxe: 1, silver_ingot: 16, moonstone: 2, dim_essence: 4, verdigris_plate: 3}
     gold: 1000
   gold_pickaxe:   # 금 곡괭이
     result: gold_pickaxe
     category: tool
     station: smelter
-    materials: {silver_pickaxe: 1, gold_ingot: 20, topaz: 3, labyrinth_essence: 2}
+    materials: {silver_pickaxe: 1, gold_ingot: 20, topaz: 3, labyrinth_essence: 2, tuning_fork_core: 3}
     gold: 2500
   mithril_pickaxe:   # 미스릴 곡괭이
     result: mithril_pickaxe
     category: tool
     station: smelter
-    materials: {gold_pickaxe: 1, mithril_ingot: 24, sapphire: 3, labyrinth_essence: 4}
+    materials: {gold_pickaxe: 1, mithril_ingot: 24, sapphire: 3, labyrinth_essence: 4, regulator_pendulum: 3}
     gold: 5000
   orichalcum_pickaxe:   # 오리하르콘 곡괭이
     result: orichalcum_pickaxe
     category: tool
     station: smelter
-    materials: {mithril_pickaxe: 1, orichalcum_ingot: 12, dragonblood_stone: 2, radiant_essence: 3}
+    materials: {mithril_pickaxe: 1, orichalcum_ingot: 12, dragonblood_stone: 2, radiant_essence: 3, gatekeeper_rune: 3}
     gold: 10000

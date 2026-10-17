@@ -61,6 +61,7 @@ class MineConfigDefaultsTest {
         assertEquals(180.0, MineConfig.DEFAULT.regenSeconds(1));
         assertEquals(1800.0, MineConfig.DEFAULT.gemRegenSeconds());
         assertFalse(MineConfig.DEFAULT.toMap().containsKey("regen_players_cap"), "toMap 에 사람 수 손잡이 없음");
+        assertEquals("3분 뒤 다시 찹니다.", MineConfig.DEFAULT.refillLine(), "광맥 현황 함께 캐기 글");
     }
 
     @Test
@@ -76,6 +77,7 @@ class MineConfigDefaultsTest {
         y = new YamlConfiguration();
         y.loadFromString("mine:\n  regen_minutes: [8, 9, 9, 10, 10, 11]\n");
         assertEquals(List.of(8, 9, 9, 10, 10, 11), MineConfig.fromRoot(y).regenMinutes());
+        assertEquals("층마다 정해진 시간 뒤 다시 찹니다.", MineConfig.fromRoot(y).refillLine());
         assertTrue(MineConfig.legacyNotes(y.getConfigurationSection("mine")).isEmpty());
         assertTrue(MineConfig.legacyNotes(null).isEmpty());
     }

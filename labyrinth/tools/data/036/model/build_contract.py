@@ -68,9 +68,9 @@ def build_mine(lay, eco):
         rec = None
         if m['pickaxe'] in P.PICK_RECIPES:
             d = P.PICK_RECIPES[m['pickaxe']]
-            rec = {'id': m['pickaxe'], 'station': 'smelter', 'category': 'tool',
-                   'materials': {d['prev']: 1, d['ingot'][0]: d['ingot'][1], d['gem'][0]: d['gem'][1], d['essence'][0]: d['essence'][1]},
-                   'gold': d['gold']}
+            rec = {'id': m['pickaxe'], 'station': 'smelter', 'category': 'tool', 'materials': P.pick_materials(d), 'gold': d['gold']}
+            if d.get('gate'):   # 0.3.7: 은·금·미스릴·오리하르콘 곡괭이 = 그 층 정예 재료 3 (레벨 조건이 아닌 미궁 진행 문)
+                rec['gate'] = {'item': d['gate'][0], 'count': d['gate'][1], 'floor': P.PICK_GATE_FLOOR[m['pickaxe']]}
         picks[m['pickaxe']] = {
             'name': m['pick_name'], 'tier': r, 'speed': {str(o): v for o, v in P.pick_speed(r).items()},
             'bonus': P.PICK_BONUS[r],
@@ -219,8 +219,7 @@ def build_materials(proto, eco):
                 'materials': {s['gem']: 1, s['essence']: 1}, 'gold': s['gold'], 'amount': P.STONE_YIELD} for s in P.STONE_RECIPES]
     pick_rec = []
     for pid, d in P.PICK_RECIPES.items():
-        pick_rec.append({'id': pid, 'result': pid, 'station': 'smelter', 'category': 'tool',
-                         'materials': {d['prev']: 1, d['ingot'][0]: d['ingot'][1], d['gem'][0]: d['gem'][1], d['essence'][0]: d['essence'][1]},
+        pick_rec.append({'id': pid, 'result': pid, 'station': 'smelter', 'category': 'tool', 'materials': P.pick_materials(d),
                          'gold': d['gold'], 'consumes_previous_pickaxe': True})
     retired = {}
     for old, r in P.RETIRED.items():
@@ -289,11 +288,14 @@ def build_materials(proto, eco):
             'checks': ['NoRetiredIds', 'GearRecipeIngot (금속 = 힘 규칙, 이웃 두 금속까지)', 'MineLadder (제련 6 · 곡괭이 사다리 · 레벨 조건 없음)', 'SellMine',
                        'EnhanceIngot', 'DungeonOrePerRun (±10%)', 'NoLevelLabels (광석·주괴·곡괭이·광산 글에 Lv·층 번호·단계 없음)'],
             'verify_first': '0.3.5 verify 를 036 단계 앞에서 돌린다 (R §3-18)'},
-        'sell': {'config': {'sell': {'mine': dict(P.SELL_MINE)}},
-                 'formula': '값 = 반올림(base × (1 + rank_bonus × (mine_level − 1))), 최소 1 · mine_kind 로 종류 · 도구(type tool)는 못 팜 ("도구는 팔 수 없습니다.")',
+        'sell': {'config': {'sell': {'mine': {k: list(v) for k, v in P.SELL_MINE.items()}}},
+                 'formula': '0.3.7: 값 = sell.mine.<mine_kind>[mine_level − 1] (등급 1~6 목록) · 도구(type tool)는 못 팜 ("도구는 팔 수 없습니다.") · '
+                            '0.3.6 꼴 {ore: 1, ingot: 3, gem: 6, rank_bonus: 0.35} 이 그대로면 새 기본값, 고친 옛 꼴은 옛 식 '
+                            '반올림(base × (1 + rank_bonus × (등급 − 1))), 최소 1 로 6칸을 펼친다',
+                 'legacy_0361': dict(P.SELL_MINE_0361),
                  'table': {str(m['rank']): {'ore': P.sell_value('ore', m['rank']), 'ingot': P.sell_value('ingot', m['rank']),
                                              'gem': P.sell_value('gem', m['rank']), 'smelt_gold': m['smelt_gold']} for m in P.METALS},
-                 'rule': '녹여 팔면 언제나 손해: 주괴 값 < 광석 2개 값 + 제련 골드'},
+                 'rule': '녹여 팔면 언제나 손해: 주괴 값 = 광석 2개 값 + 제련 골드 − 1 (등급마다 1 G 손해). 상인은 광석·주괴·보석을 팔지 않는다'},
         'starter_kit': {'add': {'item': 'copper_pickaxe', 'amount': 1}, 'config': 'config.yml starter_kit (Q3)'},
         'codex': {'groups_order': ['보스', '정예', '몬스터·상자', '보물 상자', '시련방', '특별 시련', '금고·미믹', '광산', '제련소', '대장간', '상인', '칭호 보상', '시작 지급', '몬스터'],
                   'colors': {'광산': '#d9a066', '제련소': '#ff9a5a'},

@@ -102,16 +102,11 @@ final class MineMenus {
             set(45, Button.icon(Material.BOOK, "<#e8c58a>처음이라면",
                     List.of("<gray>1. 곡괭이를 받습니다 (첫 구리 곡괭이 무료).", "<gray>2. 승강기로 내려가 광맥을 캡니다.",
                             "<gray>3. 광석은 제련에서 주괴로 녹입니다.", "<gray>4. 남는 것은 팔기에서 팝니다.",
-                            "<gray>좋은 곡괭이일수록 깊은 층 광석을 캡니다.")), null);
+                            "<gray>   깊은 광석·보석일수록 비싸게 팔립니다.",
+                            "<gray>좋은 곡괭이일수록 깊은 층 광석을 빨리 캡니다.")), null);
             set(49, Button.icon(Material.GOLD_NUGGET, "<#ffd27a>보유 골드 " + Text.num(s.data().get(viewer).gold()), List.of()), null);
             set(53, UiTheme.close(), ctx -> ctx.player().closeInventory());
         }
-    }
-
-    /** 함께 캐기 글: 층마다 분이 같으면 "3분 뒤 다시 찹니다.", 다르면 "층마다 정해진 시간 뒤 다시 찹니다." */
-    static String regenLine(List<Integer> minutes) {
-        boolean same = minutes != null && !minutes.isEmpty() && minutes.stream().distinct().count() == 1;
-        return same ? minutes.get(0) + "분 뒤 다시 찹니다." : "층마다 정해진 시간 뒤 다시 찹니다.";
     }
 
     private final class Info extends Menu {
@@ -140,7 +135,7 @@ final class MineMenus {
             }
             set(49, Button.icon(Material.CLOCK, "<#7fd8ff>함께 캐기",
                     List.of("<gray>광맥은 모두가 함께 씁니다.", "<gray>누가 캐면 모두에게 빈 광맥이 되고,",
-                            "<gray>" + regenLine(module.config().regenMinutes()), "<gray>사람 수와는 상관없어요.",
+                            "<gray>" + module.config().refillLine(), "<gray>사람 수와는 상관없어요.",
                             "<gray>지금 광산에 <white>" + miners + "명")),
                     null);
             set(53, UiTheme.close(), ctx -> ctx.player().closeInventory());

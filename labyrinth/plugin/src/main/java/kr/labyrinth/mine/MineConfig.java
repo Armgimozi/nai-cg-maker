@@ -92,6 +92,11 @@ public record MineConfig(boolean enabled, String world, Teleport teleportCommand
 
     public double gemRegenSeconds() { return gemNodeRegenMinutes * 60.0; }
 
+    /** 광맥 현황 "함께 캐기" 글: 층마다 분이 같으면 "3분 뒤 다시 찹니다.", 다르면 "층마다 정해진 시간 뒤 다시 찹니다." */
+    public String refillLine() {
+        return regenMinutes.stream().distinct().count() == 1 ? regenMinutes.get(0) + "분 뒤 다시 찹니다." : "층마다 정해진 시간 뒤 다시 찹니다.";
+    }
+
     /** {@code /미궁 광산} 을 쓸 수 있나 (villageTeleport = config village.teleport_command). */
     public boolean teleportAllowed(boolean villageTeleport) {
         return switch (teleportCommand) {

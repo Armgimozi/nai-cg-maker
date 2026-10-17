@@ -855,9 +855,15 @@
      "iron_pickaxe": 1,
      "silver_ingot": 16,
      "moonstone": 2,
-     "dim_essence": 4
+     "dim_essence": 4,
+     "verdigris_plate": 3
     },
-    "gold": 1000
+    "gold": 1000,
+    "gate": {
+     "item": "verdigris_plate",
+     "count": 3,
+     "floor": 4
+    }
    },
    "obtain": [
     "제련소·광산 관리소 곡괭이 탭 (앞 곡괭이를 재료로 넣어 다시 벼림)"
@@ -906,9 +912,15 @@
      "silver_pickaxe": 1,
      "gold_ingot": 20,
      "topaz": 3,
-     "labyrinth_essence": 2
+     "labyrinth_essence": 2,
+     "tuning_fork_core": 3
     },
-    "gold": 2500
+    "gold": 2500,
+    "gate": {
+     "item": "tuning_fork_core",
+     "count": 3,
+     "floor": 7
+    }
    },
    "obtain": [
     "제련소·광산 관리소 곡괭이 탭 (앞 곡괭이를 재료로 넣어 다시 벼림)"
@@ -961,9 +973,15 @@
      "gold_pickaxe": 1,
      "mithril_ingot": 24,
      "sapphire": 3,
-     "labyrinth_essence": 4
+     "labyrinth_essence": 4,
+     "regulator_pendulum": 3
     },
-    "gold": 5000
+    "gold": 5000,
+    "gate": {
+     "item": "regulator_pendulum",
+     "count": 3,
+     "floor": 9
+    }
    },
    "obtain": [
     "제련소·광산 관리소 곡괭이 탭 (앞 곡괭이를 재료로 넣어 다시 벼림)"
@@ -1013,9 +1031,15 @@
      "mithril_pickaxe": 1,
      "orichalcum_ingot": 12,
      "dragonblood_stone": 2,
-     "radiant_essence": 3
+     "radiant_essence": 3,
+     "gatekeeper_rune": 3
     },
-    "gold": 10000
+    "gold": 10000,
+    "gate": {
+     "item": "gatekeeper_rune",
+     "count": 3,
+     "floor": 10
+    }
    },
    "obtain": [
     "제련소·광산 관리소 곡괭이 탭 (앞 곡괭이를 재료로 넣어 다시 벼림)"

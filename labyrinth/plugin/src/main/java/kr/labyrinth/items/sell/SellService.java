@@ -70,6 +70,24 @@ public final class SellService implements Listener {
         Bukkit.getPluginManager().registerEvents(this, services.plugin());
         registerCommands();
         active = this;
+        checkSmelt();
+    }
+
+    /** 켤 때 한 번 (경고만): sell.mine 을 고쳐 어떤 등급이든 녹여 팔면 이득이 되면 로그에 알린다 (제련으로 골드가 생기지 않게). */
+    private void checkSmelt() {
+        try {
+            var c = services.content();
+            Map<Integer, int[]> smelt = new HashMap<>();
+            for (kr.labyrinth.content.RecipeDef r : c.recipes().values()) {
+                kr.labyrinth.content.ItemDef d = c.item(r.result());
+                if (d == null || !d.isMineMaterial() || d.mineKind() != kr.labyrinth.content.MineKind.INGOT) continue;
+                int ores = r.materials().values().stream().mapToInt(Integer::intValue).sum();
+                smelt.merge(d.mineLevel(), new int[] {ores, r.gold()}, (x, y) -> x[1] <= y[1] ? x : y);
+            }
+            for (String w : config().mine().smeltWarnings(smelt)) Log.warn("[판매] " + w);
+        } catch (Throwable t) {
+            Log.warn("[판매] 녹여 팔기 검사를 건너뜀: " + t.getMessage());
+        }
     }
 
     /** 플러그인 끄기·서버 종료: 열린 판매 창을 전부 돌려주고 닫는다. */
