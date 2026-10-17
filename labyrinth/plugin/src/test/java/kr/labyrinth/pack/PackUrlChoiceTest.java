@@ -108,6 +108,44 @@ class PackUrlChoiceTest {
     }
 
     @Test
+    void ownersOldCopyIsTheFallbackWhenTheNewCopyIsMissing() {
+        // 이 jar 팩 사본이 아직 GitHub 에 없음 (404) → 0.3.6 에서 잘 받던 config 의 065e6258 사본 (터널 친구는 내장 서버로 못 받음)
+        String ownerSha = "065e62586c00f77c43b40384029ac443b19c8645";
+        PackUrlChoice.Plan p = PackUrlChoice.decide(OWNER_URL, ownerSha, "", TPL, JAR);
+        PackUrlChoice.Fallback fb = PackUrlChoice.staleFallback(p, " " + OWNER_URL + " ", ownerSha.toUpperCase());
+        assertNotNull(fb);
+        assertEquals(OWNER_URL, fb.url());
+        assertEquals(ownerSha, fb.sha1(), "주인이 적은 sha1 (소문자)");
+        assertEquals("065e6258", fb.sha8());
+        // (b) 가 아니면 없음: 비운 pack.url · 직접 올린 주소 · 이미 jar 팩 사본
+        assertNull(PackUrlChoice.staleFallback(PackUrlChoice.decide("", "", "", TPL, JAR), "", ""));
+        String custom = "https://cdn.example.com/my-pack.zip";
+        assertNull(PackUrlChoice.staleFallback(PackUrlChoice.decide(custom, "deadbeef", "", TPL, JAR), custom, "deadbeef"));
+        String same = PackUrlChoice.publicCopyUrl(TPL, JAR);
+        assertNull(PackUrlChoice.staleFallback(PackUrlChoice.decide(same, "", "", TPL, JAR), same, ""));
+        // 주소의 sha8 과 sha1 이 다른 팩이면 믿지 않음
+        assertNull(PackUrlChoice.staleFallback(p, OWNER_URL, JAR));
+        assertNull(PackUrlChoice.staleFallback(null, OWNER_URL, ownerSha));
+    }
+
+    @Test
+    void oldCopyIsSentOnlyWhenItsShaMatches() {
+        byte[] body = "old pack".getBytes(StandardCharsets.UTF_8);
+        String sha = PackUrlChoice.sha1Hex(body);
+        String url = "https://h/pack-host/labyrinth-pack-" + sha.substring(0, 8) + ".zip";
+        PackUrlChoice.Plan p = PackUrlChoice.decide(url, sha, "", TPL, JAR);
+        PackUrlChoice.Fallback fb = PackUrlChoice.staleFallback(p, url, sha);
+        assertEquals(sha, PackUrlChoice.acceptFallback(body, fb));
+        assertNull(PackUrlChoice.acceptFallback("other".getBytes(StandardCharsets.UTF_8), fb), "sha1 다름 → 내장 서버");
+        assertNull(PackUrlChoice.acceptFallback(new byte[0], fb));
+        // config sha1 이 비면 주소의 sha8 로만 맞춰 보고, 받은 파일의 sha1 을 알린다
+        PackUrlChoice.Fallback noSha = PackUrlChoice.staleFallback(PackUrlChoice.decide(url, "", "", TPL, JAR), url, "");
+        assertEquals("", noSha.sha1());
+        assertEquals(sha, PackUrlChoice.acceptFallback(body, noSha));
+        assertNull(PackUrlChoice.acceptFallback("other".getBytes(StandardCharsets.UTF_8), noSha));
+    }
+
+    @Test
     void retryGoesToTheOtherAddressOnce() {
         // (a) 내장 주소를 못 받음 → 확인된 사본 · 사본 확인 실패면 다시 보내지 않음
         assertEquals(PackUrlChoice.Retry.COPY, PackUrlChoice.retry(PackUrlChoice.Mode.BUILTIN, true, false, true, true));

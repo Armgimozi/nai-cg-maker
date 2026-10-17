@@ -63,6 +63,8 @@ public final class PackService implements Module, Listener {
     /** 공개 사본을 받아 SHA-1 이 맞았나 (null = 확인 중 · 안 함). */
     private volatile Boolean copyOk;
     private volatile String copyState = "확인 안 함";
+    /** (b) 사본을 못 받아 config 의 예전 사본을 확인한 결과 (null = 안 함). */
+    private volatile String staleState;
     /** 지금 보내는 방식 ((b) 사본 확인이 끝나기 전·사본을 못 받으면 내장). */
     private volatile PackUrlChoice.Mode activeMode = PackUrlChoice.Mode.BUILTIN;
     private volatile int generation;
@@ -112,6 +114,7 @@ public final class PackService implements Module, Listener {
         plan = null;
         copyOk = null;
         copyState = "확인 안 함";
+        staleState = null;
         activeMode = PackUrlChoice.Mode.BUILTIN;
         retried.clear();
         loaded.clear();
@@ -146,13 +149,38 @@ public final class PackService implements Module, Listener {
         checkCopy(gen, pl.checkUrl(), jarSha, ok -> {
             if (pl.mode() != PackUrlChoice.Mode.PUBLIC_COPY) return;      // (a) 받지 못한 사람에게만 사본 (onStatus)
             if (!ok) {
-                Log.warn("[리소스팩] 공개 사본을 받을 수 없어(" + copyState + ") 내장 서버로 보냅니다 — 사본이 올라오면 다음 시작부터 사본을 씁니다.");
+                PackUrlChoice.Fallback fb = PackUrlChoice.staleFallback(pl, cfg.url(), cfg.sha1());
+                if (fb == null) {
+                    Log.warn("[리소스팩] 공개 사본을 받을 수 없어(" + copyState + ") 내장 서버로 보냅니다 — 사본이 올라오면 다음 시작부터 사본을 씁니다.");
+                    return;
+                }
+                // 이 jar 팩 사본이 아직 안 올라감 → 0.3.6 까지 쓰던 config 의 예전 사본 (터널 친구는 내장 서버로 못 받은 적이 있음)
+                Log.warn("[리소스팩] 이 jar 팩 사본을 받을 수 없어(" + copyState + ") config 에 적힌 예전 팩 주소를 확인합니다.");
+                staleState = "확인 중";
+                fetch(gen, fb.url(), body -> PackUrlChoice.acceptFallback(body, fb), (sha, state) -> {
+                    staleState = state;
+                    if (sha == null) {
+                        Log.warn("[리소스팩] 예전 팩 주소도 받을 수 없어(" + state + ") 내장 서버로 보냅니다 — 사본이 올라오면 다음 시작부터 사본을 씁니다.");
+                        return;
+                    }
+                    Log.warn("[리소스팩] 예전 팩(" + fb.sha8() + ")을 config 주소로 보냅니다 — 새 보석 광석·구리 끌 날 그림만 예전처럼 보입니다."
+                            + " 이 jar 팩 사본(" + jarSha8(pl) + ")이 올라오면 다음 시작부터 그 사본을 씁니다.");
+                    boolean hadBuiltin = packBytes != null;
+                    useExternal(PackUrlChoice.Mode.CUSTOM_URL, fb.url(), sha,
+                            UUID.nameUUIDFromBytes(("labyrinth:" + fb.url() + sha).getBytes(StandardCharsets.UTF_8)));
+                    if (!hadBuiltin) for (Player p : Bukkit.getOnlinePlayers()) send(p);
+                });
                 return;
             }
             boolean hadBuiltin = packBytes != null;
             useExternal(PackUrlChoice.Mode.PUBLIC_COPY, pl.url(), pl.sha1(), copyId);
             if (!hadBuiltin) for (Player p : Bukkit.getOnlinePlayers()) send(p);   // 내장 서버가 없어 아직 못 보낸 사람
         });
+    }
+
+    private static String jarSha8(PackUrlChoice.Plan pl) {
+        String s = pl.sha1() == null ? "" : pl.sha1();
+        return s.length() >= 8 ? s.substring(0, 8) : "?";
     }
 
     private void useExternal(PackUrlChoice.Mode mode, String url, String sha, UUID id) {
@@ -417,9 +445,24 @@ public final class PackService implements Module, Listener {
     /** 공개 사본을 받아 SHA-1 을 맞춰 본다 (비동기, 20초 제한). 끝나면 주 스레드에서 then(맞음). */
     private void checkCopy(int gen, String url, String wantSha, java.util.function.Consumer<Boolean> then) {
         copyState = "확인 중";
+        fetch(gen, url, body -> PackUrlChoice.matches(body, wantSha) ? wantSha : null, (sha, state) -> {
+            boolean ok = sha != null;
+            copyOk = ok;
+            copyState = state;
+            Log.info("[리소스팩] 공개 사본 " + (ok ? "확인: " : "확인 실패: ") + state + " — " + url);
+            then.accept(ok);
+        });
+    }
+
+    /**
+     * url 을 받아 accept(본문) 로 맞춰 본다 (비동기, 20초 제한). 끝나면 주 스레드에서 then(accept 가 돌려준 SHA-1 · 못 받았거나 다르면 null, 상태 글).
+     * 그 사이 다시 읽었으면(generation) 부르지 않는다.
+     */
+    private void fetch(int gen, String url, java.util.function.Function<byte[], String> accept,
+                       java.util.function.BiConsumer<String, String> then) {
         var plugin = services.plugin();
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            boolean ok;
+            String okSha = null;
             String state;
             try {
                 java.net.http.HttpClient http = java.net.http.HttpClient.newBuilder()
@@ -430,30 +473,23 @@ public final class PackService implements Module, Listener {
                 java.net.http.HttpResponse<byte[]> r = http.send(java.net.http.HttpRequest.newBuilder(URI.create(url))
                         .timeout(java.time.Duration.ofSeconds(20)).GET().build(), java.net.http.HttpResponse.BodyHandlers.ofByteArray());
                 if (r.statusCode() != 200) {
-                    ok = false;
                     state = (r.statusCode() == 404 ? "사본 없음" : "받지 못함") + " · HTTP " + r.statusCode();
                 } else {
-                    ok = PackUrlChoice.matches(r.body(), wantSha);
-                    state = ok ? "받음 · sha1 맞음" : "받았지만 sha1 다름";
+                    okSha = accept.apply(r.body());
+                    state = okSha != null ? "받음 · sha1 맞음" : "받았지만 sha1 다름";
                 }
             } catch (java.net.http.HttpTimeoutException ex) {
-                ok = false;
                 state = "시간 초과";
             } catch (java.net.ConnectException ex) {
-                ok = false;
                 state = "연결 안 됨";
             } catch (Exception ex) {
-                ok = false;
                 state = "받지 못함";
             }
-            boolean fok = ok;
+            String fsha = okSha;
             String fstate = state;
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if (gen != generation) return;          // 그 사이 다시 읽음
-                copyOk = fok;
-                copyState = fstate;
-                Log.info("[리소스팩] 공개 사본 " + (fok ? "확인: " : "확인 실패: ") + fstate + " — " + url);
-                then.accept(fok);
+                then.accept(fsha, fstate);
             });
         });
     }
@@ -483,15 +519,19 @@ public final class PackService implements Module, Listener {
         else out.add("<gray>공개 사본: 안 씀 · " + (pl != null && pl.mode() == PackUrlChoice.Mode.CUSTOM_URL ? "직접 적은 pack.url 을 그대로 씀" : "public_host 를 씀"));
         if (pl != null && pl.mode() == PackUrlChoice.Mode.PUBLIC_COPY && pl.checkUrl() != null && copyOk == null)
             out.add("<gray>공개 사본 확인이 끝나면 그 주소로 보냅니다 (그 전에는 내장 서버)");
+        String stale = staleState;
+        if (stale != null) out.add("<gray>config 의 예전 팩 주소 (사본 대신): <white>" + Text.escape(cfgUrl) + " <gray>— " + Text.escape(stale));
         if (pl != null && pl.mode() != PackUrlChoice.Mode.CUSTOM_URL) {
             String again;
             Boolean ok = copyOk;
-            if (copy == null || pl.checkUrl() == null) again = "다시 보내지 않음";
+            if (activeMode == PackUrlChoice.Mode.CUSTOM_URL) again = "다시 보내지 않음 (예전 팩 주소)";
+            else if (copy == null || pl.checkUrl() == null) again = "다시 보내지 않음";
             else if (ok == null) again = "사본 확인 중";
             else if (!ok) again = "다시 보내지 않음 · 공개 사본을 받을 수 없음";
             else if (activeMode == PackUrlChoice.Mode.BUILTIN) again = "공개 사본으로 한 번 더 보냄";
             else again = packBytes != null ? "내장 주소로 한 번 더 보냄" : "다시 보내지 않음 · 내장 서버 없음";
-            out.add("<gray>" + (activeMode == PackUrlChoice.Mode.BUILTIN ? "내장 주소를" : "공개 사본을") + " 받지 못하면: <white>" + again);
+            out.add("<gray>" + (activeMode == PackUrlChoice.Mode.BUILTIN ? "내장 주소를" : activeMode == PackUrlChoice.Mode.CUSTOM_URL
+                    ? "예전 팩 주소를" : "공개 사본을") + " 받지 못하면: <white>" + again);
         }
         return out;
     }

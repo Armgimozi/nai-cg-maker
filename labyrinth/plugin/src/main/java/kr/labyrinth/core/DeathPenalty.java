@@ -122,7 +122,7 @@ public final class DeathPenalty {
         return lost;
     }
 
-    /** 지울 한 칸: 칸 번호 · 채팅 줄 · 콘솔 기록 (id×개수). */
+    /** 지울 한 칸: 칸 번호 · 채팅 줄 · 콘솔 기록 (id×개수 (보이던 이름)). */
     record Pick(int slot, Lost lost, String id) {}
 
     /**
@@ -141,10 +141,27 @@ public final class DeathPenalty {
         List<Pick> out = new ArrayList<>(slots.length);
         for (int slot : slots) {
             ItemStack it = storage[slot];
-            out.add(new Pick(slot, new Lost(nameOf(it, s.items().defOf(it).isPresent()), it.getAmount()),
-                    idOf(s, it) + "×" + it.getAmount()));
+            boolean lab = s.items().defOf(it).isPresent();
+            out.add(new Pick(slot, new Lost(nameOf(it, lab), it.getAmount()), logEntry(idOf(s, it), it.getAmount(), shownName(it, lab))));
         }
         return out;
+    }
+
+    /** 콘솔 기록 한 칸: id×개수 (보이던 이름 — 강화 +N · 모루 이름 포함). 이름이 없거나 id 와 같으면 id×개수만. */
+    static String logEntry(String id, int amount, String shown) {
+        String n = shown == null ? "" : shown.strip();
+        return id + "×" + amount + (n.isEmpty() || n.equalsIgnoreCase(id) ? "" : " (" + n + ")");
+    }
+
+    /** 보이는 이름 글 그대로 (모루 이름 · 미궁 아이템 이름). 이름 없는 바닐라 아이템은 "". */
+    private static String shownName(ItemStack it, boolean labItem) {
+        try {
+            Component custom = it.getData(DataComponentTypes.CUSTOM_NAME);
+            Component c = custom != null ? custom : labItem ? it.effectiveName() : null;
+            return c == null ? "" : Text.plain(c);
+        } catch (Throwable t) {
+            return "";
+        }
     }
 
     /** 고른 칸 지우기 — 떨구지 않는다. */

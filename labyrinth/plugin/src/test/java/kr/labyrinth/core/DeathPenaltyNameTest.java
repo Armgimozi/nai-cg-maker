@@ -23,6 +23,16 @@ class DeathPenaltyNameTest {
     }
 
     @Test
+    void consoleLineKeepsTheShownName() {
+        // 서버장이 되돌려 줄 때 강화 단계까지 알 수 있게 (id 만으로는 +N 을 모름)
+        assertEquals("guard_longsword×1 (+3 회랑 수비대 장검)", DeathPenalty.logEntry("guard_longsword", 1, " +3 회랑 수비대 장검 "));
+        assertEquals("bread×5", DeathPenalty.logEntry("bread", 5, ""), "이름 없는 바닐라 물건");
+        assertEquals("bread×5", DeathPenalty.logEntry("bread", 5, null));
+        assertEquals("iron_ingot×13 (철 주괴)", DeathPenalty.logEntry("iron_ingot", 13, "철 주괴"));
+        assertEquals("stick×1", DeathPenalty.logEntry("stick", 1, "STICK"), "id 와 같은 이름은 빼기");
+    }
+
+    @Test
     void anythingElseFallsBackToTheItemKey() {
         assertNull(DeathPenalty.translatableKey(null));
         assertNull(DeathPenalty.translatableKey(Component.text("책 제목")), "글 이름 (책 제목 등)");

@@ -110,6 +110,36 @@ public final class PackUrlChoice {
         return new Plan(Mode.BUILTIN, null, jar, fb, fb != null, null);
     }
 
+    /**
+     * (b) 에서 이 jar 팩 사본을 받을 수 없을 때 (배포 가지에 아직 안 올라감 · raw 캐시가 404 를 물고 있음) 돌아갈 곳: config 에 적힌
+     * 예전 사본 그대로. 0.3.6 까지 그 주소로 잘 받았고, 내장 서버(게임 포트)는 playit 터널로 들어온 친구가 받지 못한 적이 있다.
+     * 예전 팩이라 새 보석 블록·구리 끌 날 그림만 예전처럼 보인다.
+     *
+     * @param url  예전 사본 주소 (config pack.url 그대로)
+     * @param sha1 config pack.sha1 (소문자, 비면 "" — 그때는 받은 파일의 SHA-1 이 sha8 로 시작해야 함)
+     * @param sha8 주소에 든 sha8
+     */
+    public record Fallback(String url, String sha1, String sha8) {}
+
+    /** (b) 이고 config pack.url 이 바꾼 주소와 다르면 그 예전 사본. 아니면 null. */
+    public static Fallback staleFallback(Plan plan, String cfgUrl, String cfgSha1) {
+        if (plan == null || plan.mode() != Mode.PUBLIC_COPY || !plan.verify()) return null;
+        String u = cfgUrl == null ? "" : cfgUrl.trim();
+        String sha8 = hostedSha8(u);
+        if (sha8 == null || u.equals(plan.url())) return null;
+        String cfg = norm(cfgSha1);
+        if (!cfg.isEmpty() && !cfg.startsWith(sha8)) return null;   // 주소와 sha1 이 서로 다른 팩 — 어느 쪽도 믿지 않음
+        return new Fallback(u, cfg, sha8);
+    }
+
+    /** 받은 예전 사본이 맞으면 클라이언트에 알릴 SHA-1, 아니면 null. */
+    public static String acceptFallback(byte[] body, Fallback fb) {
+        if (body == null || body.length == 0 || fb == null) return null;
+        String got = sha1Hex(body);
+        if (!fb.sha1().isEmpty()) return fb.sha1().equals(got) ? got : null;
+        return got.startsWith(fb.sha8()) ? got : null;
+    }
+
     /** 받지 못한 사람에게 한 번 더 보낼 곳. */
     public enum Retry { COPY, BUILTIN, NONE }
 
