@@ -143,13 +143,12 @@ public final class MainMenu extends LabMenu {
             lore.add("<gray>이 서버는 PvP 가 꺼져 있어");
             lore.add("<gray>플레이어끼리는 서로 다치지 않습니다.");
         }
-        // 죽음 규칙은 PvP 를 꺼도 알려 준다 (0.3.6.1 죽음 페널티 — 어디서든 이번 레벨 경험치)
+        // 죽음 규칙은 PvP 를 꺼도 알려 준다 (죽음 페널티 — 어디서든 이번 레벨 경험치, 미궁 안은 물건·골드도)
         var death = services.settings().death();
         if (death.keepInventory()) {
             lore.add("<gray>미궁 밖에서 쓰러져도 소지품은 그대로입니다."); // 바닐라 경험치는 늘 0 이고 숨겨져 있어(VanillaHudListener) 말하지 않음
         }
-        String penalty = kr.labyrinth.core.DeathPenaltyRules.menuLine(services.settings().deathPenalty());
-        if (penalty != null) lore.add("<gray>" + penalty);
+        for (String line : kr.labyrinth.core.DeathPenaltyRules.menuLines(services.settings().deathPenalty())) lore.add("<gray>" + line);
         lore.add("");
         lore.add("<#ffd36b>클릭: 파티 관리");
         return lore;

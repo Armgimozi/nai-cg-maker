@@ -293,11 +293,14 @@ class_change:
 #   keep_inventory: 소지품을 그대로 지니고 아무것도 떨구지 않는다. keep_level: 바닐라 경험치 레벨 유지 (경험치 구슬도 안 떨굼).
 #   false 면 그 부분만 바닐라(게임 규칙 keepInventory)대로. 미궁 안에서는 이 값과 상관없이 떨구지 않는다 (아래 penalty 만 있음).
 #   키가 없으면 둘 다 true.
-# penalty — 죽음 페널티 (0.3.6.1). 이 블록이 없어도 아래 값으로 켜진다. 모두 끄기: penalty: false
+# penalty — 죽음 페널티 (0.3.6.1, 0.3.6.2 에 고침). 이 블록이 없어도 아래 값으로 켜진다. 모두 끄기: penalty: false
 #   xp_progress_reset: 어디서 죽든 지금 레벨에서 모은 경험치가 0 으로 (레벨은 안 내려감, 최고 레벨이면 그대로)
-#   dungeon_item_loss: 미궁 공략 중 쓰러지면 가방(단축 칸 포함) slots_min ~ slots_max 칸을 통째로 잃는다. 떨어뜨리지 않고 사라진다.
-#     손에 든 칸·입은 갑옷·장신구·보조손은 안전. 열쇠·문장·광산 곡괭이도 잃지 않는다. 끄기: dungeon_item_loss: false
+#   dungeon_item_loss: 미궁 공략 중 쓰러지면 가방(단축 칸 포함) slots_min ~ slots_max 칸을 잃는다. 떨어뜨리지 않고 사라진다.
+#     장비(무기·방어구·방패·장신구)는 가방에 있어도 잃지 않는다. 열쇠·문장·광산 곡괭이, 손에 든 칸·보조손도 안전.
+#     셜커 상자·꾸러미는 상자는 남고 안에 든 것 중 장비가 아닌 것만 사라진다. 끄기: dungeon_item_loss: false
 #     safe_items: 잃지 않을 아이템을 더 적는다 (items.yml id 나 바닐라 이름, 예: [return_scroll, totem_of_undying])
+#   gold_loss: 미궁 공략 중 쓰러지면 지닌 골드의 min_percent ~ max_percent % 를 잃는다 (내림). 한 번에 최대 max G (0 = 상한 없음).
+#     끄기: gold_loss: false
 #   combat_exit_seconds: 미궁 공략 중 싸우는 중(10초 안에 맞음)에 /미궁 퇴장·메뉴 '귀환' 을 쓰면 이 초만큼 기다렸다 나간다.
 #     그동안 맞으면 끊긴다 (귀환 주문서와 같음). 죽기 직전에 나가서 페널티를 피하지 못하게. 0 = 예전처럼 바로 나감.
 death:
@@ -311,6 +314,11 @@ death:
       slots_min: 2
       slots_max: 3
       safe_items: []
+    gold_loss:
+      enabled: true
+      min_percent: 5
+      max_percent: 25
+      max: 15000
 
 # 맨손 공격 속도 (초당 횟수). 0.3.5 부터 무기는 저마다 items.yml attack.interval 을 쓰고, 이 표는 none(맨손)만 읽는다.
 #   공격 속도 스탯 = 민첩 0.5%/점(최대 +45%) + 장비·버프, 합계 최대 +75% — 간격 ÷ (1 + 공격 속도).

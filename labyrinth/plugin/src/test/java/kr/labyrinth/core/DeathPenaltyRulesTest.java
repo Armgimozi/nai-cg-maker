@@ -21,7 +21,7 @@ import kr.labyrinth.stats.XpCurve;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.Test;
 
-/** 0.3.6.1 죽음 페널티 — 칸 고르기 · 안전한 물건 · 경험치 · 어디서 죽었나 · config · 안내 문구. */
+/** 죽음 페널티 (0.3.6.1 · 0.3.6.2) — 칸 고르기 · 안전한 물건 · 경험치 · 어디서 죽었나 · config · 안내 문구. 장비·상자는 DeathPenaltyGearTest, 골드는 DeathPenaltyGoldTest. */
 class DeathPenaltyRulesTest {
 
     static boolean[] full() {
@@ -127,9 +127,9 @@ class DeathPenaltyRulesTest {
         assertFalse(DeathPenaltyRules.alwaysSafe(ItemType.BLUEPRINT, "blueprint", false, none), "안 배운 도안");
         assertFalse(DeathPenaltyRules.alwaysSafe(ItemType.MATERIAL, "class_change_scroll", false, none), "전직의 두루마리 (핀이 팜)");
         assertFalse(DeathPenaltyRules.alwaysSafe(ItemType.CONSUMABLE, "return_scroll", false, none));
-        assertFalse(DeathPenaltyRules.alwaysSafe(ItemType.WEAPON, "corridor_longsword", false, none));
+        assertTrue(DeathPenaltyRules.alwaysSafe(ItemType.WEAPON, "corridor_longsword", false, none), "0.3.6.2: 장비는 안전");
         assertFalse(DeathPenaltyRules.alwaysSafe(ItemType.MATERIAL, "iron_ingot", false, none));
-        assertFalse(DeathPenaltyRules.alwaysSafe(null, "shulker_box", false, none), "셜커 상자도 한 칸");
+        assertFalse(DeathPenaltyRules.alwaysSafe(null, "shulker_box", false, none), "셜커 상자 자체는 안전 물건이 아니다 (상자 규칙은 DeathPenaltyGearTest)");
     }
 
     @Test
@@ -187,10 +187,10 @@ class DeathPenaltyRulesTest {
     @Test
     void dungeonRunLosesItemsEverywhereElseOnlyXp() {
         Config c = Config.DEFAULT;
-        assertEquals(new Plan(true, true), DeathPenaltyRules.plan(c, Where.DUNGEON_RUN, false));
-        assertEquals(new Plan(true, false), DeathPenaltyRules.plan(c, Where.LABYRINTH_WORLD, false), "관전 중 /kill 등");
-        assertEquals(new Plan(true, false), DeathPenaltyRules.plan(c, Where.OUTSIDE, false), "야생·마을·네더·엔드·PvP");
-        assertEquals(new Plan(true, false), DeathPenaltyRules.plan(c, Where.DUNGEON_RUN, true), "관리자 시험 입장");
+        assertEquals(new Plan(true, true, true), DeathPenaltyRules.plan(c, Where.DUNGEON_RUN, false));
+        assertEquals(new Plan(true, false, false), DeathPenaltyRules.plan(c, Where.LABYRINTH_WORLD, false), "관전 중 /kill 등");
+        assertEquals(new Plan(true, false, false), DeathPenaltyRules.plan(c, Where.OUTSIDE, false), "야생·마을·광산·네더·엔드·PvP");
+        assertEquals(new Plan(true, false, false), DeathPenaltyRules.plan(c, Where.DUNGEON_RUN, true), "관리자 시험 입장");
     }
 
     @Test
@@ -198,9 +198,9 @@ class DeathPenaltyRulesTest {
         assertEquals(Plan.NONE, DeathPenaltyRules.plan(Config.OFF, Where.DUNGEON_RUN, false));
         assertFalse(DeathPenaltyRules.plan(Config.OFF, Where.OUTSIDE, false).any());
         Config noItems = new Config(true, false, 2, 3, Set.of());
-        assertEquals(new Plan(true, false), DeathPenaltyRules.plan(noItems, Where.DUNGEON_RUN, false));
+        assertEquals(new Plan(true, false, true), DeathPenaltyRules.plan(noItems, Where.DUNGEON_RUN, false));
         Config noXp = new Config(false, true, 2, 3, Set.of());
-        assertEquals(new Plan(false, true), DeathPenaltyRules.plan(noXp, Where.DUNGEON_RUN, false));
+        assertEquals(new Plan(false, true, true), DeathPenaltyRules.plan(noXp, Where.DUNGEON_RUN, false));
         assertEquals(Plan.NONE, DeathPenaltyRules.plan(noXp, Where.OUTSIDE, false));
         Config zero = new Config(true, true, 0, 0, Set.of());
         assertFalse(DeathPenaltyRules.plan(zero, Where.DUNGEON_RUN, false).destroySlots(), "0칸 = 끔");
@@ -212,8 +212,8 @@ class DeathPenaltyRulesTest {
         Settings s = new Settings(WildConfigTest.yaml("death:\n  keep_inventory: false\n  keep_level: false\n"));
         assertFalse(s.death().keepInventory());
         assertEquals(Config.DEFAULT, s.deathPenalty(), "페널티는 keep_inventory 와 따로");
-        assertEquals(new Plan(true, false), DeathPenaltyRules.plan(s.deathPenalty(), Where.OUTSIDE, false));
-        assertEquals(new Plan(true, true), DeathPenaltyRules.plan(s.deathPenalty(), Where.DUNGEON_RUN, false));
+        assertEquals(new Plan(true, false, false), DeathPenaltyRules.plan(s.deathPenalty(), Where.OUTSIDE, false));
+        assertEquals(new Plan(true, true, true), DeathPenaltyRules.plan(s.deathPenalty(), Where.DUNGEON_RUN, false));
     }
 
     // ── config ───────────────────────────────────────────────────────────
@@ -298,24 +298,38 @@ class DeathPenaltyRulesTest {
     }
 
     @Test
-    void menuLine() {
-        assertEquals("쓰러지면 이번 레벨 경험치를 잃고, 미궁 안이면 가방 물건 2~3칸도 잃습니다.", DeathPenaltyRules.menuLine(Config.DEFAULT));
-        assertEquals("쓰러지면 이번 레벨 경험치를 잃습니다.", DeathPenaltyRules.menuLine(new Config(true, false, 2, 3, Set.of())));
-        assertEquals("미궁 안에서 쓰러지면 가방 물건 1칸을 잃습니다.", DeathPenaltyRules.menuLine(new Config(false, true, 1, 1, Set.of())));
-        assertNull(DeathPenaltyRules.menuLine(Config.OFF));
+    void menuLines() {
+        assertEquals(List.of("쓰러지면 이번 레벨 경험치를 잃습니다.",
+                "미궁 안에서 쓰러지면 물건 2~3칸과 골드 5~25%(최대 15,000G)를 더 잃습니다.",
+                "장비·열쇠·곡괭이는 잃지 않습니다."), DeathPenaltyRules.menuLines(Config.DEFAULT));
+        assertEquals(List.of("쓰러지면 이번 레벨 경험치를 잃습니다.", "미궁 안에서 쓰러지면 골드 5~25%(최대 15,000G)를 더 잃습니다."),
+                DeathPenaltyRules.menuLines(new Config(true, false, 2, 3, Set.of())), "물건 끔");
+        assertEquals(List.of("미궁 안에서 쓰러지면 물건 1칸을 잃습니다.", "장비·열쇠·곡괭이는 잃지 않습니다."),
+                DeathPenaltyRules.menuLines(new Config(false, true, 1, 1, Set.of()).withGold(DeathPenaltyRules.GoldLoss.OFF)));
+        assertEquals(List.of("쓰러지면 이번 레벨 경험치를 잃습니다."),
+                DeathPenaltyRules.menuLines(new Config(true, false, 2, 3, Set.of()).withGold(DeathPenaltyRules.GoldLoss.OFF)));
+        assertTrue(DeathPenaltyRules.menuLines(Config.OFF).isEmpty());
+        assertTrue(DeathPenaltyRules.menuLines(null).isEmpty());
     }
 
     @Test
     void noticeText() {
         String n = DeathPenaltyRules.notice(Config.DEFAULT);
         assertNotNull(n);
-        assertEquals("미궁 안에서 쓰러지면 가방 속 물건 2~3칸이 사라지고, 이번 레벨 경험치도 처음으로 돌아갑니다. "
-                + "손에 든 것·입은 장비·장신구·보조손·열쇠·곡괭이는 안전합니다.", Text.strip(n));
-        assertTrue(Text.strip(DeathPenaltyRules.notice(new Config(false, true, 2, 2, Set.of()))).contains("물건 2칸이 사라집니다."));
+        assertEquals("미궁 안에서 쓰러지면 가방 속 물건 2~3칸과 골드 5~25%(최대 15,000G)를 잃고, 이번 레벨 경험치도 처음으로 돌아갑니다. "
+                + "장비·열쇠·곡괭이와 손에 든 것은 안전합니다.", Text.strip(n));
+        Config noGold = Config.DEFAULT.withGold(DeathPenaltyRules.GoldLoss.OFF);
+        assertEquals("미궁 안에서 쓰러지면 가방 속 물건 2~3칸을 잃고, 이번 레벨 경험치도 처음으로 돌아갑니다. "
+                + "장비·열쇠·곡괭이와 손에 든 것은 안전합니다.", Text.strip(DeathPenaltyRules.notice(noGold)));
+        assertEquals("미궁 안에서 쓰러지면 가방 속 물건 2칸을 잃습니다. 장비·열쇠·곡괭이와 손에 든 것은 안전합니다.",
+                Text.strip(DeathPenaltyRules.notice(new Config(false, true, 2, 2, Set.of()).withGold(DeathPenaltyRules.GoldLoss.OFF))));
+        assertEquals("미궁 안에서 쓰러지면 골드 5~25%(최대 15,000G)를 잃고, 이번 레벨 경험치도 처음으로 돌아갑니다.",
+                Text.strip(DeathPenaltyRules.notice(new Config(true, false, 2, 3, Set.of()))), "물건만 끔");
         assertNull(DeathPenaltyRules.notice(Config.OFF));
         assertEquals("쓰러지면 이번 레벨 경험치가 처음으로 돌아갑니다. 미궁 밖에서도 같습니다.",
-                Text.strip(DeathPenaltyRules.notice(new Config(true, false, 2, 3, Set.of()))), "물건을 꺼도 경험치 규칙은 알려 줌");
-        assertNull(DeathPenaltyRules.notice(new Config(false, false, 2, 3, Set.of())));
+                Text.strip(DeathPenaltyRules.notice(new Config(true, false, 2, 3, Set.of()).withGold(DeathPenaltyRules.GoldLoss.OFF))),
+                "물건·골드를 꺼도 경험치 규칙은 알려 줌");
+        assertNull(DeathPenaltyRules.notice(new Config(false, false, 2, 3, Set.of()).withGold(DeathPenaltyRules.GoldLoss.OFF)));
     }
 
     // ── 전투 중 퇴장 ─────────────────────────────────────────────────────
@@ -332,8 +346,10 @@ class DeathPenaltyRulesTest {
         assertEquals(0.0, DeathPenaltyRules.exitCastSeconds(c, true, true, 0), "관리자 시험 입장");
         assertEquals(0.0, DeathPenaltyRules.exitCastSeconds(Config.OFF, false, true, 0), "페널티 끔 = 0.3.6 처럼 바로");
         assertEquals(0.0, DeathPenaltyRules.exitCastSeconds(null, false, true, 0));
-        Config xpOnly = new Config(true, false, 2, 3, Set.of());
+        Config xpOnly = new Config(true, false, 2, 3, Set.of()).withGold(DeathPenaltyRules.GoldLoss.OFF);
         assertEquals(5.0, DeathPenaltyRules.exitCastSeconds(xpOnly, false, true, 0), "경험치만 켜도 피하는 길은 막음");
+        Config goldOnly = new Config(false, false, 2, 3, Set.of());
+        assertEquals(5.0, DeathPenaltyRules.exitCastSeconds(goldOnly, false, true, 0), "골드만 켜도 (0.3.6.2)");
         Config instant = new Config(true, true, 2, 3, Set.of(), 0);
         assertEquals(0.0, DeathPenaltyRules.exitCastSeconds(instant, false, true, 0), "combat_exit_seconds: 0");
     }

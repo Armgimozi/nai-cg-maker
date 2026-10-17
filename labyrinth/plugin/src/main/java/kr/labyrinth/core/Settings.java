@@ -449,7 +449,7 @@ public final class Settings {
     /** 죽을 때 소지품·레벨 보존 (인벤세이브). */
     public Death death() { return death; }
 
-    /** 0.3.6.1 죽음 페널티 (death.penalty — 경험치 진행도 · 미궁 안 가방 2~3칸). */
+    /** 죽음 페널티 (death.penalty — 경험치 진행도 · 미궁 안 가방 2~3칸 · 0.3.6.2 골드). */
     public DeathPenaltyRules.Config deathPenalty() { return deathPenalty; }
 
     /** 직업 변경 제한 (전직의 두루마리·대기 시간). */

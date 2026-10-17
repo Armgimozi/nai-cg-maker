@@ -548,9 +548,10 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   - 사망: 파티원이 있으면 관전 모드 → 휴식방 도달/보스 처치 시 부활. 전멸 시 인스턴스 실패·귀환. 전멸 자체의 추가 손실은 없다.
   - 미궁 밖 사망(야생·마을·네더·엔드, PvP 포함) = 인벤세이브 `core.DeathKeep`(config.yml `death: {keep_inventory, keep_level}`, 키 없으면 둘 다 true):
     소지품·바닐라 경험치 레벨 유지, 드롭·경험치 구슬 0. false 면 그 부분만 바닐라. 미궁 월드는 DungeonManager 가 같은 `DeathKeep.apply` 로 언제나 보존.
-  - 0.3.6.1 죽음 페널티 (GDD §2.6.1, config `death.penalty`): 규칙 `core.DeathPenaltyRules`(순수) · 적용 `core.DeathPenalty`.
+  - 죽음 페널티 (0.3.6.1 · 0.3.6.2, GDD §2.6.1, config `death.penalty`): 규칙 `core.DeathPenaltyRules`(순수) · 적용 `core.DeathPenalty`.
     어디서 죽든 미궁 레벨의 이번 레벨 경험치 → 0 (취소 안 된 죽음 = `DeathKeep` MONITOR, 안내는 부활 뒤). 미궁 공략 중 쓰러짐
-    (`Run.onMemberDeath`)은 경험치 + 가방 2~3칸 지움(손에 든 칸·갑옷·보조손·장신구·열쇠·광산 곡괭이 안전, 콘솔 기록을 지우기 전에).
+    (`Run.onMemberDeath`)은 경험치 + 가방 2~3칸 지움 + 골드 5~25%(최대 15,000G, `gold_loss`) — 장비(가방 속도)·열쇠·광산 곡괭이·손에 든 칸·보조손 안전,
+    셜커 상자·꾸러미는 상자를 남기고 안의 장비 아닌 것만(`DeathPenaltyRules.Box` · `DeathPenalty.Stacks`), 콘솔 기록을 바꾸기 전에.
     공략 중 전투 중 퇴장은 `dungeon.ExitCast` 가 5초 시전 (`DungeonService.leaveByChoice` — 명령·입구 메뉴).
 - **PvP = 파티 규칙 하나** (대전·투기장·매치·레이팅 없음, GDD §18): 같은 파티원끼리는 야생·마을·미궁 어디서든 서로 피해를 줄 수 없고,
   그 밖의 플레이어끼리는 피해를 줄 수 있다. 근접·화살·스킬·무기 스킬·장판·물약·불·TNT·늑대·낚싯대 모두 같은 규칙. 플레이어끼리

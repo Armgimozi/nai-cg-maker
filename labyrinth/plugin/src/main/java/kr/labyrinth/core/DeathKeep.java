@@ -20,7 +20,7 @@ import org.bukkit.event.entity.PlayerDeathEvent;
  * (공략 중이면 죽음을 취소하고 쓰러짐·관전, 그 밖에는 이 설정과 상관없이 {@link #apply} 로 언제나 보존).
  * pvp 모듈은 죽음 메시지만 바꾸므로 PvP 로 죽어도 같은 규칙이다.
  * <p>0.3.6.1 죽음 페널티({@link DeathPenalty}): 취소되지 않은 죽음은 어디서든 이번 레벨 경험치를 잃고, 안내는 부활한 뒤 채팅으로.
- * 미궁 공략 중 쓰러짐(취소된 죽음)은 {@code dungeon.Run#onMemberDeath} 가 따로 (경험치 + 가방 2~3칸).
+ * 미궁 공략 중 쓰러짐(취소된 죽음)은 {@code dungeon.Run#onMemberDeath} 가 따로 (경험치 + 가방 2~3칸 + 골드, 0.3.6.2).
  */
 public final class DeathKeep implements Module, Listener {
 

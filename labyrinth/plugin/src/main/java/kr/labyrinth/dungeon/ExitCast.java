@@ -22,7 +22,7 @@ import org.bukkit.scheduler.BukkitTask;
 /**
  * 0.3.6.1 죽음 페널티 보완: 공략 중 살아 있고 전투 중(10초 안에 피해)이면 /미궁 퇴장·귀환과 입구 메뉴 '귀환' 도
  * 귀환 주문서처럼 시전한다 (config {@code death.penalty.combat_exit_seconds}, 기본 5초, 0 = 바로). 그동안 피해를 받으면 끊긴다.
- * 벌칙이 아니라 "죽기 직전에 퇴장 한 번으로 페널티를 피하는" 틈만 막는다. 쓰러진 사람·전투 밖은 지금처럼 바로 나간다.
+ * 벌칙이 아니라 "죽기 직전에 퇴장 한 번으로 페널티(0.3.6.2 부터 골드도)를 피하는" 틈만 막는다. 쓰러진 사람·전투 밖은 지금처럼 바로 나간다.
  * 규칙은 {@link DeathPenaltyRules#exitCastSeconds}. 귀환 주문서 시전(items.ConsumableListener)은 그대로 따로 돈다.
  */
 final class ExitCast implements Listener {
