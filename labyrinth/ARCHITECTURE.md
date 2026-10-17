@@ -705,6 +705,11 @@ tables:
       - {table: mix_f01_drop, chance: 0.0228}            # 장비는 이름으로만 (rarity_pool 은 쓰지 않음)
       - {table: enhance_mob_t1, chance: 1.0}
 
+  floor10_boss:               # 0.3.7: 신화 12 (한 개당 0.67%) + 신화 도안 — 둘 다 모든 난이도
+    entries:
+      - {one_of: [celestial_oathkeeper, mountainheart_maul, ...], chance: 0.08}
+      - {blueprint_of: [celestial_oathkeeper, mountainheart_maul, ...], chance: 0.05}
+
 # recipes.yml
 recipes:
   ember_greatsword:
@@ -1051,7 +1056,14 @@ wild:                 # wild: false = 통째로 끔 (Settings.Wild.OFF)
 - items.yml `type: tool` + `tool: {kind: pickaxe, tier, speed: {광석 tier: 배율}, bonus}` · `model: {shape: pickaxe}` (팩 voxel 틀).
   만들 때·다시 그릴 때 `services.mine().applyPickaxe` (Tool 규칙·CAN_BREAK·UNBREAKABLE). 광산 재료 = `mine_level`·`mine_kind: ore|ingot|gem`.
 - items.yml `type: blueprint` (`blueprint` 하나, 가르치는 레시피 id 는 PDC) · loot.yml 항목 `{blueprint: 단계, chance}` (LootRoller 가 이웃 단계 2:7:1 로
-  희귀 이상 장비 레시피 하나를 고름 · `gen_036_blueprints.py` 가 generate() **마지막** 단계로 넣음).
+  희귀 이상 장비 레시피 하나를 고름 · `gen_036_blueprints.py` 가 generate() 에서 MAT036 뒤에 넣음).
+- **0.3.7 신화 12** (GDD §11.15): loot.yml 항목 `{blueprint_of: [레시피 id, …], chance, amount?, min_difficulty?}` = 그 목록 중 도안 하나
+  (`LootTable.Kind.BLUEPRINT_OF`, 빌드 편향 own_build_bias, 확률 식은 `{blueprint}` 와 같고 rarity_weight 없음). 일반 `{blueprint: N}` 뽑기는 결과가
+  신화인 레시피를 뺀다. 신화 무기만 `sources: [boss, craft]` (나머지 영웅 이상 무기는 종류 하나). 데이터는 `tools/gen_037_mythic.py`
+  (입력 `tools/data/037/mythic_037.json`) 가 generate() **마지막** 단계 MYTH037 로 넣는다 — 새 6 블록(짝 신화 뒤) · 8·9·10층 보스 `{one_of}` 신화 줄 ·
+  보스·특별 시련·금고·미믹 `{blueprint_of}` 줄 · recipes.yml 끝 '신화 무기' 칸 12 · 획득처 다시 셈. generate() 는 맨 처음 `MYTH037.strip()` 으로
+  지난번 신화 단계가 넣은 것을 걷어 내 0.3.5 · 0.3.6 단계가 0.3.6.1 과 같은 입력을 보게 한다 (0.3.6 계약 검사도 걷어 낸 결과에서).
+  `gen_enhance.py`: 신화는 레시피가 있어도 보스 장비 규칙 (새 6 은 같은 층 보스 장비 중 맨 뒤에 정해 기존 신화 6 의 강화 행이 그대로).
 - recipes.yml `station: blacksmith|smelter` (없으면 대장간) · `category: tool`. 제련소 = `CraftingService.openSmelter(p[, tab])` (smelt·carve·pickaxe).
 - items.yml `sources` 에 `mine`·`smelt` (툴팁 "광산"·"제련소"). 도감 "광산" 탭 = 광산 재료 + 도구.
 - config `mine:` (MineConfig — 광맥 공유 regen_players_cap · 기력 없음) · `sell.mine` · `starter_kit` (+ copper_pickaxe, 0.3.5.1 기본 목록은 새 기본으로 읽음) · `blueprints:`.

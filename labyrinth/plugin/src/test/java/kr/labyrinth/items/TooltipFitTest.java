@@ -220,6 +220,17 @@ class TooltipFitTest {
         System.out.println("TOOLTIP 대장간 최대 " + worst + "줄 (" + worstId + ")");
     }
 
+    /** 그 아이템을 표에 직접 적은(item · one_of) 보스 수. */
+    static long bossesDropping(String id) {
+        return content.bosses().values().stream().filter(b -> {
+            LootTable t = content.lootTable(b.drops());
+            List<LootTable.Entry> all = new ArrayList<>(t.entries());
+            all.addAll(t.guaranteed());
+            return all.stream().anyMatch(e -> (e.kind() == LootTable.Kind.ITEM && id.equals(e.item()))
+                    || (e.kind() == LootTable.Kind.ONE_OF && e.oneOf().contains(id)));
+        }).count();
+    }
+
     @Test
     void sourceLineNamesTheBossAndHasNoFloor() {
         int boss = 0, elite = 0, common = 0, starter = 0, trial = 0, special = 0, hoard = 0;
@@ -236,9 +247,14 @@ class TooltipFitTest {
             assertFalse(FLOOR.matcher(Text.strip(line)).find(), d.id() + ": " + line);
             if (!d.isGear()) continue;
             if (d.sources().contains("boss")) {
-                // 보스 고유 장비 = 그 단계 보스 이름 ("획득처: 보스 테오라 · 대장간")
-                assertTrue(line.startsWith(ItemTooltip.SOURCE_PREFIX + "보스 " + ItemTooltip.bossShortName(content.bossOfFloor(d.tier()))),
-                        d.id() + ": " + line);
+                if (bossesDropping(d.id()) > 1) {
+                    // 0.3.7 신화: 8·9·10층 보스가 나눠 주면 이름 없이 "보스" ("획득처: 보스 · 대장간")
+                    assertTrue(line.startsWith(ItemTooltip.SOURCE_PREFIX + "보스 ·"), d.id() + ": " + line);
+                } else {
+                    // 보스 고유 장비 = 그 단계 보스 이름 ("획득처: 보스 테오라 · 대장간")
+                    assertTrue(line.startsWith(ItemTooltip.SOURCE_PREFIX + "보스 " + ItemTooltip.bossShortName(content.bossOfFloor(d.tier()))),
+                            d.id() + ": " + line);
+                }
                 boss++;
             }
             if (d.sources().contains("elite")) {
@@ -263,6 +279,9 @@ class TooltipFitTest {
         assertEquals(4, starter, "수련생 4종");
         assertEquals(ItemTooltip.SOURCE_PREFIX + "보스 테오라 · 대장간", ItemTooltip.sourceLine(content, content.item("clockwork_bastion")));
         assertEquals(ItemTooltip.SOURCE_PREFIX + "보스 테오라", ItemTooltip.sourceLine(content, content.item("doomclock_executioner")));
+        // 0.3.7 신화: 9·10층이 나눠 주면 "보스 · 대장간", 10층만 주는 공허의 심장은 "보스 넬카르 · 대장간"
+        assertEquals(ItemTooltip.SOURCE_PREFIX + "보스 · 대장간", ItemTooltip.sourceLine(content, content.item("tempest_bow")));
+        assertEquals(ItemTooltip.SOURCE_PREFIX + "보스 넬카르 · 대장간", ItemTooltip.sourceLine(content, content.item("voidheart_staff")));
         // 상인이 하나면 이름 ("상인 핀")
         ItemDef sold = content.items().values().stream().filter(d -> d.isGear() && d.sources().equals(List.of("shop"))).findFirst().orElse(null);
         if (sold != null) assertEquals(ItemTooltip.SOURCE_PREFIX + "상인 핀", ItemTooltip.sourceLine(content, sold), sold.id());

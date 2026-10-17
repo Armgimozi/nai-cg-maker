@@ -21,6 +21,9 @@
 0.3.6 (Q3): 이 0.3.5 단계 다음에 같은 generate() 안에서 tools/gen_036_materials.apply() 가 돈다 (R §3-18 — 파일이 아니라 메모리 단계):
   옛 광물 8개 → 광석·주괴 (장비 레시피 주괴 · 던전 광석) · 몹 몸에 맞는 드롭 (drops_spec) · 제련소 레시피 17 · 광부·제련공 NPC.
   0.3.5 verify 는 0.3.5 단계 결과에서, 0.3.6 검사는 최종 결과에서 돈다. 장비 sources 는 최종 루팅으로 다시 센다.
+0.3.7: 마지막 단계 tools/gen_037_mythic.py (MYTH037, BP036 뒤) 가 신화 무기 12 (직업마다 둘) 를 넣는다 — 새 6 블록 · 8·9·10층 보스
+  신화 줄 · 신화 도안 {blueprint_of} · 신화 레시피 12 · 획득처 다시 셈. generate() 는 맨 처음 MYTH037.strip() 으로 지난번 신화 단계가
+  넣은 것을 걷어 내므로 0.3.5 · 0.3.6 단계는 0.3.6.1 과 같은 입력을 본다 (입력 tools/data/037/mythic_037.json).
 강화 재료(enhance.yml)는 이 다음에 tools/gen_enhance.py 로 다시 만든다.
 """
 import argparse
@@ -41,7 +44,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import gen_035_looks as LOOKS_GEN  # noqa: E402
 import gen_035_unique as UNIQUE_GEN  # noqa: E402
 import gen_036_materials as MAT036  # noqa: E402
-import gen_036_blueprints as BP036  # noqa: E402  (0.3.6 Q6 도안 — generate() 마지막 단계, MAT036 뒤)
+import gen_036_blueprints as BP036  # noqa: E402  (0.3.6 Q6 도안 — MAT036 뒤)
+import gen_037_mythic as MYTH037  # noqa: E402  (0.3.7 신화 12 — generate() 마지막 단계, BP036 뒤 · 맨 처음 strip())
 
 ITEM_RE = re.compile(r"^  ([a-z0-9_]+):\s*(#.*)?$")
 GEAR_TYPES = ("weapon", "armor", "accessory")
@@ -765,7 +769,9 @@ def verify(paths, spec):
 def generate():
     spec = Spec()
     texts = {n: (CONTENT / f"{n}.yml").read_text(encoding="utf-8") for n in ("items", "loot", "recipes", "npcs")}
-    y = {n: yaml.safe_load(texts[n]) for n in texts}
+    # 0.3.7: 지난번 MYTH037 단계가 넣은 것(신화 6 블록 · 신화 루팅 줄 · 신화 레시피 칸)을 걷어 낸 입력 — 앞 단계는 0.3.6.1 과 같은 입력을 본다
+    base = MYTH037.strip(sys.modules[__name__], texts)
+    y = {n: yaml.safe_load(base[n]) for n in base}
     mobs = yaml.safe_load((CONTENT / "mobs.yml").read_text(encoding="utf-8"))["mobs"]
     bosses = yaml.safe_load((CONTENT / "bosses.yml").read_text(encoding="utf-8"))["bosses"]
     floors = sorted(int(k) for k in yaml.safe_load((CONTENT / "floors.yml").read_text(encoding="utf-8"))["floors"])
@@ -786,10 +792,10 @@ def generate():
     sources = compute_sources(items, final_loot, recipes, mobs, bosses, floors, npcs, titles, config)
     changes = []
     out = {
-        "items": apply_items(texts["items"], spec, sources, new_w, new_a, new_sets, changes),
-        "loot": apply_loot(texts["loot"], spec, final_loot, changes),
-        "recipes": apply_recipes(texts["recipes"], spec, items, changes),
-        "npcs": apply_npcs(texts["npcs"], spec, changes),
+        "items": apply_items(base["items"], spec, sources, new_w, new_a, new_sets, changes),
+        "loot": apply_loot(base["loot"], spec, final_loot, changes),
+        "recipes": apply_recipes(base["recipes"], spec, items, changes),
+        "npcs": apply_npcs(base["npcs"], spec, changes),
     }
     # 방어구 요구·줄 이름은 P2 생성기 규칙 그대로 (새 세트 포함) — 다시 한 번 돌려 고칠 것이 없어야 한다
     lines = out["items"].split("\n")
@@ -818,15 +824,23 @@ def generate():
     out["items"] = "\n".join(lines)
     # ── 0.3.6 (Q6): 도안 — 반드시 MAT036 뒤 (몹 드롭 표를 다시 쓰면 도안 항목이 지워지므로 마지막에) ──
     out = BP036.apply(out, mobs, bosses, floors, changes)
+    # ── 0.3.7: 신화 12 — 반드시 맨 끝 (새 6 블록 · 8·9·10층 신화 줄 · 신화 도안 blueprint_of · 신화 레시피 12 · 획득처 다시 셈) ──
+    out = MYTH037.apply(sys.modules[__name__], out, mobs, bosses, floors, titles, config, changes)
     return spec, texts, out, changes, sources036, out035, info
 
 
 def bp_verify(texts):
-    """0.3.6 Q6 도안 항목이 MAT036 뒤에도 남았는지 (generate() 마지막 단계)."""
+    """0.3.6 Q6 도안 항목이 MAT036 뒤에도 남았는지 + 0.3.7 신화 단계(MYTH037) 검사."""
     mobs = yaml.safe_load((CONTENT / "mobs.yml").read_text(encoding="utf-8"))["mobs"]
     bosses = yaml.safe_load((CONTENT / "bosses.yml").read_text(encoding="utf-8"))["bosses"]
     floors = sorted(int(k) for k in yaml.safe_load((CONTENT / "floors.yml").read_text(encoding="utf-8"))["floors"])
-    return [f"(도안) {b}" for b in BP036.verify(texts, mobs, bosses, floors)]
+    return ([f"(도안) {b}" for b in BP036.verify(texts, mobs, bosses, floors)]
+            + [f"(037) {b}" for b in MYTH037.verify(texts)])
+
+
+def mat_verify(texts, info):
+    """0.3.6 계약 검사는 0.3.6 단계 결과(신화 단계를 걷어 낸 것)에서 — 레시피 수 204 · base_0351 레시피 등은 0.3.6 계약이다."""
+    return [f"(036) {b}" for b in MAT036.verify(MYTH037.strip(sys.modules[__name__], texts), info)]
 
 
 def main():
@@ -837,7 +851,7 @@ def main():
     spec, texts, out, changes, sources, out035, info = generate()
     if a.check:
         diff = [n for n in out if out[n] != texts[n]]
-        bad = verify(out035, spec) + [f"(036) {b}" for b in MAT036.verify(texts, info)] + bp_verify(texts)
+        bad = verify(out035, spec) + mat_verify(texts, info) + bp_verify(texts)
         for b in bad:
             print("✘", b)
         if diff:
@@ -858,7 +872,7 @@ def main():
     if any(out2[n] != texts2[n] for n in out2):
         print("✘ 다시 돌리면 또 바뀜 (멱등 아님):", [n for n in out2 if out2[n] != texts2[n]])
         sys.exit(1)
-    bad = verify(out035_2, spec2) + [f"(036) {b}" for b in MAT036.verify(texts2, info2)] + bp_verify(texts2)
+    bad = verify(out035_2, spec2) + mat_verify(texts2, info2) + bp_verify(texts2)
     for b in bad:
         print("✘", b)
     if bad:

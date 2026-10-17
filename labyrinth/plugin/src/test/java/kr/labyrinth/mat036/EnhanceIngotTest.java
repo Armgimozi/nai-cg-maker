@@ -80,7 +80,7 @@ class EnhanceIngotTest {
             assertTrue(rm != null && rm.mineKind() == null, d.id() + " R = " + rItem);
         }
         assertEquals(List.of(), bad, "mid·high 주괴가 주 금속이 아님");
-        assertEquals(364, n, "강화 장비 수");
+        assertEquals(370, n, "강화 장비 수 (0.3.6 364 + 0.3.7 신화 6)");
         System.out.println("ENHANCE036 장비 " + n + " · 주괴가 P 인 장비 " + ingotP);
     }
 }

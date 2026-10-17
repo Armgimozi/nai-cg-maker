@@ -158,7 +158,12 @@ class LootHomesTest {
             Set<String> kinds = new TreeSet<>();
             for (String x : t) kinds.add(kind(x));
             assertTrue(kinds.size() >= 1 && kinds.size() <= 2, d.id() + " 획득처 종류 " + kinds);
-            if (d.isWeapon() && d.rarity().atLeast(Rarity.EPIC)) assertEquals(1, kinds.size(), d.id() + " 영웅 이상 무기 획득처 종류 " + kinds);
+            if (d.isWeapon() && d.rarity() == Rarity.MYTHIC) {
+                // 0.3.7: 신화만 둘 — 8·9·10층 보스 + 대장간 (신화 도안)
+                assertEquals(new TreeSet<>(List.of("boss", "craft")), kinds, d.id() + " 신화 획득처 종류 " + kinds);
+            } else if (d.isWeapon() && d.rarity().atLeast(Rarity.EPIC)) {
+                assertEquals(1, kinds.size(), d.id() + " 영웅 이상 무기 획득처 종류 " + kinds);
+            }
             assertEquals(t, new TreeSet<>(d.sources()), d.id() + " 의 items.yml sources 가 실제 획득처와 다름");
             assertFalse(d.pool(), d.id() + " pool 은 false (rarity_pool 을 쓰지 않음)");
         }
@@ -197,8 +202,13 @@ class LootHomesTest {
             BossDef b = content.bossOfFloor(d.tier());
             assertNotNull(b, d.id());
             assertTrue(expand(b.drops(), new HashSet<>()).contains(d.id()), d.id() + " 이 " + b.drops() + " 에 없음");
+            // 0.3.7: 신화 무기는 그 단계(10층) 보스 + 아래 두 층 보스(8·9층)가 나눠 준다 — 10층 넬카르 표에는 12개 모두
+            Set<String> home = new HashSet<>(Set.of(b.drops()));
+            if (d.isWeapon() && d.rarity() == Rarity.MYTHIC) {
+                for (int f = d.tier() - 2; f < d.tier(); f++) home.add(content.bossOfFloor(f).drops());
+            }
             for (Labeled l : labeledTables()) {
-                if (l.table().equals(b.drops())) continue;
+                if (home.contains(l.table())) continue;
                 assertFalse(expand(l.table(), new HashSet<>()).contains(d.id()), d.id() + " 이 " + l.table() + " 에서도 나옴");
             }
             n++;

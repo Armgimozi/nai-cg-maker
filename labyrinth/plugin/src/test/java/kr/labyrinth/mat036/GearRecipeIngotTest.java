@@ -12,6 +12,7 @@ import kr.labyrinth.content.Content;
 import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.MineKind;
 import kr.labyrinth.content.Params;
+import kr.labyrinth.content.Rarity;
 import kr.labyrinth.content.RecipeDef;
 import kr.labyrinth.mine.MineNames;
 import org.junit.jupiter.api.Test;
@@ -50,11 +51,25 @@ class GearRecipeIngotTest {
         List<String> commons = base.strings("commons");
         Params baseRecipes = base.sub("recipes");
         List<String> bad = new ArrayList<>();
-        int checked = 0, mixed = 0;
+        int checked = 0, mixed = 0, mythic = 0;
         for (RecipeDef r : c.recipes().values()) {
             ItemDef d = c.item(r.result());
             if (d == null || !d.isGear()) continue;
             assertEquals(MineNames.STATION_BLACKSMITH, r.station(), r.id());
+            if (d.rarity() == Rarity.MYTHIC) {
+                // 0.3.7 신화 레시피 12 — 0.3.5.1 에 없던 레시피 · 주괴는 오리하르콘만 + 보석은 용혈석만 (신화 예외, 계약 수 밖)
+                Map<String, Integer> mine = new LinkedHashMap<>();
+                for (var e : r.materials().entrySet()) {
+                    ItemDef md = c.item(e.getKey());
+                    assertNotNull(md, e.getKey());
+                    if (md.isMineMaterial()) mine.put(e.getKey(), e.getValue());
+                }
+                assertEquals(List.of("orichalcum_ingot", "dragonblood_stone"), List.copyOf(mine.keySet()), r.id() + " 신화 광산 재료");
+                assertEquals(MineKind.INGOT, c.item("orichalcum_ingot").mineKind());
+                assertEquals(MineKind.GEM, c.item("dragonblood_stone").mineKind());
+                mythic++;
+                continue;
+            }
             Params old = baseRecipes.sub(r.id());
             assertTrue(!old.isEmpty(), r.id() + " 가 0.3.5.1 레시피에 없다");
             int sum = 0;
@@ -77,6 +92,7 @@ class GearRecipeIngotTest {
         Params derived = Mat036.json("materials.json").sub("derived");
         assertEquals(derived.integer("recipes_changed", -1), checked, "장비 레시피 수");
         assertEquals(derived.integer("mixed_recipes", -1), mixed, "두 금속 섞은 레시피 수");
+        assertEquals(12, mythic, "0.3.7 신화 레시피");
     }
 
     @Test
