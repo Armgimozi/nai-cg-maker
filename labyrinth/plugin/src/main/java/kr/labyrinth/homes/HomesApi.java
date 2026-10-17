@@ -120,4 +120,18 @@ public interface HomesApi {
 
     /** "[집터 자가 진단] …" (묶음 B) + "[집 메뉴 자가 진단] …" (묶음 C) 줄들. village selftest · /labadmin plot selftest 가 붙인다. */
     List<String> selfTestLines();
+
+    // ── 더한 것 (묶음 B, 0.3.7 — 메뉴가 쓰면 좋은 것. 기본값은 "없음") ─────
+
+    /** 그 집터를 비우는 중인가 (받기·짓기 안 됨 — 메뉴는 "정리 중" 으로). */
+    default boolean busy(PlotGeom plot) { return false; }
+
+    /** 스스로 비운 뒤 다시 받기까지 남은 ms (0 = 됨, review R13). */
+    default long reclaimCooldownLeft(UUID player) { return 0; }
+
+    /** 이사 기간 남은 날 (잠금이 꺼져 있거나 기간이 아니면 0). */
+    default int graceDaysLeft() { return 0; }
+
+    /** 지형 잠금 상태 글 ("auto (켜짐)" 등, 관리자·메뉴 표시용). */
+    default String lockState() { return "off"; }
 }
