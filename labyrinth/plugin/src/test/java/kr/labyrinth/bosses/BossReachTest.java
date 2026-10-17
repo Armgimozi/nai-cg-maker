@@ -143,6 +143,110 @@ class BossReachTest {
         assertTrue(BossReach.sees(3.0, EYE, 0, GOLEM, post));
     }
 
+    // ── 거리 안 시야 (맞대응 규칙) ───────────────────────────────────────
+
+    /** 막는 블록 상자들 (선분 ↔ 상자 교차 = 막힘). */
+    private static BossReach.Ray blocks(BossReach.Box... boxes) {
+        return (ax, ay, az, bx, by, bz) -> {
+            for (BossReach.Box k : boxes) if (segmentHits(ax, ay, az, bx, by, bz, k)) return false;
+            return true;
+        };
+    }
+
+    private static boolean segmentHits(double ax, double ay, double az, double bx, double by, double bz, BossReach.Box k) {
+        double t0 = 0, t1 = 1;
+        double[] a = {ax, ay, az}, d = {bx - ax, by - ay, bz - az};
+        double[] lo = {k.minX(), k.minY(), k.minZ()}, hi = {k.maxX(), k.maxY(), k.maxZ()};
+        for (int i = 0; i < 3; i++) {
+            if (Math.abs(d[i]) < 1e-12) {
+                if (a[i] < lo[i] || a[i] > hi[i]) return false;
+                continue;
+            }
+            double u = (lo[i] - a[i]) / d[i], v = (hi[i] - a[i]) / d[i];
+            t0 = Math.max(t0, Math.min(u, v));
+            t1 = Math.min(t1, Math.max(u, v));
+            if (t0 > t1) return false;
+        }
+        return true;
+    }
+
+    /** 등불 받침 (높이 2칸, z 로 넓게): x 2.2 ~ 3.2. */
+    private static final BossReach.Box PEDESTAL = new BossReach.Box(2.2, 0, -5, 3.2, 2.0, 5);
+
+    @Test
+    void lanternPocketUpperBodyPastReachIsNotAHit() {
+        // verify 재현: 눈 → 히트박스 2.78칸 (맞대응 거리 안) 인데 가까운 점은 받침에 가리고, 받침 위로 보이는 윗몸은 3칸 밖
+        double ex = 3.9;
+        assertTrue(BossReach.pointToBox(ex, EYE, 0, GOLEM) < BossReach.PLAYER_REACH);
+        assertFalse(BossReach.legacy(ex, 0, R1));
+        BossReach.Ray ray = blocks(PEDESTAL);
+        assertTrue(BossReach.sees(ex, EYE, 0, GOLEM, ray), "어느 점이든 (옛 규칙용): 윗몸은 보인다");
+        assertFalse(BossReach.sees(ex, EYE, 0, GOLEM, ray, BossReach.PLAYER_REACH), "손 닿음 안에서 보이는 점이 없다 → 서로 못 친다");
+        // 3틱 뒤 판정 여유(+0.8) 안에는 윗몸이 들어온다 (휘두를 때 막히니 이 여유로 새로 맞지는 않는다)
+        assertTrue(BossReach.sees(ex, EYE, 0, GOLEM, ray, BossReach.PLAYER_REACH + BossReach.CONFIRM_SLACK));
+    }
+
+    @Test
+    void lowWallInsideReachStillSeesOverTheTop() {
+        // 받침이 더 가까이 (x 1.6 ~ 2.0): 받침 위로 보이는 윗몸이 3칸 안 → 플레이어도 치고 보스도 친다
+        BossReach.Ray ray = blocks(new BossReach.Box(1.6, 0, -5, 2.0, 2.0, 5));
+        assertFalse(ray.clear(3.0, EYE, 0, 1.12, EYE, 0), "가장 가까운 점은 가린다");
+        assertTrue(BossReach.sees(3.0, EYE, 0, GOLEM, ray, BossReach.PLAYER_REACH));
+    }
+
+    @Test
+    void withinReachSeesAroundANarrowPost() {
+        // 좁은 기둥 (x 1.9 ~ 2.1, |z| < 0.4, 아주 높음): 가운데는 가려도 면 옆쪽(손 닿음 안)은 보인다
+        BossReach.Ray post = blocks(new BossReach.Box(1.9, -5, -0.4, 2.1, 20, 0.4));
+        assertFalse(post.clear(3.0, EYE, 0, 1.12, EYE, 0));
+        assertTrue(BossReach.sees(3.0, EYE, 0, GOLEM, post, BossReach.PLAYER_REACH));
+        // 아주 넓은 벽이면 못 본다 (벽 너머 공격 없음)
+        assertFalse(BossReach.sees(3.0, EYE, 0, GOLEM, blocks(new BossReach.Box(1.9, -5, -9, 2.1, 20, 9)), BossReach.PLAYER_REACH));
+    }
+
+    @Test
+    void withinReachSightRespectsTheDistance() {
+        BossReach.Ray open = (ax, ay, az, bx, by, bz) -> true;
+        assertTrue(BossReach.sees(4.0, EYE, 0, GOLEM, open, 3.0)); // 2.88
+        assertFalse(BossReach.sees(4.2, EYE, 0, GOLEM, open, 3.0)); // 3.08
+        assertTrue(BossReach.sees(4.2, EYE, 0, GOLEM, open, 3.8));
+        assertTrue(BossReach.sees(0.2, 1.0, 0.1, GOLEM, blocks(new BossReach.Box(-9, -9, -9, 9, 9, 9)), 3.0), "눈이 상자 안");
+        assertEquals(BossReach.sees(3.5, EYE, 0, GOLEM, blocks(PEDESTAL)),
+                BossReach.sees(3.5, EYE, 0, GOLEM, blocks(PEDESTAL), Double.POSITIVE_INFINITY), "무한 = 옛 시야");
+    }
+
+    @Test
+    void withinReachSamplesStayInReachOnTheSurfaceAndAreBounded() {
+        for (double[] eye : new double[][] {{3.0, EYE, 0}, {3.6, EYE, 2.4}, {1.8, 6.6, 0.3}, {-3.2, 0.4, -1.0}}) {
+            List<double[]> pts = BossReach.reachSamples(eye[0], eye[1], eye[2], GOLEM, 3.0);
+            assertTrue(pts.size() <= BossReach.MAX_REACH_RAYS && pts.size() >= 2, "점 " + pts.size());
+            double[] cp = BossReach.closestPoint(eye[0], eye[1], eye[2], GOLEM);
+            for (int k = 0; k < 3; k++) assertEquals(cp[k], pts.get(0)[k], 1e-9, "가장 가까운 점부터");
+            for (double[] p : pts) {
+                double d = Math.sqrt(Math.pow(p[0] - eye[0], 2) + Math.pow(p[1] - eye[1], 2) + Math.pow(p[2] - eye[2], 2));
+                assertTrue(d <= 3.0 + 1e-9, "손 닿음 밖 점 " + d);
+                assertEquals(0, BossReach.pointToBox(p[0], p[1], p[2], GOLEM), 1e-9, "히트박스 겉면");
+            }
+            List<double[]> again = BossReach.reachSamples(eye[0], eye[1], eye[2], GOLEM, 3.0);
+            assertEquals(pts.size(), again.size());
+            for (int i = 0; i < pts.size(); i++) for (int k = 0; k < 3; k++) assertEquals(pts.get(i)[k], again.get(i)[k], 0, "결정적");
+        }
+        // 비스듬히 선 자리: 눈을 향한 두 면 모두에서 고른다
+        boolean onX = false, onZ = false;
+        for (double[] p : BossReach.reachSamples(2.6, EYE, 2.6, GOLEM, 3.0)) {
+            if (Math.abs(p[0] - 1.12) < 1e-9 && p[2] < 1.0) onX = true;
+            if (Math.abs(p[2] - 1.12) < 1e-9 && p[0] < 1.0) onZ = true;
+        }
+        assertTrue(onX && onZ);
+        int[] n = {0};
+        BossReach.Ray count = (ax, ay, az, bx, by, bz) -> {
+            n[0]++;
+            return false;
+        };
+        assertFalse(BossReach.sees(3.0, EYE, 0, GOLEM, count, 3.0));
+        assertTrue(n[0] <= BossReach.MAX_REACH_RAYS && n[0] >= 8, "광선 " + n[0]);
+    }
+
     // ── 직접 다가가기·도약 ───────────────────────────────────────────────
 
     @Test

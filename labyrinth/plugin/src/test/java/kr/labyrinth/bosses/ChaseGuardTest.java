@@ -161,6 +161,21 @@ class ChaseGuardTest {
     }
 
     @Test
+    void movedBossIsNotStalledEvenMidWindow() {
+        // 멈춤이 쌓인 뒤 (긴 시전 사이) 패턴 이동·순간이동으로 몸이 옮겨지면, 창 끝을 기다리지 않고 바로 처음부터 센다
+        // (실서버 7층: 상자 옆에서 쌓인 멈춤이 시전 뒤 4칸 옮겨진 다음 틱에 남아 카이팅 중인 대상에게 뛰었다)
+        ChaseGuard g = new ChaseGuard();
+        for (int i = 0; i < ChaseGuard.WINDOW + ChaseGuard.GAP_AFTER - 3; i++) assertFalse(g.update(stuck(0, 2.1, false, 0)).closeGap());
+        assertTrue(g.stalled() && g.blocked() > ChaseGuard.GAP_AFTER - 10, "blocked " + g.blocked());
+        g.update(stuck(3.9, 9.0, true, 0));
+        assertFalse(g.stalled());
+        assertEquals(0, g.blocked());
+        // 거기서 다시 멈추면 창 + 40틱 뒤에야
+        int gap = firstGap(g, 200, i -> stuck(3.9, 9.0, true, 0));
+        assertTrue(gap >= ChaseGuard.WINDOW + ChaseGuard.GAP_AFTER - 1, "gap " + gap);
+    }
+
+    @Test
     void deterministic() {
         ChaseGuard a = new ChaseGuard(), b = new ChaseGuard();
         for (int i = 0; i < 500; i++) {

@@ -10,7 +10,7 @@ import java.util.UUID;
  * 이 감시는 {@link Boss} 의 추격이 매 틱(바쁘지 않을 때) 부른다:
  * <ol>
  *   <li><b>멈춤</b>: 대상이 기본 공격 밖인데 보스가 {@link #WINDOW} 틱 동안 {@link #STALL_MOVE} 칸도 못 움직였다.</li>
- *   <li><b>직접 다가가기</b>: 멈췄거나 길이 아예 없을 때(떠다니는 보스), 대상이 보이고 {@link #STEER_RANGE} 칸 안이면(길이 없으면 거리 무관)
+ *   <li><b>직접 다가가기</b>: 멈췄거나 땅 길찾기를 못 쓸 때(떠다니는 보스), 대상이 보이고 {@link #STEER_RANGE} 칸 안이면(떠다니는 보스는 거리 무관)
  *       길찾기 대신 대상 쪽으로 곧장 걷는다 — 벽은 바닐라 충돌이 막는다. 안 보이는 채 {@link #BLIND_AFTER} 틱 더 멈춰 있으면
  *       {@link #BLIND_TICKS} 틱 동안은 안 보여도 다가간다 (기둥 뒤 — 몸이 기둥을 돌아 시야를 찾는다).</li>
  *   <li><b>거리 좁히기</b>: 그래도 {@link #GAP_AFTER} 틱 동안 멈춘 채이고 대상이 교전 중(최근 {@link #ENGAGE_TICKS} 틱 안에 보스를 때렸거나
@@ -31,7 +31,7 @@ public final class ChaseGuard {
     public static final int ENGAGE_TICKS = 80;
     /** 또는 이 거리(수평) 안이면 교전 중. */
     public static final double ENGAGE_RANGE = 6.0;
-    /** 직접 다가가기를 시작하는 거리 (길이 아예 없으면 거리 무관). 끝은 + 2칸. */
+    /** 직접 다가가기를 시작하는 거리 (떠다니는 보스는 거리 무관). 끝은 + 2칸. */
     public static final double STEER_RANGE = 6.0;
     /** 안 보이는 채 이만큼(1초) 멈춰 있으면 안 보여도 다가가 본다 (기둥 뒤 — 몸이 기둥을 돌아 시야를 찾는다). */
     public static final int BLIND_AFTER = 20;
@@ -53,7 +53,7 @@ public final class ChaseGuard {
      * @param canMove  보스가 지금 걸을 수 있는가 (길찾기 켜짐 + 이동 속도 &gt; 0)
      * @param inReach  기본 공격이 지금 닿는가 (기하 + 시야)
      * @param dist     보스 중심 ↔ 대상 수평 거리
-     * @param noPath   길찾기가 길을 못 만든다 (떠다니는 보스는 늘 true)
+     * @param noPath   땅 길찾기를 못 쓰는 보스 (떠다니는 보스 = 늘 true). 땅 보스는 false — 길 끝에 서면 멈춤 감시가 잡는다
      * @param sees     보스와 대상 사이 시야
      * @param sinceHit 대상이 보스를 마지막으로 때린 뒤 지난 틱 (없으면 아주 큰 값)
      * @param bx       보스 x
@@ -87,8 +87,13 @@ public final class ChaseGuard {
             return new Output(Move.HOLD, false);
         }
         if (anchorClock < 0) anchor(in);
-        if (clock - anchorClock >= WINDOW) {
-            stalled = Math.hypot(in.bx() - ax, in.bz() - az) < STALL_MOVE;
+        if (Math.hypot(in.bx() - ax, in.bz() - az) >= STALL_MOVE) {
+            // 움직였다 (걷기·패턴 이동·순간이동) — 창 끝을 기다리지 않고 바로 멈춤이 아니다.
+            // 시간은 부른 횟수라, 긴 시전(바쁨) 뒤에는 시전 전 멈춤이 남아 시전이 끝나자마자 멀리 있는 대상에게 뛰었다.
+            stalled = false;
+            anchor(in);
+        } else if (clock - anchorClock >= WINDOW) {
+            stalled = true;
             anchor(in);
         }
         if (in.inReach()) {

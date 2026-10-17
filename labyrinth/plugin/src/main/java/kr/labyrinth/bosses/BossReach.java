@@ -10,7 +10,9 @@ import java.util.List;
  * <b>맞대응 규칙</b>: 플레이어 눈 → 보스 히트박스 겉면 ≤ 플레이어 손 닿음(바닐라 3.0) — 플레이어가 칼로 칠 수 있는 거리면
  * 보스도 친다. 히트박스가 큰 보스(골렘·판다 바탕)는 옛 규칙보다 이쪽이 약 1칸 길다 — 그 띠가 "플레이어만 치는 자리"였다.
  * <p>
- * 둘 중 하나면 닿고, 어느 쪽이든 {@link #sees 시야}(플레이어 눈과 히트박스 사이에 막는 블록 없음)가 있어야 한다 — 벽 너머로 안 친다.
+ * 둘 중 하나면 닿고, 시야(플레이어 눈과 히트박스 사이에 막는 블록 없음)가 있어야 한다 — 벽 너머로 안 친다.
+ * 옛 규칙이 맞으면 히트박스 어느 점이든 보이면 되고({@link #sees(double, double, double, Box, Ray)}), 맞대응 규칙만 맞으면
+ * 손 닿음 안에서 보이는 점이 있어야 한다({@link #sees(double, double, double, Box, Ray, double)}) — 플레이어 칼이 닿는 점과 같은 잣대.
  * 휘두른 뒤 3틱 뒤 판정은 둘 다 {@link #CONFIRM_SLACK} 만큼 여유 (옛 규칙 그대로).
  */
 public final class BossReach {
@@ -116,6 +118,79 @@ public final class BossReach {
             }
         }
         return false;
+    }
+
+    /** 거리 안 시야 광선 최대 수. */
+    public static final int MAX_REACH_RAYS = 14;
+    /** 거리 안 시야 표본 격자 간격 (히트박스 면 위). */
+    static final double REACH_GRID = 0.3;
+
+    /**
+     * 거리 안 시야 (맞대응 규칙): 플레이어 눈에서 maxDist 안에 있는 히트박스 겉면 점 중 하나라도 막힘 없이 보이면 true.
+     * 플레이어 칼이 실제로 닿는 점(손 닿음 안 + 보임)과 같은 잣대 — 가까운 점은 등불 받침에 가리고 받침 위로 보이는 윗몸은
+     * 손 닿음 밖이면, 플레이어도 못 치니 보스도 못 친다. 표본은 가장 가까운 점, 그다음 눈을 향한 면 위 격자(거리 안)에서
+     * 이미 고른 점과 가장 멀리 떨어진 점 순 (위·옆으로 고루 퍼짐), 광선 최대 {@link #MAX_REACH_RAYS}개. 눈이 상자 안이면 보인다.
+     * maxDist 가 무한이면 {@link #sees(double, double, double, Box, Ray)} 와 같다.
+     */
+    public static boolean sees(double ex, double ey, double ez, Box b, Ray ray, double maxDist) {
+        if (Double.isInfinite(maxDist)) return sees(ex, ey, ez, b, ray);
+        double[] cp = closestPoint(ex, ey, ez, b);
+        double d0 = dist(ex, ey, ez, cp[0], cp[1], cp[2]);
+        if (d0 < 1e-6) return true;
+        if (d0 > maxDist) return false;
+        for (double[] p : reachSamples(ex, ey, ez, b, maxDist)) {
+            if (ray.clear(ex, ey, ez, p[0], p[1], p[2])) return true;
+        }
+        return false;
+    }
+
+    /** {@link #sees(double, double, double, Box, Ray, double)} 가 광선을 쏘는 점들 (쏘는 순서 · 결정적). */
+    static List<double[]> reachSamples(double ex, double ey, double ez, Box b, double maxDist) {
+        double[] cp = closestPoint(ex, ey, ez, b);
+        double e = 0.02;
+        List<double[]> cand = new ArrayList<>();
+        // 눈을 향한 면 (눈이 그 축의 상자 밖일 때만)
+        if (ex < b.minX()) faceGrid(cand, 0, b.minX(), b, e);
+        if (ex > b.maxX()) faceGrid(cand, 0, b.maxX(), b, e);
+        if (ez < b.minZ()) faceGrid(cand, 2, b.minZ(), b, e);
+        if (ez > b.maxZ()) faceGrid(cand, 2, b.maxZ(), b, e);
+        if (ey > b.maxY()) faceGrid(cand, 1, b.maxY(), b, e);
+        if (ey < b.minY()) faceGrid(cand, 1, b.minY(), b, e);
+        cand.removeIf(p -> dist(ex, ey, ez, p[0], p[1], p[2]) > maxDist);
+        List<double[]> out = new ArrayList<>();
+        out.add(cp);
+        double[] gap = new double[cand.size()];
+        for (int i = 0; i < gap.length; i++) gap[i] = dist(cp[0], cp[1], cp[2], cand.get(i)[0], cand.get(i)[1], cand.get(i)[2]);
+        while (out.size() < MAX_REACH_RAYS) {
+            int best = -1;
+            for (int i = 0; i < gap.length; i++) if (gap[i] > 0.3 && (best < 0 || gap[i] > gap[best])) best = i;
+            if (best < 0) break;
+            double[] q = cand.get(best);
+            out.add(q);
+            for (int i = 0; i < gap.length; i++) {
+                double[] c = cand.get(i);
+                gap[i] = Math.min(gap[i], dist(q[0], q[1], q[2], c[0], c[1], c[2]));
+            }
+        }
+        return out;
+    }
+
+    /** 축 axis(0 = x, 1 = y, 2 = z) 값이 at 인 면 위 격자 (모서리에서 e 안쪽). */
+    private static void faceGrid(List<double[]> out, int axis, double at, Box b, double e) {
+        double[] lo = {b.minX() + e, b.minY() + e, b.minZ() + e};
+        double[] hi = {b.maxX() - e, b.maxY() - e, b.maxZ() - e};
+        int u = axis == 0 ? 1 : 0, v = axis == 2 ? 1 : 2;
+        int nu = Math.max(1, (int) Math.ceil((hi[u] - lo[u]) / REACH_GRID));
+        int nv = Math.max(1, (int) Math.ceil((hi[v] - lo[v]) / REACH_GRID));
+        for (int i = 0; i <= nu; i++) {
+            for (int j = 0; j <= nv; j++) {
+                double[] p = new double[3];
+                p[axis] = at;
+                p[u] = lo[u] + (hi[u] - lo[u]) * i / nu;
+                p[v] = lo[v] + (hi[v] - lo[v]) * j / nv;
+                out.add(p);
+            }
+        }
     }
 
     /** 이미 쏜 점과 0.3칸 안이면 건너뛴다 (false). */
