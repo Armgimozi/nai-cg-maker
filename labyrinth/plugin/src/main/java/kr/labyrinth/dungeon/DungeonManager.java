@@ -89,6 +89,9 @@ public final class DungeonManager implements DungeonService, Listener {
     /** 플러그인 세션마다 다른 토큰 — runSeq 는 재시작하면 0부터라, 재시작 뒤 같은 run id(금고 열쇠 새김)가 다시 나오지 않게. */
     private final String session = sessionToken(System.currentTimeMillis());
 
+    /** 손에 드는 탐험 지도 (0.3.7). */
+    private ExplorationMapItem mapItem;
+
     public DungeonManager(Services services) {
         this.services = services;
     }
@@ -143,6 +146,8 @@ public final class DungeonManager implements DungeonService, Listener {
         Bukkit.getPluginManager().registerEvents(this, services.plugin());
         exitCast = new ExitCast(this);
         exitCast.start();
+        mapItem = new ExplorationMapItem(services.plugin(), this::mapFloorOf);
+        mapItem.enable();
         ticker = Bukkit.getScheduler().runTaskTimer(services.plugin(), this::tickAll, 2L, 2L);
         if (labWorld.world() == null) Log.warn("미궁 월드를 만들지 못했습니다 — 입장이 불가능합니다.");
         else Log.info("미궁 월드 준비: " + labWorld.world().getName() + (labWorld.dirtySlots().isEmpty() ? ""
@@ -688,14 +693,21 @@ public final class DungeonManager implements DungeonService, Listener {
         if (showMap(e.getPlayer())) e.setCancelled(true);
     }
 
+    /** 지도 아이템이 그릴 층: 그 사람이 서 있는 층, 없으면 파티의 지금 층 (미궁 밖 = null). */
+    private FloorState mapFloorOf(Player p) {
+        Run r = byPlayer.get(p.getUniqueId());
+        if (r == null) return null;
+        FloorState fs = r.floorOf(p);
+        return fs != null ? fs : r.current();
+    }
+
     @Override
     public boolean showMap(Player p) {
-        Run r = byPlayer.get(p.getUniqueId());
-        FloorState fs = r == null ? null : r.floorOf(p);
-        if (fs == null && r != null) fs = r.current();
+        boolean gave = mapItem != null && mapItem.give(p);
+        FloorState fs = mapFloorOf(p);
         if (fs == null || !fs.ready()) {
-            Text.error(p, "탐험 지도는 미궁 안에서만 볼 수 있습니다.");
-            return false;
+            if (!gave) Text.error(p, "탐험 지도는 미궁 안에서만 볼 수 있습니다.");
+            return gave;
         }
         ExplorationMap.show(fs, p);
         return true;

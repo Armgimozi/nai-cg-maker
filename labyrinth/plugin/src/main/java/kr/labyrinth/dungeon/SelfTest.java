@@ -478,6 +478,7 @@ final class SelfTest {
         }
         fs.exploration().revealAll();
         count("map_lines", ExplorationMap.render(fs, null).size());
+        count("map_item_rows", ExplorationMap.colors(fs, null).length);
     }
 
     /**

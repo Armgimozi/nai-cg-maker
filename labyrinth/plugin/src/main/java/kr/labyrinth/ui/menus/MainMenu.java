@@ -126,8 +126,8 @@ public final class MainMenu extends LabMenu {
                 ctx -> { click(ctx.player()); new CodexMenu(services).open(ctx.player()); });
         if (services.dungeon().currentInstance(p).isPresent()) {
             set(51, Button.icon(Material.FILLED_MAP, "<#7fd8ff><b>탐험 지도</b>",
-                    List.of("<gray>지금 층에서 파티가 지나온 길을", "<gray>채팅에 그립니다. <dark_gray>(/미궁 지도)", "",
-                            "<dark_gray>지도를 들고 우클릭해도 됩니다.", "", "<#ffd36b>클릭: 지도 보기")),
+                    List.of("<gray>손에 드는 탐험 지도를 받고,", "<gray>지나온 길을 채팅에도 그립니다. <dark_gray>(/미궁 지도)", "",
+                            "<dark_gray>지도를 손에 들면 층이 보입니다.", "", "<#ffd36b>클릭: 지도 받기 · 보기")),
                     ctx -> { click(ctx.player()); ctx.player().closeInventory(); services.dungeon().showMap(ctx.player()); });
         } else {
             boolean village = kr.labyrinth.village.VillageService.present();

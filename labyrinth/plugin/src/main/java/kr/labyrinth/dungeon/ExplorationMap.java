@@ -16,6 +16,7 @@ import org.bukkit.entity.Player;
 
 /**
  * 탐험 지도 (/미궁 지도 · 메뉴 버튼 · 지도 들고 우클릭) — 채팅에 층 격자를 그린다 (GDD §5.4).
+ * 0.3.7: 같은 격자를 손에 드는 지도 아이템에도 그린다 ({@link ExplorationMapItem}).
  * 같은 글자(█)만 써서 줄이 어긋나지 않는다. 셀 = 짝수 칸, 그 사이 통로 = 홀수 칸, 맨 아래 줄 = 보스 문.
  * 지나간 셀만 보이고(안개), 지나간 셀에서 이어지는 아직 안 가 본 길은 어둡게 암시만 한다. 현재 위치·파티원·방 종류 색·찾은 보스 문·
  * 연 비밀 통로. 마우스를 올리면 설명. 시작방에서 보스 쪽을 알려 주지는 않는다.
@@ -46,8 +47,14 @@ public final class ExplorationMap {
         };
     }
 
-    /** 지도 줄 목록 (머리말 + 격자 + 범례). viewer 가 null 이면 현재 위치 표시 없음 (자가 진단). */
-    public static List<Component> render(FloorState fs, Player viewer) {
+    /** 격자 한 칸: 색 + 마우스를 올렸을 때 글 (null = 없음). 채팅 지도와 지도 아이템이 같은 격자를 쓴다. */
+    record Glyph(TextColor color, String hover) {}
+
+    /**
+     * 층 격자 — [줄][칸], 줄 2n (맨 아래 = 보스 문 줄), 칸 2n−1. 셀 = 짝수 칸, 그 사이 통로 = 홀수 칸.
+     * viewer 가 null 이면 현재 위치 표시 없음 (자가 진단).
+     */
+    static Glyph[][] grid(FloorState fs, Player viewer) {
         MazePlan plan = fs.layout().plan();
         Exploration ex = fs.exploration();
         int n = plan.size();
@@ -62,34 +69,53 @@ public final class ExplorationMap {
         }
         Map<Integer, Boolean> secretOpen = new HashMap<>();
         for (var s : fs.layout().secretRooms()) secretOpen.put(s.cell(), fs.secrets().isOpen(s.index()));
+        Glyph[][] g = new Glyph[2 * n][2 * n - 1];
+        for (int r = 0; r < 2 * n; r++) {
+            for (int q = 0; q < 2 * n - 1; q++) {
+                int x = q / 2, z = r / 2;
+                int c = plan.index(x, Math.min(n - 1, z));
+                if (r == 2 * n - 1) {
+                    // 보스 문 줄 (마지막 줄 셀 아래)
+                    g[r][q] = q % 2 == 0 && c == plan.bossAttach() && ex.bossDoorFound()
+                            ? glyph(BOSS_DOOR, "<#ff6b6b><b>수호자의 문</b>\n<gray>이 아래로 보스방이 이어진다") : glyph(FOG, null);
+                } else if (r % 2 == 0 && q % 2 == 0) {
+                    g[r][q] = cell(fs, plan, ex, c, me, allies.get(c), roomByCell.get(c), secretOpen.get(c));
+                } else if (r % 2 == 0) {
+                    g[r][q] = link(plan, ex, c, MazePlan.EAST);
+                } else if (q % 2 == 0) {
+                    g[r][q] = link(plan, ex, c, MazePlan.SOUTH);
+                } else {
+                    g[r][q] = glyph(FOG, null);
+                }
+            }
+        }
+        return g;
+    }
 
+    /** 격자 색만 (지도 아이템 · 자가 진단): [줄][칸] = 0xRRGGBB. */
+    public static int[][] colors(FloorState fs, Player viewer) {
+        Glyph[][] g = grid(fs, viewer);
+        int[][] out = new int[g.length][];
+        for (int r = 0; r < g.length; r++) {
+            out[r] = new int[g[r].length];
+            for (int q = 0; q < g[r].length; q++) out[r][q] = g[r][q].color().value();
+        }
+        return out;
+    }
+
+    /** 지도 줄 목록 (머리말 + 격자 + 범례). viewer 가 null 이면 현재 위치 표시 없음 (자가 진단). */
+    public static List<Component> render(FloorState fs, Player viewer) {
+        MazePlan plan = fs.layout().plan();
+        Exploration ex = fs.exploration();
         List<Component> out = new ArrayList<>();
         int used = plan.usedCount();
         out.add(Text.mm("<gradient:#c9a2ff:#7fd8ff><b>" + Text.escape(fs.def().subtitle() == null ? "지하 " + fs.floor() + "층" : fs.def().subtitle())
                 + " 탐험 지도</b></gradient> <gray>· 지나간 길 <white>" + ex.visitedCount() + "</white>/" + used + "칸"
                 + (ex.secretsFound() > 0 ? " · <#ffb347>비밀 통로 " + ex.secretsFound() + "</#ffb347>" : "")
                 + (ex.bossDoorFound() ? " · <#ff6b6b>수호자의 문 발견</#ff6b6b>" : "")));
-        for (int r = 0; r < 2 * n; r++) {
+        for (Glyph[] line : grid(fs, viewer)) {
             TextComponent.Builder row = Component.text();
-            for (int q = 0; q < 2 * n - 1; q++) {
-                int x = q / 2, z = r / 2;
-                int c = plan.index(x, Math.min(n - 1, z));
-                if (r == 2 * n - 1) {
-                    // 보스 문 줄 (마지막 줄 셀 아래)
-                    if (q % 2 == 0 && c == plan.bossAttach() && ex.bossDoorFound()) row.append(glyph(BOSS_DOOR, "<#ff6b6b><b>수호자의 문</b>\n<gray>이 아래로 보스방이 이어진다"));
-                    else row.append(glyph(FOG, null));
-                    continue;
-                }
-                if (r % 2 == 0 && q % 2 == 0) {
-                    row.append(cell(fs, plan, ex, c, me, allies.get(c), roomByCell.get(c), secretOpen.get(c)));
-                } else if (r % 2 == 0) {
-                    row.append(link(plan, ex, c, MazePlan.EAST));
-                } else if (q % 2 == 0) {
-                    row.append(link(plan, ex, c, MazePlan.SOUTH));
-                } else {
-                    row.append(glyph(FOG, null));
-                }
-            }
+            for (Glyph gl : line) row.append(component(gl));
             out.add(row.build());
         }
         out.add(Text.mm("<white>█</white><gray>나 <#5ef2ff>█</#5ef2ff>동료 <#4f7dff>█</#4f7dff>시작 <#ff6b6b>█</#ff6b6b>전투 "
@@ -104,7 +130,7 @@ public final class ExplorationMap {
         return fs.layout().cellAt(fs.tileX(p.getLocation()), fs.tileZ(p.getLocation()));
     }
 
-    private static Component cell(FloorState fs, MazePlan plan, Exploration ex, int c, int me, List<String> allies, Room room,
+    private static Glyph cell(FloorState fs, MazePlan plan, Exploration ex, int c, int me, List<String> allies, Room room,
                                   Boolean secretOpen) {
         if (!plan.used(c)) return glyph(FOG, null);
         if (!ex.visited(c)) {
@@ -136,7 +162,7 @@ public final class ExplorationMap {
         return glyph(col, hover.toString());
     }
 
-    private static Component link(MazePlan plan, Exploration ex, int c, int dir) {
+    private static Glyph link(MazePlan plan, Exploration ex, int c, int dir) {
         int o = plan.step(c, dir);
         if (o < 0 || !plan.open(c, dir)) return glyph(FOG, null);
         boolean a = ex.visited(c), b = ex.visited(o);
@@ -145,9 +171,13 @@ public final class ExplorationMap {
         return glyph(FOG, null);
     }
 
-    private static Component glyph(TextColor color, String hoverMm) {
-        Component g = Component.text(GLYPH, color);
-        return hoverMm == null ? g : g.hoverEvent(HoverEvent.showText(Text.mm(hoverMm)));
+    private static Glyph glyph(TextColor color, String hoverMm) {
+        return new Glyph(color, hoverMm);
+    }
+
+    private static Component component(Glyph gl) {
+        Component g = Component.text(GLYPH, gl.color());
+        return gl.hover() == null ? g : g.hoverEvent(HoverEvent.showText(Text.mm(gl.hover())));
     }
 
     /** 채팅으로 보낸다. */
