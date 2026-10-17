@@ -10,6 +10,7 @@ import kr.labyrinth.homes.play.PlayWiring;
 /**
  * 집 구역 모듈 (0.3.7 — 마을 남쪽 "등불 골목" 10채 + 주 월드 지형 잠금). 모듈 차례: Village → Mine → Homes (마을 모듈이 먼저 구역 기록을 읽어
  * {@link HomesDistrict#publish} 로 남겨 둔다). 소유: 묶음 C (묶음 B 는 {@link HomesService} 안, 묶음 C 는 {@link PlayWiring} 안을 채운다).
+ * {@code /labadmin reload} 는 {@link #reload}: 설정을 다시 읽고 (켬↔끔이면 리스너를 붙이거나 뗌) content/housing.yml 을 다시 읽는다.
  * <ol>
  *   <li>config {@code homes:} → {@link HomesConfig}</li>
  *   <li>{@link HomesService} (묶음 B) → {@code services.setHomes}</li>
@@ -37,7 +38,7 @@ public final class HomesModule implements Module {
         services.setHomes(service);
         if (!commandsRegistered) {
             new HomesAdminCommands(service).register(services.commands());
-            new HomesCommands(service).register(services.commands());
+            new HomesCommands(() -> play).register(services.commands()); // 실행할 때마다 지금 켜진 놀이 연결을 본다
             commandsRegistered = true;
         }
         play = new PlayWiring(services, service);
@@ -63,6 +64,7 @@ public final class HomesModule implements Module {
         HomesConfig c = HomesConfig.fromRoot(services.plugin().getConfig());
         boolean was = service.config().enabled();
         service.reconfigure(c);
+        if (c.enabled() && was) play.reloadCatalog();
         if (c.enabled() && !was) {
             service.enableRules(services.plugin());
             play.enable();
