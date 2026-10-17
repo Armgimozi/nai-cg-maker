@@ -231,7 +231,7 @@ public final class PlayUi implements HomesUi {
 
     int vacantCount() {
         int n = 0;
-        for (PlotGeom g : service.plots()) if (!g.custom() && service.ownerOf(g) == null) n++;
+        for (PlotGeom g : service.plots()) if (!g.custom() && service.ownerOf(g) == null && !service.busy(g)) n++;
         return n;
     }
 

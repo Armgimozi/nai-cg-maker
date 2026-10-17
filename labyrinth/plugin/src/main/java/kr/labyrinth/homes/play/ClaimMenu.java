@@ -7,6 +7,7 @@ import kr.labyrinth.core.Text;
 import kr.labyrinth.homes.PlotGeom;
 import kr.labyrinth.homes.PlotInfo;
 import kr.labyrinth.homes.PlotRole;
+import kr.labyrinth.homes.rules.ClaimRules;
 import kr.labyrinth.ui.Button;
 import kr.labyrinth.ui.UiTheme;
 import org.bukkit.Material;
@@ -26,6 +27,7 @@ final class ClaimMenu extends HomeMenu {
         var s = homes();
         UUID me = p.getUniqueId();
         PlotGeom myHome = s.homeOf(me);
+        long wait = myHome == null ? s.reclaimCooldownLeft(me) : 0; // 스스로 비운 뒤 다시 받기까지 (R13)
         // 길·골목·마당
         ItemStack lane = Button.icon(Material.DIRT_PATH, "<gray>골목", List.of("<dark_gray>북쪽으로 가면 마을 광장입니다."));
         deco(ClaimMap.ALLEY_COL, Button.icon(Material.LANTERN, "<#ffd36b>↑ 마을 광장", List.of("<gray>골목을 따라 북쪽으로 올라갑니다.")));
@@ -49,14 +51,14 @@ final class ClaimMenu extends HomeMenu {
                 slot = ClaimMap.EXTRA_SLOTS[extra++];
             }
             PlotInfo info = s.info(g);
-            if (info.vacant()) vacant++;
-            drawPlot(p, slot, g, info, myHome);
+            if (info.vacant() && !s.busy(g)) vacant++;
+            drawPlot(p, slot, g, info, myHome, wait);
         }
         set(45, UiTheme.back(), ctx -> {
             click(ctx.player());
             ui.openEstate(ctx.player());
         });
-        if (myHome == null && vacant > 0) {
+        if (myHome == null && vacant > 0 && wait <= 0) {
             set(ClaimMap.WELL_ROW * 9 + ClaimMap.ALLEY_COL, UiTheme.glint(Button.icon(Material.COMPASS, "<#7fe07f><b>아무 데나</b>",
                     List.of("<gray>빈 집 하나를 골라 줍니다.", "", "<#ffd36b>클릭: 받기")), true), ctx -> {
                 click(ctx.player());
@@ -64,24 +66,36 @@ final class ClaimMenu extends HomeMenu {
             });
         } else {
             deco(ClaimMap.WELL_ROW * 9 + ClaimMap.ALLEY_COL, Button.icon(Material.DIRT_PATH, "<gray>우물길",
-                    List.of(myHome != null ? "<dark_gray>내 집: " + Text.escape(myHome.label()) : "<dark_gray>빈 집이 없습니다.")));
+                    List.of(myHome != null ? "<dark_gray>내 집: " + Text.escape(myHome.label())
+                            : wait > 0 ? "<dark_gray>다시 받기는 " + ClaimRules.duration(wait) + " 뒤에 됩니다." : "<dark_gray>빈 집이 없습니다.")));
         }
         set(53, UiTheme.close(), ctx -> ctx.player().closeInventory());
     }
 
-    private void drawPlot(Player p, int slot, PlotGeom g, PlotInfo info, PlotGeom myHome) {
+    private void drawPlot(Player p, int slot, PlotGeom g, PlotInfo info, PlotGeom myHome, long wait) {
         var s = homes();
         String where = "<dark_gray>바닥 높이 " + g.floorY() + " · 대문 " + dir(g.front());
+        if (info.vacant() && s.busy(g)) {
+            set(slot, Button.icon(Material.GRAY_CONCRETE, "<gray><b>" + Text.escape(g.label()) + "</b> · 정리 중",
+                    List.of("<gray>방금 비운 집입니다.", "<gray>조금 뒤 받을 수 있습니다.")), ctx -> deny(ctx.player()));
+            return;
+        }
         if (info.vacant()) {
             List<String> lore = new ArrayList<>();
             lore.add("<gray>빈 집 · " + g.width() + "×" + g.depth());
             lore.add(where);
             lore.add("");
-            lore.add(myHome == null ? "<#ffd36b>클릭: 받기" : "<dark_gray>이미 집이 있습니다 (" + Text.escape(myHome.label()) + ")");
+            lore.add(myHome != null ? "<dark_gray>이미 집이 있습니다 (" + Text.escape(myHome.label()) + ")"
+                    : wait > 0 ? "<dark_gray>다시 받기는 " + ClaimRules.duration(wait) + " 뒤에 됩니다." : "<#ffd36b>클릭: 받기");
             set(slot, Button.icon(Material.LIME_CONCRETE, "<#7fe07f><b>" + Text.escape(g.label()) + "</b> <gray>· 빈 집", lore), ctx -> {
                 if (myHome != null) {
                     deny(ctx.player());
                     Text.error(ctx.player(), "이미 집이 있습니다 (" + Text.escape(myHome.label()) + "). 한 사람 한 집입니다.");
+                    return;
+                }
+                if (wait > 0) {
+                    deny(ctx.player());
+                    Text.error(ctx.player(), "다시 받기는 " + ClaimRules.duration(wait) + " 뒤에 됩니다.");
                     return;
                 }
                 click(ctx.player());

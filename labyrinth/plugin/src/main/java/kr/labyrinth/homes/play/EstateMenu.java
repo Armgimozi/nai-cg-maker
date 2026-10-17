@@ -6,6 +6,7 @@ import kr.labyrinth.core.Text;
 import kr.labyrinth.homes.HomesConfig;
 import kr.labyrinth.homes.PlotGeom;
 import kr.labyrinth.homes.PlotInfo;
+import kr.labyrinth.homes.rules.ClaimRules;
 import kr.labyrinth.ui.Button;
 import kr.labyrinth.ui.UiTheme;
 import org.bukkit.Material;
@@ -30,7 +31,11 @@ final class EstateMenu extends HomeMenu {
         about.add("<gray>한 사람 한 채" + (c.claimCost() > 0 ? " · " + Text.num(c.claimCost()) + "G" : ", 값은 받지 않습니다."));
         about.add("<gray>집 안에서는 짓고 부수고 상자를 씁니다.");
         about.add("<gray>집 안에 있으면 HP·MP 가 천천히 찹니다.");
-        if (s.isTerrainLocked(p.getWorld())) about.add("<gray>집 밖 땅은 부수거나 지을 수 없습니다.");
+        if (s.isTerrainLocked(p.getWorld())) {
+            about.add("<gray>집 밖 땅은 부수거나 지을 수 없습니다.");
+            int grace = s.graceDaysLeft();
+            if (grace > 0) about.add("<#ffd36b>이사 기간 " + grace + "일 남음 <dark_gray>— 집 밖은 판자·유리 같은 것만 부술 수 있습니다.");
+        }
         deco(4, Button.icon(Material.LANTERN, "<#ffd36b><b>등불 골목</b>", about));
 
         PlotGeom home = s.homeOf(p.getUniqueId());
@@ -80,9 +85,11 @@ final class EstateMenu extends HomeMenu {
             deco(13, Button.icon(Material.BARRIER, "<#ff6b6b>집터를 준비하는 중입니다", List.of("<gray>조금 뒤 다시 와 주세요.")));
             return;
         }
+        long wait = s.reclaimCooldownLeft(p.getUniqueId()); // 스스로 비운 뒤 다시 받기까지 (R13)
         set(13, UiTheme.glint(Button.icon(Material.LIME_CONCRETE, "<#7fe07f><b>집 받기</b>",
                 List.of("<gray>빈 집 <white>" + vacant + "</white> / " + plots.size(), "<gray>지도에서 고르거나 아무 데나 받습니다.", "",
-                        vacant > 0 ? "<#ffd36b>클릭: 고르기" : "<#ff6b6b>빈 집이 없습니다")), vacant > 0), ctx -> {
+                        wait > 0 ? "<dark_gray>다시 받기는 " + ClaimRules.duration(wait) + " 뒤에 됩니다."
+                                : vacant > 0 ? "<#ffd36b>클릭: 고르기" : "<#ff6b6b>빈 집이 없습니다")), vacant > 0 && wait <= 0), ctx -> {
                     click(ctx.player());
                     ui.openClaim(ctx.player());
                 });
