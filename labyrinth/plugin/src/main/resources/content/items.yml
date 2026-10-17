@@ -8984,7 +8984,7 @@ items:
     sources: [boss]
     model: {shape: icon}
     texture: {style: heart, palette: ["#020306", "#08141a", "#123842", "#2fe0d0", "#b01a3a"]}
-    lore: "심연의 심장 넬카르에서 떨어져 나온 조각. 아직도 아주 느리게 박동한다. 넬카르의 장비와 신화 무기를 끝까지 강화할 때 든다."
+    lore: "심연의 심장 넬카르에서 떨어져 나온 조각. 아직도 아주 느리게 박동한다. 넬카르가 주는 장비를 끝까지 강화할 때 든다."
   dim_essence:
     name: "희미한 미궁 정수"
     type: material

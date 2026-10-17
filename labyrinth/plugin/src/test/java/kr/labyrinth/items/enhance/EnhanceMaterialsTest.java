@@ -128,13 +128,15 @@ class EnhanceMaterialsTest {
                 }
             }
             // 보스 고유 장비(·보스가 주는 칭호 보상) = +9·+10 에만 그 층 보스의 핵. 나머지 장비는 보스 핵을 쓰지 않는다.
-            // CR37: 신화 무기는 대장간만(새 6)이어도 보스 장비 규칙 (gen_enhance homes_of 'mythic' 과 같음)
-            boolean bossGear = d.sources().contains("boss") || d.sources().contains("reward") || (d.isWeapon() && d.rarity() == Rarity.MYTHIC);
+            // CR37: 신화 무기는 대장간만(새 6)이어도 보스 장비 규칙 (gen_enhance homes_of 'mythic' 과 같음) —
+            // FXC37: 다만 대장간만인 신화는 핵 없이 정예 재료를 +10 까지 (넬카르를 못 잡아도 +10, gen_enhance MYTHIC_CRAFT_R)
+            boolean craftMythic = d.isWeapon() && d.rarity() == Rarity.MYTHIC && !d.sources().contains("boss");
+            boolean bossGear = d.sources().contains("boss") || d.sources().contains("reward") || craftMythic;
             String core = coreOf(d.floor());
             for (int tg = 1; tg <= 10; tg++) {
                 Set<String> at = asMap(t.costs(d.id(), tg)).keySet();
                 boolean has = at.stream().anyMatch(cores::contains);
-                if (bossGear && tg >= 9) assertTrue(at.contains(core), d.id() + " +" + tg + " 에 " + d.floor() + "층 보스 핵 " + core);
+                if (bossGear && !craftMythic && tg >= 9) assertTrue(at.contains(core), d.id() + " +" + tg + " 에 " + d.floor() + "층 보스 핵 " + core);
                 else assertFalse(has, d.id() + " +" + tg + " 에 보스 핵 " + at);
             }
             // mid 까지는 일반 재료만 (정수·정예 재료는 high 의 귀한 재료 자리에만) — 낮은 장비의 mid 가 보스 장비보다 귀해지지 않게
@@ -143,10 +145,10 @@ class EnhanceMaterialsTest {
                     assertEquals(0, grade(c.item(), d.floor()), d.id() + " +" + tg + " 의 " + c.item() + " 는 일반 재료가 아니다");
                 }
             }
-            // 보스 장비 +7·+8 의 귀한 재료 = 그 층 정예 재료 (rarity rare, 핵·정수 아님) — 정수로 내려가지 않는다
+            // 보스 장비 +7·+8 의 귀한 재료 = 그 층 정예 재료 (rarity rare, 핵·정수 아님) — 정수로 내려가지 않는다 (대장간만인 신화는 +10 까지)
             if (bossGear) {
                 bossCount++;
-                for (int tg = 7; tg <= 8; tg++) {
+                for (int tg = 7; tg <= (craftMythic ? 10 : 8); tg++) {
                     String rare = t.costs(d.id(), tg).get(2).item();
                     assertEquals(2, grade(rare, d.floor()), d.id() + " +" + tg + " 의 귀한 재료 " + rare + " 는 " + d.floor() + "층 정예 재료가 아니다");
                     assertEquals(Rarity.RARE, content.item(rare).rarity(), d.id() + " +" + tg + " " + rare);
@@ -364,7 +366,7 @@ class EnhanceMaterialsTest {
         List<String> homes = new ArrayList<>();
         for (String t : roots.keySet()) if (expand(t, new HashSet<>()).contains(d.id())) homes.add(t);
         if (homes.isEmpty() && d.sources().contains("reward")) homes.add(content.bossOfFloor(d.floor()).drops());
-        // CR37 새 신화 6 (대장간만) = 그 단계 층 보스(넬카르) 표 (gen_enhance 와 같음)
+        // CR37 새 신화 6 (대장간만) = 그 단계 층 보스(넬카르) 표 — P·S·정예 재료만, 핵은 없음 (gen_enhance 와 같음)
         if (homes.isEmpty() && d.isWeapon() && d.rarity() == Rarity.MYTHIC) homes.add(content.bossOfFloor(d.floor()).drops());
         if (homes.isEmpty() && d.sources().contains("starter")) {
             for (var e : floorRoots(1).entrySet()) if (e.getValue().equals("common")) homes.add(e.getKey());

@@ -5,8 +5,10 @@ MYTH037 (BP036 뒤, 맨 마지막). 따로 돌리지 않는다: `python3 tools/g
 
 입력 = tools/data/037/mythic_037.json (최종 명세 final_spec.json 사본, 손으로 고치지 않는다):
   items    새 신화 6 블록 (items.yml 꼴) — 짝 신화 블록 바로 뒤에 넣는다
-  loot     8·9·10층 보스 · 특별 시련 · 금고·미믹 표에 넣을 줄
-             {item: 옛 신화, chance}          신화 드롭 (넬카르 표만, 모든 난이도) — 10층의 옛 신화 6 줄(one_of 0.04)을 한 자루마다 따로 0.2 줄 6개로
+  loot     8·9·10층 보스 · 특별 시련 · 금고·미믹 표에 넣을 줄 (replace · prepend · append)
+             {item: 옛 신화, chance}          신화 드롭 (넬카르 표만, 모든 난이도) — 10층의 옛 신화 6 줄(one_of 0.04)을 한 자루마다 따로 0.2 줄 6개로.
+                                              replace.top 이면 바꾼 줄 + prepend 줄을 표 맨 위에 둔다 (도감 보스 쪽은 드롭 앞 6줄만 보인다 —
+                                              항목은 저마다 따로 굴리므로 순서는 확률과 상관없다). strip() 은 옛 줄을 replace.after 줄 바로 뒤로 되돌린다
              {blueprint_of: [레시피 id …], chance}  신화 도안 (그 레시피 중 하나 — 빌드 편향 own_build_bias 그대로).
                                               새 6 은 한 줄 (주 능력치가 모두 달라 어느 빌드든 몫이 같다), 옛 6 은 한 장씩
   recipes  신화 12 레시피 (recipes.yml 끝 '신화 무기' 칸, 대장간 · 도안이 있어야 만든다)
@@ -44,7 +46,7 @@ TEXT_SUBS = {
           "#                몬스터·상자 · 시련방 · 특별 시련 · 금고·미믹 · 정예 중 하나 (몬스터·상자 = drop+chest 한 종류)",
           "#                신화 무기(0.3.7, 직업마다 둘)만 따로 — 옛 6 = boss(넬카르) + craft(신화 도안을 배운 대장간) · 새 6 = craft 만"]),
         (['    lore: "심연의 심장 넬카르에서 떨어져 나온 조각. 아직도 아주 느리게 박동한다. 대장장이 두르간에게 가져가면 넬카르가 지키던 전설 무기를 벼릴 수 있다."'],
-         ['    lore: "심연의 심장 넬카르에서 떨어져 나온 조각. 아직도 아주 느리게 박동한다. 넬카르의 장비와 신화 무기를 끝까지 강화할 때 든다."']),
+         ['    lore: "심연의 심장 넬카르에서 떨어져 나온 조각. 아직도 아주 느리게 박동한다. 넬카르가 주는 장비를 끝까지 강화할 때 든다."']),
     ],
     "loot": [
         (["#  영웅·전설·신화 무기는 획득처 종류 1개 (보스 · 대장간 · 몬스터·상자 · 시련방 · 특별 시련 · 금고·미믹 · 정예)"],
@@ -66,8 +68,10 @@ TEXT_SUBS = {
 }
 
 
-TEXT_SUBS_PREV = {  # HEAD 99c35149 (CR37 전) 이 쓴 글 줄 — strip() 만 되돌린다
+TEXT_SUBS_PREV = {  # 앞 판이 쓴 글 줄 — strip() 만 되돌린다 (HEAD 99c35149 = CR37 전 · ad2ca51d = CR37)
     "items": [
+        (['    lore: "심연의 심장 넬카르에서 떨어져 나온 조각. 아직도 아주 느리게 박동한다. 대장장이 두르간에게 가져가면 넬카르가 지키던 전설 무기를 벼릴 수 있다."'],
+         ['    lore: "심연의 심장 넬카르에서 떨어져 나온 조각. 아직도 아주 느리게 박동한다. 넬카르의 장비와 신화 무기를 끝까지 강화할 때 든다."']),
         (["#                영웅·전설·신화 무기는 획득처 종류 1개 — 보스 고유 = 그 보스만 (제작법 없음) · 대장간 = 대장간만 (드롭 없음) ·",
           "#                몬스터·상자 · 시련방 · 특별 시련 · 금고·미믹 · 정예 중 하나 (몬스터·상자 = drop+chest 한 종류)"],
          ["#                영웅·전설 무기는 획득처 종류 1개 — 보스 고유 = 그 보스만 (제작법 없음) · 대장간 = 대장간만 (드롭 없음) ·",
@@ -205,13 +209,21 @@ def strip(G, texts, data=None):
         a, b = tb[tid]
         _, rows = _entry_rows(lines, a, b)
         rep = spec.get("replace")
-        # 명세가 바뀌어도 걷힌다: 이 표의 신화 줄(신화 item · 신화 one_of · blueprint_of)을 모두 걷고, 첫 신화 줄은 0.3.6.1 줄(rep.from)로
+        # 명세가 바뀌어도 걷힌다: 이 표의 신화 줄(신화 item · 신화 one_of · blueprint_of)을 모두 걷고, 0.3.6.1 줄(rep.from)을 되돌린다 —
+        # rep.after 가 있으면 그 줄 바로 뒤 (0.3.6.1 자리), 없으면 첫 신화 줄 자리
         hits = [j for j in rows if _is_mythic_row(parse_row(lines[j]), myth)]
+        anchor = rep and rep.get("after") is not None
         for j in reversed(hits):
-            if rep and j == hits[0]:
+            if rep and not anchor and j == hits[0]:
                 lines[j] = ROW + G.flow(rep["from"])
             else:
                 del lines[j]
+        if anchor and hits:
+            _, rows = _entry_rows(lines, a, b - len(hits))
+            at = [j for j in rows if parse_row(lines[j]) == rep["after"]]
+            if len(at) != 1:
+                raise SystemExit(f"[037] strip loot.{tid}: 기준 줄 {rep['after']} 이 {len(at)}개")
+            lines[at[0] + 1:at[0] + 1] = [ROW + G.flow(rep["from"])]
     out["loot"] = "\n".join(lines)
     # recipes: 신화 칸 (머리 줄부터 다음 머리 줄 전까지)
     lines = out["recipes"].split("\n")
@@ -268,15 +280,28 @@ def apply(G, out, mobs, bosses, floors, titles, config, changes, data=None):
         if k is None:
             raise SystemExit(f"[037] loot.{tid}: entries 없음")
         rep = spec.get("replace")
+        top = []
         if rep:
             hit = [j for j in rows if parse_row(lines[j]) == rep["from"]]
             if len(hit) != 1:
                 raise SystemExit(f"[037] loot.{tid}: 바꿀 줄 {rep['from']} 이 {len(hit)}개")
-            lines[hit[0]] = row_text(G, {"entry": rep["to"], "note": rep.get("note")})
+            if rep.get("after") is not None and (hit[0] == 0 or parse_row(lines[hit[0] - 1]) != rep["after"]):
+                raise SystemExit(f"[037] loot.{tid}: 바꿀 줄 앞이 기준 줄 {rep['after']} 이 아님 (strip() 이 되돌릴 자리)")
+            new_row = row_text(G, {"entry": rep["to"], "note": rep.get("note")})
+            if rep.get("top"):
+                del lines[hit[0]]
+                top = [new_row]
+            else:
+                lines[hit[0]] = new_row
+        top += [row_text(G, r) for r in spec.get("prepend") or []]
+        if top and not rep:
+            raise SystemExit(f"[037] loot.{tid}: prepend 는 replace.top 과 함께만")
+        k, rows = _entry_rows(lines, a, b)
         end = (rows[-1] + 1) if rows else k + 1
         if lines[k].strip() == "entries: []":
             lines[k] = "    entries:"
         lines[end:end] = [row_text(G, r) for r in spec.get("append") or []]
+        lines[k + 1:k + 1] = top
         changes.append(f"(037) loot.{tid}")
     out["loot"] = "\n".join(lines)
     # ── recipes: 끝에 신화 칸 ──
@@ -352,12 +377,18 @@ def verify(texts, data=None):
             bad.append(f"recipes.{wid} 가 명세와 다름: {recipes.get(wid)}")
     for tid, spec in data["loot"].items():
         ents = (tables.get(tid) or {}).get("entries") or []
-        want = [r["entry"] for r in spec.get("append") or []] + ([spec["replace"]["to"]] if spec.get("replace") else [])
+        rep = spec.get("replace")
+        head = ([rep["to"]] if rep and rep.get("top") else []) + [r["entry"] for r in spec.get("prepend") or []]
+        want = [r["entry"] for r in (spec.get("prepend") or []) + (spec.get("append") or [])] + ([rep["to"]] if rep else [])
         for e in want:
             if ents.count(e) != 1:
                 bad.append(f"loot.{tid}: {e} 가 {ents.count(e)}번")
-        if spec.get("replace") and spec["replace"]["from"] in ents:
-            bad.append(f"loot.{tid}: 옛 줄 {spec['replace']['from']} 이 남음")
+        if rep and rep["from"] in ents:
+            bad.append(f"loot.{tid}: 옛 줄 {rep['from']} 이 남음")
+        if head and ents[:len(head)] != head:
+            bad.append(f"loot.{tid}: 맨 위 {len(head)}줄이 명세 차례(replace.to + prepend)가 아님")
+        if rep and rep.get("after") is not None and rep["after"] not in ents:
+            bad.append(f"loot.{tid}: 기준 줄 {rep['after']} 없음 (strip() 이 되돌릴 자리)")
     # 신화 아이템은 넬카르 표에서만 (옛 6 만, 새 6 은 드롭 줄이 없다) · 도안 줄은 신화 레시피만 · 모든 난이도 (min_difficulty 없음)
     boss_tables = {"floor10_boss"}
     for tid, t in tables.items():

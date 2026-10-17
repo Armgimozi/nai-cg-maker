@@ -638,7 +638,7 @@ public final class CodexMenu extends LabMenu {
     }
 
     /**
-     * 0.3.7 신화 레시피 id → 도감 한 줄 "신화 도안 보스 테오라·넬카르 · 특별 시련 · 금고·미믹" (loot.yml blueprint_of 출처,
+     * 0.3.7 신화 레시피 id → 도감 한 줄 "신화 도안 보스 오르벨·테오라·넬카르 · 특별 시련 · 금고·미믹" (loot.yml blueprint_of 출처,
      * {@link kr.labyrinth.items.blueprint.BlueprintRules#blueprintOfSources}). 신화 도안은 일반 도안 뽑기·상인에 없어서
      * "✘ 도안을 아직 못 배웠다" 만으로는 어디서 얻는지 알 수 없다. 장비 획득처 글과 같이 층 숫자 없이 보스 이름·종류만 (낮은 층 보스부터).
      */

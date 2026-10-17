@@ -24,7 +24,7 @@
 #   → 어느 장비든 mid 까지는 일반 재료 2종, 정수·정예 재료는 high 의 R 에만 — 낮은 장비의 mid 가 보스 장비보다 귀해지지 않는다.
 #   ③ 보스 장비 (보스 고유 · 보스가 주는 칭호 보상) — 제작법이 있으면 ①, 없으면 ② 에 더해 (신화 무기는 레시피가 있어도 ②+③ — 0.3.7):
 #      +7·+8 의 R 은 정예 재료만 — 레시피의 정예 재료, 없으면 그 보스 드롭의 정예 재료 (보스 드롭마다 1회 0.5개). 정수로 내려가지 않는다.
-#      +9·+10 은 R 대신 그 보스의 핵.
+#      +9·+10 은 R 대신 그 보스의 핵. 대장간만인 신화(보스가 없음)는 핵 대신 정예 재료를 +10 까지 [1, 2, 2, 3] — 넬카르를 못 잡아도 +10 까지 (FXC37).
 #      그리고 단계마다 같은 층·같은 분류(무기 / 방패 / 흉갑·하의 / 투구·신발) 일반 장비 중 가장 비싼 것보다 싸지 않게
 #      (재료 개수 ÷ 그 재료 1회 공급량으로 환산) P·S 개수를 가장 적게 더한다 — 아래 "검사" 참고.
 #   ④ 같은 층에 재료 구성(개수까지)이 똑같은 장비가 생기면, 원칙에서 덜 벗어나는 것부터 차례로:
@@ -80,7 +80,7 @@
 #    7층 | 0.5회 | 2.3회 (상급 강화석) | 정예 재료 23회(조율 소리굽쇠) · 정수 15회(찬란한 미궁 정수) · 보스 장비 24회(양극의 심장) / 강화석 13회
 #    8층 | 0.4회 | 2.5회 (최상급 강화석) | 정예 재료 20회(금서의 봉인) · 정수 14회(찬란한 미궁 정수) · 보스 장비 24회(사서의 깃펜) / 강화석 11회
 #    9층 | 0.4회 | 2.0회 (최상급 강화석) | 정예 재료 15회(조속 진자) · 정수 13회(태고의 미궁 정수) · 보스 장비 24회(태엽 심장) / 강화석 11회
-#   10층 | 0.5회 | 2.4회 (최상급 강화석) | 정예 재료 15회(문지기의 룬) · 정수 13회(태고의 미궁 정수) · 보스 장비 24회(심연 심장 파편) / 강화석 11회
+#   10층 | 0.5회 | 2.4회 (최상급 강화석) | 정예 재료 15~21회(문지기의 룬) · 정수 13회(태고의 미궁 정수) · 보스 장비 24회(심연 심장 파편) / 강화석 11회
 #   → +5 는 장비 하나가 0.4~0.6회, 대표 한 벌이 2.0~3.6회 (강화석이 병목 — mid 까지는 일반 재료 2종이라 제작과 같이 모인다).
 #   → +10 은 장기 목표: 일반 장비 13~24회, 보스 장비는 핵 때문에 그 보스 24회 (보호 주문서를 쓰면 크게 준다).
 #   1~3층 하급 강화석은 떠돌이 상인 핀에게서 살 수 있어 병목이 아니다.
@@ -1471,22 +1471,22 @@ items:
     low:  {sculk_tendril: [6, 6, 7]}
     mid:  {sculk_tendril: [7, 7, 8], orichalcum_ingot: [2, 2, 3]}
     high: {sculk_tendril: [8, 9, 11, 12], orichalcum_ingot: [3, 3, 4, 5], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
-  hightide_scythe:  # 만조의 큰낫 · 근접 무기 · 대장간 → 그 층 보스(넬카르) 드롭 (신화 — 제작만이어도 보스 장비 규칙) (P +4 — 일반 장비 이상 · 겹침 피함)
-    low:  {abyss_scale: [6, 6, 7]}
-    mid:  {abyss_scale: [7, 7, 8], orichalcum_ingot: [2, 2, 3]}
-    high: {abyss_scale: [8, 9, 10, 11], orichalcum_ingot: [3, 3, 4, 5], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
-  mountainheart_maul:  # 태산의 대망치 · 근접 무기 · 대장간 → 그 층 보스(넬카르) 드롭 (신화 — 제작만이어도 보스 장비 규칙) (P +2, S +3 — 일반 장비 이상 · 겹침 피함)
+  hightide_scythe:  # 만조의 큰낫 · 근접 무기 · 대장간 → 10층 몹·정예 재료 (드롭 없음) (신화 — 대장간만: 보스 장비 규칙, +9·+10 은 핵 대신 정예 재료) (P +2, S +1 — 일반 장비 이상)
     low:  {abyss_scale: [4, 4, 5]}
-    mid:  {abyss_scale: [5, 5, 6], orichalcum_ingot: [5, 5, 6]}
-    high: {abyss_scale: [6, 7, 8, 9], orichalcum_ingot: [6, 6, 7, 8], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
+    mid:  {abyss_scale: [5, 5, 6], orichalcum_ingot: [3, 3, 4]}
+    high: {abyss_scale: [6, 7, 8, 9], orichalcum_ingot: [4, 4, 5, 6], gatekeeper_rune: [1, 2, 2, 3]}
+  mountainheart_maul:  # 태산의 대망치 · 근접 무기 · 대장간 → 10층 몹·정예 재료 (드롭 없음) (신화 — 대장간만: 보스 장비 규칙, +9·+10 은 핵 대신 정예 재료) (P +3 — 일반 장비 이상 · 겹침 피함)
+    low:  {abyss_scale: [5, 5, 6]}
+    mid:  {abyss_scale: [6, 6, 7], orichalcum_ingot: [2, 2, 3]}
+    high: {abyss_scale: [7, 8, 9, 10], orichalcum_ingot: [3, 3, 4, 5], gatekeeper_rune: [1, 2, 2, 3]}
   viper_fang:  # 독사의 송곳니 · 근접 무기 · 보스 고유 → 보스 드롭 (P +3 — 일반 장비 이상 · 겹침 피함)
     low:  {abyss_scale: [5, 5, 6]}
     mid:  {abyss_scale: [6, 6, 7], orichalcum_ingot: [2, 2, 3]}
     high: {abyss_scale: [7, 8, 9, 10], orichalcum_ingot: [3, 3, 4, 5], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
-  waning_moon_sickle:  # 그믐달 사슬낫 · 근접 무기 · 대장간 → 그 층 보스(넬카르) 드롭 (신화 — 제작만이어도 보스 장비 규칙) (P +3, S +2 — 일반 장비 이상 · 겹침 피함)
-    low:  {abyss_scale: [5, 5, 6]}
-    mid:  {abyss_scale: [6, 6, 7], orichalcum_ingot: [4, 4, 5]}
-    high: {abyss_scale: [7, 8, 9, 10], orichalcum_ingot: [5, 5, 6, 7], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
+  waning_moon_sickle:  # 그믐달 사슬낫 · 근접 무기 · 대장간 → 10층 몹·정예 재료 (드롭 없음) (신화 — 대장간만: 보스 장비 규칙, +9·+10 은 핵 대신 정예 재료) (P +2, S +2 — 일반 장비 이상 · 겹침 피함)
+    low:  {abyss_scale: [4, 4, 5]}
+    mid:  {abyss_scale: [5, 5, 6], orichalcum_ingot: [4, 4, 5]}
+    high: {abyss_scale: [6, 7, 8, 9], orichalcum_ingot: [5, 5, 6, 7], gatekeeper_rune: [1, 2, 2, 3]}
   abyss_bladebow:  # 심연 날활 · 원거리 무기 · 대장간 → 제작 재료 (P·S 바꿈 — 겹침 피함)
     low:  {sculk_tendril: [3, 3, 4]}
     mid:  {sculk_tendril: [4, 4, 5], orichalcum_ingot: [2, 2, 3]}
@@ -1503,10 +1503,10 @@ items:
     low:  {sculk_tendril: [4, 4, 5]}
     mid:  {sculk_tendril: [5, 5, 6], orichalcum_ingot: [4, 4, 5]}
     high: {sculk_tendril: [6, 7, 9, 10], orichalcum_ingot: [5, 5, 6, 7], primordial_essence: [2, 3, 3, 4]}
-  comet_longbow:  # 꼬리별 장궁 · 원거리 무기 · 대장간 → 그 층 보스(넬카르) 드롭 (신화 — 제작만이어도 보스 장비 규칙) (P +2, S +3 — 일반 장비 이상 · 겹침 피함)
+  comet_longbow:  # 꼬리별 장궁 · 원거리 무기 · 대장간 → 10층 몹·정예 재료 (드롭 없음) (신화 — 대장간만: 보스 장비 규칙, +9·+10 은 핵 대신 정예 재료) (P +2, S +1 — 일반 장비 이상)
     low:  {sculk_tendril: [5, 5, 6]}
-    mid:  {sculk_tendril: [6, 6, 7], orichalcum_ingot: [5, 5, 6]}
-    high: {sculk_tendril: [7, 8, 10, 11], orichalcum_ingot: [6, 6, 7, 8], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
+    mid:  {sculk_tendril: [6, 6, 7], orichalcum_ingot: [3, 3, 4]}
+    high: {sculk_tendril: [7, 8, 10, 11], orichalcum_ingot: [4, 4, 5, 6], gatekeeper_rune: [1, 2, 2, 3]}
   tempest_bow:  # 폭풍의 눈 · 원거리 무기 · 보스 고유 · 대장간 → 보스 드롭 (신화 — 레시피가 있어도 보스 장비 규칙) (P +2, S +2 — 일반 장비 이상 · 겹침 피함)
     low:  {sculk_tendril: [5, 5, 6]}
     mid:  {sculk_tendril: [6, 6, 7], orichalcum_ingot: [4, 4, 5]}
@@ -1543,10 +1543,10 @@ items:
     low:  {sculk_tendril: [5, 5, 6]}
     mid:  {sculk_tendril: [6, 6, 7], orichalcum_ingot: [3, 3, 4]}
     high: {sculk_tendril: [7, 8, 10, 11], orichalcum_ingot: [4, 4, 5, 6], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
-  daybreak_bell:  # 새벽의 종 · 시전 무기 · 대장간 → 그 층 보스(넬카르) 드롭 (신화 — 제작만이어도 보스 장비 규칙) (P +3, S +2 — 일반 장비 이상 · 겹침 피함)
+  daybreak_bell:  # 새벽의 종 · 시전 무기 · 대장간 → 10층 몹·정예 재료 (드롭 없음) (신화 — 대장간만: 보스 장비 규칙, +9·+10 은 핵 대신 정예 재료) (P +3 — 일반 장비 이상 · 겹침 피함)
     low:  {sculk_tendril: [6, 6, 7]}
-    mid:  {sculk_tendril: [7, 7, 8], orichalcum_ingot: [4, 4, 5]}
-    high: {sculk_tendril: [8, 9, 11, 12], orichalcum_ingot: [5, 5, 6, 7], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
+    mid:  {sculk_tendril: [7, 7, 8], orichalcum_ingot: [2, 2, 3]}
+    high: {sculk_tendril: [8, 9, 11, 12], orichalcum_ingot: [3, 3, 4, 5], gatekeeper_rune: [1, 2, 2, 3]}
   seraph_scepter:  # 치천사의 홀 · 시전 무기 · 보스 고유 · 대장간 → 보스 드롭 (신화 — 레시피가 있어도 보스 장비 규칙) (P +3, S +1 — 일반 장비 이상 · 겹침 피함)
     low:  {sculk_tendril: [6, 6, 7]}
     mid:  {sculk_tendril: [7, 7, 8], orichalcum_ingot: [3, 3, 4]}
@@ -1555,10 +1555,10 @@ items:
     low:  {sculk_tendril: [7, 7, 8]}
     mid:  {sculk_tendril: [8, 8, 9], orichalcum_ingot: [2, 2, 3]}
     high: {sculk_tendril: [9, 10, 12, 13], orichalcum_ingot: [3, 3, 4, 5], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
-  wisp_lantern:  # 도깨비불 등롱 · 시전 무기 · 대장간 → 그 층 보스(넬카르) 드롭 (신화 — 제작만이어도 보스 장비 규칙) (P +4, S +1 — 일반 장비 이상 · 겹침 피함)
-    low:  {sculk_tendril: [7, 7, 8]}
-    mid:  {sculk_tendril: [8, 8, 9], orichalcum_ingot: [3, 3, 4]}
-    high: {sculk_tendril: [9, 10, 12, 13], orichalcum_ingot: [4, 4, 5, 6], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
+  wisp_lantern:  # 도깨비불 등롱 · 시전 무기 · 대장간 → 10층 몹·정예 재료 (드롭 없음) (신화 — 대장간만: 보스 장비 규칙, +9·+10 은 핵 대신 정예 재료) (P +2, S +2 — 일반 장비 이상 · 겹침 피함)
+    low:  {sculk_tendril: [5, 5, 6]}
+    mid:  {sculk_tendril: [6, 6, 7], orichalcum_ingot: [4, 4, 5]}
+    high: {sculk_tendril: [7, 8, 10, 11], orichalcum_ingot: [5, 5, 6, 7], gatekeeper_rune: [1, 2, 2, 3]}
   abyss_walker_helm:  # 심연 보행자 두건 · 투구 · 정예 · 대장간 → 제작 재료
     low:  {sculk_tendril: [3, 3, 3]}
     mid:  {sculk_tendril: [3, 4, 4], orichalcum_ingot: [1, 2, 2]}

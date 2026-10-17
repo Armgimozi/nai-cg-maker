@@ -104,7 +104,7 @@ class MythicSetTest {
     }
 
     @Test
-    void everyMythicIsBossPlusForge() {
+    void everyMythicHasForgeAndBlueprintOutsideNelkar() {
         Map<String, RecipeDef> recipeOf = new HashMap<>();
         for (RecipeDef r : content.recipes().values()) recipeOf.putIfAbsent(r.result(), r);
         for (String id : mythics) {

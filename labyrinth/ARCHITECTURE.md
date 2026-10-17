@@ -707,9 +707,9 @@ tables:
 
   floor10_boss:               # 0.3.7 CR37: 옛 신화 6 한 자루마다 20% + 신화 도안 — 모든 난이도
     entries:
-      - {item: celestial_oathkeeper, chance: 0.2}                                 # … 옛 6 줄 여섯 (one_of 아님)
-      - {blueprint_of: [mountainheart_maul, hightide_scythe, ...], chance: 0.29}   # 새 6 한 줄
-      - {blueprint_of: [celestial_oathkeeper], chance: 0.1}                       # … 옛 6 한 장씩
+      - {item: celestial_oathkeeper, chance: 0.2}                                 # … 옛 6 줄 여섯 (one_of 아님) — 표 맨 위 (도감 보스 쪽은 앞 6줄만)
+      - {blueprint_of: [mountainheart_maul, hightide_scythe, ...], chance: 0.32}   # 새 6 한 줄
+      - {blueprint_of: [celestial_oathkeeper], chance: 0.11}                      # … 옛 6 한 장씩
 
 # recipes.yml
 recipes:
@@ -903,7 +903,7 @@ hints:
   `EnhanceDef.costs(id, 목표)` = 그 시도의 장비 재료(개수 > 0). 없는 재료·장비 id 는 읽을 때 경고 목록(`warnings`)에 넣고 그 줄만 무시.
   **생성기** `tools/gen_enhance.py`(`--check`·`--report`·`--spec`): loot.yml 을 펼쳐 층별 1회 공급량을 계산해 개수를 맞추고, 규칙·공급량·예상 클리어 수·검사 결과를
   파일 머리 주석에 쓴다. 재료 규칙(GDD §11.13): 제작법이 있는 장비 = 그 레시피 재료(P 가장 많이 드는 것 · S 두 번째 · R 가장 귀한 것), 없는 장비 = 그 장비를
-  주는 곳의 드롭, 보스 장비 +7·+8 = 정예 재료 · +9·+10 = 그 보스 핵, mid 까지는 일반 재료만, 같은 층 구성 겹침 0. 장비·레시피·루팅을 바꾸면 다시 돌릴 것
+  주는 곳의 드롭, 보스 장비 +7·+8 = 정예 재료 · +9·+10 = 그 보스 핵 (대장간만인 신화는 핵 대신 정예 재료), mid 까지는 일반 재료만, 같은 층 구성 겹침 0. 장비·레시피·루팅을 바꾸면 다시 돌릴 것
   (`EnhanceMaterialsTest` 가 재료 존재·그 층에서 얻을 수 있음·구간 규칙·보스 핵·겹침·번들 파일 경고 0 을 검사).
 - **비용** `EnhanceRules.cost(def, 목표, 할인, EnhanceDef)` → `EnhanceCost(gold, lines)` — 강화석 줄이 맨 앞(`stone()`), 그다음 장비 재료(`materials()`), 같은 id 는 한 줄로 합침.
   `EnhanceCost` 는 골드·강화석·재료를 **전부 확인한 뒤에만** 한꺼번에 소모(하나라도 모자라면 아무것도 안 가져감), 실패해도 소모. 강화 창 비용 줄 배치 = `EnhanceLayout`
@@ -1067,7 +1067,10 @@ wild:                 # wild: false = 통째로 끔 (Settings.Wild.OFF)
   strip() 은 명세가 바뀌어도 걷히게 표마다 신화 줄(신화 item · 신화 one_of · blueprint_of)을 모두 걷는다. verify() 는 레시피에 보스만 주는
   재료가 있거나 신화마다 넬카르 표 밖 도안 출처가 없으면 멈춘다 (CR37 — 넬카르를 못 잡아도 만든다, `MythicNoNelkarGateTest`).
   `gen_enhance.py`: 신화는 레시피가 있어도 보스 장비 규칙 (새 6 은 같은 층 보스 장비 중 맨 뒤에 정해 기존 신화 6 의 강화 행이 그대로).
-  드롭 줄이 없는 새 6 은 `homes_of` 가 그 단계 층 보스(넬카르) 표를 집으로 삼는다 (label `mythic`) — 강화 행은 그대로.
+  드롭 줄이 없는 새 6 은 `homes_of` 가 그 단계 층 보스(넬카르) 표를 P·S·정예 재료의 집으로 삼고 (label `mythic`), 핵은 쓰지 않는다 —
+  정예 재료를 +7~+10 `MYTHIC_CRAFT_R` [1, 2, 2, 3] (FXC37, 넬카르를 못 잡아도 +10 — `MythicNoNelkarGateTest`).
+  MYTH037 `loot.<표>.replace.top` = 바꾼 줄 + `prepend` 줄을 표 맨 위에 (넬카르 옛 6 — 도감 보스 쪽 앞 6줄), `replace.after` = strip() 이
+  0.3.6.1 줄을 되돌릴 자리 (그 줄 바로 뒤).
   코드: `BlueprintRules.drawable`(= gated − 신화: 일반 뽑기·첫 접속 보호) · `candidatesOf`/`pickOf` (blueprint_of) · `gated`/`recipeFor` 는 신화 포함
   (대장간 잠금·도감) · `blueprintOfSources` (레시피 → chance > 0 인 blueprint_of 표 — 검사기와 도감 `CodexMenu.mythicBlueprintLines` 가 같이 씀).
   `ContentValidator`: 없는 레시피·빈 목록·도안이 필요 없는 레시피 = 오류, 신화 레시피에 chance > 0 출처가 없으면 오류,

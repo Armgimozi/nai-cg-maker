@@ -13,7 +13,8 @@
    "FX37 홀림불: 장판 at aim → target (노린 적 발밑, 없으면 노린 곳 — 울림 낙인과 같은 방식)",
    "FX37 새벽의 종 고유 이름 새벽빛 → 맑은 울림 (전설 '여명의 빛' 과 겹침, unique_assign 같음)",
    "FX37 새벽의 종 그림: 해 원반·햇살·후광을 빼고 종 꼭대기 고리·보석으로, 텍스처를 짙은 장밋빛 청동으로 (치천사의 홀 크림·금과 갈리게)",
-   "CR37 (주인 결정: 노가다 줄이기 · 넬카르 없이도 제작 · 새 6 은 도안 제작만 · 옛 6 은 한 자루마다 20%): 레시피에서 심연 심장 파편을 뺌 · 문지기의 룬 16 · 태고 정수 40 · 체액 200 · 큰 부위 150 · 작은 부위 50 · 주괴 30 · 용혈석 2 · 110,000G · 새 6 은 모든 드롭 표에서 뺌 (sources [craft]) · 옛 6 은 넬카르 item 줄 여섯 (각 20%) · 8·9층 보스 신화 드롭 없앰 · 신화 도안: 새 6 은 한 줄(빌드 몫 같음), 옛 6 은 한 장씩 — 8·9·10층 보스 · 특별 시련 · 금고·미믹 (넬카르는 12 모두)"
+   "CR37 (주인 결정: 노가다 줄이기 · 넬카르 없이도 제작 · 새 6 은 도안 제작만 · 옛 6 은 한 자루마다 20%): 레시피에서 심연 심장 파편을 뺌 · 문지기의 룬 16 · 태고 정수 40 · 체액 200 · 큰 부위 150 · 작은 부위 50 · 주괴 30 · 용혈석 2 · 110,000G · 새 6 은 모든 드롭 표에서 뺌 (sources [craft]) · 옛 6 은 넬카르 item 줄 여섯 (각 20%) · 8·9층 보스 신화 드롭 없앰 · 신화 도안: 새 6 은 한 줄(빌드 몫 같음), 옛 6 은 한 장씩 — 8·9·10층 보스 · 특별 시련 · 금고·미믹 (넬카르는 12 모두)",
+   "FXC37 (CR37 리뷰): 넬카르 표의 옛 신화 6 item 줄을 표 맨 위로 (도감 보스 쪽은 드롭 6줄만 보임 — 확률은 같음) · 신화 도안 확률 약 1.1배 (운 나쁜 10% 를 줄임, 기대 회차는 목표 안) · 쓰지 않던 home_floor 칸 지움"
   ]
  },
  "mythics": [
@@ -59,20 +60,6 @@
   "wisp_lantern": "voidheart_staff",
   "daybreak_bell": "seraph_scepter",
   "waning_moon_sickle": "eclipse_blade"
- },
- "home_floor": {
-  "celestial_oathkeeper": 9,
-  "mountainheart_maul": 8,
-  "bloodmoon_reaver": 8,
-  "hightide_scythe": 9,
-  "tempest_bow": 9,
-  "comet_longbow": 8,
-  "voidheart_staff": 10,
-  "wisp_lantern": 8,
-  "seraph_scepter": 8,
-  "daybreak_bell": 9,
-  "eclipse_blade": 8,
-  "waning_moon_sickle": 9
  },
  "items": {
   "mountainheart_maul": {
@@ -1483,9 +1470,18 @@
      "item": "celestial_oathkeeper",
      "chance": 0.2
     },
-    "note": "옛 신화 — 한 자루마다 따로 20% (주인 결정), 모든 난이도"
+    "note": "옛 신화 — 한 자루마다 따로 20% (주인 결정), 모든 난이도",
+    "top": true,
+    "after": {
+     "one_of": [
+      "abyss_sentinel_longsword",
+      "aurora_scepter",
+      "viper_fang"
+     ],
+     "chance": 0.34
+    }
    },
-   "append": [
+   "prepend": [
     {
      "entry": {
       "item": "bloodmoon_reaver",
@@ -1515,7 +1511,9 @@
       "item": "eclipse_blade",
       "chance": 0.2
      }
-    },
+    }
+   ],
+   "append": [
     {
      "entry": {
       "blueprint_of": [
@@ -1526,7 +1524,7 @@
        "daybreak_bell",
        "waning_moon_sickle"
       ],
-      "chance": 0.29
+      "chance": 0.32
      },
      "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
     },
@@ -1535,7 +1533,7 @@
       "blueprint_of": [
        "celestial_oathkeeper"
       ],
-      "chance": 0.1
+      "chance": 0.11
      },
      "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
     },
@@ -1544,7 +1542,7 @@
       "blueprint_of": [
        "bloodmoon_reaver"
       ],
-      "chance": 0.1
+      "chance": 0.11
      }
     },
     {
@@ -1552,7 +1550,7 @@
       "blueprint_of": [
        "tempest_bow"
       ],
-      "chance": 0.1
+      "chance": 0.11
      }
     },
     {
@@ -1560,7 +1558,7 @@
       "blueprint_of": [
        "voidheart_staff"
       ],
-      "chance": 0.1
+      "chance": 0.11
      }
     },
     {
@@ -1568,7 +1566,7 @@
       "blueprint_of": [
        "seraph_scepter"
       ],
-      "chance": 0.1
+      "chance": 0.11
      }
     },
     {
@@ -1576,7 +1574,7 @@
       "blueprint_of": [
        "eclipse_blade"
       ],
-      "chance": 0.1
+      "chance": 0.11
      }
     }
    ]
@@ -1593,7 +1591,7 @@
        "daybreak_bell",
        "waning_moon_sickle"
       ],
-      "chance": 0.2
+      "chance": 0.22
      },
      "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
     },
@@ -1602,7 +1600,7 @@
       "blueprint_of": [
        "celestial_oathkeeper"
       ],
-      "chance": 0.075
+      "chance": 0.08
      },
      "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
     },
@@ -1611,7 +1609,7 @@
       "blueprint_of": [
        "bloodmoon_reaver"
       ],
-      "chance": 0.075
+      "chance": 0.08
      }
     },
     {
@@ -1619,7 +1617,7 @@
       "blueprint_of": [
        "tempest_bow"
       ],
-      "chance": 0.075
+      "chance": 0.08
      }
     },
     {
@@ -1627,7 +1625,7 @@
       "blueprint_of": [
        "voidheart_staff"
       ],
-      "chance": 0.075
+      "chance": 0.08
      }
     },
     {
@@ -1635,7 +1633,7 @@
       "blueprint_of": [
        "seraph_scepter"
       ],
-      "chance": 0.075
+      "chance": 0.08
      }
     },
     {
@@ -1643,7 +1641,7 @@
       "blueprint_of": [
        "eclipse_blade"
       ],
-      "chance": 0.075
+      "chance": 0.08
      }
     }
    ]
@@ -1660,7 +1658,7 @@
        "daybreak_bell",
        "waning_moon_sickle"
       ],
-      "chance": 0.1
+      "chance": 0.11
      },
      "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
     },
@@ -1669,7 +1667,7 @@
       "blueprint_of": [
        "celestial_oathkeeper"
       ],
-      "chance": 0.04
+      "chance": 0.045
      },
      "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
     },
@@ -1678,7 +1676,7 @@
       "blueprint_of": [
        "bloodmoon_reaver"
       ],
-      "chance": 0.04
+      "chance": 0.045
      }
     },
     {
@@ -1686,7 +1684,7 @@
       "blueprint_of": [
        "tempest_bow"
       ],
-      "chance": 0.04
+      "chance": 0.045
      }
     },
     {
@@ -1694,7 +1692,7 @@
       "blueprint_of": [
        "voidheart_staff"
       ],
-      "chance": 0.04
+      "chance": 0.045
      }
     },
     {
@@ -1702,7 +1700,7 @@
       "blueprint_of": [
        "seraph_scepter"
       ],
-      "chance": 0.04
+      "chance": 0.045
      }
     },
     {
@@ -1710,7 +1708,7 @@
       "blueprint_of": [
        "eclipse_blade"
       ],
-      "chance": 0.04
+      "chance": 0.045
      }
     }
    ]
@@ -1727,7 +1725,7 @@
        "daybreak_bell",
        "waning_moon_sickle"
       ],
-      "chance": 0.13
+      "chance": 0.14
      },
      "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
     },
@@ -1736,7 +1734,7 @@
       "blueprint_of": [
        "celestial_oathkeeper"
       ],
-      "chance": 0.05
+      "chance": 0.055
      },
      "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
     },
@@ -1745,7 +1743,7 @@
       "blueprint_of": [
        "bloodmoon_reaver"
       ],
-      "chance": 0.05
+      "chance": 0.055
      }
     },
     {
@@ -1753,7 +1751,7 @@
       "blueprint_of": [
        "tempest_bow"
       ],
-      "chance": 0.05
+      "chance": 0.055
      }
     },
     {
@@ -1761,7 +1759,7 @@
       "blueprint_of": [
        "voidheart_staff"
       ],
-      "chance": 0.05
+      "chance": 0.055
      }
     },
     {
@@ -1769,7 +1767,7 @@
       "blueprint_of": [
        "seraph_scepter"
       ],
-      "chance": 0.05
+      "chance": 0.055
      }
     },
     {
@@ -1777,7 +1775,7 @@
       "blueprint_of": [
        "eclipse_blade"
       ],
-      "chance": 0.05
+      "chance": 0.055
      }
     }
    ]
@@ -1794,7 +1792,7 @@
        "daybreak_bell",
        "waning_moon_sickle"
       ],
-      "chance": 0.13
+      "chance": 0.14
      },
      "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
     },
@@ -1803,7 +1801,7 @@
       "blueprint_of": [
        "celestial_oathkeeper"
       ],
-      "chance": 0.05
+      "chance": 0.055
      },
      "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
     },
@@ -1812,7 +1810,7 @@
       "blueprint_of": [
        "bloodmoon_reaver"
       ],
-      "chance": 0.05
+      "chance": 0.055
      }
     },
     {
@@ -1820,7 +1818,7 @@
       "blueprint_of": [
        "tempest_bow"
       ],
-      "chance": 0.05
+      "chance": 0.055
      }
     },
     {
@@ -1828,7 +1826,7 @@
       "blueprint_of": [
        "voidheart_staff"
       ],
-      "chance": 0.05
+      "chance": 0.055
      }
     },
     {
@@ -1836,7 +1834,7 @@
       "blueprint_of": [
        "seraph_scepter"
       ],
-      "chance": 0.05
+      "chance": 0.055
      }
     },
     {
@@ -1844,7 +1842,7 @@
       "blueprint_of": [
        "eclipse_blade"
       ],
-      "chance": 0.05
+      "chance": 0.055
      }
     }
    ]
@@ -1861,7 +1859,7 @@
        "daybreak_bell",
        "waning_moon_sickle"
       ],
-      "chance": 0.13
+      "chance": 0.14
      },
      "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
     },
@@ -1870,7 +1868,7 @@
       "blueprint_of": [
        "celestial_oathkeeper"
       ],
-      "chance": 0.05
+      "chance": 0.055
      },
      "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
     },
@@ -1879,7 +1877,7 @@
       "blueprint_of": [
        "bloodmoon_reaver"
       ],
-      "chance": 0.05
+      "chance": 0.055
      }
     },
     {
@@ -1887,7 +1885,7 @@
       "blueprint_of": [
        "tempest_bow"
       ],
-      "chance": 0.05
+      "chance": 0.055
      }
     },
     {
@@ -1895,7 +1893,7 @@
       "blueprint_of": [
        "voidheart_staff"
       ],
-      "chance": 0.05
+      "chance": 0.055
      }
     },
     {
@@ -1903,7 +1901,7 @@
       "blueprint_of": [
        "seraph_scepter"
       ],
-      "chance": 0.05
+      "chance": 0.055
      }
     },
     {
@@ -1911,7 +1909,7 @@
       "blueprint_of": [
        "eclipse_blade"
       ],
-      "chance": 0.05
+      "chance": 0.055
      }
     }
    ]
@@ -1928,7 +1926,7 @@
        "daybreak_bell",
        "waning_moon_sickle"
       ],
-      "chance": 0.0065
+      "chance": 0.007
      },
      "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
     },
@@ -1937,7 +1935,7 @@
       "blueprint_of": [
        "celestial_oathkeeper"
       ],
-      "chance": 0.0025
+      "chance": 0.0028
      },
      "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
     },
@@ -1946,7 +1944,7 @@
       "blueprint_of": [
        "bloodmoon_reaver"
       ],
-      "chance": 0.0025
+      "chance": 0.0028
      }
     },
     {
@@ -1954,7 +1952,7 @@
       "blueprint_of": [
        "tempest_bow"
       ],
-      "chance": 0.0025
+      "chance": 0.0028
      }
     },
     {
@@ -1962,7 +1960,7 @@
       "blueprint_of": [
        "voidheart_staff"
       ],
-      "chance": 0.0025
+      "chance": 0.0028
      }
     },
     {
@@ -1970,7 +1968,7 @@
       "blueprint_of": [
        "seraph_scepter"
       ],
-      "chance": 0.0025
+      "chance": 0.0028
      }
     },
     {
@@ -1978,7 +1976,7 @@
       "blueprint_of": [
        "eclipse_blade"
       ],
-      "chance": 0.0025
+      "chance": 0.0028
      }
     }
    ]
@@ -1995,7 +1993,7 @@
        "daybreak_bell",
        "waning_moon_sickle"
       ],
-      "chance": 0.0065
+      "chance": 0.007
      },
      "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
     },
@@ -2004,7 +2002,7 @@
       "blueprint_of": [
        "celestial_oathkeeper"
       ],
-      "chance": 0.0025
+      "chance": 0.0028
      },
      "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
     },
@@ -2013,7 +2011,7 @@
       "blueprint_of": [
        "bloodmoon_reaver"
       ],
-      "chance": 0.0025
+      "chance": 0.0028
      }
     },
     {
@@ -2021,7 +2019,7 @@
       "blueprint_of": [
        "tempest_bow"
       ],
-      "chance": 0.0025
+      "chance": 0.0028
      }
     },
     {
@@ -2029,7 +2027,7 @@
       "blueprint_of": [
        "voidheart_staff"
       ],
-      "chance": 0.0025
+      "chance": 0.0028
      }
     },
     {
@@ -2037,7 +2035,7 @@
       "blueprint_of": [
        "seraph_scepter"
       ],
-      "chance": 0.0025
+      "chance": 0.0028
      }
     },
     {
@@ -2045,7 +2043,7 @@
       "blueprint_of": [
        "eclipse_blade"
       ],
-      "chance": 0.0025
+      "chance": 0.0028
      }
     }
    ]
@@ -2062,7 +2060,7 @@
        "daybreak_bell",
        "waning_moon_sickle"
       ],
-      "chance": 0.0065
+      "chance": 0.007
      },
      "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
     },
@@ -2071,7 +2069,7 @@
       "blueprint_of": [
        "celestial_oathkeeper"
       ],
-      "chance": 0.0025
+      "chance": 0.0028
      },
      "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
     },
@@ -2080,7 +2078,7 @@
       "blueprint_of": [
        "bloodmoon_reaver"
       ],
-      "chance": 0.0025
+      "chance": 0.0028
      }
     },
     {
@@ -2088,7 +2086,7 @@
       "blueprint_of": [
        "tempest_bow"
       ],
-      "chance": 0.0025
+      "chance": 0.0028
      }
     },
     {
@@ -2096,7 +2094,7 @@
       "blueprint_of": [
        "voidheart_staff"
       ],
-      "chance": 0.0025
+      "chance": 0.0028
      }
     },
     {
@@ -2104,7 +2102,7 @@
       "blueprint_of": [
        "seraph_scepter"
       ],
-      "chance": 0.0025
+      "chance": 0.0028
      }
     },
     {
@@ -2112,7 +2110,7 @@
       "blueprint_of": [
        "eclipse_blade"
       ],
-      "chance": 0.0025
+      "chance": 0.0028
      }
     }
    ]
@@ -2336,25 +2334,25 @@
   "waning_moon_sickle:SNEAK_RIGHT": "physical"
  },
  "economy": {
-  "_note": "CR37 (craft2/final) 모델 값 — 코드는 읽지 않는다. 회당 굴림: 보스 1 · 특별 시련 0.257 · 금고·미믹 3.42/3.32/3.22 (10/9/8층)",
+  "_note": "CR37 (craft2/final) · FXC37 (craft2/fx) 모델 값 — 코드는 읽지 않는다. 회당 굴림: 보스 1 · 특별 시련 0.257 · 금고·미믹 3.42/3.32/3.22 (10/9/8층). FXC37: 도안 확률을 약 1.1배 (운 나쁜 10% 를 줄임)",
   "cores": 0,
   "gold": 110000,
   "old_item_each_f10": 0.2,
   "old_items_per_kill": 1.2,
   "old_at_least_one_per_kill": 0.7379,
   "new6_bp_list": {
-   "floor10_boss": 0.29,
-   "floor09_boss": 0.2,
-   "floor08_boss": 0.1,
-   "special": 0.13,
-   "hoard": 0.0065
+   "floor10_boss": 0.32,
+   "floor09_boss": 0.22,
+   "floor08_boss": 0.11,
+   "special": 0.14,
+   "hoard": 0.007
   },
   "old6_bp_each": {
-   "floor10_boss": 0.1,
-   "floor09_boss": 0.075,
-   "floor08_boss": 0.04,
-   "special": 0.05,
-   "hoard": 0.0025
+   "floor10_boss": 0.11,
+   "floor09_boss": 0.08,
+   "floor08_boss": 0.045,
+   "special": 0.055,
+   "hoard": 0.0028
   },
   "own_share_new6_list": 0.3833
  },

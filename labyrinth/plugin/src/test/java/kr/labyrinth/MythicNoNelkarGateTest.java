@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import kr.labyrinth.content.Content;
+import kr.labyrinth.content.EnhanceDef;
 import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.LootTable;
 import kr.labyrinth.content.Rarity;
@@ -28,6 +29,8 @@ import org.junit.jupiter.api.Test;
  *   <li>새 신화 6 은 어느 루팅 표에서도 나오지 않는다 (중첩 표 · pick · one_of · rarity_pool 까지 펼쳐서).</li>
  *   <li>신화 레시피 재료는 모두 넬카르 표 밖에서 얻는다 — 다른 루팅 표 · 광산 · 그런 재료로 만드는 레시피(제련).</li>
  *   <li>신화 도안 12 는 모두 넬카르 표 밖에도 나온다.</li>
+ *   <li>FXC37: 대장간만인 새 신화 6 은 +1 ~ +10 강화 재료도 모두 넬카르 표 밖에서 얻는다 (핵 대신 정예 재료).
+ *       옛 6 은 넬카르 장비라 +9·+10 에 심연 심장 파편이 든다 (주인이 정할 일 — 숫자만 찍는다).</li>
  * </ul>
  * "넬카르 표 밖" = 넬카르 표와, 넬카르 표만 부르는 하위 표를 뺀 모든 표.
  */
@@ -107,9 +110,8 @@ class MythicNoNelkarGateTest {
         for (String id : newSix) assertTrue(content.recipes().containsKey(id), id + " 레시피 (유일한 길)");
     }
 
-    @Test
-    void noMythicRecipeNeedsANelkarOnlyMaterial() {
-        // 넬카르 밖에서 얻는 재료: 밖 표가 주는 것 + 광산 + 그런 재료만으로 만드는 레시피 결과 (제련 주괴 · 정수 정제)
+    /** 넬카르 밖에서 얻는 재료: 밖 표가 주는 것 + 광산 + 그런 재료만으로 만드는 레시피 결과 (제련 주괴 · 정수 정제). */
+    private static Set<String> outsideMaterials() {
         Set<String> got = new HashSet<>();
         for (String id : outside) got.addAll(itemsOf(content.lootTable(id)));
         for (ItemDef d : content.items().values()) if (d.isMineMaterial() && d.sources().contains("mine")) got.add(d.id());
@@ -121,6 +123,12 @@ class MythicNoNelkarGateTest {
                 if (got.containsAll(r.materials().keySet())) grew |= got.add(r.result());
             }
         }
+        return got;
+    }
+
+    @Test
+    void noMythicRecipeNeedsANelkarOnlyMaterial() {
+        Set<String> got = outsideMaterials();
         Map<String, List<String>> gated = new TreeMap<>();
         for (String id : mythics) {
             RecipeDef r = content.recipes().get(id);
@@ -129,6 +137,33 @@ class MythicNoNelkarGateTest {
         }
         assertEquals(Map.of(), gated, "넬카르만 주는 재료가 든 신화 레시피");
         assertTrue(!got.contains("abyssal_heart_fragment"), "심연 심장 파편은 넬카르만 (이 시험이 넬카르 표를 제대로 뺐는지)");
+    }
+
+    @Test
+    void craftOnlyMythicsEnhanceToTenWithoutNelkar() {
+        Set<String> got = outsideMaterials();
+        EnhanceDef t = content.enhance();
+        Map<String, Set<String>> gated = new TreeMap<>(), old = new TreeMap<>();
+        int checked = 0;
+        for (String id : mythics) {
+            boolean craftOnly = content.item(id).sources().equals(List.of("craft"));
+            for (int tg = 1; tg <= 10; tg++) {
+                List<EnhanceDef.Cost> cs = t.costs(id, tg);
+                assertTrue(!cs.isEmpty(), id + " +" + tg + " 강화 재료 없음 (enhance.yml)");
+                for (EnhanceDef.Cost c : cs) {
+                    if (got.contains(c.item())) continue;
+                    (craftOnly ? gated : old).computeIfAbsent(id, k -> new TreeSet<>()).add("+" + tg + " " + c.item());
+                }
+            }
+            if (craftOnly) checked++;
+        }
+        assertEquals(6, checked, "대장간만인 신화");
+        assertEquals(Map.of(), gated, "대장간만인 신화 강화에 넬카르만 주는 재료");
+        // 옛 6 (넬카르 장비): +9·+10 = 심연 심장 파편 — 넬카르를 못 잡는 조가 만든 옛 6 은 +8 까지 (주인 질문)
+        for (var e : old.entrySet()) {
+            assertEquals(Set.of("+9 abyssal_heart_fragment", "+10 abyssal_heart_fragment"), e.getValue(), e.getKey());
+        }
+        System.out.println("[신화 강화] 넬카르만 주는 재료가 드는 옛 신화 " + old.size() + "종 (+9·+10 심연 심장 파편)");
     }
 
     @Test
