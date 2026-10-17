@@ -13,12 +13,24 @@ from .model import value_to_color
 from .util import clamp, darken, fbm, h2, h3, hue_shift, lighten, lum, mix, vnoise
 
 INTERPOLATE = {'sun_glow', 'holy_pulse', 'blood_pulse', 'aurora_wave', 'prism_cycle', 'sculk_pulse',
-               'eclipse_corona', 'tide_ripple', 'mercury_flow', 'feather_glint'}
+               'eclipse_corona', 'tide_ripple', 'mercury_flow', 'feather_glint',
+               'geode_heart', 'tide_surge', 'bell_toll', 'moon_phase'}
 
 KNOWN = {'sun_glow', 'ember_flicker', 'wind_streak', 'frost_shimmer', 'holy_pulse', 'shadow_smoke', 'tide_ripple',
          'prism_cycle', 'gear_tick', 'star_twinkle', 'blood_pulse', 'lightning_arc', 'void_swirl', 'feather_glint',
          'eclipse_corona', 'rune_flow', 'soul_flicker', 'crystal_glint', 'ink_bleed', 'sculk_pulse', 'spark_crackle',
-         'mercury_flow', 'aurora_wave', 'venom_drip', 'ember_glow'}
+         'mercury_flow', 'aurora_wave', 'venom_drip', 'ember_glow',
+         # 0.3.7 신화 6 (myth-037)
+         'geode_heart', 'tide_surge', 'comet_trail', 'wisp_flicker', 'bell_toll', 'moon_phase'}
+
+# 0.3.7 새 효과가 (모델이 바뀌어) 움직이는 칸을 하나도 못 찾으면 대신 쓸 기존 효과 — animate() 가 고른다
+FALLBACK = {'geode_heart': 'crystal_glint', 'tide_surge': 'tide_ripple', 'comet_trail': 'wind_streak',
+            'wisp_flicker': 'ember_glow', 'bell_toll': 'holy_pulse', 'moon_phase': 'frost_shimmer'}
+
+# wisp_flicker: 16 박자 밝기 — 두 번 밝게(2·6), 한 번 꺼질 듯(9–11), 나머지는 잔잔하게
+FLICKER = (0.05, 0.18, 0.36, 0.3, 0.08, 0.22, 0.38, 0.2, -0.05, -0.38, -0.45, -0.25, 0.0, 0.1, 0.06, 0.02)
+# bell_toll: (울린 때, 세기) — 한 번 크게, 두 번 작게, 쉬고
+TOLLS = ((0.0, 1.0), (0.3, 0.55), (0.45, 0.5))
 
 WHITE = (255, 255, 255)
 
@@ -41,6 +53,27 @@ class FxCtx:
         self.A = look.accent
         self.top = look.pal.light
         self.wcol = lighten(look.pal.accent, 0.75)
+        self.glow_texels = g
+        self._spans = {}
+
+    def span(self, roles, axis=1):
+        """(min, max) of the glow texels of these materials along axis — anchors a part (bell lip, comet head,
+        sickle edge) inside the whole item's glow box.  No such texel → the whole glow box."""
+        key = (tuple(roles), axis)
+        if key not in self._spans:
+            vs = [t.pos[axis] for t in self.glow_texels if t.role in roles]
+            lo = (self.x0, self.y0, self.z0)[axis]
+            hi = (self.x1, self.y1, self.z1)[axis]
+            self._spans[key] = (min(vs), max(vs) + 1e-6) if vs else (lo, hi)
+        return self._spans[key]
+
+    def anchor_above(self, role):
+        """Lowest glow texel of `role` above the glow box's middle height (e.g. a bell's lip, not the pommel gem)."""
+        key = ('above', role)
+        if key not in self._spans:
+            vs = [t.pos[1] for t in self.glow_texels if t.role == role and t.pos[1] > self.cy]
+            self._spans[key] = min(vs) if vs else self.cy
+        return self._spans[key]
 
     def T(self, t):
         return (t.pos[1] - self.y0) / (self.y1 - self.y0)
@@ -281,6 +314,86 @@ def make_vfn(effect, ctx: FxCtx, f):
                 if 0 <= T - head < 0.16:
                     return A[4], 0
             return None, 0.22 * math.sin(2 * math.pi * (T * 2 - p))
+        # ── 0.3.7 신화 6 (myth-037) ──
+        if eff == 'geode_heart':
+            # 태산: 갈라진 틈의 호박빛이 자루 → 머리로 한 바퀴(16프레임)에 걸쳐 차오르고, 결정 끝이 한 번씩 반짝
+            if t.role in ('crystal', 'gem'):
+                cell = _voronoi(t.pos[0] * 0.6, t.pos[1] * 0.45, t.pos[2] * 0.6, seed)
+                cid = int(cell[0] * N)
+                if cid == f and cell[1] > 0.1:
+                    return WHITE, 0
+                if (cid + 1) % N == f:
+                    return None, 0.22
+            level = p * 1.15
+            if T <= level:
+                front = _gauss(T - level, 0.07)
+                if front > 0.7 and (gx + gy + gz) % 2 == 0:
+                    return A[5], 0
+                return None, 0.06 + 0.3 * front
+            return None, -0.12
+        if eff == 'tide_surge':
+            # 만조: 밝은 물결 띠가 날 끝(+x) → 자루로 밀려왔다가 빠진다 (두 박자), 빠질 때 거품(빛나는 칸)이 반짝
+            q = (2 * p) % 1.0
+            c = 1.0 - 0.85 * math.sin(math.pi * q)
+            X = (t.pos[0] - ctx.x0) / (ctx.x1 - ctx.x0)
+            band = _gauss(X - c, 0.09)
+            if q > 0.5 and t.role == 'glow' and h3(gx, gy, gz, f + seed) > 0.93:
+                return WHITE, 0
+            if band > 0.75 and (gx + gy) % 2 == 0:
+                return lighten(ctx.top, 0.5), 0
+            return None, 0.38 * band - 0.08
+        if eff == 'comet_trail':
+            # 꼬리별: 혜성 머리(손잡이 = 활의 가운데 높이)가 맥박치고, 밝은 띠가 머리에서 팔 끝으로 흘러가며
+            # 주황 → 흰빛으로 식는다
+            half = max(1e-3, (ctx.y1 - ctx.y0) / 2)
+            Y = abs(t.pos[1] - ctx.cy) / half
+            if Y < 0.12:
+                return None, 0.3 * math.sin(2 * math.pi * p * 2)
+            d = Y - p
+            if abs(d) < 0.07:
+                return mix(A[3], WHITE, clamp(p * 1.2)), 0
+            if -0.22 < d < 0:
+                return None, 0.18 * (1 + d / 0.22)
+            return None, -0.05
+        if eff == 'wisp_flicker':
+            # 도깨비불: 등롱 속 불이 고르지 않게 깜빡이고(두 번 밝게, 한 번 꺼질 듯), 둘레 도깨비불('gem')은 프레임마다
+            # 반짝이는 자리가 바뀐다
+            if t.role == 'gem':
+                if h3(gx, gy, gz, f * 7 + seed) > 0.8:
+                    return A[5], 0
+                return None, 0.12 * math.sin(2 * math.pi * (p + h2(gx, gy, seed)))
+            k = int(p * len(FLICKER)) % len(FLICKER)
+            return None, FLICKER[k] + (h3(gx, gy, f, seed + 5) - 0.5) * 0.12
+        if eff == 'bell_toll':
+            # 새벽 종: 종 입구(빛남 가운데 높이보다 위의 'gem' 테 중 가장 낮은 곳 — 손잡이 끝 보석은 빼고)에서 밝은
+            # 고리가 위로 번져 오른다 — 한 번 크게, 두 번 작게, 쉬고
+            m0 = ctx.anchor_above('gem')
+            Ty = (t.pos[1] - m0) / max(1e-3, ctx.y1 - m0)
+            sv = 0.0
+            for t0, amp in TOLLS:
+                age = p - t0
+                if 0 <= age < 0.32:
+                    sv = max(sv, amp * _gauss(Ty - age * 3.2, 0.08) * (1 - age / 0.32))
+            if sv > 0.6:
+                return (WHITE if sv > 0.85 else A[4]), 0
+            return None, 0.45 * sv - 0.06
+        if eff == 'moon_phase':
+            # 그믐달: 안쪽 날('edge' + 빛남)의 밝은 곳이 끝 → 손잡이 → 끝으로 옮겨 가며 초승달 → 그믐 → 초승달,
+            # 사슬 고리('gem')는 한 칸씩 반짝, 나머지(얼음·추·halo)는 천천히 숨쉰다
+            if t.role == 'gem':
+                if (gy // 2) % 6 == int(p * 12) % 6:
+                    return WHITE, 0
+                return None, -0.1
+            if t.role == 'edge':
+                e0, e1 = ctx.span(('edge',), 0)
+                sx = (t.pos[0] - e0) / (e1 - e0)
+                c = 0.5 + 0.5 * math.cos(2 * math.pi * p)
+                lit = abs(math.cos(math.pi * p))
+                b = _gauss(sx - c, 0.22) * lit
+                if b > 0.7:
+                    return WHITE, 0
+                return None, 0.35 * b - 0.3 * (1 - lit) - 0.05
+            return None, 0.1 * math.cos(2 * math.pi * p)
         return None
 
     return vfn
@@ -290,4 +403,7 @@ def animate(baked_or_texels, effect, frames, look, seed, frame_fn):
     """frame_fn(vfn)->Image.  Returns list of frames for the effect."""
     texels = baked_or_texels
     ctx = FxCtx(texels, look, frames, seed)
-    return [frame_fn(make_vfn(effect, ctx, f)) for f in range(frames)]
+    out = [frame_fn(make_vfn(effect, ctx, f)) for f in range(frames)]
+    if effect in FALLBACK and all(fr.tobytes() == out[0].tobytes() for fr in out[1:]):
+        out = [frame_fn(make_vfn(FALLBACK[effect], ctx, f)) for f in range(frames)]
+    return out

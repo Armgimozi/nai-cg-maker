@@ -1,0 +1,2403 @@
+{
+ "_meta": {
+  "source": "myth-037 최종 명세 final_spec.json (myth-037 final v1) 사본 (한 번 만든 것). 그 뒤 고친 것은 _meta.fixes 에 적는다. tools/gen_037_mythic.py (MYTH037 단계, gen_035_content.generate() 의 BP036 뒤) 가 읽는다.",
+  "owner_decision": "신화 무기 6 → 12 (직업마다 둘, 짝과 다른 무기 종류) · 옛 6 = 넬카르 드롭(한 자루마다 20%) + 대장간(신화 도안) · 새 6 = 대장간(신화 도안)만 · 넬카르를 안 잡아도 만든다 · 모든 난이도",
+  "band_median": {
+   "now_30": 774.385,
+   "after_36": 812.485,
+   "pack3_now_30": 972.45,
+   "source": "wdps/py/weapons_dps.json (띠 46–50 30개) · final_work/sim/final_dps.json (같은 모델 사본, 새 6 + 기존 신화 6 같은 실행 — 기존 6은 원래 값과 같음)"
+  },
+  "fixes": [
+   "FX37 PvP: 소환(summon)은 사거리 안 적에게 바로 맞으므로 맞을 확률 1.0 × 수, 따라오는 장판은 min(0.9, 0.45 + 0.1·반지름)으로 다시 셈 → 도깨비불 등롱 RIGHT 0.85 → 0.4 · SNEAK_RIGHT 0.2 → 0.1, 만조의 큰낫 SNEAK_LEFT 0.85 → 0.45, 새벽의 종 SNEAK_RIGHT 없음 → 0.45 (pvp_spec skill_mult 같음)",
+   "FX37 홀림불: 장판 at aim → target (노린 적 발밑, 없으면 노린 곳 — 울림 낙인과 같은 방식)",
+   "FX37 새벽의 종 고유 이름 새벽빛 → 맑은 울림 (전설 '여명의 빛' 과 겹침, unique_assign 같음)",
+   "FX37 새벽의 종 그림: 해 원반·햇살·후광을 빼고 종 꼭대기 고리·보석으로, 텍스처를 짙은 장밋빛 청동으로 (치천사의 홀 크림·금과 갈리게)",
+   "CR37 (주인 결정: 노가다 줄이기 · 넬카르 없이도 제작 · 새 6 은 도안 제작만 · 옛 6 은 한 자루마다 20%): 레시피에서 심연 심장 파편을 뺌 · 문지기의 룬 16 · 태고 정수 40 · 체액 200 · 큰 부위 150 · 작은 부위 50 · 주괴 30 · 용혈석 2 · 110,000G · 새 6 은 모든 드롭 표에서 뺌 (sources [craft]) · 옛 6 은 넬카르 item 줄 여섯 (각 20%) · 8·9층 보스 신화 드롭 없앰 · 신화 도안: 새 6 은 한 줄(빌드 몫 같음), 옛 6 은 한 장씩 — 8·9·10층 보스 · 특별 시련 · 금고·미믹 (넬카르는 12 모두)",
+   "FXC37 (CR37 리뷰): 넬카르 표의 옛 신화 6 item 줄을 표 맨 위로 (도감 보스 쪽은 드롭 6줄만 보임 — 확률은 같음) · 신화 도안 확률 약 1.1배 (운 나쁜 10% 를 줄임, 기대 회차는 목표 안) · 쓰지 않던 home_floor 칸 지움"
+  ]
+ },
+ "mythics": [
+  "celestial_oathkeeper",
+  "mountainheart_maul",
+  "bloodmoon_reaver",
+  "hightide_scythe",
+  "tempest_bow",
+  "comet_longbow",
+  "voidheart_staff",
+  "wisp_lantern",
+  "seraph_scepter",
+  "daybreak_bell",
+  "eclipse_blade",
+  "waning_moon_sickle"
+ ],
+ "new": [
+  "mountainheart_maul",
+  "hightide_scythe",
+  "comet_longbow",
+  "wisp_lantern",
+  "daybreak_bell",
+  "waning_moon_sickle"
+ ],
+ "class": {
+  "celestial_oathkeeper": "guardian",
+  "mountainheart_maul": "guardian",
+  "bloodmoon_reaver": "berserker",
+  "hightide_scythe": "berserker",
+  "tempest_bow": "hunter",
+  "comet_longbow": "hunter",
+  "voidheart_staff": "arcanist",
+  "wisp_lantern": "arcanist",
+  "seraph_scepter": "priest",
+  "daybreak_bell": "priest",
+  "eclipse_blade": "shadow",
+  "waning_moon_sickle": "shadow"
+ },
+ "pair": {
+  "mountainheart_maul": "celestial_oathkeeper",
+  "hightide_scythe": "bloodmoon_reaver",
+  "comet_longbow": "tempest_bow",
+  "wisp_lantern": "voidheart_staff",
+  "daybreak_bell": "seraph_scepter",
+  "waning_moon_sickle": "eclipse_blade"
+ },
+ "items": {
+  "mountainheart_maul": {
+   "name": "태산의 대망치",
+   "type": "weapon",
+   "attack": {
+    "style": "melee",
+    "interval": 1.18,
+    "kind": "physical"
+   },
+   "rarity": "mythic",
+   "level_req": 48,
+   "requires": {
+    "VIT": 78,
+    "STR": 52
+   },
+   "tier": 10,
+   "stats": {
+    "damage": [
+     246,
+     270
+    ],
+    "STR": [
+     17,
+     23
+    ],
+    "VIT": [
+     10,
+     14
+    ],
+    "hp": [
+     233,
+     315
+    ],
+    "defense": [
+     26,
+     36
+    ],
+    "crit_damage": [
+     0.259,
+     0.35
+    ],
+    "cooldown_reduction": [
+     0.079,
+     0.107
+    ]
+   },
+   "aura": "mountain",
+   "pool": false,
+   "sources": [
+    "craft"
+   ],
+   "unique": {
+    "id": "bash_stun",
+    "name": "산울림",
+    "n": 3,
+    "stun": 0.6,
+    "pct": 0.32,
+    "vuln": 0.05
+   },
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "산 내려찍기",
+     "input": "RIGHT",
+     "cooldown": 10.0,
+     "mana": 22,
+     "pvp_mult": 0.65,
+     "description": "망치를 앞으로 내리찍어 부채꼴 안 적을 1초 기절시키고 나를 노리게 한다. 잠시 뒤 여진이 한 번 더 퍼진다.",
+     "mechanics": [
+      {
+       "type": "cone",
+       "range": 5.5,
+       "angle": 120,
+       "display": "mountain_burst",
+       "particle": "BLOCK:dripstone_block",
+       "effects": [
+        {
+         "damage": 3.4
+        },
+        {
+         "stun": 1.0
+        },
+        {
+         "taunt": 3
+        }
+       ]
+      },
+      {
+       "type": "sound",
+       "sound": "item.mace.smash_ground_heavy",
+       "pitch": 0.8,
+       "volume": 1.0
+      },
+      {
+       "type": "delay",
+       "ticks": 12
+      },
+      {
+       "type": "nova",
+       "at": "self",
+       "radius": 4.5,
+       "expand_ticks": 6,
+       "display": "mountain_burst",
+       "particle": "BLOCK:dripstone_block",
+       "effects": [
+        {
+         "damage": 0.9
+        },
+        {
+         "slow": 2
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "mechanics",
+     "name": "바위 던지기",
+     "input": "SNEAK_LEFT",
+     "cooldown": 14.0,
+     "mana": 25,
+     "description": "큰 바위를 뜯어 던진다. 떨어진 자리의 적은 1.2초 기절하고 나를 노린다.",
+     "mechanics": [
+      {
+       "type": "projectile",
+       "speed": 1.3,
+       "gravity": 0.03,
+       "range": 18,
+       "hit_radius": 1.2,
+       "display": "mountain_boulder",
+       "display_scale": 1.2,
+       "spin": 12,
+       "particle": "BLOCK:dripstone_block",
+       "effects": [
+        {
+         "damage": 1.2
+        }
+       ],
+       "on_impact": [
+        {
+         "type": "nova",
+         "radius": 3.5,
+         "expand_ticks": 4,
+         "display": "mountain_burst",
+         "effects": [
+          {
+           "damage": 1.6
+          },
+          {
+           "stun": 1.2
+          },
+          {
+           "taunt": 3
+          }
+         ]
+        },
+        {
+         "type": "sound",
+         "sound": "entity.generic.explode",
+         "pitch": 0.6,
+         "volume": 0.8
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "mechanics",
+     "name": "태산 울림",
+     "input": "SNEAK_RIGHT",
+     "cooldown": 50.0,
+     "mana": 45,
+     "pvp_mult": 0.4,
+     "description": "4초간 받는 피해 25% 감소. 땅을 네 번 울려 둘레 적을 느리게 하고 받는 피해를 10% 늘린 뒤, 마지막에 땅이 솟구친다.",
+     "mechanics": [
+      {
+       "type": "self",
+       "effects": [
+        {
+         "buff": {
+          "stats": {
+           "damage_reduction": 0.25
+          },
+          "seconds": 4
+         }
+        }
+       ]
+      },
+      {
+       "type": "repeat",
+       "times": 4,
+       "interval": 15,
+       "mechanics": [
+        {
+         "type": "nova",
+         "at": "self",
+         "radius": 7,
+         "expand_ticks": 6,
+         "display": "mountain_ring",
+         "particle": "BLOCK:dripstone_block",
+         "effects": [
+          {
+           "damage": 0.9
+          },
+          {
+           "slow": 1.5
+          },
+          {
+           "effect": {
+            "id": "vulnerable",
+            "seconds": 5,
+            "potency": 0.1
+           }
+          },
+          {
+           "taunt": 2
+          }
+         ]
+        },
+        {
+         "type": "sound",
+         "sound": "item.mace.smash_ground",
+         "pitch": 0.6,
+         "volume": 1.0
+        }
+       ]
+      },
+      {
+       "type": "delay",
+       "ticks": 60
+      },
+      {
+       "type": "nova",
+       "at": "self",
+       "radius": 5,
+       "expand_ticks": 8,
+       "display": "mountain_burst",
+       "particle": "EXPLOSION",
+       "effects": [
+        {
+         "damage": 3.6
+        },
+        {
+         "launch": 0.7
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "model": {
+    "shape": "great_maul",
+    "length": 1.15
+   },
+   "texture": {
+    "style": "crystal",
+    "palette": [
+     "#140e08",
+     "#4a3a22",
+     "#9a7436",
+     "#f0b444",
+     "#fff2c8"
+    ],
+    "animated": true,
+    "frames": 16,
+    "frametime": 2,
+    "effect": "geode_heart"
+   },
+   "lore": "산 하나를 통째로 깎아 망치 머리로 삼았다. 내리칠 때마다 미궁 바닥이 낮게 운다."
+  },
+  "hightide_scythe": {
+   "name": "만조의 큰낫",
+   "type": "weapon",
+   "attack": {
+    "style": "melee",
+    "interval": 1.0,
+    "kind": "physical"
+   },
+   "rarity": "mythic",
+   "level_req": 48,
+   "requires": {
+    "STR": 65,
+    "VIT": 39,
+    "DEX": 26
+   },
+   "tier": 10,
+   "stats": {
+    "damage": [
+     208,
+     229
+    ],
+    "STR": [
+     17,
+     23
+    ],
+    "defense": [
+     26,
+     36
+    ],
+    "crit_chance": [
+     0.079,
+     0.107
+    ],
+    "hp": [
+     233,
+     315
+    ],
+    "damage_reduction": [
+     0.058,
+     0.078
+    ],
+    "move_speed": [
+     0.051,
+     0.068
+    ]
+   },
+   "aura": "hightide",
+   "pool": false,
+   "sources": [
+    "craft"
+   ],
+   "unique": {
+    "id": "cleave",
+    "name": "물살 베기",
+    "pct": 0.24,
+    "radius": 3.5,
+    "targets": 4
+   },
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "물살 휘두르기",
+     "input": "LEFT",
+     "cooldown": 1.5,
+     "mana": 0,
+     "description": "휘두를 때마다 앞쪽 넓게 물살이 쓸고 지나간다 (짧은 재사용).",
+     "mechanics": [
+      {
+       "type": "cone",
+       "range": 5.0,
+       "angle": 180,
+       "display": "hightide_slash",
+       "display_scale": 0.9,
+       "particle": "SPLASH",
+       "effects": [
+        {
+         "damage": 0.42
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "mechanics",
+     "name": "썰물 베기",
+     "input": "RIGHT",
+     "cooldown": 9.0,
+     "mana": 20,
+     "pvp_mult": 0.85,
+     "description": "낫을 한 바퀴 크게 돌려 주위 적을 베고 내 쪽으로 끌어당긴다.",
+     "mechanics": [
+      {
+       "type": "nova",
+       "at": "self",
+       "radius": 5,
+       "expand_ticks": 5,
+       "display": "hightide_burst",
+       "particle": "SPLASH",
+       "effects": [
+        {
+         "damage": 2.6
+        },
+        {
+         "pull": 0.6
+        },
+        {
+         "bleed": 4
+        }
+       ]
+      },
+      {
+       "type": "sound",
+       "sound": "entity.player.attack.sweep",
+       "pitch": 0.6,
+       "volume": 1.0
+      }
+     ]
+    },
+    {
+     "id": "mechanics",
+     "name": "소용돌이 춤",
+     "input": "SNEAK_LEFT",
+     "cooldown": 16.0,
+     "mana": 28,
+     "pvp_mult": 0.45,
+     "description": "4초간 낫을 휘돌리며 걷는다. 곁에 닿는 적은 계속 베이고, 그동안 빨라지고 덜 다친다.",
+     "mechanics": [
+      {
+       "type": "self",
+       "effects": [
+        {
+         "buff": {
+          "stats": {
+           "move_speed": 0.15,
+           "damage_reduction": 0.15
+          },
+          "seconds": 4
+         }
+        }
+       ]
+      },
+      {
+       "type": "zone",
+       "at": "self",
+       "follow": true,
+       "radius": 3.5,
+       "duration": 4,
+       "interval": 8,
+       "display": "hightide_ring",
+       "particle": "BUBBLE_POP",
+       "effects": [
+        {
+         "damage": 0.65
+        }
+       ]
+      },
+      {
+       "type": "sound",
+       "sound": "entity.player.attack.sweep",
+       "pitch": 1.2,
+       "volume": 1.0
+      }
+     ]
+    },
+    {
+     "id": "mechanics",
+     "name": "만조",
+     "input": "SNEAK_RIGHT",
+     "cooldown": 40.0,
+     "mana": 45,
+     "pvp_mult": 0.45,
+     "description": "발밑에 큰 물살을 일으켜 주변 적을 빨아들인 뒤, 물기둥과 함께 한 번에 베어 올린다.",
+     "mechanics": [
+      {
+       "type": "vortex",
+       "at": "self",
+       "radius": 8,
+       "duration": 2.5,
+       "strength": 0.35,
+       "interval": 10,
+       "display": "hightide_ring",
+       "particle": "BUBBLE_COLUMN_UP",
+       "effects": [
+        {
+         "damage": 0.4
+        }
+       ],
+       "end": [
+        {
+         "type": "nova",
+         "radius": 6,
+         "expand_ticks": 6,
+         "display": "hightide_burst",
+         "particle": "SPLASH",
+         "effects": [
+          {
+           "damage": 4.2
+          },
+          {
+           "launch": 0.8
+          },
+          {
+           "bleed": 5
+          }
+         ]
+        },
+        {
+         "type": "sound",
+         "sound": "entity.generic.splash",
+         "pitch": 0.5,
+         "volume": 1.0
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "model": {
+    "shape": "war_scythe",
+    "length": 1.15
+   },
+   "texture": {
+    "style": "coral",
+    "palette": [
+     "#04121e",
+     "#0e3a5a",
+     "#1e7a9a",
+     "#5ad8e0",
+     "#e0fff8"
+    ],
+    "animated": true,
+    "frames": 16,
+    "frametime": 2,
+    "effect": "tide_surge"
+   },
+   "lore": "바닷물이 미궁 밑바닥까지 차오르던 날, 그 물살을 베어 낸 낫. 휘두르면 물살이 따라 돈다."
+  },
+  "comet_longbow": {
+   "name": "꼬리별 장궁",
+   "type": "weapon",
+   "attack": {
+    "style": "ranged",
+    "interval": 1.3,
+    "kind": "physical"
+   },
+   "rarity": "mythic",
+   "level_req": 48,
+   "requires": {
+    "DEX": 78,
+    "STR": 52
+   },
+   "tier": 10,
+   "stats": {
+    "damage": [
+     260,
+     286
+    ],
+    "DEX": [
+     17,
+     23
+    ],
+    "STR": [
+     10,
+     14
+    ],
+    "crit_chance": [
+     0.079,
+     0.107
+    ],
+    "crit_damage": [
+     0.259,
+     0.35
+    ],
+    "skill_damage": [
+     0.137,
+     0.185
+    ],
+    "LUK": [
+     10,
+     14
+    ]
+   },
+   "aura": "comet",
+   "pool": false,
+   "sources": [
+    "craft"
+   ],
+   "unique": {
+    "id": "longshot",
+    "name": "먼 별",
+    "dist": 12,
+    "pct": 0.16,
+    "pierce": 0
+   },
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "별똥 표식",
+     "input": "LEFT",
+     "cooldown": 8.0,
+     "mana": 10,
+     "description": "당기지 않고 빠른 화살을 쏜다. 맞은 적은 6초간 표식이 붙어 모두에게 10% 더 다친다.",
+     "mechanics": [
+      {
+       "type": "projectile",
+       "speed": 3.6,
+       "range": 40,
+       "hit_radius": 0.7,
+       "display": "comet_arrow",
+       "particle": "END_ROD",
+       "effects": [
+        {
+         "damage": 0.6,
+         "damage_type": "ranged"
+        },
+        {
+         "glow": 6,
+         "potency": 0.1
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "mechanics",
+     "name": "물러서며 쏘기",
+     "input": "SNEAK_LEFT",
+     "cooldown": 14.0,
+     "mana": 18,
+     "description": "뒤로 크게 뛰며 화살 세 대를 부채꼴로 흩뿌린다. 맞은 적은 느려진다.",
+     "mechanics": [
+      {
+       "type": "velocity",
+       "forward": -1.2,
+       "upward": 0.5
+      },
+      {
+       "type": "projectile",
+       "count": 3,
+       "spread": 24,
+       "speed": 3.0,
+       "range": 28,
+       "hit_radius": 0.8,
+       "display": "comet_arrow",
+       "particle": "END_ROD",
+       "effects": [
+        {
+         "damage": 1.1,
+         "damage_type": "ranged"
+        },
+        {
+         "slow": 1.5
+        }
+       ]
+      },
+      {
+       "type": "sound",
+       "sound": "entity.arrow.shoot",
+       "pitch": 0.7,
+       "volume": 1.0
+      }
+     ]
+    },
+    {
+     "id": "mechanics",
+     "name": "꼬리별 저격",
+     "input": "SNEAK_RIGHT",
+     "cooldown": 7.0,
+     "mana": 20,
+     "description": "웅크려 끝까지 당겨 쏜다. 화살이 꼬리를 끌며 줄 위의 적 셋까지 꿰뚫는다.",
+     "mechanics": [
+      {
+       "type": "projectile",
+       "speed": 4.2,
+       "range": 48,
+       "pierce": 2,
+       "hit_radius": 0.8,
+       "display": "comet_arrow",
+       "display_scale": 1.4,
+       "particle": "FLAME",
+       "particle_count": 3,
+       "effects": [
+        {
+         "damage": 2.6,
+         "damage_type": "ranged"
+        }
+       ]
+      },
+      {
+       "type": "sound",
+       "sound": "item.crossbow.shoot",
+       "pitch": 0.6,
+       "volume": 1.0
+      }
+     ]
+    }
+   ],
+   "model": {
+    "shape": "longbow",
+    "length": 1.2
+   },
+   "texture": {
+    "style": "ember",
+    "palette": [
+     "#0a0a20",
+     "#2a2a6a",
+     "#ff8a3a",
+     "#ffd890",
+     "#ffffff"
+    ],
+    "animated": true,
+    "frames": 16,
+    "frametime": 1,
+    "effect": "comet_trail"
+   },
+   "lore": "하늘을 가로지르던 꼬리별 하나를 시위에 걸었다. 쏜 화살은 꼬리를 끌며 아주 먼 데까지 곧게 날아간다."
+  },
+  "wisp_lantern": {
+   "name": "도깨비불 등롱",
+   "type": "weapon",
+   "attack": {
+    "style": "caster",
+    "interval": 0.91,
+    "kind": "magic"
+   },
+   "rarity": "mythic",
+   "level_req": 48,
+   "requires": {
+    "INT": 65,
+    "WIS": 39,
+    "VIT": 26
+   },
+   "tier": 10,
+   "stats": {
+    "damage": [
+     157,
+     173
+    ],
+    "INT": [
+     17,
+     23
+    ],
+    "mp": [
+     117,
+     159
+    ],
+    "mana_regen": [
+     1.2,
+     1.7
+    ],
+    "cooldown_reduction": [
+     0.079,
+     0.107
+    ],
+    "skill_damage": [
+     0.137,
+     0.185
+    ],
+    "move_speed": [
+     0.051,
+     0.068
+    ]
+   },
+   "aura": "wisp",
+   "pool": false,
+   "sources": [
+    "craft"
+   ],
+   "unique": {
+    "id": "siphon",
+    "name": "불씨 거두기",
+    "mp": 0.04,
+    "cdr": 0.4
+   },
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "불씨 풀기",
+     "input": "RIGHT",
+     "cooldown": 16.0,
+     "mana": 24,
+     "pvp_mult": 0.4,
+     "description": "등롱에서 도깨비불 셋을 풀어 놓는다. 8초간 곁을 맴돌며 12칸 안 적에게 불을 쏜다.",
+     "mechanics": [
+      {
+       "type": "summon",
+       "count": 3,
+       "duration": 8,
+       "interval": 20,
+       "range": 12,
+       "display": "wisp_orb",
+       "effects": [
+        {
+         "damage": 0.24,
+         "magic": true
+        }
+       ]
+      },
+      {
+       "type": "sound",
+       "sound": "entity.allay.ambient_with_item",
+       "pitch": 0.8,
+       "volume": 1.0
+      }
+     ]
+    },
+    {
+     "id": "mechanics",
+     "name": "홀림불",
+     "input": "SNEAK_LEFT",
+     "cooldown": 14.0,
+     "mana": 22,
+     "description": "노린 적 발밑에 홀림불을 깔아 둔다. 5초간 안의 적은 느려지고, 표식이 붙어 모두에게 10% 더 다친다.",
+     "mechanics": [
+      {
+       "type": "zone",
+       "at": "target",
+       "range": 14,
+       "radius": 4,
+       "duration": 5,
+       "interval": 10,
+       "display": "wisp_ring",
+       "particle": "DUST:#a8f060:1.1",
+       "effects": [
+        {
+         "damage": 0.32,
+         "magic": true
+        },
+        {
+         "slow": 1
+        },
+        {
+         "glow": 3,
+         "potency": 0.1
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "mechanics",
+     "name": "도깨비 잔치",
+     "input": "SNEAK_RIGHT",
+     "cooldown": 48.0,
+     "mana": 44,
+     "pvp_mult": 0.1,
+     "description": "등롱 뚜껑을 활짝 연다. 둘레의 적을 밀어내고, 6초간 도깨비불 여섯이 빠르게 불을 쏜다.",
+     "mechanics": [
+      {
+       "type": "nova",
+       "at": "self",
+       "radius": 5,
+       "expand_ticks": 6,
+       "display": "wisp_burst",
+       "particle": "DUST:#a8f060:1.4",
+       "effects": [
+        {
+         "damage": 1.2,
+         "magic": true
+        },
+        {
+         "knockback": 0.8
+        }
+       ]
+      },
+      {
+       "type": "summon",
+       "count": 6,
+       "duration": 6,
+       "interval": 10,
+       "range": 14,
+       "display": "wisp_orb",
+       "effects": [
+        {
+         "damage": 0.28,
+         "magic": true
+        }
+       ]
+      },
+      {
+       "type": "sound",
+       "sound": "entity.allay.item_thrown",
+       "pitch": 0.6,
+       "volume": 1.0
+      }
+     ]
+    }
+   ],
+   "model": {
+    "shape": "lamp_crook",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "moss",
+    "palette": [
+     "#061008",
+     "#12401a",
+     "#3aa040",
+     "#a8f060",
+     "#f0ffd0"
+    ],
+    "animated": true,
+    "frames": 16,
+    "frametime": 2,
+    "effect": "wisp_flicker"
+   },
+   "lore": "길손을 홀리던 도깨비불을 모조리 잡아 가둔 등롱. 뚜껑을 열면 불들이 앞다투어 적에게 달려든다."
+  },
+  "daybreak_bell": {
+   "name": "새벽의 종",
+   "type": "weapon",
+   "attack": {
+    "style": "caster",
+    "interval": 0.8,
+    "kind": "magic"
+   },
+   "rarity": "mythic",
+   "level_req": 48,
+   "requires": {
+    "WIS": 65,
+    "INT": 39,
+    "VIT": 26
+   },
+   "tier": 10,
+   "stats": {
+    "damage": [
+     138,
+     152
+    ],
+    "WIS": [
+     17,
+     23
+    ],
+    "INT": [
+     10,
+     14
+    ],
+    "skill_damage": [
+     0.137,
+     0.185
+    ],
+    "heal_power": [
+     44,
+     59
+    ],
+    "cooldown_reduction": [
+     0.079,
+     0.107
+    ],
+    "mana_regen": [
+     1.2,
+     1.7
+    ]
+   },
+   "aura": "daybreak",
+   "pool": false,
+   "sources": [
+    "craft"
+   ],
+   "unique": {
+    "id": "sanctify",
+    "name": "맑은 울림",
+    "pct": 0.095,
+    "radius": 8
+   },
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "새벽 종소리",
+     "input": "RIGHT",
+     "cooldown": 12.0,
+     "mana": 28,
+     "description": "종을 크게 울린다. 둘레의 적은 다치고 밀려나며, 10칸 안 아군은 5% 회복하고 6초간 피해 +8%.",
+     "mechanics": [
+      {
+       "type": "nova",
+       "at": "self",
+       "radius": 6,
+       "expand_ticks": 6,
+       "display": "daybreak_burst",
+       "particle": "WAX_OFF",
+       "effects": [
+        {
+         "damage": 2.4,
+         "magic": true
+        },
+        {
+         "knockback": 0.4
+        }
+       ]
+      },
+      {
+       "type": "party",
+       "radius": 10,
+       "particle": "WAX_OFF",
+       "effects": [
+        {
+         "heal": 0.05
+        },
+        {
+         "buff": {
+          "stats": {
+           "damage": 0.08
+          },
+          "seconds": 6,
+          "tag": "daybreak_bell"
+         }
+        }
+       ]
+      },
+      {
+       "type": "sound",
+       "sound": "block.bell.use",
+       "pitch": 0.8,
+       "volume": 1.0
+      }
+     ]
+    },
+    {
+     "id": "mechanics",
+     "name": "울림 낙인",
+     "input": "SNEAK_LEFT",
+     "cooldown": 16.0,
+     "mana": 26,
+     "description": "노린 적 위로 빛의 종을 떨어뜨린다. 맞은 적은 6초간 모두에게 15% 더 다친다.",
+     "mechanics": [
+      {
+       "type": "strike",
+       "at": "target",
+       "range": 18,
+       "visual": "pillar",
+       "display": "daybreak_beam",
+       "particle": "WAX_OFF",
+       "impact_radius": 2.5,
+       "effects": [
+        {
+         "damage": 3.2,
+         "magic": true
+        },
+        {
+         "effect": {
+          "id": "vulnerable",
+          "seconds": 6,
+          "potency": 0.15
+         }
+        }
+       ],
+       "on_impact": [
+        {
+         "type": "nova",
+         "radius": 4,
+         "expand_ticks": 5,
+         "display": "daybreak_burst",
+         "particle": "WAX_OFF",
+         "effects": [
+          {
+           "damage": 0.6,
+           "magic": true
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "type": "sound",
+       "sound": "block.bell.resonate",
+       "pitch": 1.2,
+       "volume": 1.0
+      }
+     ]
+    },
+    {
+     "id": "mechanics",
+     "name": "아침 성가",
+     "input": "SNEAK_RIGHT",
+     "cooldown": 55.0,
+     "mana": 55,
+     "pvp_mult": 0.45,
+     "description": "8초간 종이 쉬지 않고 울린다. 곁의 적은 느려지고 다치며, 아군은 초당 3% 회복하고 피해 +8%. 끝나면 아군을 정화한다.",
+     "mechanics": [
+      {
+       "type": "zone",
+       "at": "self",
+       "follow": true,
+       "radius": 8,
+       "duration": 8,
+       "interval": 20,
+       "display": "daybreak_ring",
+       "particle": "WAX_OFF",
+       "effects": [
+        {
+         "damage": 0.7,
+         "magic": true
+        },
+        {
+         "slow": 1.2
+        }
+       ],
+       "ally_effects": [
+        {
+         "heal": 0.03
+        },
+        {
+         "buff": {
+          "stats": {
+           "damage": 0.08
+          },
+          "seconds": 1.5,
+          "tag": "daybreak_chant"
+         }
+        }
+       ],
+       "end": [
+        {
+         "type": "party",
+         "radius": 8,
+         "effects": [
+          {
+           "cleanse": true
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "type": "sound",
+       "sound": "block.bell.use",
+       "pitch": 0.6,
+       "volume": 1.0
+      }
+     ]
+    }
+   ],
+   "model": {
+    "shape": "bell_scepter",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "crystal",
+    "palette": [
+     "#2a1210",
+     "#74302a",
+     "#b8604a",
+     "#e8a088",
+     "#fff0e6"
+    ],
+    "animated": true,
+    "frames": 16,
+    "frametime": 2,
+    "effect": "bell_toll"
+   },
+   "lore": "미궁에 처음 아침이 들던 날 울렸다는 종. 한 번 울리면 다친 이는 일어서고 적은 귀를 막는다."
+  },
+  "waning_moon_sickle": {
+   "name": "그믐달 사슬낫",
+   "type": "weapon",
+   "attack": {
+    "style": "melee",
+    "interval": 0.5,
+    "kind": "physical"
+   },
+   "rarity": "mythic",
+   "level_req": 48,
+   "requires": {
+    "LUK": 65,
+    "DEX": 39,
+    "STR": 26
+   },
+   "tier": 10,
+   "stats": {
+    "damage": [
+     99,
+     109
+    ],
+    "DEX": [
+     17,
+     23
+    ],
+    "LUK": [
+     10,
+     14
+    ],
+    "crit_chance": [
+     0.079,
+     0.107
+    ],
+    "crit_damage": [
+     0.259,
+     0.35
+    ],
+    "skill_damage": [
+     0.137,
+     0.185
+    ],
+    "move_speed": [
+     0.051,
+     0.068
+    ]
+   },
+   "aura": "waning",
+   "pool": false,
+   "sources": [
+    "craft"
+   ],
+   "unique": {
+    "id": "hemorrhage",
+    "name": "달그림자",
+    "cc": 0.05,
+    "cd": 0.1
+   },
+   "weapon_skills": [
+    {
+     "id": "mechanics",
+     "name": "사슬 던지기",
+     "input": "LEFT",
+     "cooldown": 1.2,
+     "mana": 0,
+     "description": "휘두를 때마다 사슬 끝의 낫이 9칸 앞까지 날아가 한 명을 더 꿰뚫는다 (짧은 재사용). 맞은 적은 피를 흘린다.",
+     "mechanics": [
+      {
+       "type": "projectile",
+       "speed": 2.0,
+       "range": 9,
+       "pierce": 1,
+       "hit_radius": 0.9,
+       "display": "waning_slash",
+       "display_scale": 0.6,
+       "spin": 30,
+       "impact_at_end": false,
+       "effects": [
+        {
+         "damage": 0.25
+        },
+        {
+         "bleed": 3
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "mechanics",
+     "name": "사슬 끌어오기",
+     "input": "RIGHT",
+     "cooldown": 9.0,
+     "mana": 20,
+     "description": "사슬을 던져 14칸 안의 적을 내 앞으로 끌어온다. 끌려온 적은 잠깐 묶이고 피를 흘린다.",
+     "mechanics": [
+      {
+       "type": "chain",
+       "jumps": 1,
+       "first_range": 14,
+       "range": 4,
+       "falloff": 0.6,
+       "interval": 3,
+       "particle": "DUST:#b0d8e0:1.0",
+       "effects": [
+        {
+         "damage": 1.4
+        },
+        {
+         "pull": 1.1
+        },
+        {
+         "root": 0.8
+        },
+        {
+         "bleed": 4
+        }
+       ]
+      },
+      {
+       "type": "sound",
+       "sound": "block.chain.break",
+       "pitch": 0.7,
+       "volume": 1.0
+      }
+     ]
+    },
+    {
+     "id": "mechanics",
+     "name": "사슬 타기",
+     "input": "SNEAK_LEFT",
+     "cooldown": 12.0,
+     "mana": 22,
+     "pvp_mult": 0.9,
+     "description": "사슬을 걸고 앞으로 미끄러져 들어가며 베고, 끝에서 달 모양으로 크게 휘두른다.",
+     "mechanics": [
+      {
+       "type": "dash",
+       "distance": 8,
+       "ticks": 4,
+       "particle": "DUST:#b0d8e0:1.2",
+       "effects": [
+        {
+         "damage": 0.8
+        }
+       ],
+       "on_end": [
+        {
+         "type": "cone",
+         "range": 5,
+         "angle": 160,
+         "display": "waning_slash",
+         "display_scale": 1.2,
+         "particle": "DUST:#b0d8e0:1.4",
+         "effects": [
+          {
+           "damage": 1.6
+          },
+          {
+           "bleed": 4
+          },
+          {
+           "slow": 1.5
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "type": "sound",
+       "sound": "entity.player.attack.sweep",
+       "pitch": 1.4,
+       "volume": 1.0
+      }
+     ]
+    },
+    {
+     "id": "mechanics",
+     "name": "그믐",
+     "input": "SNEAK_RIGHT",
+     "cooldown": 45.0,
+     "mana": 40,
+     "pvp_mult": 0.45,
+     "description": "노린 적을 사슬로 칭칭 묶는다. 2초간 사슬이 여섯 번 조여 들고, 마지막 일격은 HP 30% 아래인 적에게 훨씬 세다.",
+     "mechanics": [
+      {
+       "type": "target",
+       "range": 16,
+       "effects": [
+        {
+         "root": 2.0
+        },
+        {
+         "glow": 4,
+         "potency": 0.1
+        },
+        {
+         "bleed": 6
+        }
+       ]
+      },
+      {
+       "type": "repeat",
+       "times": 6,
+       "interval": 6,
+       "mechanics": [
+        {
+         "type": "target",
+         "range": 16,
+         "effects": [
+          {
+           "damage": 0.4
+          },
+          {
+           "particle": "DUST:#b0d8e0:1.2"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "type": "delay",
+       "ticks": 38
+      },
+      {
+       "type": "target",
+       "range": 16,
+       "effects": [
+        {
+         "damage": 1.6
+        },
+        {
+         "execute": {
+          "amount": 1.2,
+          "threshold": 0.3
+         }
+        }
+       ]
+      },
+      {
+       "type": "sound",
+       "sound": "block.chain.place",
+       "pitch": 0.5,
+       "volume": 1.0
+      }
+     ]
+    }
+   ],
+   "model": {
+    "shape": "sickle",
+    "length": 1.0
+   },
+   "texture": {
+    "style": "shadow",
+    "palette": [
+     "#020408",
+     "#0e1a24",
+     "#3a5a6a",
+     "#b0d8e0",
+     "#f0fbff"
+    ],
+    "animated": true,
+    "frames": 16,
+    "frametime": 2,
+    "effect": "moon_phase"
+   },
+   "lore": "달이 가장 가늘어지는 밤에만 벼린다는 낫. 사슬 끝에 걸린 것은 달빛이 닿지 않는 곳으로 끌려간다."
+  }
+ },
+ "loot": {
+  "floor10_boss": {
+   "replace": {
+    "from": {
+     "one_of": [
+      "celestial_oathkeeper",
+      "bloodmoon_reaver",
+      "tempest_bow",
+      "voidheart_staff",
+      "seraph_scepter",
+      "eclipse_blade"
+     ],
+     "chance": 0.04
+    },
+    "to": {
+     "item": "celestial_oathkeeper",
+     "chance": 0.2
+    },
+    "note": "옛 신화 — 한 자루마다 따로 20% (주인 결정), 모든 난이도",
+    "top": true,
+    "after": {
+     "one_of": [
+      "abyss_sentinel_longsword",
+      "aurora_scepter",
+      "viper_fang"
+     ],
+     "chance": 0.34
+    }
+   },
+   "prepend": [
+    {
+     "entry": {
+      "item": "bloodmoon_reaver",
+      "chance": 0.2
+     }
+    },
+    {
+     "entry": {
+      "item": "tempest_bow",
+      "chance": 0.2
+     }
+    },
+    {
+     "entry": {
+      "item": "voidheart_staff",
+      "chance": 0.2
+     }
+    },
+    {
+     "entry": {
+      "item": "seraph_scepter",
+      "chance": 0.2
+     }
+    },
+    {
+     "entry": {
+      "item": "eclipse_blade",
+      "chance": 0.2
+     }
+    }
+   ],
+   "append": [
+    {
+     "entry": {
+      "blueprint_of": [
+       "mountainheart_maul",
+       "hightide_scythe",
+       "comet_longbow",
+       "wisp_lantern",
+       "daybreak_bell",
+       "waning_moon_sickle"
+      ],
+      "chance": 0.32
+     },
+     "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "celestial_oathkeeper"
+      ],
+      "chance": 0.11
+     },
+     "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "bloodmoon_reaver"
+      ],
+      "chance": 0.11
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "tempest_bow"
+      ],
+      "chance": 0.11
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "voidheart_staff"
+      ],
+      "chance": 0.11
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "seraph_scepter"
+      ],
+      "chance": 0.11
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "eclipse_blade"
+      ],
+      "chance": 0.11
+     }
+    }
+   ]
+  },
+  "floor09_boss": {
+   "append": [
+    {
+     "entry": {
+      "blueprint_of": [
+       "mountainheart_maul",
+       "hightide_scythe",
+       "comet_longbow",
+       "wisp_lantern",
+       "daybreak_bell",
+       "waning_moon_sickle"
+      ],
+      "chance": 0.22
+     },
+     "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "celestial_oathkeeper"
+      ],
+      "chance": 0.08
+     },
+     "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "bloodmoon_reaver"
+      ],
+      "chance": 0.08
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "tempest_bow"
+      ],
+      "chance": 0.08
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "voidheart_staff"
+      ],
+      "chance": 0.08
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "seraph_scepter"
+      ],
+      "chance": 0.08
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "eclipse_blade"
+      ],
+      "chance": 0.08
+     }
+    }
+   ]
+  },
+  "floor08_boss": {
+   "append": [
+    {
+     "entry": {
+      "blueprint_of": [
+       "mountainheart_maul",
+       "hightide_scythe",
+       "comet_longbow",
+       "wisp_lantern",
+       "daybreak_bell",
+       "waning_moon_sickle"
+      ],
+      "chance": 0.11
+     },
+     "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "celestial_oathkeeper"
+      ],
+      "chance": 0.045
+     },
+     "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "bloodmoon_reaver"
+      ],
+      "chance": 0.045
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "tempest_bow"
+      ],
+      "chance": 0.045
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "voidheart_staff"
+      ],
+      "chance": 0.045
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "seraph_scepter"
+      ],
+      "chance": 0.045
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "eclipse_blade"
+      ],
+      "chance": 0.045
+     }
+    }
+   ]
+  },
+  "special_trial_f10": {
+   "append": [
+    {
+     "entry": {
+      "blueprint_of": [
+       "mountainheart_maul",
+       "hightide_scythe",
+       "comet_longbow",
+       "wisp_lantern",
+       "daybreak_bell",
+       "waning_moon_sickle"
+      ],
+      "chance": 0.14
+     },
+     "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "celestial_oathkeeper"
+      ],
+      "chance": 0.055
+     },
+     "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "bloodmoon_reaver"
+      ],
+      "chance": 0.055
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "tempest_bow"
+      ],
+      "chance": 0.055
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "voidheart_staff"
+      ],
+      "chance": 0.055
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "seraph_scepter"
+      ],
+      "chance": 0.055
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "eclipse_blade"
+      ],
+      "chance": 0.055
+     }
+    }
+   ]
+  },
+  "special_trial_f09": {
+   "append": [
+    {
+     "entry": {
+      "blueprint_of": [
+       "mountainheart_maul",
+       "hightide_scythe",
+       "comet_longbow",
+       "wisp_lantern",
+       "daybreak_bell",
+       "waning_moon_sickle"
+      ],
+      "chance": 0.14
+     },
+     "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "celestial_oathkeeper"
+      ],
+      "chance": 0.055
+     },
+     "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "bloodmoon_reaver"
+      ],
+      "chance": 0.055
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "tempest_bow"
+      ],
+      "chance": 0.055
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "voidheart_staff"
+      ],
+      "chance": 0.055
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "seraph_scepter"
+      ],
+      "chance": 0.055
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "eclipse_blade"
+      ],
+      "chance": 0.055
+     }
+    }
+   ]
+  },
+  "special_trial_f08": {
+   "append": [
+    {
+     "entry": {
+      "blueprint_of": [
+       "mountainheart_maul",
+       "hightide_scythe",
+       "comet_longbow",
+       "wisp_lantern",
+       "daybreak_bell",
+       "waning_moon_sickle"
+      ],
+      "chance": 0.14
+     },
+     "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "celestial_oathkeeper"
+      ],
+      "chance": 0.055
+     },
+     "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "bloodmoon_reaver"
+      ],
+      "chance": 0.055
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "tempest_bow"
+      ],
+      "chance": 0.055
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "voidheart_staff"
+      ],
+      "chance": 0.055
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "seraph_scepter"
+      ],
+      "chance": 0.055
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "eclipse_blade"
+      ],
+      "chance": 0.055
+     }
+    }
+   ]
+  },
+  "hoard_f10": {
+   "append": [
+    {
+     "entry": {
+      "blueprint_of": [
+       "mountainheart_maul",
+       "hightide_scythe",
+       "comet_longbow",
+       "wisp_lantern",
+       "daybreak_bell",
+       "waning_moon_sickle"
+      ],
+      "chance": 0.007
+     },
+     "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "celestial_oathkeeper"
+      ],
+      "chance": 0.0028
+     },
+     "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "bloodmoon_reaver"
+      ],
+      "chance": 0.0028
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "tempest_bow"
+      ],
+      "chance": 0.0028
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "voidheart_staff"
+      ],
+      "chance": 0.0028
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "seraph_scepter"
+      ],
+      "chance": 0.0028
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "eclipse_blade"
+      ],
+      "chance": 0.0028
+     }
+    }
+   ]
+  },
+  "hoard_f09": {
+   "append": [
+    {
+     "entry": {
+      "blueprint_of": [
+       "mountainheart_maul",
+       "hightide_scythe",
+       "comet_longbow",
+       "wisp_lantern",
+       "daybreak_bell",
+       "waning_moon_sickle"
+      ],
+      "chance": 0.007
+     },
+     "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "celestial_oathkeeper"
+      ],
+      "chance": 0.0028
+     },
+     "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "bloodmoon_reaver"
+      ],
+      "chance": 0.0028
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "tempest_bow"
+      ],
+      "chance": 0.0028
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "voidheart_staff"
+      ],
+      "chance": 0.0028
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "seraph_scepter"
+      ],
+      "chance": 0.0028
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "eclipse_blade"
+      ],
+      "chance": 0.0028
+     }
+    }
+   ]
+  },
+  "hoard_f08": {
+   "append": [
+    {
+     "entry": {
+      "blueprint_of": [
+       "mountainheart_maul",
+       "hightide_scythe",
+       "comet_longbow",
+       "wisp_lantern",
+       "daybreak_bell",
+       "waning_moon_sickle"
+      ],
+      "chance": 0.007
+     },
+     "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "celestial_oathkeeper"
+      ],
+      "chance": 0.0028
+     },
+     "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "bloodmoon_reaver"
+      ],
+      "chance": 0.0028
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "tempest_bow"
+      ],
+      "chance": 0.0028
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "voidheart_staff"
+      ],
+      "chance": 0.0028
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "seraph_scepter"
+      ],
+      "chance": 0.0028
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "eclipse_blade"
+      ],
+      "chance": 0.0028
+     }
+    }
+   ]
+  }
+ },
+ "recipe_header": "  # ═════════ 신화 무기 (0.3.7 — 신화 도안을 배워야 만든다 · 10층 재료 + 오리하르콘 주괴 · 용혈석 · tools/gen_037_mythic.py) ═════════",
+ "recipes": {
+  "celestial_oathkeeper": {
+   "result": "celestial_oathkeeper",
+   "category": "weapon",
+   "station": "blacksmith",
+   "materials": {
+    "gatekeeper_rune": 16,
+    "primordial_essence": 40,
+    "abyss_ichor": 200,
+    "abyss_scale": 150,
+    "sculk_tendril": 50,
+    "orichalcum_ingot": 30,
+    "dragonblood_stone": 2
+   },
+   "gold": 110000,
+   "level_req": 48
+  },
+  "mountainheart_maul": {
+   "result": "mountainheart_maul",
+   "category": "weapon",
+   "station": "blacksmith",
+   "materials": {
+    "gatekeeper_rune": 16,
+    "primordial_essence": 40,
+    "abyss_ichor": 200,
+    "abyss_scale": 150,
+    "sculk_tendril": 50,
+    "orichalcum_ingot": 30,
+    "dragonblood_stone": 2
+   },
+   "gold": 110000,
+   "level_req": 48
+  },
+  "bloodmoon_reaver": {
+   "result": "bloodmoon_reaver",
+   "category": "weapon",
+   "station": "blacksmith",
+   "materials": {
+    "gatekeeper_rune": 16,
+    "primordial_essence": 40,
+    "abyss_ichor": 200,
+    "abyss_scale": 150,
+    "sculk_tendril": 50,
+    "orichalcum_ingot": 30,
+    "dragonblood_stone": 2
+   },
+   "gold": 110000,
+   "level_req": 48
+  },
+  "hightide_scythe": {
+   "result": "hightide_scythe",
+   "category": "weapon",
+   "station": "blacksmith",
+   "materials": {
+    "gatekeeper_rune": 16,
+    "primordial_essence": 40,
+    "abyss_ichor": 200,
+    "abyss_scale": 150,
+    "sculk_tendril": 50,
+    "orichalcum_ingot": 30,
+    "dragonblood_stone": 2
+   },
+   "gold": 110000,
+   "level_req": 48
+  },
+  "tempest_bow": {
+   "result": "tempest_bow",
+   "category": "weapon",
+   "station": "blacksmith",
+   "materials": {
+    "gatekeeper_rune": 16,
+    "primordial_essence": 40,
+    "abyss_ichor": 200,
+    "sculk_tendril": 150,
+    "abyss_scale": 50,
+    "orichalcum_ingot": 30,
+    "dragonblood_stone": 2
+   },
+   "gold": 110000,
+   "level_req": 48
+  },
+  "comet_longbow": {
+   "result": "comet_longbow",
+   "category": "weapon",
+   "station": "blacksmith",
+   "materials": {
+    "gatekeeper_rune": 16,
+    "primordial_essence": 40,
+    "abyss_ichor": 200,
+    "sculk_tendril": 150,
+    "abyss_scale": 50,
+    "orichalcum_ingot": 30,
+    "dragonblood_stone": 2
+   },
+   "gold": 110000,
+   "level_req": 48
+  },
+  "voidheart_staff": {
+   "result": "voidheart_staff",
+   "category": "weapon",
+   "station": "blacksmith",
+   "materials": {
+    "gatekeeper_rune": 16,
+    "primordial_essence": 40,
+    "abyss_ichor": 200,
+    "sculk_tendril": 150,
+    "abyss_scale": 50,
+    "orichalcum_ingot": 30,
+    "dragonblood_stone": 2
+   },
+   "gold": 110000,
+   "level_req": 48
+  },
+  "wisp_lantern": {
+   "result": "wisp_lantern",
+   "category": "weapon",
+   "station": "blacksmith",
+   "materials": {
+    "gatekeeper_rune": 16,
+    "primordial_essence": 40,
+    "abyss_ichor": 200,
+    "sculk_tendril": 150,
+    "abyss_scale": 50,
+    "orichalcum_ingot": 30,
+    "dragonblood_stone": 2
+   },
+   "gold": 110000,
+   "level_req": 48
+  },
+  "seraph_scepter": {
+   "result": "seraph_scepter",
+   "category": "weapon",
+   "station": "blacksmith",
+   "materials": {
+    "gatekeeper_rune": 16,
+    "primordial_essence": 40,
+    "abyss_ichor": 200,
+    "sculk_tendril": 150,
+    "abyss_scale": 50,
+    "orichalcum_ingot": 30,
+    "dragonblood_stone": 2
+   },
+   "gold": 110000,
+   "level_req": 48
+  },
+  "daybreak_bell": {
+   "result": "daybreak_bell",
+   "category": "weapon",
+   "station": "blacksmith",
+   "materials": {
+    "gatekeeper_rune": 16,
+    "primordial_essence": 40,
+    "abyss_ichor": 200,
+    "sculk_tendril": 150,
+    "abyss_scale": 50,
+    "orichalcum_ingot": 30,
+    "dragonblood_stone": 2
+   },
+   "gold": 110000,
+   "level_req": 48
+  },
+  "eclipse_blade": {
+   "result": "eclipse_blade",
+   "category": "weapon",
+   "station": "blacksmith",
+   "materials": {
+    "gatekeeper_rune": 16,
+    "primordial_essence": 40,
+    "abyss_ichor": 200,
+    "abyss_scale": 150,
+    "sculk_tendril": 50,
+    "orichalcum_ingot": 30,
+    "dragonblood_stone": 2
+   },
+   "gold": 110000,
+   "level_req": 48
+  },
+  "waning_moon_sickle": {
+   "result": "waning_moon_sickle",
+   "category": "weapon",
+   "station": "blacksmith",
+   "materials": {
+    "gatekeeper_rune": 16,
+    "primordial_essence": 40,
+    "abyss_ichor": 200,
+    "abyss_scale": 150,
+    "sculk_tendril": 50,
+    "orichalcum_ingot": 30,
+    "dragonblood_stone": 2
+   },
+   "gold": 110000,
+   "level_req": 48
+  }
+ },
+ "skill_kinds": {
+  "mountainheart_maul:RIGHT": "physical",
+  "mountainheart_maul:SNEAK_LEFT": "physical",
+  "mountainheart_maul:SNEAK_RIGHT": "physical",
+  "hightide_scythe:LEFT": "physical",
+  "hightide_scythe:RIGHT": "physical",
+  "hightide_scythe:SNEAK_LEFT": "physical",
+  "hightide_scythe:SNEAK_RIGHT": "physical",
+  "comet_longbow:LEFT": "physical",
+  "comet_longbow:SNEAK_LEFT": "physical",
+  "comet_longbow:SNEAK_RIGHT": "physical",
+  "wisp_lantern:RIGHT": "magic",
+  "wisp_lantern:SNEAK_LEFT": "magic",
+  "wisp_lantern:SNEAK_RIGHT": "magic",
+  "daybreak_bell:RIGHT": "magic",
+  "daybreak_bell:SNEAK_LEFT": "magic",
+  "daybreak_bell:SNEAK_RIGHT": "magic",
+  "waning_moon_sickle:LEFT": "physical",
+  "waning_moon_sickle:RIGHT": "physical",
+  "waning_moon_sickle:SNEAK_LEFT": "physical",
+  "waning_moon_sickle:SNEAK_RIGHT": "physical"
+ },
+ "economy": {
+  "_note": "CR37 (craft2/final) · FXC37 (craft2/fx) 모델 값 — 코드는 읽지 않는다. 회당 굴림: 보스 1 · 특별 시련 0.257 · 금고·미믹 3.42/3.32/3.22 (10/9/8층). FXC37: 도안 확률을 약 1.1배 (운 나쁜 10% 를 줄임)",
+  "cores": 0,
+  "gold": 110000,
+  "old_item_each_f10": 0.2,
+  "old_items_per_kill": 1.2,
+  "old_at_least_one_per_kill": 0.7379,
+  "new6_bp_list": {
+   "floor10_boss": 0.32,
+   "floor09_boss": 0.22,
+   "floor08_boss": 0.11,
+   "special": 0.14,
+   "hoard": 0.007
+  },
+  "old6_bp_each": {
+   "floor10_boss": 0.11,
+   "floor09_boss": 0.08,
+   "floor08_boss": 0.045,
+   "special": 0.055,
+   "hoard": 0.0028
+  },
+  "own_share_new6_list": 0.3833
+ },
+ "dps": {
+  "mountainheart_maul": {
+   "single": 1221.89,
+   "idx_now": 157.8,
+   "idx_after": 150.4,
+   "pack3": 1925.8,
+   "class_idx": 157.8
+  },
+  "hightide_scythe": {
+   "single": 1499.91,
+   "idx_now": 193.7,
+   "idx_after": 184.6,
+   "pack3": 3151.92,
+   "class_idx": 193.7
+  },
+  "comet_longbow": {
+   "single": 1320.15,
+   "idx_now": 170.5,
+   "idx_after": 162.5,
+   "pack3": 1781.01,
+   "class_idx": 208.0
+  },
+  "wisp_lantern": {
+   "single": 1535.95,
+   "idx_now": 198.3,
+   "idx_after": 189.0,
+   "pack3": 1966.27,
+   "class_idx": 205.5
+  },
+  "daybreak_bell": {
+   "single": 1042.91,
+   "idx_now": 134.7,
+   "idx_after": 128.4,
+   "pack3": 1887.34,
+   "class_idx": 161.1
+  },
+  "waning_moon_sickle": {
+   "single": 1499.97,
+   "idx_now": 193.7,
+   "idx_after": 184.6,
+   "pack3": 1933.38,
+   "class_idx": 230.9
+  }
+ }
+}

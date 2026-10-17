@@ -124,11 +124,11 @@ class UniqueEffectCatalogTest {
             assertNull(content.item(old), old + " 은 활로 바뀌었다");
             assertTrue(data.containsKey(old), old);
         }
-        assertEquals(245, n);
+        assertEquals(251, n, "무기 245 + 0.3.7 신화 6");
         assertEquals(131, existing);
-        assertEquals(230, assigned, "배정 237 − 활로 바뀐 7");
-        assertEquals(237, data.size(), "기존 131 + 새 106");
-        assertEquals(106, data.values().stream().filter(UniqueData.Entry::isNew).count());
+        assertEquals(236, assigned, "배정 243 − 활로 바뀐 7");
+        assertEquals(243, data.size(), "기존 131 + 새 106 + 0.3.7 신화 6");
+        assertEquals(112, data.values().stream().filter(UniqueData.Entry::isNew).count());
     }
 
     @Test

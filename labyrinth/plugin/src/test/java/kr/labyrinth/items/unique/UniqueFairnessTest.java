@@ -47,7 +47,7 @@ class UniqueFairnessTest {
             n++;
             assertTrue(e.strength() >= 0.5 - 1e-9 && e.strength() <= 0.8 + 1e-9, e.weaponId() + " 강도 " + e.strength());
         }
-        assertEquals(6, n);
+        assertEquals(12, n, "신화 무기 (0.3.7 — 직업마다 둘)");
         for (UniqueData.Entry e : UniqueData.all().values()) {
             assertTrue(e.strength() >= 0.4 - 1e-9 && e.strength() <= 2.8 + 1e-9, e.weaponId() + " 강도 " + e.strength());
         }

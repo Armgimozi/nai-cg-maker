@@ -438,12 +438,21 @@ public final class ContentParser {
             }
             return new LootTable.Entry(LootTable.Kind.PICK, null, null, 0, List.of(), null, chance, amount, minDiff, picks);
         }
+        if (e.asMap().containsKey("blueprint_of")) {
+            // 0.3.7 신화: {blueprint_of: [레시피 id…], chance} — 적힌 레시피 중 하나의 도안 (빈 목록·비어 있는 키 = 문제)
+            List<String> ids = e.strings("blueprint_of");
+            if (ids.isEmpty()) {
+                problem("loot.yml", table, "blueprint_of 가 비어 있음: " + e);
+                return null;
+            }
+            return new LootTable.Entry(LootTable.Kind.BLUEPRINT_OF, null, null, 0, ids, null, chance, amount, minDiff);
+        }
         if (e.has("blueprint")) {
             // 0.3.6 Q6: {blueprint: 단계, chance} — 그 단계(이웃 2 : 7 : 1)의 도안 하나
             return new LootTable.Entry(LootTable.Kind.BLUEPRINT, null, null, e.integer("blueprint", 1), List.of(), null,
                     chance, amount, minDiff);
         }
-        problem("loot.yml", table, "항목 종류를 알 수 없음(item/rarity_pool/one_of/table/pick/blueprint): " + e);
+        problem("loot.yml", table, "항목 종류를 알 수 없음(item/rarity_pool/one_of/table/pick/blueprint/blueprint_of): " + e);
         return null;
     }
 

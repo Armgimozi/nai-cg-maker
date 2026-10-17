@@ -12,9 +12,11 @@
 # 제작 결과 장비의 stats 는 드롭과 같은 [최소, 최대] 범위에서 굴린다. 재료 경제 설계 = GDD §11.11
 # 재료는 그 장비 단계 층(items.yml tier)의 몹 재료 · 정예 재료 · 보스 핵 · 그 층 등급 정수만 쓴다 (다른 층 재료 금지).
 # 보스 핵은 그 보스 고유 장비 전용이다 — 1~4층 보스 장비는 핵 2개, 5층 이상 보스 장비는 핵 1개 + 재료. 정예 장비에는 핵을 쓰지 않는다.
-# 레시피가 없는 장비: 1층 Lv1 공용 무기 · 몬스터·상자 전용 공용 무기(2·3·4·5·7층) · 영웅 이상 보스 고유 무기(2~10층, 보스만 — 핵은 보스 방어구·장신구·강화에)
-#                   · 신화 · 넬카르의 심장 · 칭호 보상 · 수련생(시작 지급).  6·8·9·10층 공용 무기(영웅)는 대장간 전용 (몹·상자에서 안 나옴)
-# 영웅·전설·신화 무기는 획득처가 1곳이다 — 여기 있는 영웅 무기는 드롭이 없고, 보스 고유 무기는 여기 없다.
+# 레시피가 없는 장비: 1층 Lv1 공용 무기 · 몬스터·상자 전용 공용 무기(2·3·4·5·7층) · 영웅·전설 보스 고유 무기(2~10층, 보스만 — 핵은 보스 방어구·장신구·강화에)
+#                   · 넬카르의 심장 · 칭호 보상 · 수련생(시작 지급).  6·8·9·10층 공용 무기(영웅)는 대장간 전용 (몹·상자에서 안 나옴)
+# 영웅·전설 무기는 획득처가 1곳이다 — 여기 있는 영웅 무기는 드롭이 없고, 보스 고유 무기는 여기 없다.
+# 신화 무기 12 (0.3.7)는 맨 끝 '신화 무기' 칸 (신화 도안을 배워야 보인다). 옛 6 은 넬카르도 떨어뜨리고, 새 6 은 여기서만 만든다.
+#   재료는 10층 몹·정예·상자 것 + 오리하르콘 주괴 · 용혈석 — 넬카르 핵은 없다 (못 잡아도 만든다). 다른 층 재료 금지는 그대로.
 # ─────────────────────────────────────────────────────────────────────────────
 version: 1
 
@@ -1481,3 +1483,89 @@ recipes:
     station: smelter
     materials: {mithril_pickaxe: 1, orichalcum_ingot: 12, dragonblood_stone: 2, radiant_essence: 3}
     gold: 10000
+
+  # ═════════ 신화 무기 (0.3.7 — 신화 도안을 배워야 만든다 · 10층 재료 + 오리하르콘 주괴 · 용혈석 · tools/gen_037_mythic.py) ═════════
+  celestial_oathkeeper:   # 천궁의 맹세수호검
+    result: celestial_oathkeeper
+    category: weapon
+    station: blacksmith
+    materials: {gatekeeper_rune: 16, primordial_essence: 40, abyss_ichor: 200, abyss_scale: 150, sculk_tendril: 50, orichalcum_ingot: 30, dragonblood_stone: 2}
+    gold: 110000
+    level_req: 48
+  mountainheart_maul:   # 태산의 대망치
+    result: mountainheart_maul
+    category: weapon
+    station: blacksmith
+    materials: {gatekeeper_rune: 16, primordial_essence: 40, abyss_ichor: 200, abyss_scale: 150, sculk_tendril: 50, orichalcum_ingot: 30, dragonblood_stone: 2}
+    gold: 110000
+    level_req: 48
+  bloodmoon_reaver:   # 혈월의 수확자
+    result: bloodmoon_reaver
+    category: weapon
+    station: blacksmith
+    materials: {gatekeeper_rune: 16, primordial_essence: 40, abyss_ichor: 200, abyss_scale: 150, sculk_tendril: 50, orichalcum_ingot: 30, dragonblood_stone: 2}
+    gold: 110000
+    level_req: 48
+  hightide_scythe:   # 만조의 큰낫
+    result: hightide_scythe
+    category: weapon
+    station: blacksmith
+    materials: {gatekeeper_rune: 16, primordial_essence: 40, abyss_ichor: 200, abyss_scale: 150, sculk_tendril: 50, orichalcum_ingot: 30, dragonblood_stone: 2}
+    gold: 110000
+    level_req: 48
+  tempest_bow:   # 폭풍의 눈
+    result: tempest_bow
+    category: weapon
+    station: blacksmith
+    materials: {gatekeeper_rune: 16, primordial_essence: 40, abyss_ichor: 200, sculk_tendril: 150, abyss_scale: 50, orichalcum_ingot: 30, dragonblood_stone: 2}
+    gold: 110000
+    level_req: 48
+  comet_longbow:   # 꼬리별 장궁
+    result: comet_longbow
+    category: weapon
+    station: blacksmith
+    materials: {gatekeeper_rune: 16, primordial_essence: 40, abyss_ichor: 200, sculk_tendril: 150, abyss_scale: 50, orichalcum_ingot: 30, dragonblood_stone: 2}
+    gold: 110000
+    level_req: 48
+  voidheart_staff:   # 공허의 심장 지팡이
+    result: voidheart_staff
+    category: weapon
+    station: blacksmith
+    materials: {gatekeeper_rune: 16, primordial_essence: 40, abyss_ichor: 200, sculk_tendril: 150, abyss_scale: 50, orichalcum_ingot: 30, dragonblood_stone: 2}
+    gold: 110000
+    level_req: 48
+  wisp_lantern:   # 도깨비불 등롱
+    result: wisp_lantern
+    category: weapon
+    station: blacksmith
+    materials: {gatekeeper_rune: 16, primordial_essence: 40, abyss_ichor: 200, sculk_tendril: 150, abyss_scale: 50, orichalcum_ingot: 30, dragonblood_stone: 2}
+    gold: 110000
+    level_req: 48
+  seraph_scepter:   # 치천사의 홀
+    result: seraph_scepter
+    category: weapon
+    station: blacksmith
+    materials: {gatekeeper_rune: 16, primordial_essence: 40, abyss_ichor: 200, sculk_tendril: 150, abyss_scale: 50, orichalcum_ingot: 30, dragonblood_stone: 2}
+    gold: 110000
+    level_req: 48
+  daybreak_bell:   # 새벽의 종
+    result: daybreak_bell
+    category: weapon
+    station: blacksmith
+    materials: {gatekeeper_rune: 16, primordial_essence: 40, abyss_ichor: 200, sculk_tendril: 150, abyss_scale: 50, orichalcum_ingot: 30, dragonblood_stone: 2}
+    gold: 110000
+    level_req: 48
+  eclipse_blade:   # 일식의 칼날
+    result: eclipse_blade
+    category: weapon
+    station: blacksmith
+    materials: {gatekeeper_rune: 16, primordial_essence: 40, abyss_ichor: 200, abyss_scale: 150, sculk_tendril: 50, orichalcum_ingot: 30, dragonblood_stone: 2}
+    gold: 110000
+    level_req: 48
+  waning_moon_sickle:   # 그믐달 사슬낫
+    result: waning_moon_sickle
+    category: weapon
+    station: blacksmith
+    materials: {gatekeeper_rune: 16, primordial_essence: 40, abyss_ichor: 200, abyss_scale: 150, sculk_tendril: 50, orichalcum_ingot: 30, dragonblood_stone: 2}
+    gold: 110000
+    level_req: 48

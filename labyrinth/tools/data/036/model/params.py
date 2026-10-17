@@ -79,7 +79,7 @@ GEMS = [
     {'rank': 5, 'id': 'sapphire', 'ko': '청옥', 'rarity': 'epic', 'color': '#4A7CFF',
      'lore': '깊은 바다빛 보석. 최상급 강화석을 새기거나 곡괭이를 벼릴 때 쓴다.'},
     {'rank': 6, 'id': 'dragonblood_stone', 'ko': '용혈석', 'rarity': 'legendary', 'color': '#FF3B2F',
-     'lore': '잠든 용의 피가 굳었다는 붉은 돌. 안쪽에서 불씨가 맥박친다. 최상급 강화석을 새기거나 곡괭이를 벼릴 때 쓴다.'},
+     'lore': '잠든 용의 피가 굳었다는 붉은 돌. 안쪽에서 불씨가 맥박친다. 최상급 강화석을 새기거나 곡괭이·신화 무기를 벼릴 때 쓴다.'},
 ]
 GEM = {g['id']: g for g in GEMS}
 GEM_BY_RANK = {g['rank']: g for g in GEMS}

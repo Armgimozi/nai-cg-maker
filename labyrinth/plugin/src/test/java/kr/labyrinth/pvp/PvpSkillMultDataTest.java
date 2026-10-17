@@ -2,6 +2,7 @@ package kr.labyrinth.pvp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.gson.JsonObject;
@@ -55,7 +56,7 @@ class PvpSkillMultDataTest {
     void dataEqualsSpec() {
         Map<String, Double> want = new TreeMap<>();
         for (var e : spec.entrySet()) want.put(e.getKey(), e.getValue().getAsDouble());
-        assertEquals(38, want.size(), "명세 38개 (직업 7 · 무기 31)");
+        assertEquals(48, want.size(), "명세 48개 (직업 7 · 무기 31 + 0.3.7 신화 10)");
         assertEquals(want, dataMults(), "tools/gen_035_pvp.py 로 다시 넣기");
     }
 
@@ -63,7 +64,18 @@ class PvpSkillMultDataTest {
     void classAndWeaponCounts() {
         long cls = spec.keySet().stream().filter(k -> !k.contains(":")).count();
         assertEquals(7, cls);
-        assertEquals(31, spec.size() - cls);
+        assertEquals(41, spec.size() - cls, "무기 31 + 0.3.7 신화 10");
+        // 0.3.7 새 신화 10줄 (myth-037 명세 — pvp_spec §6 규칙, 소환 수·반복 횟수를 바로 센 계수와 비교해 낮은 쪽).
+        // FX37: 소환은 사거리 안 적에게 바로 맞으니 맞을 확률 1.0 × 수, 시전자를 따라오는 장판은 min(0.9, 0.45 + 0.1·반지름)
+        assertEquals(0.65, spec.get("mountainheart_maul:RIGHT").getAsDouble(), 1e-9);
+        assertEquals(0.40, spec.get("mountainheart_maul:SNEAK_RIGHT").getAsDouble(), 1e-9);
+        assertEquals(0.40, spec.get("wisp_lantern:RIGHT").getAsDouble(), 1e-9, "불씨 풀기 3 × 8번 × 0.24 = 5.76");
+        assertEquals(0.10, spec.get("wisp_lantern:SNEAK_RIGHT").getAsDouble(), 1e-9, "도깨비 잔치 6 × 12번 × 0.28 + 밀침 ≈ 21.2");
+        assertEquals(0.45, spec.get("hightide_scythe:SNEAK_LEFT").getAsDouble(), 1e-9, "소용돌이 춤 10번 × 0.65 × 0.8");
+        assertEquals(0.45, spec.get("daybreak_bell:SNEAK_RIGHT").getAsDouble(), 1e-9, "아침 성가 8번 × 0.7 × 0.9");
+        assertEquals(0.45, spec.get("waning_moon_sickle:SNEAK_RIGHT").getAsDouble(), 1e-9);
+        assertNull(spec.get("comet_longbow:SNEAK_RIGHT"), "꼬리별 저격은 한 사람 계수 2.08 — 배율 없음");
+        assertNull(spec.get("daybreak_bell:SNEAK_LEFT"), "새벽의 종은 배율 없음");
         // 궁극기 넷 (pvp_spec §6)
         assertEquals(0.30, mult("arrow_storm"), 1e-9);
         assertEquals(0.35, mult("meteor_fall"), 1e-9);

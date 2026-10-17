@@ -32,6 +32,9 @@ KIND = {
     'void_swirl': 'mote', 'shadow_smoke': 'mote', 'ink_bleed': 'mote', 'sculk_pulse': 'mote',
     'tide_ripple': 'bubble', 'venom_drip': 'drip',
     'lightning_arc': 'bolt', 'spark_crackle': 'bolt', 'wind_streak': 'streak',
+    # 0.3.7 신화 6 (myth-037)
+    'geode_heart': 'spark', 'tide_surge': 'bubble', 'comet_trail': 'streak', 'wisp_flicker': 'flame',
+    'bell_toll': 'spark', 'moon_phase': 'snow',
 }
 
 

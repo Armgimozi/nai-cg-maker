@@ -158,7 +158,13 @@ class LootHomesTest {
             Set<String> kinds = new TreeSet<>();
             for (String x : t) kinds.add(kind(x));
             assertTrue(kinds.size() >= 1 && kinds.size() <= 2, d.id() + " 획득처 종류 " + kinds);
-            if (d.isWeapon() && d.rarity().atLeast(Rarity.EPIC)) assertEquals(1, kinds.size(), d.id() + " 영웅 이상 무기 획득처 종류 " + kinds);
+            if (d.isWeapon() && d.rarity() == Rarity.MYTHIC) {
+                // 0.3.7 CR37: 옛 6 = 넬카르 + 대장간 (신화 도안), 새 6 = 대장간만 (도안 제작)
+                assertTrue(kinds.equals(new TreeSet<>(List.of("boss", "craft"))) || kinds.equals(new TreeSet<>(List.of("craft"))),
+                        d.id() + " 신화 획득처 종류 " + kinds);
+            } else if (d.isWeapon() && d.rarity().atLeast(Rarity.EPIC)) {
+                assertEquals(1, kinds.size(), d.id() + " 영웅 이상 무기 획득처 종류 " + kinds);
+            }
             assertEquals(t, new TreeSet<>(d.sources()), d.id() + " 의 items.yml sources 가 실제 획득처와 다름");
             assertFalse(d.pool(), d.id() + " pool 은 false (rarity_pool 을 쓰지 않음)");
         }
@@ -197,6 +203,7 @@ class LootHomesTest {
             BossDef b = content.bossOfFloor(d.tier());
             assertNotNull(b, d.id());
             assertTrue(expand(b.drops(), new HashSet<>()).contains(d.id()), d.id() + " 이 " + b.drops() + " 에 없음");
+            // CR37: 신화 아이템(옛 6)도 넬카르 표만 — 8·9층 보스는 신화 도안만 준다 (새 6 은 sources 에 boss 가 없어 여기 오지 않음)
             for (Labeled l : labeledTables()) {
                 if (l.table().equals(b.drops())) continue;
                 assertFalse(expand(l.table(), new HashSet<>()).contains(d.id()), d.id() + " 이 " + l.table() + " 에서도 나옴");

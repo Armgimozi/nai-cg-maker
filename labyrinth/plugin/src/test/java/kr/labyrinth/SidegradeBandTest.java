@@ -64,11 +64,11 @@ class SidegradeBandTest {
         for (int band = 1; band <= 10; band++) {
             int top = 0;
             for (ItemDef w : content.items().values()) {
-                if (w.isWeapon() && GearModel.band(w.levelReq()) == band && w.sources().contains("craft")) top = Math.max(top, w.levelReq());
+                if (DropRateWindowTest.forge(w) && GearModel.band(w.levelReq()) == band) top = Math.max(top, w.levelReq());
             }
-            List<Double> forge = new ArrayList<>();
+            List<Double> forge = new ArrayList<>();   // 0.3.7 신화(신화 도안 · 대장간)는 대장간 기준이 아니다
             for (ItemDef w : content.items().values()) {
-                if (w.isWeapon() && w.levelReq() == top && w.sources().contains("craft")) forge.add(cv(w, 0));
+                if (DropRateWindowTest.forge(w) && w.levelReq() == top) forge.add(cv(w, 0));
             }
             assertTrue(!forge.isEmpty(), "띠 " + band + " 대장간 무기 없음");
             double base = median(forge);

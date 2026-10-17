@@ -199,8 +199,13 @@ public final class BlacksmithMenu extends Menu {
 
     private void click(Player p) { p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 0.4f, 1.2f); }
 
-    /** 재료 줄 수 (주괴는 몇 개든 한 줄). */
-    static int materialLines(int plain, int ingots) { return plain + (ingots > 0 ? 1 : 0); }
+    /** 일반 재료가 이만큼 이상이면 한 줄에 둘씩 (0.3.7 신화 레시피 — 재료 7종). */
+    static final int PAIR_FROM = 5;
+
+    /** 재료 줄 수 (주괴는 몇 개든 한 줄 · 일반 재료가 {@link #PAIR_FROM} 이상이면 둘씩 한 줄). */
+    static int materialLines(int plain, int ingots) {
+        return (plain >= PAIR_FROM ? (plain + 1) / 2 : plain) + (ingots > 0 ? 1 : 0);
+    }
 
     /** 대장간 목록 툴팁 꼬리 줄 수 (빈 줄 · 제목(재료 줄 6 미만일 때) · 재료 줄 · 골드 · 제작 안내) — TooltipFitTest 가 쓴다. */
     public static int tailSize(kr.labyrinth.content.Content content, RecipeDef r) {
@@ -233,14 +238,22 @@ public final class BlacksmithMenu extends Menu {
         // 0.3.6: 주괴는 한 줄로 묶는다 · 재료 줄이 많으면 제목 줄을 뺀다 (툴팁이 화면 안에 들어가게 — tailSize)
         if (materialLines(plain.size(), ingots.size()) < 6) tail.add("<#e0a050>━━ 제작 재료 ━━");
         boolean ok = true;
+        String pending = null;   // 일반 재료가 많으면 둘씩 한 줄 (materialLines 와 같은 규칙)
         for (Map.Entry<String, Integer> m : plain) {
             ItemDef md = services.content().item(m.getKey());
             int have = crafting.count(p, m.getKey());
             boolean enough = have >= m.getValue();
             ok &= enough;
-            tail.add((enough ? "<#9be89b>✔ " : "<#ff6b6b>✘ ") + (md == null ? m.getKey() : md.name()) + " <gray>"
-                    + have + "/" + m.getValue());
+            String cell = (enough ? "<#9be89b>✔ " : "<#ff6b6b>✘ ") + (md == null ? m.getKey() : md.name()) + " <gray>"
+                    + have + "/" + m.getValue();
+            if (plain.size() < PAIR_FROM) tail.add(cell);
+            else if (pending == null) pending = cell;
+            else {
+                tail.add(pending + " <dark_gray>·</dark_gray> " + cell);
+                pending = null;
+            }
         }
+        if (pending != null) tail.add(pending);
         if (!ingots.isEmpty()) {
             StringBuilder line = new StringBuilder();
             boolean all = true;

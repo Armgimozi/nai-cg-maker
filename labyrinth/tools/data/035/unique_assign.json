@@ -3,9 +3,10 @@
   "source": "design2/unique_assign_all.json (unique_spec §9, TASK D)",
   "changes": [
    "A12: shield_bash → bash_stun",
-   "B3: inkwell_staff · doomclock_executioner 강도 0.6"
+   "B3: inkwell_staff · doomclock_executioner 강도 0.6",
+   "0.3.7 신화: 새 6 (mythic_037.json) · 기존 신화 6 source_kinds [B] → [B, F] (보스 + 대장간, source_factor 1.0 그대로)"
   ],
-  "weapons": 237,
+  "weapons": 243,
   "note": "items.yml 의 unique 블록은 P3 생성기가 이 파일에서 넣는다 (unique_block)"
  },
  "acolyte_scepter": {
@@ -14753,7 +14754,8 @@
     264
    ],
    "source_kinds": [
-    "B"
+    "B",
+    "F"
    ]
   },
   "power": {
@@ -14819,7 +14821,8 @@
     156
    ],
    "source_kinds": [
-    "B"
+    "B",
+    "F"
    ]
   },
   "power": {
@@ -14881,7 +14884,8 @@
     91
    ],
    "source_kinds": [
-    "B"
+    "B",
+    "F"
    ]
   },
   "power": {
@@ -14945,7 +14949,8 @@
     153
    ],
    "source_kinds": [
-    "B"
+    "B",
+    "F"
    ]
   },
   "power": {
@@ -15011,7 +15016,8 @@
     253
    ],
    "source_kinds": [
-    "B"
+    "B",
+    "F"
    ]
   },
   "power": {
@@ -15131,7 +15137,8 @@
     180
    ],
    "source_kinds": [
-    "B"
+    "B",
+    "F"
    ]
   },
   "power": {
@@ -15154,6 +15161,256 @@
    },
    "strength": 0.8,
    "source": "unique_spec.json (A)"
+  }
+ },
+ "mountainheart_maul": {
+  "effect": "bash_stun",
+  "name": "산울림",
+  "direction": "bulwark",
+  "params": {
+   "n": 3,
+   "stun": 0.6,
+   "pct": 0.32,
+   "vuln": 0.05
+  },
+  "strength": 0.8,
+  "budget": 0.08,
+  "source_factor": 1.0,
+  "basis": "W",
+  "interval_factor_g": 0.568,
+  "damage_kind": "physical",
+  "icd": {
+   "per_target_stun_immunity": 6.0
+  },
+  "hook": "nth_hit",
+  "tooltip": [
+   "✧ 고유 산울림",
+   "  3번째 공격마다 기절 0.6초 + 공격력 32%"
+  ],
+  "tooltip_folded": "✧ 산울림 3타 기절 0.6초",
+  "pvp_rule": "기절 그대로 — PvP 상태이상 규칙(시간 ×0.8 · 최대 1초 · 줄어듦 · 끝나면 2초 면역). 같은 적 6초 면역도 그대로",
+  "weapon": {
+   "new": true,
+   "band": "46–50",
+   "level": 48,
+   "rarity": "mythic",
+   "style": "melee",
+   "attack_kind": "physical",
+   "interval": 1.18,
+   "per_hit": [
+    246,
+    270
+   ],
+   "source_kinds": [
+    "B",
+    "F"
+   ]
+  }
+ },
+ "hightide_scythe": {
+  "effect": "cleave",
+  "name": "물살 베기",
+  "direction": "blast",
+  "params": {
+   "pct": 0.24,
+   "radius": 3.5,
+   "targets": 4
+  },
+  "strength": 0.8,
+  "budget": 0.08,
+  "source_factor": 1.0,
+  "basis": "W",
+  "interval_factor_g": 0.67,
+  "damage_kind": "physical",
+  "icd": {},
+  "hook": "on_hit",
+  "tooltip": [
+   "✧ 고유 물살 베기",
+   "  기본 공격이 주변 3.5칸 적 4명에게 공격력 24%"
+  ],
+  "tooltip_folded": "✧ 물살 베기 주변 4명 24%",
+  "pvp_rule": "덧 피해 ×0.5, PvP 피해 공식·완충을 거침",
+  "weapon": {
+   "new": true,
+   "band": "46–50",
+   "level": 48,
+   "rarity": "mythic",
+   "style": "melee",
+   "attack_kind": "physical",
+   "interval": 1.0,
+   "per_hit": [
+    208,
+    229
+   ],
+   "source_kinds": [
+    "B",
+    "F"
+   ]
+  }
+ },
+ "comet_longbow": {
+  "effect": "longshot",
+  "name": "먼 별",
+  "direction": "ambush",
+  "params": {
+   "dist": 12,
+   "pct": 0.16,
+   "pierce": 0
+  },
+  "strength": 0.8,
+  "budget": 0.08,
+  "source_factor": 1.0,
+  "basis": "mult",
+  "interval_factor_g": 0.536,
+  "damage_kind": "none",
+  "icd": {},
+  "hook": "on_hit",
+  "tooltip": [
+   "✧ 고유 먼 별",
+   "  12칸 밖 적에게 피해 +16%"
+  ],
+  "tooltip_folded": "✧ 먼 별 원거리 +16%",
+  "pvp_rule": "+피해 ×0.5",
+  "weapon": {
+   "new": true,
+   "band": "46–50",
+   "level": 48,
+   "rarity": "mythic",
+   "style": "ranged",
+   "attack_kind": "physical",
+   "interval": 1.3,
+   "per_hit": [
+    260,
+    286
+   ],
+   "source_kinds": [
+    "B",
+    "F"
+   ]
+  }
+ },
+ "wisp_lantern": {
+  "effect": "siphon",
+  "name": "불씨 거두기",
+  "direction": "mana_flow",
+  "params": {
+   "mp": 0.04,
+   "cdr": 0.4
+  },
+  "strength": 0.8,
+  "budget": 0.08,
+  "source_factor": 1.0,
+  "basis": "none",
+  "interval_factor_g": 0.931,
+  "damage_kind": "none",
+  "icd": {
+   "global": 0.5
+  },
+  "hook": "on_kill",
+  "tooltip": [
+   "✧ 고유 불씨 거두기",
+   "  처치 시 MP 4% 회복, 무기 스킬 대기 -0.4초"
+  ],
+  "tooltip_folded": "✧ 불씨 거두기 처치 → MP 4%",
+  "pvp_rule": "그대로 (플레이어 처치에도)",
+  "weapon": {
+   "new": true,
+   "band": "46–50",
+   "level": 48,
+   "rarity": "mythic",
+   "style": "caster",
+   "attack_kind": "magic",
+   "interval": 0.91,
+   "per_hit": [
+    157,
+    173
+   ],
+   "source_kinds": [
+    "B",
+    "F"
+   ]
+  }
+ },
+ "daybreak_bell": {
+  "effect": "sanctify",
+  "name": "맑은 울림",
+  "direction": "support",
+  "params": {
+   "pct": 0.095,
+   "radius": 8
+  },
+  "strength": 0.8,
+  "budget": 0.08,
+  "source_factor": 1.0,
+  "basis": "W",
+  "interval_factor_g": 1.06,
+  "damage_kind": "none",
+  "icd": {
+   "global": 0.25
+  },
+  "hook": "on_hit",
+  "tooltip": [
+   "✧ 고유 맑은 울림",
+   "  적중 시 8칸 안 가장 다친 아군을 공격력 9.5% 치유"
+  ],
+  "tooltip_folded": "✧ 맑은 울림 적중 → 아군 치유",
+  "pvp_rule": "혼자면 자신에게 절반 + 고정량 회복 규칙(× HP÷PvP 체력) + healing 0.6",
+  "weapon": {
+   "new": true,
+   "band": "46–50",
+   "level": 48,
+   "rarity": "mythic",
+   "style": "caster",
+   "attack_kind": "magic",
+   "interval": 0.8,
+   "per_hit": [
+    138,
+    152
+   ],
+   "source_kinds": [
+    "B",
+    "F"
+   ]
+  }
+ },
+ "waning_moon_sickle": {
+  "effect": "hemorrhage",
+  "name": "달그림자",
+  "direction": "bleed_crit",
+  "params": {
+   "cc": 0.05,
+   "cd": 0.1
+  },
+  "strength": 0.5,
+  "budget": 0.05,
+  "source_factor": 1.0,
+  "basis": "mult",
+  "interval_factor_g": 1.409,
+  "damage_kind": "none",
+  "icd": {},
+  "hook": "vs_state",
+  "tooltip": [
+   "✧ 고유 달그림자",
+   "  출혈 중인 적에게 치명 확률 +5%, 치명 피해 +10%"
+  ],
+  "tooltip_folded": "✧ 달그림자 출혈 적에게 치명 +5%",
+  "pvp_rule": "치명 추가 피해는 crit_damage_scale 0.6",
+  "weapon": {
+   "new": true,
+   "band": "46–50",
+   "level": 48,
+   "rarity": "mythic",
+   "style": "melee",
+   "attack_kind": "physical",
+   "interval": 0.5,
+   "per_hit": [
+    99,
+    109
+   ],
+   "source_kinds": [
+    "B",
+    "F"
+   ]
   }
  }
 }

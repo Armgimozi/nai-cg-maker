@@ -29,8 +29,9 @@
 #  set_bonus   : sets: 의 세트 id.   aura : fx.yml auras id (전설·신화 무기)
 #  pool        : false 면 rarity_pool 이 뽑지 않음. 생략 = true. loot.yml 은 rarity_pool 을 쓰지 않으므로 장비는 전부 false (실수로 풀을 다시 써도 안전)
 #  sources     : 획득처 (툴팁·도감 표시용, tools/gen_035_content.py 가 loot/recipes/titles/npcs/시작 지급에서 계산해 적음)
-#                영웅·전설·신화 무기는 획득처 종류 1개 — 보스 고유 = 그 보스만 (제작법 없음) · 대장간 = 대장간만 (드롭 없음) ·
+#                영웅·전설 무기는 획득처 종류 1개 — 보스 고유 = 그 보스만 (제작법 없음) · 대장간 = 대장간만 (드롭 없음) ·
 #                몬스터·상자 · 시련방 · 특별 시련 · 금고·미믹 · 정예 중 하나 (몬스터·상자 = drop+chest 한 종류)
+#                신화 무기(0.3.7, 직업마다 둘)만 따로 — 옛 6 = boss(넬카르) + craft(신화 도안을 배운 대장간) · 새 6 = craft 만
 #                drop·chest 몬스터·상자(mix_fNN_drop → 단계 풀 band_tNN_drop — 일반 몹·보물방·미로 상자) · elite 정예(band_tNN_elite) ·
 #                boss 보스 고유 · trial 시련방(band_tNN_trial) · special 특별 시련(band_tNN_special) · hoard 금고·미믹(band_tNN_hoard)
 #                craft 대장간 · reward 칭호 보상 · shop 상인 · starter 시작 지급(config starter_kit — 몹·상자·대장간에서 안 나옴)
@@ -614,7 +615,7 @@ items:
     stats: {damage: [142, 156], STR: [17, 23], VIT: [10, 14], hp: [233, 315], damage_reduction: [0.058, 0.078], skill_damage: [0.137, 0.185], defense: [26, 36]}
     aura: celestial
     pool: false
-    sources: [boss]
+    sources: [boss, craft]
     unique: {id: ward_aura, name: "천궁의 맹세", pct: 0.02, period: 8, radius: 8, duration: 6}
     weapon_skills:
       - id: slash_wave
@@ -651,6 +652,56 @@ items:
     model: {shape: longsword, length: 1.15}
     texture: {style: holy, palette: ["#0a1430", "#2a4a9a", "#7fb2ff", "#ffe9a8", "#ffffff"], animated: true, frames: 16, frametime: 2, effect: star_twinkle}
     lore: "별이 처음 미궁을 내려다본 밤, 하늘의 기사들이 마지막으로 맹세한 검. 맹세를 지키는 동안 별자리는 결코 지지 않는다."
+  # ── 0.3.7 둘째 신화 (tools/gen_037_mythic.py — 손으로 고치지 않음) ──
+  mountainheart_maul:
+    name: "태산의 대망치"
+    type: weapon
+    attack: {style: melee, interval: 1.18, kind: physical}
+    rarity: mythic
+    level_req: 48
+    requires: {VIT: 78, STR: 52}
+    tier: 10
+    stats: {damage: [246, 270], STR: [17, 23], VIT: [10, 14], hp: [233, 315], defense: [26, 36], crit_damage: [0.259, 0.35], cooldown_reduction: [0.079, 0.107]}
+    aura: mountain
+    pool: false
+    sources: [craft]
+    unique: {id: bash_stun, name: "산울림", n: 3, stun: 0.6, pct: 0.32, vuln: 0.05}
+    weapon_skills:
+      - id: mechanics
+        name: "산 내려찍기"
+        input: RIGHT
+        cooldown: 10.0
+        mana: 22
+        description: "망치를 앞으로 내리찍어 부채꼴 안 적을 1초 기절시키고 나를 노리게 한다. 잠시 뒤 여진이 한 번 더 퍼진다."
+        pvp_mult: 0.65
+        mechanics:
+          - {"type": "cone", "range": 5.5, "angle": 120, "display": "mountain_burst", "particle": "BLOCK:dripstone_block", "effects": [{"damage": 3.4}, {"stun": 1.0}, {"taunt": 3}]}
+          - {"type": "sound", "sound": "item.mace.smash_ground_heavy", "pitch": 0.8, "volume": 1.0}
+          - {"type": "delay", "ticks": 12}
+          - {"type": "nova", "at": "self", "radius": 4.5, "expand_ticks": 6, "display": "mountain_burst", "particle": "BLOCK:dripstone_block", "effects": [{"damage": 0.9}, {"slow": 2}]}
+      - id: mechanics
+        name: "바위 던지기"
+        input: SNEAK_LEFT
+        cooldown: 14.0
+        mana: 25
+        description: "큰 바위를 뜯어 던진다. 떨어진 자리의 적은 1.2초 기절하고 나를 노린다."
+        mechanics:
+          - {"type": "projectile", "speed": 1.3, "gravity": 0.03, "range": 18, "hit_radius": 1.2, "display": "mountain_boulder", "display_scale": 1.2, "spin": 12, "particle": "BLOCK:dripstone_block", "effects": [{"damage": 1.2}], "on_impact": [{"type": "nova", "radius": 3.5, "expand_ticks": 4, "display": "mountain_burst", "effects": [{"damage": 1.6}, {"stun": 1.2}, {"taunt": 3}]}, {"type": "sound", "sound": "entity.generic.explode", "pitch": 0.6, "volume": 0.8}]}
+      - id: mechanics
+        name: "태산 울림"
+        input: SNEAK_RIGHT
+        cooldown: 50.0
+        mana: 45
+        description: "4초간 받는 피해 25% 감소. 땅을 네 번 울려 둘레 적을 느리게 하고 받는 피해를 10% 늘린 뒤, 마지막에 땅이 솟구친다."
+        pvp_mult: 0.4
+        mechanics:
+          - {"type": "self", "effects": [{"buff": {"stats": {"damage_reduction": 0.25}, "seconds": 4}}]}
+          - {"type": "repeat", "times": 4, "interval": 15, "mechanics": [{"type": "nova", "at": "self", "radius": 7, "expand_ticks": 6, "display": "mountain_ring", "particle": "BLOCK:dripstone_block", "effects": [{"damage": 0.9}, {"slow": 1.5}, {"effect": {"id": "vulnerable", "seconds": 5, "potency": 0.1}}, {"taunt": 2}]}, {"type": "sound", "sound": "item.mace.smash_ground", "pitch": 0.6, "volume": 1.0}]}
+          - {"type": "delay", "ticks": 60}
+          - {"type": "nova", "at": "self", "radius": 5, "expand_ticks": 8, "display": "mountain_burst", "particle": "EXPLOSION", "effects": [{"damage": 3.6}, {"launch": 0.7}]}
+    model: {shape: great_maul, length: 1.15}
+    texture: {style: crystal, palette: ["#140e08", "#4a3a22", "#9a7436", "#f0b444", "#fff2c8"], animated: true, frames: 16, frametime: 2, effect: geode_heart}
+    lore: "산 하나를 통째로 깎아 망치 머리로 삼았다. 내리칠 때마다 미궁 바닥이 낮게 운다."
 
   # ═════════ 무기 · 광전사 — greatsword ═════════
   rootcutter_greatsword:
@@ -1196,7 +1247,7 @@ items:
     stats: {damage: [239, 264], STR: [17, 23], crit_damage: [0.259, 0.35], lifesteal: [0.058, 0.078], attack_speed: [0.094, 0.127], hp: [233, 315], crit_chance: [0.079, 0.107]}
     aura: bloodmoon
     pool: false
-    sources: [boss]
+    sources: [boss, craft]
     unique: {id: berserk, name: "혈월 광기", pct: 0.01, ls: 0.025, thr: 0.3}
     weapon_skills:
       - id: mechanics
@@ -1236,6 +1287,62 @@ items:
     model: {shape: great_axe, length: 1.2}
     texture: {style: shadow, palette: ["#1a0006", "#5a0a18", "#b01a3a", "#ff6a6a", "#ffc0a0"], animated: true, frames: 16, frametime: 2, effect: blood_pulse}
     lore: "붉은 달이 뜬 밤에만 미궁 밖으로 나온다는 수확자의 도끼. 피를 마실수록 달이 차오른다."
+  # ── 0.3.7 둘째 신화 (tools/gen_037_mythic.py — 손으로 고치지 않음) ──
+  hightide_scythe:
+    name: "만조의 큰낫"
+    type: weapon
+    attack: {style: melee, interval: 1.0, kind: physical}
+    rarity: mythic
+    level_req: 48
+    requires: {STR: 65, VIT: 39, DEX: 26}
+    tier: 10
+    stats: {damage: [208, 229], STR: [17, 23], defense: [26, 36], crit_chance: [0.079, 0.107], hp: [233, 315], damage_reduction: [0.058, 0.078], move_speed: [0.051, 0.068]}
+    aura: hightide
+    pool: false
+    sources: [craft]
+    unique: {id: cleave, name: "물살 베기", pct: 0.24, radius: 3.5, targets: 4}
+    weapon_skills:
+      - id: mechanics
+        name: "물살 휘두르기"
+        input: LEFT
+        cooldown: 1.5
+        mana: 0
+        description: "휘두를 때마다 앞쪽 넓게 물살이 쓸고 지나간다 (짧은 재사용)."
+        mechanics:
+          - {"type": "cone", "range": 5.0, "angle": 180, "display": "hightide_slash", "display_scale": 0.9, "particle": "SPLASH", "effects": [{"damage": 0.42}]}
+      - id: mechanics
+        name: "썰물 베기"
+        input: RIGHT
+        cooldown: 9.0
+        mana: 20
+        description: "낫을 한 바퀴 크게 돌려 주위 적을 베고 내 쪽으로 끌어당긴다."
+        pvp_mult: 0.85
+        mechanics:
+          - {"type": "nova", "at": "self", "radius": 5, "expand_ticks": 5, "display": "hightide_burst", "particle": "SPLASH", "effects": [{"damage": 2.6}, {"pull": 0.6}, {"bleed": 4}]}
+          - {"type": "sound", "sound": "entity.player.attack.sweep", "pitch": 0.6, "volume": 1.0}
+      - id: mechanics
+        name: "소용돌이 춤"
+        input: SNEAK_LEFT
+        cooldown: 16.0
+        mana: 28
+        description: "4초간 낫을 휘돌리며 걷는다. 곁에 닿는 적은 계속 베이고, 그동안 빨라지고 덜 다친다."
+        pvp_mult: 0.45
+        mechanics:
+          - {"type": "self", "effects": [{"buff": {"stats": {"move_speed": 0.15, "damage_reduction": 0.15}, "seconds": 4}}]}
+          - {"type": "zone", "at": "self", "follow": true, "radius": 3.5, "duration": 4, "interval": 8, "display": "hightide_ring", "particle": "BUBBLE_POP", "effects": [{"damage": 0.65}]}
+          - {"type": "sound", "sound": "entity.player.attack.sweep", "pitch": 1.2, "volume": 1.0}
+      - id: mechanics
+        name: "만조"
+        input: SNEAK_RIGHT
+        cooldown: 40.0
+        mana: 45
+        description: "발밑에 큰 물살을 일으켜 주변 적을 빨아들인 뒤, 물기둥과 함께 한 번에 베어 올린다."
+        pvp_mult: 0.45
+        mechanics:
+          - {"type": "vortex", "at": "self", "radius": 8, "duration": 2.5, "strength": 0.35, "interval": 10, "display": "hightide_ring", "particle": "BUBBLE_COLUMN_UP", "effects": [{"damage": 0.4}], "end": [{"type": "nova", "radius": 6, "expand_ticks": 6, "display": "hightide_burst", "particle": "SPLASH", "effects": [{"damage": 4.2}, {"launch": 0.8}, {"bleed": 5}]}, {"type": "sound", "sound": "entity.generic.splash", "pitch": 0.5, "volume": 1.0}]}
+    model: {shape: war_scythe, length: 1.15}
+    texture: {style: coral, palette: ["#04121e", "#0e3a5a", "#1e7a9a", "#5ad8e0", "#e0fff8"], animated: true, frames: 16, frametime: 2, effect: tide_surge}
+    lore: "바닷물이 미궁 밑바닥까지 차오르던 날, 그 물살을 베어 낸 낫. 휘두르면 물살이 따라 돈다."
 
   # ═════════ 무기 · 사냥꾼 — bow ═════════
   corridor_longbow:
@@ -1711,7 +1818,7 @@ items:
     stats: {damage: [230, 253], DEX: [17, 23], crit_chance: [0.079, 0.107], crit_damage: [0.259, 0.35], attack_speed: [0.094, 0.127], move_speed: [0.051, 0.068], LUK: [10, 14]}
     aura: tempest
     pool: false
-    sources: [boss]
+    sources: [boss, craft]
     unique: {id: chain_spark, name: "폭풍 갈래", chance: 0.3, pct: 0.36, targets: 4}
     weapon_skills:
       - id: missile
@@ -1744,6 +1851,51 @@ items:
     model: {shape: composite_bow, length: 1.15}
     texture: {style: silver, palette: ["#10183a", "#3a5ab0", "#a8d0ff", "#e0f0ff", "#ffffff"], animated: true, frames: 16, frametime: 1, effect: lightning_arc}
     lore: "미궁의 바닥에서 천둥이 울린 날, 떨어진 번개가 활대에 갇혔다. 지금도 시위 위를 번개가 달린다."
+  # ── 0.3.7 둘째 신화 (tools/gen_037_mythic.py — 손으로 고치지 않음) ──
+  comet_longbow:
+    name: "꼬리별 장궁"
+    type: weapon
+    attack: {style: ranged, interval: 1.3, kind: physical}
+    rarity: mythic
+    level_req: 48
+    requires: {DEX: 78, STR: 52}
+    tier: 10
+    stats: {damage: [260, 286], DEX: [17, 23], STR: [10, 14], crit_chance: [0.079, 0.107], crit_damage: [0.259, 0.35], skill_damage: [0.137, 0.185], LUK: [10, 14]}
+    aura: comet
+    pool: false
+    sources: [craft]
+    unique: {id: longshot, name: "먼 별", dist: 12, pct: 0.16, pierce: 0}
+    weapon_skills:
+      - id: mechanics
+        name: "별똥 표식"
+        input: LEFT
+        cooldown: 8.0
+        mana: 10
+        description: "당기지 않고 빠른 화살을 쏜다. 맞은 적은 6초간 표식이 붙어 모두에게 10% 더 다친다."
+        mechanics:
+          - {"type": "projectile", "speed": 3.6, "range": 40, "hit_radius": 0.7, "display": "comet_arrow", "particle": "END_ROD", "effects": [{"damage": 0.6, "damage_type": "ranged"}, {"glow": 6, "potency": 0.1}]}
+      - id: mechanics
+        name: "물러서며 쏘기"
+        input: SNEAK_LEFT
+        cooldown: 14.0
+        mana: 18
+        description: "뒤로 크게 뛰며 화살 세 대를 부채꼴로 흩뿌린다. 맞은 적은 느려진다."
+        mechanics:
+          - {"type": "velocity", "forward": -1.2, "upward": 0.5}
+          - {"type": "projectile", "count": 3, "spread": 24, "speed": 3.0, "range": 28, "hit_radius": 0.8, "display": "comet_arrow", "particle": "END_ROD", "effects": [{"damage": 1.1, "damage_type": "ranged"}, {"slow": 1.5}]}
+          - {"type": "sound", "sound": "entity.arrow.shoot", "pitch": 0.7, "volume": 1.0}
+      - id: mechanics
+        name: "꼬리별 저격"
+        input: SNEAK_RIGHT
+        cooldown: 7.0
+        mana: 20
+        description: "웅크려 끝까지 당겨 쏜다. 화살이 꼬리를 끌며 줄 위의 적 셋까지 꿰뚫는다."
+        mechanics:
+          - {"type": "projectile", "speed": 4.2, "range": 48, "pierce": 2, "hit_radius": 0.8, "display": "comet_arrow", "display_scale": 1.4, "particle": "FLAME", "particle_count": 3, "effects": [{"damage": 2.6, "damage_type": "ranged"}]}
+          - {"type": "sound", "sound": "item.crossbow.shoot", "pitch": 0.6, "volume": 1.0}
+    model: {shape: longbow, length: 1.2}
+    texture: {style: ember, palette: ["#0a0a20", "#2a2a6a", "#ff8a3a", "#ffd890", "#ffffff"], animated: true, frames: 16, frametime: 1, effect: comet_trail}
+    lore: "하늘을 가로지르던 꼬리별 하나를 시위에 걸었다. 쏜 화살은 꼬리를 끌며 아주 먼 데까지 곧게 날아간다."
 
   # ═════════ 무기 · 비전술사 — staff ═════════
   lantern_staff:
@@ -2266,7 +2418,7 @@ items:
     stats: {damage: [163, 180], INT: [17, 23], skill_damage: [0.137, 0.185], cooldown_reduction: [0.079, 0.107], mp: [117, 159], mana_regen: [1.2, 1.7], crit_chance: [0.079, 0.107]}
     aura: void
     pool: false
-    sources: [boss]
+    sources: [boss, craft]
     unique: {id: exploit, name: "공허 침식", pct: 0.075}
     weapon_skills:
       - id: missile
@@ -2309,6 +2461,53 @@ items:
     model: {shape: staff_orb, length: 1.15}
     texture: {style: void, palette: ["#020104", "#1a0a2e", "#5a1a8a", "#c080ff", "#e8c8ff"], animated: true, frames: 16, frametime: 2, effect: void_swirl}
     lore: "미궁이 쌓이기 전, 아무것도 없던 자리의 '없음'을 구슬에 담았다. 들여다보면 구슬이 마주 본다."
+  # ── 0.3.7 둘째 신화 (tools/gen_037_mythic.py — 손으로 고치지 않음) ──
+  wisp_lantern:
+    name: "도깨비불 등롱"
+    type: weapon
+    attack: {style: caster, interval: 0.91, kind: magic}
+    rarity: mythic
+    level_req: 48
+    requires: {INT: 65, WIS: 39, VIT: 26}
+    tier: 10
+    stats: {damage: [157, 173], INT: [17, 23], mp: [117, 159], mana_regen: [1.2, 1.7], cooldown_reduction: [0.079, 0.107], skill_damage: [0.137, 0.185], move_speed: [0.051, 0.068]}
+    aura: wisp
+    pool: false
+    sources: [craft]
+    unique: {id: siphon, name: "불씨 거두기", mp: 0.04, cdr: 0.4}
+    weapon_skills:
+      - id: mechanics
+        name: "불씨 풀기"
+        input: RIGHT
+        cooldown: 16.0
+        mana: 24
+        description: "등롱에서 도깨비불 셋을 풀어 놓는다. 8초간 곁을 맴돌며 12칸 안 적에게 불을 쏜다."
+        pvp_mult: 0.4
+        mechanics:
+          - {"type": "summon", "count": 3, "duration": 8, "interval": 20, "range": 12, "display": "wisp_orb", "effects": [{"damage": 0.24, "magic": true}]}
+          - {"type": "sound", "sound": "entity.allay.ambient_with_item", "pitch": 0.8, "volume": 1.0}
+      - id: mechanics
+        name: "홀림불"
+        input: SNEAK_LEFT
+        cooldown: 14.0
+        mana: 22
+        description: "노린 적 발밑에 홀림불을 깔아 둔다. 5초간 안의 적은 느려지고, 표식이 붙어 모두에게 10% 더 다친다."
+        mechanics:
+          - {"type": "zone", "at": "target", "range": 14, "radius": 4, "duration": 5, "interval": 10, "display": "wisp_ring", "particle": "DUST:#a8f060:1.1", "effects": [{"damage": 0.32, "magic": true}, {"slow": 1}, {"glow": 3, "potency": 0.1}]}
+      - id: mechanics
+        name: "도깨비 잔치"
+        input: SNEAK_RIGHT
+        cooldown: 48.0
+        mana: 44
+        description: "등롱 뚜껑을 활짝 연다. 둘레의 적을 밀어내고, 6초간 도깨비불 여섯이 빠르게 불을 쏜다."
+        pvp_mult: 0.1
+        mechanics:
+          - {"type": "nova", "at": "self", "radius": 5, "expand_ticks": 6, "display": "wisp_burst", "particle": "DUST:#a8f060:1.4", "effects": [{"damage": 1.2, "magic": true}, {"knockback": 0.8}]}
+          - {"type": "summon", "count": 6, "duration": 6, "interval": 10, "range": 14, "display": "wisp_orb", "effects": [{"damage": 0.28, "magic": true}]}
+          - {"type": "sound", "sound": "entity.allay.item_thrown", "pitch": 0.6, "volume": 1.0}
+    model: {shape: lamp_crook, length: 1.0}
+    texture: {style: moss, palette: ["#061008", "#12401a", "#3aa040", "#a8f060", "#f0ffd0"], animated: true, frames: 16, frametime: 2, effect: wisp_flicker}
+    lore: "길손을 홀리던 도깨비불을 모조리 잡아 가둔 등롱. 뚜껑을 열면 불들이 앞다투어 적에게 달려든다."
 
   # ═════════ 무기 · 사제 — scepter ═════════
   acolyte_scepter:
@@ -2837,7 +3036,7 @@ items:
     stats: {damage: [140, 153], WIS: [17, 23], heal_power: [59, 79], mana_regen: [1.2, 1.7], cooldown_reduction: [0.079, 0.107], mp: [117, 159], skill_damage: [0.137, 0.185]}
     aura: seraph
     pool: false
-    sources: [boss]
+    sources: [boss, craft]
     unique: {id: ward_aura, name: "치천사의 날개", pct: 0.02, period: 8, radius: 8, duration: 6}
     weapon_skills:
       - id: mend
@@ -2866,6 +3065,53 @@ items:
     model: {shape: sun_scepter, length: 1.0}
     texture: {style: holy, palette: ["#a89870", "#e8d090", "#e8e0c8", "#fff4d6", "#ffffff"], animated: true, frames: 16, frametime: 2, effect: feather_glint}
     lore: "여섯 날개를 가진 이가 미궁의 첫 희생자를 위해 내려놓고 간 홀. 쥔 자의 등 뒤로 빛의 날개가 펼쳐진다."
+  # ── 0.3.7 둘째 신화 (tools/gen_037_mythic.py — 손으로 고치지 않음) ──
+  daybreak_bell:
+    name: "새벽의 종"
+    type: weapon
+    attack: {style: caster, interval: 0.8, kind: magic}
+    rarity: mythic
+    level_req: 48
+    requires: {WIS: 65, INT: 39, VIT: 26}
+    tier: 10
+    stats: {damage: [138, 152], WIS: [17, 23], INT: [10, 14], skill_damage: [0.137, 0.185], heal_power: [44, 59], cooldown_reduction: [0.079, 0.107], mana_regen: [1.2, 1.7]}
+    aura: daybreak
+    pool: false
+    sources: [craft]
+    unique: {id: sanctify, name: "맑은 울림", pct: 0.095, radius: 8}
+    weapon_skills:
+      - id: mechanics
+        name: "새벽 종소리"
+        input: RIGHT
+        cooldown: 12.0
+        mana: 28
+        description: "종을 크게 울린다. 둘레의 적은 다치고 밀려나며, 10칸 안 아군은 5% 회복하고 6초간 피해 +8%."
+        mechanics:
+          - {"type": "nova", "at": "self", "radius": 6, "expand_ticks": 6, "display": "daybreak_burst", "particle": "WAX_OFF", "effects": [{"damage": 2.4, "magic": true}, {"knockback": 0.4}]}
+          - {"type": "party", "radius": 10, "particle": "WAX_OFF", "effects": [{"heal": 0.05}, {"buff": {"stats": {"damage": 0.08}, "seconds": 6, "tag": "daybreak_bell"}}]}
+          - {"type": "sound", "sound": "block.bell.use", "pitch": 0.8, "volume": 1.0}
+      - id: mechanics
+        name: "울림 낙인"
+        input: SNEAK_LEFT
+        cooldown: 16.0
+        mana: 26
+        description: "노린 적 위로 빛의 종을 떨어뜨린다. 맞은 적은 6초간 모두에게 15% 더 다친다."
+        mechanics:
+          - {"type": "strike", "at": "target", "range": 18, "visual": "pillar", "display": "daybreak_beam", "particle": "WAX_OFF", "impact_radius": 2.5, "effects": [{"damage": 3.2, "magic": true}, {"effect": {"id": "vulnerable", "seconds": 6, "potency": 0.15}}], "on_impact": [{"type": "nova", "radius": 4, "expand_ticks": 5, "display": "daybreak_burst", "particle": "WAX_OFF", "effects": [{"damage": 0.6, "magic": true}]}]}
+          - {"type": "sound", "sound": "block.bell.resonate", "pitch": 1.2, "volume": 1.0}
+      - id: mechanics
+        name: "아침 성가"
+        input: SNEAK_RIGHT
+        cooldown: 55.0
+        mana: 55
+        description: "8초간 종이 쉬지 않고 울린다. 곁의 적은 느려지고 다치며, 아군은 초당 3% 회복하고 피해 +8%. 끝나면 아군을 정화한다."
+        pvp_mult: 0.45
+        mechanics:
+          - {"type": "zone", "at": "self", "follow": true, "radius": 8, "duration": 8, "interval": 20, "display": "daybreak_ring", "particle": "WAX_OFF", "effects": [{"damage": 0.7, "magic": true}, {"slow": 1.2}], "ally_effects": [{"heal": 0.03}, {"buff": {"stats": {"damage": 0.08}, "seconds": 1.5, "tag": "daybreak_chant"}}], "end": [{"type": "party", "radius": 8, "effects": [{"cleanse": true}]}]}
+          - {"type": "sound", "sound": "block.bell.use", "pitch": 0.6, "volume": 1.0}
+    model: {shape: bell_scepter, length: 1.0}
+    texture: {style: crystal, palette: ["#2a1210", "#74302a", "#b8604a", "#e8a088", "#fff0e6"], animated: true, frames: 16, frametime: 2, effect: bell_toll}
+    lore: "미궁에 처음 아침이 들던 날 울렸다는 종. 한 번 울리면 다친 이는 일어서고 적은 귀를 막는다."
 
   # ═════════ 무기 · 그림자 — dagger ═════════
   moss_dirk:
@@ -3371,7 +3617,7 @@ items:
     stats: {damage: [83, 91], DEX: [17, 23], crit_chance: [0.079, 0.107], crit_damage: [0.259, 0.35], attack_speed: [0.094, 0.127], move_speed: [0.051, 0.068], evasion: [0.058, 0.078]}
     aura: eclipse
     pool: false
-    sources: [boss]
+    sources: [boss, craft]
     unique: {id: backstab, name: "일식", pct: 0.12}
     weapon_skills:
       - id: mechanics
@@ -3414,6 +3660,64 @@ items:
     model: {shape: dagger, length: 1.0}
     texture: {style: shadow, palette: ["#000000", "#140c08", "#5a3a20", "#ffd27a", "#fff4d6"], animated: true, frames: 16, frametime: 2, effect: eclipse_corona}
     lore: "해가 달 뒤로 숨던 순간, 그림자 속에 떨어진 빛 한 줄기를 주워 칼날로 삼았다. 뽑을 때마다 세상이 잠깐 어두워진다."
+  # ── 0.3.7 둘째 신화 (tools/gen_037_mythic.py — 손으로 고치지 않음) ──
+  waning_moon_sickle:
+    name: "그믐달 사슬낫"
+    type: weapon
+    attack: {style: melee, interval: 0.5, kind: physical}
+    rarity: mythic
+    level_req: 48
+    requires: {LUK: 65, DEX: 39, STR: 26}
+    tier: 10
+    stats: {damage: [99, 109], DEX: [17, 23], LUK: [10, 14], crit_chance: [0.079, 0.107], crit_damage: [0.259, 0.35], skill_damage: [0.137, 0.185], move_speed: [0.051, 0.068]}
+    aura: waning
+    pool: false
+    sources: [craft]
+    unique: {id: hemorrhage, name: "달그림자", cc: 0.05, cd: 0.1}
+    weapon_skills:
+      - id: mechanics
+        name: "사슬 던지기"
+        input: LEFT
+        cooldown: 1.2
+        mana: 0
+        description: "휘두를 때마다 사슬 끝의 낫이 9칸 앞까지 날아가 한 명을 더 꿰뚫는다 (짧은 재사용). 맞은 적은 피를 흘린다."
+        mechanics:
+          - {"type": "projectile", "speed": 2.0, "range": 9, "pierce": 1, "hit_radius": 0.9, "display": "waning_slash", "display_scale": 0.6, "spin": 30, "impact_at_end": false, "effects": [{"damage": 0.25}, {"bleed": 3}]}
+      - id: mechanics
+        name: "사슬 끌어오기"
+        input: RIGHT
+        cooldown: 9.0
+        mana: 20
+        description: "사슬을 던져 14칸 안의 적을 내 앞으로 끌어온다. 끌려온 적은 잠깐 묶이고 피를 흘린다."
+        mechanics:
+          - {"type": "chain", "jumps": 1, "first_range": 14, "range": 4, "falloff": 0.6, "interval": 3, "particle": "DUST:#b0d8e0:1.0", "effects": [{"damage": 1.4}, {"pull": 1.1}, {"root": 0.8}, {"bleed": 4}]}
+          - {"type": "sound", "sound": "block.chain.break", "pitch": 0.7, "volume": 1.0}
+      - id: mechanics
+        name: "사슬 타기"
+        input: SNEAK_LEFT
+        cooldown: 12.0
+        mana: 22
+        description: "사슬을 걸고 앞으로 미끄러져 들어가며 베고, 끝에서 달 모양으로 크게 휘두른다."
+        pvp_mult: 0.9
+        mechanics:
+          - {"type": "dash", "distance": 8, "ticks": 4, "particle": "DUST:#b0d8e0:1.2", "effects": [{"damage": 0.8}], "on_end": [{"type": "cone", "range": 5, "angle": 160, "display": "waning_slash", "display_scale": 1.2, "particle": "DUST:#b0d8e0:1.4", "effects": [{"damage": 1.6}, {"bleed": 4}, {"slow": 1.5}]}]}
+          - {"type": "sound", "sound": "entity.player.attack.sweep", "pitch": 1.4, "volume": 1.0}
+      - id: mechanics
+        name: "그믐"
+        input: SNEAK_RIGHT
+        cooldown: 45.0
+        mana: 40
+        description: "노린 적을 사슬로 칭칭 묶는다. 2초간 사슬이 여섯 번 조여 들고, 마지막 일격은 HP 30% 아래인 적에게 훨씬 세다."
+        pvp_mult: 0.45
+        mechanics:
+          - {"type": "target", "range": 16, "effects": [{"root": 2.0}, {"glow": 4, "potency": 0.1}, {"bleed": 6}]}
+          - {"type": "repeat", "times": 6, "interval": 6, "mechanics": [{"type": "target", "range": 16, "effects": [{"damage": 0.4}, {"particle": "DUST:#b0d8e0:1.2"}]}]}
+          - {"type": "delay", "ticks": 38}
+          - {"type": "target", "range": 16, "effects": [{"damage": 1.6}, {"execute": {"amount": 1.2, "threshold": 0.3}}]}
+          - {"type": "sound", "sound": "block.chain.place", "pitch": 0.5, "volume": 1.0}
+    model: {shape: sickle, length: 1.0}
+    texture: {style: shadow, palette: ["#020408", "#0e1a24", "#3a5a6a", "#b0d8e0", "#f0fbff"], animated: true, frames: 16, frametime: 2, effect: moon_phase}
+    lore: "달이 가장 가늘어지는 밤에만 벼린다는 낫. 사슬 끝에 걸린 것은 달빛이 닿지 않는 곳으로 끌려간다."
 
   # ═════════ 무기 · 0.3.5 새 무기 · 띠 1–5 (단계 풀 — 시련방·특별 시련·금고·미믹·정예·몬스터·상자·상인) ═════════
   moss_bone_bow:
@@ -8680,7 +8984,7 @@ items:
     sources: [boss]
     model: {shape: icon}
     texture: {style: heart, palette: ["#020306", "#08141a", "#123842", "#2fe0d0", "#b01a3a"]}
-    lore: "심연의 심장 넬카르에서 떨어져 나온 조각. 아직도 아주 느리게 박동한다. 대장장이 두르간에게 가져가면 넬카르가 지키던 전설 무기를 벼릴 수 있다."
+    lore: "심연의 심장 넬카르에서 떨어져 나온 조각. 아직도 아주 느리게 박동한다. 넬카르가 주는 장비를 끝까지 강화할 때 든다."
   dim_essence:
     name: "희미한 미궁 정수"
     type: material
@@ -8894,7 +9198,7 @@ items:
     sources: [mine]
     model: {shape: icon}
     texture: {style: gem_drop, palette: ["#1a0204", "#4a060c", "#a0121c", "#ff4a3a", "#ffb04a"]}
-    lore: "잠든 용의 피가 굳었다는 붉은 돌. 안쪽에서 불씨가 맥박친다. 최상급 강화석을 새기거나 곡괭이를 벼릴 때 쓴다."
+    lore: "잠든 용의 피가 굳었다는 붉은 돌. 안쪽에서 불씨가 맥박친다. 최상급 강화석을 새기거나 곡괭이·신화 무기를 벼릴 때 쓴다."
 
   # ═════════ 광산 도구 (0.3.6 — 곡괭이 type: tool. 장비 아님: 능력치·강화·판매 없음, 한 칸 1개, 레벨 조건 없음) ═════════
   copper_pickaxe:

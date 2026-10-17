@@ -24,9 +24,11 @@ THEME_KEYS = (
     ('abyss', ('abyss', 'void', 'nightshade', 'eclipse', 'viper')),
     ('web', ('skitter', 'silk', 'fang', 'webrun')),
     ('water', ('brine', 'tide', 'eel', 'drowned', 'sluice', 'verdigris')),
-    ('forge', ('ember', 'cinder', 'slag', 'anvil', 'bellows', 'forge', 'minewarden', 'miners', 'ore_', 'pit_')),
-    ('frost', ('rime', 'frost', 'soulflame')),
-    ('crystal', ('crystal', 'geode', 'amethyst', 'prism', 'resonan', 'shardglass', 'twin_light')),
+    ('forge', ('ember', 'cinder', 'slag', 'anvil', 'bellows', 'forge', 'minewarden', 'miners', 'ore_', 'pit_',
+               'comet')),
+    ('frost', ('rime', 'frost', 'soulflame', 'waning')),
+    ('crystal', ('crystal', 'geode', 'amethyst', 'prism', 'resonan', 'shardglass', 'twin_light',
+                 'mountainheart', 'daybreak')),
     ('ink', ('ink', 'index', 'lore')),
     ('clock', ('clock', 'regulator', 'doomclock', 'mainspring', 'spring', 'orrery', 'pendulum', 'tesla')),
     ('blood', ('bloodmoon',)),
@@ -39,6 +41,9 @@ STYLE_THEME = {'moss': 'vine', 'wood': 'vine', 'silver': 'storm', 'copper': 'wat
                'gold': 'holy', 'bone': 'web', 'coral': 'water', 'leather': 'vine', 'cloth': 'fungi', 'silk': 'web',
                'obsidian': 'blood', 'steel': 'plain'}
 CREATURE = ('viper', 'bloodmoon', 'abyss_sentinel', 'tidecaller', 'eel', 'drowned', 'celestial', 'nightshade')
+# 0.3.7 신화 6 (myth-037): id 키 → 무기 틀 안의 표시 분기 (태산 봉우리·만조 파도 날·혜성 머리·도깨비불·해 원반 종·사슬과
+# 초승달 추). 틀(실루엣)은 그대로 쓰고 머리 장식만 바꾼다 — 짝 신화·같은 틀 전설과 그림이 겹치지 않게.
+SIGNATURES = ('mountainheart', 'hightide', 'comet', 'wisp', 'daybreak', 'waning')
 
 
 def _key_in(k, iid):
@@ -64,6 +69,7 @@ class P:
         self.rng = random.Random(seed)
         self.anim = animated
         self.creature = lv >= 3 and any(k in iid for k in CREATURE)
+        self.sig = next((k for k in SIGNATURES if k in iid), None)
         # 보석이 빛남: 전설 이상, 또는 마법 피해 근접·원거리 무기(0.3.5 gear_spec §9.1 — 모델은 그대로, 보석만 한 단계 밝게)
         self.glow = lv >= 4 or (magic and lv >= 2)
 
@@ -468,6 +474,8 @@ def dress_blade(g: Grid, p: P, A):
             g.tube([(q[0], q[1], -1.2) for q in pts], 0.5, 0.5, 'glow', 0.8, glow=True, prio=4)
         if big:
             flames(g, y0 + 2, y1 - 6, lambda y: A['wfn'](y), p, n=4)
+    elif th == 'frost' and p.sig == 'waning':
+        _waning_frost(g, p, A)                       # 그믐달: 초승달 등에 옅은 달빛 얼음 조각 (손잡이는 비워 둔다)
     elif th == 'frost':
         ice_spikes(g, [(s * gh, gy + 1, 0, s, 0.9) for s in (-1, 1)] + [(0, gy - 1, 0, 0, -1)], p, 3.2)
         if big:
@@ -706,9 +714,9 @@ def dress_shaft(g, p: P, y0, y1, hy, top):
                 d = (s * (0.6 + rr.random()), 1.0 + rr.random() * 0.6, math.sin(a) * 0.7)
                 g.crystal((s * 1, yy + rr.randint(0, 1), math.cos(a) * 0.8), d, 2.2 + rr.random() * 2.2, 0.75 + 0.3 * rr.random(),
                           'crystal', glow=big and rr.random() < 0.5, prio=3)
-        if big:
+        # 태산·새벽 종(0.3.7): 머리 위는 봉우리·종 고리 자리, 결정 테마의 보라 덩굴은 짝 색과 안 맞아 뺀다
+        if big and p.sig not in ('mountainheart', 'daybreak'):
             vines(g, y0, y1, 1.9, p, n=1, leaves=False, buds=True)
-        if big:
             crystal_cluster(g, (0, top + 1, 0), p, 4, 5.0, 1.3, glow=True)
     elif th in ('water',):
         serpent(g, y0, y1, 2.4, 2.2, p, rmax=1.3)
@@ -734,10 +742,14 @@ def dress_shaft(g, p: P, y0, y1, hy, top):
     elif th in ('holy', 'storm'):
         for s in (-1, 1):
             wing(g, (s * 2, hy - 2, 0), s, p, span=6 + 2 * big, rise=7 + 3 * big, n=5)
-    if big:
+    own_halo = False
+    if big and p.sig in SIG_FLOATERS:
+        own_halo = SIG_FLOATERS[p.sig](g, p, hy, top)
+    elif big:
         float_shards(g, [(-7, hy + 6, 0), (7, hy - 6, 0)] + ([(0, top + 8, 0)] if lv >= 5 else []), p, 3.0, 0.85)
-    if lv >= 5:
-        halo(g, (0, hy, 0), 9.0, 'z')
+    if lv >= 5 and not own_halo:
+        dy, hr = SIG_HALO.get(p.sig, (0, 9.0))
+        halo(g, (0, hy + dy, 0), hr, 'z')
 
 
 # staves & scepters ---------------------------------------------------------
@@ -979,6 +991,8 @@ def bow(g, p, kind, pull=-1):
     if kind == 'horn_bow':
         H = int(15 * L)
     limb_mat = 'wood' if p.theme not in ('crystal', 'storm', 'water') or p.lv < 2 else 'metal'
+    if p.sig == 'comet':
+        limb_mat = 'dark'                             # 꼬리별: 밤하늘 남색 팔 (빛 줄이 위에서 읽힌다)
     tips = []
     tips_b = []                       # twin_bow: the second (inner, shorter) pair of limbs at z = −1.6
     for s in (1, -1):
@@ -1048,8 +1062,11 @@ def bow(g, p, kind, pull=-1):
         g.crystal((-3, 0, 0), (-1, 0, 0), 4.0, 1.4, 'edge', prio=3, tip=0.7)   # knuckle blade
     if kind == 'horn_bow':
         g.box((-2, -2, -1), (0, 2, 1), 'leather', 0.5, prio=4)                 # wrapped grip
-    if p.lv >= 2:
+    if p.sig == 'comet':
+        _comet_head(g, p, H, curv)                    # 혜성 머리 보석 + 두 팔을 따라 곧은 빛 줄 셋
+    elif p.lv >= 2:
         g.gem((-3, 0, 1), 1.0, 'gem', glow=p.glow)
+    smat, sval = ('orn', 0.78) if p.sig == 'comet' else ('string', 0.7)     # 꼬리별: 옅은 금빛 시위
     # string (twin_bow: one per limb pair, z = ±1)
     (ux, uy, _), (lx, ly, _) = tips
     sx = max(ux, lx)
@@ -1061,9 +1078,9 @@ def bow(g, p, kind, pull=-1):
     nx = sx + 3 + 2.5 * pull
     for (a, b, z) in strings:
         if pull < 0:
-            g.tube([(sx, a[1], z), (sx, b[1], z)], 0.5, 0.5, 'string', 0.7, prio=1)
+            g.tube([(sx, a[1], z), (sx, b[1], z)], 0.5, 0.5, smat, sval, prio=1)
         else:
-            g.tube([(a[0], a[1], z), (nx, 0, z), (b[0], b[1], z)], 0.5, 0.5, 'string', 0.7, prio=1)
+            g.tube([(a[0], a[1], z), (nx, 0, z), (b[0], b[1], z)], 0.5, 0.5, smat, sval, prio=1)
     if kind == 'twin_bow' and p.lv >= 2:
         g.torus((sx if pull < 0 else nx, 0, 0), 1.1, 0.5, 'y', 'orn', 0.7, prio=3)       # jewel ring between the strings
         g.gem((sx if pull < 0 else nx, 0, 0), 0.8, 'gem', glow=p.glow)
@@ -1114,7 +1131,8 @@ def dress_bow(g, p: P, H, curv, tips):
                 y = s * (5 + k * 4)
                 t = (abs(y) - 2.5) / (H - 2.5)
                 g.put(round(curv * t * t - 0.6), y, 1, 'glow', 0.8, glow=True, prio=4)
-        gear(g, (-3, 0, 2), 2.6, p, 6, 'xy', 'metal')
+        if p.sig != 'comet':                          # 꼬리별은 손잡이 앞이 혜성 머리 자리
+            gear(g, (-3, 0, 2), 2.6, p, 6, 'xy', 'metal')
     elif th == 'crystal':
         for s in (1, -1):
             g.crystal((-1.5, s * 7, 0), (-1, s * 0.6, 0), 4.0, 1.0, 'crystal', glow=big, prio=3)
@@ -1125,7 +1143,9 @@ def dress_bow(g, p: P, H, curv, tips):
             wing(g, (-1.5, s * 3, 0), -1, p, span=6, rise=s * (H - 6), n=5)
     elif th == 'web':
         web(g, (-3, 0, 0), 5, p)
-    if big:
+    if big and p.sig == 'comet':
+        _star_glints(g, [(-10, 8, 0), (-10, -8, 0)] + ([(-13, 0, 0)] if lv >= 5 else []))
+    elif big:
         float_shards(g, [(-7, 8, 0), (-7, -8, 0)] + ([(-10, 0, 0)] if lv >= 5 else []), p, 2.8, 0.8,
                      'glow' if th == 'storm' else 'crystal')
     if lv >= 5:
@@ -1271,6 +1291,8 @@ def war_scythe(g, p):
             g.put(u, round(hy + 5.5 * math.sin(math.pi * min(1.0, t * 1.1) * 0.75) - 12.0 * t ** 2.2), 1, 'orn', 0.75, prio=3)
     if p.theme == 'abyss' and p.lv >= 3:
         tendrils(g, (R * 0.7, hy - 4, 0), p, n=3, length=5, spread=3, up=-0.9)
+    if p.sig == 'hightide':
+        _hightide_blade(g, p, hy, R)                                        # 파도 머리 날 끝 + 거품 + 조개
     dress_shaft(g, p, -4, hy - 4, hy, top + 4)
 
 
@@ -1325,6 +1347,10 @@ def sickle(g, p):
     C = (5.5, gy + 4.0)
     R = 7.5 if p.lv < 3 else 8.5
     a0, a1 = math.pi, math.radians(-25)
+    wane = p.sig == 'waning'
+    W0, W1 = (3.4, 0.4) if not wane else (2.5, 0.3)          # 그믐달: 날이 더 가늘고
+    if wane:
+        R, a1 = 9.5, math.radians(-42)                       # … 더 길게 (끝이 아래로 더 감긴다)
 
     def m(u, v):
         dx, dy = u - C[0], v - C[1]
@@ -1335,11 +1361,13 @@ def sickle(g, p):
         if not (a1 <= a <= a0):
             return False
         s = (a0 - a) / (a0 - a1)          # 0 at the grip → 1 at the tip
-        w = 3.4 * (1 - s) ** 0.8 + 0.4
+        w = W0 * (1 - s) ** 0.8 + W1
         return R - w <= r <= R + 0.6
-    g.slab(m, (-4, gy - 2), (15, gy + 14), 'xy', 0, max_half=1, slope=0.5, mat='blade',
-           vfn=lambda u, v, w, d: ('edge', 0.76) if d == 0 and math.hypot(u - C[0], v - C[1]) < R - 0.6 else
-           0.42 + 0.08 * min(d, 3) + 0.04 * w)
+    cells = g.slab(m, (-6, gy - 6), (17, gy + 16), 'xy', 0, max_half=1, slope=0.5, mat='blade',
+                   vfn=lambda u, v, w, d: ('edge', 0.76) if d == 0 and math.hypot(u - C[0], v - C[1]) < R - 0.6 else
+                   0.42 + 0.08 * min(d, 3) + 0.04 * w)
+    if wane:
+        _waning_sickle(g, p, cells, C, R, gl)              # 빛나는 안쪽 날 + 사슬 + 초승달 추
     if p.lv >= 1:
         g.torus((0, -gl // 2 - 3.5, 0), 1.6, 0.5, 'z', 'orn', 0.7)    # finger ring on the pommel
     if p.lv >= 2:
@@ -1347,7 +1375,8 @@ def sickle(g, p):
         g.crystal((C[0] - R - 0.5, gy + 3, 0), (-1, -0.4, 0), 3.0, 0.8, 'edge', prio=3)   # back thorn
     if p.theme == 'water':
         g.tube([(C[0] - R + 1, gy + 2, 0), (C[0] - R - 1.5, gy - 1, 0), (C[0] - R - 0.5, gy - 3, 0)], 0.8, 0.4, 'fin', 0.6, prio=2)
-    dress_blade(g, p, {'y0': gy + 2, 'y1': gy + 12, 'hw': 2.5, 'gy': gy, 'gh': 3, 'wfn': lambda y: 3.0})
+    dress_blade(g, p, {'y0': gy + 2, 'y1': gy + 12, 'hw': 2.5, 'gy': gy, 'gh': 3, 'wfn': lambda y: 3.0,
+                       'C': C, 'R': R})
 
 
 def katar(g, p):
@@ -1478,9 +1507,12 @@ def bell_scepter(g, p):
                 d = math.hypot(i, k)
                 if d <= r and (d >= r - 1.3 or j >= bt - 1):
                     g.put(i, j, k, 'orn' if th_bell(p) else 'metal', 0.4 + 0.3 * (1 - t) + 0.1 * (i > 0), prio=3)
-    g.torus((0, bb, 0), 3.6, 0.6, 'y', 'orn', 0.75, prio=3)       # lip
-    g.ball((0, bb - 1.2, 0), 1.1, 'glow' if p.lv >= 1 else 'metal', 0.7, glow=p.lv >= 1, prio=4)   # clapper
-    g.ball((0, apex + 0.5, 0), 1.0, 'gem', 0.7, glow=p.glow, prio=4)
+    if p.sig == 'daybreak':
+        _daybreak_bell(g, p, bb, bt, h, apex)        # 장밋빛 청동 종 + 빛나는 띠 둘 + 꼭대기 고리·보석
+    else:
+        g.torus((0, bb, 0), 3.6, 0.6, 'y', 'orn', 0.75, prio=3)       # lip
+        g.ball((0, bb - 1.2, 0), 1.1, 'glow' if p.lv >= 1 else 'metal', 0.7, glow=p.lv >= 1, prio=4)   # clapper
+        g.ball((0, apex + 0.5, 0), 1.0, 'gem', 0.7, glow=p.glow, prio=4)
     if p.theme == 'crystal':
         for s in (-1, 1):
             g.crystal((s * W, yb + 1, 0), (s * 0.5, 1, 0), 4.0, 0.9, 'crystal', glow=p.glow, prio=3)
@@ -1648,12 +1680,16 @@ def great_maul(g, p):
         if abs(i) == HX - 3 and (abs(j - hy) == HY or abs(k) == HZ):
             g.put(i, j, k, 'orn', 0.72, prio=3)
     g.box((-2, hy - HY - 2, -2), (2, hy - HY - 1, 2), 'metal', 0.55, prio=2)    # collar
-    g.crystal((0, hy + HY, 0), (0, 1, 0), 3.0, 1.0, 'metal', prio=2)            # knob
+    if p.sig == 'mountainheart':
+        _mountain_head(g, p, hy, HX, HY, HZ)                                    # 봉우리 셋 + 호박빛 갈라짐
+    else:
+        g.crystal((0, hy + HY, 0), (0, 1, 0), 3.0, 1.0, 'metal', prio=2)        # knob
     if p.lv >= 2:
         for sz in (-1, 1):
             g.gem((0, hy, sz * (HZ + 0.4)), 1.1, 'gem', glow=p.glow)
     if th == 'crystal':
-        crystal_cluster(g, (HX + 0.5, hy, 0), p, 4, 3.6, 0.9, up=(1, 0.3, 0), glow=p.lv >= 3)
+        if p.sig != 'mountainheart':                         # 태산은 _mountain_head 가 +x 면 한쪽에만 작게 얹는다
+            crystal_cluster(g, (HX + 0.5, hy, 0), p, 4, 3.6, 0.9, up=(1, 0.3, 0), glow=p.lv >= 3)
     elif th == 'clock':
         gear(g, (0, hy, HZ + 1), 3.8, p, 8, 'xy', 'orn')
     elif th == 'ink':
@@ -1903,14 +1939,22 @@ def lamp_crook(g, p):
     for k in range(2):
         g.torus((lx, top + 3 - k * 1.8, 0), 0.8, 0.45, 'z' if k % 2 else 'x', 'metal', 0.6, prio=2)
     ly0, ly1 = top - 4, top + 0
+    wisp = p.sig == 'wisp'                                   # 도깨비불 등롱: 우리를 키우고 불을 크게
+    cx0, cx1, cz = (4, 9, 3) if wisp else (5, 8, 2)
+    if wisp:
+        ly0 = top - 6
 
     def frame(i, j, k):                                      # lantern cage: only the edges of the box
-        ex = (i in (5, 8)) + (j in (ly0, ly1)) + (k in (-2, 2))
+        ex = (i in (cx0, cx1)) + (j in (ly0, ly1)) + (k in (-cz, cz))
         return 0.58 if ex >= 2 else None
-    g.box((5, ly0, -2), (8, ly1, 2), 'metal' if p.lv < 2 else 'orn', vfn=frame, prio=3)
-    g.ball((lx, (ly0 + ly1) / 2, 0), 1.4, 'glow' if p.lv >= 1 else 'gem', glow=p.lv >= 1,
-           vfn=lambda i, j, k, d: 0.55 + 0.4 * (1 - d), prio=4)
-    g.crystal((lx, ly1 + 0.5, 0), (0, 1, 0), 2.0, 1.4, 'metal' if p.lv < 2 else 'orn', prio=3, tip=0.8)   # roof
+    g.box((cx0, ly0, -cz), (cx1, ly1, cz), 'metal' if p.lv < 2 else 'orn', vfn=frame, prio=3)
+    if wisp:
+        _wisp_flame(g, p, lx, ly0, ly1, top)
+    else:
+        g.ball((lx, (ly0 + ly1) / 2, 0), 1.4, 'glow' if p.lv >= 1 else 'gem', glow=p.lv >= 1,
+               vfn=lambda i, j, k, d: 0.55 + 0.4 * (1 - d), prio=4)
+    g.crystal((lx, ly1 + 0.5, 0), (0, 1, 0), 2.0, 2.0 if wisp else 1.4, 'metal' if p.lv < 2 else 'orn', prio=3,
+              tip=0.8)   # roof
     g.crystal((lx, ly0 - 0.5, 0), (0, -1, 0), 1.6, 0.8, 'metal', prio=3)
     if p.theme == 'water':
         shell(g, (1.5, top + 6, 1.0), p, 1.6)
@@ -1985,6 +2029,206 @@ def chime_rod(g, p):
         for s in (-1, 1):
             g.crystal((s * R, ry, 0), (s * 0.4, 1, 0), 3.0, 0.8, 'crystal', glow=p.glow, prio=4)
     dress_shaft(g, p, -6, top - 2, ry, ry + 3)
+
+
+# ───────────────────────────── 0.3.7 신화 6 (myth-037) ─────────────────────────────
+# 틀 함수가 p.sig(SIGNATURES)로 부르는 표시 분기. 실루엣은 틀 그대로, 머리 장식만 바꾼다. 붓은 모두 기존 것
+# (ball·tube·slab·crystal·torus). 메시가 빛나는 칸의 역할(role)을 'gem'·'crystal'·'edge'·'glow' 넷으로만 남기므로
+# effects.py 의 새 효과 6개가 부위별로 다르게 움직이게 부위 표시는 'gem' 으로 한다 (사슬 고리 반짝이, 도깨비불, 종 테·띠),
+# 그믐달의 안쪽 날은 'edge' + 빛남.
+
+def _mountain_head(g, p, hy, HX, HY, HZ):
+    """태산의 대망치: 손잡이 꼭지 대신 머리 위 봉우리 셋(가운데가 높은 톱니 능선, 바위색 + 밝은 끝), 골짜기에 작은
+    호박 결정, 두 타격면(±x)과 옆면(±z)에 호박빛 갈라짐(빛남), 결정 무더기는 +x 타격면 위쪽 한쪽에만."""
+    base = hy + HY
+    peaks = ((-4.8, 6.0), (0.0, 10.0), (4.8, 7.0))          # (x, 높이) — 가운데가 가장 높다, 골은 깊게
+
+    def ridge(u):
+        return max(h - abs(u - x) * 2.0 for x, h in peaks)
+
+    def m(u, v):
+        return abs(u) <= HX - 1 and base - 1 <= v <= base + ridge(u)
+
+    g.slab(m, (-HX, base - 1), (HX, base + 11), 'xy', 0, max_half=3, slope=0.8, mat='metal', prio=3, base_half=1,
+           vfn=lambda u, v, w, d: ('bone', 0.6) if v >= base + ridge(u) - 0.6 and v > base + 2 else
+           0.24 + 0.045 * (v - base) + 0.06 * min(d, 2) - 0.03 * abs(w))
+    for (x, y, z, dx) in ((-3.4, base + 2.0, 1.4, -0.2), (3.2, base + 2.5, -1.4, 0.2)):     # 골짜기 결정
+        g.crystal((x, y, z), (dx, 1, 0.3 if z > 0 else -0.3), 2.4, 0.7, 'crystal', glow=True, prio=4)
+    crack = ((-3.2, -1.0), (-1.4, 0.6), (-0.2, -0.6), (1.6, 1.0), (3.2, 0.2))           # (dy, dz) 지그재그
+    for s in (-1, 1):                                        # 타격면 갈라짐 (+ 가지 하나)
+        g.tube([(s * HX, hy + a, b) for a, b in crack], 0.5, 0.5, 'glow', 0.45, glow=True, prio=4)
+        g.tube([(s * HX, hy - 0.2, -0.6), (s * HX, hy + 1.2, -2.4)], 0.5, 0.5, 'glow', 0.4, glow=True, prio=4)
+    for sz in (-1, 1):                                       # 옆면: 보석에서 양쪽 타격면으로 번지는 금
+        for sx in (-1, 1):
+            pts = [(sx * 1.6, hy + 0.6, sz * HZ), (sx * 3.0, hy - 0.8, sz * HZ), (sx * 4.6, hy + 0.8, sz * HZ),
+                   (sx * (HX - 0.6), hy - 1.4, sz * HZ)]
+            g.tube(pts, 0.5, 0.5, 'glow', 0.42, glow=True, prio=4)
+    crystal_cluster(g, (HX + 0.5, hy + 2, 1), p, 3, 3.0, 0.85, up=(1, 0.55, 0.2), glow=True)
+
+
+def _mountain_floaters(g, p, hy, top):
+    """떠 있는 돌 조각 (바위 덩이 + 호박 결정 끝) — lv4 둘, lv5 셋."""
+    pts = [(-13.5, hy + 4, 1), (13.5, hy - 3, -1)] + ([(-9, hy - 10, 0)] if p.lv >= 5 else [])
+    for (x, y, z) in pts:
+        g.ball((x, y, z), 1.7, 'metal', sq=(1.15, 0.8, 1.0), prio=4,
+               vfn=lambda i, j, k, d, y=y: 0.28 + 0.28 * (1 - d) + 0.1 * (j > y))
+        g.crystal((x, y + 0.6, z), (-0.3 if x > 0 else 0.3, 1, 0), 2.3, 0.6, 'crystal', glow=True, prio=5)
+    return False
+
+
+def _hightide_blade(g, p, hy, R):
+    """만조의 큰낫: 날 끝이 파도 머리처럼 안쪽(자루 쪽 아래)으로 한 번 말리고, 칼등을 따라 흰 거품 줄, 칼등에 조개."""
+    def yu(u):
+        t = u / R
+        return hy + 5.5 * math.sin(math.pi * min(1.0, t * 1.1) * 0.75) - 12.0 * t ** 2.2
+
+    tx, ty = R, yu(R)
+    r0 = 3.8
+    cx, cy = tx - r0, ty + 0.4                               # 말림의 가운데 = 끝의 안쪽(−x)
+    curl, foam = [], []
+    for k in range(25):
+        t = k / 24
+        a = -t * 0.9 * 2 * math.pi                           # 시계 방향: 아래 → 안쪽 → 위로 말려 든다
+        r = r0 * (1 - 0.6 * t)
+        curl.append((cx + math.cos(a) * r, cy + math.sin(a) * r, 0))
+        if t <= 0.62:
+            foam.append((cx + math.cos(a) * (r + 1.3), cy + math.sin(a) * (r + 1.3), 0))
+    g.tube(curl, 1.5, 0.6, 'blade', prio=3, vfn=lambda t, d, q: 0.42 + 0.2 * (1 - d) + 0.1 * t)
+    g.tube(foam, 0.55, 0.5, 'glow', 0.9, glow=True, prio=4)
+    for u in range(2, R):                                    # 칼등 거품: 한 줄 + 군데군데 방울
+        v = round(yu(u)) + 1
+        g.put(u, v, 0, 'glow', 0.86, glow=True, prio=4)
+        if u % 3 == 0:
+            g.ball((u + 0.4, v + 0.6, 0), 1.1 if u % 2 else 0.8, 'glow', 0.95, glow=True, prio=4)
+    shell(g, (9.0, yu(9.0) + 2.2, 1.2), p, 1.45)
+
+
+def _tide_floaters(g, p, hy, top):
+    """물방울 (빛나는 공 + 위로 뾰족한 꼭지) — 기본 떠 있는 결정 대신."""
+    pts = [(-7, hy + 5), (8, hy + 10)] + ([(-6, hy - 9)] if p.lv >= 5 else [])
+    for (x, y) in pts:
+        g.ball((x, y, 0), 1.3, 'glow', glow=True, vfn=lambda i, j, k, d: 0.55 + 0.4 * (1 - d), prio=4)
+        g.crystal((x, y + 0.8, 0), (0, 1, 0), 2.0, 0.9, 'glow', glow=True, prio=4, tip=0.9)
+    return False
+
+
+def _comet_head(g, p, H, curv):
+    """꼬리별 장궁: 손잡이 앞(−x, 쏘는 쪽)에 빛나는 혜성 머리, 그 뒤로 두 팔을 따라 곧은 빛 줄 셋 (주황 → 흰빛,
+    끝으로 가늘게). 줄은 팔보다 앞쪽에 떠서 팔과 겹치지 않는다."""
+    hx = -5.2
+    g.ball((hx, 0, 0), 2.0, 'flame', glow=True, vfn=lambda i, j, k, d: 0.42 + 0.35 * (1 - d), prio=4)   # 주황 테
+    g.ball((hx - 0.8, 0, 0), 1.45, 'glow', glow=True, vfn=lambda i, j, k, d: 0.78 + 0.22 * (1 - d), prio=5)  # 흰 핵
+    for s in (1, -1):
+        for k, (dx, shorter) in enumerate(((0.0, 0.0), (-3.4, 5.0), (-6.6, 10.0))):
+            ey = s * (H - 2 - shorter)
+            t = (abs(ey) - 2.5) / (H - 2.5)
+            ex = curv * t * t - 0.6 - 1.8 + dx
+            g.tube([(hx + 0.6 - 0.8 * k, s * (1.4 + 0.4 * k), 0), (ex, ey, 0)], 0.5, 0.5, 'glow', glow=True, prio=3,
+                   vfn=lambda tt, d, q: 0.2 + 0.6 * tt)
+
+
+def _star_glints(g, pts):
+    """작은 네 갈래 별 (XY 면, 한 칸 두께)."""
+    for (x, y, z) in pts:
+        g.put(x, y, z, 'glow', 0.95, glow=True, prio=5)
+        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            g.put(x + dx, y + dy, z, 'glow', 0.72, glow=True, prio=5)
+        for dx, dy in ((2, 0), (-2, 0), (0, 2), (0, -2)):
+            g.put(x + dx, y + dy, z, 'glow', 0.45, glow=True, prio=4)
+
+
+def _wisp_flame(g, p, lx, ly0, ly1, top):
+    """도깨비불 등롱: 키운 우리 안의 큰 연두 불(공 + 위로 뾰족한 불꽃), 갈고리 끝 작은 불씨."""
+    cy = (ly0 + ly1) / 2
+    g.ball((lx, cy - 0.4, 0), 2.2, 'glow', glow=True, vfn=lambda i, j, k, d: 0.3 + 0.4 * (1 - d), prio=4)
+    g.crystal((lx, cy + 1.0, 0), (0, 1, 0), 2.6, 1.4, 'glow', glow=True, prio=4, tip=0.8)
+    g.ball((lx + 1.1, top + 5.6, 0), 0.95, 'glow', 0.7, glow=True, prio=4)
+
+
+def _wisp_floaters(g, p, hy, top):
+    """등롱 둘레를 도는 도깨비불 셋 ('gem' — wisp_flicker 가 따로 반짝이게) + 꼬리, lv5 는 등롱에 맞춘 halo."""
+    lx, cy = 6.5, hy - 7                                     # lamp_crook: hy = top + 4, 등롱 가운데 = top − 3
+    Rw = 7.0
+    for k, deg in enumerate((35, 155, 275)):
+        a = math.radians(deg)
+        q = (lx + math.cos(a) * Rw, cy + math.sin(a) * Rw, 1.0 - k)
+        g.ball(q, 1.15, 'gem', glow=True, vfn=lambda i, j, kk, d: 0.4 + 0.4 * (1 - d), prio=5)
+        tail = [(lx + math.cos(a - b) * Rw, cy + math.sin(a - b) * Rw, q[2]) for b in (0.18, 0.36, 0.52)]
+        g.tube([q] + tail, 0.7, 0.5, 'glow', glow=True, prio=4, vfn=lambda t, d, qq: 0.5 - 0.3 * t)
+    if p.lv >= 5:
+        halo(g, (lx, cy, 0), 9.5, 'z')
+        return True
+    return False
+
+
+def _daybreak_bell(g, p, bb, bt, h, apex):
+    """새벽의 종: 종 몸에 장밋빛으로 빛나는 가로 띠 둘 + 입구 테('gem' — 울림 고리가 지나가는 자리), 밝은 추,
+    종 꼭대기에 작은 고리와 장밋빛 보석, 종 양옆에 울림 물결(짧은 호). 해 원반·햇살·후광은 없다 (치천사의 홀의 해·후광과 갈리게)."""
+    for j in (bb + 1, bb + 3):
+        t = (bt - j) / max(1, h)
+        g.torus((0, j, 0), 1.35 + 2.6 * t ** 1.7, 0.5, 'y', 'gem', 0.5, glow=True, prio=4)
+    g.torus((0, bb, 0), 3.6, 0.6, 'y', 'gem', 0.42, glow=True, prio=4)        # lip (bell_toll 의 울림이 여기서 시작)
+    g.ball((0, bb - 1.4, 0), 1.35, 'glow', 0.62, glow=True, prio=4)            # clapper
+    g.torus((0, apex + 1.2, 0), 1.2, 0.45, 'z', 'orn', 0.62, prio=4)          # 매다는 고리
+    g.ball((0, apex + 0.2, 0), 0.95, 'gem', 0.66, glow=True, prio=4)
+    if p.lv >= 4:                                                              # 종 양옆 울림 물결 (짧은 호 둘씩, 원 아님)
+        cy = (bb + bt) / 2
+        for R, w in ((5.4, 0.12), (7.2, 0.09)):
+            for mid in (0.0, 0.5):
+                g.torus((0, cy, 0), R, 0.42, 'z', 'glow', 0.7, glow=True, prio=3, arc=(mid - w, mid + w))
+
+
+def _daybreak_floaters(g, p, hy, top):
+    """작은 반짝임 둘(lv5 셋). True = halo 를 그리지 않는다 (후광은 치천사의 홀 몫)."""
+    _star_glints(g, [(-7, hy + 5, 0), (7, hy - 4, 0)] + ([(-6, hy - 8, 0)] if p.lv >= 5 else []))
+    return True
+
+
+def _waning_sickle(g, p, cells, C, R, gl):
+    """그믐달 사슬낫: 안쪽 날 줄을 빛나게(moon_phase 가 이 줄을 따라 밝은 곳을 옮긴다), 손잡이 끝 고리에서 사슬
+    여섯 고리가 아래로 휘어 늘어지고 끝에 작은 초승달 추, lv5 는 날 바깥을 감싸는 반달 halo."""
+    for (u, v), d in cells.items():
+        if d == 0 and math.hypot(u - C[0], v - C[1]) < R - 0.6:
+            for w in (-1, 0, 1):
+                cur = g.vox.get((u, v, w))
+                if cur and cur[0] == 'edge':
+                    cur[2] = True
+    ring_y = -gl // 2 - 3.5                                  # sickle(): lv≥1 손가락 고리 (R 1.6)
+    if p.lv < 1:
+        g.torus((0, ring_y, 0), 1.6, 0.5, 'z', 'orn', 0.7)
+    path = bezier((0, ring_y - 2.2, 0), (0.4, ring_y - 5.5, 0), (2.2, ring_y - 8.6, 0), (4.8, ring_y - 10.2, 0), 60)
+    n = 6
+    for k in range(n):
+        q = path[int(k / (n - 1) * (len(path) - 1))]
+        g.torus(q, 0.95, 0.45, 'z' if k % 2 == 0 else 'x', 'metal', 0.62, prio=3)
+        g.put(round(q[0]), round(q[1] + 1), 0, 'gem', 0.8, glow=True, prio=4)       # 고리마다 반짝일 한 칸
+    e = path[-1]
+    w0 = (e[0] + 0.6, e[1] - 2.0)
+
+    def moon(u, v):
+        return math.hypot(u - w0[0], v - w0[1]) <= 2.4 and math.hypot(u - w0[0] - 1.0, v - w0[1] - 0.8) > 2.0
+    g.slab(moon, (int(w0[0]) - 3, int(w0[1]) - 3), (int(w0[0]) + 3, int(w0[1]) + 3), 'xy', 0, max_half=1, slope=0.8,
+           mat='ice', glow=True, prio=4, vfn=lambda u, v, w, d: 0.62 + 0.12 * min(d, 2))
+    g.tube([e, (w0[0] - 0.4, w0[1] + 1.9, 0)], 0.5, 0.5, 'metal', 0.6, prio=3)
+    if p.lv >= 5:
+        g.torus((C[0], C[1], 0), R + 2.4, 0.5, 'z', 'glow', 0.5, glow=True, prio=4, arc=(-0.08, 0.58))
+        for k in range(3):
+            a = 2 * math.pi * (-0.08 + 0.66 * k / 2)
+            g.gem((C[0] + math.cos(a) * (R + 2.4), C[1] + math.sin(a) * (R + 2.4), 0), 1.0, 'glow', glow=True)
+
+
+def _waning_frost(g, p, A):
+    """초승달 등에 작은 달빛 얼음 조각 셋 (frost 테마 기본 장식인 손잡이 아래 고드름은 사슬 자리라 뺀다)."""
+    C, R = A['C'], A['R']
+    for deg, size in ((150, 2.0), (95, 2.6), (40, 1.8)):
+        a = math.radians(deg)
+        g.crystal((C[0] + math.cos(a) * (R + 0.3), C[1] + math.sin(a) * (R + 0.3), 0), (math.cos(a), math.sin(a), 0),
+                  size, 0.7, 'ice', glow=p.glow and p.lv >= 4, prio=3)
+
+
+SIG_FLOATERS = {'mountainheart': _mountain_floaters, 'hightide': _tide_floaters, 'wisp': _wisp_floaters,
+                'daybreak': _daybreak_floaters}     # dress_shaft lv≥4 — True 를 돌려주면 halo 도 직접 그렸다
+SIG_HALO = {'mountainheart': (3, 11.5)}             # (머리 가운데에서 위로, 반지름) — 태산은 봉우리까지 감싼다
 
 
 # ───────────────────────────── 0.3.6 곡괭이 (도구, 계약 visual.json pickaxes) ─────────────────────────────

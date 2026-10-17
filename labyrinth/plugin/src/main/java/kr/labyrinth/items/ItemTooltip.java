@@ -309,13 +309,16 @@ public final class ItemTooltip {
         List<String> out = null;
         // 일반: 0 전부 · 1 이야기 뺌 · 2 획득처 뺌 · 3 빈 줄 뺌 · 4 스킬 설명 첫 줄만 + 고유 한 줄
         // 보스 고유 장비: 0 전부 · 1 이야기 뺌 · 2 빈 줄 뺌 · 3 스킬·고유 접기 (획득처는 남김) · 4 획득처 뺌
+        // 둘 다 5: 스킬 설명 뺌 (머리 줄만) — 0.3.7 스킬 넷인 신화의 대장간 목록·도감 (재료·획득처 꼬리가 길다)
         boolean bossGear = def.isGear() && def.sources().contains("boss");
-        for (int tier = 0; tier <= 4; tier++) {
+        List<List<String>> noDescs = new ArrayList<>();
+        for (int i = 0; i < skillDescs.size(); i++) noDescs.add(List.of());
+        for (int tier = 0; tier <= 5; tier++) {
             boolean keepSource = bossGear ? tier <= 3 : tier <= 1;
             boolean blanks = bossGear ? tier <= 1 : tier <= 2;
             boolean fold = bossGear ? tier >= 3 : tier >= 4;
             List<String> u = fold && uniqueFolded != null ? List.of(uniqueFolded) : unique;
-            out = assemble(head, stats, enhanceLines, u, skillHeads, skillDescs, look, extra,
+            out = assemble(head, stats, enhanceLines, u, skillHeads, tier >= 5 ? noDescs : skillDescs, look, extra,
                     tier == 0 ? flavor : List.of(), keepSource ? source : null, blanks, fold);
             if (out.size() <= budget) break;
         }
