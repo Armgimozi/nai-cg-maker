@@ -228,11 +228,14 @@ final class ConsumableListener implements Listener, DamageInterceptor {
             }
         }, 2L, 2L);
         casting.put(p.getUniqueId(), task);
+        // 0.3.6.2: 싸우는 중에 시작한 시전 중에 접속을 끊으면 쓰러진 것으로 친다 (dungeon 이 판정 — 끊김 판정은 이 onQuit 보다 먼저)
+        if (combat) services.dungeon().combatReturnCast(p, true);
     }
 
     private void cancelCast(Player p, String msg) {
         BukkitTask task = casting.remove(p.getUniqueId());
         if (task != null) task.cancel();
+        services.dungeon().combatReturnCast(p, false);
         services.hud().clearCast(p);
         if (msg != null) {
             services.hud().actionBar(p, Text.mm("<#ff6b6b>" + msg), 30);

@@ -29,6 +29,7 @@ import org.bukkit.configuration.ConfigurationSection;
  *       ({@link #goldLost}). 골드는 플레이어 몸에만 있다 (은행·파티 금고·우편 없음).</li>
  *   <li>공략 중 살아 있고 전투 중(10초 안에 피해 — 귀환 주문서와 같은 판정)이면 /미궁 퇴장·입구 메뉴 '귀환' 도
  *       {@code combat_exit_seconds}초 시전, 맞으면 끊김 ({@link #exitCastSeconds}) — 죽기 직전 퇴장으로 페널티를 피하지 못하게.</li>
+ *   <li>0.3.6.2: 같은 때(전투 중 · 시전 중)에 접속을 끊으면 쓰러진 것으로 친다 ({@link #combatQuit}) — 서버 종료·재시작·관리자 /kick 은 빼고.</li>
  * </ul>
  * config: {@code death.penalty} (키가 없으면 {@link Config#DEFAULT} — 예전 config.yml 도 jar 만 바꾸면 켜진다).
  */
@@ -301,7 +302,62 @@ public final class DeathPenaltyRules {
     public static double exitCastSeconds(Config c, boolean adminTest, boolean alive, long sinceHurtMs) {
         if (c == null || adminTest || !alive || c.combatExitSeconds() <= 0) return 0;
         if (!plan(c, Where.DUNGEON_RUN, false).any()) return 0;
-        return sinceHurtMs >= 0 && sinceHurtMs < COMBAT_MS ? c.combatExitSeconds() : 0;
+        return inCombat(sinceHurtMs) ? c.combatExitSeconds() : 0;
+    }
+
+    /** 싸우는 중인가: 마지막 피해에서 {@link #COMBAT_MS} 안 (받은 적 없으면 음수 → 아님). 퇴장 시전·귀환 주문서와 같은 판정. */
+    public static boolean inCombat(long sinceHurtMs) {
+        return sinceHurtMs >= 0 && sinceHurtMs < COMBAT_MS;
+    }
+
+    // ── 싸우는 중 접속 끊기 (0.3.6.2 주인 결정) ─────────────────────────
+
+    /** 공략 중 접속을 끊었을 때: 쓰러진 것으로 치고 페널티 (APPLY) · 지금처럼 공략에 남음 (NONE). */
+    public enum QuitVerdict { APPLY, NONE }
+
+    /**
+     * 접속을 끊은 순간의 형편 ({@code dungeon.DungeonManager} 가 채움).
+     *
+     * @param inRun          공략 참가자 (떠나지 않음)
+     * @param labyrinthWorld 미궁 월드에 있음 (입장 준비 중 마을 · 야생 · 광산이면 false)
+     * @param adminTest      관리자 시험 입장 ({@code /labadmin tpfloor})
+     * @param alive          살아 있음 (이미 쓰러져 관전 중이면 false)
+     * @param ending         공략이 끝나는 중 (전멸 · 정복 · 관리자 종료)
+     * @param sinceHurtMs    마지막 피해에서 지난 ms (받은 적 없으면 음수)
+     * @param casting        싸우는 중이라 시작한 퇴장 시전(/미궁 퇴장 5초) · 귀환 주문서 시전 중
+     * @param serverSide     서버 종료 · 재시작 · 플러그인 끄기 · 관리자 /kick 으로 끊김 (플레이어가 끊은 것이 아님)
+     */
+    public record Quit(boolean inRun, boolean labyrinthWorld, boolean adminTest, boolean alive, boolean ending,
+                       long sinceHurtMs, boolean casting, boolean serverSide) {}
+
+    /**
+     * 싸우는 중(10초 안에 맞음, 또는 싸우는 중에 시작한 퇴장·귀환 시전 중)에 접속을 끊으면 쓰러진 것으로 친다 — 쓰러지기 직전에 끊어
+     * 페널티를 피하는 틈을 막는다. 진짜로 튕겨도 같다 (주인 결정). 퇴장 시전과 같은 조건에서만:
+     * 공략 중 · 미궁 월드 · 살아 있음 · 공략이 끝나는 중이 아님 · 관리자 시험 입장이 아님 · {@code combat_exit_seconds} &gt; 0 ·
+     * 페널티가 하나라도 켜짐. 무엇을 잃는지는 쓰러짐과 같이 {@link #plan} 이 정한다 (스위치마다 따로). 서버 쪽에서 끊은 것은 아니다.
+     */
+    public static QuitVerdict combatQuit(Config c, Quit q) {
+        if (c == null || q == null || q.serverSide()) return QuitVerdict.NONE;
+        if (!q.inRun() || !q.labyrinthWorld() || q.adminTest() || !q.alive() || q.ending()) return QuitVerdict.NONE;
+        if (c.combatExitSeconds() <= 0 || !plan(c, Where.DUNGEON_RUN, false).any()) return QuitVerdict.NONE;
+        return q.casting() || inCombat(q.sinceHurtMs()) ? QuitVerdict.APPLY : QuitVerdict.NONE;
+    }
+
+    /**
+     * 서버 쪽에서 내보낸 것인가 ({@code PlayerKickEvent.Cause} 이름): {@code RESTART_COMMAND} = {@code /restart}(서버 재시작 —
+     * 플러그인을 끄기 전에 모두 내보냄) · {@code KICKED} = 관리자 {@code /kick} (Paper 26.3 KickCommand, 예전 이름 KICK_COMMAND 는 그 별칭).
+     * 도배·이상한 움직임·시간 초과·같은 계정 접속 같은 것은 플레이어 쪽이라 보통 끊김과 같다.
+     */
+    public static boolean serverKick(String cause) {
+        return "RESTART_COMMAND".equals(cause) || "KICKED".equals(cause) || "KICK_COMMAND".equals(cause);
+    }
+
+    /** 다시 접속했을 때 보여 줄 까닭 한 줄. */
+    public static final String QUIT_DOWN_TEXT = "<#ff8a80>싸우는 중에 접속을 끊어 쓰러진 것으로 쳤습니다.</#ff8a80>";
+
+    /** 남은 파티원에게. name 은 이미 이스케이프한 이름. */
+    public static String quitDownPartyText(String name) {
+        return "<red>" + name + "</red><gray> 님이 싸우는 중에 접속을 끊어 쓰러졌습니다.";
     }
 
     /** 5 → "5", 2.5 → "2.5". */

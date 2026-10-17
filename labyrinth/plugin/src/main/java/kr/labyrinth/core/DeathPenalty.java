@@ -34,6 +34,7 @@ import org.bukkit.persistence.PersistentDataType;
  * <ul>
  *   <li>미궁 공략 중 쓰러짐: {@code dungeon.Run#onMemberDeath} → {@link #onDungeonDown} (경험치 + 가방 칸 + 골드, 안내는 바로 — 미궁은 부활 화면이 없다).
  *       쓰러질 때 한 번 — 이미 쓰러진(관전) 사람은 다시 오지 않고(DungeonManager 가 살아 있을 때만 부름), 전멸에 더 잃는 것은 없다.</li>
+ *   <li>미궁 공략 중 싸우다 접속을 끊음 (0.3.6.2): {@code dungeon.Run#onCombatQuit} → {@link #onCombatQuit} (쓰러짐과 같음, 안내는 다시 접속했을 때)</li>
  *   <li>그 밖의 진짜 죽음: {@link DeathKeep} MONITOR → {@link #onRealDeath} (경험치만, 안내는 부활한 뒤)</li>
  * </ul>
  * 토템·부활 아이템으로 살아나면 죽음 이벤트가 없으므로 아무것도 잃지 않는다.
@@ -56,11 +57,55 @@ public final class DeathPenalty {
      * 기록을 바꾸기 앞에 남겨, 중간에 무슨 일이 나도 서버장이 콘솔을 보고 되돌려 줄 수 있게 한다.
      */
     public static void onDungeonDown(Services s, Player p, boolean adminTest) {
+        down(s, p, adminTest, "미궁", true);
+    }
+
+    /**
+     * 0.3.6.2: 싸우는 중에 접속을 끊음 = 쓰러짐 ({@code dungeon.Run#onCombatQuit}, PlayerQuitEvent 안 — 데이터 저장보다 먼저).
+     * 쓰러짐과 같은 길로 잃고 같은 콘솔 줄(곳 "미궁 · 접속 끊김")을 남긴다. 채팅은 다시 접속했을 때 ({@link #showQuitNotice}):
+     * 까닭 한 줄 + 잃은 것 줄들을 ext 에 담아 둔다.
+     */
+    public static void onCombatQuit(Services s, Player p, boolean adminTest) {
+        List<String> lines = down(s, p, adminTest, "미궁 · 접속 끊김", false);
+        try {
+            List<String> all = new ArrayList<>(lines.size() + 1);
+            all.add(DeathPenaltyRules.QUIT_DOWN_TEXT);
+            all.addAll(lines);
+            PlayerData d = s.data().get(p);
+            d.ext().put(QUIT_NOTICE, all);
+            d.markDirty();
+        } catch (Throwable t) {
+            Log.error("죽음 페널티 접속 끊김 안내 저장 실패 (" + p.getName() + ")", t);
+        }
+    }
+
+    /** PlayerData ext: 싸우는 중 접속 끊김으로 쓰러진 뒤 다시 들어오면 보여 줄 줄 (보여 주면 지움). */
+    static final String QUIT_NOTICE = "death.quit_notice";
+
+    /** 다시 접속했을 때 (DungeonManager.onJoin, 합류·입구 귀환 안내 뒤): 담아 둔 접속 끊김 안내를 한 번 보여 주고 지운다. */
+    public static void showQuitNotice(Services s, Player p) {
+        try {
+            PlayerData d = s.data().get(p);
+            Object raw = d.ext().remove(QUIT_NOTICE);
+            if (raw == null) return;
+            d.markDirty();
+            if (raw instanceof List<?> l) {
+                for (Object o : l) if (o != null) Text.send(p, String.valueOf(o));
+            } else {
+                Text.send(p, DeathPenaltyRules.QUIT_DOWN_TEXT);
+            }
+        } catch (Throwable t) {
+            Log.error("죽음 페널티 접속 끊김 안내 실패 (" + p.getName() + ")", t);
+        }
+    }
+
+    /** 쓰러짐 처리 본체. chat = 바로 채팅으로 보냄 (false 면 줄만 돌려줌). @return 채팅 줄 (잃은 것이 없으면 빈 목록) */
+    private static List<String> down(Services s, Player p, boolean adminTest, String where, boolean chat) {
         List<ItemStack> over = List.of();
         try {
             Config c = s.settings().deathPenalty();
             Plan plan = DeathPenaltyRules.plan(c, Where.DUNGEON_RUN, adminTest);
-            if (!plan.any()) return;
+            if (!plan.any()) return List.of();
             List<Pick> picks = List.of();
             if (plan.destroySlots()) {
                 try {
@@ -81,15 +126,18 @@ public final class DeathPenalty {
                 lost.addAll(k.lost());
                 ids.add(k.log());
             }
-            log(p, "미궁", ids, xp, gold, goldBefore);
+            log(p, where, ids, xp, gold, goldBefore);
             apply(s, p, d, xp, gold);
             remove(p, picks);
             List<ItemStack> rest = over;
             over = List.of();
             putBack(s, p, rest);
-            for (String line : DeathPenaltyRules.lines(lost, gold, xp)) Text.send(p, line);
+            List<String> lines = DeathPenaltyRules.lines(lost, gold, xp);
+            if (chat) for (String line : lines) Text.send(p, line);
+            return lines;
         } catch (Throwable t) {
             Log.error("죽음 페널티 처리 실패 (" + p.getName() + ")", t);
+            return List.of();
         } finally {
             // 중간에 실패해도 커서에서 떼어 둔 물건은 돌려준다
             if (!over.isEmpty()) {

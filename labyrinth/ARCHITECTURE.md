@@ -554,6 +554,8 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
     셜커 상자·꾸러미는 (손·보조손에 있어도) 상자를 남기고 안의 장비 아닌 것만(`DeathPenaltyRules.Box` · `eligible` · `DeathPenalty.Stacks`),
     커서·제작 칸 물건은 장비부터 가방으로(`DeathPenalty.settleLoose`), 콘솔 기록을 바꾸기 전에.
     공략 중 전투 중 퇴장은 `dungeon.ExitCast` 가 5초 시전 (`DungeonService.leaveByChoice` — 명령·입구 메뉴).
+    싸우는 중 접속 끊김 = 쓰러짐 (0.3.6.2, `DeathPenaltyRules.combatQuit`): `DungeonManager.onQuitInCombat`(PlayerQuitEvent LOW, 저장 전) →
+    `Run.onCombatQuit` → `DeathPenalty.onCombatQuit`, 안내는 재접속 때. 귀환 주문서 시전은 `DungeonService.combatReturnCast` 로 알림.
 - **PvP = 파티 규칙 하나** (대전·투기장·매치·레이팅 없음, GDD §18): 같은 파티원끼리는 야생·마을·미궁 어디서든 서로 피해를 줄 수 없고,
   그 밖의 플레이어끼리는 피해를 줄 수 있다. 근접·화살·스킬·무기 스킬·장판·물약·불·TNT·늑대·낚싯대 모두 같은 규칙. 플레이어끼리
   피해는 `pvp/PvpDamage`(기준 배율 m(L) · 직업 보정 · 스킬 pvp_mult · 강인함 · 완충 체력, 방어 대신 강인함, 치명 추가 피해 ×0.6,

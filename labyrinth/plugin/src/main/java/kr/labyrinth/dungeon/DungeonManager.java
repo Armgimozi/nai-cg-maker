@@ -54,6 +54,7 @@ import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
@@ -77,6 +78,12 @@ public final class DungeonManager implements DungeonService, Listener {
     private BukkitTask ticker;
     /** 0.3.6.1 전투 중 퇴장 시전 (죽음 페널티 보완). */
     private ExitCast exitCast;
+    /** 0.3.6.2: 플러그인을 끄는 중 — 이때 끊기는 사람은 벌하지 않는다 (disable 이 리스너를 먼저 내리지만 한 번 더). */
+    private volatile boolean disabling;
+    /** 0.3.6.2: 서버 쪽에서 내보낸 사람 (/restart · 관리자 /kick — {@code DeathPenaltyRules.serverKick}). 다음 PlayerQuitEvent 에서 지움. */
+    private final Set<UUID> serverKicked = ConcurrentHashMap.newKeySet();
+    /** 0.3.6.2: 이번 PlayerQuitEvent 에서 싸우는 중 끊김으로 쓰러진 사람 (MONITOR 의 "연결이 끊겼습니다" 안내 대신). */
+    private final Set<UUID> quitDowned = ConcurrentHashMap.newKeySet();
     private long tick;
     private int runSeq;
     /** 플러그인 세션마다 다른 토큰 — runSeq 는 재시작하면 0부터라, 재시작 뒤 같은 run id(금고 열쇠 새김)가 다시 나오지 않게. */
@@ -150,6 +157,7 @@ public final class DungeonManager implements DungeonService, Listener {
     }
 
     void disable() {
+        disabling = true;
         SelfTest.abort();
         services.damage().removeHook(trialHurtHook);
         if (ticker != null) ticker.cancel();
@@ -507,19 +515,72 @@ public final class DungeonManager implements DungeonService, Listener {
         if (r == null) e.setRespawnLocation(fallbackReturn(p));
     }
 
+    /** 서버 쪽에서 내보냄 (/restart 는 플러그인을 끄기 전에 모두 내보낸다 · 관리자 /kick) — 이어지는 PlayerQuitEvent 에서 벌하지 않게. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onKick(PlayerKickEvent e) {
+        if (kr.labyrinth.core.DeathPenaltyRules.serverKick(e.getCause().name())) serverKicked.add(e.getPlayer().getUniqueId());
+    }
+
+    /**
+     * 0.3.6.2 주인 결정: 공략 중 싸우는 중(10초 안에 맞음 · 싸우는 중에 시작한 퇴장/귀환 시전 중)에 접속을 끊으면 쓰러진 것으로 친다
+     * (규칙 {@link kr.labyrinth.core.DeathPenaltyRules#combatQuit}). LOW = 시전 취소(ExitCast·귀환 주문서)와 스탯 캐시 정리(NORMAL),
+     * 플레이어 데이터 저장(MONITOR)보다 먼저 — 시전 중인지 보고, 잃은 골드·경험치·안내가 저장되게. 바닐라는 이 이벤트 뒤에 가방을 저장한다.
+     * 서버 종료(/stop)는 플러그인을 먼저 끄고(리스너가 내려감) 사람을 내보내므로 여기 오지 않는다 — isStopping · disabling 은 덤.
+     */
+    @EventHandler(priority = EventPriority.LOW)
+    public void onQuitInCombat(PlayerQuitEvent e) {
+        Player p = e.getPlayer();
+        UUID u = p.getUniqueId();
+        Run r = byPlayer.get(u);
+        if (r == null) return;
+        try {
+            boolean serverSide = disabling || Bukkit.isStopping() || serverKicked.contains(u);
+            long since = exitCast == null ? -1 : exitCast.sinceHurt(u);
+            boolean casting = exitCast != null && exitCast.combatCasting(u);
+            var q = new kr.labyrinth.core.DeathPenaltyRules.Quit(r.isMember(u), isLabyrinthWorld(p.getWorld()), r.adminTest(),
+                    r.isAlive(p), r.ending(), since, casting, serverSide);
+            if (kr.labyrinth.core.DeathPenaltyRules.combatQuit(services.settings().deathPenalty(), q)
+                    != kr.labyrinth.core.DeathPenaltyRules.QuitVerdict.APPLY) return;
+            Log.info("[죽음 페널티] " + p.getName() + " 싸우는 중 접속 끊김 → 쓰러진 것으로 침 ("
+                    + (casting ? "퇴장·귀환 시전 중" : "마지막 피해 " + String.format(java.util.Locale.ROOT, "%.1f", since / 1000.0) + "초 전")
+                    + ", " + r.id() + ")");
+            quitDowned.add(u);
+            r.onCombatQuit(p);
+        } catch (Throwable t) {
+            Log.error("싸우는 중 접속 끊김 처리 실패 (" + p.getName() + ")", t);
+        }
+    }
+
     @EventHandler(priority = EventPriority.MONITOR)
     public void onQuit(PlayerQuitEvent e) {
         Player p = e.getPlayer();
+        serverKicked.remove(p.getUniqueId());
+        boolean downed = quitDowned.remove(p.getUniqueId());
         Run r = byPlayer.get(p.getUniqueId());
-        if (r == null) return;
+        if (r == null || downed) return; // 쓰러진 사람은 Run.onCombatQuit 이 이미 알림
         for (Player o : r.onlineMembers()) {
             if (!o.equals(p)) Text.send(o, "<gray>" + Text.escape(p.getName()) + " 님의 연결이 끊겼습니다. (다시 접속하면 합류)");
         }
     }
 
+    /** 0.3.6.2: 귀환 주문서 시전 (싸우는 중에 시작한 것) — ExitCast 가 끊김 판정에 쓴다. */
+    @Override
+    public void combatReturnCast(Player player, boolean casting) {
+        if (exitCast != null && player != null) exitCast.scrollCast(player.getUniqueId(), casting);
+    }
+
+    /** 쓰러짐(접속 끊김 포함): 마지막 피해 기록을 지운다 — 부활한 뒤 그 피해로 다시 '싸우는 중' 이 되지 않게. */
+    void forgetCombat(UUID u) {
+        if (exitCast != null) exitCast.forget(u);
+    }
+
     @EventHandler(priority = EventPriority.MONITOR)
     public void onJoin(PlayerJoinEvent e) {
         Player p = e.getPlayer();
+        // 0.3.6.2: 싸우는 중에 끊어 쓰러진 사람 — 합류(5틱)·입구 귀환(1틱) 안내 뒤에 까닭과 잃은 것을 한 번
+        Bukkit.getScheduler().runTaskLater(services.plugin(), () -> {
+            if (p.isOnline()) kr.labyrinth.core.DeathPenalty.showQuitNotice(services, p);
+        }, 8L);
         Run r = byPlayer.get(p.getUniqueId());
         if (r != null && r.isMember(p.getUniqueId()) && !r.ending()) {
             Bukkit.getScheduler().runTaskLater(services.plugin(), () -> {

@@ -1,6 +1,7 @@
 package kr.labyrinth.dungeon;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import kr.labyrinth.combat.DamageContext;
@@ -24,12 +25,15 @@ import org.bukkit.scheduler.BukkitTask;
  * 귀환 주문서처럼 시전한다 (config {@code death.penalty.combat_exit_seconds}, 기본 5초, 0 = 바로). 그동안 피해를 받으면 끊긴다.
  * 벌칙이 아니라 "죽기 직전에 퇴장 한 번으로 페널티(0.3.6.2 부터 골드도)를 피하는" 틈만 막는다. 쓰러진 사람·전투 밖은 지금처럼 바로 나간다.
  * 규칙은 {@link DeathPenaltyRules#exitCastSeconds}. 귀환 주문서 시전(items.ConsumableListener)은 그대로 따로 돈다.
+ * 0.3.6.2: 같은 전투 판정(마지막 피해 · 시전 중)을 싸우는 중 접속 끊김({@link DeathPenaltyRules#combatQuit})에도 빌려 준다.
  */
 final class ExitCast implements Listener {
 
     private final DungeonManager manager;
     private final Map<UUID, Long> lastHurt = new ConcurrentHashMap<>();
     private final Map<UUID, BukkitTask> casting = new ConcurrentHashMap<>();
+    /** 0.3.6.2: 싸우는 중에 시작한 귀환 주문서 시전 (items.ConsumableListener 가 {@link DungeonService#combatReturnCast} 로 알림). */
+    private final Set<UUID> scrollCasts = ConcurrentHashMap.newKeySet();
 
     /** 커스텀 피해(스킬·몹 공격·함정)는 바닐라 피해 이벤트 없이 HP 만 줄이므로 피해 파이프라인에서 본다. */
     private final DamageService.Hook hurtHook = new DamageService.Hook() {
@@ -55,8 +59,27 @@ final class ExitCast implements Listener {
         }
         casting.values().forEach(BukkitTask::cancel);
         casting.clear();
+        scrollCasts.clear();
         lastHurt.clear();
     }
+
+    /** 마지막 피해에서 지난 ms (공략 중에 받은 적 없으면 -1). */
+    long sinceHurt(UUID u) {
+        long last = lastHurt.getOrDefault(u, -1L);
+        return last < 0 ? -1 : System.currentTimeMillis() - last;
+    }
+
+    /** 싸우는 중이라 시작한 퇴장 시전(이 클래스 — 시전은 전투 중에만 시작) 또는 귀환 주문서 시전 중인가. */
+    boolean combatCasting(UUID u) { return casting.containsKey(u) || scrollCasts.contains(u); }
+
+    /** 귀환 주문서 시전 (싸우는 중에 시작한 것) 시작 · 끝. */
+    void scrollCast(UUID u, boolean on) {
+        if (on) scrollCasts.add(u);
+        else scrollCasts.remove(u);
+    }
+
+    /** 쓰러짐(접속 끊김 포함)으로 전투가 끝남 — 부활한 뒤 그 마지막 피해로 다시 전투 중이 되지 않게. */
+    void forget(UUID u) { lastHurt.remove(u); }
 
     private void hurt(Player p) {
         if (manager.runOf(p) != null) lastHurt.put(p.getUniqueId(), System.currentTimeMillis());
@@ -70,8 +93,10 @@ final class ExitCast implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
-        // 전투 기록(lastHurt)은 남긴다 — 끊고 바로 다시 들어와 곧장 나가는 길을 만들지 않게
+        // 전투 기록(lastHurt)은 남긴다 — 끊고 바로 다시 들어와 곧장 나가는 길을 만들지 않게.
+        // 싸우는 중 끊김 판정(DungeonManager.onQuitInCombat, LOW)은 이보다 먼저 시전 중인지를 본다.
         cancel(e.getPlayer(), null);
+        scrollCasts.remove(e.getPlayer().getUniqueId());
     }
 
     /**
@@ -84,7 +109,7 @@ final class ExitCast implements Listener {
             return true;
         }
         long last = lastHurt.getOrDefault(u, -1L);
-        long since = last < 0 ? -1 : System.currentTimeMillis() - last;
+        long since = sinceHurt(u);
         double secs = DeathPenaltyRules.exitCastSeconds(manager.services().settings().deathPenalty(), r.adminTest(),
                 r.isAlive(p) && !r.ending(), since);
         if (secs <= 0) return false;
