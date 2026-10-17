@@ -620,20 +620,6 @@ public final class ContentValidator {
         }
     }
 
-    /** blueprint_of 가 가리키는 레시피 id → 그 항목이 있는 루팅 테이블 (0.3.7 — 신화 레시피의 도안 출처). */
-    private Map<String, Set<String>> blueprintOfSources() {
-        Map<String, Set<String>> out = new HashMap<>();
-        for (LootTable t : c.lootTables().values()) {
-            List<LootTable.Entry> all = new ArrayList<>(t.entries());
-            all.addAll(t.guaranteed());
-            for (LootTable.Entry e : all) {
-                if (e.kind() != LootTable.Kind.BLUEPRINT_OF || e.chance() <= 0) continue;
-                for (String id : e.oneOf()) out.computeIfAbsent(id, k -> new TreeSet<>()).add(t.id());
-            }
-        }
-        return out;
-    }
-
     private void loot() {
         for (LootTable t : c.lootTables().values()) {
             String w = "loot." + t.id();
@@ -838,7 +824,7 @@ public final class ContentValidator {
     }
 
     private void recipes() {
-        Map<String, Set<String>> bpOf = blueprintOfSources();
+        Map<String, Set<String>> bpOf = kr.labyrinth.items.blueprint.BlueprintRules.blueprintOfSources(c);
         for (RecipeDef r : c.recipes().values()) {
             String w = "recipes." + r.id();
             requireItem(w + ".result", r.result());

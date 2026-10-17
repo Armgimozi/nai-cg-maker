@@ -221,6 +221,24 @@ public final class BlueprintRules {
         return total == 0 ? 0 : (double) mine / total;
     }
 
+    /**
+     * blueprint_of 가 가리키는 레시피 id → 그 항목이 있는 루팅 테이블 id (0.3.7 — 신화 레시피의 도안 출처, 확률 0 은 뺌, id 순).
+     * 검사기(출처 없는 신화 레시피)와 도감(신화 도안 얻는 곳 한 줄)이 같이 쓴다.
+     */
+    public static Map<String, Set<String>> blueprintOfSources(Content c) {
+        Map<String, Set<String>> out = new java.util.TreeMap<>();
+        if (c == null) return out;
+        for (LootTable t : c.lootTables().values()) {
+            List<LootTable.Entry> all = new ArrayList<>(t.entries());
+            all.addAll(t.guaranteed());
+            for (LootTable.Entry e : all) {
+                if (e.kind() != LootTable.Kind.BLUEPRINT_OF || e.chance() <= 0) continue;
+                for (String id : e.oneOf()) out.computeIfAbsent(id, k -> new java.util.TreeSet<>()).add(t.id());
+            }
+        }
+        return out;
+    }
+
     /** 이 장비를 만드는 도안이 필요한 레시피 (없으면 null). 레시피 id = 결과 id 가 보통이지만 결과로 찾는다. */
     public static RecipeDef recipeFor(Content c, String itemId) {
         if (itemId == null) return null;

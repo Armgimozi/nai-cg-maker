@@ -35,13 +35,13 @@ class MythicWiringTest {
             Map.entry("celestial_oathkeeper", Map.of("RIGHT", 0.8, "SNEAK_LEFT", 0.7)),
             Map.entry("mountainheart_maul", Map.of("RIGHT", 0.65, "SNEAK_RIGHT", 0.4)),
             Map.entry("bloodmoon_reaver", Map.of("RIGHT", 0.7, "SNEAK_RIGHT", 0.4)),
-            Map.entry("hightide_scythe", Map.of("RIGHT", 0.85, "SNEAK_LEFT", 0.85, "SNEAK_RIGHT", 0.45)),
+            Map.entry("hightide_scythe", Map.of("RIGHT", 0.85, "SNEAK_LEFT", 0.45, "SNEAK_RIGHT", 0.45)),
             Map.entry("tempest_bow", Map.of("SNEAK_LEFT", 0.2, "SNEAK_RIGHT", 0.85)),
             Map.entry("comet_longbow", Map.of()),
             Map.entry("voidheart_staff", Map.of("RIGHT", 0.55, "SNEAK_RIGHT", 0.35)),
-            Map.entry("wisp_lantern", Map.of("RIGHT", 0.85, "SNEAK_RIGHT", 0.2)),
+            Map.entry("wisp_lantern", Map.of("RIGHT", 0.4, "SNEAK_RIGHT", 0.1)),
             Map.entry("seraph_scepter", Map.of()),
-            Map.entry("daybreak_bell", Map.of()),
+            Map.entry("daybreak_bell", Map.of("SNEAK_RIGHT", 0.45)),
             Map.entry("eclipse_blade", Map.of("SNEAK_RIGHT", 0.85)),
             Map.entry("waning_moon_sickle", Map.of("SNEAK_LEFT", 0.9, "SNEAK_RIGHT", 0.45)));
 
@@ -144,5 +144,29 @@ class MythicWiringTest {
             }
         }
         assertEquals(List.of(), bad);
+    }
+
+    /** 새 신화 6 (0.3.7): 노린 곳(at: aim)은 블록 시선이라 몹을 노리면 그 뒤 바닥에 깔린다 — 장판·낙인은 at: target (적이 없으면 노린 곳). */
+    static final List<String> NEW6 = List.of("mountainheart_maul", "hightide_scythe", "comet_longbow", "wisp_lantern", "daybreak_bell",
+            "waning_moon_sickle");
+
+    @Test
+    void newMythicsDoNotAimAtBlocks() {
+        List<String> bad = new ArrayList<>();
+        for (String id : NEW6) {
+            ItemDef d = content.item(id);
+            if (d == null) continue;
+            for (ItemDef.WeaponSkillDef s : d.weaponSkills()) {
+                Object raw = s.params().get("mechanics");
+                if (raw != null && String.valueOf(raw).contains("at=aim")) bad.add(id + ":" + s.input() + " " + s.name());
+            }
+        }
+        assertEquals(List.of(), bad);
+        ItemDef wisp = content.item("wisp_lantern");
+        if (wisp != null) {
+            String zone = String.valueOf(wisp.weaponSkills().stream().filter(s -> s.input().equals("SNEAK_LEFT")).findFirst().orElseThrow()
+                    .params().get("mechanics"));
+            assertTrue(zone.contains("at=target"), "홀림불 at: target — " + zone);
+        }
     }
 }

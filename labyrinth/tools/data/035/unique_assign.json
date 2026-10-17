@@ -15333,7 +15333,7 @@
  },
  "daybreak_bell": {
   "effect": "sanctify",
-  "name": "새벽빛",
+  "name": "맑은 울림",
   "direction": "support",
   "params": {
    "pct": 0.095,
@@ -15350,10 +15350,10 @@
   },
   "hook": "on_hit",
   "tooltip": [
-   "✧ 고유 새벽빛",
+   "✧ 고유 맑은 울림",
    "  적중 시 8칸 안 가장 다친 아군을 공격력 9.5% 치유"
   ],
-  "tooltip_folded": "✧ 새벽빛 적중 → 아군 치유",
+  "tooltip_folded": "✧ 맑은 울림 적중 → 아군 치유",
   "pvp_rule": "혼자면 자신에게 절반 + 고정량 회복 규칙(× HP÷PvP 체력) + healing 0.6",
   "weapon": {
    "new": true,

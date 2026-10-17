@@ -168,6 +168,20 @@ class BlueprintOfTest {
     }
 
     @Test
+    void blueprintOfSourcesListsTablesWithAChance() {
+        // 검사기·도감이 같이 쓰는 출처 표 (FX37 — ContentValidator 에서 BlueprintRules 로 옮김): 확률 0 은 출처가 아니다
+        Map<String, java.util.Set<String>> src = BlueprintRules.blueprintOfSources(content);
+        for (String id : mythics) {
+            RecipeDef r = BlueprintRules.recipeFor(content, id);
+            assertFalse(src.getOrDefault(r.id(), java.util.Set.of()).isEmpty(), r.id() + " 출처 없음");
+        }
+        Map<String, LootTable> zero = new HashMap<>();
+        zero.put("t_zero", new LootTable("t_zero", 1, List.of(of(0.0, mythics)), List.of(), IntRange.ZERO));
+        assertFalse(BlueprintRules.blueprintOfSources(withTables(content, zero)).values().stream().anyMatch(t -> t.contains("t_zero")));
+        assertTrue(BlueprintRules.blueprintOfSources(null).isEmpty());
+    }
+
+    @Test
     void onlyMythicWeaponsMayComeFromBossAndCraft() {
         // 신화 무기: [boss, craft] 통과 (fixtureValidatesWithoutNewProblems). 그런데 신화를 특별 시련 상자에 넣으면 경고
         String myth = mythics.get(0);

@@ -3,6 +3,7 @@ package kr.labyrinth.ui.menus;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -84,6 +85,8 @@ public final class CodexMenu extends LabMenu {
     private String detail;
     private int page;
     private Map<String, List<String>> sources;
+    /** 신화 레시피 id → 신화 도안 얻는 곳 한 줄 (0.3.7, {@link #mythicBlueprintLines}). */
+    private Map<String, String> mythicBp;
 
     public CodexMenu(Services services) {
         super(services, "codex", 6, "<#ffd36b>미궁 도감");
@@ -96,6 +99,7 @@ public final class CodexMenu extends LabMenu {
     protected void draw(Player viewer) {
         who = viewer;
         if (sources == null) sources = buildSources(services.content());
+        if (mythicBp == null) mythicBp = mythicBlueprintLines(services.content());
         Tab[] tabs = Tab.values();
         for (int i = 0; i < tabs.length; i++) {
             Tab t = tabs[i];
@@ -259,7 +263,11 @@ public final class CodexMenu extends LabMenu {
                 ? kr.labyrinth.items.blueprint.BlueprintRules.recipeFor(services.content(), d.id()) : null;
         if (gated != null) {
             List<String> withBp = new ArrayList<>();
-            withBp.add(bp.knows(who, gated.id()) ? "<#9be89b>✔ 도안을 배웠다" : "<#ff8a8a>✘ 도안을 아직 못 배웠다");
+            boolean known = bp.knows(who, gated.id());
+            withBp.add(known ? "<#9be89b>✔ 도안을 배웠다" : "<#ff8a8a>✘ 도안을 아직 못 배웠다");
+            // 0.3.7: 신화 도안은 일반 도안 뽑기·상인에 없다 — 얻는 곳을 한 줄로
+            String where = known || mythicBp == null ? null : mythicBp.get(gated.id());
+            if (where != null) withBp.add(where);
             withBp.addAll(src);
             src = withBp;
         }
@@ -626,6 +634,39 @@ public final class CodexMenu extends LabMenu {
         Map<String, List<String>> out = new LinkedHashMap<>();
         // 원문 이름에 든 MiniMessage 기호는 strip 으로 걷었으므로 그대로 써도 안전
         src.forEach((id, groups) -> out.put(id, List.copyOf(formatSources(groups))));
+        return out;
+    }
+
+    /**
+     * 0.3.7 신화 레시피 id → 도감 한 줄 "신화 도안 보스 테오라·넬카르 · 특별 시련 · 금고·미믹" (loot.yml blueprint_of 출처,
+     * {@link kr.labyrinth.items.blueprint.BlueprintRules#blueprintOfSources}). 신화 도안은 일반 도안 뽑기·상인에 없어서
+     * "✘ 도안을 아직 못 배웠다" 만으로는 어디서 얻는지 알 수 없다. 장비 획득처 글과 같이 층 숫자 없이 보스 이름·종류만 (낮은 층 보스부터).
+     */
+    public static Map<String, String> mythicBlueprintLines(Content c) {
+        Map<String, String> out = new LinkedHashMap<>();
+        if (c == null) return out;
+        Map<String, BossDef> bossOf = new HashMap<>();
+        for (BossDef b : c.bosses().values()) if (b.drops() != null) bossOf.putIfAbsent(b.drops(), b);
+        for (var e : kr.labyrinth.items.blueprint.BlueprintRules.blueprintOfSources(c).entrySet()) {
+            RecipeDef r = c.recipes().get(e.getKey());
+            if (r == null || !kr.labyrinth.items.blueprint.BlueprintRules.isMythic(c, r)) continue;
+            List<BossDef> bosses = new ArrayList<>();
+            Set<String> kinds = new LinkedHashSet<>();
+            for (String tid : e.getValue()) {
+                BossDef b = bossOf.get(tid);
+                if (b != null) bosses.add(b);
+                else kinds.add(tid.matches("special_trial_f\\d+") ? "특별 시련" : tid.matches("hoard_f\\d+") ? "금고·미믹" : "보물 상자");
+            }
+            bosses.sort(Comparator.comparingInt(BossDef::floor));
+            List<String> parts = new ArrayList<>();
+            if (!bosses.isEmpty()) {
+                List<String> names = new ArrayList<>();
+                for (BossDef b : bosses) names.add(ItemTooltip.bossShortName(b));
+                parts.add("보스 " + String.join("·", names));
+            }
+            for (String k : List.of("특별 시련", "금고·미믹", "보물 상자")) if (kinds.contains(k)) parts.add(k);
+            out.put(e.getKey(), "<#c9a2ff>신화 도안 <gray>" + String.join(" <dark_gray>·</dark_gray> <gray>", parts));
+        }
         return out;
     }
 

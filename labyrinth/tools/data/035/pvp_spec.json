@@ -166,10 +166,11 @@
   "mountainheart_maul:RIGHT": 0.65,
   "mountainheart_maul:SNEAK_RIGHT": 0.4,
   "hightide_scythe:RIGHT": 0.85,
-  "hightide_scythe:SNEAK_LEFT": 0.85,
+  "hightide_scythe:SNEAK_LEFT": 0.45,
   "hightide_scythe:SNEAK_RIGHT": 0.45,
-  "wisp_lantern:RIGHT": 0.85,
-  "wisp_lantern:SNEAK_RIGHT": 0.2,
+  "wisp_lantern:RIGHT": 0.4,
+  "wisp_lantern:SNEAK_RIGHT": 0.1,
+  "daybreak_bell:SNEAK_RIGHT": 0.45,
   "waning_moon_sickle:SNEAK_LEFT": 0.9,
   "waning_moon_sickle:SNEAK_RIGHT": 0.45
  },
@@ -3282,7 +3283,7 @@
   "new_keys": "없으면 코드 기본값 = config.pvp",
   "data": "classes.yml skills[].pvp_mult 7 · items.yml weapon_skills[].pvp_mult 31",
   "docs": "GDD §18.3 다시 · §18.6 PvP 상태이상 · §18.7 PvP 회복 · §9.2 한 줄 · combat_spec §8.1 대체",
-  "data_037": "0.3.7 신화: items.yml weapon_skills[].pvp_mult +9 (무기 31 → 40, 모두 47)"
+  "data_037": "0.3.7 신화: items.yml weapon_skills[].pvp_mult +10 (무기 31 → 41, 모두 48 — FX37 에서 소환 맞을 확률 1.0·따라오는 장판을 다시 세어 새벽의 종 아침 성가 0.45 더함)"
  },
  "_note": "설계 pvp_spec.json 사본 (sim 표 뺌). tools/gen_035_pvp.py · PvpSkillMultDataTest · PvpConfigTest 가 읽는다."
 }

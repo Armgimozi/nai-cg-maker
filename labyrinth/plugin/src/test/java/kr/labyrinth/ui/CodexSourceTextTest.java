@@ -94,4 +94,48 @@ class CodexSourceTextTest {
                 .filter(d -> plain(d.id()).stream().anyMatch(x -> FLOOR.matcher(x).find())).count();
         assertTrue(withFloor >= 10, "층을 적은 재료·소모품 " + withFloor);
     }
+
+    /**
+     * 0.3.7 신화 도안 (리뷰 LOW 4): 신화 레시피 12개마다 도감에 "신화 도안 보스 … · 특별 시련 · 금고·미믹" 한 줄 —
+     * 일반 도안 뽑기·상인에 없으니 얻는 곳을 알려 준다. 장비 글처럼 층 숫자 없이, 넬카르(10층)는 12개 모두에.
+     */
+    @Test
+    void mythicBlueprintLineNamesItsSources() {
+        Map<String, String> lines = CodexMenu.mythicBlueprintLines(content);
+        String nelkar = kr.labyrinth.items.ItemTooltip.bossShortName(content.bossOfFloor(10));
+        int n = 0;
+        for (var r : content.recipes().values()) {
+            if (!kr.labyrinth.items.blueprint.BlueprintRules.isMythic(content, r)) continue;
+            String line = Text.strip(lines.getOrDefault(r.id(), ""));
+            assertTrue(line.startsWith("신화 도안 보스 "), r.id() + ": " + line);
+            assertTrue(line.contains(nelkar) && line.contains("특별 시련") && line.contains("금고·미믹"), r.id() + ": " + line);
+            assertFalse(FLOOR.matcher(line).find(), r.id() + ": " + line);
+            n++;
+        }
+        assertEquals(12, n, "신화 레시피");
+        assertEquals(12, lines.size(), "신화가 아닌 레시피에는 줄이 없다");
+        // 공허의 심장은 10층에서만, 새벽의 종은 9층(테오라)과 10층
+        assertEquals("신화 도안 보스 " + nelkar + " · 특별 시련 · 금고·미믹", Text.strip(lines.get("voidheart_staff")));
+        String theora = kr.labyrinth.items.ItemTooltip.bossShortName(content.bossOfFloor(9));
+        assertEquals("신화 도안 보스 " + theora + "·" + nelkar + " · 특별 시련 · 금고·미믹", Text.strip(lines.get("daybreak_bell")));
+    }
+
+    /** 신화 도안 줄을 더해도 도감 툴팁은 20줄 안이고, 도안 줄 · 보스 줄 · 대장간 골드까지 다 보인다 (못 배운 사람 기준). */
+    @Test
+    void mythicCodexTooltipKeepsAllSourceLines() {
+        Map<String, String> lines = CodexMenu.mythicBlueprintLines(content);
+        for (var r : content.recipes().values()) {
+            if (!kr.labyrinth.items.blueprint.BlueprintRules.isMythic(content, r)) continue;
+            ItemDef d = content.item(r.result());
+            List<String> src = new java.util.ArrayList<>();
+            src.add("<#ff8a8a>✘ 도안을 아직 못 배웠다");
+            src.add(lines.get(r.id()));
+            src.addAll(sources.get(d.id()));
+            List<String> lore = CodexMenu.lore(content, d, null, src).stream().map(Text::strip).toList();
+            String all = String.join("\n", lore);
+            System.out.println("[도감 신화] " + d.id() + " " + lore.size() + "줄 · 획득처 " + src.size());
+            assertTrue(lore.size() <= kr.labyrinth.items.ItemTooltip.MAX_LINES, d.id() + " " + lore.size());
+            assertTrue(all.contains("신화 도안 보스") && all.contains("400,000G") && !all.contains("외 더 있음"), d.id() + "\n" + all);
+        }
+    }
 }

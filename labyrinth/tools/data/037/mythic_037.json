@@ -1,13 +1,19 @@
 {
  "_meta": {
-  "source": "myth-037 최종 명세 final_spec.json (myth-037 final v1) 사본 — 손으로 고치지 않는다. tools/gen_037_mythic.py (MYTH037 단계, gen_035_content.generate() 의 BP036 뒤) 가 읽는다.",
+  "source": "myth-037 최종 명세 final_spec.json (myth-037 final v1) 사본 (한 번 만든 것). 그 뒤 고친 것은 _meta.fixes 에 적는다. tools/gen_037_mythic.py (MYTH037 단계, gen_035_content.generate() 의 BP036 뒤) 가 읽는다.",
   "owner_decision": "신화 무기 6 → 12 (직업마다 둘, 짝과 다른 무기 종류) · 획득 = 보스(8·9·10층) + 대장간(신화 도안) · 모든 난이도",
   "band_median": {
    "now_30": 774.385,
    "after_36": 812.485,
    "pack3_now_30": 972.45,
    "source": "wdps/py/weapons_dps.json (띠 46–50 30개) · final_work/sim/final_dps.json (같은 모델 사본, 새 6 + 기존 신화 6 같은 실행 — 기존 6은 원래 값과 같음)"
-  }
+  },
+  "fixes": [
+   "FX37 PvP: 소환(summon)은 사거리 안 적에게 바로 맞으므로 맞을 확률 1.0 × 수, 따라오는 장판은 min(0.9, 0.45 + 0.1·반지름)으로 다시 셈 → 도깨비불 등롱 RIGHT 0.85 → 0.4 · SNEAK_RIGHT 0.2 → 0.1, 만조의 큰낫 SNEAK_LEFT 0.85 → 0.45, 새벽의 종 SNEAK_RIGHT 없음 → 0.45 (pvp_spec skill_mult 같음)",
+   "FX37 홀림불: 장판 at aim → target (노린 적 발밑, 없으면 노린 곳 — 울림 낙인과 같은 방식)",
+   "FX37 새벽의 종 고유 이름 새벽빛 → 맑은 울림 (전설 '여명의 빛' 과 겹침, unique_assign 같음)",
+   "FX37 새벽의 종 그림: 해 원반·햇살·후광을 빼고 종 꼭대기 고리·보석으로, 텍스처를 짙은 장밋빛 청동으로 (치천사의 홀 크림·금과 갈리게)"
+  ]
  },
  "mythics": [
   "celestial_oathkeeper",
@@ -463,7 +469,7 @@
      "input": "SNEAK_LEFT",
      "cooldown": 16.0,
      "mana": 28,
-     "pvp_mult": 0.85,
+     "pvp_mult": 0.45,
      "description": "4초간 낫을 휘돌리며 걷는다. 곁에 닿는 적은 계속 베이고, 그동안 빨라지고 덜 다친다.",
      "mechanics": [
       {
@@ -822,7 +828,7 @@
      "input": "RIGHT",
      "cooldown": 16.0,
      "mana": 24,
-     "pvp_mult": 0.85,
+     "pvp_mult": 0.4,
      "description": "등롱에서 도깨비불 셋을 풀어 놓는다. 8초간 곁을 맴돌며 12칸 안 적에게 불을 쏜다.",
      "mechanics": [
       {
@@ -853,11 +859,11 @@
      "input": "SNEAK_LEFT",
      "cooldown": 14.0,
      "mana": 22,
-     "description": "노린 곳에 홀림불을 깔아 둔다. 5초간 안의 적은 느려지고, 표식이 붙어 모두에게 10% 더 다친다.",
+     "description": "노린 적 발밑에 홀림불을 깔아 둔다. 5초간 안의 적은 느려지고, 표식이 붙어 모두에게 10% 더 다친다.",
      "mechanics": [
       {
        "type": "zone",
-       "at": "aim",
+       "at": "target",
        "range": 14,
        "radius": 4,
        "duration": 5,
@@ -886,7 +892,7 @@
      "input": "SNEAK_RIGHT",
      "cooldown": 48.0,
      "mana": 44,
-     "pvp_mult": 0.2,
+     "pvp_mult": 0.1,
      "description": "등롱 뚜껑을 활짝 연다. 둘레의 적을 밀어내고, 6초간 도깨비불 여섯이 빠르게 불을 쏜다.",
      "mechanics": [
       {
@@ -1003,7 +1009,7 @@
    ],
    "unique": {
     "id": "sanctify",
-    "name": "새벽빛",
+    "name": "맑은 울림",
     "pct": 0.095,
     "radius": 8
    },
@@ -1119,6 +1125,7 @@
      "input": "SNEAK_RIGHT",
      "cooldown": 55.0,
      "mana": 55,
+     "pvp_mult": 0.45,
      "description": "8초간 종이 쉬지 않고 울린다. 곁의 적은 느려지고 다치며, 아군은 초당 3% 회복하고 피해 +8%. 끝나면 아군을 정화한다.",
      "mechanics": [
       {
@@ -1181,11 +1188,11 @@
    "texture": {
     "style": "crystal",
     "palette": [
-     "#2a1410",
-     "#7a3e2e",
-     "#d88a5a",
-     "#ffd2a8",
-     "#fff8ee"
+     "#2a1210",
+     "#74302a",
+     "#b8604a",
+     "#e8a088",
+     "#fff0e6"
     ],
     "animated": true,
     "frames": 16,

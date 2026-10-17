@@ -347,21 +347,21 @@ auras:
     secondary_mode: ring
     interval: 3
     swing: {type: DUST, color: "#9a7436", size: 1.6, count: 12, speed: 0.1}
-  hightide:   # 만조의 큰낫 — 청록 물보라가 나선으로 돌고 물방울이 떨어진다 (전설 tide 의 물방울·거품과 다른 입자)
+  hightide:   # 만조의 큰낫 — 발밑에 짙은 소용돌이, 흰 거품이 짙은 바다색으로 가라앉으며 돈다 (전설 tide 의 물결 링·청록 가루·물방울과 다르게)
     tier: mythic
     particles:
-      - {type: DUST, color: "#5ad8e0", size: 1.2, count: 2, radius: 0.8, height: 0.5, pattern: spiral}
+      - {type: DUST_COLOR_TRANSITION, color: "#f0fffa", color_to: "#08303c", size: 1.2, count: 2, radius: 0.9, height: 0.3, pattern: spiral}
       - {type: FALLING_WATER, count: 1, radius: 0.7, height: 1.8, pattern: fall}
       - {type: BUBBLE_COLUMN_UP, count: 1, radius: 0.5, height: 0.2, pattern: rise, chance: 0.3}
     ring_model: hightide_ring
-    ring_spin: 5.0
+    ring_spin: 3.0
     ring_scale: 1.4
     ring_height: 0.05
     secondary_model: hightide_ring_outer
     secondary_spin: -3.0
     secondary_mode: ring
     interval: 3
-    swing: {type: SPLASH, count: 14, speed: 0.12}
+    swing: {type: DUST_COLOR_TRANSITION, color: "#f0fffa", color_to: "#08303c", size: 1.5, count: 14, speed: 0.12}
   comet:   # 꼬리별 장궁 — 움직이면 빛 꼬리가 남고, 작은 불씨가 돈다
     tier: mythic
     particles:
@@ -451,14 +451,14 @@ models:
   # 대신 mercury_drops(물방울)·star_dots(깜빡이는 반딧불)·snowflakes(달빛 서리)를 쓴다 (셋은 ring 에서 멈춘 그림이 된다)
   mountain_ring:          {style: ring, motif: geode_shards, palette: ["#140e08", "#6a4a1e", "#f0b444", "#fff2c8"], animated: true, frames: 16, frametime: 2, size: [36, 1, 36], flat: true, glow: true}
   mountain_ring_outer:    {style: ring, motif: crystal_facets, palette: ["#4a3a22", "#9a7436", "#f0b444", "#fff2c8"], animated: true, frames: 16, frametime: 2, size: [46, 1, 46], flat: true, glow: true}
-  hightide_ring:          {style: ring, motif: waves, palette: ["#04121e", "#0e3a5a", "#5ad8e0", "#e0fff8"], animated: true, frames: 16, frametime: 2, size: [36, 1, 36], flat: true, glow: true}
-  hightide_ring_outer:    {style: ring, motif: mercury_drops, palette: ["#0e3a5a", "#1e7a9a", "#5ad8e0", "#ffffff"], animated: true, frames: 16, frametime: 2, size: [46, 1, 46], flat: true, glow: true}
+  hightide_ring:          {style: ring, motif: abyss_tide, palette: ["#021016", "#08303c", "#14707a", "#f0fffa"], animated: true, frames: 16, frametime: 2, size: [36, 1, 36], flat: true, glow: true}
+  hightide_ring_outer:    {style: ring, motif: mercury_drops, palette: ["#08303c", "#14707a", "#bfeee8", "#ffffff"], animated: true, frames: 16, frametime: 2, size: [46, 1, 46], flat: true, glow: true}
   comet_ring:             {style: ring, motif: wind_streaks, palette: ["#0a0a20", "#2a2a6a", "#ff8a3a", "#ffd890"], animated: true, frames: 16, frametime: 2, size: [36, 1, 36], flat: true, glow: true}
   comet_ring_outer:       {style: ring, motif: star_dots, palette: ["#2a2a6a", "#ff8a3a", "#ffd890", "#ffffff"], animated: true, frames: 16, frametime: 2, size: [46, 1, 46], flat: true, glow: true}
   wisp_ring:              {style: ring, motif: soul_flames, palette: ["#061008", "#2a6a20", "#a8f060", "#f0ffd0"], animated: true, frames: 16, frametime: 2, size: [36, 1, 36], flat: true, glow: true}
   wisp_ring_outer:        {style: ring, motif: star_dots, palette: ["#12401a", "#3aa040", "#a8f060", "#ffffff"], animated: true, frames: 16, frametime: 2, size: [46, 1, 46], flat: true, glow: true}
   daybreak_ring:          {style: ring, motif: sun_rays, palette: ["#2a1410", "#a85a3e", "#ffd2a8", "#fff8ee"], animated: true, frames: 16, frametime: 2, size: [36, 1, 36], flat: true, glow: true}
-  daybreak_ring_outer:    {style: ring, motif: halo_runes, palette: ["#7a3e2e", "#d88a5a", "#ffd2a8", "#ffffff"], animated: true, frames: 16, frametime: 2, size: [46, 1, 46], flat: true, glow: true}
+  daybreak_ring_outer:    {style: ring, motif: light_crystal, palette: ["#7a3e2e", "#d88a5a", "#ffd2a8", "#ffffff"], animated: true, frames: 16, frametime: 2, size: [46, 1, 46], flat: true, glow: true}
   waning_ring:            {style: ring, motif: crescent, palette: ["#020408", "#3a5a6a", "#b0d8e0", "#f0fbff"], animated: true, frames: 16, frametime: 2, size: [36, 1, 36], flat: true, glow: true}
   waning_ring_outer:      {style: ring, motif: snowflakes, palette: ["#0e1a24", "#3a5a6a", "#b0d8e0", "#ffffff"], animated: true, frames: 16, frametime: 2, size: [46, 1, 46], flat: true, glow: true}
 
@@ -564,8 +564,8 @@ models:
   # 0.3.7 신화 6 (myth-037) 무기 스킬 이펙트 — items.yml mechanics 의 display 이름 (짝: weapons.<id>.model.fx_models)
   mountain_burst:     {style: shockwave, motif: geode_shards, palette: ["#140e08", "#6a4a1e", "#f0b444", "#fff2c8"], animated: true, frames: 10, frametime: 1, size: [40, 1, 40], flat: true, glow: true}
   mountain_boulder:   {style: projectile, shape: meteor, palette: ["#1a140c", "#4a3a22", "#9a7436", "#f0b444", "#fff2c8"], animated: true, frames: 6, frametime: 1, size: [12, 12, 12], billboard: CENTER, glow: true}
-  hightide_burst:     {style: shockwave, motif: waves, palette: ["#04121e", "#0e3a5a", "#5ad8e0", "#e0fff8"], animated: true, frames: 10, frametime: 1, size: [40, 1, 40], flat: true, glow: true}
-  hightide_slash:     {style: slash, motif: waves, palette: ["#04121e", "#0e3a5a", "#5ad8e0", "#e0fff8"], animated: true, frames: 8, frametime: 1, size: [36, 4, 14], billboard: FIXED, glow: true}
+  hightide_burst:     {style: shockwave, motif: abyss_tide, palette: ["#021016", "#08303c", "#14707a", "#f0fffa"], animated: true, frames: 10, frametime: 1, size: [40, 1, 40], flat: true, glow: true}
+  hightide_slash:     {style: slash, motif: abyss_tide, palette: ["#021016", "#08303c", "#14707a", "#f0fffa"], animated: true, frames: 8, frametime: 1, size: [36, 4, 14], billboard: FIXED, glow: true}
   comet_arrow:        {style: projectile, shape: arrow, palette: ["#2a2a6a", "#ff8a3a", "#ffd890", "#ffffff"], animated: true, frames: 4, frametime: 1, size: [3, 3, 22], billboard: FIXED, glow: true}
   wisp_orb:           {style: orb, motif: soul_flames, palette: ["#061008", "#2a6a20", "#a8f060", "#f0ffd0"], animated: true, frames: 8, frametime: 2, size: [8, 8, 8], billboard: CENTER, glow: true}
   wisp_burst:         {style: shockwave, motif: firefly, palette: ["#061008", "#2a6a20", "#a8f060", "#f0ffd0"], animated: true, frames: 10, frametime: 1, size: [40, 1, 40], flat: true, glow: true}

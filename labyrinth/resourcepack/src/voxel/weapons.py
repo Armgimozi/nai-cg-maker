@@ -714,7 +714,7 @@ def dress_shaft(g, p: P, y0, y1, hy, top):
                 d = (s * (0.6 + rr.random()), 1.0 + rr.random() * 0.6, math.sin(a) * 0.7)
                 g.crystal((s * 1, yy + rr.randint(0, 1), math.cos(a) * 0.8), d, 2.2 + rr.random() * 2.2, 0.75 + 0.3 * rr.random(),
                           'crystal', glow=big and rr.random() < 0.5, prio=3)
-        # 태산·새벽 종(0.3.7): 머리 위는 봉우리·해 원반 자리, 결정 테마의 보라 덩굴은 짝 색과 안 맞아 뺀다
+        # 태산·새벽 종(0.3.7): 머리 위는 봉우리·종 고리 자리, 결정 테마의 보라 덩굴은 짝 색과 안 맞아 뺀다
         if big and p.sig not in ('mountainheart', 'daybreak'):
             vines(g, y0, y1, 1.9, p, n=1, leaves=False, buds=True)
             crystal_cluster(g, (0, top + 1, 0), p, 4, 5.0, 1.3, glow=True)
@@ -1508,7 +1508,7 @@ def bell_scepter(g, p):
                 if d <= r and (d >= r - 1.3 or j >= bt - 1):
                     g.put(i, j, k, 'orn' if th_bell(p) else 'metal', 0.4 + 0.3 * (1 - t) + 0.1 * (i > 0), prio=3)
     if p.sig == 'daybreak':
-        _daybreak_bell(g, p, bb, bt, h, apex)        # 장밋빛 청동 종 + 띠 둘 + 반쯤 뜬 해 원반 + 햇살 다섯
+        _daybreak_bell(g, p, bb, bt, h, apex)        # 장밋빛 청동 종 + 빛나는 띠 둘 + 꼭대기 고리·보석
     else:
         g.torus((0, bb, 0), 3.6, 0.6, 'y', 'orn', 0.75, prio=3)       # lip
         g.ball((0, bb - 1.2, 0), 1.1, 'glow' if p.lv >= 1 else 'metal', 0.7, glow=p.lv >= 1, prio=4)   # clapper
@@ -2163,28 +2163,25 @@ def _wisp_floaters(g, p, hy, top):
 
 def _daybreak_bell(g, p, bb, bt, h, apex):
     """새벽의 종: 종 몸에 장밋빛으로 빛나는 가로 띠 둘 + 입구 테('gem' — 울림 고리가 지나가는 자리), 밝은 추,
-    종 꼭대기 보석 자리에 반쯤 떠오른 해 원반(반원 slab) + 짧은 햇살 다섯."""
+    종 꼭대기에 작은 고리와 장밋빛 보석, 종 양옆에 울림 물결(짧은 호). 해 원반·햇살·후광은 없다 (치천사의 홀의 해·후광과 갈리게)."""
     for j in (bb + 1, bb + 3):
         t = (bt - j) / max(1, h)
         g.torus((0, j, 0), 1.35 + 2.6 * t ** 1.7, 0.5, 'y', 'gem', 0.5, glow=True, prio=4)
     g.torus((0, bb, 0), 3.6, 0.6, 'y', 'gem', 0.42, glow=True, prio=4)        # lip (bell_toll 의 울림이 여기서 시작)
     g.ball((0, bb - 1.4, 0), 1.35, 'glow', 0.62, glow=True, prio=4)            # clapper
-    cy, Rs = apex + 1, 3.2
-
-    def disc(u, v):
-        return v >= cy and math.hypot(u, v - cy) <= Rs
-    g.slab(disc, (-4, cy), (4, cy + 4), 'xy', 0, max_half=1, slope=0.7, mat='orn', glow=True, prio=4,
-           vfn=lambda u, v, w, d: 0.42 + 0.1 * min(d, 2) + 0.06 * (w == 0))
-    for k in range(5):
-        a = math.radians(18 + 36 * k)
-        r0, r1 = Rs + 0.9, Rs + (3.2 if k % 2 == 0 else 2.4)
-        g.tube([(math.cos(a) * r0, cy + math.sin(a) * r0, 0), (math.cos(a) * r1, cy + math.sin(a) * r1, 0)],
-               0.6, 0.5, 'glow', 0.72, glow=True, prio=4)
+    g.torus((0, apex + 1.2, 0), 1.2, 0.45, 'z', 'orn', 0.62, prio=4)          # 매다는 고리
+    g.ball((0, apex + 0.2, 0), 0.95, 'gem', 0.66, glow=True, prio=4)
+    if p.lv >= 4:                                                              # 종 양옆 울림 물결 (짧은 호 둘씩, 원 아님)
+        cy = (bb + bt) / 2
+        for R, w in ((5.4, 0.12), (7.2, 0.09)):
+            for mid in (0.0, 0.5):
+                g.torus((0, cy, 0), R, 0.42, 'z', 'glow', 0.7, glow=True, prio=3, arc=(mid - w, mid + w))
 
 
 def _daybreak_floaters(g, p, hy, top):
+    """작은 반짝임 둘(lv5 셋). True = halo 를 그리지 않는다 (후광은 치천사의 홀 몫)."""
     _star_glints(g, [(-7, hy + 5, 0), (7, hy - 4, 0)] + ([(-6, hy - 8, 0)] if p.lv >= 5 else []))
-    return False
+    return True
 
 
 def _waning_sickle(g, p, cells, C, R, gl):
