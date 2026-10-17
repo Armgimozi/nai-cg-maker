@@ -14,8 +14,8 @@ content/*.yml + Java 소스의 하드코딩 id 가 resourcepack/dist/labyrinth-p
                (+ resourcepack/generate.py MINE_EXTRA_ICONS 드롭 명세 재료), 0.3.6.1 보석 광석 블록 6개 (mine.json gems.*.block 의
                blockstates → visual.json 모델 → 16×16 그림, 결정 모델 0), 옛 재료 id 별칭 (두 판), 광부·제련공 스킨, 메뉴 배경 3개,
                보석 블록 밖 블록 덮어쓰기 0개
-  평면 아이콘 : item/generated 아이템 그림이 16×16 손그림(0.3.6.2 resourcepack/src/pixel_icons, 반투명 없음) 또는 옛 32×32
-               (옛 그림·계약 visual.json size 와 다른 크기는 경고)
+  평면 아이콘 : item/generated 아이템 그림이 모두 16×16 손그림 (0.3.6.2 resourcepack/src/pixel_icons, 반투명 없음).
+               옛 32×32 로 떨어진 그림은 오류, 계약 visual.json size 와 다른 크기는 경고
 사용: python3 tools/check_assets.py [pack.zip]   (종료 코드 0 = 일치)
 """
 import json
@@ -254,8 +254,8 @@ def main():
     if blocks:
         errors.append(f"보석 블록 6개 밖 블록 덮어쓰기 {len(blocks)}개 (계약 §0-8): " + ", ".join(blocks[:5]))
 
-    # 0.3.6.2 평면 아이콘 (item/generated): 16×16 손그림 (resourcepack/src/pixel_icons) 이거나, 아직 옮기지 않은 옛 32×32.
-    # 계약 visual.json icons.*.size (16) 와 다른 크기면 경고 (옛 그림) — 크기가 16·32 가 아니거나 반투명이 섞인 16px 는 오류.
+    # 0.3.6.2 평면 아이콘 (item/generated): 16×16 손그림 (resourcepack/src/pixel_icons). 크기가 16·32 가 아니거나 반투명이 섞인
+    # 16px 는 오류, 옛 32×32 로 떨어진 것도 오류 (통합 뒤 83개 모두 16px). 계약 visual.json icons.*.size 와 다르면 경고.
     from io import BytesIO
     from PIL import Image
     sizes = {}
@@ -285,7 +285,10 @@ def main():
             warns.append(f"평면 아이콘 {iid}: {w}px — 계약 visual.json 은 {want}px (옛 그림, pixel_icons 로 옮길 것)")
     n16 = sum(1 for w in sizes.values() if w == 16)
     if sizes and n16 < len(sizes):
-        warns.append(f"평면 아이콘 16px {n16}개 · 옛 32px {len(sizes) - n16}개")
+        # 0.3.6.2 통합부터 평면 아이콘은 모두 16px (pixel_icons.REQUIRE_ALL_16) — 옛 32px 로 떨어진 것은 오류
+        old32 = sorted(i for i, w in sizes.items() if w != 16)
+        errors.append(f"평면 아이콘 옛 32px {len(old32)}개 (16px {n16}개): " + ", ".join(old32[:8]) +
+                      " — resourcepack/src/pixel_icons 에 그림을 등록할 것")
 
     print(f"검사 {checked}건 · 오류 {len(errors)}건 ({pack.name})")
     for e in errors:

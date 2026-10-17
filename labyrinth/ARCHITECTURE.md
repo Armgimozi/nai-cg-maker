@@ -52,8 +52,10 @@ labyrinth/
     재료·소모품만 2D 아이콘 허용.
   - **2D 아이콘은 16×16 손그림** (0.3.6.2, 주인 결정 C): `resourcepack/src/pixel_icons/` — 한 칸 = 한 픽셀, 6칸 색조 램프,
     왼쪽 위 빛, 검은 외곽선 없음, 반투명 없음, 6~16색 (규칙·지도 문법은 그 `__init__.py` 머리말). 그룹 모듈
-    `mine · organic · arcane · crafted · consumable` 이 아이템 id 또는 `texture.style` 로 그림을 등록하고, 등록이 없는 아이템만
-    옛 32×32 SDF 그림(`src/icons.py`)으로 그린다. `validate.py` 가 16px 그림의 규칙을 검사한다. 곡괭이는 3D 복셀 그대로.
+    `mine · organic · arcane · crafted · consumable` 이 아이템 id 또는 `texture.style` 로 그림을 등록한다 (평면 아이콘 83개 모두
+    — 광석·주괴·보석 18 · 몬스터 재료 19 · 정수·핵·룬석 16 · 강화석·열쇠·휘장·도안 등 16 · 물약·주문서 14). 등록이 없는 새 아이템은
+    옛 32×32 SDF 그림(`src/icons.py`)으로 떨어지지만 `pixel_icons.REQUIRE_ALL_16 = True` 라 `validate.py` 가 오류로 막는다.
+    `validate.py` 가 16px 그림의 규칙을 검사한다. 곡괭이·무기·방어구·방패·장신구는 3D 모델 그대로.
   - **투구는 3D 모델을 머리에 씌운다**: 투구는 `EQUIPPABLE(slot=head)` 에 `assetId` 를 **넣지 않는다**
     (그래야 아이템 모델이 머리 display 로 렌더링됨). 상의·하의·신발만 장비 에셋 레이어 사용.
   - 플러그인은 `DataComponentTypes.ITEM_MODEL = Key.key("labyrinth", id)` 로 지정. CustomModelData 안 씀.

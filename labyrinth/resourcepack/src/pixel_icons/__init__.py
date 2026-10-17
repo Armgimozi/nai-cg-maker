@@ -42,8 +42,8 @@ SIZE = 16
 MIN_COLOURS, MAX_COLOURS = 6, 16
 MAX_ISOLATED = 2          # 일부러 놓은 한 점 반짝임 허용 수 (그 이상 = speckle)
 GROUPS = ('mine', 'organic', 'arcane', 'crafted', 'consumable')
-# 모든 평면 아이콘이 16px 로 바뀐 뒤 True: validate.py 가 남은 옛 32px 평면 아이콘을 오류로 본다 (그 전에는 경고).
-REQUIRE_ALL_16 = False
+# True (0.3.6.2 통합 — 평면 아이콘 83개 모두 16px): validate.py 가 옛 32px 로 떨어진 평면 아이콘을 오류로 본다 (False 면 경고).
+REQUIRE_ALL_16 = True
 
 WHITE = (255, 255, 255)
 RGB = tuple
