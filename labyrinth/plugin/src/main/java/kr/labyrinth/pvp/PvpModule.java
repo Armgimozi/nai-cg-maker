@@ -136,8 +136,8 @@ public final class PvpModule implements Module {
     }
 
     boolean inSafeZone(Location l) {
-        // 광산 월드는 늘 안전지대 (0.3.6 — 플레이어끼리 적이 아님, 계약 §2.2)
-        if (kr.labyrinth.mine.MineSafety.inMine(services.mine(), l)) return true;
+        // 광산 월드: 0.3.7 주인 결정 — 승강기 홀(+둘레 mine.pvp.safe_margin)만 안전지대, 그 밖은 PvP. 광산 PvP 가 꺼져 있으면 0.3.6 처럼 전부 안전지대
+        if (kr.labyrinth.mine.MineSafety.inMine(services.mine(), l)) return kr.labyrinth.mine.MineSafety.noPvp(services.mine(), l);
         PvpConfig c = config;
         return c.safeZoneVillage() && zone.contains(l, c.safeZoneMargin());
     }
@@ -166,18 +166,26 @@ public final class PvpModule implements Module {
         }
         to.sendMessage(Text.mm("<gray> 월드 PvP 게임 규칙: " + Text.escape(worlds.toString())
                 + " · 판정 " + services.targets().getClass().getSimpleName()));
+        var mine = services.mine();
+        if (mine.enabled()) {
+            to.sendMessage(Text.mm("<gray> 광산: " + (mine.pvpEnabled() ? "승강기 홀 밖 PvP (안전 구역 " + mine.safeZoneCount() + "곳)"
+                    : "PvP 없음 (config mine.pvp" + (c.enabled() ? "" : " · pvp.enabled") + ")")));
+        }
     }
 
     // ── 월드 PvP 스위치 ───────────────────────────────────────────────────
 
-    /** 모든 월드(labyrinth_world 포함)의 바닐라 PvP 게임 규칙 = pvp.enabled (광산 월드는 늘 끔). server.properties 를 몰라도 된다. */
+    /**
+     * 모든 월드(labyrinth_world 포함)의 바닐라 PvP 게임 규칙 = pvp.enabled. server.properties 를 몰라도 된다.
+     * 광산 월드는 0.3.7 부터 pvp.enabled 와 mine.pvp.enabled 가 둘 다 켜졌을 때만 (광산 안 판정은 승강기 홀 밖만 PvP).
+     */
     void applyWorldRules(boolean log) {
         for (World w : Bukkit.getWorlds()) applyWorldRule(w, log);
     }
 
     void applyWorldRule(World w, boolean log) {
         boolean mine = kr.labyrinth.mine.MineSafety.inMine(services.mine(), w);
-        boolean want = config.enabled() && !mine;
+        boolean want = config.enabled() && (!mine || services.mine().pvpEnabled());
         try {
             Boolean cur = w.getGameRuleValue(GameRules.PVP);
             if (cur != null && cur == want) return;
@@ -186,7 +194,12 @@ public final class PvpModule implements Module {
             Log.warnOnce("pvp-rule:" + w.getName(), "월드 " + w.getName() + " 의 PvP 규칙을 바꾸지 못했습니다: " + t.getMessage());
             return;
         }
-        if (log) Log.info("월드 " + w.getName() + " PvP " + (want ? "켬" : "끔") + (mine ? " (광산 — 늘 끔)" : " (config pvp.enabled)"));
+        // 광산 월드는 켜고 끔이 config(mine.pvp)·/labadmin reload 로 바뀌므로 1초 틱에서 바뀌어도 한 줄 (광산이 켜지기 전 월드를 처음 열 때는 조용히)
+        boolean mineOn = mine && services.mine().enabled();
+        if (log && !mine || mineOn) {
+            Log.info("월드 " + w.getName() + " PvP " + (want ? "켬" : "끔") + (!mine ? " (config pvp.enabled)"
+                    : want ? " (광산 — 승강기 홀 밖 PvP)" : config.enabled() ? " (광산 — mine.pvp 끔)" : " (광산 — pvp.enabled 끔)"));
+        }
     }
 
     // ── 1초마다 ───────────────────────────────────────────────────────────

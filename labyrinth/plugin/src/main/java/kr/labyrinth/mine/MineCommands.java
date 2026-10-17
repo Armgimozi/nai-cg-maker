@@ -74,6 +74,8 @@ final class MineCommands {
             Text.send(s, "<gray> " + l.coloredName() + " <gray>광맥 " + st[0] + "/" + st[1] + " · 보석 " + st[2] + "/" + st[3]
                     + " · 재생 " + c.regenMinutes().get(l.n - 1) + "분 · " + (module.ready(l.n) ? "<green>준비" : "<yellow>짓는 중"));
         }
+        Text.send(s, "<gray> PvP: " + (module.pvpEnabled() ? "<white>켬</white> · " + Text.escape(module.pvpSummary())
+                : "끔 (" + (c.pvp().enabled() ? "pvp.enabled 끔" : "mine.pvp.enabled: false") + " — 광산 안 피해 없음)"));
         MineLinks.District d = MineLinks.district();
         Text.send(s, "<gray> 광산 마을: " + (d == null ? "없음 (관리소로 그대로 됨)" : "있음 · 승강기 " + d.lifts().size() + "칸")
                 + " · /미궁 광산 " + (c.teleportAllowed(module.services().plugin().getConfig().getBoolean("village.teleport_command", true))

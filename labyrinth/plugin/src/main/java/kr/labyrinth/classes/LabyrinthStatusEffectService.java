@@ -131,9 +131,9 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
         long now = System.currentTimeMillis();
         if (target instanceof Player p && (p.getGameMode() == org.bukkit.GameMode.CREATIVE
                 || p.getGameMode() == org.bukkit.GameMode.SPECTATOR)) return;
-        // 광산 월드 (0.3.6): 해로운 효과·밀쳐내기·효과 피해 없음
+        // 광산 월드 (0.3.6): 해로운 효과·밀쳐내기·효과 피해 없음 — 0.3.7: PvP 구역에서 다른 파티 플레이어가 건 것은 들어감 (아래 PvP 상태이상 규칙)
         if ((EffectStack.harmful(id) || id.equals("knockback") || id.equals("damage"))
-                && kr.labyrinth.mine.MineSafety.protects(services.mine(), target)) return;
+                && kr.labyrinth.mine.MineSafety.protects(services.mine(), target, source)) return;
         if (isBoss(target) && (id.equals("stun") || id.equals("root") || id.equals("frozen"))) return;
 
         switch (id) {
@@ -221,7 +221,7 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
         if (target == null || target.isDead() || !(perStack > 0)) return;
         if (target instanceof Player p && (p.getGameMode() == org.bukkit.GameMode.CREATIVE
                 || p.getGameMode() == org.bukkit.GameMode.SPECTATOR)) return;
-        if (EffectStack.harmful(layer) && kr.labyrinth.mine.MineSafety.protects(services.mine(), target)) return; // 광산 (0.3.6)
+        if (EffectStack.harmful(layer) && kr.labyrinth.mine.MineSafety.protects(services.mine(), target, source)) return; // 광산 (0.3.6, 0.3.7 PvP)
         long now = System.currentTimeMillis();
         double dur = Math.max(0.05, durationSeconds);
         if (target instanceof Player p) {
@@ -239,7 +239,7 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
     @Override
     public void applyFrost(LivingEntity target, int stacks, double freezeSeconds, double bossVulnerable, LivingEntity source) {
         if (target == null || target.isDead()) return;
-        if (kr.labyrinth.mine.MineSafety.protects(services.mine(), target)) return; // 광산 (0.3.6)
+        if (kr.labyrinth.mine.MineSafety.protects(services.mine(), target, source)) return; // 광산 (0.3.6, 0.3.7 PvP)
         State s = state(target);
         s.frostFreeze = Math.max(0, freezeSeconds);
         s.frostBossVuln = Math.max(0, bossVulnerable);

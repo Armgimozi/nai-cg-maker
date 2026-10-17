@@ -327,6 +327,7 @@ public final class DungeonManager implements DungeonService, Listener {
             if (byPlayer.containsKey(m.getUniqueId())) problems.add(m.getName() + " (이미 미궁 안)");
             else if (isLabyrinthWorld(m.getWorld())) problems.add(m.getName() + " (미궁 월드에 있음)");
             else if (m.isDead()) problems.add(m.getName() + " (사망 상태)");
+            else if (!admin && services.mine().inPvpCombat(m)) problems.add(m.getName() + " (광산에서 싸우는 중)"); // 0.3.7 광산 PvP
             if (config.requireNearEntrance() && !admin) {
                 Location ref = gather != null ? gather : leader.getLocation();
                 if (!m.getWorld().equals(ref.getWorld()) || m.getLocation().distanceSquared(ref) > radius * radius) {

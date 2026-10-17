@@ -35,6 +35,8 @@ import org.bukkit.persistence.PersistentDataType;
  *   <li>미궁 공략 중 쓰러짐: {@code dungeon.Run#onMemberDeath} → {@link #onDungeonDown} (경험치 + 가방 칸 + 골드, 안내는 바로 — 미궁은 부활 화면이 없다).
  *       쓰러질 때 한 번 — 이미 쓰러진(관전) 사람은 다시 오지 않고(DungeonManager 가 살아 있을 때만 부름), 전멸에 더 잃는 것은 없다.</li>
  *   <li>미궁 공략 중 싸우다 접속을 끊음 (0.3.6.2): {@code dungeon.Run#onCombatQuit} → {@link #onCombatQuit} (쓰러짐과 같음, 안내는 다시 접속했을 때)</li>
+ *   <li>0.3.7 광산에서 다른 플레이어에게 쓰러짐: {@code mine.MinePvp} → {@link #onMineDown} (미궁 쓰러짐과 같음) ·
+ *       PvP 구역에서 싸우다 접속을 끊음 → {@link #onMineCombatQuit}</li>
  *   <li>그 밖의 진짜 죽음: {@link DeathKeep} MONITOR → {@link #onRealDeath} (경험치만, 안내는 부활한 뒤)</li>
  * </ul>
  * 토템·부활 아이템으로 살아나면 죽음 이벤트가 없으므로 아무것도 잃지 않는다.
@@ -57,7 +59,38 @@ public final class DeathPenalty {
      * 기록을 바꾸기 앞에 남겨, 중간에 무슨 일이 나도 서버장이 콘솔을 보고 되돌려 줄 수 있게 한다.
      */
     public static void onDungeonDown(Services s, Player p, boolean adminTest) {
-        down(s, p, adminTest, "미궁", true);
+        down(s, p, adminTest, "미궁", true, Where.DUNGEON_RUN);
+    }
+
+    /**
+     * 0.3.7: 광산에서 다른 플레이어에게 쓰러짐 ({@code mine.MinePvp}, 죽음을 취소한 다음 틱). 미궁 쓰러짐과 같은 길 —
+     * 열린 창 정리 → 칸 고르기(장비·열쇠·곡괭이·손 칸 안전, 셜커·꾸러미는 안의 장비 아닌 것만) → 경험치·골드 → 콘솔 줄(곳 "광산 PvP")
+     * → 빼기 → 지우기(떨구지 않음) → 같은 채팅 줄. 잃은 것은 사라진다 (쓰러뜨린 사람도 받지 않는다).
+     * where = {@link Where#MINE_PVP} (주인 결정 "던전과 같게") · {@code mine.pvp.penalty: false} 면 {@link Where#OUTSIDE} (경험치만).
+     *
+     * @return 보낸 채팅 줄
+     */
+    public static List<String> onMineDown(Services s, Player p, Where where) {
+        return down(s, p, false, "광산 PvP", true, where == null ? Where.OUTSIDE : where);
+    }
+
+    /**
+     * 0.3.7: 광산 PvP 구역에서 싸우는 중에 접속을 끊음 = 광산 PvP 쓰러짐 ({@code mine.MinePvp.onQuit}, PlayerQuitEvent LOW — 저장보다 먼저).
+     * 콘솔 곳 "광산 PvP · 접속 끊김". 채팅은 다시 접속했을 때 ({@link #showQuitNotice}): 까닭 + 잃은 것 + restartLine.
+     */
+    public static void onMineCombatQuit(Services s, Player p, Where where, String restartLine) {
+        List<String> lines = down(s, p, false, "광산 PvP · 접속 끊김", false, where == null ? Where.OUTSIDE : where);
+        try {
+            List<String> all = new ArrayList<>(lines.size() + 2);
+            all.add(DeathPenaltyRules.QUIT_DOWN_TEXT);
+            all.addAll(lines);
+            if (restartLine != null && !restartLine.isBlank()) all.add(restartLine);
+            PlayerData d = s.data().get(p);
+            d.ext().put(QUIT_NOTICE, all);
+            d.markDirty();
+        } catch (Throwable t) {
+            Log.error("죽음 페널티 접속 끊김 안내 저장 실패 (" + p.getName() + ")", t);
+        }
     }
 
     /**
@@ -66,7 +99,7 @@ public final class DeathPenalty {
      * 까닭 한 줄 + 잃은 것 줄들을 ext 에 담아 둔다.
      */
     public static void onCombatQuit(Services s, Player p, boolean adminTest) {
-        List<String> lines = down(s, p, adminTest, "미궁 · 접속 끊김", false);
+        List<String> lines = down(s, p, adminTest, "미궁 · 접속 끊김", false, Where.DUNGEON_RUN);
         try {
             List<String> all = new ArrayList<>(lines.size() + 1);
             all.add(DeathPenaltyRules.QUIT_DOWN_TEXT);
@@ -99,12 +132,17 @@ public final class DeathPenalty {
         }
     }
 
-    /** 쓰러짐 처리 본체. chat = 바로 채팅으로 보냄 (false 면 줄만 돌려줌). @return 채팅 줄 (잃은 것이 없으면 빈 목록) */
-    private static List<String> down(Services s, Player p, boolean adminTest, String where, boolean chat) {
+    /**
+     * 쓰러짐 처리 본체 (미궁 공략 · 0.3.7 광산 PvP). chat = 바로 채팅으로 보냄 (false 면 줄만 돌려줌).
+     * kind = 무엇을 잃는지 ({@link DeathPenaltyRules#plan}) — 미궁 = DUNGEON_RUN, 광산 PvP = MINE_PVP (같은 규칙) 또는 OUTSIDE (경험치만).
+     *
+     * @return 채팅 줄 (잃은 것이 없으면 빈 목록)
+     */
+    private static List<String> down(Services s, Player p, boolean adminTest, String where, boolean chat, Where kind) {
         List<ItemStack> over = List.of();
         try {
             Config c = s.settings().deathPenalty();
-            Plan plan = DeathPenaltyRules.plan(c, Where.DUNGEON_RUN, adminTest);
+            Plan plan = DeathPenaltyRules.plan(c, kind, adminTest);
             if (!plan.any()) return List.of();
             List<Pick> picks = List.of();
             if (plan.destroySlots()) {

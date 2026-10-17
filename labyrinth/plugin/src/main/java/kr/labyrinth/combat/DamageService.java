@@ -165,8 +165,9 @@ public final class DamageService implements Module {
             ctx.cancel();
             return ctx;
         }
-        // 광산 월드 안 플레이어는 피해 0 (0.3.6 — 스킬·지속 피해·PvP 모두. EntityDamageEvent 취소만으로는 setHealth 길이 남음)
-        if (targetPlayer != null && kr.labyrinth.mine.MineSafety.protects(services.mine(), targetPlayer)) {
+        // 광산 월드 안 플레이어는 피해 0 (0.3.6 — 스킬·지속 피해 모두. EntityDamageEvent 취소만으로는 setHealth 길이 남음).
+        // 0.3.7: 다른 파티 플레이어가 PvP 구역(승강기 홀 밖)에서 준 것만 통과 (지속 피해는 건 사람이 attacker)
+        if (targetPlayer != null && kr.labyrinth.mine.MineSafety.protects(services.mine(), targetPlayer, ctx.attacker())) {
             ctx.cancel();
             return ctx;
         }
@@ -396,7 +397,7 @@ public final class DamageService implements Module {
 
     /** 플레이어에게 커스텀 HP 단위 피해를 바닐라 체력으로 적용. @return 사망했으면 true */
     private boolean applyToPlayer(Player p, double amount, LivingEntity attacker) {
-        if (kr.labyrinth.mine.MineSafety.protects(services.mine(), p)) return false; // 광산 (0.3.6) — deal 에서 이미 막지만 한 번 더
+        if (kr.labyrinth.mine.MineSafety.protects(services.mine(), p, attacker)) return false; // 광산 (0.3.6, 0.3.7 PvP) — deal 에서 이미 막지만 한 번 더
         double vanilla = amount * services.stats().hpRatio(p);
         if (vanilla <= 0) return false;
         if (p.getHealth() - vanilla <= 0.0001) {

@@ -24,6 +24,7 @@ import org.bukkit.scheduler.BukkitTask;
  *   <li>lifts·office = 승강기·관리소 칸이 제 블록인가 · tool_mismatch = items.yml 곡괭이를 ItemService 로 만들었을 때 구성요소가 계획과 다른 수</li>
  *   <li>mobs = 광산 월드의 몹 수</li>
  *   <li>nodes = 보석 노드 가운데 제 블록(다 참) 또는 빈 광맥 블록(캔 뒤)인 칸 / 전체 · crystals = 남은 0.3.6 보석 결정 ItemDisplay (0.3.6.1 에서 0 이어야 함)</li>
+ *   <li>0.3.7 (줄 끝에 더함 — 앞 칸은 그대로): pvp = 광산 PvP 켜짐(on/off) · safe_zones = 안전 구역이 있는 층 / 층 수</li>
  * </ul>
  * 칸 비교는 틱마다 한 층씩 나눠 한다.
  */
@@ -128,7 +129,8 @@ final class MineSelfTest {
                 + " · veins=" + veins + " · gems=" + gems + " · unreachable=" + unreachable + " · lifts=" + lifts + "/" + expectedLevels
                 + " · office=" + office + " · tool_mismatch=" + toolBad + " · mobs=" + mobs
                 + " · tools=" + tools + " · nodes=" + module.veins().fullGemBlocks() + "/" + gems + " · crystals=" + module.veins().leftoverCrystals()
-                + " · empty=" + module.veins().state().count();
+                + " · empty=" + module.veins().state().count()
+                + " · pvp=" + (module.pvpEnabled() ? "on" : "off") + " · safe_zones=" + module.zones().count() + "/" + expectedLevels;
         Log.info(line);
         for (String n : notes) Log.info("[광산 자가 진단]   " + n);
         if (!(to instanceof org.bukkit.command.ConsoleCommandSender)) {

@@ -7,7 +7,8 @@ import org.bukkit.configuration.ConfigurationSection;
 
 /**
  * config.yml {@code mine:} — 광산 손잡이만 (R §3-16). 층·광석·블록·바이옴·초는 content/mine.yml.
- * 키가 없거나 config 에 {@code mine:} 절이 없으면 코드 기본값 ({@link #DEFAULT}) = 계약 mine.json {@code config_defaults}.
+ * 키가 없거나 config 에 {@code mine:} 절이 없으면 코드 기본값 ({@link #DEFAULT}) = 계약 mine.json {@code config_defaults}
+ * + 0.3.7 {@code pvp} ({@link Pvp} — 0.3.6.1 config.yml 에는 이 키가 없으므로 코드 기본값 = 켬, 파일을 고쳐 쓰지 않는다).
  * <p>
  * 주인 늦은 결정 (계약 §0): 기력·매크로 막기(1시간 알림 {@code alert_per_hour} 포함)는 없다. 광맥은 모두가 함께 쓰고,
  * 다시 차는 시간 = 기본 ÷ min(광산 월드 사람 수, {@link #regenPlayersCap}) — 여럿이 캐도 한 사람 몫이 혼자일 때와 비슷하다.
@@ -15,7 +16,7 @@ import org.bukkit.configuration.ConfigurationSection;
  */
 public record MineConfig(boolean enabled, String world, Teleport teleportCommand, double liftSeconds, List<Integer> regenMinutes,
                          int gemNodeRegenMinutes, int regenPlayersCap, double gemChance, double richChance, int richMultiplier,
-                         boolean fxPop, boolean noHunger, boolean safe, District district) {
+                         boolean fxPop, boolean noHunger, boolean safe, District district, Pvp pvp) {
 
     /** {@code /미궁 광산} 을 켤지: auto = village.teleport_command 를 따름. */
     public enum Teleport {
@@ -47,10 +48,41 @@ public record MineConfig(boolean enabled, String world, Teleport teleportCommand
         }
     }
 
+    /**
+     * 광산 PvP (0.3.7 주인 결정 "광산 PVP 키자" → 쓰러지면 "던전과 같게"). config {@code mine.pvp} — 키가 없으면 {@link #DEFAULT_PVP} (켬).
+     *
+     * @param enabled    승강기 홀 밖에서 플레이어끼리 싸울 수 있음 (false = 0.3.6 처럼 광산 안 피해 0). {@code pvp.enabled: false} 면 광산도 꺼짐
+     * @param penalty    다른 플레이어에게 쓰러지면 미궁에서 쓰러진 것과 같이 잃음 ({@code death.penalty} 값). false = 경험치만
+     * @param safeMargin 층마다 승강기 홀(맨 위층 관리소 포함) 둘레에 더하는 안전 칸 (0 ~ 16)
+     */
+    public record Pvp(boolean enabled, boolean penalty, int safeMargin) {
+        public Pvp {
+            safeMargin = MineSafeZones.clampMargin(safeMargin);
+        }
+
+        /** config {@code mine.pvp} 값 (섹션 · true · false · 없음). 빠진 키는 기본값. */
+        static Pvp read(Object raw) {
+            Pvp d = DEFAULT_PVP;
+            if (raw instanceof Boolean b) return new Pvp(b, d.penalty(), d.safeMargin());
+            if (!(raw instanceof ConfigurationSection s)) return d;
+            return new Pvp(s.getBoolean("enabled", d.enabled()), s.getBoolean("penalty", d.penalty()), s.getInt("safe_margin", d.safeMargin()));
+        }
+
+        java.util.Map<String, Object> toMap() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("enabled", enabled);
+            m.put("penalty", penalty);
+            m.put("safe_margin", safeMargin);
+            return m;
+        }
+    }
+
+    public static final Pvp DEFAULT_PVP = new Pvp(true, true, MineSafeZones.DEFAULT_MARGIN);
+
     public static final List<Integer> DEFAULT_REGEN = List.of(8, 9, 9, 10, 10, 10);
     public static final District DEFAULT_DISTRICT = new District(true, List.of("east", "south_east"), 3000, true);
     public static final MineConfig DEFAULT = new MineConfig(true, MineNames.WORLD, Teleport.AUTO, 2.0, DEFAULT_REGEN, 30, 4, 0.022,
-            0.04, 3, true, true, true, DEFAULT_DISTRICT);
+            0.04, 3, true, true, true, DEFAULT_DISTRICT, DEFAULT_PVP);
 
     public MineConfig {
         world = world == null || world.isBlank() ? MineNames.WORLD : world.trim();
@@ -69,6 +101,7 @@ public record MineConfig(boolean enabled, String world, Teleport teleportCommand
         richChance = clamp(richChance, 0, 1);
         richMultiplier = Math.max(1, Math.min(10, richMultiplier));
         district = district == null ? DEFAULT_DISTRICT : district;
+        pvp = pvp == null ? DEFAULT_PVP : pvp;
     }
 
     private static double clamp(double v, double lo, double hi) {
@@ -102,7 +135,7 @@ public record MineConfig(boolean enabled, String world, Teleport teleportCommand
 
     static MineConfig withEnabled(MineConfig c, boolean on) {
         return new MineConfig(on, c.world, c.teleportCommand, c.liftSeconds, c.regenMinutes, c.gemNodeRegenMinutes, c.regenPlayersCap,
-                c.gemChance, c.richChance, c.richMultiplier, c.fxPop, c.noHunger, c.safe, c.district);
+                c.gemChance, c.richChance, c.richMultiplier, c.fxPop, c.noHunger, c.safe, c.district, c.pvp);
     }
 
     /** config.yml 의 {@code mine:} 절 (없으면 null → 기본값). 틀린 값은 범위 안으로. */
@@ -145,7 +178,8 @@ public record MineConfig(boolean enabled, String world, Teleport teleportCommand
                 fx == null ? d.fxPop() : fx.getBoolean("pop", d.fxPop()),
                 s.getBoolean("no_hunger", d.noHunger()),
                 s.getBoolean("safe", d.safe()),
-                dist);
+                dist,
+                Pvp.read(s.get("pvp")));
     }
 
     /** 이 값을 config.yml 모양으로 (시험·/labadmin mine 이 비교). */
@@ -165,6 +199,7 @@ public record MineConfig(boolean enabled, String world, Teleport teleportCommand
         m.put("safe", safe);
         m.put("district", java.util.Map.of("auto_build", district.autoBuild(), "sites", district.sites(), "blocks_per_tick",
                 district.blocksPerTick(), "notify_admins", district.notifyAdmins()));
+        m.put("pvp", pvp.toMap());
         return m;
     }
 }

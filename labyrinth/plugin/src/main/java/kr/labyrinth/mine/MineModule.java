@@ -37,10 +37,12 @@ import org.bukkit.scheduler.BukkitTask;
 /**
  * 광산 엔진 (0.3.6 Q1, 계약 design/036/CONTRACT.md §2.1~2.6 + §0 주인 늦은 결정) — {@link MineApi} 의 실제 구현.
  * <ul>
- *   <li>광산 월드 {@code labyrinth_mine} (공허 + 층마다 바이옴 띠, 미궁 월드와 같은 규칙 + PvP 끔) · 층 6 (jar 청사진, 바뀐 층만 다시 지음)</li>
+ *   <li>광산 월드 {@code labyrinth_mine} (공허 + 층마다 바이옴 띠, 미궁 월드와 같은 규칙, PvP 규칙 = mine.pvp · pvp.enabled) · 층 6 (jar 청사진, 바뀐 층만 다시 지음)</li>
  *   <li>승강기 (6층 모두 처음부터, 잠김 없음) · 광산 관리소 (얕은 갱도 홀) · {@code /미궁 광산}</li>
  *   <li>함께 쓰는 광맥 ({@link MineVeins}) · tier 규칙 · 곡괭이 구성요소 ({@link MinePickaxes}) · 광산 밖 곡괭이 막기</li>
  *   <li>안전: 피해 0 · 몹 0 · 배고픔 · 진주·후렴과·양동이 · 떨어지면 승강장 · 게임 모드 규칙 ({@link MineGameModeRule})</li>
+ *   <li>0.3.7 광산 PvP ({@link MinePvp}): 승강기 홀 밖은 플레이어끼리 싸울 수 있음 · 안전 구역 {@link MineSafeZones} ·
+ *       쓰러지면 미궁과 같이 잃고 얕은 갱도 승강장({@link #entrance})에서 다시</li>
  * </ul>
  * 기력·매크로 막기는 없다 (계약 §0-1·§0-2).
  */
@@ -60,6 +62,9 @@ public final class MineModule implements Module, MineApi {
     private final MineMenus menus = new MineMenus(this);
     private final MinePickaxes pickaxes = new MinePickaxes(this);
     private final MineStats stats = new MineStats();
+    private final MinePvp pvp = new MinePvp(this);
+    /** 0.3.7 광산 PvP 안전 구역 (층마다 승강기 홀 + 둘레 mine.pvp.safe_margin). */
+    private volatile MineSafeZones zones = MineSafeZones.EMPTY;
     private MineListener listener;
     private final List<BukkitTask> tasks = new ArrayList<>();
     private boolean commandsRegistered;
@@ -100,6 +105,7 @@ public final class MineModule implements Module, MineApi {
         veins.reset(levels, config.regenPlayersCap());
         listener = new MineListener(this);
         Bukkit.getPluginManager().registerEvents(listener, services.plugin());
+        pvp.start();
         var plugin = services.plugin();
         tasks.add(Bukkit.getScheduler().runTaskTimer(plugin, this::safeVeinTick, 20L, 20L));
         tasks.add(Bukkit.getScheduler().runTaskTimer(plugin, veins::sparkle, 40L, 40L));
@@ -110,6 +116,20 @@ public final class MineModule implements Module, MineApi {
         startBuild(null, null);
         Log.info("[광산] 켜짐: 층 " + levels.size() + " · 광맥 " + veins.total() + " (함께 씀, 다시 차는 시간 ÷ 광산 사람 수 최대 "
                 + config.regenPlayersCap() + ") · 월드 " + world.getName());
+        logPvp();
+    }
+
+    /** 켤 때 · 다시 읽을 때 한 줄: "월드 labyrinth_mine PvP 켬 (광산 — 승강기 홀 밖 PvP) · 안전 구역 6곳 …". */
+    private void logPvp() {
+        Log.info("월드 " + config.world() + " PvP " + (pvpEnabled() ? "켬 (광산 — 승강기 홀 밖 PvP) · " + pvpSummary()
+                : "끔 (광산 — " + (config.pvp().enabled() ? "pvp.enabled 끔" : "mine.pvp 끔") + ", 광산 안 피해 없음)"));
+    }
+
+    /** "안전 구역 6곳 (승강기 홀 + 둘레 3칸) · 쓰러지면 미궁과 같음" (/labadmin mine info · 켤 때 로그). */
+    String pvpSummary() {
+        MineConfig.Pvp c = config.pvp();
+        return "안전 구역 " + zones.count() + "곳 (승강기 홀 + 둘레 " + c.safeMargin() + "칸) · 쓰러지면 "
+                + (c.penalty() ? "미궁과 같음" : "경험치만");
     }
 
     @Override
@@ -118,6 +138,7 @@ public final class MineModule implements Module, MineApi {
         tasks.clear();
         builder.cancel();
         lift.cancelAll();
+        pvp.stop();
         if (active) {
             int n = veins.refillAll();
             if (n > 0) Log.info("[광산] 빈 광맥 " + n + "곳을 다 찬 상태로 되돌림 (끄기)");
@@ -144,7 +165,10 @@ public final class MineModule implements Module, MineApi {
             loadLevels(mine);
             veins.reset(levels, config.regenPlayersCap());
             startBuild(null, null);
+        } else {
+            buildZones();
         }
+        if (!old.pvp().equals(config.pvp())) logPvp(); // 월드 PvP 규칙은 PvpModule 이 1초 안에 맞춘다
     }
 
     private void loadLevels(MineDef mine) {
@@ -187,6 +211,14 @@ public final class MineModule implements Module, MineApi {
                 Log.warn("[광산] " + path + " 를 읽지 못했습니다: " + e.getMessage());
             }
         }
+        buildZones();
+    }
+
+    /** 층 청사진(승강기·관리소 마커)과 mine.pvp.safe_margin 으로 안전 구역을 다시 만든다. 청사진은 고치지 않는다. */
+    private void buildZones() {
+        List<MineSafeZones.Level> specs = new ArrayList<>();
+        for (MineLevel l : levels) specs.add(MineSafeZones.Level.of(l.def, l.bp));
+        zones = MineSafeZones.of(specs, config.pvp().safeMargin());
     }
 
     private void addMineBlock(String key) {
@@ -208,9 +240,10 @@ public final class MineModule implements Module, MineApi {
         if (w == null) return null;
         kr.labyrinth.dungeon.LabyrinthWorld.applyRules(w);
         try {
-            w.setGameRule(GameRules.PVP, false);
+            // 0.3.7: 바닐라 PvP 규칙이 꺼져 있으면 Paper 가 플레이어끼리의 근접·화살 이벤트를 만들지도 않는다 → mine.pvp 와 pvp.enabled 가 둘 다 켜졌을 때만
+            w.setGameRule(GameRules.PVP, config.pvp().enabled() && services.targets().pvpConfig().enabled());
         } catch (Throwable ignored) {
-            // PvpModule 이 1초마다 다시 끈다
+            // PvpModule 이 1초마다 다시 맞춘다
         }
         MineDef.Level top = mine.level(1);
         if (top != null) w.setSpawnLocation(new Location(w, 0.5, top.floorY() + 1, 3.5));
@@ -264,10 +297,12 @@ public final class MineModule implements Module, MineApi {
                 applyRules(p);
                 double y = p.getLocation().getY();
                 if (levelAt(p.getLocation()) == null && !lift.riding(p)) rescue(p, y);
+                pvp.sweep(p);
             } catch (Throwable t) {
                 Log.error("[광산] 사람 정리 오류", t);
             }
         }
+        pvp.prune();
     }
 
     private void rescue(Player p, double y) {
@@ -307,6 +342,8 @@ public final class MineModule implements Module, MineApi {
             if (p.hasPotionEffect(PotionEffectType.HASTE)) p.removePotionEffect(PotionEffectType.HASTE);
             if (p.hasPotionEffect(PotionEffectType.CONDUIT_POWER)) p.removePotionEffect(PotionEffectType.CONDUIT_POWER);
             if (config.noHunger() && p.getFoodLevel() < 20) p.setFoodLevel(20);
+            // 0.3.7: 화염 검·불화살은 불 모양만 남는다 (불 피해는 광산에서 원래 없음) — 지운다
+            if (p.getFireTicks() > 0) p.setFireTicks(0);
         }
     }
 
@@ -418,6 +455,24 @@ public final class MineModule implements Module, MineApi {
         return Bukkit.getWorlds().isEmpty() ? null : Bukkit.getWorlds().get(0).getSpawnLocation();
     }
 
+    /**
+     * 0.3.7 광산 입구 = 얕은 갱도(1층) 승강기 내리는 자리 (0.5, 136, 3.5) — 광산 PvP 로 쓰러지면 여기서 다시 시작.
+     * 광산 월드 스폰 · 광산 마을이 없을 때 {@code /미궁 광산} 이 내리는 자리 · 관리소가 있는 홀 · 안전 구역 안 · 같은 월드.
+     * 1층이 아직 지어지지 않았으면 {@link #exitLocation()} (광산 마을 승강장 → 광장 → 주 월드 스폰).
+     */
+    Location entrance() {
+        MineLevel top = level(1);
+        if (top != null && world != null && ready(top.n)) return top.landing(world);
+        return exitLocation();
+    }
+
+    /** "얕은 갱도 승강장" (층 이름이 바뀌면 따라감) · 1층이 없으면 "마을". */
+    String entranceName() {
+        MineLevel top = level(1);
+        if (top != null && world != null && ready(top.n)) return top.def.name() + " 승강장";
+        return "마을";
+    }
+
     // ── MineApi ─────────────────────────────────────────────────────────
 
     @Override
@@ -430,6 +485,39 @@ public final class MineModule implements Module, MineApi {
 
     @Override
     public boolean safe() { return config.safe(); }
+
+    @Override
+    public boolean pvpEnabled() {
+        return active && config.pvp().enabled() && services.targets().pvpConfig().enabled();
+    }
+
+    @Override
+    public boolean pvpSafeAt(Location l) {
+        if (l == null || !pvpEnabled()) return true;
+        return zones.safe(l.getX(), l.getY(), l.getZ());
+    }
+
+    @Override
+    public boolean pvpAllows(Player a, Player v) {
+        if (a == null || v == null || a.equals(v) || !pvpEnabled() || !isMineWorld(v.getWorld()) || pvp.downing(v)) return false;
+        return services.targets().isEnemy(a, v);
+    }
+
+    @Override
+    public boolean holdExit(Player p, Runnable go) {
+        return active && pvp.holdExit(p, go);
+    }
+
+    @Override
+    public boolean inPvpCombat(Player p) {
+        return active && p != null && pvp.exitCastSeconds(p) > 0;
+    }
+
+    @Override
+    public boolean pvpPenalty() { return config.pvp().penalty(); }
+
+    @Override
+    public int safeZoneCount() { return active ? zones.count() : 0; }
 
     @Override
     public void openLift(Player p) {
@@ -521,6 +609,8 @@ public final class MineModule implements Module, MineApi {
     MineLift lift() { return lift; }
     MinePickaxes pickaxes() { return pickaxes; }
     MineStats stats() { return stats; }
+    MinePvp pvp() { return pvp; }
+    MineSafeZones zones() { return zones; }
     MineBuilder builder() { return builder; }
     boolean active() { return active; }
     MineDef mineDef() { return services.content().mine(); }

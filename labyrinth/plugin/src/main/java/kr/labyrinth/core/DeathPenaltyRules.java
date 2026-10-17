@@ -162,7 +162,13 @@ public final class DeathPenaltyRules {
         /** 미궁 월드지만 공략 밖 (이미 쓰러져 관전 중 · 공략이 끝나는 중 · 닫힌 미궁에 남음) — 진짜 죽음, 소지품은 언제나 보존. */
         LABYRINTH_WORLD,
         /** 미궁 밖 (야생·마을·광산·네더·엔드, PvP 포함) — 소지품은 config death.keep_inventory 대로. */
-        OUTSIDE
+        OUTSIDE,
+        /**
+         * 0.3.7: 광산에서 다른 플레이어에게 쓰러짐 (죽음이 취소되고 얕은 갱도 승강장에서 다시 — {@code mine.MinePvp}).
+         * 주인 결정 "던전과 같게": 물건·골드·경험치 모두 {@link #DUNGEON_RUN} 과 같은 규칙·같은 숫자 ({@code death.penalty}).
+         * {@code mine.pvp.penalty: false} 면 이 대신 {@link #OUTSIDE} (경험치만).
+         */
+        MINE_PVP
     }
 
     /** 이번 죽음에 할 일. */
@@ -172,13 +178,14 @@ public final class DeathPenaltyRules {
     }
 
     /**
-     * 경험치는 어디서든, 물건·골드는 미궁 공략 중 쓰러졌을 때만. 미궁 밖에서는 keep_inventory 와 상관없이 물건을 지우지 않는다 —
+     * 경험치는 어디서든, 물건·골드는 미궁 공략 중 쓰러졌을 때와 광산에서 다른 플레이어에게 쓰러졌을 때(0.3.7, 미궁과 같은 규칙)만.
+     * 그 밖에서는 keep_inventory 와 상관없이 물건을 지우지 않는다 —
      * keep_inventory: false 서버는 바닐라처럼 그 자리에 떨어지고(주울 수 있음) 그 위에 더 빼앗지 않는다.
      * 관리자 시험 입장({@code /labadmin tpfloor})은 물건·골드를 잃지 않는다.
      */
     public static Plan plan(Config c, Where where, boolean adminTest) {
         if (c == null) return Plan.NONE;
-        boolean run = where == Where.DUNGEON_RUN && !adminTest;
+        boolean run = (where == Where.DUNGEON_RUN || where == Where.MINE_PVP) && !adminTest;
         boolean items = run && c.itemLoss() && c.slotsMax() > 0;
         boolean gold = run && c.gold().on();
         return new Plan(c.xpProgressReset(), items, gold);
@@ -303,6 +310,19 @@ public final class DeathPenaltyRules {
         if (c == null || adminTest || !alive || c.combatExitSeconds() <= 0) return 0;
         if (!plan(c, Where.DUNGEON_RUN, false).any()) return 0;
         return inCombat(sinceHurtMs) ? c.combatExitSeconds() : 0;
+    }
+
+    /**
+     * 0.3.7 광산 PvP: PvP 구역에서 싸우는 중(10초 안에 때리거나 맞음)에 광산을 나갈 때 기다릴 초 (0 = 바로).
+     * where = 광산 PvP 쓰러짐에 쓸 곳 ({@link #MINE_PVP} · {@code mine.pvp.penalty: false} 면 {@link Where#OUTSIDE} = 경험치만).
+     * 잃을 것이 하나라도 있고 {@code combat_exit_seconds} &gt; 0 일 때만 — 미궁과 같다.
+     *
+     * @param sinceCombatMs 마지막 PvP 에서 지난 ms (없으면 음수)
+     */
+    public static double exitCastSeconds(Config c, Where where, boolean alive, long sinceCombatMs) {
+        if (c == null || where == null || !alive || c.combatExitSeconds() <= 0) return 0;
+        if (!plan(c, where, false).any()) return 0;
+        return inCombat(sinceCombatMs) ? c.combatExitSeconds() : 0;
     }
 
     /** 싸우는 중인가: 마지막 피해에서 {@link #COMBAT_MS} 안 (받은 적 없으면 음수 → 아님). 퇴장 시전·귀환 주문서와 같은 판정. */
@@ -540,6 +560,40 @@ public final class DeathPenaltyRules {
         if (loss != null) out.add("미궁 안에서 쓰러지면 " + loss + (c.xpProgressReset() ? " 더 잃습니다." : " 잃습니다."));
         if (items(c)) out.add("장비·열쇠·곡괭이는 잃지 않습니다.");
         return out;
+    }
+
+    /**
+     * 메인 메뉴 'PvP 규칙' 설명 줄 (0.3.7): {@link #menuLines(Config)} + 광산 PvP 가 켜져 있고 잃는 것이 같으면
+     * "광산에서 다른 플레이어에게 쓰러져도 같이 잃습니다." 한 줄 (minePvp = 광산 PvP 켜짐 · 쓰러지면 미궁과 같음).
+     */
+    public static List<String> menuLines(Config c, boolean minePvp) {
+        List<String> out = menuLines(c);
+        if (c != null && minePvp && dungeonLoss(c, "") != null) out.add(MINE_MENU_TEXT);
+        return out;
+    }
+
+    /** 메인 메뉴 줄 — 광산 PvP 쓰러짐도 미궁과 같이 잃음. */
+    public static final String MINE_MENU_TEXT = "광산에서 다른 플레이어에게 쓰러져도 같이 잃습니다.";
+
+    /**
+     * 0.3.7: 광산에 처음 들어올 때 한 번 보여 주는 PvP 안내. penalty = {@code mine.pvp.penalty} · restartAt = 다시 시작하는 곳 이름 ("얕은 갱도 승강장").
+     * 예: "광산은 승강기 홀 밖에서 PvP 가 됩니다. 다른 플레이어에게 쓰러지면 가방 속 물건 2~3칸과 골드 5~25%(최대 15,000G)를 잃고
+     * 얕은 갱도 승강장에서 다시 시작합니다. 장비·열쇠·곡괭이는 안전합니다."
+     */
+    public static String mineNotice(Config c, boolean penalty, String restartAt) {
+        String head = "<#ffb27a>광산은 승강기 홀 밖에서 PvP 가 됩니다.</#ffb27a> <gray>";
+        String at = restartAt == null || restartAt.isBlank() ? "승강장" : restartAt;
+        String loss = penalty && c != null ? dungeonLoss(c, "가방 속 물건 ") : null;
+        if (loss != null) {
+            return head + "다른 플레이어에게 쓰러지면 " + loss + " 잃고 " + at + "에서 다시 시작합니다."
+                    + (items(c) ? " 장비·열쇠·곡괭이는 안전합니다." : "");
+        }
+        return head + "쓰러지면 " + at + "에서 다시 시작합니다." + (c != null && c.xpProgressReset() ? " 이번 레벨 경험치는 처음으로 돌아갑니다." : "");
+    }
+
+    /** 광산 PvP 쓰러짐 뒤 다시 시작하는 곳 한 줄 (접속 끊김 안내 끝 · 제목 아래). */
+    public static String mineRestartText(String restartAt) {
+        return "<gray>" + (restartAt == null || restartAt.isBlank() ? "승강장" : restartAt) + "에서 다시 시작합니다.";
     }
 
     /** 미궁에 처음 들어갈 때 한 번 보여 주는 안내 (페널티가 모두 꺼져 있으면 null). */
