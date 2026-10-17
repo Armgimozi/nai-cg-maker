@@ -160,7 +160,6 @@
 - **전투 중 퇴장 = 시전** (`dungeon.ExitCast`, 규칙 `DeathPenaltyRules.exitCastSeconds`, config `death.penalty.combat_exit_seconds` 기본 5, 0 = 바로):
   공략 중 살아 있고 10초 안에 피해를 받았으면 `/미궁 퇴장`·`/미궁 귀환`·입구 메뉴 '귀환'(`DungeonService.leaveByChoice`)도 귀환 주문서처럼
   5초 시전, 피해를 받으면 끊김. "죽기 직전 /미궁 퇴장" 으로 물건·골드를 지키는 틈을 막는다 (벌칙이 아니라 탈출 시간).
-  접속 끊기는 이 시전을 거치지 않는다(아래 — 알려진 틈).
   쓰러진 사람·전투 밖·관리자 시험 입장·페널티를 모두 끈 서버는 0.3.6 처럼 바로. 골드만 켜 두어도 시전한다. 귀환 주문서 시전은 그대로 따로.
 - **한 번만**: `DungeonManager.onDeath` 가 죽음을 취소하고 다음 틱에 살아 있을 때만 `onMemberDeath` → 같은 틱에 죽음이 두 번 와도 두 번째는 이미 DEAD 라 건너뜀.
   쓰러져 관전 중인 사람의 죽음은 공략 밖(경험치만). 파티 전멸·보스 실패·시간 종언(9층 doom_clock)에 따로 더 잃는 것 없음.
@@ -168,10 +167,22 @@
 - 예외 규칙: 토템·불사조 깃털(`phoenix_feather`, 자동 부활) = 죽음 없음 → 페널티 없음. 미궁 밖 keep_inventory false = 바닐라 드롭만(더 지우지 않음).
   미궁 월드의 공략 밖 죽음(관전 중 /kill 등) = 경험치만. 관리자 시험 입장(`/labadmin tpfloor`) = 경험치만.
   보스·미믹·함정·공허·/kill 모두 같은 쓰러짐 경로라 같은 규칙.
-  접속 끊기(전투 중 포함)는 지금처럼 공략에 남았다가 재접속하면 합류 — 쓰러짐이 아니므로 잃지 않는다(새 벌칙 없음).
-  **알려진 틈 (주인 결정 대기)**: 쓰러지기 직전에 끊으면 물건·골드(최대 15,000G)·경험치를 모두 지킨다. 혼자면 빈 인스턴스가
-  `empty_instance_timeout`(30초) 뒤 닫히고 다시 들어오면 `recoverStranded` 로 입구. 막으려면 `ExitCast.onQuit` 에서 공략 중·살아 있음·
-  10초 안 피해·관리자 시험 아님이면 `onDungeonDown` 후 DEAD (저장보다 먼저) — 진짜 끊김(튕김)도 벌을 받게 되어 주인이 정할 일.
+- **싸우는 중 접속 끊기 = 쓰러짐** (0.3.6.2 주인 결정, 규칙 `DeathPenaltyRules.combatQuit` → APPLY · NONE):
+  공략 중 살아 있고 싸우는 중(10초 안에 피해 — 퇴장 시전과 같은 `ExitCast` 기록, 또는 싸우는 중에 시작한 퇴장·귀환 주문서 시전 중)에
+  끊으면 쓰러진 것으로 친다. 퇴장 시전과 같은 조건(`combat_exit_seconds` > 0 · 페널티 하나라도 켬 · 관리자 시험 입장 아님)이고,
+  잃는 것은 쓰러짐과 같은 `plan`(스위치마다 따로) · 같은 `DeathPenalty` 길(콘솔 줄 곳 "미궁 · 접속 끊김", 바꾸기 전에 기록).
+  `DungeonManager.onQuitInCombat`(PlayerQuitEvent **LOW** — 시전 취소·스탯 캐시 정리(NORMAL)와 데이터 저장(MONITOR)보다 먼저,
+  바닐라는 이 이벤트 뒤에 가방을 저장) → `Run.onCombatQuit`: DEAD · 관전 모드 · 층 사망 수 · 파티에 "님이 싸우는 중에 접속을 끊어 쓰러졌습니다."
+  · 살아 있는 사람이 없으면 전멸. 다시 들어오면 관전으로 합류(공략이 끝났으면 `recoverStranded` 로 입구) + 한 번
+  "싸우는 중에 접속을 끊어 쓰러진 것으로 쳤습니다." 와 잃은 것 줄(ext `death.quit_notice`). 진짜 튕김도 같다(주인 결정).
+  안 함: 싸우는 중 아님(그대로 합류) · 이미 DEAD · 공략이 끝나는 중 · 미궁 월드 밖 · 관리자 시험 입장 ·
+  서버 쪽 끊김(`Bukkit.isStopping` · 플러그인 끄는 중 · `/restart`(`RESTART_COMMAND` — 메인 스레드 /restart 는 플러그인을 끄기 전에 모두 내보냄) ·
+  관리자가 내보냄 `/kick`(`KICKED`) · `/ban`(`BANNED`) · `/ban-ip`(`IP_BANNED`) · 명단(`WHITELIST`)).
+  `/stop` 은 플러그인을 먼저 끄고(리스너가 내려감) 사람을 내보내 여기 오지 않는다(`MinecraftServer.stopServer`: disablePlugins → removeAll).
+  '싸우는 중' 기록(`dungeon.CombatClock`)은 공략 참가자가 미궁 월드 안에서 받은 피해만 세고(입장 준비 중 마을·야생은 아님),
+  쓰러지면(끊김 포함) · 공략을 떠나면(퇴장·귀환·공략 끝) 지운다 — 부활한 뒤나 다음 공략에서 앞의 피해로 다시 '싸우는 중' 이 되지 않게.
+  나갈 때 바꾼 값은 데이터 저장(MONITOR) 스냅샷에 들어가고, 쓰기가 끝나기 전에 다시 들어오면 파일 대신 그 스냅샷을 읽는다
+  (`data.PendingWrites` — 빨리 다시 접속해 잃은 골드·경험치가 되살아나지 않게). 한 공략에서 여러 번 쓰러지는 것은 그대로(주인: 그대로 둠).
 - config (`death.penalty`, 키가 없으면 코드 기본값 = jar config.yml — 0.3.6.1 config 에 `gold_loss` 가 없어도 켜짐):
   `xp_progress_reset` · `combat_exit_seconds` · `dungeon_item_loss: {enabled, slots_min, slots_max, safe_items}` (false = 물건 끔) ·
   `gold_loss: {enabled: true, min_percent: 5, max_percent: 25, max: 15000}` (false · max_percent 0 = 골드 끔; 비율은 0~100 으로 자르고 max_percent < min_percent 면 min,

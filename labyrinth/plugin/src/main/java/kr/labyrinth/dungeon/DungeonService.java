@@ -40,6 +40,12 @@ public interface DungeonService {
      */
     default void leaveByChoice(Player player) { leave(player); }
 
+    /**
+     * 0.3.6.2: 싸우는 중에 시작한 귀환 주문서 시전의 시작(true) · 끝(false) — 그 시전 중에 접속을 끊으면 쓰러진 것으로 친다
+     * (death.penalty, {@code DeathPenaltyRules.combatQuit}). 기본 구현은 아무것도 안 함.
+     */
+    default void combatReturnCast(Player player, boolean casting) {}
+
     /** 관리자 강제 종료. */
     void endInstance(String instanceId);
 

@@ -356,6 +356,7 @@ public final class Run {
 
     void onMemberDeath(Player p) {
         states.put(p.getUniqueId(), MemberState.DEAD);
+        manager.forgetCombat(p.getUniqueId());
         // 죽음 페널티 (0.3.6.2): 이번 레벨 경험치 + 가방 2~3칸 + 골드 5~25% (장비·열쇠·곡괭이·손에 든 칸은 안전, 셜커 상자는 손에 있어도 안의 재료만). 쓰러질 때 한 번, 안내는 바로 채팅으로
         kr.labyrinth.core.DeathPenalty.onDungeonDown(manager.services(), p, adminTest);
         FloorState fs = floorOf(p);
@@ -371,6 +372,33 @@ public final class Run {
         p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 0.4f, 1.6f);
         for (Player o : onlineMembers()) {
             if (!o.equals(p)) Text.send(o, "<red>" + Text.escape(p.getName()) + "</red><gray> 님이 쓰러졌습니다.");
+        }
+        if (aliveOnline().isEmpty()) wipe();
+    }
+
+    /**
+     * 0.3.6.2: 싸우는 중에 접속을 끊음 = 쓰러짐 (판정 DungeonManager.onQuitInCombat — PlayerQuitEvent LOW, 아직 접속 중·저장 전).
+     * 쓰러짐과 같은 페널티(경험치·물건·골드, 콘솔 기록 먼저) + DEAD + 층 사망 수. 관전 모드로 바꿔 두어 다시 들어오면 관전
+     * ({@link #rejoin} 도 DEAD 면 관전), 그사이 공략이 끝났으면 입구로 ({@code recoverStranded} 가 입장 전 모드로 되돌림).
+     * 안내는 다시 접속했을 때 (DeathPenalty.showQuitNotice). 살아 있는 사람이 없으면 쓰러짐처럼 전멸.
+     */
+    void onCombatQuit(Player p) {
+        UUID u = p.getUniqueId();
+        states.put(u, MemberState.DEAD);
+        manager.forgetCombat(u);
+        kr.labyrinth.core.DeathPenalty.onCombatQuit(manager.services(), p, adminTest);
+        FloorState fs = floorOf(p);
+        if (fs == null) fs = current;
+        if (fs != null) fs.addDeath();
+        try {
+            manager.services().stats().setHp(p, manager.services().stats().maxHp(p));
+            p.setFireTicks(0);
+            p.setGameMode(GameMode.SPECTATOR);
+        } catch (Throwable t) {
+            Log.error("접속 끊김 쓰러짐 상태 정리 실패 (" + p.getName() + ")", t);
+        }
+        for (Player o : onlineMembers()) {
+            if (!o.equals(p)) Text.send(o, kr.labyrinth.core.DeathPenaltyRules.quitDownPartyText(Text.escape(p.getName())));
         }
         if (aliveOnline().isEmpty()) wipe();
     }
