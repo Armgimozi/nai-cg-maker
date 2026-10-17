@@ -95,11 +95,14 @@ class DeathPenaltyRulesTest {
     }
 
     @Test
-    void armorAndOffhandIndicesAreNeverCandidates() {
-        boolean[] e = new boolean[41]; // getContents() 를 잘못 넘겨도 36 이상(갑옷 36~39 · 보조손 40)은 보지 않는다
-        for (int i = 36; i < 41; i++) e[i] = true;
+    void armorIndicesAreNeverCandidates() {
+        // 후보 배열은 37칸 (36 = 보조손, 0.3.6.2). 더 긴 배열을 넘겨도 37 이상은 보지 않는다
+        boolean[] e = new boolean[41];
+        for (int i = 37; i < 41; i++) e[i] = true;
         assertEquals(0, DeathPenaltyRules.pickSlots(e, 0, 2, 3, new SplittableRandom(7)).length);
         assertEquals(0, DeathPenaltyRules.pickSlots(null, 0, 2, 3, new SplittableRandom(7)).length);
+        e[DeathPenaltyRules.OFFHAND] = true; // 보조손 상자 (eligible 이 상자일 때만 켬)
+        assertArrayEquals(new int[] {DeathPenaltyRules.OFFHAND}, DeathPenaltyRules.pickSlots(e, -1, 2, 3, new SplittableRandom(7)));
     }
 
     @Test
@@ -317,11 +320,11 @@ class DeathPenaltyRulesTest {
         String n = DeathPenaltyRules.notice(Config.DEFAULT);
         assertNotNull(n);
         assertEquals("미궁 안에서 쓰러지면 가방 속 물건 2~3칸과 골드 5~25%(최대 15,000G)를 잃고, 이번 레벨 경험치도 처음으로 돌아갑니다. "
-                + "장비·열쇠·곡괭이와 손에 든 것은 안전합니다.", Text.strip(n));
+                + "장비·열쇠·곡괭이와 손에 든 것(상자 속은 빼고)은 안전합니다.", Text.strip(n));
         Config noGold = Config.DEFAULT.withGold(DeathPenaltyRules.GoldLoss.OFF);
         assertEquals("미궁 안에서 쓰러지면 가방 속 물건 2~3칸을 잃고, 이번 레벨 경험치도 처음으로 돌아갑니다. "
-                + "장비·열쇠·곡괭이와 손에 든 것은 안전합니다.", Text.strip(DeathPenaltyRules.notice(noGold)));
-        assertEquals("미궁 안에서 쓰러지면 가방 속 물건 2칸을 잃습니다. 장비·열쇠·곡괭이와 손에 든 것은 안전합니다.",
+                + "장비·열쇠·곡괭이와 손에 든 것(상자 속은 빼고)은 안전합니다.", Text.strip(DeathPenaltyRules.notice(noGold)));
+        assertEquals("미궁 안에서 쓰러지면 가방 속 물건 2칸을 잃습니다. 장비·열쇠·곡괭이와 손에 든 것(상자 속은 빼고)은 안전합니다.",
                 Text.strip(DeathPenaltyRules.notice(new Config(false, true, 2, 2, Set.of()).withGold(DeathPenaltyRules.GoldLoss.OFF))));
         assertEquals("미궁 안에서 쓰러지면 골드 5~25%(최대 15,000G)를 잃고, 이번 레벨 경험치도 처음으로 돌아갑니다.",
                 Text.strip(DeathPenaltyRules.notice(new Config(true, false, 2, 3, Set.of()))), "물건만 끔");

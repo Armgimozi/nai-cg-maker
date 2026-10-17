@@ -128,6 +128,15 @@ class DeathPenaltyGoldTest {
         assertFalse(read("death:\n  penalty:\n    gold_loss:\n      enabled: false\n").gold().on());
         assertFalse(read("death:\n  penalty: false\n").gold().on(), "penalty: false = 모두");
         assertFalse(read("death:\n  penalty:\n    gold_loss:\n      max_percent: 0\n").gold().on(), "0% = 끔");
+        // jar config 처럼 min_percent: 5 가 적혀 있어도 max_percent: 0 이면 끔 (5% 로 끌어올리지 않음)
+        GoldLoss zero = read("death:\n  penalty:\n    gold_loss:\n      enabled: true\n      min_percent: 5\n      max_percent: 0\n"
+                + "      max: 15000\n").gold();
+        assertFalse(zero.on(), "min 5 · max 0 = 끔");
+        assertFalse(DeathPenaltyRules.plan(read("death:\n  penalty:\n    gold_loss:\n      min_percent: 5\n      max_percent: 0\n"),
+                Where.DUNGEON_RUN, false).loseGold());
+        assertEquals(0, DeathPenaltyRules.goldLost(100_000, zero, new SplittableRandom(3)));
+        assertFalse(read("death:\n  penalty:\n    gold_loss:\n      min_percent: 5\n      max_percent: -3\n").gold().on(), "음수도 끔");
+        assertTrue(read("death:\n  penalty:\n    gold_loss:\n      min_percent: 0\n      max_percent: 1\n").gold().on(), "1% 는 켜짐");
         // 골드를 꺼도 나머지는 그대로
         Config c = read("death:\n  penalty:\n    gold_loss: false\n");
         assertTrue(c.xpProgressReset() && c.itemLoss());

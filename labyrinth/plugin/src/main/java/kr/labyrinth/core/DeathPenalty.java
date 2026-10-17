@@ -4,6 +4,8 @@ import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.BundleContents;
 import io.papermc.paper.datacomponent.item.ItemContainerContents;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
@@ -21,6 +23,8 @@ import net.kyori.adventure.text.TranslatableComponent;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Tag;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.CraftingInventory;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.persistence.PersistentDataType;
@@ -47,10 +51,12 @@ public final class DeathPenalty {
 
     /**
      * 미궁 공략 중 쓰러짐. 실패해도 쓰러짐 처리는 그대로 이어지게 예외를 삼킨다.
-     * 순서: 칸 고르기·이름 (여기서 실패하면 아무것도 안 지움) → 잃을 경험치·골드 셈 → 콘솔 기록 → 경험치·골드 빼기 → 물건 지우기 → 채팅.
+     * 순서: 열린 창 정리 → 칸 고르기·이름 (여기서 실패하면 아무것도 안 지움) → 잃을 경험치·골드 셈 → 콘솔 기록 → 경험치·골드 빼기
+     * → 물건 지우기 → 가방에 못 넣었던 커서 물건 넣기 → 채팅.
      * 기록을 바꾸기 앞에 남겨, 중간에 무슨 일이 나도 서버장이 콘솔을 보고 되돌려 줄 수 있게 한다.
      */
     public static void onDungeonDown(Services s, Player p, boolean adminTest) {
+        List<ItemStack> over = List.of();
         try {
             Config c = s.settings().deathPenalty();
             Plan plan = DeathPenaltyRules.plan(c, Where.DUNGEON_RUN, adminTest);
@@ -58,9 +64,11 @@ public final class DeathPenalty {
             List<Pick> picks = List.of();
             if (plan.destroySlots()) {
                 try {
+                    over = settleLoose(s, p, c);
                     picks = pick(s, p, c, ThreadLocalRandom.current());
                 } catch (Throwable t) {
                     Log.error("죽음 페널티 칸 고르기 실패 — 물건은 안 지움 (" + p.getName() + ")", t);
+                    picks = List.of();
                 }
             }
             PlayerData d = s.data().get(p);
@@ -76,9 +84,21 @@ public final class DeathPenalty {
             log(p, "미궁", ids, xp, gold, goldBefore);
             apply(s, p, d, xp, gold);
             remove(p, picks);
+            List<ItemStack> rest = over;
+            over = List.of();
+            putBack(s, p, rest);
             for (String line : DeathPenaltyRules.lines(lost, gold, xp)) Text.send(p, line);
         } catch (Throwable t) {
             Log.error("죽음 페널티 처리 실패 (" + p.getName() + ")", t);
+        } finally {
+            // 중간에 실패해도 커서에서 떼어 둔 물건은 돌려준다
+            if (!over.isEmpty()) {
+                try {
+                    putBack(s, p, over);
+                } catch (Throwable t) {
+                    Log.error("죽음 페널티 커서 물건 돌려주기 실패 (" + p.getName() + ")", t);
+                }
+            }
         }
     }
 
@@ -143,26 +163,78 @@ public final class DeathPenalty {
     }
 
     /**
-     * 뽑힌 한 칸: 칸 번호 · 그 칸에 남길 것 (null = 비움, 셜커 상자면 장비만 남은 상자) · 채팅 줄 · 콘솔 기록
+     * 뽑힌 한 칸: 칸 번호 (36 = 보조손) · 그 칸에 남길 것 (null = 비움, 셜커 상자면 장비만 남은 상자) · 채팅 줄 · 콘솔 기록
      * (id×개수 (보이던 이름), 상자면 "shulker_box 속 [id×개수, …]").
      */
     record Pick(int slot, ItemStack after, List<Lost> lost, String log) {}
 
     /**
-     * 지울 칸 고르기 (아직 안 지움). 열린 창(커서·2×2 제작 칸)을 먼저 닫아 그 물건도 가방으로 돌려놓고 같은 규칙으로 고른다.
+     * 열린 창 정리: 커서·제작 칸(2×2, 3×3)의 물건을 떼어 창을 닫고, 장비·상자부터 가방에 넣는다. 그러면 그 물건도 같은 규칙으로 고른다.
+     * 바닐라처럼 창을 그냥 닫으면 가방이 꽉 찼을 때 발밑에 떨어져, 혼자 전멸하면 미궁과 함께 사라진다 (장비도).
+     *
+     * @return 가방에 아직 못 넣은 것 (장비 먼저) — 칸을 지운 뒤 {@link #putBack}
+     */
+    static List<ItemStack> settleLoose(Services s, Player p, Config c) {
+        List<ItemStack> loose = new ArrayList<>();
+        List<ItemStack> over = new ArrayList<>();
+        int done = 0;
+        try {
+            // 비운 다음에 담는다 — 중간에 실패해도 같은 물건이 두 번 생기지 않게
+            InventoryView view = p.getOpenInventory();
+            ItemStack cursor = p.getItemOnCursor().clone();
+            if (!cursor.isEmpty()) {
+                p.setItemOnCursor(null);
+                loose.add(cursor);
+            }
+            if (view.getTopInventory() instanceof CraftingInventory grid) {
+                List<ItemStack> in = new ArrayList<>();
+                ItemStack[] m = grid.getMatrix();
+                for (ItemStack it : m) if (it != null && !it.isEmpty()) in.add(it.clone());
+                if (!in.isEmpty()) {
+                    grid.setMatrix(new ItemStack[m.length]);
+                    loose.addAll(in);
+                }
+            }
+            p.closeInventory();
+            Stacks box = new Stacks(s, c);
+            loose.sort(Comparator.comparing((ItemStack it) -> !DeathPenaltyRules.mustReturn(it, box))); // 장비·상자 먼저
+            PlayerInventory inv = p.getInventory();
+            for (; done < loose.size(); done++) over.addAll(inv.addItem(loose.get(done)).values());
+            return over;
+        } catch (Throwable t) {
+            over.addAll(loose.subList(Math.min(done, loose.size()), loose.size()));
+            putBack(s, p, over);
+            throw t;
+        }
+    }
+
+    /** 가방에 넣고, 그래도 자리가 없으면 바닐라처럼 발밑에 떨군다 (콘솔에 남김). */
+    static void putBack(Services s, Player p, List<ItemStack> items) {
+        for (ItemStack it : items) {
+            if (it == null || it.isEmpty()) continue;
+            for (ItemStack left : p.getInventory().addItem(it).values()) {
+                p.getWorld().dropItem(p.getLocation(), left);
+                Log.info("[죽음 페널티] " + p.getName() + " 가방이 꽉 차 커서 물건을 발밑에 떨굼: "
+                        + logEntry(idOf(s, left), left.getAmount(), shownName(left, isLab(s, left))));
+            }
+        }
+    }
+
+    /**
+     * 지울 칸 고르기 (아직 안 지움). 열린 창은 {@link #settleLoose} 가 먼저 정리한다.
      * 장비·열쇠 같은 안전한 것, 빈 셜커 상자·장비만 든 상자는 후보가 아니다 ({@link DeathPenaltyRules#losable}).
+     * 손에 든 칸 · 보조손은 상자일 때만 ({@link DeathPenaltyRules#eligible}).
      */
     static List<Pick> pick(Services s, Player p, Config c, RandomGenerator rng) {
-        p.closeInventory();
         PlayerInventory inv = p.getInventory();
-        ItemStack[] storage = inv.getStorageContents();
+        ItemStack[] slots = Arrays.copyOf(inv.getStorageContents(), DeathPenaltyRules.CANDIDATE_SLOTS);
+        slots[DeathPenaltyRules.OFFHAND] = inv.getItemInOffHand();
         Stacks box = new Stacks(s, c);
-        boolean[] eligible = new boolean[storage.length];
-        for (int i = 0; i < storage.length; i++) eligible[i] = DeathPenaltyRules.losable(storage[i], box);
-        int[] slots = DeathPenaltyRules.pickSlots(eligible, inv.getHeldItemSlot(), c.slotsMin(), c.slotsMax(), rng);
-        List<Pick> out = new ArrayList<>(slots.length);
-        for (int slot : slots) {
-            ItemStack it = storage[slot];
+        boolean[] eligible = DeathPenaltyRules.eligible(slots, inv.getHeldItemSlot(), box);
+        int[] picked = DeathPenaltyRules.pickSlots(eligible, -1, c.slotsMin(), c.slotsMax(), rng);
+        List<Pick> out = new ArrayList<>(picked.length);
+        for (int slot : picked) {
+            ItemStack it = slots[slot];
             List<ItemStack> gone = new ArrayList<>();
             ItemStack after = DeathPenaltyRules.strip(it, box, gone);
             if (gone.isEmpty()) continue;
@@ -199,10 +271,13 @@ public final class DeathPenalty {
         }
     }
 
-    /** 고른 칸 지우기 — 떨구지 않는다. 셜커 상자는 장비만 남긴 상자로 바꾼다. */
+    /** 고른 칸 지우기 — 떨구지 않는다. 셜커 상자는 장비만 남긴 상자로 바꾼다. 후보 36번 = 보조손. */
     private static void remove(Player p, List<Pick> picks) {
         PlayerInventory inv = p.getInventory();
-        for (Pick k : picks) inv.setItem(k.slot(), k.after());
+        for (Pick k : picks) {
+            if (k.slot() == DeathPenaltyRules.OFFHAND) inv.setItemInOffHand(k.after());
+            else inv.setItem(k.slot(), k.after());
+        }
     }
 
     /**

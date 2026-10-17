@@ -1,5 +1,6 @@
 package kr.labyrinth.core;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -228,6 +229,100 @@ class DeathPenaltyGearTest {
         assertFalse(DeathPenaltyRules.losable(deep, BOX), "너무 깊으면 건드리지 않음");
         Item shallow = Item.box("bundle", Item.box("bundle", BREAD));
         assertTrue(DeathPenaltyRules.losable(shallow, BOX));
+    }
+
+    // ── 손에 든 칸 · 보조손 (0.3.6.2 리뷰: 상자를 손에 들어 방패로 쓰지 못하게) ─────────
+
+    /** 후보 배열 37칸: 단축 칸 0~8 · 가방 9~35 · 36 = 보조손. */
+    static Item[] slots37() { return new Item[DeathPenaltyRules.CANDIDATE_SLOTS]; }
+
+    @Test
+    void boxInHandOrOffhandIsACandidate() {
+        Item[] s = slots37();
+        s[0] = Item.box("shulker_box", SWORD, INGOT, BREAD);           // 손에 든 칸 = 0
+        s[DeathPenaltyRules.OFFHAND] = Item.box("bundle", POTION, RING); // 보조손
+        for (int i = 1; i < 36; i++) s[i] = HELM;
+        boolean[] e = DeathPenaltyRules.eligible(s, 0, BOX);
+        assertEquals(DeathPenaltyRules.CANDIDATE_SLOTS, e.length);
+        assertTrue(e[0], "손에 든 상자");
+        assertTrue(e[DeathPenaltyRules.OFFHAND], "보조손 꾸러미");
+        for (long seed = 0; seed < 300; seed++) {
+            assertArrayEquals(new int[] {0, DeathPenaltyRules.OFFHAND},
+                    DeathPenaltyRules.pickSlots(e, -1, 2, 3, new SplittableRandom(seed)), "후보 둘 다");
+        }
+        List<Item> lost = new ArrayList<>();
+        Item held = DeathPenaltyRules.strip(s[0], BOX, lost);
+        Item off = DeathPenaltyRules.strip(s[DeathPenaltyRules.OFFHAND], BOX, lost);
+        assertEquals(List.of(INGOT, BREAD, POTION), lost, "장비 아닌 것만");
+        assertEquals(Arrays.asList(SWORD, null, null), held.inner(), "상자는 남고 장검은 제자리");
+        assertEquals(Arrays.asList(null, RING), off.inner(), "꾸러미는 남고 반지는 그대로");
+    }
+
+    @Test
+    void plainThingsInHandOrOffhandStaySafe() {
+        Item[] s = slots37();
+        s[4] = INGOT;                                             // 손에 든 칸 = 4: 재료라도 안전
+        s[DeathPenaltyRules.OFFHAND] = BREAD;                     // 보조손 재료도 안전
+        s[5] = Item.box("shulker_box", SWORD, HELM);              // 장비만 든 상자
+        boolean[] e = DeathPenaltyRules.eligible(s, 4, BOX);
+        assertFalse(e[4]);
+        assertFalse(e[DeathPenaltyRules.OFFHAND]);
+        assertFalse(e[5]);
+        assertEquals(0, DeathPenaltyRules.pickSlots(e, -1, 2, 3, new SplittableRandom(1)).length);
+        // 보조손의 빈 상자 · 장비만 든 상자는 후보가 아님
+        s[DeathPenaltyRules.OFFHAND] = Item.box("shulker_box");
+        assertFalse(DeathPenaltyRules.eligible(s, 4, BOX)[DeathPenaltyRules.OFFHAND]);
+        s[DeathPenaltyRules.OFFHAND] = Item.box("shulker_box", SHIELD, KEY);
+        assertFalse(DeathPenaltyRules.eligible(s, 4, BOX)[DeathPenaltyRules.OFFHAND]);
+        // 가방 칸의 재료는 그대로 후보
+        s[20] = INGOT;
+        assertTrue(DeathPenaltyRules.eligible(s, 4, BOX)[20]);
+    }
+
+    @Test
+    void offhandBoxIsPickedAsOftenAsABagSlot() {
+        // 보조손 상자 + 가방 재료 3칸 → 4칸 중 2~3칸: 보조손도 다른 칸과 같은 확률
+        Item[] s = slots37();
+        s[0] = SWORD;
+        s[10] = INGOT;
+        s[11] = BREAD;
+        s[12] = POTION;
+        s[DeathPenaltyRules.OFFHAND] = Item.box("shulker_box", STONE, SWORD);
+        boolean[] e = DeathPenaltyRules.eligible(s, 0, BOX);
+        int[] hits = new int[DeathPenaltyRules.CANDIDATE_SLOTS];
+        int n = 20_000;
+        for (long seed = 0; seed < n; seed++) {
+            for (int k : DeathPenaltyRules.pickSlots(e, -1, 2, 3, new SplittableRandom(seed))) hits[k]++;
+        }
+        for (int k : new int[] {10, 11, 12, DeathPenaltyRules.OFFHAND}) {
+            double rate = (double) hits[k] / n;
+            assertTrue(Math.abs(rate - 0.625) < 0.02, "칸 " + k + " " + rate); // (2.5 / 4)
+        }
+        assertEquals(0, hits[0], "손에 든 장검");
+    }
+
+    @Test
+    void shortArraysStillWork() {
+        // 예전 36칸 배열(보조손 없음)도 그대로 — 36번이 없을 뿐
+        Item[] s = new Item[DeathPenaltyRules.STORAGE_SLOTS];
+        s[3] = INGOT;
+        assertEquals(DeathPenaltyRules.STORAGE_SLOTS, DeathPenaltyRules.eligible(s, 0, BOX).length);
+        assertTrue(DeathPenaltyRules.eligible(s, 0, BOX)[3]);
+        assertEquals(0, DeathPenaltyRules.eligible(null, 0, BOX).length);
+    }
+
+    @Test
+    void cursorThingsThatMustComeBackFirst() {
+        // 커서·제작 칸에서 떼어 둔 것: 장비·열쇠·상자는 먼저 가방으로 (가방이 꽉 차도 사라지지 않게)
+        assertTrue(DeathPenaltyRules.mustReturn(SWORD, BOX));
+        assertTrue(DeathPenaltyRules.mustReturn(Item.vanilla("diamond_chestplate", 1), BOX));
+        assertTrue(DeathPenaltyRules.mustReturn(KEY, BOX));
+        assertTrue(DeathPenaltyRules.mustReturn(Item.box("shulker_box", INGOT), BOX), "상자 자체는 잃지 않음");
+        assertTrue(DeathPenaltyRules.mustReturn(Item.box("shulker_box"), BOX));
+        assertFalse(DeathPenaltyRules.mustReturn(INGOT, BOX));
+        assertFalse(DeathPenaltyRules.mustReturn(BREAD, BOX));
+        assertFalse(DeathPenaltyRules.mustReturn(null, BOX));
+        assertFalse(DeathPenaltyRules.mustReturn(new Item("air", null, 0, null), BOX));
     }
 
     @Test

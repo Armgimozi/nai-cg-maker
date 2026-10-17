@@ -356,7 +356,7 @@ public final class Run {
 
     void onMemberDeath(Player p) {
         states.put(p.getUniqueId(), MemberState.DEAD);
-        // 죽음 페널티 (0.3.6.2): 이번 레벨 경험치 + 가방 2~3칸 + 골드 5~25% (장비·열쇠·곡괭이·손에 든 칸은 안전). 쓰러질 때 한 번, 안내는 바로 채팅으로
+        // 죽음 페널티 (0.3.6.2): 이번 레벨 경험치 + 가방 2~3칸 + 골드 5~25% (장비·열쇠·곡괭이·손에 든 칸은 안전, 셜커 상자는 손에 있어도 안의 재료만). 쓰러질 때 한 번, 안내는 바로 채팅으로
         kr.labyrinth.core.DeathPenalty.onDungeonDown(manager.services(), p, adminTest);
         FloorState fs = floorOf(p);
         if (fs == null) fs = current;

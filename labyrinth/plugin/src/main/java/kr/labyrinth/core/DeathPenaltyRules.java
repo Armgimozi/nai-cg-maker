@@ -17,8 +17,10 @@ import org.bukkit.configuration.ConfigurationSection;
  * <ul>
  *   <li>어디서 죽든(미궁·야생·마을·네더·엔드·PvP) 지금 레벨에서 모은 경험치가 0 이 된다. 레벨은 내려가지 않고, 최고 레벨이면 아무것도 없다.</li>
  *   <li>미궁 공략 중 쓰러졌을 때만 가방 칸 slotsMin ~ slotsMax 개(고르게)를 잃는다. 단축 칸 + 가방 36칸 중
- *       손에 든 칸은 빼고, 입은 갑옷·보조손·장신구 칸(가방 밖)은 애초에 후보가 아니다. 빈 칸은 세지 않고, 후보가 모자라면 있는 만큼.
+ *       손에 든 칸은 빼고, 입은 갑옷·장신구 칸(가방 밖)은 애초에 후보가 아니다. 빈 칸은 세지 않고, 후보가 모자라면 있는 만큼.
  *       잃은 물건은 지워진다 (떨구지 않음).</li>
+ *   <li>0.3.6.2: 손에 든 칸 · 보조손은 셜커 상자·꾸러미일 때만 후보 ({@link #eligible}) — 상자를 손에 들어 재료를 지키지 못하게.
+ *       그 밖의 것은 손·보조손에 있으면 언제나 안전.</li>
  *   <li>0.3.6.2: 장비(무기·방어구·방패·장신구, 바닐라 칼·갑옷·방패·활 등도)는 가방에 있어도 잃지 않는다 ({@link #alwaysSafe}).
  *       열쇠·문장, 광산 곡괭이, 미궁 활의 무한 화살, config safe_items 도 언제나 안전.</li>
  *   <li>0.3.6.2: 셜커 상자·꾸러미는 상자 자체를 잃지 않는다. 뽑히면 안에 든 것 중 안전하지 않은 것만 사라지고 장비는 남는다
@@ -34,8 +36,12 @@ public final class DeathPenaltyRules {
 
     private DeathPenaltyRules() {}
 
-    /** 단축 칸 0~8 + 가방 9~35 ({@code PlayerInventory#getStorageContents}). 갑옷 36~39 · 보조손 40 은 넣지 않는다. */
+    /** 단축 칸 0~8 + 가방 9~35 ({@code PlayerInventory#getStorageContents}). 잃는 칸 수의 상한. */
     public static final int STORAGE_SLOTS = 36;
+    /** 후보 배열에서 보조손 자리 (= 인벤토리 40번 칸). 갑옷 36~39 · 장신구는 넣지 않는다. */
+    public static final int OFFHAND = 36;
+    /** 후보 배열 길이: 단축 칸 + 가방 36 + 보조손 1. */
+    public static final int CANDIDATE_SLOTS = 37;
     /** 전투 중 퇴장 시전 기본값 (초) = 귀환 주문서 cast_time. */
     public static final double COMBAT_EXIT_SECONDS = 5;
     /** 전투 중 판정: 마지막 피해에서 이만큼 안 (= 귀환 주문서 ConsumableListener 와 같은 10초). */
@@ -45,7 +51,8 @@ public final class DeathPenaltyRules {
 
     /**
      * 0.3.6.2 골드 잃기 ({@code death.penalty.gold_loss}). 미궁 공략 중 쓰러지면 지닌 골드의 minPercent ~ maxPercent %
-     * (고르게, 내림), 한 번에 최대 {@code max} G (0 = 상한 없음). 끄기: {@code gold_loss: false} 또는 {@code enabled: false}.
+     * (고르게, 내림), 한 번에 최대 {@code max} G (0 = 상한 없음). 끄기: {@code gold_loss: false} · {@code enabled: false} ·
+     * {@code max_percent: 0}.
      * 값은 0 ~ 100 %, max &lt; min 이면 min, 상한은 0 이상으로 자른다.
      */
     public record GoldLoss(boolean enabled, double minPercent, double maxPercent, long max) {
@@ -63,7 +70,7 @@ public final class DeathPenaltyRules {
 
         /**
          * config {@code gold_loss} 값 (섹션 · true · false · 없음). 빠진 키는 d 의 값. max_percent 만 적으면 그 값이 상한이라
-         * min 도 거기까지 내려온다 (slots_max 와 같음 — 기본 min 5 가 끌어올리지 않게).
+         * min 도 거기까지 내려온다 (slots_max 와 같음 — 기본 min 5 가 끌어올리지 않게). max_percent 0 (이하) = 끔.
          */
         static GoldLoss read(Object raw, GoldLoss d) {
             if (Boolean.FALSE.equals(raw)) return new GoldLoss(false, d.minPercent(), d.maxPercent(), d.max());
@@ -72,7 +79,8 @@ public final class DeathPenaltyRules {
             double max = g.getDouble("max_percent", d.maxPercent());
             double min = g.getDouble("min_percent", Math.min(d.minPercent(), max));
             long cap = g.getLong("max", d.max());
-            return new GoldLoss(on, min, max, cap);
+            // max_percent: 0 이면 끔 — jar config 에 min_percent: 5 가 있어도 5% 로 끌어올리지 않게
+            return new GoldLoss(on && max > 0, min, max, cap);
         }
 
         private static double clampPercent(double v) {
@@ -246,6 +254,15 @@ public final class DeathPenaltyRules {
     }
 
     /**
+     * 커서·제작 칸에서 떼어 둔 물건 가운데 꼭 돌려줄 것 — 언제나 안전한 것(장비 등)과 셜커 상자·꾸러미 (상자 자체는 잃지 않음).
+     * 가방이 꽉 찼을 때 이것부터 넣는다 ({@code DeathPenalty#settleLoose}).
+     */
+    public static <S> boolean mustReturn(S stack, Box<S> a) {
+        if (stack == null || a.empty(stack)) return false;
+        return !losable(stack, a) || a.contents(stack) != null;
+    }
+
+    /**
      * 뽑힌 칸 처리. 보통 물건이면 통째로 잃는다 (null = 칸이 빈다). 상자·꾸러미면 상자는 남기고 안에서 잃을 것만 지운 사본
      * (장비·열쇠 같은 안전한 것과 그 자리는 그대로, 상자 속 꾸러미도 같은 규칙). 잃은 것은 {@code lost} 에 담는다.
      * 잃을 것이 없으면 그대로 돌려준다.
@@ -301,14 +318,31 @@ public final class DeathPenaltyRules {
     }
 
     /**
-     * 잃을 칸 고르기. eligible[i] = 그 칸에 잃을 것이 있음 ({@link #losable}). heldSlot(손에 든 단축 칸)과 36 이상은 언제나 뺀다.
+     * 칸마다 뽑을 수 있나. slots = 단축 칸 0~8 · 가방 9~35 · (있으면) {@link #OFFHAND} = 보조손.
+     * 가방 칸은 {@link #losable}. 손에 든 칸(heldSlot)과 보조손은 셜커 상자·꾸러미이고 안에 잃을 것이 있을 때만 —
+     * 상자는 남고 안의 장비 아닌 것만 사라진다 (가방 상자와 같음). 그 밖의 것은 손·보조손에 있으면 안전.
+     */
+    public static <S> boolean[] eligible(S[] slots, int heldSlot, Box<S> a) {
+        int n = slots == null ? 0 : Math.min(CANDIDATE_SLOTS, slots.length);
+        boolean[] out = new boolean[n];
+        for (int i = 0; i < n; i++) {
+            S it = slots[i];
+            boolean hand = i == heldSlot || i == OFFHAND;
+            out[i] = losable(it, a) && (!hand || a.contents(it) != null);
+        }
+        return out;
+    }
+
+    /**
+     * 잃을 칸 고르기. eligible[i] = 그 칸에 잃을 것이 있음 ({@link #eligible}). heldSlot 은 언제나 뺀다
+     * (-1 = 빼지 않음 — {@link #eligible} 이 손 칸을 이미 걸렀을 때). {@link #CANDIDATE_SLOTS} 이상은 보지 않는다.
      * 칸 수를 먼저 굴리고(min ~ max), 후보 가운데서 겹치지 않게 고르게 뽑는다. 후보가 모자라면 후보 전부.
      *
-     * @return 고른 칸 번호 (오름차순)
+     * @return 고른 칸 번호 (오름차순, {@link #OFFHAND} = 보조손)
      */
     public static int[] pickSlots(boolean[] eligible, int heldSlot, int min, int max, RandomGenerator rng) {
         List<Integer> pool = new ArrayList<>();
-        int n = eligible == null ? 0 : Math.min(STORAGE_SLOTS, eligible.length);
+        int n = eligible == null ? 0 : Math.min(CANDIDATE_SLOTS, eligible.length);
         for (int i = 0; i < n; i++) if (eligible[i] && i != heldSlot) pool.add(i);
         int want = Math.min(pool.size(), rollCount(min, max, rng));
         // 앞에서부터 부분 피셔-예이츠: 칸마다 뽑힐 확률이 같다
@@ -456,7 +490,7 @@ public final class DeathPenaltyRules {
             return c.xpProgressReset() ? "<#ffb27a>쓰러지면 이번 레벨 경험치가 처음으로 돌아갑니다.</#ffb27a> <gray>미궁 밖에서도 같습니다." : null;
         }
         String xp = c.xpProgressReset() ? " 잃고, 이번 레벨 경험치도 처음으로 돌아갑니다." : " 잃습니다.";
-        String safe = items(c) ? " <gray>장비·열쇠·곡괭이와 손에 든 것은 안전합니다." : "";
+        String safe = items(c) ? " <gray>장비·열쇠·곡괭이와 손에 든 것(상자 속은 빼고)은 안전합니다." : "";
         return "<#ffb27a>미궁 안에서 쓰러지면 " + loss + xp + "</#ffb27a>" + safe;
     }
 
