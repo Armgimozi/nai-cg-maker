@@ -47,7 +47,9 @@ class ListenerCoverageTest {
                 "PlayerShearEntityEvent", "SheepDyeWoolEvent", "PlayerNameEntityEvent", "PlayerFishEvent", "VehicleEnterEvent", "InventoryOpenEvent",
                 "PlayerUnleashEntityEvent", "PlayerTakeLecternBookEvent",
                 // 한도 (R15 · 틱 부품)
-                "BlockPlaceEvent", "HangingPlaceEvent", "EntityPlaceEvent", "EntityBreedEvent", "CreatureSpawnEvent")) {
+                "BlockPlaceEvent", "HangingPlaceEvent", "EntityPlaceEvent", "EntityBreedEvent", "CreatureSpawnEvent",
+                // 0.3.7 fix: 꾀어 내기 · 물약 구름·튀김 · 길들이기 표시 (exploit M1·L7)
+                "EntityTargetLivingEntityEvent", "AreaEffectCloudApplyEvent", "PotionSplashEvent", "EntityTameEvent")) {
             assertTrue(h.containsKey(ev), ev);
         }
     }

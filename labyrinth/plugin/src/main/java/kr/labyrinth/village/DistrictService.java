@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import kr.labyrinth.command.CommandService;
@@ -172,9 +173,87 @@ final class DistrictService implements Listener {
             Log.info("[" + d.name + "] " + d.state.key() + " · 자리 " + d.site + " · 조각 " + d.meta.pieces.size() + " · 보호 상자 "
                     + d.meta.protect.size() + (d.plots.isEmpty() ? "" : " · 집터 " + d.plots.size()));
         }
+        refreshPlaced();
         publishHomes();
         if (refresh && village.wild() != null) village.wild().refresh("구역");
     }
+
+    // ── 구역이 놓은 칸 (0.3.7 fix — 보호 상자 밖 옹벽·기초도 구역 것) ─────────
+
+    /** 지어진 구역의 DIFF 백업에서 놓은 블록이 공기가 아닌 칸 (pack, 정렬) — 이사 기간 부수기·옛 건물 조사에서 뺀다. */
+    private volatile long[] placed = new long[0];
+    private final Map<String, String> placedStamp = new java.util.HashMap<>();
+    private final Map<String, long[]> placedById = new java.util.HashMap<>();
+
+    private void refreshPlaced() {
+        World w = world();
+        Set<String> keep = new java.util.HashSet<>();
+        boolean changed = false;
+        if (w != null) for (DistrictMeta d : metas.values()) {
+            if (!d.built()) continue;
+            File bf = backupFile(w, d.id);
+            if (!bf.isFile()) continue;
+            keep.add(d.id);
+            String stamp = bf.length() + ":" + bf.lastModified();
+            if (stamp.equals(placedStamp.get(d.id))) continue;
+            long[] arr;
+            try {
+                arr = placedKeys(DistrictBackup.load(bf));
+            } catch (IOException | RuntimeException e) {
+                Log.warn("[" + d.name + "] 백업을 읽지 못해 구역이 놓은 칸을 모릅니다 (이사 기간에 옹벽을 부술 수 있음): " + e.getMessage());
+                arr = new long[0];
+            }
+            placedById.put(d.id, arr);
+            placedStamp.put(d.id, stamp);
+            changed = true;
+        }
+        if (placedById.keySet().retainAll(keep)) changed = true;
+        placedStamp.keySet().retainAll(keep);
+        if (!changed) return;
+        int n = 0;
+        for (long[] a : placedById.values()) n += a.length;
+        long[] all = new long[n];
+        int i = 0;
+        for (long[] a : placedById.values()) {
+            System.arraycopy(a, 0, all, i, a.length);
+            i += a.length;
+        }
+        java.util.Arrays.sort(all);
+        placed = all;
+    }
+
+    /** DIFF 백업 → 놓은 것이 공기가 아닌 칸 (정렬, 중복 없음). BEFORE 단계 (짓는 중) 는 빈 배열. */
+    static long[] placedKeys(DistrictBackup bk) {
+        if (bk == null || bk.phase != DistrictBackup.Phase.DIFF) return new long[0];
+        long[] out = new long[bk.entries.size()];
+        int n = 0;
+        for (DistrictBackup.Entry e : bk.entries) {
+            String a = e.after();
+            if (a == null || a.isBlank() || isAir(a)) continue;
+            out[n++] = e.key();
+        }
+        long[] arr = java.util.Arrays.copyOf(out, n);
+        java.util.Arrays.sort(arr);
+        return java.util.Arrays.stream(arr).distinct().toArray();
+    }
+
+    private static boolean isAir(String data) {
+        String k = data.trim().toLowerCase(Locale.ROOT);
+        int b = k.indexOf('[');
+        if (b >= 0) k = k.substring(0, b);
+        if (k.startsWith("minecraft:")) k = k.substring(10);
+        return k.equals("air") || k.equals("cave_air") || k.equals("void_air");
+    }
+
+    /** 정렬된 칸 목록에 (x, y, z) 가 있나. */
+    static boolean containsCell(long[] sorted, int x, int y, int z) {
+        return sorted != null && sorted.length > 0 && java.util.Arrays.binarySearch(sorted, DistrictBackup.pack(x, y, z)) >= 0;
+    }
+
+    boolean placed(int x, int y, int z) { return containsCell(placed, x, y, z); }
+
+    /** 비동기 조사용 (바꾸지 말 것). */
+    long[] placedCells() { return placed; }
 
     /** 집 구역 상태·집터를 집 모듈에 알린다 (0.3.7 — 읽을 때마다, 지은 뒤·지운 뒤). */
     void publishHomes() {

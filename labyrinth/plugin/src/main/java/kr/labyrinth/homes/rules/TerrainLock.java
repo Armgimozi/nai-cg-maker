@@ -39,6 +39,18 @@ public final class TerrainLock {
         return state == State.ON || districtBuilt;
     }
 
+    /** storeBroken = labyrinth-plots.yml 을 못 읽음 → 잠금 상태 (lock off 였는지) 를 모르니 잠금 (live 6 안전 모드). */
+    public static boolean locked(boolean enabled, boolean configLock, State state, boolean districtBuilt, boolean storeBroken) {
+        if (storeBroken) return enabled && configLock;
+        return locked(enabled, configLock, state, districtBuilt);
+    }
+
+    /**
+     * 규칙 리스너가 일하는가: 집 구역이 지어졌거나 convert 집터가 있음 (homes.enabled: false 여도 — 집터는 지킴, live 7) 또는 잠금이 켜짐
+     * (집터 없이 lock on — 켜졌다고 하고 안 막던 것, exploit L8 · live 4).
+     */
+    public static boolean rulesOn(boolean districtBuilt, boolean hasPlots, boolean locked) { return districtBuilt || hasPlots || locked; }
+
     /** zone 과 그 집에서의 자리 → 어디. role 은 zone &gt; 0 일 때만 본다 (null = NONE). */
     public static PlotRules.Where where(int zone, PlotRole role, boolean locked) {
         if (zone > 0) {

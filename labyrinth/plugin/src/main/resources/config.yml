@@ -431,7 +431,9 @@ mine:
 #   home_teleport · visit: /미궁 집 가기 · 방문 — auto = village.teleport_command 를 따름 · true · false (관리자는 늘 됨)
 #   reclaim_cooldown_minutes: 스스로 비운 뒤 다시 받기까지 · rename_cooldown_minutes: 집 이름 바꾸기 사이
 #   height: 집 바닥 아래·위로 지을 수 있는 칸 · max_trusted: 집마다 초대할 수 있는 사람
-#   자재 목록은 content/housing.yml (관리인 [자재] 탭, 바닐라 블록 385가지) — 되팔 수는 없다
+#   자재 목록은 content/housing.yml (관리인 [자재] 탭, 바닐라 블록 387가지 — 네더 차원문용 흑요석·부싯돌 포함) — 되팔 수는 없다
+#   끄기: 잠금만 끄려면 terrain_lock: false. homes: false (또는 enabled: false) 는 받기·메뉴·회복·잠금을 끄지만
+#     이미 지어진 집터는 계속 지킨다 (남의 집 부수기·상자 열기 막음).
 homes:
   enabled: true
   terrain_lock: true

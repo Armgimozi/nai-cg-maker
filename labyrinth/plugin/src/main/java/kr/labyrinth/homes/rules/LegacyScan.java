@@ -31,7 +31,7 @@ import org.bukkit.scheduler.BukkitTask;
  * 옛 건물 조사 (0.3.7, plan §10 · review R14) — 지형 잠금이 처음 켜질 때 한 번 (+ {@code /labadmin plot legacy}). 소유: 묶음 B.
  * <p>
  * 국경 (WorldBorder) 안 청크를 {@code getChunkAtAsync} 로 불러 (새로 만들지 않음) 스냅샷을 비동기로 본다. 열마다 땅 위 + 땅속 10칸 (마을 Scan 과 같은 띠)
- * 의 사람 블록 (Nature UNNATURAL · 지속 잎) 을 세고, 집터·보호 칸 열은 뺀 뒤 8칸 안끼리 묶어 큰 것부터 20곳을
+ * 의 사람 블록 (Nature UNNATURAL · 지속 잎) 을 세고 (구역이 놓은 칸 — 보호 상자 밖 옹벽·기초 — 은 뺌), 집터·보호 칸 열은 뺀 뒤 8칸 안끼리 묶어 큰 것부터 20곳을
  * 로그와 {@code plugins/Labyrinth/homes/legacy.txt} 에 남긴다. 규칙에는 쓰지 않는다 (관리자가 convert 를 고를 때 봄).
  */
 public final class LegacyScan {
@@ -72,6 +72,8 @@ public final class LegacyScan {
         ConcurrentLinkedQueue<LegacyClusters.Column> found = new ConcurrentLinkedQueue<>();
         AtomicInteger inflight = new AtomicInteger(), analysing = new AtomicInteger(), done = new AtomicInteger();
         int minY = w.getMinHeight(), maxY = w.getMaxHeight() - 1;
+        VillageService vs = VillageService.get();
+        long[] placed = vs == null ? new long[0] : vs.districtPlacedCells(); // 바뀌지 않는 배열 (비동기에서 읽기만)
         if (report != null) Text.send(report, "<gray>옛 건물 조사 시작 — 청크 " + total + "개 (x " + area[0] + ".." + area[2] + " · z " + area[1] + ".." + area[3] + ")");
         task = Bukkit.getScheduler().runTaskTimer(s.plugin(), () -> {
             while (inflight.get() < MAX_INFLIGHT && !queue.isEmpty()) {
@@ -85,7 +87,7 @@ public final class LegacyScan {
                     analysing.incrementAndGet();
                     Bukkit.getScheduler().runTaskAsynchronously(s.plugin(), () -> {
                         try {
-                            analyse(snap, minY, maxY, area, found);
+                            analyse(snap, minY, maxY, area, placed, found);
                         } finally {
                             analysing.decrementAndGet();
                         }
@@ -118,7 +120,7 @@ public final class LegacyScan {
     }
 
     /** 비동기: 열마다 사람 블록 수. */
-    private static void analyse(ChunkSnapshot snap, int minY, int maxY, int[] area, ConcurrentLinkedQueue<LegacyClusters.Column> out) {
+    static void analyse(ChunkSnapshot snap, int minY, int maxY, int[] area, long[] placed, ConcurrentLinkedQueue<LegacyClusters.Column> out) {
         int bx = snap.getX() << 4, bz = snap.getZ() << 4;
         for (int lx = 0; lx < 16; lx++) {
             for (int lz = 0; lz < 16; lz++) {
@@ -133,7 +135,7 @@ public final class LegacyScan {
                         ground = y;
                         break;
                     }
-                    if (human(k, snap, lx, y, lz)) {
+                    if (human(k, snap, lx, y, lz) && !placedCell(placed, x, y, z)) {
                         count++;
                         if (firstY == Integer.MIN_VALUE) firstY = y;
                     }
@@ -141,7 +143,7 @@ public final class LegacyScan {
                 if (ground != Integer.MIN_VALUE) {
                     for (int d = 1; d <= UNDER && ground - d >= minY; d++) {
                         Material m = snap.getBlockType(lx, ground - d, lz);
-                        if (human(Nature.kind(m.name()), snap, lx, ground - d, lz)) {
+                        if (human(Nature.kind(m.name()), snap, lx, ground - d, lz) && !placedCell(placed, x, ground - d, z)) {
                             count++;
                             if (firstY == Integer.MIN_VALUE) firstY = ground - d;
                         }
@@ -150,6 +152,11 @@ public final class LegacyScan {
                 if (count > 0) out.add(new LegacyClusters.Column(x, z, count, firstY));
             }
         }
+    }
+
+    /** 구역이 놓은 칸인가 (정렬된 pack 목록). */
+    static boolean placedCell(long[] placed, int x, int y, int z) {
+        return placed != null && placed.length > 0 && java.util.Arrays.binarySearch(placed, kr.labyrinth.village.DistrictBackup.pack(x, y, z)) >= 0;
     }
 
     private static boolean human(Nature.Kind k, ChunkSnapshot snap, int lx, int y, int lz) {

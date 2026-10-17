@@ -131,7 +131,7 @@ npcs:
       hair: short_bob
       accessories: [key_ring, round_glasses, satchel]
     dialogue:
-      - "<gray>골목 집터는 한 사람에 한 채예요. 값은 안 받아요.</gray>"
+      - "<gray>골목 집터는 한 사람에 한 채예요.</gray>"
       - "<gray>집 안에서는 마음대로 짓고 부숴도 돼요. 밖은 안 되고요.</gray>"
       - "<gray>블록이 모자라면 여기서 사 가요.</gray>"
 

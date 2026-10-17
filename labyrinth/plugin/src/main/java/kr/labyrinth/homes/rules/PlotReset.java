@@ -8,11 +8,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import kr.labyrinth.core.Log;
+import kr.labyrinth.core.Teleports;
+import kr.labyrinth.core.Text;
+import kr.labyrinth.village.VillageService;
 import kr.labyrinth.homes.HomesService;
 import kr.labyrinth.homes.PlotGeom;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Nameable;
 import org.bukkit.Tag;
@@ -24,11 +29,15 @@ import org.bukkit.block.Chest;
 import org.bukkit.block.Jukebox;
 import org.bukkit.block.ShulkerBox;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.AbstractHorse;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.ChestedHorse;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.ItemFrame;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Steerable;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
@@ -46,6 +55,8 @@ import org.bukkit.util.BoundingBox;
  *   <li>{@code World#save(true)} → {@link ParcelStore#finish} (ready)</li>
  * </ol>
  * 서버가 ②~③ 사이에 꺼지면 다음 시작 때 {@link #recoverAll} 이 지우기를 마저 하고 저장한 뒤 ready 로 바꾼다 (같은 틀로 두 번 해도 같음).
+ * 0.3.7 fix: 지우기 전에 그 안의 사람을 대문 앞으로 옮기고 (묻히거나 떨어지지 않게, live H1), 엔티티(액자·거치대)가 다 불러와진 뒤에만 모으고 지운다
+ * (exploit M3). 마저 하기가 실패하면 그 집은 다음 시작까지 "정리 중" 으로 잠가 둔다 (live 10).
  * 짐이 두 번 생기거나 사라지지 않는다: 블록 안의 것과 pending 짐은 지우기 전에는 블록만, 저장 뒤에는 짐만 남는다.
  */
 public final class PlotReset {
@@ -65,22 +76,100 @@ public final class PlotReset {
         }
         s.markBusy(plot, true);
         loadChunks(w, plot.x0(), plot.z0(), plot.x1(), plot.z1()).whenComplete((chunks, err) -> Bukkit.getScheduler().runTask(s.plugin(), () -> {
-            boolean ok = false;
-            try {
-                if (err != null) {
-                    Log.error("[집] " + plot.label() + " 청크를 불러오지 못해 비우지 않음", err);
-                    s.markBusy(plot, false);
-                } else ok = runNow(w, plot, owner, ownerName, reason, selfVacate);
-            } catch (Throwable t) {
-                Log.error("[집] " + plot.label() + " 비우기 오류", t);
-                // 짐을 쓰기 전에 멈췄으면 블록은 그대로 → 다시 쓸 수 있게. 쓴 뒤면 다음 시작 때 recoverAll 이 마저 함 (그때까지 잠김)
-                if (s.parcels().pending(owner) == null) s.markBusy(plot, false);
-            } finally {
+            if (err != null) {
+                Log.error("[집] " + plot.label() + " 청크를 불러오지 못해 비우지 않음", err);
+                s.markBusy(plot, false);
                 release(w, chunks);
+                done.complete(false);
+                return;
             }
-            done.complete(ok);
+            awaitEntities(chunks, ENTITY_WAIT_TICKS, loaded -> {
+                boolean ok = false;
+                try {
+                    if (!loaded) {
+                        Log.warn("[집] " + plot.label() + " 엔티티(액자·거치대)를 불러오지 못해 비우지 않음 — 블록은 그대로");
+                        s.markBusy(plot, false);
+                    } else ok = runNow(w, plot, owner, ownerName, reason, selfVacate);
+                } catch (Throwable t) {
+                    Log.error("[집] " + plot.label() + " 비우기 오류", t);
+                    // 짐을 쓰기 전에 멈췄으면 블록은 그대로 → 다시 쓸 수 있게. 쓴 뒤면 다음 시작 때 recoverAll 이 마저 함 (그때까지 잠김)
+                    if (s.parcels().pending(owner) == null) s.markBusy(plot, false);
+                } finally {
+                    release(w, chunks);
+                }
+                done.complete(ok);
+            });
         }));
         return done;
+    }
+
+    /** 엔티티를 기다리는 최대 틱 (10초). */
+    static final int ENTITY_WAIT_TICKS = 200;
+
+    /** 청크 엔티티가 모두 불러와지면 then(true), maxTicks 가 지나면 then(false). 이미 다 있으면 바로 (같은 틱). */
+    private void awaitEntities(List<Chunk> chunks, int maxTicks, Consumer<Boolean> then) {
+        if (entitiesLoaded(chunks)) {
+            then.accept(true);
+            return;
+        }
+        int[] waited = {0};
+        Bukkit.getScheduler().runTaskTimer(s.plugin(), task -> {
+            boolean ok = entitiesLoaded(chunks);
+            if (!ok && ++waited[0] < maxTicks) return;
+            task.cancel();
+            then.accept(ok);
+        }, 1L, 1L);
+    }
+
+    private static boolean entitiesLoaded(List<Chunk> chunks) {
+        if (chunks == null) return false;
+        for (Chunk c : chunks) {
+            try {
+                if (!c.isEntitiesLoaded()) return false;
+            } catch (Throwable t) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** 그 집터의 대문 앞 (집 가기 자리 — 집터 상자 밖). */
+    public static Location front(World w, PlotGeom plot) {
+        if (plot == null) return null;
+        if (plot.homeKnown()) return new Location(w, plot.homeX(), plot.homeY(), plot.homeZ(), plot.homeYaw(), 0f);
+        int y = w.getHighestBlockYAt(plot.gateX(), plot.gateZ()) + 1;
+        return new Location(w, plot.gateX() + 0.5, y, plot.gateZ() + 0.5);
+    }
+
+    /**
+     * 지우기 전에: 그 칸 안 (높이 창 −1 ~ +2) 사람을 to 로 옮기고, 그 안 상자·탈것 창을 열어 둔 사람은 창을 닫는다 (live H1).
+     * @return 옮긴 사람 수
+     */
+    static int evacuate(World w, int x0, int z0, int x1, int z1, int yMin, int yMax, Location to) {
+        BoundingBox box = new BoundingBox(x0, yMin - 1, z0, x1 + 1, yMax + 3, z1 + 1);
+        Location target = to;
+        if (target == null) {
+            VillageService v = VillageService.get();
+            target = v == null ? null : v.spawn();
+            if (target == null) target = w.getSpawnLocation();
+        }
+        int moved = 0;
+        for (Player p : w.getPlayers()) {
+            try {
+                Location open = p.getOpenInventory().getTopInventory().getLocation();
+                if (open != null && open.getWorld() != null && open.getWorld().equals(w) && box.contains(open.toVector())) p.closeInventory();
+            } catch (Throwable ignored) {
+                // 창 없음
+            }
+            if (!box.contains(p.getLocation().toVector())) continue;
+            if (p.isInsideVehicle()) p.leaveVehicle();
+            p.setFallDistance(0);
+            Teleports.to(p, target);
+            p.setFallDistance(0);
+            Text.send(p, "<gray>집터를 처음 모습으로 돌려서 대문 앞으로 옮겼습니다.");
+            moved++;
+        }
+        return moved;
     }
 
     private boolean runNow(World w, PlotGeom plot, UUID owner, String ownerName, String reason, boolean self) {
@@ -115,7 +204,8 @@ public final class PlotReset {
             s.markBusy(plot, false);
             return false;
         }
-        // ② 지우기 (여기서 멈추면 다음 시작 때 recoverAll 이 마저 함 — 그동안 집은 busy 로 잠김)
+        // ② 지우기 (여기서 멈추면 다음 시작 때 recoverAll 이 마저 함 — 그동안 집은 busy 로 잠김). 그 안 사람은 먼저 대문 앞으로
+        evacuate(w, plot.x0(), plot.z0(), plot.x1(), plot.z1(), plot.yMin(), plot.yMax(), front(w, plot));
         clear(w, plot.x0(), plot.z0(), plot.x1(), plot.z1(), plot.yMin(), plot.yMax(), plot.floorY());
         // ③ 주인 풀기
         s.release(plot, owner, self);
@@ -154,28 +244,40 @@ public final class PlotReset {
             if (p == null) continue;
             PlotGeom plot = s.plot(p.plotId());
             if (plot != null) s.markBusy(plot, true);
+            String label = plot == null ? p.plotId() + "번지" : (plot.custom() ? plot.id() + " 집터" : plot.label());
             loadChunks(w, p.x0(), p.z0(), p.x1(), p.z1()).whenComplete((chunks, err) -> Bukkit.getScheduler().runTask(s.plugin(), () -> {
-                try {
-                    if (err != null) {
-                        Log.error("[집] 비우다 멈춘 집 (" + p.plotId() + ") 청크를 불러오지 못함 — 다음 시작 때 다시", err);
-                        return;
-                    }
-                    clear(w, p.x0(), p.z0(), p.x1(), p.z1(), p.yMin(), p.yMax(), p.floorY());
-                    if (plot != null) {
-                        s.release(plot, owner, "vacate".equals(p.reason()));
-                        s.saveStore();
-                    }
-                    finish(w, owner);
-                    Log.info("[집] 비우다 멈춘 " + (plot == null ? p.plotId() : plot.label()) + " 을(를) 마저 비웠습니다 — 맡긴 짐 " + p.items().size() + "묶음");
-                } catch (Throwable t) {
-                    Log.error("[집] 비우다 멈춘 집 (" + p.plotId() + ") 마저 하기 실패", t);
-                } finally {
-                    if (plot != null) {
-                        s.markBusy(plot, false);
-                        s.changed(plot);
-                    }
+                if (err != null) {
+                    // 실패하면 다음 시작까지 정리 중으로 잠가 둔다 (빈 집으로 보여 누가 받은 뒤 다음 시작에 통째로 지워지지 않게 — live 10)
+                    Log.error("[집] 비우다 멈춘 " + label + " 청크를 불러오지 못함 — 다음 시작 때 다시 (그때까지 정리 중)", err);
                     release(w, chunks);
+                    return;
                 }
+                awaitEntities(chunks, ENTITY_WAIT_TICKS, loaded -> {
+                    boolean ok = false;
+                    try {
+                        if (!loaded) {
+                            Log.warn("[집] 비우다 멈춘 " + label + " 엔티티를 불러오지 못함 — 다음 시작 때 다시 (그때까지 정리 중)");
+                            return;
+                        }
+                        evacuate(w, p.x0(), p.z0(), p.x1(), p.z1(), p.yMin(), p.yMax(), front(w, plot));
+                        clear(w, p.x0(), p.z0(), p.x1(), p.z1(), p.yMin(), p.yMax(), p.floorY());
+                        if (plot != null) {
+                            s.release(plot, owner, "vacate".equals(p.reason()));
+                            s.saveStore();
+                        }
+                        finish(w, owner);
+                        ok = true;
+                        Log.info("[집] 비우다 멈춘 " + label + "를 마저 비웠습니다 — 맡긴 짐 " + p.items().size() + "묶음");
+                    } catch (Throwable t) {
+                        Log.error("[집] 비우다 멈춘 " + label + " 마저 하기 실패 — 다음 시작 때 다시 (그때까지 정리 중)", t);
+                    } finally {
+                        if (plot != null && ok) {
+                            s.markBusy(plot, false);
+                            s.changed(plot);
+                        }
+                        release(w, chunks);
+                    }
+                });
             }));
         }
     }
@@ -196,7 +298,43 @@ public final class PlotReset {
                 }
             }
         }
-        for (Entity e : entities(w, x0, z0, x1, z1, yMin, yMax)) e.remove();
+        for (Entity e : entities(w, x0, z0, x1, z1, yMin, yMax)) {
+            if (PlotResetPlan.entity(e.getType().name()) == PlotResetPlan.EntityTake.ANIMAL_GEAR) stripGear(e); // 동물은 그대로
+            else e.remove();
+        }
+    }
+
+    /** 짐을 진 동물의 짐을 모음 (안장·말 갑옷·라마 깔개·상자와 그 안 · 돼지 안장 · 늑대 갑옷). 읽기만. */
+    static void collectGear(Entity e, List<ItemStack> out) {
+        try {
+            if (e instanceof AbstractHorse h) {
+                for (ItemStack it : h.getInventory().getContents()) if (it != null && !it.getType().isAir()) out.add(it.clone());
+                if (h instanceof ChestedHorse ch && ch.isCarryingChest()) out.add(ItemStack.of(Material.CHEST));
+                return;
+            }
+            if (e instanceof Steerable st && st.hasSaddle()) out.add(ItemStack.of(Material.SADDLE));
+            if (e instanceof LivingEntity le && le.getEquipment() != null) {
+                ItemStack body = le.getEquipment().getItem(EquipmentSlot.BODY);
+                if (body != null && !body.getType().isAir()) out.add(body.clone());
+            }
+        } catch (Throwable ignored) {
+            // 그 칸이 없는 동물
+        }
+    }
+
+    /** 짐을 벗김 (동물은 그대로). 두 번 해도 같다. */
+    static void stripGear(Entity e) {
+        try {
+            if (e instanceof AbstractHorse h) {
+                h.getInventory().clear();
+                if (h instanceof ChestedHorse ch && ch.isCarryingChest()) ch.setCarryingChest(false);
+                return;
+            }
+            if (e instanceof Steerable st && st.hasSaddle()) st.setSaddle(false);
+            if (e instanceof LivingEntity le && le.getEquipment() != null) le.getEquipment().setItem(EquipmentSlot.BODY, null);
+        } catch (Throwable ignored) {
+            // 그 칸이 없는 동물
+        }
     }
 
     private static void emptyContainer(Block b) {
@@ -254,7 +392,7 @@ public final class PlotReset {
     private void drops(Block b, Material m, Map<String, String> props, List<ItemStack> out) {
         Collection<ItemStack> d;
         try {
-            d = b.getDrops(tool(m), null);
+            d = PlotResetPlan.dropsWithoutTool(m.name()) ? b.getDrops() : b.getDrops(tool(m), null); // 장식 항아리는 맨손 드롭 (조각 안 나게)
         } catch (Throwable t) {
             d = List.of();
         }
@@ -321,13 +459,14 @@ public final class PlotReset {
                 ItemStack it = ((Item) e).getItemStack();
                 if (it != null && !it.getType().isAir()) out.add(it.clone());
             }
+            case ANIMAL_GEAR -> collectGear(e, out);
             case NONE -> { }
         }
     }
 
     private static List<Entity> entities(World w, PlotGeom p) { return entities(w, p.x0(), p.z0(), p.x1(), p.z1(), p.yMin(), p.yMax()); }
 
-    /** 맡긴 짐으로 갈 엔티티 (액자·그림·거치대·탈것·아이템 — 동물·플레이어는 아님). */
+    /** 맡긴 짐으로 갈 엔티티 (액자·그림·거치대·탈것·아이템 · 짐을 진 동물 — 플레이어는 아님). */
     static List<Entity> entities(World w, int x0, int z0, int x1, int z1, int yMin, int yMax) {
         BoundingBox box = new BoundingBox(x0, yMin, z0, x1 + 1, yMax + 1, z1 + 1);
         List<Entity> out = new ArrayList<>();

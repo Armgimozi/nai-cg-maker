@@ -28,12 +28,14 @@ import org.bukkit.configuration.file.YamlConfiguration;
  * lock: {state: auto, started_at: 0}       # 잠금 덮어쓰기 · 처음 켜진 때
  * grace: {days: -1, started_at: 0}         # days −1 = config legacy_grace_days
  * legacy_scanned_at: 0
+ * fresh_world: true                       # 배포 world.zip 만 (build_world.sh) — 처음 켤 때 이사 기간 없이 잠금
  * plots: {"3": {owner, owner_name, name, trusted: {uuid: 이름}, guests, claimed_at, renamed_at}}
  * custom: {c1: {n, box: [x0, z0, x1, z1], window: [y0, y1], floor, home: [x, y, z, yaw]}}
  * vacated: {uuid: 시각}                    # 스스로 비운 때 (R13)
  * known: [uuid …]                          # 집을 받은 적 있는 사람 (처음 받기 판단)
  * </pre>
- * 저장은 원자적 (같은 폴더 tmp 에 쓰고 move). 읽기 실패한 파일은 {@code .broken-<시각>} 으로 옮기고 빈 기록으로 시작한다.
+ * 저장은 원자적 (같은 폴더 tmp 에 쓰고 move). 읽기 실패하면 {@link #broken} — 파일은 그대로 두고 (덮어쓰지 않음) {@code .broken-<시각>} 사본을
+ *남긴다. 집 모듈은 그동안 안전 모드 (받기·주기·바꾸기 막음, 모든 구역 집터는 남의 집 — live 6).
  * 이 클래스는 순수 자료 + 파일 입출력 (Bukkit 서버 불필요) — 메인 스레드에서만 쓴다.
  */
 public final class PlotStore {
@@ -88,6 +90,10 @@ public final class PlotStore {
     public final Set<UUID> known = new LinkedHashSet<>();
     /** 읽을 때 생긴 일 (자가 진단·로그). */
     public String loadNote = "";
+    /** 파일이 있는데 읽지 못함 — 저장 안 함 (빈 기록으로 덮지 않게). */
+    public boolean broken;
+    /** 배포 월드 표시 (처음 잠금이 켜질 때 이사 기간·옛 건물 조사 없이). */
+    public boolean freshWorld;
 
     public PlotStore(File file) { this.file = file; }
 
@@ -100,9 +106,17 @@ public final class PlotStore {
         try {
             y.loadFromString(Files.readString(file.toPath(), StandardCharsets.UTF_8));
         } catch (IOException | InvalidConfigurationException e) {
-            File broken = new File(file.getParentFile(), file.getName() + ".broken-" + System.currentTimeMillis());
-            boolean moved = file.renameTo(broken);
-            s.loadNote = "읽기 실패 (" + e.getClass().getSimpleName() + ") — " + (moved ? broken.getName() + " 로 옮기고 " : "") + "빈 기록으로 시작";
+            File copy = new File(file.getParentFile(), file.getName() + ".broken-" + System.currentTimeMillis());
+            boolean copied;
+            try {
+                Files.copy(file.toPath(), copy.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                copied = true;
+            } catch (IOException ce) {
+                copied = false;
+            }
+            s.broken = true;
+            s.loadNote = "읽기 실패 (" + e.getClass().getSimpleName() + ") — 안전 모드 (파일은 그대로 둠" + (copied ? ", 사본 " + copy.getName() : "")
+                    + "). 서버를 끄고 고친 뒤 다시 켜세요";
             return s;
         }
         s.districtBuild = y.getString("district_build", "");
@@ -112,6 +126,7 @@ public final class PlotStore {
         s.graceDays = gd >= 0 ? gd : null;
         s.graceStartedAt = y.getLong("grace.started_at", 0);
         s.legacyScannedAt = y.getLong("legacy_scanned_at", 0);
+        s.freshWorld = y.getBoolean("fresh_world", false);
         ConfigurationSection ps = y.getConfigurationSection("plots");
         if (ps != null) for (String id : ps.getKeys(false)) {
             ConfigurationSection o = ps.getConfigurationSection(id);
@@ -162,6 +177,7 @@ public final class PlotStore {
         y.set("grace.days", graceDays == null ? -1 : graceDays);
         y.set("grace.started_at", graceStartedAt);
         y.set("legacy_scanned_at", legacyScannedAt);
+        if (freshWorld) y.set("fresh_world", true);
         y.createSection("plots");
         for (Map.Entry<String, Owner> e : owners.entrySet()) {
             Owner o = e.getValue();
@@ -195,6 +211,7 @@ public final class PlotStore {
     /** 원자적 저장 (tmp → move). */
     public void save() throws IOException {
         if (file == null) return;
+        if (broken) throw new IOException("읽지 못한 " + FILE + " 는 덮어쓰지 않습니다");
         writeAtomic(file.toPath(), toYaml());
     }
 

@@ -10,7 +10,8 @@
 #   (마을 mismatched=0 + 지은 구역 자가 진단 깨끗) → zip. 시드 = 예전 zip 옆 world.seed. 서버를 켜 둔 동안 random_tick_speed 0 ·
 #   몹 스폰 끔 (잔디·잎·몹이 바뀌지 않게) — 끝나면 게임 규칙 파일은 예전 zip 것으로 되돌린다 (서버장 월드의 규칙은 그대로).
 #   --district 기본 = mine (자리 east) · 0.3.7 homes (자리 south_west — 광산이 지어진 0.3.6.1 world.zip 위에). 예전 zip 에 그 구역이 이미
-#   있으면 멈춘다. 집 구역은 소유 파일(labyrinth-plots.yml)·맡긴 짐(labyrinth-parcels/)을 zip 에 넣지 않는다.
+#   있으면 멈춘다. 집 구역은 맡긴 짐(labyrinth-parcels/)을 zip 에 넣지 않고, 소유 파일(labyrinth-plots.yml)은 주인 없는 새 파일
+#   (fresh_world: true — 처음 켤 때 이사 기간·옛 건물 조사 없이 잠금을 켬)로 바꿔 넣는다.
 # 환경 변수: TESTSERVER=/opt/testserver (paper.jar·libraries·cache 를 가져올 곳, 그 안의 world 는 건드리지 않음)
 #            WORK=/opt/worldbuild/build (작업 폴더, 매번 새로) · PORT=25631 · PREGEN=192 · KEEP=1 이면 작업 폴더 남김
 #            DIST=<결과 폴더> (기본 dist — 시험 빌드를 따로 모을 때) · XMX=4G (서버 최대 메모리)
@@ -210,7 +211,11 @@ if [ -n "$BASE" ]; then
       || { echo "광산 마을 자가 진단이 깨끗하지 않습니다: ${MSELF:-(결과 줄 없음)}"; [ "${ALLOW_DIRTY:-0}" = "1" ] || exit 1; }
   fi
   # 집 모듈이 만든 소유 파일·맡긴 짐·옛 건물 보고는 배포 월드에 넣지 않는다 (서버장 서버가 처음 켤 때 새로 — 주인 0)
-  rm -rf "$OW/labyrinth-plots.yml" "$OW/labyrinth-plots.yml.tmp" "$OW/labyrinth-parcels"
+  rm -rf "$OW/labyrinth-plots.yml" "$OW/labyrinth-plots.yml.tmp" "$OW/labyrinth-plots.yml.broken-"* "$OW/labyrinth-parcels"
+  # 집 구역이 지어진 배포 월드: 주인 없는 소유 파일 + 새 월드 표시 (옮길 옛 건물이 없으니 이사 기간 없이 잠금 — 0.3.7 fix)
+  if [ -f "$OW/labyrinth-district-homes.yml" ] && grep -q "^state: built" "$OW/labyrinth-district-homes.yml"; then
+    "$PY" "$ROOT/tools/village/fresh_plots.py" "$OW/labyrinth-plots.yml"
+  fi
   # 게임 규칙은 예전 zip 것으로 (켜 둔 동안만 random_tick_speed 0 · 몹 스폰 끔)
   "$PY" - "$BASE" "$WORK" <<'PYEOF'
 import sys, zipfile
@@ -232,7 +237,7 @@ fi
 "$PY" - "$W" "$DIST/world.zip" <<'PYEOF'
 import os, sys, zipfile
 src, out = sys.argv[1], sys.argv[2]
-skip_files = {"session.lock", "uid.dat", "labyrinth-plots.yml", "labyrinth-plots.yml.tmp"}
+skip_files = {"session.lock", "uid.dat", "labyrinth-plots.yml.tmp"}
 skip_dirs = {os.path.join("dimensions", "minecraft", "labyrinth_world"), os.path.join("dimensions", "minecraft", "labyrinth_mine"),
              os.path.join("dimensions", "minecraft", "overworld", "labyrinth-parcels"),
              "players", "playerdata", "advancements", "stats"}

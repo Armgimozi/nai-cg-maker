@@ -335,6 +335,16 @@ public final class VillageService implements Listener {
         return meta != null && b.getWorld().equals(world) && isProtected(b.getX(), b.getY(), b.getZ());
     }
 
+    /**
+     * 그 칸 블록을 지어진 구역(광산 마을·집 구역)이 놓았나 — 보호 상자 밖 옹벽·기초도 (0.3.7: 이사 기간에 사람 블록으로 보지 않게).
+     */
+    public boolean districtPlaced(Block b) {
+        return districts != null && b != null && world != null && b.getWorld().equals(world) && districts.placed(b.getX(), b.getY(), b.getZ());
+    }
+
+    /** 구역이 놓은 칸 목록 (DistrictBackup.pack 정렬 — 비동기 조사용, 바꾸지 말 것). */
+    public long[] districtPlacedCells() { return districts == null ? new long[0] : districts.placedCells(); }
+
     boolean isProtected(int x, int y, int z) {
         List<VillageMeta.Box> list = boxes.get(Scan.key(x >> 4, z >> 4));
         if (list == null) return false;

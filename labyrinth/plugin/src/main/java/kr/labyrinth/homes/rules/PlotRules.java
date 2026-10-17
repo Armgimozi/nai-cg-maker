@@ -64,9 +64,12 @@ public final class PlotRules {
         BED,
         /** 밭·거북알 밟기. */
         TRAMPLE,
-        /** 걸개 (액자·그림·끈 매듭) 놓기·돌리기·꺼내기·부수기·쏘기. */
+        /** 걸개 (액자·그림·끈 매듭) 놓기·부수기·쏘기. */
         HANGING,
+        /** 거치대 놓기·때리기·부수기. */
         ARMOR_STAND,
+        /** 액자 돌리기·꺼내기·넣기 · 거치대 장비 바꾸기 (0.3.7 fix — 잠긴 들판의 옛 것은 상자처럼 늘 됨). */
+        DECO_USE,
         /** 보트·수레 놓기·부수기. */
         VEHICLE,
         /** 동물·엔티티 손대기 (때리기·끈·털 깎기·이름표·염색·타기·말/상자 보트 열기·낚싯대 끌기·먹이). */
@@ -87,7 +90,8 @@ public final class PlotRules {
 
     /**
      * @param bypass         크리에이티브 관리자 (labyrinth.admin + CREATIVE)
-     * @param graceBreakable 이사 기간이고 그 블록이 사람이 놓은 것 (Nature UNNATURAL · 지속 잎) — 그 밖에서 BREAK 만 풂
+     * @param graceBreakable 이사 기간이고 그 블록이 사람이 놓은 것 (Nature UNNATURAL · 지속 잎) — 그 밖에서 BREAK 를 풂.
+     *                       걸개·거치대·탈것 부수기도 이사 기간이면 이 값을 참으로 넘긴다 (옛 건물의 거치대·액자·수레를 옮기게, 0.3.7 fix)
      */
     public static Verdict decide(Act act, Where where, boolean bypass, boolean graceBreakable) {
         if (act == Act.TRAMPLE) return where == Where.WILD_OPEN ? Verdict.PASS : Verdict.DENY; // 관리자도 (밭은 늘 지킴)
@@ -108,14 +112,14 @@ public final class PlotRules {
             };
             case PROTECTED -> switch (act) {
                 // 마을 핸들러가 없는 것만 우리가 막는다 (R4) — 나머지는 마을 HIGH 가 그대로
-                case ARMOR_STAND, VEHICLE, SIGN, ENTITY_GRAB, PLACE_BANNED, USE_BANNED -> Verdict.DENY;
+                case ARMOR_STAND, DECO_USE, VEHICLE, SIGN, ENTITY_GRAB, PLACE_BANNED, USE_BANNED -> Verdict.DENY;
                 case PRESSURE -> Verdict.ALLOW;
                 default -> Verdict.PASS;
             };
             case WILD_LOCKED -> switch (act) {
-                case BREAK -> graceBreakable ? Verdict.ALLOW : Verdict.DENY;
-                case PLACE, PLACE_BANNED, BUCKET, USE_BANNED, HANGING, ARMOR_STAND, VEHICLE, TOOL, IGNITE, FIRE, SIGN -> Verdict.DENY;
-                case CONTAINER, ENDER_CHEST, DOOR, WORKSTATION, OTHER_USE, LEFT_CLICK, PRESSURE, BED -> Verdict.ALLOW; // 옛 건물은 그대로 씀
+                case BREAK, HANGING, ARMOR_STAND, VEHICLE -> graceBreakable ? Verdict.ALLOW : Verdict.DENY; // 놓기는 grace 를 넘기지 않음
+                case PLACE, PLACE_BANNED, BUCKET, USE_BANNED, TOOL, IGNITE, FIRE, SIGN -> Verdict.DENY;
+                case CONTAINER, ENDER_CHEST, DOOR, WORKSTATION, OTHER_USE, LEFT_CLICK, PRESSURE, BED, DECO_USE -> Verdict.ALLOW; // 옛 건물은 그대로 씀
                 default -> Verdict.PASS; // 들판 동물
             };
             case WILD_OPEN -> Verdict.PASS;
@@ -178,6 +182,22 @@ public final class PlotRules {
     /** 엔티티를 만드는 아이템 (deny_place 에 있으면 우클릭 단계에서 막음). */
     private static final Set<String> ENTITY_ITEMS = Set.of("tnt_minecart", "end_crystal", "minecart", "chest_minecart", "hopper_minecart",
             "furnace_minecart", "armor_stand");
+
+    /**
+     * 손에 든 것이 블록·엔티티를 놓거나 블록을 바꾸는 아이템인가 — 남의 집에서 블록 쓰기를 막으면 Paper 가 손에 든 것 쓰기도 함께 막아
+     * 놓기·양동이 이벤트가 오지 않으므로, 그때 글을 보낼지 (verify 찾은 것 1). 먹기·마시기·던지기는 아님.
+     *
+     * @param isBlock Material#isBlock (블록 아이템)
+     */
+    public static boolean worldItem(String item, boolean isBlock, boolean changesBlocks) {
+        String i = key(item);
+        if (i.isEmpty() || i.equals("air") || i.equals("milk_bucket")) return false;
+        if (isBlock || changesBlocks) return true;
+        return i.endsWith("_bucket") || i.equals("bucket") || i.endsWith("_boat") || i.endsWith("_raft") || i.endsWith("minecart")
+                || i.equals("armor_stand") || i.endsWith("item_frame") || i.equals("painting") || i.endsWith("_spawn_egg") || i.equals("lead")
+                || i.endsWith("_seeds") || i.equals("carrot") || i.equals("potato") || i.equals("sweet_berries") || i.equals("glow_berries")
+                || i.equals("cocoa_beans") || i.equals("pitcher_pod") || i.equals("redstone") || i.equals("string") || i.equals("end_crystal");
+    }
 
     private static boolean isDirt(String b) {
         String k = key(b);
@@ -252,6 +272,13 @@ public final class PlotRules {
         t.add(new Case(Act.HANGING, Where.OWN, false, false, A));
         t.add(new Case(Act.HANGING, Where.GUEST, false, false, D));
         t.add(new Case(Act.HANGING, Where.WILD_LOCKED, false, false, D));
+        t.add(new Case(Act.HANGING, Where.WILD_LOCKED, false, true, A));
+        t.add(new Case(Act.ARMOR_STAND, Where.WILD_LOCKED, false, true, A));
+        t.add(new Case(Act.VEHICLE, Where.WILD_LOCKED, false, true, A));
+        t.add(new Case(Act.DECO_USE, Where.WILD_LOCKED, false, false, A));
+        t.add(new Case(Act.DECO_USE, Where.GUEST, false, false, D));
+        t.add(new Case(Act.DECO_USE, Where.OWN, false, false, A));
+        t.add(new Case(Act.DECO_USE, Where.PROTECTED, false, false, D));
         t.add(new Case(Act.ARMOR_STAND, Where.PROTECTED, false, false, D));
         t.add(new Case(Act.VEHICLE, Where.PROTECTED, false, false, D));
         t.add(new Case(Act.VEHICLE, Where.WILD_LOCKED, false, false, D));

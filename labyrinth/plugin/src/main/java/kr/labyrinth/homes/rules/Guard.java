@@ -10,14 +10,18 @@ import kr.labyrinth.homes.HomesApi;
 import kr.labyrinth.homes.HomesService;
 import kr.labyrinth.homes.PlotGeom;
 import kr.labyrinth.homes.PlotRole;
+import kr.labyrinth.village.VillageService;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.type.Leaves;
+import org.bukkit.entity.AreaEffectCloud;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.projectiles.ProjectileSource;
 
 /**
@@ -64,21 +68,33 @@ public final class Guard {
         return first;
     }
 
-    /** 이사 기간이고 그 블록이 사람이 놓은 것인가. */
+    /**
+     * 이사 기간이고 그 블록이 사람이 놓은 것인가. 구역(광산 마을·집 구역)이 놓은 블록은 보호 상자 밖이어도 빼다 (옹벽·기초 — verify 찾은 것 2).
+     */
     public boolean graceBreakable(Block b) {
         if (!s.graceActive()) return false;
         boolean persistent = b.getBlockData() instanceof Leaves l && l.isPersistent();
-        return TerrainLock.graceBreakable(b.getType().name(), persistent);
+        if (!TerrainLock.graceBreakable(b.getType().name(), persistent)) return false;
+        VillageService v = VillageService.get();
+        return v == null || !v.districtPlaced(b);
     }
+
+    /** 이사 기간에 잠긴 들판의 걸개·거치대·탈것을 부숴도 되나 (옛 건물의 것을 옮기게 — 놓기는 아님). */
+    public boolean graceEntity(PlotRules.Where where) { return where == PlotRules.Where.WILD_LOCKED && s.graceActive(); }
 
     /**
      * 판단하고 막으면 글. @return 막았나 (호출하는 쪽이 취소)
      */
     public boolean deny(Player p, PlotRules.Act act, PlotRules.Where where, Block at, boolean grace) {
+        if (s.guardOnly() && where != null && !where.inPlot()) return false; // 집 기능을 꺼도 집터만은 지킴 (live 7) — 그 밖은 예전처럼
         boolean bypass = bypass(p);
         if (where == null) {
             if (bypass && act != PlotRules.Act.TRAMPLE) return false;
             warnText(p, "집터 경계를 넘어 놓을 수 없습니다.");
+            return true;
+        }
+        if (s.storeBroken() && !bypass && where == PlotRules.Where.WILD_LOCKED && act == PlotRules.Act.CONTAINER) {
+            warnText(p, BROKEN); // 기록을 못 읽으면 convert 집도 모름 → 들판 상자도 잠금 (live 6)
             return true;
         }
         if (PlotRules.decide(act, where, bypass, grace) != PlotRules.Verdict.DENY) return false;
@@ -98,6 +114,7 @@ public final class Guard {
             };
             case GUEST, STRANGER -> {
                 PlotGeom plot = at == null ? null : s.plotAt(at.getWorld(), at.getX(), at.getY(), at.getZ());
+                if (s.storeBroken()) yield BROKEN;
                 if (plot == null) yield "남의 집입니다.";
                 if (s.ownerOf(plot) == null) yield ClaimRules.topic(plot) + " 빈 집입니다. /미궁 집 에서 받을 수 있습니다.";
                 yield act == PlotRules.Act.PRIME ? "TNT 와 리스폰 정박기는 쓸 수 없습니다." : ClaimRules.topic(plot) + " 남의 집입니다.";
@@ -117,6 +134,9 @@ public final class Guard {
         warnText(p, msg);
     }
 
+    /** 집 주인 기록을 못 읽었을 때 (live 6 안전 모드). */
+    public static final String BROKEN = "집 기록을 읽지 못해 지금은 집을 쓸 수 없습니다. 관리자에게 알려 주세요.";
+
     /** 2초에 한 번. */
     public void warnText(Player p, String msg) {
         if (p == null || msg == null) return;
@@ -129,14 +149,65 @@ public final class Guard {
 
     public void forget(UUID u) { lastWarn.remove(u); }
 
-    /** 엔티티를 친 플레이어 (직접 · 쏜 사람), 없으면 null. */
+    /** 엔티티를 친 플레이어 (직접 · 쏜 사람 · 물약 구름을 남긴 사람), 없으면 null. */
     public static Player playerOf(Entity damager) {
         if (damager instanceof Player p) return p;
         if (damager instanceof Projectile pr) {
             ProjectileSource src = pr.getShooter();
             if (src instanceof Player p) return p;
         }
+        if (damager instanceof AreaEffectCloud c && c.getSource() instanceof Player p) return p; // 오래 남는 물약 (exploit L7)
         return null;
+    }
+
+    // ── 집 동물·탈것 표시 (exploit M1) ───────────────────────────────────
+
+    private NamespacedKey homeKey;
+
+    private NamespacedKey homeKey() {
+        if (homeKey == null) homeKey = new NamespacedKey(s.plugin(), "home_plot");
+        return homeKey;
+    }
+
+    /** 집터 안에서 사는 동물·탈것에 그 집 id 를 적는다 (집 밖으로 나가도 그 집 권한으로 봄). */
+    public void tag(Entity e, PlotGeom plot) {
+        if (e == null || plot == null || e instanceof Player) return;
+        try {
+            String now = e.getPersistentDataContainer().get(homeKey(), PersistentDataType.STRING);
+            if (!plot.id().equals(now)) e.getPersistentDataContainer().set(homeKey(), PersistentDataType.STRING, plot.id());
+        } catch (Throwable ignored) {
+            // 서버 없이 (시험)
+        }
+    }
+
+    /** 그 엔티티가 사는 집 (표시가 있고 그 집터가 아직 있을 때), 없으면 null. */
+    public PlotGeom homePlot(Entity e) {
+        if (e == null || e instanceof Player) return null;
+        try {
+            String id = e.getPersistentDataContainer().get(homeKey(), PersistentDataType.STRING);
+            return id == null ? null : s.plot(id);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** 그 엔티티를 따질 집 — 지금 서 있는 집터, 아니면 표시된 집 (집 밖으로 나간 동물·보트). */
+    public PlotGeom plotOf(Entity e) {
+        Location l = e.getLocation();
+        PlotGeom here = s.plotAt(l.getWorld(), l.getBlockX(), l.getBlockY(), l.getBlockZ());
+        return here != null ? here : homePlot(e);
+    }
+
+    /**
+     * 집 밖으로 나간 표시된 동물·탈것: 그 집의 주인·초대만 (손님·남은 막음, 글 "n번지 것입니다."). @return 막았나
+     */
+    public boolean denyTagged(Player p, PlotRules.Act act, PlotGeom home) {
+        if (p == null || home == null) return false;
+        boolean bypass = bypass(p);
+        PlotRules.Where w = TerrainLock.where(home.key(), s.roleOf(p.getUniqueId(), home), true);
+        if (PlotRules.decide(act, w, bypass, false) != PlotRules.Verdict.DENY) return false;
+        warnText(p, s.storeBroken() ? BROKEN : home.label() + " 것입니다.");
+        return true;
     }
 
     /** 엔티티 칸 zone. */

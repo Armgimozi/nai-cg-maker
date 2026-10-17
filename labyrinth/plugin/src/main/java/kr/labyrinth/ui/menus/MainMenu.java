@@ -71,11 +71,10 @@ public final class MainMenu extends LabMenu {
                 hl.add("<gray>" + Text.escape(home.label()) + " · " + Text.escape(info.name().isBlank() ? p.getName() + "의 집" : info.name()));
                 hl.add("<gray>집 가기 · 초대 · 자재 · 맡긴 짐");
             } else if (homes.plots().isEmpty()) {
-                hl.add("<gray>마을 남쪽 등불 골목에 집터가 생깁니다.");
-                hl.add("<dark_gray>아직 이 서버에는 집터가 없습니다.");
+                hl.add("<dark_gray>아직 집터가 없습니다.");
             } else {
                 hl.add("<gray>마을 남쪽 등불 골목에서");
-                hl.add("<gray>집터 한 채를 공짜로 받습니다.");
+                hl.add("<gray>집터 한 채를 받습니다.");
             }
             hl.add("");
             hl.add("<#ffd36b>클릭: 집 메뉴 <dark_gray>(/미궁 집)");

@@ -37,6 +37,20 @@ public final class ClaimRules {
     }
 
     /**
+     * 받기 앞 검사 — 집터를 찾기 전에 (막힌 서버에서 번지를 줘도 "아직 집 구역이 없습니다", verify 4). null = 계속.
+     *
+     * @param storeBroken labyrinth-plots.yml 을 못 읽음 (안전 모드)
+     * @param removing    district remove homes force 가 도는 중
+     */
+    public static String preClaim(boolean enabled, boolean storeBroken, boolean active, boolean removing) {
+        if (!enabled) return "이 서버에서는 집 기능을 쓰지 않습니다.";
+        if (storeBroken) return Guard.BROKEN;
+        if (!active) return checkClaim(false, false, false, 0, null, false, false);
+        if (removing) return "집 구역을 지우는 중입니다.";
+        return null;
+    }
+
+    /**
      * 받기 검사.
      *
      * @param plot      고른 집터 (null = 아무 데나 — 빈 집이 없으면 그 글)

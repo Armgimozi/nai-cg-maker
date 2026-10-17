@@ -24,12 +24,12 @@ public final class CrossZone {
     }
 
     /**
-     * 피스톤: 집터 안 피스톤 → 움직이는 블록·도착 칸이 모두 같은 집터. 집터 밖 피스톤 → 잠금 켜진 들판이면 취소,
-     * 그 밖 (보호 상자 · 잠금 꺼진 들판) 은 집터 칸을 건드리지 않을 때만.
+     * 피스톤: 집터 안 피스톤 → 움직이는 블록·도착 칸이 모두 같은 집터. 집터 밖 피스톤 → 잠금 켜진 들판이면 모든 칸이 들판일 때만
+     * (옛 건물의 피스톤 문은 계속 움직임 — live 8. 새 피스톤은 들판에 놓을 수 없음), 그 밖 (보호 상자 · 잠금 꺼진 들판) 은 집터 칸을 건드리지 않을 때만.
      */
     public static boolean piston(int piston, int[] cells, boolean locked) {
         if (piston > 0) return allSame(piston, cells);
-        if (piston < 0 && locked) return false;
+        if (piston < 0 && locked) return allSame(piston, cells);
         if (cells != null) for (int z : cells) if (z > 0) return false;
         return true;
     }
@@ -58,10 +58,10 @@ public final class CrossZone {
     /** 플레이어가 붙인 차원문 (잠금 켜짐): 모든 칸이 그 사람 집 key 안. */
     public static boolean portalByPlayer(int ownKey, int[] zones) { return ownKey > 0 && allSame(ownKey, zones); }
 
-    /** 게임이 만드는 돌아오는 차원문 (NETHER_PAIR, 잠금 켜짐): 집터 하나 안일 때만. */
-    public static boolean portalPair(int[] zones) {
+    /** 게임이 만드는 돌아오는 차원문 (NETHER_PAIR, 잠금 켜짐): 집터 하나 안이고 그 집이 지나온 사람의 집 (주인·초대) 일 때만. */
+    public static boolean portalPair(int[] zones, int ownKey) {
         if (zones == null || zones.length == 0) return true;
-        return zones[0] > 0 && allSame(zones[0], zones);
+        return zones[0] > 0 && zones[0] == ownKey && allSame(zones[0], zones);
     }
 
     /**

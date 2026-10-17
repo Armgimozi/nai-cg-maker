@@ -2,15 +2,17 @@
 """집 자재 목록 생성기 (0.3.7) → plugin/src/main/resources/content/housing.yml.
 
 관리인 모아의 [자재] 탭에서 파는 바닐라 블록 목록. 원본은 tools/data/037/housing_catalog.json 이다
-(설계 design036/plots/plots_spec.json materials.catalog 386줄에서 돌 도끼를 뺀 385줄 — review R5).
+(설계 design036/plots/plots_spec.json materials.catalog 386줄에서 돌 도끼를 뺀 385줄 — review R5 — 에 흑요석·부싯돌을 더한 387줄:
+지형 잠금으로 들판에서 캘 수 없어 네더 차원문을 만들 길이 없었음 — 0.3.7 fix, fun 2. 불은 내 집 안 모닥불·초·차원문에만 붙는다).
 
 규칙 (생성기와 HousingCatalogTest 가 같이 본다):
   · 쇠·금·구리·다이아·에메랄드·네더라이트 (주괴·조각·블록·광석·원석) 는 팔지 않는다. 구리는 이름에 copper 가 든 것 모두.
   · 녹이면 조각이 나오는 것 (쇠·금·구리·사슬 도구·갑옷·말 갑옷) 은 팔지 않는다.
   · 무기 (검·도끼·창·활·쇠뇌·화살·삼지창·철퇴) · 갑옷 은 팔지 않는다. 도구는 건축 도구 허용 목록만
     (나무·돌 괭이, 돌 삽, 돌 곡괭이, 가위).
-  · TNT·부싯돌·화염구·용암 양동이 · 피스톤·발사기·공급기·제작기·관측기·레일·수레 · 레드스톤 가루·횃불·중계기·비교기 ·
-    엔더 진주·엔더 상자·셜커 · 신호기·스포너·알·명령 블록 · 청금석·석영·흑요석·모루·마법 부여대·양조대 는 팔지 않는다.
+  · TNT·화염구·용암 양동이 · 피스톤·발사기·공급기·제작기·관측기·레일·수레 · 레드스톤 가루·횃불·중계기·비교기 ·
+    엔더 진주·엔더 상자·셜커 · 신호기·스포너·알·명령 블록 · 청금석·석영·우는 흑요석·모루·마법 부여대·양조대 는 팔지 않는다.
+    (흑요석·부싯돌은 판다 — 네더 차원문용. 불은 규칙이 내 집 안 모닥불·초·차원문 틀에만 붙게 한다.)
   · 블록 id 는 tools/village/blockdata.json 에 있어야 한다. 블록이 아닌 것은 ITEMS 허용 목록만.
   · 값: 기본·색 블록 한 칸 0.25~1G · 원목 ≥ 판자 4개 값 · 계단 ≥ 바탕 블록 1.5배 · 반블록 ≥ 바탕 0.5배.
     되팔기는 없다 (바닐라 아이템은 SellPrices 가 이미 거절).
@@ -48,13 +50,18 @@ TABS = [
 
 # 블록이 아닌데 파는 것 (blockdata.json 에 없음)
 ITEMS = {"item_frame", "painting", "armor_stand", "water_bucket", "wheat_seeds", "carrot", "potato", "beetroot_seeds",
-         "pumpkin_seeds", "melon_seeds", "sweet_berries", "bone_meal",
+         "pumpkin_seeds", "melon_seeds", "sweet_berries", "bone_meal", "flint_and_steel",
          "wooden_hoe", "stone_hoe", "stone_shovel", "stone_pickaxe", "shears"}
 # 건축 도구 허용 목록 (review R5 — 돌 도끼는 무기라 뺌)
-TOOLS = {"wooden_hoe", "stone_hoe", "stone_shovel", "stone_pickaxe", "shears"}
+TOOLS = {"wooden_hoe", "stone_hoe", "stone_shovel", "stone_pickaxe", "shears", "flint_and_steel"}
+# 설계 목록에 없는데 더한 줄 (--import 로 다시 만들어도 남게)
+EXTRA_ROWS = [
+    {"category": "가구·쓸모", "item": "minecraft:obsidian", "bundle": 10, "price": 20, "note": "네더 차원문 틀 (내 집 안에서만)"},
+    {"category": "가구·쓸모", "item": "minecraft:flint_and_steel", "bundle": 1, "price": 10, "note": "내 집 안 모닥불·초·차원문에만 붙음"},
+]
 
 BANNED_EXACT = {
-    "tnt", "tnt_minecart", "flint_and_steel", "fire_charge", "lava_bucket", "wind_charge",
+    "tnt", "tnt_minecart", "fire_charge", "lava_bucket", "wind_charge", "crying_obsidian",
     "piston", "sticky_piston", "dispenser", "dropper", "crafter", "observer",
     "rail", "powered_rail", "detector_rail", "activator_rail",
     "minecart", "chest_minecart", "furnace_minecart", "hopper_minecart", "command_block_minecart",
@@ -69,8 +76,8 @@ BANNED_EXACT = {
     "iron_ingot", "iron_nugget", "iron_block", "iron_ore", "deepslate_iron_ore",
     "gold_ingot", "gold_nugget", "gold_block", "gold_ore", "deepslate_gold_ore", "nether_gold_ore",
 }
-# 이름에 들어 있으면 팔지 않는 말 (구리·금·다이아·에메랄드·네더라이트·청금석·석영·흑요석·셜커)
-BANNED_WORDS = ("copper", "gold", "diamond", "emerald", "netherite", "lapis", "quartz", "obsidian", "shulker")
+# 이름에 들어 있으면 팔지 않는 말 (구리·금·다이아·에메랄드·네더라이트·청금석·석영·셜커)
+BANNED_WORDS = ("copper", "gold", "diamond", "emerald", "netherite", "lapis", "quartz", "shulker")
 TOOL_SUFFIX = ("_pickaxe", "_shovel", "_hoe", "_axe")
 WEAPON_SUFFIX = ("_sword", "_axe", "_spear")
 ARMOR_SUFFIX = ("_helmet", "_chestplate", "_leggings", "_boots", "_horse_armor", "_nautilus_armor")
@@ -90,7 +97,7 @@ def ban_reason(i):
         return "갑옷"
     if i.endswith(("_sword", "_spear", "_arrow")):
         return "무기"
-    if i.endswith(TOOL_SUFFIX) or i in ("shears", "brush", "fishing_rod", "carrot_on_a_stick", "warped_fungus_on_a_stick"):
+    if i.endswith(TOOL_SUFFIX) or i in ("shears", "brush", "fishing_rod", "carrot_on_a_stick", "warped_fungus_on_a_stick", "flint_and_steel"):
         return None if i in TOOLS else ("무기" if i.endswith("_axe") else "도구 (허용 목록 밖)")
     if i.endswith("_spawn_egg"):
         return "알"
@@ -210,9 +217,12 @@ def do_import(spec_path):
             continue
         note = NOTE_FIX.get(i, r.get("note") or "")
         rows.append({"category": r["category"], "item": "minecraft:" + i, "bundle": r["bundle"], "price": r["price"], "note": note})
+    last = max(k for k, r in enumerate(rows) if r["category"] == "가구·쓸모")
+    rows[last + 1:last + 1] = [dict(r) for r in EXTRA_ROWS]
     data = {
         "version": 1,
-        "source": "design036/plots/plots_spec.json materials.catalog (386줄) — stone_axe 뺌 (review R5), chest·campfire·decorated_pot 메모 고침",
+        "source": "design036/plots/plots_spec.json materials.catalog (386줄) — stone_axe 뺌 (review R5), chest·campfire·decorated_pot 메모 고침"
+                  " · 0.3.7 fix: 흑요석·부싯돌 더함 (네더로 가는 길, fun 2)",
         "count": len(rows),
         "catalog": rows,
     }

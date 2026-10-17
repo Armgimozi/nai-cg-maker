@@ -6,7 +6,7 @@
 #   쇠·금·구리 같은 금속, 무기·갑옷, 폭발물, 레드스톤 장치는 적어도 팔지 않는다 (플러그인이 건너뛰고 로그에 남김).
 # ─────────────────────────────────────────────────────────────────────────────
 version: 1
-count: 385
+count: 387
 tabs:
   - id: basic
     name: "기본 블록"
@@ -326,6 +326,8 @@ tabs:
       - {id: green_bed, bundle: 1, price: 20}
       - {id: red_bed, bundle: 1, price: 20}
       - {id: black_bed, bundle: 1, price: 20}
+      - {id: obsidian, bundle: 10, price: 20, note: "네더 차원문 틀 (내 집 안에서만)"}
+      - {id: flint_and_steel, bundle: 1, price: 10, note: "내 집 안 모닥불·초·차원문에만 붙음"}
   - id: garden
     name: "정원"
     icon: poppy

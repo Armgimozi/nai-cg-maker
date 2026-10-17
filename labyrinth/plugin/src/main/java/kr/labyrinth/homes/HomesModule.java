@@ -15,9 +15,10 @@ import kr.labyrinth.homes.play.PlayWiring;
  *   <li>config {@code homes:} → {@link HomesConfig}</li>
  *   <li>{@link HomesService} (묶음 B) → {@code services.setHomes}</li>
  *   <li>명령 (한 번만): {@code /labadmin plot} (묶음 B) · {@code /미궁 집} (묶음 C)</li>
- *   <li>{@code homes.enabled} 일 때만: 규칙 리스너 (묶음 B) · 놀이 연결 (묶음 C — 메뉴 {@link HomesUi}·회복·표지판)</li>
+ *   <li>규칙 리스너 (묶음 B) 는 늘 붙인다 — {@code homes.enabled: false} 여도 집터가 있으면 주인 있는 집은 지킨다 (잠금·받기는 없음, live 7)</li>
+ *   <li>{@code homes.enabled} 일 때만: 놀이 연결 (묶음 C — 메뉴 {@link HomesUi}·회복·표지판)</li>
  * </ol>
- * 잠금·받기·회복은 집 구역이 지어진 뒤에만 움직인다 ({@link HomesService#active()}).
+ * 잠금·받기·회복은 집 구역이 지어진 뒤에만 움직인다 ({@link HomesService#active()} · {@link HomesService#rulesOn()}).
  */
 public final class HomesModule implements Module {
 
@@ -42,12 +43,10 @@ public final class HomesModule implements Module {
             commandsRegistered = true;
         }
         play = new PlayWiring(services, service);
-        if (c.enabled()) {
-            service.enableRules(services.plugin());
-            play.enable();
-        }
+        service.enableRules(services.plugin()); // 꺼져 있어도 집터는 지킴 (리스너가 rulesOn/guardOnly 를 봄)
+        if (c.enabled()) play.enable();
         HomesDistrict d = service.district();
-        Log.info("[집] " + (c.enabled() ? "켬" : "꺼짐 (homes.enabled: false)") + " · 집 구역 " + d.state() + " · 집터 " + d.plots().size()
+        Log.info("[집] " + (c.enabled() ? "켬" : "꺼짐 (homes.enabled: false" + (service.rulesOn() ? " — 집터는 계속 지킴" : "") + ")") + " · 집 구역 " + d.state() + " · 집터 " + d.plots().size()
                 + " · 지형 잠금 설정 " + (c.terrainLock() ? "켬" : "끔"));
     }
 
@@ -65,12 +64,7 @@ public final class HomesModule implements Module {
         boolean was = service.config().enabled();
         service.reconfigure(c);
         if (c.enabled() && was) play.reloadCatalog();
-        if (c.enabled() && !was) {
-            service.enableRules(services.plugin());
-            play.enable();
-        } else if (!c.enabled() && was) {
-            play.disable();
-            service.disableRules();
-        }
+        if (c.enabled() && !was) play.enable();
+        else if (!c.enabled() && was) play.disable(); // 규칙 리스너는 그대로 (집터는 계속 지킴)
     }
 }

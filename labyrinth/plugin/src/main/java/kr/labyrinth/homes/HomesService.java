@@ -68,6 +68,8 @@ public final class HomesService implements HomesApi {
     private final LegacyScan legacy;
     private final Random rnd = new Random();
     private boolean staleWarned;
+    /** district remove homes force 가 집을 회수하기 시작해 구역을 다 지울 때까지 (받기·주기 막음, live 11). */
+    private volatile boolean districtRemoving;
 
     public HomesService(Services services, HomesConfig config) {
         this.services = services;
@@ -93,8 +95,22 @@ public final class HomesService implements HomesApi {
 
     public void setUi(HomesUi ui) { this.ui = ui == null ? new NoopHomesUi() : ui; }
 
-    /** 기능이 움직이는가: homes.enabled 이고 (집 구역이 지어짐 또는 convert 집터가 있음). */
+    /** 기능이 움직이는가 (받기·메뉴·회복): homes.enabled 이고 (집 구역이 지어짐 또는 convert 집터가 있음). */
     public boolean active() { return config.enabled() && (district.built() || !index.isEmpty()); }
+
+    /**
+     * 규칙 리스너가 일하는가: 집터가 있음 (homes.enabled: false 여도 — 주인 있는 집은 계속 지킴, live 7) 또는 잠금이 켜짐
+     * (집터 없이 {@code /labadmin plot lock on} 한 서버 — 켜졌다고 하고 안 막던 것, exploit L8 · live 4).
+     */
+    public boolean rulesOn() { return TerrainLock.rulesOn(district.built(), !index.isEmpty(), lockedNow()); }
+
+    /** 집 기능은 껐지만 집터는 지키는 중 (homes.enabled: false + 집터 있음) — 잠금·이사 기간 없이 남의 집만 막는다. */
+    public boolean guardOnly() { return !config.enabled(); }
+
+    /** labyrinth-plots.yml 을 읽지 못함 (live 6 안전 모드): 받기·주기·바꾸기·저장 막음, 구역 집터는 모두 남의 집, 들판 상자도 잠금. */
+    public boolean storeBroken() { PlotStore st = store; return st != null && st.broken; }
+
+    private HomesResult brokenFail() { return HomesResult.fail(Guard.BROKEN); }
 
     public HomesDistrict district() { return district; }
 
@@ -116,27 +132,48 @@ public final class HomesService implements HomesApi {
 
     void enableRules(Plugin plugin) {
         disableRules();
+        PlotRulesListener rules = new PlotRulesListener(this);
         listeners.add(new TerrainLockListener(this));
-        listeners.add(new PlotRulesListener(this));
+        listeners.add(rules);
         listeners.add(new CrossZoneListener(this));
         for (Listener l : listeners) Bukkit.getPluginManager().registerEvents(l, plugin);
         Bukkit.getScheduler().runTask(plugin, this::startup);
+        sweepTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            try {
+                rules.sweepTags(); // 집 동물·탈것 표시 (10초마다)
+            } catch (Throwable t) {
+                Log.warn("[집] 동물 표시 오류: " + t);
+            }
+        }, 200L, 200L);
     }
 
     void disableRules() {
         for (Listener l : listeners) HandlerList.unregisterAll(l);
         listeners.clear();
         legacy.cancel();
+        if (sweepTask != null) sweepTask.cancel();
+        sweepTask = null;
     }
+
+    private org.bukkit.scheduler.BukkitTask sweepTask;
 
     /** 켠 뒤 한 번: 비우다 멈춘 짐 마저 · 잠금 시작 · 옛 구역 기록 알림. */
     private void startup() {
+        if (storeBroken()) {
+            Log.warn("[집] " + PlotStore.FILE + " 를 읽지 못해 안전 모드입니다 — 받기·주기·바꾸기를 막고, 모든 집터를 남의 집으로 봅니다. "
+                    + "서버를 끄고 파일을 고치거나 월드 백업의 파일로 바꾼 뒤 다시 켜세요 (이 파일은 덮어쓰지 않습니다).");
+            return; // 비우다 멈춘 집도 기록을 고친 뒤에 마저 함
+        }
         try {
             reset.recoverAll();
         } catch (Throwable t) {
             Log.error("[집] 비우다 멈춘 집 마저 하기 실패", t);
         }
         checkLockStart();
+        if (store != null && store.freshWorld) { // 새 배포 월드인데 잠금이 꺼진 채로 켰음 → 그 뒤 지은 것에는 보통 이사 기간을 준다
+            store.freshWorld = false;
+            saveStore();
+        }
         warnStale();
     }
 
@@ -154,6 +191,7 @@ public final class HomesService implements HomesApi {
 
     /** 기록 저장 (실패하면 로그 — 이미 바뀐 메모리 값은 그대로). @return 저장했나 */
     public boolean saveStore() {
+        if (storeBroken()) return false; // 읽지 못한 파일을 빈 기록으로 덮지 않음
         try {
             store.save();
             return true;
@@ -205,7 +243,8 @@ public final class HomesService implements HomesApi {
     /** 지금 잠금이 켜져 있나 (주 월드 기준). */
     public boolean lockedNow() {
         PlotStore st = store;
-        return TerrainLock.locked(config.enabled(), config.terrainLock(), st == null ? TerrainLock.State.AUTO : st.lockState, district.built());
+        return TerrainLock.locked(config.enabled(), config.terrainLock(), st == null ? TerrainLock.State.AUTO : st.lockState, district.built(),
+                st != null && st.broken); // 안전 모드: 잠금 상태를 모르면 잠금
     }
 
     @Override
@@ -227,9 +266,21 @@ public final class HomesService implements HomesApi {
     /** 잠금이 처음 켜졌으면 이사 기간을 시작하고 옛 건물 조사를 한 번 (plan §10). */
     public void checkLockStart() {
         PlotStore st = store;
-        if (st == null || st.file() == null) return;
-        if (!Grace.shouldStart(lockedNow(), st.lockStartedAt)) return;
+        if (st == null || st.file() == null || st.broken) return;
+        Grace.Start how = Grace.start(lockedNow(), st.lockStartedAt, st.freshWorld);
+        if (how == Grace.Start.NONE) return;
         long now = System.currentTimeMillis();
+        if (how == Grace.Start.FRESH) {
+            // 새 배포 월드 (build_world.sh 가 넣은 fresh_world: true): 옮길 옛 건물이 없다 → 이사 기간·옛 건물 조사 없이 잠금 (live 2 · fun 1)
+            st.freshWorld = false;
+            st.lockStartedAt = now;
+            st.graceStartedAt = now;
+            st.graceDays = 0;
+            st.legacyScannedAt = now;
+            saveStore();
+            Log.info("[집] 지형 잠금 켬 — 주 월드에서 집터 밖은 부수거나 지을 수 없습니다 (크리에이티브 관리자 제외) · 새 월드라 이사 기간 없음");
+            return;
+        }
         st.lockStartedAt = now;
         if (st.graceStartedAt <= 0) st.graceStartedAt = now;
         saveStore();
@@ -381,7 +432,8 @@ public final class HomesService implements HomesApi {
     @Override
     public HomesResult claim(Player player, String plotId) {
         if (player == null) return HomesResult.fail("플레이어만 받을 수 있습니다.");
-        if (!config.enabled()) return HomesResult.fail("이 서버에서는 집 기능을 쓰지 않습니다.");
+        String pre = ClaimRules.preClaim(config.enabled(), storeBroken(), active(), districtRemoving); // 번지를 찾기 전에 (verify 4)
+        if (pre != null) return HomesResult.fail(pre);
         UUID u = player.getUniqueId();
         PlotGeom plot;
         if (plotId == null || plotId.isBlank()) {
@@ -423,12 +475,15 @@ public final class HomesService implements HomesApi {
     @Override
     public HomesResult vacate(Player player, boolean confirmed) {
         if (player == null) return HomesResult.fail("플레이어만 할 수 있습니다.");
+        if (storeBroken()) return brokenFail();
         PlotGeom home = homeOf(player.getUniqueId());
         if (home == null) return HomesResult.fail("집이 없습니다.");
         if (busy(home)) return HomesResult.fail(ClaimRules.object(home) + " 정리하는 중입니다.");
         if (!confirmed) {
-            return HomesResult.fail(ClaimRules.object(home) + " 비우면 집 안 블록과 물건은 맡긴 짐으로 갑니다. 다시 받기는 "
-                    + ClaimRules.duration(config.reclaimCooldownMinutes() * 60_000L) + " 뒤에 됩니다. 정말이면 /미궁 집 비우기 확인");
+            String what = home.custom() ? " 비우면 지은 것은 그대로 두고 집만 내놓습니다. 다시 받기는 "
+                    : " 비우면 집 안 블록과 물건은 맡긴 짐으로 갑니다. 다시 받기는 "; // convert 집은 블록이 남음 (fun 3)
+            return HomesResult.fail(ClaimRules.object(home) + what + ClaimRules.duration(config.reclaimCooldownMinutes() * 60_000L)
+                    + " 뒤에 됩니다. 정말이면 /미궁 집 비우기 확인");
         }
         UUID u = player.getUniqueId();
         if (home.custom()) {
@@ -463,6 +518,17 @@ public final class HomesService implements HomesApi {
         }
     }
 
+    /** 그 사람이 그 집터 안 상자·탈것 창을 열어 두었으면 닫음. */
+    public static void closeViews(Player p, PlotGeom plot) {
+        if (p == null || plot == null) return;
+        try {
+            org.bukkit.Location l = p.getOpenInventory().getTopInventory().getLocation();
+            if (l != null && plot.contains(l.getBlockX(), l.getBlockY(), l.getBlockZ())) p.closeInventory();
+        } catch (Throwable ignored) {
+            // 창 없음
+        }
+    }
+
     private PlotStore.Owner myHome(Player owner) {
         PlotGeom home = homeOf(owner.getUniqueId());
         return home == null ? null : store.owner(home.id());
@@ -479,6 +545,7 @@ public final class HomesService implements HomesApi {
 
     @Override
     public HomesResult invite(Player owner, String name) {
+        if (storeBroken()) return brokenFail();
         PlotStore.Owner o = owner == null ? null : myHome(owner);
         if (o == null) return HomesResult.fail("집이 없습니다.");
         OfflinePlayer t = findPlayer(name);
@@ -501,6 +568,7 @@ public final class HomesService implements HomesApi {
 
     @Override
     public HomesResult kick(Player owner, String name) {
+        if (storeBroken()) return brokenFail();
         PlotStore.Owner o = owner == null ? null : myHome(owner);
         if (o == null) return HomesResult.fail("집이 없습니다.");
         if (name == null || name.isBlank()) return HomesResult.fail("이름을 적어 주세요.");
@@ -513,12 +581,15 @@ public final class HomesService implements HomesApi {
         if (hit == null) return HomesResult.fail("초대한 사람 중에 없습니다: " + Text.escape(name));
         String was = o.trusted.remove(hit);
         saveStore();
-        changed(homeOf(o.owner));
+        PlotGeom home = homeOf(o.owner);
+        closeViews(Bukkit.getPlayer(hit), home); // 열어 둔 상자 창도 닫음 (exploit L2)
+        changed(home);
         return HomesResult.ok(Text.escape(was == null || was.isEmpty() ? name : was) + "님을 내보냈습니다.");
     }
 
     @Override
     public HomesResult rename(Player owner, String name) {
+        if (storeBroken()) return brokenFail();
         PlotStore.Owner o = owner == null ? null : myHome(owner);
         if (o == null) return HomesResult.fail("집이 없습니다.");
         long left = ClaimRules.renameLeft(o.renamedAt, System.currentTimeMillis(), config.renameCooldownMinutes());
@@ -533,6 +604,7 @@ public final class HomesService implements HomesApi {
 
     /** 관리자: 이름 바꾸기 (쿨다운 없음, R18). 빈 글 = 기본 이름. */
     public HomesResult adminRename(PlotGeom plot, String name) {
+        if (storeBroken()) return brokenFail();
         PlotStore.Owner o = plot == null ? null : store.owner(plot.id());
         if (o == null) return HomesResult.fail("주인이 없는 집입니다.");
         o.name = ClaimRules.cleanName(name);
@@ -543,11 +615,16 @@ public final class HomesService implements HomesApi {
 
     @Override
     public HomesResult setGuests(Player owner, boolean allow) {
+        if (storeBroken()) return brokenFail();
         PlotStore.Owner o = owner == null ? null : myHome(owner);
         if (o == null) return HomesResult.fail("집이 없습니다.");
         o.guests = allow;
         saveStore();
-        changed(homeOf(o.owner));
+        PlotGeom home = homeOf(o.owner);
+        if (!allow && home != null) for (Player pl : Bukkit.getOnlinePlayers()) {
+            if (roleOf(pl.getUniqueId(), home) == PlotRole.NONE) closeViews(pl, home); // 손님이 열어 둔 작업대 창
+        }
+        changed(home);
         return HomesResult.ok(allow ? "손님을 받습니다. 손님은 문·작업대·종만 쓸 수 있습니다." : "손님을 받지 않습니다.");
     }
 
@@ -627,6 +704,8 @@ public final class HomesService implements HomesApi {
 
     /** 관리자가 줌 (R18: 집이 있는 사람은 거절). */
     public HomesResult adminGive(PlotGeom plot, OfflinePlayer target) {
+        if (storeBroken()) return brokenFail();
+        if (districtRemoving) return HomesResult.fail("집 구역을 지우는 중입니다.");
         if (plot == null) return HomesResult.fail("그런 집터가 없습니다.");
         if (target == null) return HomesResult.fail("그 플레이어를 찾지 못했습니다.");
         PlotGeom has = homeOf(target.getUniqueId());
@@ -649,6 +728,7 @@ public final class HomesService implements HomesApi {
 
     /** 관리자 회수: 비우기와 같음, 짐은 원래 주인 몫 (다시 받기 시간은 세지 않음). convert 집은 소유만 풂 (R3e). */
     public CompletableFuture<Boolean> adminReclaim(PlotGeom plot) {
+        if (storeBroken()) return CompletableFuture.completedFuture(false);
         PlotStore.Owner o = plot == null ? null : store.owner(plot.id());
         if (o == null) return CompletableFuture.completedFuture(false);
         if (busy(plot)) return CompletableFuture.completedFuture(false);
@@ -664,6 +744,7 @@ public final class HomesService implements HomesApi {
     /** convert: 옛 건물 → 그 사람의 집터 (블록은 그대로). 상자 크기·높이는 {@link kr.labyrinth.homes.admin.ConvertRules} 가 먼저 본다. */
     public HomesResult convert(OfflinePlayer target, int x0, int z0, int x1, int z1, int yMin, int yMax, int floorY, double hx, double hy,
                                double hz) {
+        if (storeBroken()) return brokenFail();
         if (target == null) return HomesResult.fail("그 플레이어를 찾지 못했습니다.");
         PlotGeom has = homeOf(target.getUniqueId());
         if (has != null) return HomesResult.fail(Text.escape(target.getName()) + "님은 이미 집이 있습니다 (" + has.label() + ").");
@@ -698,6 +779,7 @@ public final class HomesService implements HomesApi {
 
     /** unconvert: 기록만 지움 (블록 그대로, 다시 잠김). */
     public HomesResult unconvert(PlotGeom plot) {
+        if (storeBroken()) return brokenFail();
         if (plot == null || !plot.custom()) return HomesResult.fail("convert 집터 (c1, c2 …) 만 됩니다.");
         store.customs.remove(PlotStore.norm(plot.id()));
         store.owners.remove(PlotStore.norm(plot.id()));
@@ -708,14 +790,17 @@ public final class HomesService implements HomesApi {
     }
 
     public HomesResult setLock(TerrainLock.State st) {
+        if (storeBroken()) return brokenFail();
         store.lockState = st;
         saveStore();
         checkLockStart();
         return HomesResult.ok("지형 잠금: " + st.id() + " → 지금 " + (lockedNow() ? "켜짐" : "꺼짐")
-                + (!config.terrainLock() ? " (config homes.terrain_lock: false 라 늘 꺼짐)" : ""));
+                + (!config.terrainLock() ? " (config homes.terrain_lock: false 라 늘 꺼짐)" : "")
+                + (lockedNow() && index.isEmpty() ? " — 집터가 없어 아무도 짓지 못합니다 (convert 로 집터를 주세요)" : ""));
     }
 
     public HomesResult setGraceDays(int days) {
+        if (storeBroken()) return brokenFail();
         store.graceDays = Math.max(0, Math.min(365, days));
         saveStore();
         checkLockStart();
@@ -741,6 +826,8 @@ public final class HomesService implements HomesApi {
 
     @Override
     public CompletableFuture<Integer> reclaimAll(CommandSender by, String why) {
+        if (storeBroken()) return CompletableFuture.failedFuture(new IllegalStateException(PlotStore.FILE + " 를 읽지 못함"));
+        districtRemoving = true; // 회수부터 구역을 다 지울 때까지 받기·주기 막음 (live 11)
         List<PlotGeom> owned = new ArrayList<>();
         for (PlotGeom p : index.all()) if (!p.custom() && store.owner(p.id()) != null) owned.add(p);
         CompletableFuture<Integer> done = new CompletableFuture<>();
@@ -764,7 +851,11 @@ public final class HomesService implements HomesApi {
     }
 
     @Override
+    public void districtRemoving(boolean on) { districtRemoving = on; }
+
+    @Override
     public void districtRemoved() {
+        districtRemoving = false;
         List<String> drop = new ArrayList<>();
         for (String id : store.owners.keySet()) if (!store.customs.containsKey(id)) drop.add(id);
         for (String id : drop) store.owners.remove(id);
@@ -837,6 +928,8 @@ public final class HomesService implements HomesApi {
         sb.append(" · lock=").append(lockedNow() ? "on" : "off").append(store.lockState == TerrainLock.State.AUTO ? "" : "(" + store.lockState.id() + ")");
         int left = graceDaysLeft();
         sb.append(" · grace=").append(left > 0 ? left + "일" : "없음");
+        if (storeBroken()) sb.append(" · store=broken");
+        if (!config.enabled() && rulesOn()) sb.append(" · homes=off(집터만 지킴)");
         if (!active()) sb.append(" · 집 구역 ").append(district.state());
         return "[집터 자가 진단] 결과: 예외 " + errors + sb;
     }
@@ -882,6 +975,9 @@ public final class HomesService implements HomesApi {
         }
         return new int[] {over, skipped};
     }
+
+    /** 그 집터의 청크가 모두 불러와져 있나. */
+    public static boolean loadedPlot(World w, PlotGeom p) { return loaded(w, p); }
 
     static boolean loaded(World w, PlotGeom p) {
         for (int cx = p.x0() >> 4; cx <= p.x1() >> 4; cx++) for (int cz = p.z0() >> 4; cz <= p.z1() >> 4; cz++) if (!w.isChunkLoaded(cx, cz)) return false;

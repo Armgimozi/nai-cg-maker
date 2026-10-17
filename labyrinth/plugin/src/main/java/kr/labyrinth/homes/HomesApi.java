@@ -134,4 +134,7 @@ public interface HomesApi {
 
     /** 지형 잠금 상태 글 ("auto (켜짐)" 등, 관리자·메뉴 표시용). */
     default String lockState() { return "off"; }
+
+    /** district remove homes force 가 멈췄을 때 (회수 실패·주인 남음) 받기·주기를 다시 연다 — 회수 시작 때 막고, 다 지우면 {@link #districtRemoved} 가 연다. */
+    default void districtRemoving(boolean on) { }
 }

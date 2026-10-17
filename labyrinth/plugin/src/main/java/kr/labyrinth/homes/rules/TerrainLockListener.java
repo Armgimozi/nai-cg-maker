@@ -70,7 +70,7 @@ public final class TerrainLockListener implements Listener {
 
     HomesService service() { return service; }
 
-    private boolean off(World w) { return !service.active() || !service.isMain(w); }
+    private boolean off(World w) { return !service.rulesOn() || !service.isMain(w); }
 
     // ── 부수기·놓기 ──────────────────────────────────────────────────────
 
@@ -117,6 +117,8 @@ public final class TerrainLockListener implements Listener {
     public void onBucketFill(PlayerBucketFillEvent e) {
         Block b = e.getBlock();
         if (off(b.getWorld())) return;
+        ItemStack got = e.getItemStack();
+        if (got != null && got.getType() == Material.MILK_BUCKET) return; // 소·염소 젖 짜기 (동물 쪽 규칙이 이미 봄 — live 9)
         if (guard.deny(e.getPlayer(), PlotRules.Act.BUCKET, guard.where(e.getPlayer(), b), b, false)) e.setCancelled(true);
     }
 
@@ -124,6 +126,13 @@ public final class TerrainLockListener implements Listener {
     public void onBucketEntity(PlayerBucketEntityEvent e) {
         Entity en = e.getEntity();
         if (off(en.getWorld())) return;
+        if (guard.zone(en) <= 0) {
+            PlotGeom home = guard.homePlot(en); // 집 밖으로 나간 그 집 물고기·아홀로틀
+            if (home != null) {
+                if (guard.denyTagged(e.getPlayer(), PlotRules.Act.ANIMAL, home)) e.setCancelled(true);
+                return;
+            }
+        }
         PlotRules.Act act = guard.zone(en) == 0 ? PlotRules.Act.ENTITY_GRAB : PlotRules.Act.ANIMAL;
         if (guard.deny(e.getPlayer(), act, guard.where(e.getPlayer(), en.getLocation()), en.getLocation().getBlock(), false)) e.setCancelled(true);
     }
@@ -143,6 +152,7 @@ public final class TerrainLockListener implements Listener {
         }
         boolean bypass = Guard.bypass(p);
         PlotRules.Where w = guard.where(p, b);
+        if (service.guardOnly() && !w.inPlot()) return; // 집 기능을 껐으면 집터만 지킴
         if (a == Action.LEFT_CLICK_BLOCK) {
             if (w.inPlot() && PlotRules.denied(PlotRules.Act.LEFT_CLICK, w, bypass, false)) e.setUseInteractedBlock(Event.Result.DENY);
             return;
@@ -154,7 +164,12 @@ public final class TerrainLockListener implements Listener {
             PlotRules.Act use = PlotRules.blockUse(b.getType().name(), st instanceof InventoryHolder);
             if (PlotRules.denied(use, w, bypass, false)) {
                 e.setUseInteractedBlock(Event.Result.DENY);
-                if (interactable(b.getType()) && !(p.isSneaking() && e.getItem() != null)) guard.warn(p, use, w, b);
+                ItemStack held = e.getItem();
+                if (interactable(b.getType()) && !(p.isSneaking() && held != null)) guard.warn(p, use, w, b);
+                else if (held != null && PlotRules.worldItem(held.getType().name(), held.getType().isBlock(), VillageService.changesBlocks(held.getType()))) {
+                    // Paper 는 블록 쓰기를 막으면 손에 든 것 쓰기도 막아 놓기·양동이 이벤트가 오지 않는다 → 여기서 글 (verify 1)
+                    guard.warn(p, PlotRules.Act.PLACE, w, b);
+                }
             }
         }
         // 손에 든 것 쓰기 (도구 · 금지 아이템 · 부싯돌 · 끈 매듭 · 엔티티 놓는 아이템)
@@ -197,7 +212,8 @@ public final class TerrainLockListener implements Listener {
             if (zone > 0 || (zone < 0 && service.lockedNow())) e.setCancelled(true); // 몹·발사체가 걸개를
             return;
         }
-        if (guard.deny(p, PlotRules.Act.HANGING, guard.where(p, at), at, false)) e.setCancelled(true);
+        PlotRules.Where w = guard.where(p, at);
+        if (guard.deny(p, PlotRules.Act.HANGING, w, at, guard.graceEntity(w))) e.setCancelled(true); // 이사 기간: 옛 액자·그림 떼기 (live 5)
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
@@ -236,7 +252,12 @@ public final class TerrainLockListener implements Listener {
         Block at = v.getLocation().getBlock();
         Player p = Guard.playerOf(attacker);
         if (p == null) return attacker != null && guard.zone(at) > 0; // 몹이 남의 집 탈것을 (공격자 없는 용암·선인장은 그대로)
-        return guard.deny(p, PlotRules.Act.VEHICLE, guard.where(p, at), at, false);
+        if (guard.zone(at) <= 0) {
+            PlotGeom home = guard.homePlot(v); // 집 밖 (골목·들판) 으로 밀려 나간 그 집 보트·수레 (exploit M1)
+            if (home != null) return guard.denyTagged(p, PlotRules.Act.VEHICLE, home);
+        }
+        PlotRules.Where w = guard.where(p, at);
+        return guard.deny(p, PlotRules.Act.VEHICLE, w, at, guard.graceEntity(w)); // 이사 기간: 옛 수레·보트 부수기 (live 5)
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
@@ -274,7 +295,15 @@ public final class TerrainLockListener implements Listener {
             if (guard.deny(p, PlotRules.Act.HANGING, guard.where(p, at), at, false)) e.setCancelled(true);
             return;
         }
-        PlotRules.Act act = guard.zone(en) == 0 ? PlotRules.Act.ENTITY_GRAB : PlotRules.Act.ANIMAL;
+        int zone = guard.zone(en);
+        if (zone <= 0) {
+            PlotGeom home = guard.homePlot(en); // 집 밖 (골목·들판) 으로 나간 그 집 동물
+            if (home != null) {
+                if (guard.denyTagged(p, PlotRules.Act.ANIMAL, home)) e.setCancelled(true);
+                return;
+            }
+        }
+        PlotRules.Act act = zone == 0 ? PlotRules.Act.ENTITY_GRAB : PlotRules.Act.ANIMAL;
         if (guard.deny(p, act, guard.where(p, en.getLocation()), en.getLocation().getBlock(), false)) e.setCancelled(true);
     }
 

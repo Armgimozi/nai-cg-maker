@@ -67,7 +67,10 @@ public final class CrossZoneListener implements Listener {
 
     HomesService service() { return service; }
 
-    private boolean off(World w) { return !service.active() || !service.isMain(w); }
+    private boolean off(World w) { return !service.rulesOn() || !service.isMain(w); }
+
+    /** 주 월드 전부를 막는 것 (불·폭발·TNT) 을 그 칸에서 막을까 — 집 기능을 껐으면 (집터만 지킴) 집터 칸만. */
+    private boolean guardAll(Block b) { return !service.guardOnly() || zone(b) > 0; }
 
     private int zone(Block b) { return service.zone(b.getWorld(), b.getX(), b.getY(), b.getZ()); }
 
@@ -203,7 +206,7 @@ public final class CrossZoneListener implements Listener {
         Block b = e.getBlock(), src = e.getSource();
         boolean fire = e.getNewState().getType() == Material.FIRE || e.getNewState().getType() == Material.SOUL_FIRE;
         if (fire) {
-            if (!off(b.getWorld())) e.setCancelled(true); // 불 번짐은 주 월드 전부
+            if (!off(b.getWorld()) && guardAll(b)) e.setCancelled(true); // 불 번짐은 주 월드 전부
             return;
         }
         if (!nearPlot(b) && !nearPlot(src)) return;
@@ -245,13 +248,14 @@ public final class CrossZoneListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onBurn(BlockBurnEvent e) {
-        if (!off(e.getBlock().getWorld())) e.setCancelled(true);
+        if (!off(e.getBlock().getWorld()) && guardAll(e.getBlock())) e.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onNaturalIgnite(BlockIgniteEvent e) {
         if (e.getPlayer() != null || off(e.getBlock().getWorld())) return;
         if (e.getIgnitingEntity() != null && Guard.playerOf(e.getIgnitingEntity()) != null) return; // 플레이어 불화살 = TerrainLock
+        if (!guardAll(e.getBlock())) return;
         switch (e.getCause()) {
             case SPREAD, LAVA, LIGHTNING, EXPLOSION, ENDER_CRYSTAL, FIREBALL, ARROW -> e.setCancelled(true);
             default -> { }
@@ -260,23 +264,27 @@ public final class CrossZoneListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onEntityExplode(EntityExplodeEvent e) {
-        if (!off(e.getLocation().getWorld())) e.blockList().clear();
+        if (off(e.getLocation().getWorld())) return;
+        if (service.guardOnly()) e.blockList().removeIf(b -> zone(b) > 0);
+        else e.blockList().clear();
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onBlockExplode(BlockExplodeEvent e) {
-        if (!off(e.getBlock().getWorld())) e.blockList().clear();
+        if (off(e.getBlock().getWorld())) return;
+        if (service.guardOnly()) e.blockList().removeIf(b -> zone(b) > 0);
+        else e.blockList().clear();
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onHangingExplode(HangingBreakEvent e) {
         if (e.getCause() != HangingBreakEvent.RemoveCause.EXPLOSION || off(e.getEntity().getWorld())) return;
-        e.setCancelled(true);
+        if (guardAll(e.getEntity().getLocation().getBlock())) e.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onPrime(TNTPrimeEvent e) {
-        if (off(e.getBlock().getWorld())) return;
+        if (off(e.getBlock().getWorld()) || !guardAll(e.getBlock())) return;
         Entity by = e.getPrimingEntity();
         Player p = by == null ? null : Guard.playerOf(by);
         if (p != null && Guard.bypass(p)) return;
@@ -311,10 +319,24 @@ public final class CrossZoneListener implements Listener {
         if (!CrossZone.mobChange(zone(en.getLocation()), zone(b), griefer, service.lockedNow())) e.setCancelled(true);
     }
 
-    /** 몹이 밭·거북알을 밟음: 집 안·보호 칸·잠긴 들판에서 막음 (플레이어 밟기는 TerrainLock). */
+    /**
+     * 몹이 밭·거북알을 밟음: 집 안·보호 칸·잠긴 들판에서 막음 (플레이어 밟기는 TerrainLock).
+     * 발사체가 남의 집 단추를 누름: 쏜 사람이 그 집에서 단추를 못 누르면 막음 (손님 끈 집 문이 화살 한 발에 열리지 않게 — exploit L3).
+     */
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onMobStep(org.bukkit.event.entity.EntityInteractEvent e) {
         Block b = e.getBlock();
+        if (e.getEntity() instanceof Projectile pr && org.bukkit.Tag.BUTTONS.isTagged(b.getType())) {
+            if (off(b.getWorld())) return;
+            int z = zone(b);
+            if (z <= 0) return;
+            if (pr.getShooter() instanceof Player p) {
+                if (PlotRules.denied(PlotRules.Act.OTHER_USE, guard.where(p, b), Guard.bypass(p), false)) e.setCancelled(true);
+            } else if (pr.getShooter() instanceof org.bukkit.projectiles.BlockProjectileSource bs) {
+                if (zone(bs.getBlock()) != z) e.setCancelled(true); // 다른 집 발사기
+            } else e.setCancelled(true);
+            return;
+        }
         if (b.getType() != Material.FARMLAND && b.getType() != Material.TURTLE_EGG) return;
         if (off(b.getWorld())) return;
         int z = zone(b);
@@ -375,9 +397,17 @@ public final class CrossZoneListener implements Listener {
             }
             return;
         }
-        if (e.getReason() == PortalCreateEvent.CreateReason.NETHER_PAIR && !CrossZone.portalPair(zones)) {
-            e.setCancelled(true);
-            if (p != null) guard.warnText(p, "여기에는 돌아오는 차원문을 만들 수 없습니다. /미궁 마을 로 돌아가세요.");
+        if (e.getReason() == PortalCreateEvent.CreateReason.NETHER_PAIR) {
+            if (p != null && Guard.bypass(p)) return;
+            int own = -1; // 지나온 사람이 짓는 집 (그 집 안에만 돌아오는 차원문 — 남의 집·빈 집에 생기지 않게, exploit L4)
+            if (p != null && zones.length > 0 && zones[0] > 0) {
+                PlotGeom at = service.index().byKey(zones[0]);
+                if (at != null && service.roleOf(p.getUniqueId(), at).builds()) own = at.key();
+            }
+            if (!CrossZone.portalPair(zones, own)) {
+                e.setCancelled(true);
+                if (p != null) guard.warnText(p, "여기에는 돌아오는 차원문을 만들 수 없습니다. /미궁 마을 로 돌아가세요.");
+            }
         }
     }
 }

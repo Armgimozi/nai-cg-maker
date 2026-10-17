@@ -503,18 +503,22 @@ final class VillageCommands {
                 int n = owners;
                 module.services().homes().reclaimAll(s, "집 구역 지우기").whenComplete((done, err) -> Bukkit.getScheduler().runTask(module.plugin(), () -> {
                     if (err != null) {
+                        module.services().homes().districtRemoving(false);
                         Text.error(s, "집 회수가 끝나지 않았습니다 — 구역은 지우지 않았습니다: " + Text.escape(String.valueOf(err)));
                         kr.labyrinth.core.Log.error("[집 구역] 회수 실패 — 지우지 않음", err);
                         return;
                     }
                     int left = module.services().homes().ownedCount();
                     if (left > 0) {
+                        module.services().homes().districtRemoving(false);
                         Text.error(s, "회수한 뒤에도 주인이 있는 집이 " + left + "채 남았습니다 — 구역은 지우지 않았습니다.");
                         return;
                     }
                     Text.send(s, "<gray>집 " + (done == null ? n : done) + "채를 맡긴 짐으로 돌렸습니다.");
-                    if (act == DistrictPolicy.Remove.RECLAIM_THEN_RESTORE) DistrictJob.command(module, s, ds, e, DistrictJob.Mode.REMOVE, java.util.List.of()).start();
-                    else ds.forget(s, e.id());
+                    // 되돌리는 동안에는 받기·주기가 계속 막힘 (오두막이 되돌리는 칸에 지어지지 않게) — 다 지우면 districtRemoved 가 엶
+                    if (act == DistrictPolicy.Remove.RECLAIM_THEN_RESTORE) {
+                        if (!DistrictJob.command(module, s, ds, e, DistrictJob.Mode.REMOVE, java.util.List.of()).start()) module.services().homes().districtRemoving(false);
+                    } else ds.forget(s, e.id());
                 }));
             }
         }

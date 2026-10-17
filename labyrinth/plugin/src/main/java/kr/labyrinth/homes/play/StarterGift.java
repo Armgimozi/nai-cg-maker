@@ -128,6 +128,7 @@ final class StarterGift {
                 return;
             }
         }
+        clearSpot(w, home, cells); // 오두막 칸에 서 있는 사람은 대문 앞으로 (블록 속에 갇히지 않게 — live H1)
         try {
             List<BlockData> data = new ArrayList<>(cells.size());
             for (StarterCottage.Cell c : cells) data.add(Bukkit.createBlockData(c.data()));
@@ -146,6 +147,31 @@ final class StarterGift {
         p.playSound(p.getLocation(), Sound.BLOCK_WOOD_PLACE, 0.8f, 1.0f);
         p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.6f, 1.4f);
         Text.send(p, "<gray>" + Text.escape(home.label()) + " 뒤쪽에 " + wood.label + " 오두막을 지었습니다. 블록은 마음대로 고쳐도 됩니다.");
+    }
+
+    /** 오두막이 들어설 상자 (+ 위 2칸) 안 사람을 대문 앞으로. @return 옮긴 사람 수 */
+    static int clearSpot(World w, PlotGeom home, List<StarterCottage.Cell> cells) {
+        if (cells.isEmpty()) return 0;
+        int x0 = Integer.MAX_VALUE, x1 = Integer.MIN_VALUE, y0 = Integer.MAX_VALUE, y1 = Integer.MIN_VALUE, z0 = Integer.MAX_VALUE, z1 = Integer.MIN_VALUE;
+        for (StarterCottage.Cell c : cells) {
+            x0 = Math.min(x0, c.x());
+            x1 = Math.max(x1, c.x());
+            y0 = Math.min(y0, c.y());
+            y1 = Math.max(y1, c.y());
+            z0 = Math.min(z0, c.z());
+            z1 = Math.max(z1, c.z());
+        }
+        org.bukkit.util.BoundingBox box = new org.bukkit.util.BoundingBox(x0, y0, z0, x1 + 1, y1 + 3, z1 + 1);
+        org.bukkit.Location to = kr.labyrinth.homes.rules.PlotReset.front(w, home);
+        int n = 0;
+        for (Player p : w.getPlayers()) {
+            if (to == null || !box.contains(p.getLocation().toVector())) continue;
+            p.setFallDistance(0);
+            kr.labyrinth.core.Teleports.to(p, to);
+            Text.send(p, "<gray>오두막을 지을 자리라 대문 앞으로 옮겼습니다.");
+            n++;
+        }
+        return n;
     }
 
     /** 오두막 대신 꾸러미. 그사이 나갔으면 선물을 쓰지 않은 것으로 되돌린다 (나간 사람 가방에는 못 넣음). */

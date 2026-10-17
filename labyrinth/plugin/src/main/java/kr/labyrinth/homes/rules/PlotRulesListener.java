@@ -2,6 +2,8 @@ package kr.labyrinth.homes.rules;
 
 import io.papermc.paper.event.player.PlayerItemFrameChangeEvent;
 import io.papermc.paper.event.player.PlayerNameEntityEvent;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import kr.labyrinth.homes.HomesService;
 import kr.labyrinth.homes.PlotGeom;
@@ -9,12 +11,17 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.DoubleChest;
+import org.bukkit.Material;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Animals;
+import org.bukkit.entity.AreaEffectCloud;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Enemy;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Golem;
 import org.bukkit.entity.Hanging;
+import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Vehicle;
@@ -23,7 +30,12 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.AreaEffectCloudApplyEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.EntityTameEvent;
+import org.bukkit.event.entity.EntityTargetEvent;
+import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
+import org.bukkit.event.entity.PotionSplashEvent;
 import org.bukkit.event.entity.EntityBreedEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -49,6 +61,8 @@ import org.bukkit.util.BoundingBox;
  *       털 깎기 · 염색 · 낚싯대 끌기 · 타기 · 말/상자 보트/상자 수레 열기 — 주인·초대만. 적대 몹은 누구나 때림.</li>
  *   <li>상자 열기 (InventoryOpenEvent) 를 한 번 더 봄 — 우클릭 막기가 놓친 길 (보조).</li>
  *   <li>틱 부품 16 (깔때기 8) · 동물 24 · 거치대+액자+그림 64 (번식·알·놓기 때 셈).</li>
+ *   <li>집 동물·탈것 표시 (0.3.7 fix, exploit M1): 집터 안에서 생기거나 놓이거나 길들거나 사는 동물·탈것에 {@code labyrinth:home_plot} 을 적고,
+ *       집 밖으로 나가도 그 집 주인·초대만 손댄다. 남이 먹이로 꾀어 내는 것 (TEMPT) 은 집 안에서 막는다.</li>
  * </ul>
  */
 public final class PlotRulesListener implements Listener {
@@ -63,15 +77,25 @@ public final class PlotRulesListener implements Listener {
 
     HomesService service() { return service; }
 
-    private boolean off(World w) { return !service.active() || !service.isMain(w); }
+    private boolean off(World w) { return !service.rulesOn() || !service.isMain(w); }
 
-    /** 그 엔티티가 남의 집 안에 있고 그 사람이 손대면 안 되는가 (막으면 글). */
+    /** 그 엔티티가 남의 집 안에 있고 그 사람이 손대면 안 되는가 (막으면 글). 집 밖이면 표시된 집 권한으로 (동물·탈것). */
     private boolean denyEntity(Player p, Entity en, PlotRules.Act act) {
         Location l = en.getLocation();
         int zone = guard.zone(en);
+        if (zone <= 0 && (act == PlotRules.Act.ANIMAL || act == PlotRules.Act.VEHICLE)) {
+            PlotGeom home = guard.homePlot(en);
+            if (home != null) return guard.denyTagged(p, act, home); // 집 밖 (골목·들판) 으로 나간 그 집 동물·보트
+        }
         if (zone <= 0 && act == PlotRules.Act.ANIMAL) return false; // 집 밖 동물은 그대로
-        return guard.deny(p, act, guard.where(p, l), l.getBlock(), false);
+        if (zone > 0 && (act == PlotRules.Act.ANIMAL || act == PlotRules.Act.VEHICLE)) guard.tag(en, service.index().byKey(zone));
+        PlotRules.Where w = guard.where(p, l);
+        boolean grace = (act == PlotRules.Act.HANGING || act == PlotRules.Act.ARMOR_STAND || act == PlotRules.Act.VEHICLE) && guard.graceEntity(w);
+        return guard.deny(p, act, w, l.getBlock(), grace);
     }
+
+    /** 집 밖이어도 그 집 것으로 따질 엔티티가 있나 (표시). */
+    private boolean tagged(Entity en) { return guard.zone(en) <= 0 && guard.homePlot(en) != null; }
 
     private static PlotRules.Act entityAct(Entity en) {
         if (en instanceof ArmorStand) return PlotRules.Act.ARMOR_STAND;
@@ -88,7 +112,8 @@ public final class PlotRulesListener implements Listener {
         if (off(en.getWorld()) || en instanceof Player) return;
         PlotRules.Act act = entityAct(en);
         if (act == PlotRules.Act.VEHICLE) act = PlotRules.Act.ANIMAL; // 보트 타기 = 타기
-        if (act == PlotRules.Act.ANIMAL && guard.zone(en) <= 0) return; // 집 밖 · NPC 는 그대로
+        if (act == PlotRules.Act.HANGING || act == PlotRules.Act.ARMOR_STAND) act = PlotRules.Act.DECO_USE; // 액자 돌리기·거치대 (옛 것은 늘 됨)
+        if (act == PlotRules.Act.ANIMAL && guard.zone(en) <= 0 && !tagged(en)) return; // 집 밖 · NPC 는 그대로
         if (denyEntity(e.getPlayer(), en, act)) e.setCancelled(true);
     }
 
@@ -96,14 +121,14 @@ public final class PlotRulesListener implements Listener {
     public void onArmorStand(PlayerArmorStandManipulateEvent e) {
         ArmorStand as = e.getRightClicked();
         if (off(as.getWorld())) return;
-        if (denyEntity(e.getPlayer(), as, PlotRules.Act.ARMOR_STAND)) e.setCancelled(true);
+        if (denyEntity(e.getPlayer(), as, PlotRules.Act.DECO_USE)) e.setCancelled(true); // 잠긴 들판의 옛 거치대 장비는 꺼낼 수 있음 (live 5)
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onItemFrame(PlayerItemFrameChangeEvent e) {
         Entity f = e.getItemFrame();
         if (off(f.getWorld())) return;
-        if (denyEntity(e.getPlayer(), f, PlotRules.Act.HANGING)) e.setCancelled(true);
+        if (denyEntity(e.getPlayer(), f, PlotRules.Act.DECO_USE)) e.setCancelled(true); // 옛 액자 꺼내기·넣기 (exploit M2)
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
@@ -116,8 +141,9 @@ public final class PlotRulesListener implements Listener {
             if (p != null) {
                 if (v instanceof Enemy) return; // 적대 몹은 누구나
                 PlotRules.Act act = entityAct(v);
-                if (act == PlotRules.Act.ANIMAL && guard.zone(v) <= 0) return;
-                if (denyEntity(p, v, act)) e.setCancelled(true);
+                if (v instanceof ItemFrame f && f.getItem() != null && !f.getItem().getType().isAir()) act = PlotRules.Act.DECO_USE; // 든 것 꺼내기 (액자는 그대로)
+                if (act == PlotRules.Act.ANIMAL && guard.zone(v) <= 0 && !tagged(v)) return;
+                if (denyEntity(p, v, act)) e.setCancelled(true); // 이사 기간: 잠긴 들판의 옛 거치대·액자·수레는 부숨 (denyEntity 가 grace 를 넘김)
                 return;
             }
         }
@@ -176,17 +202,29 @@ public final class PlotRulesListener implements Listener {
         if (!(e.getPlayer() instanceof Player p)) return;
         if (e.getInventory().getType() == org.bukkit.event.inventory.InventoryType.ENDER_CHEST) return; // 엔더 상자는 누구나
         InventoryHolder h = e.getInventory().getHolder(false);
-        Location l;
         if (h instanceof org.bukkit.entity.HumanEntity) return; // 플레이어 자신의 것 (엔더 상자 등)
-        if (h instanceof Entity en) l = en.getLocation(); // 말·당나귀·라마·상자 보트·상자 수레
-        else if (h instanceof BlockInventoryHolder bh) l = bh.getBlock().getLocation();
-        else if (h instanceof DoubleChest dc) l = dc.getLocation();
+        if (h instanceof Entity en) { // 말·당나귀·라마·상자 보트·상자 수레 (집 밖으로 나간 그 집 것도)
+            if (off(en.getWorld())) return;
+            if (guard.zone(en) <= 0 && !tagged(en)) return;
+            if (denyEntity(p, en, PlotRules.Act.ANIMAL)) e.setCancelled(true);
+            return;
+        }
+        List<Location> cells = new ArrayList<>(2);
+        if (h instanceof DoubleChest dc) { // 두 칸 다 (경계에 걸친 큰 상자 — exploit L1)
+            if (dc.getLeftSide(false) instanceof BlockInventoryHolder lh) cells.add(lh.getBlock().getLocation());
+            if (dc.getRightSide(false) instanceof BlockInventoryHolder rh) cells.add(rh.getBlock().getLocation());
+            if (cells.isEmpty() && dc.getLocation() != null) cells.add(dc.getLocation());
+        } else if (h instanceof BlockInventoryHolder bh) cells.add(bh.getBlock().getLocation());
         else return; // 엔더 상자·메뉴
-        if (l == null || l.getWorld() == null || off(l.getWorld())) return;
-        int zone = service.zone(l.getWorld(), l.getBlockX(), l.getBlockY(), l.getBlockZ());
-        if (zone <= 0) return; // 집 밖 상자류는 우클릭 쪽 규칙 그대로
-        PlotRules.Act act = h instanceof Entity ? PlotRules.Act.ANIMAL : PlotRules.Act.CONTAINER;
-        if (guard.deny(p, act, guard.where(p, l), l.getBlock(), false)) e.setCancelled(true);
+        for (Location l : cells) {
+            if (l == null || l.getWorld() == null || off(l.getWorld())) return;
+            int zone = service.zone(l.getWorld(), l.getBlockX(), l.getBlockY(), l.getBlockZ());
+            if (zone <= 0) continue; // 집 밖 상자류는 우클릭 쪽 규칙 그대로
+            if (guard.deny(p, PlotRules.Act.CONTAINER, guard.where(p, l), l.getBlock(), false)) {
+                e.setCancelled(true);
+                return;
+            }
+        }
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
@@ -194,6 +232,104 @@ public final class PlotRulesListener implements Listener {
         Block b = e.getLectern().getBlock();
         if (off(b.getWorld()) || guard.zone(b) <= 0) return;
         if (guard.deny(e.getPlayer(), PlotRules.Act.CONTAINER, guard.where(e.getPlayer(), b), b, false)) e.setCancelled(true);
+    }
+
+    // ── 꾀어 내기 · 물약 구름 (exploit M1 · L7) ─────────────────────────
+
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onTempt(EntityTargetLivingEntityEvent e) {
+        if (e.getReason() != EntityTargetEvent.TargetReason.TEMPT || !(e.getTarget() instanceof Player p)) return;
+        Entity en = e.getEntity();
+        if (off(en.getWorld())) return;
+        PlotGeom plot = guard.plotOf(en);
+        if (plot == null || Guard.bypass(p)) return;
+        if (!service.roleOf(p.getUniqueId(), plot).builds()) e.setCancelled(true); // 남이 먹이로 집 동물을 데리고 나가지 못함 (글 없음 — 자주 옴)
+    }
+
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onCloud(AreaEffectCloudApplyEvent e) {
+        AreaEffectCloud c = e.getEntity();
+        if (off(c.getWorld()) || !(c.getSource() instanceof Player p) || Guard.bypass(p)) return;
+        e.getAffectedEntities().removeIf(v -> protectedFrom(p, v));
+    }
+
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onSplash(PotionSplashEvent e) {
+        if (off(e.getEntity().getWorld()) || !(e.getEntity().getShooter() instanceof Player p) || Guard.bypass(p)) return;
+        for (LivingEntity v : e.getAffectedEntities()) if (protectedFrom(p, v)) e.setIntensity(v, 0);
+    }
+
+    /** 그 사람이 그 엔티티 (집 동물·거치대) 에 물약을 써서는 안 되나. */
+    private boolean protectedFrom(Player p, Entity v) {
+        if (v instanceof Player || v instanceof Enemy) return false;
+        PlotGeom plot = guard.plotOf(v);
+        return plot != null && !service.roleOf(p.getUniqueId(), plot).builds();
+    }
+
+    // ── 집 동물·탈것 표시 ────────────────────────────────────────────────
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onSpawnTag(CreatureSpawnEvent e) {
+        LivingEntity en = e.getEntity();
+        if (!creature(en) || off(en.getWorld())) return;
+        tagHere(en);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlaceTag(EntityPlaceEvent e) {
+        if (e.getEntity() instanceof Vehicle && !off(e.getEntity().getWorld())) tagHere(e.getEntity());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onTame(EntityTameEvent e) {
+        if (!off(e.getEntity().getWorld())) tagHere(e.getEntity());
+    }
+
+    private void tagHere(Entity en) {
+        Location l = en.getLocation();
+        PlotGeom plot = service.plotAt(l.getWorld(), l.getBlockX(), l.getBlockY(), l.getBlockZ());
+        if (plot != null) guard.tag(en, plot);
+    }
+
+    /** 10초마다: 집터 안 동물·탈것에 그 집 표시 (먹이 없이 걸어 나가거나 밀려 나간 것도 그 집 것으로). */
+    public void sweepTags() {
+        World w = service.mainWorld();
+        if (w == null || off(w)) return;
+        for (PlotGeom p : service.index().all()) {
+            if (!kr.labyrinth.homes.HomesService.loadedPlot(w, p)) continue;
+            BoundingBox box = new BoundingBox(p.x0(), p.yMin(), p.z0(), p.x1() + 1, p.yMax() + 1, p.z1() + 1);
+            for (Entity e : w.getNearbyEntities(box)) {
+                if (e instanceof Player || e instanceof Enemy) continue;
+                if (creature(e) || (e instanceof Vehicle && !(e instanceof LivingEntity))) guard.tag(e, p);
+            }
+        }
+    }
+
+    // ── 두 칸 상자가 경계를 넘지 않게 (exploit L1) ───────────────────────
+
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
+    public void onChestPair(BlockPlaceEvent e) {
+        Block b = e.getBlockPlaced();
+        if (b.getType() != Material.CHEST && b.getType() != Material.TRAPPED_CHEST) return;
+        if (off(b.getWorld()) || Guard.bypass(e.getPlayer())) return;
+        BlockData d = b.getBlockData();
+        if (!(d instanceof org.bukkit.block.data.type.Chest c) || c.getType() == org.bukkit.block.data.type.Chest.Type.SINGLE) return;
+        BlockFace side = pairSide(c.getFacing(), c.getType() == org.bukkit.block.data.type.Chest.Type.LEFT);
+        Block other = b.getRelative(side);
+        if (guard.zone(other) == guard.zone(b)) return;
+        e.setCancelled(true);
+        guard.warnText(e.getPlayer(), "집터 경계를 넘어 큰 상자를 만들 수 없습니다.");
+    }
+
+    /** 큰 상자 짝이 있는 쪽 (바닐라 ChestBlock.getConnectedDirection: LEFT = 시계 방향). */
+    static BlockFace pairSide(BlockFace facing, boolean left) {
+        BlockFace cw = switch (facing) {
+            case NORTH -> BlockFace.EAST;
+            case EAST -> BlockFace.SOUTH;
+            case SOUTH -> BlockFace.WEST;
+            default -> BlockFace.NORTH;
+        };
+        return left ? cw : cw.getOppositeFace();
     }
 
     // ── 한도 (R15 · 틱 부품) ─────────────────────────────────────────────

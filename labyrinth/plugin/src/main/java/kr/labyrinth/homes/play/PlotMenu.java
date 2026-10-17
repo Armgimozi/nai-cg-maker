@@ -37,7 +37,8 @@ final class PlotMenu extends HomeMenu {
         if (info.vacant()) {
             boolean hasHome = s.homeOf(p.getUniqueId()) != null;
             set(11, Button.icon(hasHome ? Material.GRAY_DYE : Material.EMERALD, hasHome ? "<dark_gray>받기" : "<#7fe07f><b>이 집 받기</b>",
-                    List.of(hasHome ? "<dark_gray>이미 집이 있습니다. 한 사람 한 집입니다." : "<gray>값은 받지 않습니다.", "",
+                    List.of(hasHome ? "<dark_gray>이미 집이 있습니다. 한 사람 한 집입니다."
+                            : s.config().claimCost() > 0 ? "<gray>" + Text.num(s.config().claimCost()) + "G 를 냅니다." : "<gray>값은 받지 않습니다.", "",
                             hasHome ? "" : "<#ffd36b>클릭: 받기")), ctx -> {
                 if (s.homeOf(ctx.player().getUniqueId()) != null) {
                     deny(ctx.player());

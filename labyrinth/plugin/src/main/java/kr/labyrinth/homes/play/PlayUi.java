@@ -170,7 +170,20 @@ public final class PlayUi implements HomesUi {
 
     void claim(Player p, String plotId) {
         HomesResult r = service.claim(p, plotId);
+        if (r != null && r.ok() && r.message() != null) {
+            PlotGeom home = service.homeOf(p.getUniqueId());
+            int x = p.getLocation().getBlockX(), z = p.getLocation().getBlockZ();
+            boolean there = home != null && p.getWorld().equals(mainWorld()) && x >= home.x0() - 4 && x <= home.x1() + 4 && z >= home.z0() - 4
+                    && z <= home.z1() + 4; // 집 안이나 대문 앞 (표지판으로 받음)
+            String go = claimedHint(travel.goAllowed(p), there);
+            if (!go.isEmpty()) r = HomesResult.ok(r.message() + go); // 먼 데서 받으면 가는 길 (fun 5)
+        }
         send(p, r);
+    }
+
+    /** 받은 뒤 붙일 한 줄: 집 가기를 쓸 수 있고 지금 그 집에 없으면 " /미궁 집 가기". */
+    static String claimedHint(boolean goAllowed, boolean alreadyThere) {
+        return goAllowed && !alreadyThere ? " 가려면 <white>/미궁 집 가기</white>" : "";
     }
 
     /** 비우기 한 번 더 묻기 (메뉴). */

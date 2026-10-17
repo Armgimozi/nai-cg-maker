@@ -38,6 +38,14 @@ public record Grace(int days, long startedAt) {
     /** 잠금이 켜졌고 아직 시작 시각이 없으면 지금 시작한다. */
     public static boolean shouldStart(boolean locked, long startedAt) { return locked && startedAt <= 0; }
 
+    /** 처음 잠금이 켜질 때 할 일: NONE (아직·이미) · GRACE (이사 기간 + 옛 건물 조사) · FRESH (새 배포 월드 — 옮길 것이 없어 이사 기간 없이). */
+    public enum Start { NONE, GRACE, FRESH }
+
+    public static Start start(boolean locked, long lockStartedAt, boolean freshWorld) {
+        if (!shouldStart(locked, lockStartedAt)) return Start.NONE;
+        return freshWorld ? Start.FRESH : Start.GRACE;
+    }
+
     /** 접속 안내를 보낼까 (하루 한 번 — lastDay 는 마지막으로 보낸 날의 epoch day, 없으면 −1). */
     public static boolean noticeDue(long lastDay, long today) { return today != lastDay; }
 

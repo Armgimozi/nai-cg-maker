@@ -35,10 +35,10 @@ public final class HousingCatalog {
     }
 
     /** 건축 도구 허용 목록 (돌 도끼는 무기라 뺌 — review R5). */
-    public static final Set<String> TOOLS = Set.of("wooden_hoe", "stone_hoe", "stone_shovel", "stone_pickaxe", "shears");
+    public static final Set<String> TOOLS = Set.of("wooden_hoe", "stone_hoe", "stone_shovel", "stone_pickaxe", "shears", "flint_and_steel");
 
     private static final Set<String> BANNED_EXACT = Set.of(
-            "tnt", "tnt_minecart", "flint_and_steel", "fire_charge", "lava_bucket", "wind_charge",
+            "tnt", "tnt_minecart", "fire_charge", "lava_bucket", "wind_charge", "crying_obsidian",
             "piston", "sticky_piston", "dispenser", "dropper", "crafter", "observer",
             "rail", "powered_rail", "detector_rail", "activator_rail",
             "minecart", "chest_minecart", "furnace_minecart", "hopper_minecart", "command_block_minecart",
@@ -52,7 +52,7 @@ public final class HousingCatalog {
             "elytra", "gilded_blackstone", "ancient_debris", "raw_iron", "raw_gold", "raw_iron_block", "raw_gold_block",
             "iron_ingot", "iron_nugget", "iron_block", "iron_ore", "deepslate_iron_ore",
             "gold_ingot", "gold_nugget", "gold_block", "gold_ore", "deepslate_gold_ore", "nether_gold_ore");
-    private static final String[] BANNED_WORDS = {"copper", "gold", "diamond", "emerald", "netherite", "lapis", "quartz", "obsidian", "shulker"};
+    private static final String[] BANNED_WORDS = {"copper", "gold", "diamond", "emerald", "netherite", "lapis", "quartz", "shulker"};
     private static final String[] TOOL_SUFFIX = {"_pickaxe", "_shovel", "_hoe", "_axe"};
     private static final String[] WEAPON_SUFFIX = {"_sword", "_axe", "_spear"};
     private static final String[] ARMOR_SUFFIX = {"_helmet", "_chestplate", "_leggings", "_boots", "_horse_armor", "_nautilus_armor"};
@@ -128,7 +128,7 @@ public final class HousingCatalog {
         for (String w : BANNED_WORDS) if (i.contains(w)) return "금지 재료 (" + w + ")";
         if (endsWithAny(i, ARMOR_SUFFIX) || i.equals("turtle_helmet") || i.equals("wolf_armor")) return "갑옷";
         if (i.endsWith("_sword") || i.endsWith("_spear") || i.endsWith("_arrow")) return "무기";
-        if (endsWithAny(i, TOOL_SUFFIX) || Set.of("shears", "brush", "fishing_rod", "carrot_on_a_stick", "warped_fungus_on_a_stick").contains(i)) {
+        if (endsWithAny(i, TOOL_SUFFIX) || Set.of("shears", "brush", "fishing_rod", "carrot_on_a_stick", "warped_fungus_on_a_stick", "flint_and_steel").contains(i)) {
             if (TOOLS.contains(i)) return null;
             return i.endsWith("_axe") ? "무기" : "도구 (허용 목록 밖)";
         }

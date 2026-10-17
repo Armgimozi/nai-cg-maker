@@ -18,6 +18,8 @@ import java.util.Set;
  *   <li>드롭은 섬세한 손길 도구로 (유리·잎·책장·잔디가 그대로, 겹 반블록 2·초 n, R3d). 드롭이 비면 그 블록 아이템 하나 ({@link #fallbackCount})</li>
  *   <li>두 칸 블록의 둘째 칸 (문·큰 꽃 윗칸 · 침대 발치 · 피스톤 머리) 은 아무것도 주지 않음 (한 번만)</li>
  *   <li>엔티티: 액자 (+ 든 것) · 그림 · 갑옷 거치대 (+ 입힌 것) · 보트·수레 (+ 상자 내용) · 떨어진 아이템</li>
+ *   <li>짐을 진 동물 (말·당나귀·라마·낙타 안장·갑옷·상자 내용 · 돼지·스트라이더 안장 · 늑대 갑옷 …): 동물은 그대로 두고 짐만 (0.3.7 fix, exploit L6)</li>
+ *   <li>장식 항아리: 도구 없이 깬 드롭 (항아리 그대로 — 섬세한 손길 곡괭이로는 조각이 나옴, exploit L5)</li>
  * </ul>
  */
 public final class PlotResetPlan {
@@ -117,7 +119,11 @@ public final class PlotResetPlan {
     }
 
     /** 맡긴 짐으로 가져갈 엔티티 종류. */
-    public enum EntityTake { ITEM_FRAME, PAINTING, ARMOR_STAND, VEHICLE, ITEM, NONE }
+    public enum EntityTake { ITEM_FRAME, PAINTING, ARMOR_STAND, VEHICLE, ITEM, ANIMAL_GEAR, NONE }
+
+    /** 안장·갑옷·상자를 지는 동물 (동물은 그대로, 짐만 맡긴 짐으로). */
+    private static final Set<String> GEAR_ANIMALS = Set.of("horse", "donkey", "mule", "llama", "trader_llama", "camel", "camel_husk",
+            "skeleton_horse", "zombie_horse", "pig", "strider", "wolf", "happy_ghast", "nautilus", "zombie_nautilus");
 
     /** EntityType 이름 → 가져갈 것 (동물·몹·플레이어 = NONE — 그대로 둠). */
     public static EntityTake entity(String type) {
@@ -127,11 +133,19 @@ public final class PlotResetPlan {
             case "painting" -> EntityTake.PAINTING;
             case "armor_stand" -> EntityTake.ARMOR_STAND;
             case "item" -> EntityTake.ITEM;
+            case "horse", "donkey", "mule", "llama", "trader_llama", "camel", "camel_husk", "skeleton_horse", "zombie_horse", "pig", "strider", "wolf",
+                 "happy_ghast", "nautilus", "zombie_nautilus" -> EntityTake.ANIMAL_GEAR;
             case "minecart", "chest_minecart", "hopper_minecart", "furnace_minecart", "tnt_minecart" -> EntityTake.VEHICLE;
             default -> t.endsWith("_boat") || t.endsWith("_raft") || t.endsWith("_chest_boat") || t.endsWith("_chest_raft") || t.equals("boat")
                     || t.equals("chest_boat") ? EntityTake.VEHICLE : EntityTake.NONE;
         };
     }
+
+    /** 그 블록은 도구 없이 깬 드롭을 쓰는가 (장식 항아리 — 곡괭이로 깨면 조각으로 부서짐). */
+    public static boolean dropsWithoutTool(String block) { return PlotRules.key(block).equals("decorated_pot"); }
+
+    /** 짐을 지는 동물인가 (시험용). */
+    public static boolean gearAnimal(String type) { return GEAR_ANIMALS.contains(type == null ? "" : type.trim().toLowerCase(Locale.ROOT)); }
 
     /** 높이 창의 칸 수 (가로 × 세로 × 높이). */
     public static long volume(int x0, int z0, int x1, int z1, int yMin, int yMax) {

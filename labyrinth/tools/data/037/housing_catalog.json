@@ -1,7 +1,7 @@
 {
  "version": 1,
- "source": "design036/plots/plots_spec.json materials.catalog (386줄) — stone_axe 뺌 (review R5), chest·campfire·decorated_pot 메모 고침",
- "count": 385,
+ "source": "design036/plots/plots_spec.json materials.catalog (386줄) — stone_axe 뺌 (review R5), chest·campfire·decorated_pot 메모 고침 · 0.3.7 fix: 흑요석·부싯돌 더함 (네더로 가는 길, fun 2)",
+ "count": 387,
  "catalog": [
   {
    "category": "기본 블록",
@@ -2032,6 +2032,20 @@
    "bundle": 1,
    "price": 20,
    "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:obsidian",
+   "bundle": 10,
+   "price": 20,
+   "note": "네더 차원문 틀 (내 집 안에서만)"
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:flint_and_steel",
+   "bundle": 1,
+   "price": 10,
+   "note": "내 집 안 모닥불·초·차원문에만 붙음"
   },
   {
    "category": "정원",

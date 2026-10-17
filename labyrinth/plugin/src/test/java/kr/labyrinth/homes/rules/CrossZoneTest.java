@@ -23,7 +23,9 @@ class CrossZoneTest {
         assertTrue(CrossZone.piston(3, new int[] {3, 3, 3}, true));
         assertFalse(CrossZone.piston(3, new int[] {3, 7}, true), "생울타리 너머 이웃 집으로 밀기");
         assertFalse(CrossZone.piston(3, new int[] {3, -1}, false), "집 밖 (높이 창 위) 으로");
-        assertFalse(CrossZone.piston(-1, new int[] {-1, -1}, true), "잠긴 들판의 피스톤은 취소");
+        assertTrue(CrossZone.piston(-1, new int[] {-1, -1}, true), "잠긴 들판의 옛 피스톤 문 (들판 → 들판) 은 움직임 (live 8)");
+        assertFalse(CrossZone.piston(-1, new int[] {-1, 0}, true), "잠긴 들판 피스톤이 보호 칸으로");
+        assertFalse(CrossZone.piston(-1, new int[] {-1, 3}, true), "잠긴 들판 피스톤이 집 칸으로");
         assertTrue(CrossZone.piston(-1, new int[] {-1, -1}, false), "잠금 꺼진 들판은 그대로");
         assertFalse(CrossZone.piston(-1, new int[] {-1, 3}, false), "들판 피스톤이 집 칸을 건드림");
         assertTrue(CrossZone.piston(0, new int[] {0}, true), "보호 칸은 마을 핸들러가 봄");
@@ -73,9 +75,11 @@ class CrossZoneTest {
         assertTrue(CrossZone.portalByPlayer(3, new int[] {3, 3, 3}));
         assertFalse(CrossZone.portalByPlayer(3, new int[] {3, -1}));
         assertFalse(CrossZone.portalByPlayer(-1, new int[] {-1, -1}), "들판 차원문 (잠금 켜짐)");
-        assertTrue(CrossZone.portalPair(new int[] {5, 5}));
-        assertFalse(CrossZone.portalPair(new int[] {-1, -1}), "돌아오는 문이 들판에 → 취소");
-        assertFalse(CrossZone.portalPair(new int[] {5, 6}));
+        assertTrue(CrossZone.portalPair(new int[] {5, 5}, 5), "지나온 사람의 집 안");
+        assertFalse(CrossZone.portalPair(new int[] {5, 5}, -1), "남의 집·빈 집에 돌아오는 문 (exploit L4)");
+        assertFalse(CrossZone.portalPair(new int[] {5, 5}, 6), "다른 사람 집");
+        assertFalse(CrossZone.portalPair(new int[] {-1, -1}, -1), "돌아오는 문이 들판에 → 취소");
+        assertFalse(CrossZone.portalPair(new int[] {5, 6}, 5));
     }
 
     @Test

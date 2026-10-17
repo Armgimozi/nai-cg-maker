@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -99,16 +100,40 @@ class PlotStoreTest {
     }
 
     @Test
-    void brokenFileMovedAside() throws Exception {
+    void brokenFileKeptAndNeverOverwritten() throws Exception {
+        // live 6: 못 읽은 파일을 빈 기록으로 덮으면 모든 집이 빈 집이 되고 되살리기도 어려움 → 그대로 두고 저장을 거절
         Path f = dir.resolve(PlotStore.FILE);
-        Files.writeString(f, "plots: [::: {", StandardCharsets.UTF_8);
+        String bad = "plots: [::: {";
+        Files.writeString(f, bad, StandardCharsets.UTF_8);
         PlotStore s = PlotStore.load(f.toFile());
+        assertTrue(s.broken, "안전 모드");
         assertTrue(s.owners.isEmpty());
         assertFalse(s.loadNote.isEmpty());
-        assertFalse(Files.exists(f), "깨진 파일은 비켜 둠");
+        assertTrue(Files.exists(f), "깨진 파일은 그 자리에 그대로");
         try (var l = Files.list(dir)) {
-            assertTrue(l.anyMatch(p -> p.getFileName().toString().startsWith(PlotStore.FILE + ".broken-")));
+            assertTrue(l.anyMatch(p -> p.getFileName().toString().startsWith(PlotStore.FILE + ".broken-")), "사본은 남김");
         }
+        s.owners.put("3", new PlotStore.Owner(A, "a", true, 1));
+        assertThrows(java.io.IOException.class, s::save, "안전 모드에서는 저장하지 않음");
+        assertEquals(bad, Files.readString(f), "파일이 바뀌지 않음");
+    }
+
+    @Test
+    void freshWorldFlagRoundTrip() throws Exception {
+        // 배포 world.zip 의 주인 없는 파일 (tools/village/fresh_plots.py 와 같은 내용)
+        Path f = dir.resolve(PlotStore.FILE);
+        Files.writeString(f, "# 배포 월드\nformat: 1\nfresh_world: true\n", StandardCharsets.UTF_8);
+        PlotStore s = PlotStore.load(f.toFile());
+        assertFalse(s.broken);
+        assertTrue(s.freshWorld);
+        assertTrue(s.owners.isEmpty());
+        assertEquals(0, s.lockStartedAt);
+        s.save();
+        assertTrue(PlotStore.load(f.toFile()).freshWorld, "저장해도 남음 (잠금이 처음 켜질 때까지)");
+        s.freshWorld = false;
+        s.save();
+        assertFalse(PlotStore.load(f.toFile()).freshWorld);
+        assertFalse(Files.readString(f).contains("fresh_world"), "지우면 줄도 없음");
     }
 
     @Test
