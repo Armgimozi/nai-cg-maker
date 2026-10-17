@@ -201,6 +201,7 @@ labyrinth/
 | `titles/` | **ui+titles** | `titles/TitlesModule` | `TitleService`(→`BasicTitleService`) |
 | `ui/` (위 프레임워크 제외: `menus/*`, HUD 구현) | **ui+titles** | `ui/UiModule` | `HudService`(→`BasicHudService`), `MenuService`(→`ChatMenuService`: 채팅 클릭 대체) |
 | `pvp/` | **pvp** | `pvp/PvpModule` | `TargetFilter`(→`DefaultTargetFilter`: PvP 꺼짐 — 모듈이 config `pvp` 를 따르는 것으로 교체) |
+| `homes/` (0.3.7 집 구역 · 지형 잠금, §6.13) | **homes** (`rules/`·`admin/` = 규칙, `play/` = 메뉴·명령·회복) | `homes/HomesModule` (마을·광산 뒤) | `HomesApi`(→`NoopHomesApi`: 집 기능 없음, 아무것도 막지 않음) · `HomesUi`(→`NoopHomesUi`) |
 
 - **자기 패키지 밖은 고치지 않는다.** 다른 서비스는 `services.xxx()` 로만 부른다 (필드에 저장 금지 — 나중에 교체됨).
   `LabyrinthPlugin`/`Services` 는 손대지 않아도 되게 되어 있다: 실제 구현은 자기 `XxxModule.enable()` 에서 setter 로 등록.
@@ -1083,6 +1084,33 @@ wild:                 # wild: false = 통째로 끔 (Settings.Wild.OFF)
 - 새 world.zip: `tools/build_world.sh --base <예전 world.zip> [자리]` (광산 월드·자동 짓기 끔, 켜 둔 동안 random_tick_speed 0 · spawn_mobs false,
   끝나면 게임 규칙 파일은 예전 것으로). release.sh 는 world.zip 에 지은 광산 마을 + 백업이 없거나 labyrinth_mine 이 있으면 실패.
 
+### 6.13 0.3.7 집 구역 · 지형 잠금 (`kr.labyrinth.homes`, 계획 `design/037/PLAN.md`, GDD §2.9, VILLAGE.md §8)
+- 구역: 둘째 구역 `homes` (광산 다음 차례, R8) — 구역 기계 (§6.12) 그대로. 기록 `labyrinth-district-homes.yml` 에 `plots:` (id · box · floor · window ·
+  front · gate · sign · home) → `HomesDistrict.publish` → `services.homes().districtChanged`. 대문 표지판 우클릭 = interact `plot:<번지>`,
+  관리인 노점 계산대 = interact `estate` (둘 다 `VillageService.openMenu` 가 `services.homes()` 로 넘김).
+- 패키지: `homes/` 계약 (`HomesApi` · `PlotGeom` · `HomesDistrict` · `PlotInfo` · `PlotRole` · `HomesResult` · `HomesConfig` · `HomesLayout` · `HomesUi`) ·
+  `HomesService` (구현) · `homes/rules/` (PlotIndex · PlotStore · ParcelStore · PlotRules · TerrainLock · Grace · Limits · CrossZone · 리스너 3) ·
+  `homes/admin/` (`/labadmin plot …`) · `homes/play/` (PlayWiring · PlayUi = HomesUi 구현 · 메뉴 8 · HomesCommands · HomeCareListener · HomeTravel ·
+  StarterCottage/StarterGift · HousingCatalog · ClaimMap · PlotSigns · HomesNames).
+- `HomesApi` (`services.homes()`): 상태 (`enabled`·`districtBuilt`·`isTerrainLocked`) · 자리 (`plotAt`·`plot`·`plots`·`zone` — 집터 key / 0 보호 상자 / −1 그 밖) ·
+  사람 (`ownerOf`·`homeOf`·`roleIn`·`info`·`canBuild`·`canOpen`) · 일 (`claim`·`vacate`·`invite`·`kick`·`rename`·`setGuests`·`parcel`·`takeParcel`) ·
+  구역 (`districtChanged`·`ownedCount`·`reclaimAll`·`districtRemoved`) · 메뉴 (`openEstate`·`openPlotSign` → `HomesUi`) · `selfTestLines`. 바꿀 때는 더하기만 (default).
+- 데이터 (모두 주 월드 폴더 — 월드를 되돌리면 같이 맞음): `labyrinth-plots.yml` (주인·초대·손님·잠금·이사 기간, 원자 저장) ·
+  `labyrinth-parcels/<uuid>.yml` (맡긴 짐 pending → 월드 저장 → ready) · 옛 건물 보고 `plugins/Labyrinth/homes/legacy.txt`.
+  PlayerData ext: `homes.starter_used` · `homes.starter` (kit | cottage_<나무>) · `homes.rest_at` (침대 쉬기, epoch ms) · `homes.grace_notice`.
+- 이벤트 차례: 지형 잠금 리스너 **LOW** (주 월드 아님 → 끝 · 집터 → PlotRules · 보호 상자 → 마을 HIGH 핸들러에 넘김 · 잠금 켜짐 → 막음) →
+  마을 보호 HIGH. 회복·침대·들어설 때 글은 `PlayerMoveEvent` 없이 2틱 작업 (주 월드 접속자만).
+- config `homes:` (`HomesConfig`, 키가 없으면 코드 기본값, `homes: false` = 통째로 끔, 틀린 값은 자름 R16) — enabled · terrain_lock · district ·
+  claim_cost · max_trusted · guests_default · height · reclaim/rename cooldown · inactive_days · legacy_grace_days · home_regen · bed_rest ·
+  home_teleport/visit (auto = village.teleport_command, R11) · starter · tick_parts · entity_caps · deny_place · deny_use · shop_price_multiplier · enter_actionbar.
+- 콘텐츠 `content/housing.yml` (생성물 `tools/gen_037_housing.py` ← `tools/data/037/housing_catalog.json`, ContentParser.FILES · OPTIONAL — 파서가 아니라
+  `homes/play/HousingCatalog` 가 읽음): `tabs[] {id, name, icon, items[] {id, bundle, price, note?}}` 385가지 · 금지 규칙 `HousingCatalog.banReason`
+  (생성기 `ban_reason` 과 같음 — 금속·녹이면 조각이 나오는 도구·갑옷·무기·폭발물·레드스톤 장치·엔더·셜커·알, 도구는 허용 목록만).
+- NPC: `npcs.yml estate_keeper` (role `estate` → `services.homes().openEstate`, `ContentValidator.NPC_ROLES`). 메뉴는 NPC 정의 없이도 열림 (R20).
+- 메인 메뉴 15번 "집" (미궁 안에서는 숨김). 명령 `/미궁 집` (`/lab 집`·`/lab home`) — 메뉴·가기·받기·초대·내보내기·이름·손님·방문·짐·비우기·여기 ·
+  관리자 `/labadmin plot …`.
+- 자가 진단: `[집 구역 자가 진단]` (구역 블록) · `[집터 자가 진단]` (규칙·색인·소유) · `[집 메뉴 자가 진단] … catalog · banned · npc_def · menus · home_tp`.
+
 ## 7. 성능·안정성 규칙
 
 - 블록 대량 배치는 틱당 상한(예: 4,000 블록)으로 나눠서. 층 생성 중엔 입장자에게 진행 표시.
@@ -1106,6 +1134,9 @@ wild:                 # wild: false = 통째로 끔 (Settings.Wild.OFF)
 - 0.3.5 특별 시련: `SpecialTrialTest`(굴림 시드·확률·확정 카운터, 층마다 그 기믹이 쓸 수 있는 조건만, 조건 4종 판정, 깨져도 평소 상자는 그대로,
   dungeon.yml 기본값, special_trial_fNN 표, floors.yml 덮어쓰기 오타, 무결 기믹 = noteMistake 를 부르는 기믹).
 - `labadmin selftest` 는 층마다 기믹방 단서 3단계·보스 단서의 MiniMessage 읽기를 확인한다(`hints` 단계, `hint_gimmicks`/`hint_bosses` 개수).
+- 0.3.7 집: `HomesLayoutTest`·`HomesConfigDefaultsTest` · 규칙 `homes/rules/*Test` · 놀이 `HousingCatalogTest`(385 · 금지 0 · 값 규칙) ·
+  `HomeRegenTest` · `BedRestTest` · `HomeTeleportRuleTest`(R11·R12) · `StarterCottageTest`(26.3 블록 속성까지) · `ClaimMapTest` · `EstateRoleTest`.
+  자재를 고치면 `tools/gen_037_housing.py --check` 도.
 - `./gradlew build` 가 테스트 포함 통과해야 함.
 - `ContentValidator`: 모든 YAML 교차참조(아이템·몹·루팅·레시피·층·보스 id)가 유효한지 시작 시 + 테스트에서 검사.
 - 리소스팩 생성기는 끝에 자체 검증: content 의 모든 아이템/몹 파트/NPC/글리프/fx 에 대응 파일이 있는지, JSON 파싱, PNG 크기.

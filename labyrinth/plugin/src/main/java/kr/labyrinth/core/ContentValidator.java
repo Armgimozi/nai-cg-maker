@@ -77,9 +77,12 @@ public final class ContentValidator {
             "DIFFICULTY_CLEAR", "SPEED_CLEAR", "KILL", "BOSS_KILL", "LEVEL", "OBTAIN_RARITY", "CRAFT", "ENHANCE", "TREASURE");
     public static final Set<String> TREASURE_KINDS = Set.of("chest", "gold_chest", "vault", "mimic");
     public static final Set<String> TITLE_BONUS_KEYS = Set.of("STR", "DEX", "INT", "VIT", "WIS", "LUK", "xp_bonus", "gold_bonus");
-    /** 0.3.6: miner (광부 → 광산 관리소 메뉴) · smelter (제련공 → 제련소 메뉴) — 이름은 kr.labyrinth.mine.MineNames. */
+    /**
+     * 0.3.6: miner (광부 → 광산 관리소 메뉴) · smelter (제련공 → 제련소 메뉴) — 이름은 kr.labyrinth.mine.MineNames.
+     * 0.3.7: estate (마을 관리인 → 집 메뉴) — kr.labyrinth.homes.play.HomesNames.
+     */
     public static final Set<String> NPC_ROLES = Set.of("entrance", "blacksmith", "class_master", "title_keeper", "merchant", "lore",
-            kr.labyrinth.mine.MineNames.ROLE_MINER, kr.labyrinth.mine.MineNames.ROLE_SMELTER);
+            kr.labyrinth.mine.MineNames.ROLE_MINER, kr.labyrinth.mine.MineNames.ROLE_SMELTER, kr.labyrinth.homes.play.HomesNames.ROLE_ESTATE);
     public static final Set<String> DIFFICULTIES = Set.of("easy", "normal", "hard", "nightmare");
     /** recipes.yml station (0.3.6): 대장간 · 제련소. */
     public static final Set<String> RECIPE_STATIONS = Set.of(kr.labyrinth.mine.MineNames.STATION_BLACKSMITH,

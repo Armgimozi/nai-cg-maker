@@ -1,0 +1,2702 @@
+{
+ "version": 1,
+ "source": "design036/plots/plots_spec.json materials.catalog (386줄) — stone_axe 뺌 (review R5), chest·campfire·decorated_pot 메모 고침",
+ "count": 385,
+ "catalog": [
+  {
+   "category": "기본 블록",
+   "item": "minecraft:dirt",
+   "bundle": 64,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:coarse_dirt",
+   "bundle": 64,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:grass_block",
+   "bundle": 64,
+   "price": 24,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:sand",
+   "bundle": 64,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:gravel",
+   "bundle": 64,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:cobblestone",
+   "bundle": 64,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:stone",
+   "bundle": 64,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:smooth_stone",
+   "bundle": 64,
+   "price": 40,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:stone_bricks",
+   "bundle": 64,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:mossy_stone_bricks",
+   "bundle": 64,
+   "price": 40,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:cracked_stone_bricks",
+   "bundle": 64,
+   "price": 40,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:cobbled_deepslate",
+   "bundle": 64,
+   "price": 24,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:deepslate_bricks",
+   "bundle": 64,
+   "price": 40,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:deepslate_tiles",
+   "bundle": 64,
+   "price": 40,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:andesite",
+   "bundle": 64,
+   "price": 24,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:diorite",
+   "bundle": 64,
+   "price": 24,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:granite",
+   "bundle": 64,
+   "price": 24,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:polished_andesite",
+   "bundle": 64,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:polished_diorite",
+   "bundle": 64,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:polished_granite",
+   "bundle": 64,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:tuff",
+   "bundle": 64,
+   "price": 24,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:tuff_bricks",
+   "bundle": 64,
+   "price": 40,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:calcite",
+   "bundle": 64,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:bricks",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:mud_bricks",
+   "bundle": 64,
+   "price": 40,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:packed_mud",
+   "bundle": 64,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:sandstone",
+   "bundle": 64,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:smooth_sandstone",
+   "bundle": 64,
+   "price": 40,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:red_sandstone",
+   "bundle": 64,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:terracotta",
+   "bundle": 64,
+   "price": 40,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:glass",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "기본 블록",
+   "item": "minecraft:moss_block",
+   "bundle": 64,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:white_wool",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:white_terracotta",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:white_concrete",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:white_stained_glass",
+   "bundle": 64,
+   "price": 56,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:orange_wool",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:orange_terracotta",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:orange_concrete",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:orange_stained_glass",
+   "bundle": 64,
+   "price": 56,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:magenta_wool",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:magenta_terracotta",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:magenta_concrete",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:magenta_stained_glass",
+   "bundle": 64,
+   "price": 56,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:light_blue_wool",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:light_blue_terracotta",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:light_blue_concrete",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:light_blue_stained_glass",
+   "bundle": 64,
+   "price": 56,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:yellow_wool",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:yellow_terracotta",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:yellow_concrete",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:yellow_stained_glass",
+   "bundle": 64,
+   "price": 56,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:lime_wool",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:lime_terracotta",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:lime_concrete",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:lime_stained_glass",
+   "bundle": 64,
+   "price": 56,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:pink_wool",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:pink_terracotta",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:pink_concrete",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:pink_stained_glass",
+   "bundle": 64,
+   "price": 56,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:gray_wool",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:gray_terracotta",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:gray_concrete",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:gray_stained_glass",
+   "bundle": 64,
+   "price": 56,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:light_gray_wool",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:light_gray_terracotta",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:light_gray_concrete",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:light_gray_stained_glass",
+   "bundle": 64,
+   "price": 56,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:cyan_wool",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:cyan_terracotta",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:cyan_concrete",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:cyan_stained_glass",
+   "bundle": 64,
+   "price": 56,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:purple_wool",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:purple_terracotta",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:purple_concrete",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:purple_stained_glass",
+   "bundle": 64,
+   "price": 56,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:blue_wool",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:blue_terracotta",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:blue_concrete",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:blue_stained_glass",
+   "bundle": 64,
+   "price": 56,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:brown_wool",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:brown_terracotta",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:brown_concrete",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:brown_stained_glass",
+   "bundle": 64,
+   "price": 56,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:green_wool",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:green_terracotta",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:green_concrete",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:green_stained_glass",
+   "bundle": 64,
+   "price": 56,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:red_wool",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:red_terracotta",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:red_concrete",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:red_stained_glass",
+   "bundle": 64,
+   "price": 56,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:black_wool",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:black_terracotta",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:black_concrete",
+   "bundle": 64,
+   "price": 48,
+   "note": ""
+  },
+  {
+   "category": "색 블록",
+   "item": "minecraft:black_stained_glass",
+   "bundle": 64,
+   "price": 56,
+   "note": ""
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:oak_planks",
+   "bundle": 64,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:oak_log",
+   "bundle": 16,
+   "price": 32,
+   "note": "원목 1 = 판자 4 (2G)"
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:stripped_oak_log",
+   "bundle": 16,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:spruce_planks",
+   "bundle": 64,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:spruce_log",
+   "bundle": 16,
+   "price": 32,
+   "note": "원목 1 = 판자 4 (2G)"
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:stripped_spruce_log",
+   "bundle": 16,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:birch_planks",
+   "bundle": 64,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:birch_log",
+   "bundle": 16,
+   "price": 32,
+   "note": "원목 1 = 판자 4 (2G)"
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:stripped_birch_log",
+   "bundle": 16,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:jungle_planks",
+   "bundle": 64,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:jungle_log",
+   "bundle": 16,
+   "price": 32,
+   "note": "원목 1 = 판자 4 (2G)"
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:stripped_jungle_log",
+   "bundle": 16,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:acacia_planks",
+   "bundle": 64,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:acacia_log",
+   "bundle": 16,
+   "price": 32,
+   "note": "원목 1 = 판자 4 (2G)"
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:stripped_acacia_log",
+   "bundle": 16,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:dark_oak_planks",
+   "bundle": 64,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:dark_oak_log",
+   "bundle": 16,
+   "price": 32,
+   "note": "원목 1 = 판자 4 (2G)"
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:stripped_dark_oak_log",
+   "bundle": 16,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:mangrove_planks",
+   "bundle": 64,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:mangrove_log",
+   "bundle": 16,
+   "price": 32,
+   "note": "원목 1 = 판자 4 (2G)"
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:stripped_mangrove_log",
+   "bundle": 16,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:cherry_planks",
+   "bundle": 64,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:cherry_log",
+   "bundle": 16,
+   "price": 32,
+   "note": "원목 1 = 판자 4 (2G)"
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:stripped_cherry_log",
+   "bundle": 16,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:pale_oak_planks",
+   "bundle": 64,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:pale_oak_log",
+   "bundle": 16,
+   "price": 32,
+   "note": "원목 1 = 판자 4 (2G)"
+  },
+  {
+   "category": "나무",
+   "item": "minecraft:stripped_pale_oak_log",
+   "bundle": 16,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:oak_stairs",
+   "bundle": 16,
+   "price": 12,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:oak_slab",
+   "bundle": 16,
+   "price": 4,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:spruce_stairs",
+   "bundle": 16,
+   "price": 12,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:spruce_slab",
+   "bundle": 16,
+   "price": 4,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:birch_stairs",
+   "bundle": 16,
+   "price": 12,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:birch_slab",
+   "bundle": 16,
+   "price": 4,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:jungle_stairs",
+   "bundle": 16,
+   "price": 12,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:jungle_slab",
+   "bundle": 16,
+   "price": 4,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:acacia_stairs",
+   "bundle": 16,
+   "price": 12,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:acacia_slab",
+   "bundle": 16,
+   "price": 4,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:dark_oak_stairs",
+   "bundle": 16,
+   "price": 12,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:dark_oak_slab",
+   "bundle": 16,
+   "price": 4,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:mangrove_stairs",
+   "bundle": 16,
+   "price": 12,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:mangrove_slab",
+   "bundle": 16,
+   "price": 4,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:cherry_stairs",
+   "bundle": 16,
+   "price": 12,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:cherry_slab",
+   "bundle": 16,
+   "price": 4,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:pale_oak_stairs",
+   "bundle": 16,
+   "price": 12,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:pale_oak_slab",
+   "bundle": 16,
+   "price": 4,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:stone_brick_stairs",
+   "bundle": 16,
+   "price": 12,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:stone_brick_slab",
+   "bundle": 16,
+   "price": 4,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:cobblestone_stairs",
+   "bundle": 16,
+   "price": 6,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:cobblestone_slab",
+   "bundle": 16,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:stone_stairs",
+   "bundle": 16,
+   "price": 12,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:stone_slab",
+   "bundle": 16,
+   "price": 4,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:brick_stairs",
+   "bundle": 16,
+   "price": 18,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:brick_slab",
+   "bundle": 16,
+   "price": 6,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:mud_brick_stairs",
+   "bundle": 16,
+   "price": 15,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:mud_brick_slab",
+   "bundle": 16,
+   "price": 5,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:deepslate_tile_stairs",
+   "bundle": 16,
+   "price": 15,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:deepslate_tile_slab",
+   "bundle": 16,
+   "price": 5,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:deepslate_brick_stairs",
+   "bundle": 16,
+   "price": 15,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:deepslate_brick_slab",
+   "bundle": 16,
+   "price": 5,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:sandstone_stairs",
+   "bundle": 16,
+   "price": 12,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:sandstone_slab",
+   "bundle": 16,
+   "price": 4,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:tuff_brick_stairs",
+   "bundle": 16,
+   "price": 15,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:tuff_brick_slab",
+   "bundle": 16,
+   "price": 5,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:polished_andesite_stairs",
+   "bundle": 16,
+   "price": 12,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:polished_andesite_slab",
+   "bundle": 16,
+   "price": 4,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:mossy_stone_brick_stairs",
+   "bundle": 16,
+   "price": 15,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:mossy_stone_brick_slab",
+   "bundle": 16,
+   "price": 5,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:cobblestone_wall",
+   "bundle": 16,
+   "price": 12,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:stone_brick_wall",
+   "bundle": 16,
+   "price": 12,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:brick_wall",
+   "bundle": 16,
+   "price": 12,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:mud_brick_wall",
+   "bundle": 16,
+   "price": 12,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:deepslate_brick_wall",
+   "bundle": 16,
+   "price": 12,
+   "note": ""
+  },
+  {
+   "category": "계단·반블록",
+   "item": "minecraft:tuff_brick_wall",
+   "bundle": 16,
+   "price": 12,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:oak_door",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:oak_trapdoor",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:oak_fence",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:oak_fence_gate",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:spruce_door",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:spruce_trapdoor",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:spruce_fence",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:spruce_fence_gate",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:birch_door",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:birch_trapdoor",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:birch_fence",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:birch_fence_gate",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:jungle_door",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:jungle_trapdoor",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:jungle_fence",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:jungle_fence_gate",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:acacia_door",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:acacia_trapdoor",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:acacia_fence",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:acacia_fence_gate",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:dark_oak_door",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:dark_oak_trapdoor",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:dark_oak_fence",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:dark_oak_fence_gate",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:mangrove_door",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:mangrove_trapdoor",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:mangrove_fence",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:mangrove_fence_gate",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:cherry_door",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:cherry_trapdoor",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:cherry_fence",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:cherry_fence_gate",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:pale_oak_door",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:pale_oak_trapdoor",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:pale_oak_fence",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:pale_oak_fence_gate",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:glass_pane",
+   "bundle": 16,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:white_stained_glass_pane",
+   "bundle": 16,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:orange_stained_glass_pane",
+   "bundle": 16,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:magenta_stained_glass_pane",
+   "bundle": 16,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:light_blue_stained_glass_pane",
+   "bundle": 16,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:yellow_stained_glass_pane",
+   "bundle": 16,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:lime_stained_glass_pane",
+   "bundle": 16,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:pink_stained_glass_pane",
+   "bundle": 16,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:gray_stained_glass_pane",
+   "bundle": 16,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:light_gray_stained_glass_pane",
+   "bundle": 16,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:cyan_stained_glass_pane",
+   "bundle": 16,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:purple_stained_glass_pane",
+   "bundle": 16,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:blue_stained_glass_pane",
+   "bundle": 16,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:brown_stained_glass_pane",
+   "bundle": 16,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:green_stained_glass_pane",
+   "bundle": 16,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:red_stained_glass_pane",
+   "bundle": 16,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:black_stained_glass_pane",
+   "bundle": 16,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:iron_bars",
+   "bundle": 16,
+   "price": 16,
+   "note": "녹여 되돌릴 수 없음"
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:ladder",
+   "bundle": 16,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "문·창·울타리",
+   "item": "minecraft:iron_chain",
+   "bundle": 8,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:torch",
+   "bundle": 16,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:lantern",
+   "bundle": 1,
+   "price": 6,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:soul_lantern",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:candle",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:sea_lantern",
+   "bundle": 1,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:glowstone",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:shroomlight",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:ochre_froglight",
+   "bundle": 1,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:pearlescent_froglight",
+   "bundle": 1,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:verdant_froglight",
+   "bundle": 1,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:redstone_lamp",
+   "bundle": 1,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:campfire",
+   "bundle": 1,
+   "price": 10,
+   "note": "모닥불은 장식"
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:white_candle",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:orange_candle",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:magenta_candle",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:light_blue_candle",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:yellow_candle",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:lime_candle",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:pink_candle",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:gray_candle",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:light_gray_candle",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:cyan_candle",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:purple_candle",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:blue_candle",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:brown_candle",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:green_candle",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:red_candle",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "빛",
+   "item": "minecraft:black_candle",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:chest",
+   "bundle": 1,
+   "price": 5,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:barrel",
+   "bundle": 1,
+   "price": 5,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:crafting_table",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:furnace",
+   "bundle": 1,
+   "price": 5,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:smoker",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:bookshelf",
+   "bundle": 1,
+   "price": 15,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:lectern",
+   "bundle": 1,
+   "price": 12,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:loom",
+   "bundle": 1,
+   "price": 6,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:cartography_table",
+   "bundle": 1,
+   "price": 6,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:stonecutter",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:smithing_table",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:grindstone",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:composter",
+   "bundle": 1,
+   "price": 4,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:note_block",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:item_frame",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:painting",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:armor_stand",
+   "bundle": 1,
+   "price": 12,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:flower_pot",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:hopper",
+   "bundle": 1,
+   "price": 40,
+   "note": "집마다 8개까지"
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:cauldron",
+   "bundle": 1,
+   "price": 20,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:water_bucket",
+   "bundle": 1,
+   "price": 30,
+   "note": "집 안에서만 부을 수 있음"
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:white_bed",
+   "bundle": 1,
+   "price": 20,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:orange_bed",
+   "bundle": 1,
+   "price": 20,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:magenta_bed",
+   "bundle": 1,
+   "price": 20,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:light_blue_bed",
+   "bundle": 1,
+   "price": 20,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:yellow_bed",
+   "bundle": 1,
+   "price": 20,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:lime_bed",
+   "bundle": 1,
+   "price": 20,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:pink_bed",
+   "bundle": 1,
+   "price": 20,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:gray_bed",
+   "bundle": 1,
+   "price": 20,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:light_gray_bed",
+   "bundle": 1,
+   "price": 20,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:cyan_bed",
+   "bundle": 1,
+   "price": 20,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:purple_bed",
+   "bundle": 1,
+   "price": 20,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:blue_bed",
+   "bundle": 1,
+   "price": 20,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:brown_bed",
+   "bundle": 1,
+   "price": 20,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:green_bed",
+   "bundle": 1,
+   "price": 20,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:red_bed",
+   "bundle": 1,
+   "price": 20,
+   "note": ""
+  },
+  {
+   "category": "가구·쓸모",
+   "item": "minecraft:black_bed",
+   "bundle": 1,
+   "price": 20,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:oak_sapling",
+   "bundle": 1,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:spruce_sapling",
+   "bundle": 1,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:birch_sapling",
+   "bundle": 1,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:cherry_sapling",
+   "bundle": 1,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:azalea",
+   "bundle": 1,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:flowering_azalea",
+   "bundle": 1,
+   "price": 12,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:dandelion",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:poppy",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:blue_orchid",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:allium",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:azure_bluet",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:red_tulip",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:orange_tulip",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:white_tulip",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:pink_tulip",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:oxeye_daisy",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:cornflower",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:lily_of_the_valley",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:sunflower",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:lilac",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:rose_bush",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:peony",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:pink_petals",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:short_grass",
+   "bundle": 1,
+   "price": 1,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:fern",
+   "bundle": 1,
+   "price": 1,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:moss_carpet",
+   "bundle": 16,
+   "price": 12,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:oak_leaves",
+   "bundle": 16,
+   "price": 16,
+   "note": "놓은 잎은 지지 않음"
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:cherry_leaves",
+   "bundle": 16,
+   "price": 16,
+   "note": "놓은 잎은 지지 않음"
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:azalea_leaves",
+   "bundle": 16,
+   "price": 16,
+   "note": "놓은 잎은 지지 않음"
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:hay_block",
+   "bundle": 1,
+   "price": 4,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:pumpkin",
+   "bundle": 1,
+   "price": 4,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:wheat_seeds",
+   "bundle": 16,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:carrot",
+   "bundle": 16,
+   "price": 12,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:potato",
+   "bundle": 16,
+   "price": 12,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:beetroot_seeds",
+   "bundle": 16,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:pumpkin_seeds",
+   "bundle": 1,
+   "price": 4,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:melon_seeds",
+   "bundle": 1,
+   "price": 4,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:sugar_cane",
+   "bundle": 8,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:sweet_berries",
+   "bundle": 8,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:bone_meal",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:wooden_hoe",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:stone_hoe",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:stone_shovel",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:stone_pickaxe",
+   "bundle": 1,
+   "price": 3,
+   "note": ""
+  },
+  {
+   "category": "정원",
+   "item": "minecraft:shears",
+   "bundle": 1,
+   "price": 10,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:white_carpet",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:white_banner",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:white_glazed_terracotta",
+   "bundle": 16,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:orange_carpet",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:orange_banner",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:orange_glazed_terracotta",
+   "bundle": 16,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:magenta_carpet",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:magenta_banner",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:magenta_glazed_terracotta",
+   "bundle": 16,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:light_blue_carpet",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:light_blue_banner",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:light_blue_glazed_terracotta",
+   "bundle": 16,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:yellow_carpet",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:yellow_banner",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:yellow_glazed_terracotta",
+   "bundle": 16,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:lime_carpet",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:lime_banner",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:lime_glazed_terracotta",
+   "bundle": 16,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:pink_carpet",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:pink_banner",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:pink_glazed_terracotta",
+   "bundle": 16,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:gray_carpet",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:gray_banner",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:gray_glazed_terracotta",
+   "bundle": 16,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:light_gray_carpet",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:light_gray_banner",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:light_gray_glazed_terracotta",
+   "bundle": 16,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:cyan_carpet",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:cyan_banner",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:cyan_glazed_terracotta",
+   "bundle": 16,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:purple_carpet",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:purple_banner",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:purple_glazed_terracotta",
+   "bundle": 16,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:blue_carpet",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:blue_banner",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:blue_glazed_terracotta",
+   "bundle": 16,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:brown_carpet",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:brown_banner",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:brown_glazed_terracotta",
+   "bundle": 16,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:green_carpet",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:green_banner",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:green_glazed_terracotta",
+   "bundle": 16,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:red_carpet",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:red_banner",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:red_glazed_terracotta",
+   "bundle": 16,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:black_carpet",
+   "bundle": 16,
+   "price": 16,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:black_banner",
+   "bundle": 1,
+   "price": 8,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:black_glazed_terracotta",
+   "bundle": 16,
+   "price": 32,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:pointed_dripstone",
+   "bundle": 1,
+   "price": 2,
+   "note": ""
+  },
+  {
+   "category": "꾸밈",
+   "item": "minecraft:decorated_pot",
+   "bundle": 1,
+   "price": 15,
+   "note": "아이템 한 묶음을 넣을 수 있음"
+  }
+ ]
+}

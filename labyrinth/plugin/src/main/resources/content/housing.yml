@@ -1,0 +1,431 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# housing.yml — 마을 관리인 모아의 [자재] 탭 (0.3.7 집). tools/gen_037_housing.py 생성물.
+#   원본: tools/data/037/housing_catalog.json (다시 생성하면 덮어씀 — 값을 바꾸려면 원본을 고치고 다시 돌리세요)
+#   tabs[].items[]: id = 바닐라 아이템 id · bundle = 한 번에 사는 개수 · price = 그 묶음 값 (골드) · note = 설명 한 줄 (선택)
+#   값 배율은 config.yml homes.shop_price_multiplier (0.1 이상). 바닐라 아이템은 되팔 수 없다.
+#   쇠·금·구리 같은 금속, 무기·갑옷, 폭발물, 레드스톤 장치는 적어도 팔지 않는다 (플러그인이 건너뛰고 로그에 남김).
+# ─────────────────────────────────────────────────────────────────────────────
+version: 1
+count: 385
+tabs:
+  - id: basic
+    name: "기본 블록"
+    icon: stone_bricks
+    items:
+      - {id: dirt, bundle: 64, price: 16}
+      - {id: coarse_dirt, bundle: 64, price: 16}
+      - {id: grass_block, bundle: 64, price: 24}
+      - {id: sand, bundle: 64, price: 16}
+      - {id: gravel, bundle: 64, price: 16}
+      - {id: cobblestone, bundle: 64, price: 16}
+      - {id: stone, bundle: 64, price: 32}
+      - {id: smooth_stone, bundle: 64, price: 40}
+      - {id: stone_bricks, bundle: 64, price: 32}
+      - {id: mossy_stone_bricks, bundle: 64, price: 40}
+      - {id: cracked_stone_bricks, bundle: 64, price: 40}
+      - {id: cobbled_deepslate, bundle: 64, price: 24}
+      - {id: deepslate_bricks, bundle: 64, price: 40}
+      - {id: deepslate_tiles, bundle: 64, price: 40}
+      - {id: andesite, bundle: 64, price: 24}
+      - {id: diorite, bundle: 64, price: 24}
+      - {id: granite, bundle: 64, price: 24}
+      - {id: polished_andesite, bundle: 64, price: 32}
+      - {id: polished_diorite, bundle: 64, price: 32}
+      - {id: polished_granite, bundle: 64, price: 32}
+      - {id: tuff, bundle: 64, price: 24}
+      - {id: tuff_bricks, bundle: 64, price: 40}
+      - {id: calcite, bundle: 64, price: 32}
+      - {id: bricks, bundle: 64, price: 48}
+      - {id: mud_bricks, bundle: 64, price: 40}
+      - {id: packed_mud, bundle: 64, price: 32}
+      - {id: sandstone, bundle: 64, price: 32}
+      - {id: smooth_sandstone, bundle: 64, price: 40}
+      - {id: red_sandstone, bundle: 64, price: 32}
+      - {id: terracotta, bundle: 64, price: 40}
+      - {id: glass, bundle: 64, price: 48}
+      - {id: moss_block, bundle: 64, price: 32}
+  - id: color
+    name: "색 블록"
+    icon: white_wool
+    items:
+      - {id: white_wool, bundle: 64, price: 48}
+      - {id: white_terracotta, bundle: 64, price: 48}
+      - {id: white_concrete, bundle: 64, price: 48}
+      - {id: white_stained_glass, bundle: 64, price: 56}
+      - {id: orange_wool, bundle: 64, price: 48}
+      - {id: orange_terracotta, bundle: 64, price: 48}
+      - {id: orange_concrete, bundle: 64, price: 48}
+      - {id: orange_stained_glass, bundle: 64, price: 56}
+      - {id: magenta_wool, bundle: 64, price: 48}
+      - {id: magenta_terracotta, bundle: 64, price: 48}
+      - {id: magenta_concrete, bundle: 64, price: 48}
+      - {id: magenta_stained_glass, bundle: 64, price: 56}
+      - {id: light_blue_wool, bundle: 64, price: 48}
+      - {id: light_blue_terracotta, bundle: 64, price: 48}
+      - {id: light_blue_concrete, bundle: 64, price: 48}
+      - {id: light_blue_stained_glass, bundle: 64, price: 56}
+      - {id: yellow_wool, bundle: 64, price: 48}
+      - {id: yellow_terracotta, bundle: 64, price: 48}
+      - {id: yellow_concrete, bundle: 64, price: 48}
+      - {id: yellow_stained_glass, bundle: 64, price: 56}
+      - {id: lime_wool, bundle: 64, price: 48}
+      - {id: lime_terracotta, bundle: 64, price: 48}
+      - {id: lime_concrete, bundle: 64, price: 48}
+      - {id: lime_stained_glass, bundle: 64, price: 56}
+      - {id: pink_wool, bundle: 64, price: 48}
+      - {id: pink_terracotta, bundle: 64, price: 48}
+      - {id: pink_concrete, bundle: 64, price: 48}
+      - {id: pink_stained_glass, bundle: 64, price: 56}
+      - {id: gray_wool, bundle: 64, price: 48}
+      - {id: gray_terracotta, bundle: 64, price: 48}
+      - {id: gray_concrete, bundle: 64, price: 48}
+      - {id: gray_stained_glass, bundle: 64, price: 56}
+      - {id: light_gray_wool, bundle: 64, price: 48}
+      - {id: light_gray_terracotta, bundle: 64, price: 48}
+      - {id: light_gray_concrete, bundle: 64, price: 48}
+      - {id: light_gray_stained_glass, bundle: 64, price: 56}
+      - {id: cyan_wool, bundle: 64, price: 48}
+      - {id: cyan_terracotta, bundle: 64, price: 48}
+      - {id: cyan_concrete, bundle: 64, price: 48}
+      - {id: cyan_stained_glass, bundle: 64, price: 56}
+      - {id: purple_wool, bundle: 64, price: 48}
+      - {id: purple_terracotta, bundle: 64, price: 48}
+      - {id: purple_concrete, bundle: 64, price: 48}
+      - {id: purple_stained_glass, bundle: 64, price: 56}
+      - {id: blue_wool, bundle: 64, price: 48}
+      - {id: blue_terracotta, bundle: 64, price: 48}
+      - {id: blue_concrete, bundle: 64, price: 48}
+      - {id: blue_stained_glass, bundle: 64, price: 56}
+      - {id: brown_wool, bundle: 64, price: 48}
+      - {id: brown_terracotta, bundle: 64, price: 48}
+      - {id: brown_concrete, bundle: 64, price: 48}
+      - {id: brown_stained_glass, bundle: 64, price: 56}
+      - {id: green_wool, bundle: 64, price: 48}
+      - {id: green_terracotta, bundle: 64, price: 48}
+      - {id: green_concrete, bundle: 64, price: 48}
+      - {id: green_stained_glass, bundle: 64, price: 56}
+      - {id: red_wool, bundle: 64, price: 48}
+      - {id: red_terracotta, bundle: 64, price: 48}
+      - {id: red_concrete, bundle: 64, price: 48}
+      - {id: red_stained_glass, bundle: 64, price: 56}
+      - {id: black_wool, bundle: 64, price: 48}
+      - {id: black_terracotta, bundle: 64, price: 48}
+      - {id: black_concrete, bundle: 64, price: 48}
+      - {id: black_stained_glass, bundle: 64, price: 56}
+  - id: wood
+    name: "나무"
+    icon: oak_log
+    items:
+      - {id: oak_planks, bundle: 64, price: 32}
+      - {id: oak_log, bundle: 16, price: 32, note: "원목 1 = 판자 4 (2G)"}
+      - {id: stripped_oak_log, bundle: 16, price: 32}
+      - {id: spruce_planks, bundle: 64, price: 32}
+      - {id: spruce_log, bundle: 16, price: 32, note: "원목 1 = 판자 4 (2G)"}
+      - {id: stripped_spruce_log, bundle: 16, price: 32}
+      - {id: birch_planks, bundle: 64, price: 32}
+      - {id: birch_log, bundle: 16, price: 32, note: "원목 1 = 판자 4 (2G)"}
+      - {id: stripped_birch_log, bundle: 16, price: 32}
+      - {id: jungle_planks, bundle: 64, price: 32}
+      - {id: jungle_log, bundle: 16, price: 32, note: "원목 1 = 판자 4 (2G)"}
+      - {id: stripped_jungle_log, bundle: 16, price: 32}
+      - {id: acacia_planks, bundle: 64, price: 32}
+      - {id: acacia_log, bundle: 16, price: 32, note: "원목 1 = 판자 4 (2G)"}
+      - {id: stripped_acacia_log, bundle: 16, price: 32}
+      - {id: dark_oak_planks, bundle: 64, price: 32}
+      - {id: dark_oak_log, bundle: 16, price: 32, note: "원목 1 = 판자 4 (2G)"}
+      - {id: stripped_dark_oak_log, bundle: 16, price: 32}
+      - {id: mangrove_planks, bundle: 64, price: 32}
+      - {id: mangrove_log, bundle: 16, price: 32, note: "원목 1 = 판자 4 (2G)"}
+      - {id: stripped_mangrove_log, bundle: 16, price: 32}
+      - {id: cherry_planks, bundle: 64, price: 32}
+      - {id: cherry_log, bundle: 16, price: 32, note: "원목 1 = 판자 4 (2G)"}
+      - {id: stripped_cherry_log, bundle: 16, price: 32}
+      - {id: pale_oak_planks, bundle: 64, price: 32}
+      - {id: pale_oak_log, bundle: 16, price: 32, note: "원목 1 = 판자 4 (2G)"}
+      - {id: stripped_pale_oak_log, bundle: 16, price: 32}
+  - id: stairs
+    name: "계단·반블록"
+    icon: oak_stairs
+    items:
+      - {id: oak_stairs, bundle: 16, price: 12}
+      - {id: oak_slab, bundle: 16, price: 4}
+      - {id: spruce_stairs, bundle: 16, price: 12}
+      - {id: spruce_slab, bundle: 16, price: 4}
+      - {id: birch_stairs, bundle: 16, price: 12}
+      - {id: birch_slab, bundle: 16, price: 4}
+      - {id: jungle_stairs, bundle: 16, price: 12}
+      - {id: jungle_slab, bundle: 16, price: 4}
+      - {id: acacia_stairs, bundle: 16, price: 12}
+      - {id: acacia_slab, bundle: 16, price: 4}
+      - {id: dark_oak_stairs, bundle: 16, price: 12}
+      - {id: dark_oak_slab, bundle: 16, price: 4}
+      - {id: mangrove_stairs, bundle: 16, price: 12}
+      - {id: mangrove_slab, bundle: 16, price: 4}
+      - {id: cherry_stairs, bundle: 16, price: 12}
+      - {id: cherry_slab, bundle: 16, price: 4}
+      - {id: pale_oak_stairs, bundle: 16, price: 12}
+      - {id: pale_oak_slab, bundle: 16, price: 4}
+      - {id: stone_brick_stairs, bundle: 16, price: 12}
+      - {id: stone_brick_slab, bundle: 16, price: 4}
+      - {id: cobblestone_stairs, bundle: 16, price: 6}
+      - {id: cobblestone_slab, bundle: 16, price: 2}
+      - {id: stone_stairs, bundle: 16, price: 12}
+      - {id: stone_slab, bundle: 16, price: 4}
+      - {id: brick_stairs, bundle: 16, price: 18}
+      - {id: brick_slab, bundle: 16, price: 6}
+      - {id: mud_brick_stairs, bundle: 16, price: 15}
+      - {id: mud_brick_slab, bundle: 16, price: 5}
+      - {id: deepslate_tile_stairs, bundle: 16, price: 15}
+      - {id: deepslate_tile_slab, bundle: 16, price: 5}
+      - {id: deepslate_brick_stairs, bundle: 16, price: 15}
+      - {id: deepslate_brick_slab, bundle: 16, price: 5}
+      - {id: sandstone_stairs, bundle: 16, price: 12}
+      - {id: sandstone_slab, bundle: 16, price: 4}
+      - {id: tuff_brick_stairs, bundle: 16, price: 15}
+      - {id: tuff_brick_slab, bundle: 16, price: 5}
+      - {id: polished_andesite_stairs, bundle: 16, price: 12}
+      - {id: polished_andesite_slab, bundle: 16, price: 4}
+      - {id: mossy_stone_brick_stairs, bundle: 16, price: 15}
+      - {id: mossy_stone_brick_slab, bundle: 16, price: 5}
+      - {id: cobblestone_wall, bundle: 16, price: 12}
+      - {id: stone_brick_wall, bundle: 16, price: 12}
+      - {id: brick_wall, bundle: 16, price: 12}
+      - {id: mud_brick_wall, bundle: 16, price: 12}
+      - {id: deepslate_brick_wall, bundle: 16, price: 12}
+      - {id: tuff_brick_wall, bundle: 16, price: 12}
+  - id: doors
+    name: "문·창·울타리"
+    icon: oak_door
+    items:
+      - {id: oak_door, bundle: 1, price: 2}
+      - {id: oak_trapdoor, bundle: 1, price: 3}
+      - {id: oak_fence, bundle: 16, price: 16}
+      - {id: oak_fence_gate, bundle: 1, price: 2}
+      - {id: spruce_door, bundle: 1, price: 2}
+      - {id: spruce_trapdoor, bundle: 1, price: 3}
+      - {id: spruce_fence, bundle: 16, price: 16}
+      - {id: spruce_fence_gate, bundle: 1, price: 2}
+      - {id: birch_door, bundle: 1, price: 2}
+      - {id: birch_trapdoor, bundle: 1, price: 3}
+      - {id: birch_fence, bundle: 16, price: 16}
+      - {id: birch_fence_gate, bundle: 1, price: 2}
+      - {id: jungle_door, bundle: 1, price: 2}
+      - {id: jungle_trapdoor, bundle: 1, price: 3}
+      - {id: jungle_fence, bundle: 16, price: 16}
+      - {id: jungle_fence_gate, bundle: 1, price: 2}
+      - {id: acacia_door, bundle: 1, price: 2}
+      - {id: acacia_trapdoor, bundle: 1, price: 3}
+      - {id: acacia_fence, bundle: 16, price: 16}
+      - {id: acacia_fence_gate, bundle: 1, price: 2}
+      - {id: dark_oak_door, bundle: 1, price: 2}
+      - {id: dark_oak_trapdoor, bundle: 1, price: 3}
+      - {id: dark_oak_fence, bundle: 16, price: 16}
+      - {id: dark_oak_fence_gate, bundle: 1, price: 2}
+      - {id: mangrove_door, bundle: 1, price: 2}
+      - {id: mangrove_trapdoor, bundle: 1, price: 3}
+      - {id: mangrove_fence, bundle: 16, price: 16}
+      - {id: mangrove_fence_gate, bundle: 1, price: 2}
+      - {id: cherry_door, bundle: 1, price: 2}
+      - {id: cherry_trapdoor, bundle: 1, price: 3}
+      - {id: cherry_fence, bundle: 16, price: 16}
+      - {id: cherry_fence_gate, bundle: 1, price: 2}
+      - {id: pale_oak_door, bundle: 1, price: 2}
+      - {id: pale_oak_trapdoor, bundle: 1, price: 3}
+      - {id: pale_oak_fence, bundle: 16, price: 16}
+      - {id: pale_oak_fence_gate, bundle: 1, price: 2}
+      - {id: glass_pane, bundle: 16, price: 8}
+      - {id: white_stained_glass_pane, bundle: 16, price: 10}
+      - {id: orange_stained_glass_pane, bundle: 16, price: 10}
+      - {id: magenta_stained_glass_pane, bundle: 16, price: 10}
+      - {id: light_blue_stained_glass_pane, bundle: 16, price: 10}
+      - {id: yellow_stained_glass_pane, bundle: 16, price: 10}
+      - {id: lime_stained_glass_pane, bundle: 16, price: 10}
+      - {id: pink_stained_glass_pane, bundle: 16, price: 10}
+      - {id: gray_stained_glass_pane, bundle: 16, price: 10}
+      - {id: light_gray_stained_glass_pane, bundle: 16, price: 10}
+      - {id: cyan_stained_glass_pane, bundle: 16, price: 10}
+      - {id: purple_stained_glass_pane, bundle: 16, price: 10}
+      - {id: blue_stained_glass_pane, bundle: 16, price: 10}
+      - {id: brown_stained_glass_pane, bundle: 16, price: 10}
+      - {id: green_stained_glass_pane, bundle: 16, price: 10}
+      - {id: red_stained_glass_pane, bundle: 16, price: 10}
+      - {id: black_stained_glass_pane, bundle: 16, price: 10}
+      - {id: iron_bars, bundle: 16, price: 16, note: "녹여 되돌릴 수 없음"}
+      - {id: ladder, bundle: 16, price: 8}
+      - {id: iron_chain, bundle: 8, price: 8}
+  - id: light
+    name: "빛"
+    icon: lantern
+    items:
+      - {id: torch, bundle: 16, price: 8}
+      - {id: lantern, bundle: 1, price: 6}
+      - {id: soul_lantern, bundle: 1, price: 8}
+      - {id: candle, bundle: 1, price: 3}
+      - {id: sea_lantern, bundle: 1, price: 10}
+      - {id: glowstone, bundle: 1, price: 8}
+      - {id: shroomlight, bundle: 1, price: 8}
+      - {id: ochre_froglight, bundle: 1, price: 10}
+      - {id: pearlescent_froglight, bundle: 1, price: 10}
+      - {id: verdant_froglight, bundle: 1, price: 10}
+      - {id: redstone_lamp, bundle: 1, price: 10}
+      - {id: campfire, bundle: 1, price: 10, note: "모닥불은 장식"}
+      - {id: white_candle, bundle: 1, price: 3}
+      - {id: orange_candle, bundle: 1, price: 3}
+      - {id: magenta_candle, bundle: 1, price: 3}
+      - {id: light_blue_candle, bundle: 1, price: 3}
+      - {id: yellow_candle, bundle: 1, price: 3}
+      - {id: lime_candle, bundle: 1, price: 3}
+      - {id: pink_candle, bundle: 1, price: 3}
+      - {id: gray_candle, bundle: 1, price: 3}
+      - {id: light_gray_candle, bundle: 1, price: 3}
+      - {id: cyan_candle, bundle: 1, price: 3}
+      - {id: purple_candle, bundle: 1, price: 3}
+      - {id: blue_candle, bundle: 1, price: 3}
+      - {id: brown_candle, bundle: 1, price: 3}
+      - {id: green_candle, bundle: 1, price: 3}
+      - {id: red_candle, bundle: 1, price: 3}
+      - {id: black_candle, bundle: 1, price: 3}
+  - id: furniture
+    name: "가구·쓸모"
+    icon: chest
+    items:
+      - {id: chest, bundle: 1, price: 5}
+      - {id: barrel, bundle: 1, price: 5}
+      - {id: crafting_table, bundle: 1, price: 3}
+      - {id: furnace, bundle: 1, price: 5}
+      - {id: smoker, bundle: 1, price: 8}
+      - {id: bookshelf, bundle: 1, price: 15}
+      - {id: lectern, bundle: 1, price: 12}
+      - {id: loom, bundle: 1, price: 6}
+      - {id: cartography_table, bundle: 1, price: 6}
+      - {id: stonecutter, bundle: 1, price: 8}
+      - {id: smithing_table, bundle: 1, price: 8}
+      - {id: grindstone, bundle: 1, price: 8}
+      - {id: composter, bundle: 1, price: 4}
+      - {id: note_block, bundle: 1, price: 8}
+      - {id: item_frame, bundle: 1, price: 8}
+      - {id: painting, bundle: 1, price: 8}
+      - {id: armor_stand, bundle: 1, price: 12}
+      - {id: flower_pot, bundle: 1, price: 3}
+      - {id: hopper, bundle: 1, price: 40, note: "집마다 8개까지"}
+      - {id: cauldron, bundle: 1, price: 20}
+      - {id: water_bucket, bundle: 1, price: 30, note: "집 안에서만 부을 수 있음"}
+      - {id: white_bed, bundle: 1, price: 20}
+      - {id: orange_bed, bundle: 1, price: 20}
+      - {id: magenta_bed, bundle: 1, price: 20}
+      - {id: light_blue_bed, bundle: 1, price: 20}
+      - {id: yellow_bed, bundle: 1, price: 20}
+      - {id: lime_bed, bundle: 1, price: 20}
+      - {id: pink_bed, bundle: 1, price: 20}
+      - {id: gray_bed, bundle: 1, price: 20}
+      - {id: light_gray_bed, bundle: 1, price: 20}
+      - {id: cyan_bed, bundle: 1, price: 20}
+      - {id: purple_bed, bundle: 1, price: 20}
+      - {id: blue_bed, bundle: 1, price: 20}
+      - {id: brown_bed, bundle: 1, price: 20}
+      - {id: green_bed, bundle: 1, price: 20}
+      - {id: red_bed, bundle: 1, price: 20}
+      - {id: black_bed, bundle: 1, price: 20}
+  - id: garden
+    name: "정원"
+    icon: poppy
+    items:
+      - {id: oak_sapling, bundle: 1, price: 10}
+      - {id: spruce_sapling, bundle: 1, price: 10}
+      - {id: birch_sapling, bundle: 1, price: 10}
+      - {id: cherry_sapling, bundle: 1, price: 10}
+      - {id: azalea, bundle: 1, price: 10}
+      - {id: flowering_azalea, bundle: 1, price: 12}
+      - {id: dandelion, bundle: 1, price: 2}
+      - {id: poppy, bundle: 1, price: 2}
+      - {id: blue_orchid, bundle: 1, price: 2}
+      - {id: allium, bundle: 1, price: 2}
+      - {id: azure_bluet, bundle: 1, price: 2}
+      - {id: red_tulip, bundle: 1, price: 2}
+      - {id: orange_tulip, bundle: 1, price: 2}
+      - {id: white_tulip, bundle: 1, price: 2}
+      - {id: pink_tulip, bundle: 1, price: 2}
+      - {id: oxeye_daisy, bundle: 1, price: 2}
+      - {id: cornflower, bundle: 1, price: 2}
+      - {id: lily_of_the_valley, bundle: 1, price: 2}
+      - {id: sunflower, bundle: 1, price: 3}
+      - {id: lilac, bundle: 1, price: 3}
+      - {id: rose_bush, bundle: 1, price: 3}
+      - {id: peony, bundle: 1, price: 3}
+      - {id: pink_petals, bundle: 1, price: 2}
+      - {id: short_grass, bundle: 1, price: 1}
+      - {id: fern, bundle: 1, price: 1}
+      - {id: moss_carpet, bundle: 16, price: 12}
+      - {id: oak_leaves, bundle: 16, price: 16, note: "놓은 잎은 지지 않음"}
+      - {id: cherry_leaves, bundle: 16, price: 16, note: "놓은 잎은 지지 않음"}
+      - {id: azalea_leaves, bundle: 16, price: 16, note: "놓은 잎은 지지 않음"}
+      - {id: hay_block, bundle: 1, price: 4}
+      - {id: pumpkin, bundle: 1, price: 4}
+      - {id: wheat_seeds, bundle: 16, price: 8}
+      - {id: carrot, bundle: 16, price: 12}
+      - {id: potato, bundle: 16, price: 12}
+      - {id: beetroot_seeds, bundle: 16, price: 8}
+      - {id: pumpkin_seeds, bundle: 1, price: 4}
+      - {id: melon_seeds, bundle: 1, price: 4}
+      - {id: sugar_cane, bundle: 8, price: 8}
+      - {id: sweet_berries, bundle: 8, price: 8}
+      - {id: bone_meal, bundle: 16, price: 16}
+      - {id: wooden_hoe, bundle: 1, price: 2}
+      - {id: stone_hoe, bundle: 1, price: 3}
+      - {id: stone_shovel, bundle: 1, price: 3}
+      - {id: stone_pickaxe, bundle: 1, price: 3}
+      - {id: shears, bundle: 1, price: 10}
+  - id: deco
+    name: "꾸밈"
+    icon: white_banner
+    items:
+      - {id: white_carpet, bundle: 16, price: 16}
+      - {id: white_banner, bundle: 1, price: 8}
+      - {id: white_glazed_terracotta, bundle: 16, price: 32}
+      - {id: orange_carpet, bundle: 16, price: 16}
+      - {id: orange_banner, bundle: 1, price: 8}
+      - {id: orange_glazed_terracotta, bundle: 16, price: 32}
+      - {id: magenta_carpet, bundle: 16, price: 16}
+      - {id: magenta_banner, bundle: 1, price: 8}
+      - {id: magenta_glazed_terracotta, bundle: 16, price: 32}
+      - {id: light_blue_carpet, bundle: 16, price: 16}
+      - {id: light_blue_banner, bundle: 1, price: 8}
+      - {id: light_blue_glazed_terracotta, bundle: 16, price: 32}
+      - {id: yellow_carpet, bundle: 16, price: 16}
+      - {id: yellow_banner, bundle: 1, price: 8}
+      - {id: yellow_glazed_terracotta, bundle: 16, price: 32}
+      - {id: lime_carpet, bundle: 16, price: 16}
+      - {id: lime_banner, bundle: 1, price: 8}
+      - {id: lime_glazed_terracotta, bundle: 16, price: 32}
+      - {id: pink_carpet, bundle: 16, price: 16}
+      - {id: pink_banner, bundle: 1, price: 8}
+      - {id: pink_glazed_terracotta, bundle: 16, price: 32}
+      - {id: gray_carpet, bundle: 16, price: 16}
+      - {id: gray_banner, bundle: 1, price: 8}
+      - {id: gray_glazed_terracotta, bundle: 16, price: 32}
+      - {id: light_gray_carpet, bundle: 16, price: 16}
+      - {id: light_gray_banner, bundle: 1, price: 8}
+      - {id: light_gray_glazed_terracotta, bundle: 16, price: 32}
+      - {id: cyan_carpet, bundle: 16, price: 16}
+      - {id: cyan_banner, bundle: 1, price: 8}
+      - {id: cyan_glazed_terracotta, bundle: 16, price: 32}
+      - {id: purple_carpet, bundle: 16, price: 16}
+      - {id: purple_banner, bundle: 1, price: 8}
+      - {id: purple_glazed_terracotta, bundle: 16, price: 32}
+      - {id: blue_carpet, bundle: 16, price: 16}
+      - {id: blue_banner, bundle: 1, price: 8}
+      - {id: blue_glazed_terracotta, bundle: 16, price: 32}
+      - {id: brown_carpet, bundle: 16, price: 16}
+      - {id: brown_banner, bundle: 1, price: 8}
+      - {id: brown_glazed_terracotta, bundle: 16, price: 32}
+      - {id: green_carpet, bundle: 16, price: 16}
+      - {id: green_banner, bundle: 1, price: 8}
+      - {id: green_glazed_terracotta, bundle: 16, price: 32}
+      - {id: red_carpet, bundle: 16, price: 16}
+      - {id: red_banner, bundle: 1, price: 8}
+      - {id: red_glazed_terracotta, bundle: 16, price: 32}
+      - {id: black_carpet, bundle: 16, price: 16}
+      - {id: black_banner, bundle: 1, price: 8}
+      - {id: black_glazed_terracotta, bundle: 16, price: 32}
+      - {id: pointed_dripstone, bundle: 1, price: 2}
+      - {id: decorated_pot, bundle: 1, price: 15, note: "아이템 한 묶음을 넣을 수 있음"}
