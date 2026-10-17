@@ -421,6 +421,37 @@ mine:
   #   auto_build: 처음 켤 때 저절로 짓기 · sites: 살펴볼 자리 차례 · blocks_per_tick: 짓는 빠르기 (최소 200) · notify_admins: 막혔을 때 관리자에게 하루 한 번 알림
   district: {auto_build: true, sites: [east, south_east], blocks_per_tick: 3000, notify_admins: true}
 
+# 집 (0.3.7) — 마을 남쪽 '등불 골목'에 집터 10채. 한 사람 한 채, 공짜. 집 안에서는 짓고 부수고 상자를 쓴다.
+#   jar 만 바꾼 서버는 광산 마을 다음 차례로 한 번 저절로 짓는다. 그 자리에 사람이 만든 것이 보이면 블록을 하나도 바꾸지 않고
+#   plugins/Labyrinth/village/district-homes-blocked.txt 를 남긴다 (그때는 지형 잠금도 꺼진 채).
+#   terrain_lock: 집 구역이 지어진 뒤 주 월드에서 내 집 밖 부수기·놓기를 막는다 (크리에이티브 관리자 제외)
+#   legacy_grace_days: 잠금이 처음 켜진 날부터 며칠 동안 집 밖 '사람이 놓은 블록'(판자·유리 …)만 부술 수 있다. 0 = 없음
+#   home_teleport · visit: /미궁 집 가기 · 방문 — auto = village.teleport_command 를 따름 · true · false
+#   reclaim_cooldown_minutes: 스스로 비운 뒤 다시 받기까지 · height: 집 바닥 아래·위로 지을 수 있는 칸
+homes:
+  enabled: true
+  terrain_lock: true
+  district: {auto_build: true, sites: [south_west], blocks_per_tick: 3000, notify_admins: true}
+  claim_cost: 0
+  max_trusted: 8
+  guests_default: true            # 손님이 문·작업대·종을 쓰고 방문할 수 있음 (집마다 바꿈)
+  height: {below: 6, above: 24}
+  reclaim_cooldown_minutes: 1440
+  rename_cooldown_minutes: 5
+  inactive_days: 60               # 오래 안 온 주인 표시만 (회수하지 않음)
+  legacy_grace_days: 14
+  home_regen: {hp: 0.05, mp: 0.05, calm_seconds: 5}   # 집 안에서 calm_seconds 동안 안 맞으면 1초마다 최대 HP·MP 의 5%
+  bed_rest: {seconds: 2, cooldown_seconds: 60}        # 내 침대 우클릭 2초 → 가득
+  home_teleport: auto
+  visit: auto
+  starter: {cottage: true, kit: true}                 # 처음 받을 때 한 번: 작은 오두막 또는 집들이 꾸러미
+  tick_parts: {total: 16, hoppers: 8}                 # 집마다 깔때기·공급기·제작기·피스톤·관측기 합 (그중 깔때기)
+  entity_caps: {animals: 24, decorations: 64}         # 집마다 동물 · 갑옷 거치대 + 액자 + 그림
+  deny_place: [tnt, tnt_minecart, respawn_anchor, end_crystal, dispenser]
+  deny_use: [lava_bucket, fire_charge]
+  shop_price_multiplier: 1.0      # 관리인 자재 값 배율 (0.1 이상)
+  enter_actionbar: true           # 집터에 들어서면 액션바에 번지·이름
+
 
 # 도안 (0.3.6) — 희귀 이상 장비(무기·방어구·방패·장신구)는 도안을 배워야 대장간에서 만든다. 일반·고급은 처음부터 안다.
 #   도안은 우클릭하면 영구히 배운다 (한 장 소모, 이미 알면 그대로 — 남에게 주거나 판다).

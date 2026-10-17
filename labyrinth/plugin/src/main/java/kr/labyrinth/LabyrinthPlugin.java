@@ -64,6 +64,8 @@ public final class LabyrinthPlugin extends JavaPlugin {
         modules.add(new VillageModule(services, dungeon::forgetSavedEntrance));
         // 광산 (0.3.6): 따로 된 광산 월드 + 승강기 · 함께 쓰는 광맥 — 마을 뒤 (마을로 나가는 자리), commands 앞
         modules.add(new kr.labyrinth.mine.MineModule(services));
+        // 집 구역 (0.3.7): 마을 남쪽 등불 골목 10채 + 주 월드 지형 잠금 — 마을·광산 뒤 (구역 기록은 마을 모듈이 먼저 읽음), commands 앞
+        modules.add(new kr.labyrinth.homes.HomesModule(services));
         // ──────────────────────────────────────────────────────────────────────────
         modules.add(new SetupListener(services));
         modules.add(services.commands());

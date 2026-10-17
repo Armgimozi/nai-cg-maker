@@ -1,0 +1,4935 @@
+{
+ "version": "0.3.7-plots10",
+ "title": "집 구역 + 지형 잠금 — 최종안 (B안 바탕 + A안 접목)",
+ "owner_request": [
+  "마을 안에 플레이어에게 할당된 구역을 주어 개인 사유지로 쓸 수 있게 함 — 회복 및 상자를 통한 저장, 건축도 가능하게 하고",
+  "지형 부수기·놓기 막기 (주 월드, 자기 집터 밖)",
+  "경계 = 마을 가장자리 +30",
+  "네더·엔드 막기 (0.3.5.1 커밋 09effdcb 은 '네더·엔드는 그대로'로 확정 — 결정 18)",
+  "동물 스폰 막기 (0.3.5.1 spawns: all)"
+ ],
+ "scores": {
+  "criteria": [
+   "owner_fit",
+   "solo_small_group_fun",
+   "live_server_safety",
+   "exploit_resistance",
+   "performance",
+   "implementation_size_risk",
+   "fit_mine_border"
+  ],
+  "A_simple": {
+   "owner_fit": 7,
+   "solo_small_group_fun": 5,
+   "live_server_safety": 7,
+   "exploit_resistance": 8,
+   "performance": 9,
+   "implementation_size_risk": 8,
+   "fit_mine_border": 4,
+   "total": 48
+  },
+  "B_rich": {
+   "owner_fit": 9,
+   "solo_small_group_fun": 9,
+   "live_server_safety": 6,
+   "exploit_resistance": 8,
+   "performance": 9,
+   "implementation_size_risk": 4,
+   "fit_mine_border": 9,
+   "total": 54
+  },
+  "winner": "B_rich",
+  "why": {
+   "A_minus": [
+    "자리가 광산 대체 자리(south_east, 마스크 x -114..-50 z 33..85)와 겹침 — 광산이 대체 자리로 간 서버는 집 구역 자동 짓기 불가",
+    "구역이 x -151..-42 로 길게 뻗어 동쪽 집터는 광장에서 멂, 시작 집·손님 문 없음, 자재 36가지",
+    "포기 때 상자 속 물건이 관리자 백업에만 들어감 (플레이어는 못 꺼냄)",
+    "VillageService 보호 핸들러 20개를 고쳐 광산 묶음과 같은 파일·같은 줄을 만짐"
+   ],
+   "B_minus": [
+    "골목(x -145..-144)이 마을 길 1(x -137)과 풀밭 6칸 떨어져 안 붙음 — junction 검사 실패",
+    "집터 밑을 조사 안 함: 8칸 안에 8번 동굴 1,061칸·12번 666칸, 7·11번 물 17·49칸 (지하실 파면 뚫림·물 참)",
+    "업그레이드 7·화덕·이사·파티 허용·옛 건물 무리 상태·상자 한도까지 — 구현 크기 큼"
+   ]
+  }
+ },
+ "base": "B_rich",
+ "grafted_from_A": [
+  "골목 이음 칸 x -143..-138, z 26..27 → 마을 길 1 첫 칸 (-137, 26..27) 에 붙임, 길잡이 (-146, 26)",
+  "집터 밑 정리: 터 아래 8칸을 흙 3 + 돌 5 로 통째로 (동굴·물·광석 없앰), 위로 열린 구덩이는 바닥까지 메움",
+  "이사 기간 규칙 = '집터·보호 상자 밖 UNNATURAL 블록만 부수기' (무리 상자 없이 O(1))",
+  "표지판 우클릭 = 그 집터 메뉴 (interact 'plot:<n>')",
+  "틱 부품 한도 16 (깔때기 8) — 상자 수 한도 대신",
+  "회복은 아이템 없이 집터 안 자동 (화덕 없음)",
+  "소유 파일은 월드 폴더 (월드와 같이 다님)",
+  "자재 값 배율 plots.shop_price_multiplier"
+ ],
+ "kept_from_B": [
+  "자리 '등불 골목' x -179..-115 z 47..103 · 12채 14×14 · 거리 2 + 가운데 골목",
+  "마을 관리인 NPC 하나(role estate) — 집·자재·맡긴 짐",
+  "시작 선물 한 번 (작은 오두막 4가지 나무 또는 집들이 꾸러미)",
+  "비우기·관리자 회수 = 맡긴 짐 1:1 (pending→ready)",
+  "손님 허용(문·작업대) 집마다 켬/끔 · 방문",
+  "자재 386가지 · 값 규칙 · 금지 목록 검사",
+  "PvP 안전 = 구역 safe 상자를 VillageZone 이 읽음 (느슨한 연결)",
+  "보호 = 구역 공용 칸만 보호 상자, 집 안은 PlotRules, 그 밖은 잠금 리스너(LOW)",
+  "잠금 자동 켜짐 = 집 구역이 지어진 뒤에만",
+  "옛 건물 한 번 조사 보고(관리자용)"
+ ],
+ "dropped": [
+  "업그레이드 7가지 (지하실·다락·창고·울타리·푸른 화덕·빛 문패) — 높이 창은 처음부터 -6..+24",
+  "화덕 아이템 (침대 쉬기로 대신)",
+  "상자 수 한도·창고 업그레이드",
+  "이사 명령 (비우기 + 받기 + 맡긴 짐으로 같음)",
+  "파티원 자동 허용",
+  "옛 건물 무리 상태·keep/clear/extend 명령 (grace <일> 만)",
+  "집 가기 10초 대기 (마을 가기와 같게 없음)",
+  "A안 adopt 만으로 잠금 켜기 (집터 1명만 있는 서버에서 남이 못 짓게 됨)"
+ ],
+ "site": {
+  "id": "south_west",
+  "name": "등불 골목",
+  "district_box": [
+   -179,
+   47,
+   -115,
+   103
+  ],
+  "deco_box": [
+   -150,
+   104,
+   -140,
+   108
+  ],
+  "lane": {
+   "cells_box": [
+    [
+     -145,
+     26,
+     -138,
+     27
+    ],
+    [
+     -145,
+     28,
+     -144,
+     46
+    ]
+   ],
+   "width": 2,
+   "junction": {
+    "village_path": 1,
+    "cells": [
+     [
+      -137,
+      26
+     ],
+     [
+      -137,
+      27
+     ]
+    ],
+    "y": [
+     66,
+     67
+    ]
+   }
+  },
+  "landing": [
+   -148,
+   47,
+   -144,
+   47
+  ],
+  "alley": {
+   "x": [
+    -148,
+    -146
+   ],
+   "z": [
+    47,
+    98
+   ]
+  },
+  "streets": [
+   {
+    "name": "등불길",
+    "box": [
+     -179,
+     63,
+     -115,
+     67
+    ]
+   },
+   {
+    "name": "우물길",
+    "box": [
+     -164,
+     99,
+     -115,
+     103
+    ]
+   }
+  ],
+  "decos": [
+   {
+    "piece": "keeper_stall",
+    "name": "관리인 노점",
+    "box": [
+     -145,
+     63,
+     -143,
+     64
+    ],
+    "front": "south",
+    "note": "등불길 북쪽 가장자리, 골목 동쪽. 관리인 NPC + 우클릭 estate"
+   },
+   {
+    "piece": "signpost_home",
+    "name": "집 길잡이",
+    "box": [
+     -146,
+     26,
+     -146,
+     26
+    ],
+    "front": "east",
+    "note": "광장 남쪽 끝 골목 어귀: '등불 골목 — 집 1~10번지 · 관리인'"
+   },
+   {
+    "piece": "lamp_post_small",
+    "name": "울타리 등불",
+    "box": [
+     -164,
+     62,
+     -164,
+     62
+    ],
+    "front": "south",
+    "note": "1·2번지 앞 울타리 모서리 (1×1 기둥 + 등불)"
+   },
+   {
+    "piece": "lamp_post_small",
+    "name": "울타리 등불",
+    "box": [
+     -149,
+     62,
+     -149,
+     62
+    ],
+    "front": "south",
+    "note": "골목 서쪽 모서리"
+   },
+   {
+    "piece": "lamp_post_small",
+    "name": "울타리 등불",
+    "box": [
+     -130,
+     62,
+     -130,
+     62
+    ],
+    "front": "south",
+    "note": "골목 마당·3번지 사이"
+   },
+   {
+    "piece": "lamp_post_small",
+    "name": "울타리 등불",
+    "box": [
+     -164,
+     68,
+     -164,
+     68
+    ],
+    "front": "north",
+    "note": "5·6번지 사이"
+   },
+   {
+    "piece": "lamp_post_small",
+    "name": "울타리 등불",
+    "box": [
+     -145,
+     68,
+     -145,
+     68
+    ],
+    "front": "north",
+    "note": "골목 동쪽 모서리"
+   },
+   {
+    "piece": "lamp_post_small",
+    "name": "울타리 등불",
+    "box": [
+     -130,
+     68,
+     -130,
+     68
+    ],
+    "front": "north",
+    "note": "7·8번지 사이"
+   },
+   {
+    "piece": "lamp_post_small",
+    "name": "울타리 등불",
+    "box": [
+     -164,
+     98,
+     -164,
+     98
+    ],
+    "front": "south",
+    "note": "8번지 서쪽 모서리 (우물길 서쪽 끝)"
+   },
+   {
+    "piece": "lamp_post_small",
+    "name": "울타리 등불",
+    "box": [
+     -149,
+     98,
+     -149,
+     98
+    ],
+    "front": "south",
+    "note": "골목 서쪽 모서리"
+   },
+   {
+    "piece": "lamp_post_small",
+    "name": "울타리 등불",
+    "box": [
+     -130,
+     98,
+     -130,
+     98
+    ],
+    "front": "south",
+    "note": "11·12번지 사이"
+   },
+   {
+    "piece": "well",
+    "name": "골목 우물",
+    "box": [
+     -149,
+     104,
+     -145,
+     108
+    ],
+    "front": "north",
+    "note": "우물길 남쪽, 골목 끝 — 이름 '우물길'의 우물 (마을 well 청사진 재사용)"
+   },
+   {
+    "piece": "bench",
+    "name": "벤치",
+    "box": [
+     -143,
+     104,
+     -141,
+     104
+    ],
+    "front": "north",
+    "note": "우물 옆"
+   }
+  ],
+  "npcs": [
+   {
+    "id": "estate_keeper",
+    "name": "마을 관리인 모아",
+    "role": "estate",
+    "pos": [
+     -143.5,
+     64.5
+    ],
+    "yaw": 0.0,
+    "note": "관리인 노점 안, 남쪽(등불길)을 봄"
+   }
+  ],
+  "protect_rule": "구역 보호 상자 = 거리·골목·이음 칸·울타리/생울타리 줄·대문 기둥·등불·노점·우물·벤치·길잡이 (조각·길에서 DistrictBuilder 가 만듦). 집 안 14×14 는 넣지 않음",
+  "safe_boxes_2d": [
+   [
+    -179,
+    47,
+    -115,
+    108
+   ],
+   [
+    -145,
+    26,
+    -138,
+    46
+   ]
+  ],
+  "frozen_cells": "마을 보호 상자 + 마을 길 칸 + 광산 구역 보호 상자·길",
+  "checks": {
+   "lane_protect_hits": 0,
+   "lane_built_blocks": 0,
+   "lane_ground": [
+    [
+     65,
+     66
+    ],
+    [
+     67,
+     69
+    ]
+   ],
+   "district_vs_village_protect": 0,
+   "district_vs_mine_east": 0,
+   "district_vs_mine_se": 0,
+   "gap_x_to_mine_se_rb_bbox": 1,
+   "surface_water_cells_in_district": [
+    [
+     -142,
+     102,
+     56
+    ],
+    [
+     -141,
+     102,
+     58
+    ],
+    [
+     -142,
+     103,
+     55
+    ],
+    [
+     -141,
+     103,
+     58
+    ]
+   ],
+   "trees_in_district": 21
+  },
+  "border": {
+   "rule": "0.3.5.1 WildBorder.compute 와 같음: (마을 중심±반경 ∪ 모든 보호 상자 — 마을·광산·집 구역) + 30, 정사각",
+   "village_only": {
+    "center": [
+     -135.5,
+     16.5
+    ],
+    "size": 135.0,
+    "x": [
+     -203.0,
+     -68.0
+    ],
+    "z": [
+     -51.0,
+     84.0
+    ]
+   },
+   "village_mine_east": {
+    "center": [
+     -116.0,
+     16.5
+    ],
+    "size": 174.0,
+    "x": [
+     -203.0,
+     -29.0
+    ],
+    "z": [
+     -70.5,
+     103.5
+    ]
+   },
+   "final_mine_east_or_se": {
+    "center": [
+     -119.0,
+     44.0
+    ],
+    "size": 190.0,
+    "x": [
+     -214.0,
+     -24.0
+    ],
+    "z": [
+     -51.0,
+     139.0
+    ]
+   },
+   "note": "마을만이면 x ≤ -68 이라 광산 마을 동쪽(승강장 x -72..-60, 하치장 -68..-60)과 집 5~12번(z > 84)이 밖 — 구역 상자를 꼭 넣어야 함 (H0)"
+  },
+  "walk_from_spawn_to_gate": {
+   "1": 97.0,
+   "2": 82.0,
+   "3": 81.0,
+   "4": 96.0,
+   "5": 97.0,
+   "6": 82.0,
+   "7": 81.0,
+   "8": 96.0,
+   "9": 133.0,
+   "10": 118.0,
+   "11": 117.0,
+   "12": 132.0
+  },
+  "yard": {
+   "name": "골목 마당",
+   "box": [
+    -144,
+    48,
+    -131,
+    61
+   ],
+   "keep_ground": true,
+   "decos": [
+    {
+     "piece": "bench",
+     "box": [
+      -141,
+      58,
+      -139,
+      58
+     ],
+     "front": "south"
+    },
+    {
+     "piece": "flower_bed",
+     "box": [
+      -137,
+      55,
+      -135,
+      57
+     ],
+     "front": "south"
+    },
+    {
+     "piece": "lamp_post_small",
+     "box": [
+      -133,
+      60,
+      -133,
+      60
+     ],
+     "front": "south"
+    }
+   ]
+  }
+ },
+ "plots": [
+  {
+   "id": 1,
+   "row": "등불길 북쪽",
+   "box": [
+    -178,
+    48,
+    -165,
+    61
+   ],
+   "size": [
+    14,
+    14
+   ],
+   "pad_y": 73,
+   "window_y": [
+    67,
+    97
+   ],
+   "front": "S",
+   "gate": [
+    -172,
+    62
+   ],
+   "sign_post": [
+    -170,
+    62
+   ],
+   "home": {
+    "x": -171.5,
+    "z": 63.5,
+    "yaw": 180.0,
+    "y": "거리 바닥 + 1 (지을 때 메타에 기록)"
+   },
+   "ground": [
+    68,
+    74
+   ],
+   "earthwork_cells": {
+    "cut": 72,
+    "pit_fill": 195
+   },
+   "under_fix_8": {
+    "void": 57,
+    "liquid": 0,
+    "ore": 62,
+    "rule": "터-1..-3 흙, 터-4..-8 돌로 통째로 바꿈"
+   },
+   "old_id": 1
+  },
+  {
+   "id": 2,
+   "row": "등불길 북쪽",
+   "box": [
+    -163,
+    48,
+    -150,
+    61
+   ],
+   "size": [
+    14,
+    14
+   ],
+   "pad_y": 72,
+   "window_y": [
+    66,
+    96
+   ],
+   "front": "S",
+   "gate": [
+    -157,
+    62
+   ],
+   "sign_post": [
+    -155,
+    62
+   ],
+   "home": {
+    "x": -156.5,
+    "z": 63.5,
+    "yaw": 180.0,
+    "y": "거리 바닥 + 1 (지을 때 메타에 기록)"
+   },
+   "ground": [
+    69,
+    74
+   ],
+   "earthwork_cells": {
+    "cut": 59,
+    "pit_fill": 115
+   },
+   "under_fix_8": {
+    "void": 0,
+    "liquid": 0,
+    "ore": 13,
+    "rule": "터-1..-3 흙, 터-4..-8 돌로 통째로 바꿈"
+   },
+   "old_id": 2
+  },
+  {
+   "id": 3,
+   "row": "등불길 북쪽",
+   "box": [
+    -129,
+    48,
+    -116,
+    61
+   ],
+   "size": [
+    14,
+    14
+   ],
+   "pad_y": 68,
+   "window_y": [
+    62,
+    92
+   ],
+   "front": "S",
+   "gate": [
+    -123,
+    62
+   ],
+   "sign_post": [
+    -121,
+    62
+   ],
+   "home": {
+    "x": -122.5,
+    "z": 63.5,
+    "yaw": 180.0,
+    "y": "거리 바닥 + 1 (지을 때 메타에 기록)"
+   },
+   "ground": [
+    68,
+    69
+   ],
+   "earthwork_cells": {
+    "cut": 45,
+    "pit_fill": 0
+   },
+   "under_fix_8": {
+    "void": 0,
+    "liquid": 0,
+    "ore": 42,
+    "rule": "터-1..-3 흙, 터-4..-8 돌로 통째로 바꿈"
+   },
+   "old_id": 4
+  },
+  {
+   "id": 4,
+   "row": "등불길 남쪽",
+   "box": [
+    -178,
+    69,
+    -165,
+    82
+   ],
+   "size": [
+    14,
+    14
+   ],
+   "pad_y": 75,
+   "window_y": [
+    69,
+    99
+   ],
+   "front": "N",
+   "gate": [
+    -172,
+    68
+   ],
+   "sign_post": [
+    -170,
+    68
+   ],
+   "home": {
+    "x": -171.5,
+    "z": 67.5,
+    "yaw": 0.0,
+    "y": "거리 바닥 + 1 (지을 때 메타에 기록)"
+   },
+   "ground": [
+    73,
+    76
+   ],
+   "earthwork_cells": {
+    "cut": 62,
+    "pit_fill": 65
+   },
+   "under_fix_8": {
+    "void": 0,
+    "liquid": 0,
+    "ore": 16,
+    "rule": "터-1..-3 흙, 터-4..-8 돌로 통째로 바꿈"
+   },
+   "old_id": 5
+  },
+  {
+   "id": 5,
+   "row": "등불길 남쪽",
+   "box": [
+    -163,
+    69,
+    -150,
+    82
+   ],
+   "size": [
+    14,
+    14
+   ],
+   "pad_y": 71,
+   "window_y": [
+    65,
+    95
+   ],
+   "front": "N",
+   "gate": [
+    -157,
+    68
+   ],
+   "sign_post": [
+    -155,
+    68
+   ],
+   "home": {
+    "x": -156.5,
+    "z": 67.5,
+    "yaw": 0.0,
+    "y": "거리 바닥 + 1 (지을 때 메타에 기록)"
+   },
+   "ground": [
+    70,
+    73
+   ],
+   "earthwork_cells": {
+    "cut": 113,
+    "pit_fill": 20
+   },
+   "under_fix_8": {
+    "void": 0,
+    "liquid": 0,
+    "ore": 20,
+    "rule": "터-1..-3 흙, 터-4..-8 돌로 통째로 바꿈"
+   },
+   "old_id": 6
+  },
+  {
+   "id": 6,
+   "row": "등불길 남쪽",
+   "box": [
+    -144,
+    69,
+    -131,
+    82
+   ],
+   "size": [
+    14,
+    14
+   ],
+   "pad_y": 67,
+   "window_y": [
+    61,
+    91
+   ],
+   "front": "N",
+   "gate": [
+    -138,
+    68
+   ],
+   "sign_post": [
+    -136,
+    68
+   ],
+   "home": {
+    "x": -137.5,
+    "z": 67.5,
+    "yaw": 0.0,
+    "y": "거리 바닥 + 1 (지을 때 메타에 기록)"
+   },
+   "ground": [
+    67,
+    70
+   ],
+   "earthwork_cells": {
+    "cut": 139,
+    "pit_fill": 0
+   },
+   "under_fix_8": {
+    "void": 56,
+    "liquid": 17,
+    "ore": 16,
+    "rule": "터-1..-3 흙, 터-4..-8 돌로 통째로 바꿈"
+   },
+   "old_id": 7
+  },
+  {
+   "id": 7,
+   "row": "등불길 남쪽",
+   "box": [
+    -129,
+    69,
+    -116,
+    82
+   ],
+   "size": [
+    14,
+    14
+   ],
+   "pad_y": 66,
+   "window_y": [
+    60,
+    90
+   ],
+   "front": "N",
+   "gate": [
+    -123,
+    68
+   ],
+   "sign_post": [
+    -121,
+    68
+   ],
+   "home": {
+    "x": -122.5,
+    "z": 67.5,
+    "yaw": 0.0,
+    "y": "거리 바닥 + 1 (지을 때 메타에 기록)"
+   },
+   "ground": [
+    55,
+    67
+   ],
+   "earthwork_cells": {
+    "cut": 88,
+    "pit_fill": 111
+   },
+   "under_fix_8": {
+    "void": 1061,
+    "liquid": 0,
+    "ore": 0,
+    "rule": "터-1..-3 흙, 터-4..-8 돌로 통째로 바꿈"
+   },
+   "old_id": 8
+  },
+  {
+   "id": 8,
+   "row": "우물길 북쪽",
+   "box": [
+    -163,
+    84,
+    -150,
+    97
+   ],
+   "size": [
+    14,
+    14
+   ],
+   "pad_y": 70,
+   "window_y": [
+    64,
+    94
+   ],
+   "front": "S",
+   "gate": [
+    -157,
+    98
+   ],
+   "sign_post": [
+    -155,
+    98
+   ],
+   "home": {
+    "x": -156.5,
+    "z": 99.5,
+    "yaw": 180.0,
+    "y": "거리 바닥 + 1 (지을 때 메타에 기록)"
+   },
+   "ground": [
+    68,
+    72
+   ],
+   "earthwork_cells": {
+    "cut": 70,
+    "pit_fill": 55
+   },
+   "under_fix_8": {
+    "void": 0,
+    "liquid": 0,
+    "ore": 55,
+    "rule": "터-1..-3 흙, 터-4..-8 돌로 통째로 바꿈"
+   },
+   "old_id": 10
+  },
+  {
+   "id": 9,
+   "row": "우물길 북쪽",
+   "box": [
+    -144,
+    84,
+    -131,
+    97
+   ],
+   "size": [
+    14,
+    14
+   ],
+   "pad_y": 67,
+   "window_y": [
+    61,
+    91
+   ],
+   "front": "S",
+   "gate": [
+    -138,
+    98
+   ],
+   "sign_post": [
+    -136,
+    98
+   ],
+   "home": {
+    "x": -137.5,
+    "z": 99.5,
+    "yaw": 180.0,
+    "y": "거리 바닥 + 1 (지을 때 메타에 기록)"
+   },
+   "ground": [
+    65,
+    68
+   ],
+   "earthwork_cells": {
+    "cut": 18,
+    "pit_fill": 108
+   },
+   "under_fix_8": {
+    "void": 21,
+    "liquid": 49,
+    "ore": 17,
+    "rule": "터-1..-3 흙, 터-4..-8 돌로 통째로 바꿈"
+   },
+   "old_id": 11
+  },
+  {
+   "id": 10,
+   "row": "우물길 북쪽",
+   "box": [
+    -129,
+    84,
+    -116,
+    97
+   ],
+   "size": [
+    14,
+    14
+   ],
+   "pad_y": 66,
+   "window_y": [
+    60,
+    90
+   ],
+   "front": "S",
+   "gate": [
+    -123,
+    98
+   ],
+   "sign_post": [
+    -121,
+    98
+   ],
+   "home": {
+    "x": -122.5,
+    "z": 99.5,
+    "yaw": 180.0,
+    "y": "거리 바닥 + 1 (지을 때 메타에 기록)"
+   },
+   "ground": [
+    57,
+    67
+   ],
+   "earthwork_cells": {
+    "cut": 3,
+    "pit_fill": 172
+   },
+   "under_fix_8": {
+    "void": 666,
+    "liquid": 0,
+    "ore": 12,
+    "rule": "터-1..-3 흙, 터-4..-8 돌로 통째로 바꿈"
+   },
+   "old_id": 12
+  }
+ ],
+ "assign": {
+  "where": [
+   "마을 관리인 모아 (관리인 노점, role estate)",
+   "/미궁 집",
+   "대문 옆 표지판 우클릭",
+   "메인 메뉴 52번 '집'"
+  ],
+  "cost": 0,
+  "per_player": 1,
+  "choose": "지도에서 고름 + '아무 데나'",
+  "requires": "미궁·인스턴스 밖",
+  "starter_once": {
+   "options": [
+    "작은 오두막 7×7 (참나무·가문비·자작·벚나무, 침대·상자 2·작업대·화로, 집터 뒤쪽 가운데)",
+    "집들이 꾸러미 (상자 2·침대·작업대·화로·등불 4·참나무 판자 64·유리판 16·참나무 문)"
+   ],
+   "rule": "한 사람 한 번 (ext plots.starter_used). 바꾼 집터(convert)는 꾸러미만"
+  },
+  "trust": {
+   "command": "/미궁 집 초대 <이름> · 내보내기 <이름>",
+   "max": 8,
+   "levels": 1,
+   "owner_only": [
+    "이름",
+    "초대·내보내기",
+    "손님 허용",
+    "비우기"
+   ],
+   "party_auto": false
+  },
+  "guests": {
+   "default": true,
+   "allows": [
+    "문·다락문·울타리 문",
+    "작업대·석재 절단기·베틀·지도 제작대·대장장이 작업대·숫돌",
+    "종",
+    "방문 텔레포트"
+   ]
+  },
+  "name": {
+   "max_chars": 16,
+   "escape": "Text.escape",
+   "cooldown_minutes": 5,
+   "default": "<이름>의 집"
+  },
+  "vacate": {
+   "command": "/미궁 집 비우기 → 비우기 확인 (30초)",
+   "to_parcel": [
+    "상자류 속 아이템",
+    "비자연 블록 getDrops 1:1 (문·침대 반쪽은 한 번)",
+    "액자·그림·갑옷 거치대·보트·수레 → 아이템"
+   ],
+   "reset": "터 = 잔디, 아래 흙 3 + 돌 5, 위 24칸 공기",
+   "refund_gold": 0,
+   "reclaim_cooldown_minutes": 10
+  },
+  "admin_reclaim": "비우기와 같음, 맡긴 짐은 원래 주인 몫",
+  "inactive": "자동 회수 없음. plot list 에 마지막 접속, 60일 넘으면 표시",
+  "convert": {
+   "command": "/labadmin plot convert <이름> <x1> <z1> <x2> <z2> [y1 y2]",
+   "max_xz": 32,
+   "max_height": 48,
+   "default_y": "땅 최저 -8 ~ 땅 최고 +24",
+   "rule": "보호 상자·다른 집터와 안 겹침, 그 사람의 한 집으로 셈, id c1·c2…",
+   "unconvert": "/labadmin plot unconvert <번지> — 소유만 지움 (블록 그대로, 다시 잠김)"
+  },
+  "more_than_12": "관리자 convert"
+ },
+ "permissions": {
+  "columns": [
+   "내 집(주인·초대)",
+   "남의 집(손님)",
+   "보호 상자(구역 공용·마을·광산)",
+   "그 밖 주 월드",
+   "관리자(크리에이티브)"
+  ],
+  "rows": [
+   [
+    "부수기·놓기",
+    "O (금지 블록 X)",
+    "X",
+    "X",
+    "X (이사 기간: 사람이 놓은 블록만 부수기)",
+    "O"
+   ],
+   [
+    "물 양동이 붓기·뜨기",
+    "O",
+    "X",
+    "X",
+    "X",
+    "O"
+   ],
+   [
+    "용암 양동이·TNT·TNT 수레·화염구·리스폰 정박기·엔드 수정·발사기",
+    "X",
+    "X",
+    "X",
+    "X",
+    "O"
+   ],
+   [
+    "상자·통·셜커·화로류·양조대·깔때기·공급기·독서대·주크박스·장식 단지·조각 책장",
+    "O",
+    "X",
+    "X (지금 그대로)",
+    "O (옛 건물)",
+    "O"
+   ],
+   [
+    "엔더 상자",
+    "O",
+    "O",
+    "-",
+    "O",
+    "O"
+   ],
+   [
+    "문·다락문·울타리 문",
+    "O",
+    "손님 허용이면 O",
+    "O",
+    "O",
+    "O"
+   ],
+   [
+    "버튼·레버",
+    "O",
+    "X",
+    "X",
+    "O (옛 건물)",
+    "O"
+   ],
+   [
+    "압력판·실 (밟기)",
+    "O",
+    "O",
+    "O",
+    "O",
+    "O"
+   ],
+   [
+    "작업대류·종",
+    "O",
+    "손님 허용이면 O",
+    "작업대·종만 (지금 그대로)",
+    "O",
+    "O"
+   ],
+   [
+    "침대 (리스폰·잠)",
+    "O",
+    "X",
+    "O (지금 그대로)",
+    "O",
+    "O"
+   ],
+   [
+    "액자·그림·갑옷 거치대 (놓기·돌리기·꺼내기·부수기·쏘기)",
+    "O",
+    "X",
+    "X",
+    "X",
+    "O"
+   ],
+   [
+    "보트·수레 놓기·부수기",
+    "O",
+    "X",
+    "X",
+    "X",
+    "O"
+   ],
+   [
+    "심기·괭이·뼛가루·삽·도끼 벗기기·붓·가위",
+    "O",
+    "X",
+    "X",
+    "X",
+    "O"
+   ],
+   [
+    "밭·거북알 밟기",
+    "X",
+    "X",
+    "X",
+    "X",
+    "X"
+   ],
+   [
+    "부싯돌 불 (모닥불·초)",
+    "O (번지지 않음)",
+    "X",
+    "X",
+    "X",
+    "O"
+   ],
+   [
+    "표지판 글",
+    "O",
+    "X",
+    "X",
+    "X",
+    "O"
+   ],
+   [
+    "집 회복·침대 쉬기",
+    "O",
+    "X",
+    "-",
+    "-",
+    "-"
+   ],
+   [
+    "PvP",
+    "금지",
+    "금지",
+    "금지 (구역 safe 상자)",
+    "pvp 설정대로",
+    "-"
+   ]
+  ],
+  "deny_place": [
+   "tnt",
+   "tnt_minecart",
+   "respawn_anchor",
+   "end_crystal",
+   "dispenser",
+   "lava_bucket(쓰기)",
+   "fire_charge(쓰기)"
+  ],
+  "tick_parts": {
+   "blocks": [
+    "hopper",
+    "dropper",
+    "crafter",
+    "piston",
+    "sticky_piston",
+    "observer"
+   ],
+   "total_per_plot": 16,
+   "hoppers_per_plot": 8,
+   "count": "그 블록을 놓을 때만 집터 청크(≤4) 블록 엔티티·블록 세기"
+  },
+  "zone": "zone(x,y,z) = 집터 번호 (높이 창 안) / 0 = 보호 상자 / -1 = 그 밖",
+  "cross_edge": [
+   "물·용암 흐름: 출발 zone == 도착 zone 만 (밖→밖 자연 물은 그대로)",
+   "피스톤: 피스톤·움직이는 블록·도착 칸이 모두 같은 집터. 집터 밖 피스톤은 취소",
+   "깔때기·공급기 옮김(InventoryMoveItemEvent): 보내는 곳·받는 곳 zone 같음 · 깔때기 줍기(InventoryPickupItemEvent): 아이템 zone == 깔때기 zone",
+   "나무·큰 버섯 자람(StructureGrowEvent): 모든 칸이 묘목 zone 안",
+   "뼛가루(BlockFertilizeEvent): 결과 칸 모두 그 사람 집터 안",
+   "퍼짐(BlockSpreadEvent): 덩굴·버섯·잔디·이끼·스컬크 = 출발 zone == 도착 zone, 불 퍼짐 = 주 월드 전부 취소",
+   "자람(BlockGrowEvent): 호박·수박 열매, 사탕수수·선인장·대나무 윗칸이 같은 집터 창 안",
+   "불: 타기(BlockBurnEvent) 주 월드 전부 취소, 붙이기는 주인·초대가 자기 집터에서 부싯돌로만",
+   "폭발: 주 월드 블록 피해 없음 (blockList 비움)",
+   "엔티티가 블록 바꿈: 떨어지는 블록은 같은 zone 안만, 그 밖 플레이어 아닌 것은 취소",
+   "걸개: EXPLOSION·ENTITY(주인·초대 아님) 취소, 받침 블록 없어짐(PHYSICS)은 그대로",
+   "스펀지: 다른 zone 칸은 빨아들이지 않음",
+   "차원문(잠금 켜짐): 플레이어가 붙인 차원문은 모든 칸이 자기 집터 안일 때만, 게임이 만드는 돌아오는 차원문(NETHER_PAIR)은 집터 하나 안이 아니면 취소 → '/미궁 마을' 안내"
+  ]
+ },
+ "terrain_lock": {
+  "scope": "주 월드(Bukkit.getWorlds().get(0))만. 미궁 월드·광산 월드는 자기 규칙, 네더·엔드는 0.3.5.1 결정",
+  "enabled_when": "plots.terrain_lock: true 이고 집 구역 state built (자동) — 또는 관리자 /labadmin plot lock on (labyrinth-plots.yml lock.state = auto|on|off)",
+  "blocked_outside_own_plot": [
+   "부수기",
+   "놓기",
+   "양동이 붓기·뜨기",
+   "걸개 놓기·부수기",
+   "엔티티 놓기(갑옷 거치대·보트·수레·엔드 수정)",
+   "블록 바꾸는 손 도구 (VillageService.changesBlocks 재사용)",
+   "불",
+   "뼛가루",
+   "표지판 글",
+   "밭·거북알 밟기(어디서나)"
+  ],
+  "allowed": [
+   "걷기",
+   "문·버튼·상자 (옛 건물)",
+   "엔더 상자",
+   "NPC·마을 메뉴",
+   "자연 잎 떨어짐·잔디 자람·밖의 자연 물"
+  ],
+  "message": "풀·꽃(Nature PLANT)을 친 것은 글 없이 취소, 나머지는 2초에 한 번 '집터 밖은 부수거나 지을 수 없습니다 — /미궁 집'",
+  "admin_bypass": "labyrinth.admin + 크리에이티브",
+  "order": "LOW 우선순위 리스너: 주 월드 아님 → 끝 · 집터면 PlotRules · VillageService.isProtected 면 넘김 (마을 핸들러가 막고 마을 글) · 잠금 켜짐이면 막음",
+  "village_relation": "VillageService 핸들러는 그대로 (HIGH, ignoreCancelled) — 고칠 것 없음",
+  "mine": "광맥은 따로 된 광산 월드 (광산 엔진 담당). 광산 마을 지상은 구역 보호 상자 + 잠금",
+  "leaves_crops": "자연 잎은 원래대로 짐 (원목은 못 부숨). 집에 놓은 잎은 지속 잎. 집터 밖 작물 없음",
+  "first_enable": [
+   "lock.started_at 기록",
+   "온라인 전원에게 알림 + 접속 때 하루 한 번 '이사 기간 n일 남음' (ext plots.grace_notice)",
+   "옛 건물 조사 한 번 (비동기, 국경 안 청크): UNNATURAL 블록을 8칸 안끼리 묶어 큰 것부터 20곳 → 관리자 로그 + plugins/Labyrinth/plots/legacy.txt"
+  ],
+  "legacy": {
+   "keep": "지우지 않음, 그 자리 그대로",
+   "grace_days": 14,
+   "grace_rule": "집터·보호 상자 밖에서 Nature.kind == UNNATURAL 블록만 부수기 O (바닐라 드롭). 놓기 X, 자연 블록 X",
+   "after": "부수기 X, 상자류 열기는 계속 O (아이템이 갇히지 않게)",
+   "admin": [
+    "plot convert (옛 집 → 그 사람 집터)",
+    "plot grace <일>",
+    "plot legacy (다시 조사)"
+   ],
+   "outside_border": "0.3.5.1 이 이미 다룸 (경계는 커지기만 함)"
+  }
+ },
+ "materials": {
+  "seller": "마을 관리인 모아 [자재] 탭 (role estate — merchant 를 하나 더 두면 '첫 merchant' 를 찾는 세 곳이 꼬임)",
+  "catalogue_file": "content/housing.yml (자동 갱신 대상, tools/plots/gen_housing.py 생성·검사)",
+  "catalogue_count": 386,
+  "rule": "단가 0.25~1G · 원목=판자 4개 값 · 계단=1.5배 · 반블록=0.5배 · 되팔기 없음 · 금속·무기 재료·폭발물·피스톤·레일 없음",
+  "price_examples": {
+   "cottage_7x7_G": 248,
+   "big_house_14x14_two_floors_G": 1315,
+   "upgrades_total_G": 17800,
+   "note": "업그레이드는 뺌"
+  },
+  "income": {
+   "dungeon_gold_per_min": {
+    "t1": 58.9,
+    "t3": 74.2,
+    "t5": 174.1,
+    "t7": 379.0,
+    "t10": 753.4
+   },
+   "floor1_run_gold_excl_sales": 436,
+   "start_gold": 300,
+   "cottage_248G_minutes": {
+    "t1": 4.2,
+    "t5": 1.4,
+    "t10": 0.3
+   },
+   "big_house_1315G_minutes": {
+    "t1": 22.3,
+    "t5": 7.6,
+    "t10": 1.7
+   }
+  },
+  "buy_ui": "탭 9 + 28칸 쪽 넘김, 왼클릭 1묶음 · 쉬프트 5묶음, 골드 먼저 빼고 못 준 만큼 환불 (ShopMenu 방식)",
+  "multiplier": "plots.shop_price_multiplier (기본 1.0)",
+  "forbidden": "철·금·구리·다이아·에메랄드·네더라이트(주괴·조각·블록·광석·원석) · 도구·갑옷·무기 · 활·쇠뇌·화살·삼지창·철퇴 · TNT·부싯돌·화염구·용암 양동이 · 피스톤·발사기·공급기·제작기·관측기·레일·수레 · 레드스톤 가루·횃불·중계기·비교기 · 엔더 진주·엔더 상자·셜커 · 신호기·스포너·알·명령 블록 · 청금석·석영·흑요석·모루·마법 부여대·양조대",
+  "vanilla_crafting": "그대로 (작업대·화로) — 미궁 아이템은 바닐라 재료 불가 (ItemGuardListener)",
+  "mine_byproducts": "v1 없음 (광산은 바닐라 드롭 없음). 결정 14",
+  "exploit_checks": [
+   "바닐라 아이템 판매 불가 SellPrices.java:188-189 → 되팔기 고리 없음",
+   "미궁 레시피·드롭에 minecraft: 0개 → 바닐라 블록이 골드·미궁 아이템이 될 길 없음",
+   "원목 = 판자 4개 값, 계단 1.5배·반블록 0.5배 → 사서 만들어도 차익 없음 (어차피 못 팖)",
+   "Paper 기본 피스톤 복제 꺼짐 + TNT 금지",
+   "맡긴 짐: 파일에 먼저 쓰고(pending) 지운 뒤 ready, 꺼낼 때 파일에서 먼저 빼고 줌",
+   "시작 선물 한 번 (ext)"
+  ],
+  "catalog": [
+   {
+    "category": "기본 블록",
+    "item": "minecraft:dirt",
+    "bundle": 64,
+    "price": 16,
+    "unit": 0.25,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:coarse_dirt",
+    "bundle": 64,
+    "price": 16,
+    "unit": 0.25,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:grass_block",
+    "bundle": 64,
+    "price": 24,
+    "unit": 0.375,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:sand",
+    "bundle": 64,
+    "price": 16,
+    "unit": 0.25,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:gravel",
+    "bundle": 64,
+    "price": 16,
+    "unit": 0.25,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:cobblestone",
+    "bundle": 64,
+    "price": 16,
+    "unit": 0.25,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:stone",
+    "bundle": 64,
+    "price": 32,
+    "unit": 0.5,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:smooth_stone",
+    "bundle": 64,
+    "price": 40,
+    "unit": 0.625,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:stone_bricks",
+    "bundle": 64,
+    "price": 32,
+    "unit": 0.5,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:mossy_stone_bricks",
+    "bundle": 64,
+    "price": 40,
+    "unit": 0.625,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:cracked_stone_bricks",
+    "bundle": 64,
+    "price": 40,
+    "unit": 0.625,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:cobbled_deepslate",
+    "bundle": 64,
+    "price": 24,
+    "unit": 0.375,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:deepslate_bricks",
+    "bundle": 64,
+    "price": 40,
+    "unit": 0.625,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:deepslate_tiles",
+    "bundle": 64,
+    "price": 40,
+    "unit": 0.625,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:andesite",
+    "bundle": 64,
+    "price": 24,
+    "unit": 0.375,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:diorite",
+    "bundle": 64,
+    "price": 24,
+    "unit": 0.375,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:granite",
+    "bundle": 64,
+    "price": 24,
+    "unit": 0.375,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:polished_andesite",
+    "bundle": 64,
+    "price": 32,
+    "unit": 0.5,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:polished_diorite",
+    "bundle": 64,
+    "price": 32,
+    "unit": 0.5,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:polished_granite",
+    "bundle": 64,
+    "price": 32,
+    "unit": 0.5,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:tuff",
+    "bundle": 64,
+    "price": 24,
+    "unit": 0.375,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:tuff_bricks",
+    "bundle": 64,
+    "price": 40,
+    "unit": 0.625,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:calcite",
+    "bundle": 64,
+    "price": 32,
+    "unit": 0.5,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:bricks",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:mud_bricks",
+    "bundle": 64,
+    "price": 40,
+    "unit": 0.625,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:packed_mud",
+    "bundle": 64,
+    "price": 32,
+    "unit": 0.5,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:sandstone",
+    "bundle": 64,
+    "price": 32,
+    "unit": 0.5,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:smooth_sandstone",
+    "bundle": 64,
+    "price": 40,
+    "unit": 0.625,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:red_sandstone",
+    "bundle": 64,
+    "price": 32,
+    "unit": 0.5,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:terracotta",
+    "bundle": 64,
+    "price": 40,
+    "unit": 0.625,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:glass",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "기본 블록",
+    "item": "minecraft:moss_block",
+    "bundle": 64,
+    "price": 32,
+    "unit": 0.5,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:white_wool",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:white_terracotta",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:white_concrete",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:white_stained_glass",
+    "bundle": 64,
+    "price": 56,
+    "unit": 0.875,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:orange_wool",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:orange_terracotta",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:orange_concrete",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:orange_stained_glass",
+    "bundle": 64,
+    "price": 56,
+    "unit": 0.875,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:magenta_wool",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:magenta_terracotta",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:magenta_concrete",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:magenta_stained_glass",
+    "bundle": 64,
+    "price": 56,
+    "unit": 0.875,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:light_blue_wool",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:light_blue_terracotta",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:light_blue_concrete",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:light_blue_stained_glass",
+    "bundle": 64,
+    "price": 56,
+    "unit": 0.875,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:yellow_wool",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:yellow_terracotta",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:yellow_concrete",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:yellow_stained_glass",
+    "bundle": 64,
+    "price": 56,
+    "unit": 0.875,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:lime_wool",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:lime_terracotta",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:lime_concrete",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:lime_stained_glass",
+    "bundle": 64,
+    "price": 56,
+    "unit": 0.875,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:pink_wool",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:pink_terracotta",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:pink_concrete",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:pink_stained_glass",
+    "bundle": 64,
+    "price": 56,
+    "unit": 0.875,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:gray_wool",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:gray_terracotta",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:gray_concrete",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:gray_stained_glass",
+    "bundle": 64,
+    "price": 56,
+    "unit": 0.875,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:light_gray_wool",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:light_gray_terracotta",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:light_gray_concrete",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:light_gray_stained_glass",
+    "bundle": 64,
+    "price": 56,
+    "unit": 0.875,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:cyan_wool",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:cyan_terracotta",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:cyan_concrete",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:cyan_stained_glass",
+    "bundle": 64,
+    "price": 56,
+    "unit": 0.875,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:purple_wool",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:purple_terracotta",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:purple_concrete",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:purple_stained_glass",
+    "bundle": 64,
+    "price": 56,
+    "unit": 0.875,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:blue_wool",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:blue_terracotta",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:blue_concrete",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:blue_stained_glass",
+    "bundle": 64,
+    "price": 56,
+    "unit": 0.875,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:brown_wool",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:brown_terracotta",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:brown_concrete",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:brown_stained_glass",
+    "bundle": 64,
+    "price": 56,
+    "unit": 0.875,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:green_wool",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:green_terracotta",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:green_concrete",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:green_stained_glass",
+    "bundle": 64,
+    "price": 56,
+    "unit": 0.875,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:red_wool",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:red_terracotta",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:red_concrete",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:red_stained_glass",
+    "bundle": 64,
+    "price": 56,
+    "unit": 0.875,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:black_wool",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:black_terracotta",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:black_concrete",
+    "bundle": 64,
+    "price": 48,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "색 블록",
+    "item": "minecraft:black_stained_glass",
+    "bundle": 64,
+    "price": 56,
+    "unit": 0.875,
+    "note": ""
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:oak_planks",
+    "bundle": 64,
+    "price": 32,
+    "unit": 0.5,
+    "note": ""
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:oak_log",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": "원목 1 = 판자 4 (2G)"
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:stripped_oak_log",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:spruce_planks",
+    "bundle": 64,
+    "price": 32,
+    "unit": 0.5,
+    "note": ""
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:spruce_log",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": "원목 1 = 판자 4 (2G)"
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:stripped_spruce_log",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:birch_planks",
+    "bundle": 64,
+    "price": 32,
+    "unit": 0.5,
+    "note": ""
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:birch_log",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": "원목 1 = 판자 4 (2G)"
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:stripped_birch_log",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:jungle_planks",
+    "bundle": 64,
+    "price": 32,
+    "unit": 0.5,
+    "note": ""
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:jungle_log",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": "원목 1 = 판자 4 (2G)"
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:stripped_jungle_log",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:acacia_planks",
+    "bundle": 64,
+    "price": 32,
+    "unit": 0.5,
+    "note": ""
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:acacia_log",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": "원목 1 = 판자 4 (2G)"
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:stripped_acacia_log",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:dark_oak_planks",
+    "bundle": 64,
+    "price": 32,
+    "unit": 0.5,
+    "note": ""
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:dark_oak_log",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": "원목 1 = 판자 4 (2G)"
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:stripped_dark_oak_log",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:mangrove_planks",
+    "bundle": 64,
+    "price": 32,
+    "unit": 0.5,
+    "note": ""
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:mangrove_log",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": "원목 1 = 판자 4 (2G)"
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:stripped_mangrove_log",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:cherry_planks",
+    "bundle": 64,
+    "price": 32,
+    "unit": 0.5,
+    "note": ""
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:cherry_log",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": "원목 1 = 판자 4 (2G)"
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:stripped_cherry_log",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:pale_oak_planks",
+    "bundle": 64,
+    "price": 32,
+    "unit": 0.5,
+    "note": ""
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:pale_oak_log",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": "원목 1 = 판자 4 (2G)"
+   },
+   {
+    "category": "나무",
+    "item": "minecraft:stripped_pale_oak_log",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:oak_stairs",
+    "bundle": 16,
+    "price": 12,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:oak_slab",
+    "bundle": 16,
+    "price": 4,
+    "unit": 0.25,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:spruce_stairs",
+    "bundle": 16,
+    "price": 12,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:spruce_slab",
+    "bundle": 16,
+    "price": 4,
+    "unit": 0.25,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:birch_stairs",
+    "bundle": 16,
+    "price": 12,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:birch_slab",
+    "bundle": 16,
+    "price": 4,
+    "unit": 0.25,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:jungle_stairs",
+    "bundle": 16,
+    "price": 12,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:jungle_slab",
+    "bundle": 16,
+    "price": 4,
+    "unit": 0.25,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:acacia_stairs",
+    "bundle": 16,
+    "price": 12,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:acacia_slab",
+    "bundle": 16,
+    "price": 4,
+    "unit": 0.25,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:dark_oak_stairs",
+    "bundle": 16,
+    "price": 12,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:dark_oak_slab",
+    "bundle": 16,
+    "price": 4,
+    "unit": 0.25,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:mangrove_stairs",
+    "bundle": 16,
+    "price": 12,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:mangrove_slab",
+    "bundle": 16,
+    "price": 4,
+    "unit": 0.25,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:cherry_stairs",
+    "bundle": 16,
+    "price": 12,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:cherry_slab",
+    "bundle": 16,
+    "price": 4,
+    "unit": 0.25,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:pale_oak_stairs",
+    "bundle": 16,
+    "price": 12,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:pale_oak_slab",
+    "bundle": 16,
+    "price": 4,
+    "unit": 0.25,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:stone_brick_stairs",
+    "bundle": 16,
+    "price": 12,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:stone_brick_slab",
+    "bundle": 16,
+    "price": 4,
+    "unit": 0.25,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:cobblestone_stairs",
+    "bundle": 16,
+    "price": 6,
+    "unit": 0.375,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:cobblestone_slab",
+    "bundle": 16,
+    "price": 2,
+    "unit": 0.125,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:stone_stairs",
+    "bundle": 16,
+    "price": 12,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:stone_slab",
+    "bundle": 16,
+    "price": 4,
+    "unit": 0.25,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:brick_stairs",
+    "bundle": 16,
+    "price": 18,
+    "unit": 1.125,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:brick_slab",
+    "bundle": 16,
+    "price": 6,
+    "unit": 0.375,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:mud_brick_stairs",
+    "bundle": 16,
+    "price": 15,
+    "unit": 0.938,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:mud_brick_slab",
+    "bundle": 16,
+    "price": 5,
+    "unit": 0.312,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:deepslate_tile_stairs",
+    "bundle": 16,
+    "price": 15,
+    "unit": 0.938,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:deepslate_tile_slab",
+    "bundle": 16,
+    "price": 5,
+    "unit": 0.312,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:deepslate_brick_stairs",
+    "bundle": 16,
+    "price": 15,
+    "unit": 0.938,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:deepslate_brick_slab",
+    "bundle": 16,
+    "price": 5,
+    "unit": 0.312,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:sandstone_stairs",
+    "bundle": 16,
+    "price": 12,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:sandstone_slab",
+    "bundle": 16,
+    "price": 4,
+    "unit": 0.25,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:tuff_brick_stairs",
+    "bundle": 16,
+    "price": 15,
+    "unit": 0.938,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:tuff_brick_slab",
+    "bundle": 16,
+    "price": 5,
+    "unit": 0.312,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:polished_andesite_stairs",
+    "bundle": 16,
+    "price": 12,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:polished_andesite_slab",
+    "bundle": 16,
+    "price": 4,
+    "unit": 0.25,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:mossy_stone_brick_stairs",
+    "bundle": 16,
+    "price": 15,
+    "unit": 0.938,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:mossy_stone_brick_slab",
+    "bundle": 16,
+    "price": 5,
+    "unit": 0.312,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:cobblestone_wall",
+    "bundle": 16,
+    "price": 12,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:stone_brick_wall",
+    "bundle": 16,
+    "price": 12,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:brick_wall",
+    "bundle": 16,
+    "price": 12,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:mud_brick_wall",
+    "bundle": 16,
+    "price": 12,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:deepslate_brick_wall",
+    "bundle": 16,
+    "price": 12,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "계단·반블록",
+    "item": "minecraft:tuff_brick_wall",
+    "bundle": 16,
+    "price": 12,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:oak_door",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:oak_trapdoor",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:oak_fence",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:oak_fence_gate",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:spruce_door",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:spruce_trapdoor",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:spruce_fence",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:spruce_fence_gate",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:birch_door",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:birch_trapdoor",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:birch_fence",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:birch_fence_gate",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:jungle_door",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:jungle_trapdoor",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:jungle_fence",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:jungle_fence_gate",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:acacia_door",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:acacia_trapdoor",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:acacia_fence",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:acacia_fence_gate",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:dark_oak_door",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:dark_oak_trapdoor",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:dark_oak_fence",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:dark_oak_fence_gate",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:mangrove_door",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:mangrove_trapdoor",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:mangrove_fence",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:mangrove_fence_gate",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:cherry_door",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:cherry_trapdoor",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:cherry_fence",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:cherry_fence_gate",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:pale_oak_door",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:pale_oak_trapdoor",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:pale_oak_fence",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:pale_oak_fence_gate",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:glass_pane",
+    "bundle": 16,
+    "price": 8,
+    "unit": 0.5,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:white_stained_glass_pane",
+    "bundle": 16,
+    "price": 10,
+    "unit": 0.625,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:orange_stained_glass_pane",
+    "bundle": 16,
+    "price": 10,
+    "unit": 0.625,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:magenta_stained_glass_pane",
+    "bundle": 16,
+    "price": 10,
+    "unit": 0.625,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:light_blue_stained_glass_pane",
+    "bundle": 16,
+    "price": 10,
+    "unit": 0.625,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:yellow_stained_glass_pane",
+    "bundle": 16,
+    "price": 10,
+    "unit": 0.625,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:lime_stained_glass_pane",
+    "bundle": 16,
+    "price": 10,
+    "unit": 0.625,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:pink_stained_glass_pane",
+    "bundle": 16,
+    "price": 10,
+    "unit": 0.625,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:gray_stained_glass_pane",
+    "bundle": 16,
+    "price": 10,
+    "unit": 0.625,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:light_gray_stained_glass_pane",
+    "bundle": 16,
+    "price": 10,
+    "unit": 0.625,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:cyan_stained_glass_pane",
+    "bundle": 16,
+    "price": 10,
+    "unit": 0.625,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:purple_stained_glass_pane",
+    "bundle": 16,
+    "price": 10,
+    "unit": 0.625,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:blue_stained_glass_pane",
+    "bundle": 16,
+    "price": 10,
+    "unit": 0.625,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:brown_stained_glass_pane",
+    "bundle": 16,
+    "price": 10,
+    "unit": 0.625,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:green_stained_glass_pane",
+    "bundle": 16,
+    "price": 10,
+    "unit": 0.625,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:red_stained_glass_pane",
+    "bundle": 16,
+    "price": 10,
+    "unit": 0.625,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:black_stained_glass_pane",
+    "bundle": 16,
+    "price": 10,
+    "unit": 0.625,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:iron_bars",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": "녹여 되돌릴 수 없음"
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:ladder",
+    "bundle": 16,
+    "price": 8,
+    "unit": 0.5,
+    "note": ""
+   },
+   {
+    "category": "문·창·울타리",
+    "item": "minecraft:iron_chain",
+    "bundle": 8,
+    "price": 8,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:torch",
+    "bundle": 16,
+    "price": 8,
+    "unit": 0.5,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:lantern",
+    "bundle": 1,
+    "price": 6,
+    "unit": 6.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:soul_lantern",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:candle",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:sea_lantern",
+    "bundle": 1,
+    "price": 10,
+    "unit": 10.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:glowstone",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:shroomlight",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:ochre_froglight",
+    "bundle": 1,
+    "price": 10,
+    "unit": 10.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:pearlescent_froglight",
+    "bundle": 1,
+    "price": 10,
+    "unit": 10.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:verdant_froglight",
+    "bundle": 1,
+    "price": 10,
+    "unit": 10.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:redstone_lamp",
+    "bundle": 1,
+    "price": 10,
+    "unit": 10.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:campfire",
+    "bundle": 1,
+    "price": 10,
+    "unit": 10.0,
+    "note": "모닥불은 장식 (화덕은 따로)"
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:white_candle",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:orange_candle",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:magenta_candle",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:light_blue_candle",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:yellow_candle",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:lime_candle",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:pink_candle",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:gray_candle",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:light_gray_candle",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:cyan_candle",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:purple_candle",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:blue_candle",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:brown_candle",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:green_candle",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:red_candle",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "빛",
+    "item": "minecraft:black_candle",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:chest",
+    "bundle": 1,
+    "price": 5,
+    "unit": 5.0,
+    "note": "상자 수 한도에 셈"
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:barrel",
+    "bundle": 1,
+    "price": 5,
+    "unit": 5.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:crafting_table",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:furnace",
+    "bundle": 1,
+    "price": 5,
+    "unit": 5.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:smoker",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:bookshelf",
+    "bundle": 1,
+    "price": 15,
+    "unit": 15.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:lectern",
+    "bundle": 1,
+    "price": 12,
+    "unit": 12.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:loom",
+    "bundle": 1,
+    "price": 6,
+    "unit": 6.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:cartography_table",
+    "bundle": 1,
+    "price": 6,
+    "unit": 6.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:stonecutter",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:smithing_table",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:grindstone",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:composter",
+    "bundle": 1,
+    "price": 4,
+    "unit": 4.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:note_block",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:item_frame",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:painting",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:armor_stand",
+    "bundle": 1,
+    "price": 12,
+    "unit": 12.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:flower_pot",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:hopper",
+    "bundle": 1,
+    "price": 40,
+    "unit": 40.0,
+    "note": "집마다 8개까지"
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:cauldron",
+    "bundle": 1,
+    "price": 20,
+    "unit": 20.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:water_bucket",
+    "bundle": 1,
+    "price": 30,
+    "unit": 30.0,
+    "note": "집 안에서만 부을 수 있음"
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:white_bed",
+    "bundle": 1,
+    "price": 20,
+    "unit": 20.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:orange_bed",
+    "bundle": 1,
+    "price": 20,
+    "unit": 20.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:magenta_bed",
+    "bundle": 1,
+    "price": 20,
+    "unit": 20.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:light_blue_bed",
+    "bundle": 1,
+    "price": 20,
+    "unit": 20.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:yellow_bed",
+    "bundle": 1,
+    "price": 20,
+    "unit": 20.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:lime_bed",
+    "bundle": 1,
+    "price": 20,
+    "unit": 20.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:pink_bed",
+    "bundle": 1,
+    "price": 20,
+    "unit": 20.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:gray_bed",
+    "bundle": 1,
+    "price": 20,
+    "unit": 20.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:light_gray_bed",
+    "bundle": 1,
+    "price": 20,
+    "unit": 20.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:cyan_bed",
+    "bundle": 1,
+    "price": 20,
+    "unit": 20.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:purple_bed",
+    "bundle": 1,
+    "price": 20,
+    "unit": 20.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:blue_bed",
+    "bundle": 1,
+    "price": 20,
+    "unit": 20.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:brown_bed",
+    "bundle": 1,
+    "price": 20,
+    "unit": 20.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:green_bed",
+    "bundle": 1,
+    "price": 20,
+    "unit": 20.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:red_bed",
+    "bundle": 1,
+    "price": 20,
+    "unit": 20.0,
+    "note": ""
+   },
+   {
+    "category": "가구·쓸모",
+    "item": "minecraft:black_bed",
+    "bundle": 1,
+    "price": 20,
+    "unit": 20.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:oak_sapling",
+    "bundle": 1,
+    "price": 10,
+    "unit": 10.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:spruce_sapling",
+    "bundle": 1,
+    "price": 10,
+    "unit": 10.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:birch_sapling",
+    "bundle": 1,
+    "price": 10,
+    "unit": 10.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:cherry_sapling",
+    "bundle": 1,
+    "price": 10,
+    "unit": 10.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:azalea",
+    "bundle": 1,
+    "price": 10,
+    "unit": 10.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:flowering_azalea",
+    "bundle": 1,
+    "price": 12,
+    "unit": 12.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:dandelion",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:poppy",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:blue_orchid",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:allium",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:azure_bluet",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:red_tulip",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:orange_tulip",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:white_tulip",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:pink_tulip",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:oxeye_daisy",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:cornflower",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:lily_of_the_valley",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:sunflower",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:lilac",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:rose_bush",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:peony",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:pink_petals",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:short_grass",
+    "bundle": 1,
+    "price": 1,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:fern",
+    "bundle": 1,
+    "price": 1,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:moss_carpet",
+    "bundle": 16,
+    "price": 12,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:oak_leaves",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": "놓은 잎은 지지 않음"
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:cherry_leaves",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": "놓은 잎은 지지 않음"
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:azalea_leaves",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": "놓은 잎은 지지 않음"
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:hay_block",
+    "bundle": 1,
+    "price": 4,
+    "unit": 4.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:pumpkin",
+    "bundle": 1,
+    "price": 4,
+    "unit": 4.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:wheat_seeds",
+    "bundle": 16,
+    "price": 8,
+    "unit": 0.5,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:carrot",
+    "bundle": 16,
+    "price": 12,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:potato",
+    "bundle": 16,
+    "price": 12,
+    "unit": 0.75,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:beetroot_seeds",
+    "bundle": 16,
+    "price": 8,
+    "unit": 0.5,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:pumpkin_seeds",
+    "bundle": 1,
+    "price": 4,
+    "unit": 4.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:melon_seeds",
+    "bundle": 1,
+    "price": 4,
+    "unit": 4.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:sugar_cane",
+    "bundle": 8,
+    "price": 8,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:sweet_berries",
+    "bundle": 8,
+    "price": 8,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:bone_meal",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:wooden_hoe",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:stone_hoe",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:stone_shovel",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:stone_axe",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:stone_pickaxe",
+    "bundle": 1,
+    "price": 3,
+    "unit": 3.0,
+    "note": ""
+   },
+   {
+    "category": "정원",
+    "item": "minecraft:shears",
+    "bundle": 1,
+    "price": 10,
+    "unit": 10.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:white_carpet",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:white_banner",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:white_glazed_terracotta",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:orange_carpet",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:orange_banner",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:orange_glazed_terracotta",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:magenta_carpet",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:magenta_banner",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:magenta_glazed_terracotta",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:light_blue_carpet",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:light_blue_banner",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:light_blue_glazed_terracotta",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:yellow_carpet",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:yellow_banner",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:yellow_glazed_terracotta",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:lime_carpet",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:lime_banner",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:lime_glazed_terracotta",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:pink_carpet",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:pink_banner",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:pink_glazed_terracotta",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:gray_carpet",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:gray_banner",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:gray_glazed_terracotta",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:light_gray_carpet",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:light_gray_banner",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:light_gray_glazed_terracotta",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:cyan_carpet",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:cyan_banner",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:cyan_glazed_terracotta",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:purple_carpet",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:purple_banner",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:purple_glazed_terracotta",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:blue_carpet",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:blue_banner",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:blue_glazed_terracotta",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:brown_carpet",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:brown_banner",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:brown_glazed_terracotta",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:green_carpet",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:green_banner",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:green_glazed_terracotta",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:red_carpet",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:red_banner",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:red_glazed_terracotta",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:black_carpet",
+    "bundle": 16,
+    "price": 16,
+    "unit": 1.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:black_banner",
+    "bundle": 1,
+    "price": 8,
+    "unit": 8.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:black_glazed_terracotta",
+    "bundle": 16,
+    "price": 32,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:pointed_dripstone",
+    "bundle": 1,
+    "price": 2,
+    "unit": 2.0,
+    "note": ""
+   },
+   {
+    "category": "꾸밈",
+    "item": "minecraft:decorated_pot",
+    "bundle": 1,
+    "price": 15,
+    "unit": 15.0,
+    "note": "아이템 1묶음을 넣을 수 있음 → 상자 수 한도에 셈"
+   }
+  ]
+ },
+ "recovery": {
+  "home_regen": "내 집·초대받은 집 높이 창 안 + 5초 동안 피해 없음 + PvP 전투 아님 → 1초마다 최대 HP 5% (StatService.heal + DamageService.healAmount REGEN) + 최대 MP 5% (ClassService.restoreMana). 20초면 가득, 액션바 '집 — 쉬는 중'",
+  "bed_rest": "내 집 안 내 침대 우클릭 → 2초 (움직이거나 맞으면 끊김) → HP·MP 가득, 60초에 한 번. 바닐라 침대 동작(리스폰 지점·밤 넘기기)은 그대로",
+  "respawn": "바닐라 침대 그대로. 미궁 안 죽음·귀환은 기존 그대로 (DungeonManager 는 미궁 월드만 손댐)",
+  "home_teleport": "/미궁 집 가기 → 내 대문 바깥 거리 칸, 대문을 봄. 쿨다운 없음 (/미궁 마을 과 같음). 미궁·인스턴스·PvP 전투 중 거절. 광산 월드에서는 됨",
+  "visit": "/미궁 집 방문 <이름> → 그 집 대문 바깥 칸 (손님 허용 꺼짐이면 거절)",
+  "dungeon_effect": "없음 — 주 월드 집터 안에서만, 미궁으로 넘어가는 버프 없음"
+ },
+ "storage": {
+  "containers": "주인·초대만, 개수 한도 없음 (상자는 틱을 안 씀)",
+  "tick_parts": "집터당 16 (깔때기 8)",
+  "ender_chest": "팔지 않음, 어디서나 쓸 수 있음",
+  "legacy_chests": "집터 밖 옛 상자는 계속 열림",
+  "parcels": "비우기·회수 때 '맡긴 짐' — 관리인 [맡긴 짐] 탭 · /미궁 집 짐, 45칸 쪽 넘김 + 모두 받기",
+  "existing_plugin_storage": "없음 (플러그인 창고 기능 없음)"
+ },
+ "data": {
+  "district_meta": "<월드>/labyrinth-district-homes.yml — 광산 DistrictMeta 형식 + plots:[{id, box, pad_y, window_y, front, gate, sign, home}] + safe:[상자]",
+  "district_backup": "<월드>/labyrinth-district-homes.backup.gz",
+  "ownership": "<월드>/labyrinth-plots.yml — format 1 · district_build · lock{state, started_at} · plots{<id>: owner, owner_name, name, trusted[], guests, claimed_at, starter, custom?} · vacated{uuid: 시각}",
+  "parcels": "plugins/Labyrinth/plots/parcels/<uuid>.yml — state pending|ready, items[base64 serializeAsBytes], from_plot, created_at",
+  "legacy_report": "plugins/Labyrinth/plots/legacy.txt",
+  "player_ext": [
+   "plots.starter_used",
+   "plots.grace_notice",
+   "plots.rest_at"
+  ],
+  "why_world_folder": "월드를 백업·되돌리면 집터 주인도 같이 맞음. jar 만 바꾸면 그대로. district build_id 가 바뀌면 소유는 지키고 경고만"
+ },
+ "commands": {
+  "player": "/미궁 집 (/lab home, /lab 집): 메뉴 · 가기 · 받기 [번지] · 초대 <이름> · 내보내기 <이름> · 이름 <글> · 손님 [켬|끔] · 방문 <이름> · 짐 · 비우기 [확인] · 여기",
+  "admin": "/labadmin plot list · info [번지|이름] · tp <번지> · give <번지> <이름> · reclaim <번지|이름> · convert <이름> <x1> <z1> <x2> <z2> [y1 y2] · unconvert <번지> · lock <auto|on|off> · grace <일> · legacy · selftest",
+  "district": "/labadmin village district build homes [here|<x> <z>] [방향] [force] · district remove homes (광산 묶음 명령 재사용)"
+ },
+ "config": {
+  "enabled": true,
+  "terrain_lock": true,
+  "district": {
+   "auto_build": true,
+   "sites": [
+    "south_west"
+   ],
+   "notify_admins": true
+  },
+  "claim_cost": 0,
+  "max_trusted": 8,
+  "guests_default": true,
+  "height": {
+   "below": 6,
+   "above": 24
+  },
+  "foundation_depth": 8,
+  "reclaim_cooldown_minutes": 10,
+  "rename_cooldown_minutes": 5,
+  "inactive_days": 60,
+  "legacy_grace_days": 14,
+  "home_regen": {
+   "hp": 0.05,
+   "mp": 0.05,
+   "calm_seconds": 5
+  },
+  "bed_rest": {
+   "seconds": 2,
+   "cooldown_seconds": 60
+  },
+  "home_teleport": true,
+  "visit": true,
+  "starter": {
+   "cottage": true,
+   "kit": true
+  },
+  "tick_parts": {
+   "total": 16,
+   "hoppers": 8
+  },
+  "deny_place": [
+   "tnt",
+   "tnt_minecart",
+   "respawn_anchor",
+   "end_crystal",
+   "dispenser",
+   "lava_bucket",
+   "fire_charge"
+  ],
+  "shop_price_multiplier": 1.0,
+  "enter_actionbar": true,
+  "rule": "키가 없으면 코드 기본값 (0.3.2 규칙), plots: false 면 통째로 끔"
+ },
+ "menus": [
+  "EstateMenu (관리인·/미궁 집, 6줄): 내 집(가기·이름·손님·초대 목록·비우기) · 집 고르기 · 자재 · 맡긴 짐",
+  "ClaimMenu: 실제 배치 그대로 4×3 (1~4 / 5~8 / 9~12, 가운데 골목 칸) — 연두 빈 집 · 금색 내 집 · 흰색 초대받은 집 · 빨강 남의 집(주인 머리·이름) · 아무 데나",
+  "StarterMenu: 오두막 나무 4가지 / 꾸러미",
+  "TrustMenu (머리 클릭 = 내보내기)",
+  "BuildShopMenu (탭 9 + 쪽 넘김)",
+  "ParcelMenu",
+  "ConfirmMenu (받기·비우기)",
+  "메인 메뉴 52번 '집' (51 '마을' 옆) — 광산 버튼은 50번으로 맞춤"
+ ],
+ "selftest": {
+  "line": "[집 구역 자가 진단] 결과: 예외 0 · plots=12/12 · pads=12/12 · under=12/12 · gates=12/12 · signs=12/12 · homes_safe=12/12 · index=ok(2000/2000) · rules=ok(30/30) · owners=n · orphans=0 · over_cap=0 · npc=1/1 · lock=on · grace=n일 · border=ok · pvp_safe=ok",
+  "district_line": "광산과 같은 구역 블록 검사: checked mismatched=0 floating=0 tree_remnants=0 blocked_doors=0 path_steps=0 junction=ok (이음 칸 첫 칸과 길 1 칸 높이 차 ≤ 1)",
+  "meanings": {
+   "under": "터-1..-8 이 전부 고체(공기·물 0)",
+   "homes_safe": "집 가기 칸·머리 칸 공기 + 발밑 고체",
+   "index": "무작위 2000점 색인 = 전수",
+   "rules": "PlotRules 표를 가짜 칸·역할로 30개",
+   "over_cap": "틱 부품 한도 넘은 집터",
+   "border": "구역 상자가 지금 WorldBorder 안",
+   "pvp_safe": "집터 가운데가 PvP 안전"
+  },
+  "command": "/labadmin plot selftest (village selftest 끝에도 한 줄)"
+ },
+ "tests": {
+  "unit": [
+   "PlotIndexTest (무작위 10만 점 vs 전수, 청크 경계, 높이 창)",
+   "PlotRulesTest (권한 표 그대로)",
+   "TerrainLockClassifierTest",
+   "CrossZoneTest (흐름·피스톤·깔때기·자람·퍼짐·뼛가루)",
+   "GraceRuleTest (기간·UNNATURAL만)",
+   "TickPartsLimitTest",
+   "PlotStoreTest (yml 왕복·초대·custom)",
+   "ParcelTest (pending→ready, 두 번 받기 불가, 문·침대 반쪽, 큰 상자 반쪽씩)",
+   "PlotResetPlanTest (되돌린 칸 = 터 틀)",
+   "HomesLayoutTest (12채·안 겹침·대문마다 거리·이음 칸에서 모든 대문까지 BFS·마을/광산 east/SE 와 안 겹침·이음 칸이 길 1 에 붙음)",
+   "HousingCatalogTest (id 가 blockdata.json 에 있음·금지 0·원목 ≥ 판자×4·계단 ≥1.5배·반블록 ≥0.5배·값>0)",
+   "HomeRegenTest",
+   "HomeTeleportRuleTest",
+   "StarterCottageTest (14×14 뒤쪽 가운데에 들어감·앞 방향 둘 다 회전)",
+   "PlotsConfigDefaultsTest",
+   "BorderUnionTest (H0)",
+   "PvpZoneDistrictTest (H0)",
+   "PlannerOptionsTest (H0: max_fill·작은 물·기초 깊이)"
+  ],
+  "server": [
+   "0.3.5.x 월드 + 0.3.6 jar: 로그 '광산 마을 지음 (east)' 다음 '집 구역 지음 (south_west)', 자가 진단 예외 0, 경계 커짐, 잠금 켜짐, 이사 기간 안내",
+   "골목 칸에 판자 1개 놓은 복사본: 블록 변화 0 + district-homes-blocked.txt + 잠금 꺼짐",
+   "다시 켜도 그대로 (built)",
+   "짓는 중 서버 멈춤 → 다음 시작 때 백업으로 되돌린 뒤 다시",
+   "손·봇 2명: 받기→오두막→초대→친구 상자 열기→남 막힘→생울타리 너머 깔때기·물 막힘→비우기→맡긴 짐→다시 받기",
+   "옛 건물: 이사 기간 안 판자 부수기 O·돌 X, 기간 뒤 X·상자 열기 O"
+  ]
+ },
+ "apply_existing_world": {
+  "path": "광산 설계의 구역 짓기 길(DistrictBuilder·DistrictMeta·DistrictBackup)을 구역 id homes 로 재사용",
+  "steps": [
+   "1 언제: VillageService 가 마을 메타를 읽은 뒤, 광산 구역 작업이 끝났거나(built) 막혔고, labyrinth-district-homes.yml 이 없고 plots.district.auto_build 면 시작 10초 뒤 (VillageJob 은 한 번에 하나). 지어질 때까지 시작할 때마다 한 번 다시 검사",
+   "2 배치: jar village/districts/homes.json (마을 좌표) → 이 월드 마을 회전으로 월드 좌표 (배포 월드에서 나온 서버는 같은 자리)",
+   "3 마스크: 조각·길 + R 2, 띠 B 4. 얼린 칸 = 마을 보호 상자·마을 길·광산 구역 상자·길",
+   "4 검사 (비동기 ChunkSnapshot): UNNATURAL 블록(땅 위 + 땅속 10칸) · 지표 물·용암(단 닫힌 작은 물 ≤ 8칸은 메움 — 우물길 2×2) · 깎기 > 4 (집터 터는 구덩이 메우기 12칸까지) · 엔티티(거치대·액자·이름표/길들인 동물) · 광산 구역과 겹침",
+   "5 통과: 마스크 안 플레이어 광장으로 → 원래 블록 백업 → state building → 나무 → 지형(터·구덩이·터 아래 8칸 정리) → 조각(울타리·생울타리·대문 기둥·노점·등불·우물·벤치·길잡이) → 길(거리·골목·이음 칸) → 표지판 → state built → 관리인 배치(village-applied.yml districts.homes) → 빈 labyrinth-plots.yml → VillageService 덧씌움 → 집터 색인 → WildService 경계 다시 계산 → PvP 안전 파일 다시 읽음 → 잠금 켬(lock.started_at) → 옛 건물 조사",
+   "6 막힘: 블록 0개 바꿈. plugins/Labyrinth/village/district-homes-blocked.txt (이유·좌표 20개), 관리자 접속 때 하루 한 번. 잠금은 꺼진 채. 관리자: 막는 블록 치우고 다시 켜기 · district build homes here · plot convert (+ plot lock on)",
+   "7 같은 일 두 번 안 함: built → 건너뜀. building 으로 꺼졌으면 백업으로 되돌린 뒤 처음부터",
+   "8 배포 world.zip: build_world.sh --base 에서 광산 다음 village district build homes south_west → village selftest + plot selftest → zip"
+  ],
+  "planner_options_needed": [
+   "조각별 max_fill (plot_pad 12) — 8번 싱크홀 11칸, 12번 움푹한 곳",
+   "닫힌 작은 물 메우기 fill_small_water_max (homes 8, 마을·광산 0)",
+   "foundation_depth (plot_pad 8 = 높이 창 6 + 2)"
+  ]
+ },
+ "performance": [
+  "색인: 청크 키 → 집터 목록 (12채 ≈ 청크 20개). 이벤트 = 월드 비교 + 해시 1번 + 상자 ≤ 4 비교 + UUID 집합",
+  "잦은 이벤트(흐름·퍼짐·깔때기): 주 월드 아니면 끝, 두 칸 청크 모두 집터 없으면 바로 허용(밖→밖)",
+  "PlayerMoveEvent·BlockPhysicsEvent 안 씀. 회복·들어설 때 글은 10틱 작업으로 주 월드 온라인(≤10명)만",
+  "틱 부품 세기는 놓을 때만. 비우기 = 14×14×(31+8) ≈ 7,644칸, 틱당 3,000 → 3틱. 옛 건물 조사 비동기 1회 (청크 약 144개)"
+ ],
+ "docs": [
+  "VILLAGE.md §8 집 구역 (자리·조각·검사·계획기 옵션)",
+  "GDD: 집·지형 잠금·자재·회복·맡긴 짐",
+  "ARCHITECTURE: kr.labyrinth.plots, 데이터 파일 4개, 이벤트 순서(LOW 잠금 → HIGH 마을)",
+  "README 업데이트 안내: 'jar 만 바꾸면 광산 다음 집 구역이 지어지고 14일 이사 기간. 막히면 관리자 안내'",
+  "config.yml plots: 주석",
+  "릴리스 노트"
+ ],
+ "owner_decisions": [
+  {
+   "n": 1,
+   "q": "집 구역 자리 = 마을 남쪽 '등불 골목' (x -179..-115, z 47..103)",
+   "rec": "예 — 광장에서 대문까지 81~133칸, 광산 east·south_east 둘 다와 안 겹침, 지표 사람 블록 0"
+  },
+  {
+   "n": 2,
+   "q": "12채 × 14×14, 짓기 높이 터 -6 ~ +24",
+   "rec": "예 (최대 10명 + 2, 더 필요하면 convert)"
+  },
+  {
+   "n": 3,
+   "q": "집 값",
+   "rec": "공짜, 한 사람 한 집"
+  },
+  {
+   "n": 4,
+   "q": "고르기 vs 자동",
+   "rec": "지도에서 직접 + '아무 데나' 단추"
+  },
+  {
+   "n": 5,
+   "q": "시작 선물",
+   "rec": "작은 오두막(나무 4가지) 또는 집들이 꾸러미 중 하나, 한 번. 일정이 밀리면 꾸러미만 먼저"
+  },
+  {
+   "n": 6,
+   "q": "'회복' 뜻",
+   "rec": "내 집 안 5초 무피해 뒤 초당 HP·MP 5% + 내 침대 우클릭 2초 = 가득(60초에 한 번). 따로 화덕 아이템 없음"
+  },
+  {
+   "n": 7,
+   "q": "/미궁 집 가기",
+   "rec": "쿨다운 없음, 미궁·PvP 전투 중 불가 (/미궁 마을 과 같음). 친구 집 방문도 됨"
+  },
+  {
+   "n": 8,
+   "q": "친구 초대",
+   "rec": "명시 초대만, 8명, 권한 한 단계. 파티 자동 허용 없음"
+  },
+  {
+   "n": 9,
+   "q": "손님(초대 안 한 사람)",
+   "rec": "문·작업대·종만 (집마다 끌 수 있음). 상자·블록·버튼은 못 만짐"
+  },
+  {
+   "n": 10,
+   "q": "비우기·관리자 회수 때 블록·상자",
+   "rec": "상자 속 아이템 + 사람이 놓은 블록 1:1 → 맡긴 짐. 골드 환불 없음, 집 통째 되살리기 없음"
+  },
+  {
+   "n": 11,
+   "q": "오래 안 오는 주인",
+   "rec": "목록에 표시만(60일), 자동 회수 없음 — 관리자 reclaim (짐은 주인 몫)"
+  },
+  {
+   "n": 12,
+   "q": "지형 잠금 범위",
+   "rec": "주 월드 전체. 집터 밖 부수기·놓기·양동이·불·괭이·뼛가루·밭 밟기·엔티티 놓기 금지, 문·상자 쓰기는 됨. 크리에이티브 관리자 예외"
+  },
+  {
+   "n": 13,
+   "q": "라이브 서버의 집터 밖 옛 건물",
+   "rec": "지우지 않음 + 잠금 + 14일 이사 기간(사람이 놓은 블록만 부수기 — 누구 것인지 기록이 없어 누구나) + 상자는 계속 열림 + 관리자 convert. 걱정되면 legacy_grace_days: 0"
+  },
+  {
+   "n": 14,
+   "q": "광산 부산물(돌·심층암)로 자재 주기",
+   "rec": "v1 안 함 — 광산의 '바닐라 드롭 없음' 유지, 자재는 관리인 상점"
+  },
+  {
+   "n": 15,
+   "q": "자재 상점",
+   "rec": "관리인 한 명, 바닐라 블록 386가지, 한 칸 0.25~1G, 금속·레드스톤·폭발물·피스톤·레일 없음"
+  },
+  {
+   "n": 16,
+   "q": "레드스톤·장치",
+   "rec": "TNT·발사기·용암 금지, 피스톤·깔때기·관측기·공급기·제작기 합 16 (깔때기 8)"
+  },
+  {
+   "n": 17,
+   "q": "폭발·불 번짐",
+   "rec": "주 월드 블록 피해 없음"
+  },
+  {
+   "n": 18,
+   "q": "네더·엔드 (원래 요청 '막기', 0.3.5.1 커밋 09effdcb 은 '그대로 둠'으로 확정)",
+   "rec": "집 설계는 둘 다 동작. 0.3.5.1 확정(안 막음)을 따르되 주인 확인 한 줄. 열어 두면 네더 블록이 공짜 자재가 되지만 바닐라는 팔 수 없어 미궁 경제와 안 섞임. 잠금 의미를 끝까지 지키려면 막기"
+  },
+  {
+   "n": 19,
+   "q": "골드 쓸 곳(업그레이드)",
+   "rec": "v1 없음 (높이 창은 처음부터 다 줌). 원하면 다음 판에 꾸밈만"
+  },
+  {
+   "n": 20,
+   "q": "13번째 집부터",
+   "rec": "관리자 convert"
+  },
+  {
+   "n": 21,
+   "q": "남쪽 들판에 이미 플레이어 건물이 있는 서버",
+   "rec": "자동 짓기 막힘(블록 0 바뀜, 잠금 꺼짐) → 관리자가 치우거나 here/convert. A안 남동 띠를 둘째 자리로 더하는 건 다음 판 선택"
+  }
+ ],
+ "packages": {
+  "depends_on": "광산 묶음의 구역 짓기 길 (Planner 마스크·얼린 칸, DistrictLibrary/Builder/Meta/Backup, VillageService 덧씌움, village district 명령) = 이하 M-district",
+  "order": [
+   "M-district + H0",
+   "H1 ∥ H2",
+   "H3 ∥ H4",
+   "H5",
+   "H6"
+  ],
+  "cuttable_if_late": [
+   "H5 시작 오두막 (꾸러미만 남김)",
+   "H5 옛 건물 조사 보고",
+   "H3 방문"
+  ],
+  "list": [
+   {
+    "id": "H0",
+    "name": "구역 공통 (광산 묶음에 같이 넣음 — 광산도 필요)",
+    "owner": "M-district 담당",
+    "files": [
+     "village/VillageService.java: allProtectBoxes() (마을 + 모든 구역 보호 상자), registerAction(prefix, handler) 등록부 (mine_lift·smelter·mine_info·estate·plot: 를 switch 대신)",
+     "village/WildService.java:121, :146, :483 — WildBorder.compute(village.meta(), m) 를 compute(center, radius, allProtectBoxes, m) 로 + 구역 지은 뒤 refresh(\"district\")",
+     "pvp/VillageZone.java: 주 월드 폴더의 labyrinth-district-*.yml safe 상자도 읽음 (10초 확인 그대로, 느슨한 연결)",
+     "village/Planner.java·HeightField: 조각별 max_fill, fill_small_water_max, foundation_depth (기본값 = 지금 동작)"
+    ],
+    "why": "0.3.5.1 경계를 마을만으로 계산하면 x ≤ -68 → 광산 마을 승강장(x -72..-60)·하치장이 밖, 2초마다 광장으로 튕김. 광산 마을 x > -90 도 PvP 원(반경 45) 밖",
+    "tests": [
+     "BorderUnionTest",
+     "PvpZoneDistrictTest",
+     "PlannerOptionsTest"
+    ],
+    "selftest": "village selftest 에 border=ok · pvp_safe=ok (구역마다)"
+   },
+   {
+    "id": "H1",
+    "name": "집 구역 청사진·짓기",
+    "needs": [
+     "M-district",
+     "H0"
+    ],
+    "files": [
+     "tools/village/pieces_homes.py (조각 + districts/homes.json 쓰기·검사)",
+     "resources/village/districts/homes.json (자리 south_west, 마을 좌표)",
+     "resources/village/pieces/plot_pad.json (14×14 터 + 위 24 공기 + 아래 8 정리, max_fill 12, foundation_depth 8) · plot_gatepost.json · hedge·fence 줄 · keeper_stall.json · lamp_post_small.json · signpost_home.json (well·bench 는 재사용)",
+     "village/DistrictLibrary 에 homes 한 줄 · config plots.district",
+     "tools/build_world.sh: 광산 다음 homes 한 줄"
+    ],
+    "tests": [
+     "HomesLayoutTest"
+    ],
+    "selftest": "구역 블록 검사 줄 (junction = 이음 칸 ↔ 길 1)",
+    "docs": "VILLAGE.md §8"
+   },
+   {
+    "id": "H2",
+    "name": "집터 핵심 (색인·규칙·소유·잠금)",
+    "needs": [
+     "H0 (isProtected·allProtectBoxes)"
+    ],
+    "files": [
+     "새 패키지 kr.labyrinth.plots: PlotsModule · Plot(record) · PlotIndex(순수) · PlotRules(순수) · PlotStore(labyrinth-plots.yml) · PlotGuard(경계 넘는 것 리스너) · TerrainLock(LOW 리스너) · Grace(순수) · TickParts",
+     "core/Settings.java: Plots 설정 읽기 (키 없으면 기본값)",
+     "LabyrinthPlugin: 모듈 순서 Village → Mine → Plots"
+    ],
+    "tests": [
+     "PlotIndexTest",
+     "PlotRulesTest",
+     "TerrainLockClassifierTest",
+     "CrossZoneTest",
+     "GraceRuleTest",
+     "TickPartsLimitTest",
+     "PlotStoreTest",
+     "PlotsConfigDefaultsTest"
+    ],
+    "note": "convert 만으로 돌릴 수 있어 H1 과 같이 진행 가능"
+   },
+   {
+    "id": "H3",
+    "name": "플레이어 기능",
+    "needs": [
+     "H2"
+    ],
+    "files": [
+     "plots: PlotService(받기·초대·이름·손님) · HomeCare(회복·침대 쉬기) · HomeTravel(가기·방문) · PlotSigns · EnterNotice · PlotCommands(플레이어) · menus/EstateMenu·ClaimMenu·TrustMenu·ConfirmMenu",
+     "ui/menus/MainMenu.java 52번 '집'",
+     "mobs/npc/NpcServiceImpl.java role estate → EstateMenu",
+     "core/ContentValidator.java NPC_ROLES + estate",
+     "content/npcs.yml estate_keeper (마을 관리인 모아, 스킨 coat·short_bob·key_ring·scarf·lantern_belt)",
+     "VillageService.registerAction(\"plot:\"·\"estate\") 호출만"
+    ],
+    "tests": [
+     "HomeRegenTest",
+     "HomeTeleportRuleTest"
+    ]
+   },
+   {
+    "id": "H4",
+    "name": "자재 상점",
+    "needs": [
+     "H3 (EstateMenu)"
+    ],
+    "files": [
+     "content/housing.yml (386줄, 자동 갱신 대상)",
+     "tools/plots/gen_housing.py (design_rich 목록 → yml, blockdata.json·금지 목록 검사)",
+     "plots/HousingCatalog (파싱) + ContentValidator 검사",
+     "plots/menus/BuildShopMenu (탭 9·쪽 넘김·골드 먼저 빼고 환불)"
+    ],
+    "tests": [
+     "HousingCatalogTest"
+    ]
+   },
+   {
+    "id": "H5",
+    "name": "비우기·맡긴 짐·관리자·옛 건물·시작 선물·자가 진단",
+    "needs": [
+     "H3"
+    ],
+    "files": [
+     "plots: PlotReset(틱 분할) · ParcelStore · menus/ParcelMenu · StarterGift(+ resources/village/pieces/starter_cottage.json, 나무 팔레트 4) · menus/StarterMenu · LegacyReport(비동기) · PlotAdminCommands · PlotSelfTest"
+    ],
+    "tests": [
+     "ParcelTest",
+     "PlotResetPlanTest",
+     "StarterCottageTest"
+    ],
+    "selftest": "[집 구역 자가 진단] 줄"
+   },
+   {
+    "id": "H6",
+    "name": "문서·서버 시험",
+    "needs": [
+     "H1..H5"
+    ],
+    "files": [
+     "VILLAGE.md §8",
+     "GDD",
+     "ARCHITECTURE",
+     "README",
+     "config.yml 주석",
+     "릴리스 노트"
+    ],
+    "tests": [
+     "서버 시험 6가지 (tests.server)"
+    ]
+   }
+  ],
+  "shared_files_with_mine": [
+   {
+    "file": "village/VillageService.java",
+    "rule": "M-district 가 덧씌움 + registerAction 을 넣고, 집은 등록만 (줄 충돌 없음)"
+   },
+   {
+    "file": "mobs/npc/NpcServiceImpl.java · core/ContentValidator.java",
+    "rule": "광산(miner·smelter) 먼저, 집(estate) 다음 — 같은 줄이라 차례로 합침"
+   },
+   {
+    "file": "ui/menus/MainMenu.java",
+    "rule": "광산 = 50번, 집 = 52번 (51 마을 양옆)"
+   },
+   {
+    "file": "config.yml · npcs.yml",
+    "rule": "mine: / plots: 따로 된 묶음, NPC 따로 된 항목"
+   },
+   {
+    "file": "LabyrinthPlugin.java",
+    "rule": "모듈 순서 Village → Mine → Plots"
+   },
+   {
+    "file": "tools/build_world.sh",
+    "rule": "광산 줄 다음 집 줄"
+   },
+   {
+    "file": "VILLAGE.md",
+    "rule": "광산 §7, 집 §8"
+   }
+  ]
+ },
+ "risks": [
+  "M-district 가 먼저 들어가야 함. 늦으면 H2·H3 은 convert 집터로만 시험 (잠금은 관리자 lock on 일 때만)",
+  "라이브 서버 남쪽 들판에 플레이어 건물이 있으면 자동 짓기가 막힘 (안전하게 아무것도 안 바뀜) — 관리자 손이 필요",
+  "계획기 옵션 3개(max_fill·작은 물·기초 깊이)가 새로 필요 — 기본값은 지금 동작이라 마을·광산은 그대로",
+  "이사 기간에는 누구나 남의 옛 건물 판자를 부술 수 있음 (주인 기록 없음) — 친구 서버 전제, 싫으면 0일",
+  "0.3.5.1 경계·네더/엔드는 /home/user/w-wild 커밋 09effdcb — 0.3.6 에 합칠 때 WildService 의 compute(village.meta(), …) 세 곳(:121, :146, :483)을 H0 으로 바꿨는지 확인",
+  "골드 수입은 추정 (B안 1회 골드는 판매 제외, materials_spec 1분당은 판매 포함) — 값 배율로 조정",
+  "터 아래 8칸 정리로 8·12번 밑 동굴은 막지만 더 아래 동굴은 남음 (높이 창 밖이라 잠김, 0.3.5.1 이 자연 스폰 막음)"
+ ],
+ "files": {
+  "dir": "design036/plots/",
+  "final": [
+   "plots_spec.md",
+   "plots_spec.json",
+   "plan_final.txt",
+   "plan_final.png",
+   "plan_final_zoom.png"
+  ],
+  "inputs": [
+   "design_simple.md/json",
+   "design_rich.md/json",
+   "plan_rich_layout.json",
+   "../mine_spec.json"
+  ],
+  "tools": [
+   "tools/judge_checks.py (골목·겹침·국경·거리)",
+   "tools/judge_under.py (터 아래 8칸 정리량)",
+   "tools/judge_plan.py (최종 평면도)",
+   "tools/judge_build_spec.py + tools/judge_finish_spec.py (이 JSON)",
+   "그림: tools/rich_render_site.py 재사용"
+  ],
+  "work": "work_judge/ (checks.json · under.json · plan_final_layout.json · plots_spec_base.json)"
+ },
+ "note10": "3번(R1: 마을이 다듬은 칸 위)·9번(광장에서 가장 멂, 깎기 179칸) 뺌 → 1..10 다시 번호. 옛 번호 = old_id"
+}

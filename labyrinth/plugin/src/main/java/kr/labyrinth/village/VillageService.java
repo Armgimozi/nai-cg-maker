@@ -540,15 +540,15 @@ public final class VillageService implements Listener {
         if (isProtected(en.getLocation().getBlock()) && !bypass(e.getPlayer())) e.setCancelled(true);
     }
 
-    /** 마을 안에서 그대로 쓸 수 있는 블록: 문·다락문·울타리 문·종·작업대·침대. */
-    static boolean allowedUse(Material m) {
+    /** 마을 안에서 그대로 쓸 수 있는 블록: 문·다락문·울타리 문·종·작업대·침대. (0.3.7 집 구역 지형 잠금도 씀) */
+    public static boolean allowedUse(Material m) {
         String n = m.name();
         return n.endsWith("_DOOR") || n.endsWith("_TRAPDOOR") || n.endsWith("_FENCE_GATE") || n.endsWith("_BED")
                 || m == Material.BELL || m == Material.CRAFTING_TABLE;
     }
 
-    /** 블록을 바꾸는 손 도구 (괭이·삽·도끼·가위·뼛가루·밀랍·부싯돌·양동이·염료 등). */
-    static boolean changesBlocks(Material m) {
+    /** 블록을 바꾸는 손 도구 (괭이·삽·도끼·가위·뼛가루·밀랍·부싯돌·양동이·염료 등). (0.3.7 집 구역 지형 잠금도 씀 — review R19) */
+    public static boolean changesBlocks(Material m) {
         String n = m.name();
         return n.endsWith("_HOE") || n.endsWith("_SHOVEL") || n.endsWith("_AXE") || n.endsWith("BUCKET") || n.endsWith("_DYE")
                 || m == Material.SHEARS || m == Material.BRUSH || m == Material.BONE_MEAL || m == Material.HONEYCOMB
@@ -573,7 +573,12 @@ public final class VillageService implements Listener {
                 case kr.labyrinth.mine.MineNames.INTERACT_OFFICE -> s.mine().openOffice(p);
                 case kr.labyrinth.mine.MineNames.INTERACT_SMELTER -> s.crafting().openSmelter(p);
                 case kr.labyrinth.mine.MineNames.INTERACT_INFO -> s.mine().openInfo(p);
-                default -> s.menus().openMain(p);
+                // 0.3.7 집 구역: 관리인 노점 · 대문 표지판 (plot:<번지>) — 메뉴는 집 모듈이 연다
+                case "estate" -> s.homes().openEstate(p);
+                default -> {
+                    if (action.regionMatches(true, 0, "plot:", 0, 5)) s.homes().openPlotSign(p, action.substring(5));
+                    else s.menus().openMain(p);
+                }
             }
             p.playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.6f, 1.4f);
         } catch (Throwable t) {

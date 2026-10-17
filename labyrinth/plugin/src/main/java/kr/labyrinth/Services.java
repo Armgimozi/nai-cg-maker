@@ -93,6 +93,7 @@ public final class Services {
     private volatile HudService hud;
     private volatile MenuService menus;
     private volatile kr.labyrinth.mine.MineApi mine = new kr.labyrinth.mine.NoopMineApi();
+    private volatile kr.labyrinth.homes.HomesApi homes = new kr.labyrinth.homes.NoopHomesApi();
 
     Services(LabyrinthPlugin plugin) {
         this.plugin = plugin;
@@ -226,6 +227,8 @@ public final class Services {
     public MenuService menus() { return menus; }
     /** 광산 (0.3.6, Q1 MineModule 이 교체 — 기본 = 꺼진 광산). */
     public kr.labyrinth.mine.MineApi mine() { return mine; }
+    /** 집 구역·지형 잠금 (0.3.7, HomesModule 이 교체 — 기본 = 집 기능 없음, 아무것도 막지 않음). */
+    public kr.labyrinth.homes.HomesApi homes() { return homes; }
 
     // ── 팀 계약 setter (담당 모듈 enable 에서 호출) ───────────────────────
 
@@ -253,6 +256,7 @@ public final class Services {
 
     public void setMenus(MenuService s) { menus = Objects.requireNonNull(s); }
     public void setMine(kr.labyrinth.mine.MineApi s) { mine = Objects.requireNonNull(s); }
+    public void setHomes(kr.labyrinth.homes.HomesApi s) { homes = Objects.requireNonNull(s); }
 
     static void clear() { instance = null; }
 }
