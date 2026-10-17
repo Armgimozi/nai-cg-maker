@@ -10,7 +10,10 @@
   R3  램프는 색조를 민다: 그림자는 차갑게(파랑·보라 쪽), 밝은 쪽은 따뜻하게(노랑 쪽), 채도는 가운데가 가장 높다 → ramp().
   R4  빛은 왼쪽 위. 테두리 = 위·왼쪽은 램프 2번, 아래·오른쪽은 램프 0번. 검은 외곽선 없음 — 테두리도 그 물체 자기 색 → edge().
   R5  면은 평평한 덩어리, 밝은 모서리에만 1픽셀 하이라이트(램프 5번) → highlight(). 무작위 점 없음 (일부러 놓은 2~4픽셀 덩이만).
-  R6  같은 종류는 같은 틀 (광석·주괴·비늘·물약…) + 아이템마다 다른 색·표시. 단계는 색과 표시(tier_pips·sparkle)로 갈린다.
+      몸통에서 떨어진 덩이·반짝이 없음 (DETACHED_OK 로만 허용), 순백 4칸 이하, 칸 회색과 같은 무채색 몸통 10% 이하(경고).
+      UI 기호(화살표·+·하트 기호·방패 그림)를 물건에 그려 넣지 않는다 — 물건으로 보이게.
+  R6  같은 틀은 한 집안 안에서만 (주괴 6 · 같은 크기 물약 · 두루마리 · 깃털 — FAMILY). 다른 종류끼리 실루엣이 같으면 경고.
+      단계는 색과 크기로 갈린다.
   R7  지금 아이콘의 정체성은 그대로 두고 그림 규칙만 바꾼다.
 
 픽셀 지도 문법 (paint): 한 줄 16글자, 16줄. '.' 또는 ' ' = 비움 (덧칠 지도에서는 '그대로 둠').
@@ -41,6 +44,19 @@ from PIL import Image
 SIZE = 16
 MIN_COLOURS, MAX_COLOURS = 6, 16
 MAX_ISOLATED = 2          # 일부러 놓은 한 점 반짝임 허용 수 (그 이상 = speckle)
+MAX_WHITE = 4             # 순백(#ffffff) 칸 수 상한 (0.3.6.2 심사: 순백이 많으면 반들거리는 플라스틱처럼 보인다)
+# 몸통에서 떨어진 덩이(8방향으로 이어지지 않은 조각): 기본 0개. 일부러 떨어뜨린 것(흩날리는 가루 등)만 아이템 id 로 허용한다
+# (0.3.6.2 심사: 물체 밖에 떠 있는 "+" 반짝이·점이 바닐라 재료와 어긋났다).
+DETACHED_OK: dict[str, int] = {}
+# 칸 색(#8b8b8b, 밝기 139)과 같은 밝기의 무채색: 밝기 ±14 · 채도 0.18 미만인 칸이 몸통의 10% 를 넘으면 경고 (1배에서 칸 속으로 사라짐)
+SLOT_GREY_LUM, SLOT_GREY_TOL, SLOT_GREY_SAT, SLOT_GREY_MAX = 139, 14, 0.18, 0.10
+# 다른 종류끼리 실루엣이 같으면 경고: 모양 겹침(IoU) ≥ 0.85 이고 테두리 겹침(Dice) ≥ 0.75. 같은 틀을 같이 쓰는 집안은 FAMILY 로 묶는다
+# (style 로 등록한 그림은 그 style 이 집안 — 물약 크기 셋 · 두루마리).
+SHAPE_IOU, SHAPE_OUTLINE = 0.85, 0.75
+FAMILY: dict[str, str] = {
+    **{i: 'ingot' for i in ('copper_ingot', 'iron_ingot', 'silver_ingot', 'gold_ingot', 'mithril_ingot', 'orichalcum_ingot')},
+    **{i: 'feather' for i in ('librarian_quill', 'phoenix_feather')},
+}
 GROUPS = ('mine', 'organic', 'arcane', 'crafted', 'consumable')
 # True (0.3.6.2 통합 — 평면 아이콘 83개 모두 16px): validate.py 가 옛 32px 로 떨어진 평면 아이콘을 오류로 본다 (False 면 경고).
 REQUIRE_ALL_16 = True
@@ -284,35 +300,6 @@ def highlight(img, ramps, idx=5, length=None) -> Image.Image:
     return out
 
 
-def sparkle(img, x, y, core=WHITE, arm=None, size=1) -> Image.Image:
-    """4갈래 반짝임 (+ 모양 5칸, size=0 이면 한 점). 높은 단계·빛나는 재료 표시용."""
-    out = img.copy()
-    px = out.load()
-    pts = [(x, y, core)]
-    if size:
-        a = hx(arm) if arm is not None else core
-        pts += [(x + dx, y + dy, a) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))]
-    for (u, v, c) in pts:
-        if 0 <= u < SIZE and 0 <= v < SIZE:
-            px[u, v] = hx(c) + (255,)
-    return out
-
-
-def tier_pips(img, n, colour, corner='br', dark=None) -> Image.Image:
-    """단계 표시: 구석에 2×2 점 n개 (가로로). dark 를 주면 각 점 아래·오른쪽 칸을 그 색으로 (R4 그늘)."""
-    out = img.copy()
-    px = out.load()
-    c = hx(colour)
-    d = hx(dark) if dark is not None else c
-    for k in range(n):
-        x0 = SIZE - 3 - 3 * k if corner in ('br', 'tr') else 1 + 3 * k
-        y0 = SIZE - 3 if corner in ('br', 'bl') else 1
-        for dx, dy in ((0, 0), (1, 0), (0, 1)):
-            px[x0 + dx, y0 + dy] = c + (255,)
-        px[x0 + 1, y0 + 1] = d + (255,)
-    return out
-
-
 def recolour(img, mapping: dict) -> Image.Image:
     """색 바꾸기 (같은 틀 + 다른 램프): {옛 RGB: 새 RGB}. 틀 지도를 다른 램프로 칠할 때는 paint 를 다시 부르는 편이 낫다."""
     out = img.copy()
@@ -326,7 +313,7 @@ def recolour(img, mapping: dict) -> Image.Image:
     return out
 
 
-# ───────────────────────────── 규칙 검사 (check_rules.py · validate.py 가 같이 씀) ─────────────────────────────
+# ───────────────────────────── 규칙 검사 (validate.py 가 씀) ─────────────────────────────
 
 def colours(img) -> set:
     return {p[:3] for p in img.convert('RGBA').getdata() if p[3]}
@@ -351,8 +338,82 @@ def isolated(img) -> list[tuple[int, int]]:
     return out
 
 
-def check(img, frames_ok=True) -> list[str]:
-    """R1·R2·R4·R5 기계 검사 → 문제 목록 (빈 목록 = 통과). frames_ok: 16×(16k) 세로 띠(애니메이션) 허용."""
+def components(img) -> list[int]:
+    """불투명 칸의 8방향 연결 덩이 크기 (큰 것부터). [0] = 몸통, 나머지 = 떨어진 덩이."""
+    m = mask_of(img)
+    seen = [[False] * SIZE for _ in range(SIZE)]
+    sizes = []
+    for y0 in range(SIZE):
+        for x0 in range(SIZE):
+            if not m[y0][x0] or seen[y0][x0]:
+                continue
+            seen[y0][x0] = True
+            stack, n = [(x0, y0)], 0
+            while stack:
+                x, y = stack.pop()
+                n += 1
+                for dy in (-1, 0, 1):
+                    for dx in (-1, 0, 1):
+                        u, v = x + dx, y + dy
+                        if 0 <= u < SIZE and 0 <= v < SIZE and m[v][u] and not seen[v][u]:
+                            seen[v][u] = True
+                            stack.append((u, v))
+            sizes.append(n)
+    return sorted(sizes, reverse=True)
+
+
+def white_count(img) -> int:
+    return sum(1 for p in img.convert('RGBA').getdata() if p[3] and p[:3] == WHITE)
+
+
+def slot_grey_ratio(img) -> float:
+    """몸통 칸 가운데 칸 색과 구분되지 않는 무채색 비율 (SLOT_GREY_*)."""
+    px = [p for p in img.convert('RGBA').getdata() if p[3]]
+    if not px:
+        return 0.0
+    n = 0
+    for r, g, b, _ in px:
+        mx, mn = max(r, g, b), min(r, g, b)
+        sat = 0.0 if mx == 0 else (mx - mn) / mx
+        if abs(0.2126 * r + 0.7152 * g + 0.0722 * b - SLOT_GREY_LUM) <= SLOT_GREY_TOL and sat < SLOT_GREY_SAT:
+            n += 1
+    return n / len(px)
+
+
+def soft_check(img) -> list[str]:
+    """경고만 하는 검사 (빌드를 막지 않음): 칸 회색에 묻히는 몸통."""
+    r = slot_grey_ratio(img)
+    return [f'{r:.0%} of the body is slot-grey (lum {SLOT_GREY_LUM}±{SLOT_GREY_TOL}, sat < {SLOT_GREY_SAT}) — '
+            f'fades into the inventory slot'] if r > SLOT_GREY_MAX else []
+
+
+def silhouette_match(a, b) -> tuple[float, float]:
+    """두 그림의 (모양 겹침 IoU, 테두리 겹침 Dice) — 같은 자리에 놓고 잰다."""
+    ma, mb = mask_of(a), mask_of(b)
+    inter = sum(ma[y][x] and mb[y][x] for y in range(SIZE) for x in range(SIZE))
+    uni = sum(ma[y][x] or mb[y][x] for y in range(SIZE) for x in range(SIZE))
+
+    def rim(m):
+        return {(x, y) for y in range(SIZE) for x in range(SIZE) if m[y][x] and any(
+            not (0 <= x + dx < SIZE and 0 <= y + dy < SIZE) or not m[y + dy][x + dx]
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))}
+    ra, rb = rim(ma), rim(mb)
+    return (inter / uni if uni else 0.0), (2 * len(ra & rb) / (len(ra) + len(rb)) if ra or rb else 0.0)
+
+
+def family(iid, style) -> str:
+    """같은 틀을 같이 쓰는 집안 이름 (FAMILY → style 로 등록한 그림이면 그 style → 아이템 자신)."""
+    if iid in FAMILY:
+        return FAMILY[iid]
+    hit = lookup(iid, style)
+    if hit and hit[0] == style and style != iid:
+        return style
+    return iid
+
+
+def check(img, frames_ok=True, detached_ok=0) -> list[str]:
+    """R1·R2·R4·R5 기계 검사 → 문제 목록 (빈 목록 = 통과). frames_ok: 16×(16k) 세로 띠(애니메이션) 허용.
+    detached_ok: 몸통에서 떨어진 덩이를 몇 개까지 허용하는지 (DETACHED_OK, 기본 0)."""
     probs = []
     w, h = img.size
     if w != SIZE or (h != SIZE and not (frames_ok and h % SIZE == 0)):
@@ -387,6 +448,13 @@ def check(img, frames_ok=True) -> list[str]:
         iso = isolated(fr)
         if len(iso) > MAX_ISOLATED:
             probs.append(f'{tag}{len(iso)} isolated single pixels (speckle) at {iso[:6]}')
+        wc = white_count(fr)
+        if wc > MAX_WHITE:
+            probs.append(f'{tag}{wc} pure-white pixels (max {MAX_WHITE})')
+        parts = components(fr)
+        if len(parts) - 1 > detached_ok:
+            probs.append(f'{tag}{len(parts) - 1} detached piece(s) {parts[1:6]} (floating sparkle/dot; allowed {detached_ok} — '
+                         f'pixel_icons.DETACHED_OK)')
     return probs
 
 

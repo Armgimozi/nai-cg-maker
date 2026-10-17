@@ -203,10 +203,12 @@ def flat_icon_size(iid, it):
 
 
 def validate_icons(files, content, rep):
-    """0.3.6.2 평면 아이콘: 16px 손그림(pixel_icons)은 규칙 검사(크기·6~16색·반투명 0·검은 외곽선 0·speckle) 통과,
-    아직 옛 32px 인 것은 경고 (pixel_icons.REQUIRE_ALL_16 이면 오류). 도안은 layer1 봉인이 같은 크기·회색."""
+    """0.3.6.2 평면 아이콘: 16px 손그림(pixel_icons)은 규칙 검사(크기·6~16색·반투명 0·검은 외곽선 0·speckle·순백 4칸 이하·
+    떨어진 덩이 0 — pixel_icons.DETACHED_OK 만 예외) 통과, 아직 옛 32px 인 것은 경고 (pixel_icons.REQUIRE_ALL_16 이면 오류).
+    도안은 layer1 봉인이 같은 크기·회색. 경고만: 칸 회색에 묻히는 몸통, 다른 종류끼리 같은 실루엣 (pixel_icons.FAMILY 밖)."""
     from . import pixel_icons as PI
     n16, legacy = 0, []
+    shapes = []                      # (iid, 집안, layer0) — 다른 종류끼리 실루엣 겹침 경고용
     for iid, it in (content.get('items') or {}).items():
         want = flat_icon_size(iid, it)
         if want is None:
@@ -232,8 +234,11 @@ def validate_icons(files, content, rep):
                     rep.err(f'icon {iid}: {k} is {img.size} (pixel icons are {PI.SIZE}x{PI.SIZE})')
                     continue
                 if k == 'layer0':
-                    for prob in PI.check(img):
+                    for prob in PI.check(img, detached_ok=PI.DETACHED_OK.get(iid, 0)):
                         rep.err(f'icon {iid}: {prob} (pixel icon rules, src/pixel_icons/__init__.py)')
+                    for prob in PI.soft_check(img):
+                        rep.warnings.append(f'icon {iid}: {prob}')
+                    shapes.append((iid, PI.family(iid, (it.get('texture') or {}).get('style')), img))
                     continue
                 # 덧층 (도안 봉인): 반투명 없이 회색만 — 아이템 정의 tint 가 희귀도 색을 곱한다
                 if {a for *_, a in img.getdata()} - {0, 255}:
@@ -246,6 +251,17 @@ def validate_icons(files, content, rep):
                 rep.err(f'icon {iid}: legacy icon {imgs["layer0"].size} (want 32 wide)')
     rep.stats['icons_16px'] = n16
     rep.stats['icons_32px'] = len(legacy)
+    same = 0
+    for i, (a, fa, ia) in enumerate(shapes):
+        for b, fb, ib in shapes[i + 1:]:
+            if fa == fb:
+                continue
+            iou, rim = PI.silhouette_match(ia, ib)
+            if iou >= PI.SHAPE_IOU and rim >= PI.SHAPE_OUTLINE:
+                same += 1
+                rep.warnings.append(f'icons {a} / {b}: same silhouette (shape {iou:.2f}, outline {rim:.2f}) across kinds — '
+                                    f'draw a different shape or add both to pixel_icons.FAMILY')
+    rep.stats['icons_same_silhouette'] = same
     if legacy:
         msg = f'{len(legacy)} flat icon(s) still use the old 32px drawing (src/icons.py): ' + ', '.join(sorted(legacy)[:12]) + \
             (' …' if len(legacy) > 12 else '')
