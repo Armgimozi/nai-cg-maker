@@ -1,4 +1,4 @@
-"""Item pipeline: items.yml entry → 3D model (or 2D icon) + UV atlas (+ animation) + item definition."""
+"""Item pipeline: items.yml entry → 3D model (or 2D icon: 16px src/pixel_icons, else 32px src/icons) + UV atlas (+ animation) + item definition."""
 from __future__ import annotations
 
 import io
@@ -6,7 +6,7 @@ import json
 
 from PIL import Image
 
-from . import displays, effects, icons
+from . import displays, effects, icons, pixel_icons
 from . import shapes_armor as A
 from . import shapes_weapons as W
 from .materials import Look, RARITY_LEVEL, make_shader
@@ -226,19 +226,59 @@ def _blueprint(res, iid, look, seed, img0):
     res.files[seal_path] = png_bytes(g)
     res.files[f'assets/{NS}/models/item/{iid}.json'] = jdump(
         {'parent': 'minecraft:item/generated', 'textures': {'layer0': f'{NS}:item/{iid}', 'layer1': f'{NS}:item/{iid}_seal'}})
-    res.files[f'assets/{NS}/items/{iid}.json'] = jdump({'model': {
+    res.files[f'assets/{NS}/items/{iid}.json'] = jdump(_blueprint_item_def(iid))
+    res.previews.append((iid, None, None, _blueprint_preview(img0, g)))
+    return res
+
+
+def _blueprint_item_def(iid):
+    return {'model': {
         'type': 'minecraft:model', 'model': f'{NS}:item/{iid}',
         'tints': [{'type': 'minecraft:constant', 'value': -1},
-                  {'type': 'minecraft:custom_model_data', 'index': 0, 'default': BLUEPRINT_DEFAULT_TINT}]}})
+                  {'type': 'minecraft:custom_model_data', 'index': 0, 'default': BLUEPRINT_DEFAULT_TINT}]}}
+
+
+def _blueprint_preview(img0, seal):
+    """미리보기: 양피지 위에 봉인(회색)을 기본 희귀도 색으로 곱해 얹는다 (게임의 tint 와 같은 셈)."""
     prev = img0.copy()
     tint = ((BLUEPRINT_DEFAULT_TINT >> 16) & 255, (BLUEPRINT_DEFAULT_TINT >> 8) & 255, BLUEPRINT_DEFAULT_TINT & 255)
-    pp = prev.load()
-    for y in range(g.size[1]):
-        for x in range(g.size[0]):
+    pp, gp = prev.load(), seal.load()
+    for y in range(seal.size[1]):
+        for x in range(seal.size[0]):
             v, _, _, a = gp[x, y]
             if a:
                 pp[x, y] = (tint[0] * v // 255, tint[1] * v // 255, tint[2] * v // 255, 255)
-    res.previews.append((iid, None, None, prev))
+    return prev
+
+
+def _pixel_icon(res: ItemResult, iid, style, art, tex):
+    """0.3.6.2 16×16 손그림 아이콘 (src/pixel_icons): item/generated, layer0 (+ layer1… — 도안은 layer1 = 봉인),
+    프레임이 있으면 세로 띠 + mcmeta. 곡괭이·무기·방어구·장신구는 여기로 오지 않는다 (3D 모델)."""
+    tex_path = f'assets/{NS}/textures/item/{iid}.png'
+    if art.frames and len(art.frames) > 1:
+        res.files[tex_path] = png_bytes(strip(art.frames))
+        res.files[tex_path + '.mcmeta'] = jdump({'animation': {'frametime': int(art.frametime)}})
+        res.expect_frames[tex_path] = len(art.frames)
+        img0 = art.frames[0]
+    else:
+        if tex.get('animated'):
+            res.warnings.append(f'{iid}: animated icon but its pixel icon has no frames — static 16px icon')
+        res.files[tex_path] = png_bytes(art.img)
+        img0 = art.img
+    textures = {'layer0': f'{NS}:item/{iid}'}
+    for k, layer in enumerate(art.layers, start=1):
+        name = f'{iid}_seal' if style == 'blueprint' and k == 1 else f'{iid}_layer{k}'
+        res.files[f'assets/{NS}/textures/item/{name}.png'] = png_bytes(layer)
+        textures[f'layer{k}'] = f'{NS}:item/{name}'
+    res.files[f'assets/{NS}/models/item/{iid}.json'] = jdump({'parent': 'minecraft:item/generated', 'textures': textures})
+    if style == 'blueprint' and art.layers:
+        res.files[f'assets/{NS}/items/{iid}.json'] = jdump(_blueprint_item_def(iid))
+        res.previews.append((iid, None, None, _blueprint_preview(img0, art.layers[0])))
+        return res
+    if style == 'blueprint':
+        res.warnings.append(f'{iid}: blueprint pixel icon has no seal layer — no rarity tint')
+    res.files[f'assets/{NS}/items/{iid}.json'] = jdump(item_definition(iid))
+    res.previews.append((iid, None, None, img0))
     return res
 
 
@@ -258,6 +298,10 @@ def build_item(iid: str, it: dict) -> ItemResult:
 
     if kind == 'icon':
         style = tex.get('style')
+        art = pixel_icons.render(iid, style, tex.get('palette'), rarity, seed)
+        if art is not None:
+            return _pixel_icon(res, iid, style, art, tex)
+        # 아직 16px 그림이 없는 아이템: 옛 32px SDF 그림 (src/icons.py). 다 옮긴 뒤 pixel_icons.REQUIRE_ALL_16 = True
         if style not in icons.ICON_STYLES:
             res.warnings.append(f'{iid}: unknown icon style {style!r} → generic')
         ic = icons.Icon(look)

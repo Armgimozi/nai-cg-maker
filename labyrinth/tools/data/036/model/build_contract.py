@@ -370,9 +370,9 @@ def build_visual():
                             'pitch': round(0.9 + 0.1 * L['n'], 2)}, 'mood': L['mood']}
     icons = {}
     for i, (style, pal, new) in ICONS.items():
-        icons[i] = {'style': style, 'palette': pal, 'new_style': new, 'shape': 'icon', 'size': 32}
+        icons[i] = {'style': style, 'palette': pal, 'new_style': new, 'shape': 'icon', 'size': P.ICON_SIZE}
     for i, d in P.DROP_PARTS.items():   # 몹 주제 새 부위 (§0 결정 4) — 0.3.5 아이콘 모양 그대로
-        icons[i] = {'style': d['style'], 'palette': d['palette'], 'new_style': False, 'shape': 'icon', 'size': 32}
+        icons[i] = {'style': d['style'], 'palette': d['palette'], 'new_style': False, 'shape': 'icon', 'size': P.ICON_SIZE}
     picks = {}
     for i, (style, pal, anim, eff, budget, look) in PICKS.items():
         picks[i] = {'template': 'pickaxe', 'style': style, 'palette': pal, 'animated': anim, 'effect': eff, 'element_budget': budget,
@@ -445,7 +445,8 @@ def build_visual():
             'banned': '구역 장식에 광산 광석·보석 블록 12종 쓰지 않음 (헷갈림) — 원석 블록(raw_*_block)은 됨'},
         'pack_rules': ['새 아이콘 21개 (광석 6·주괴 6·보석 6·새 몬스터 재료 3) + 곡괭이 3D 6개 + 보석 블록 그림 6개 (0.3.6.1, 결정 모델 없음)', '옛 8개 id 는 새 그림 별칭 두 판',
                        '곡괭이 요소 예산 380/380/380/450/520/720', 'blockstates 6개(보석 블록) + labyrinth models/block·textures/block mine/gem_* 6개씩, 그 밖 0개',
-                       '메뉴 배경 gui_smelter·gui_mine_lift·gui_mine_office (glyphs.yml + ui.py)'],
+                       '메뉴 배경 gui_smelter·gui_mine_lift·gui_mine_office (glyphs.yml + ui.py)',
+                       f'평면 아이콘 {P.ICON_SIZE}×{P.ICON_SIZE} 손그림 (resourcepack/src/pixel_icons, 0.3.6.2) — 곡괭이는 3D 복셀 그대로'],
     }
 
 

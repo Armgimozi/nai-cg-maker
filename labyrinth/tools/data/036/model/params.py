@@ -95,6 +95,9 @@ MONSTER_NEW = {
     'clock_oil': {'name': '태엽 기름', 'rarity': 'uncommon', 'floor': 9, 'old': 'mainspring', 'old_ko': '태엽 용수철',
                   'lore': '태엽 짐승들의 관절에서 흘러나온 검은 기름. 식어도 굳지 않는다.'},
 }
+# 0.3.6.2 주인 결정 (아이콘 C "지금 모양 다듬기"): 평면 아이콘은 16×16 손그림 (resourcepack/src/pixel_icons — 한 칸 = 한 픽셀,
+# 바닐라 그림 규칙). visual.json icons.*.size 가 이 값이다. 곡괭이는 3D 복셀 그대로 (주인: "평면이 일그러져 보임").
+ICON_SIZE = 16
 # 몹 몸에 맞는 새 부위 6 (§0 결정 4 — drops_spec 검토판 §2, Q3 생성기가 드롭 단계에서 쓴다). 그림은 있던 아이콘 모양만 쓴다.
 DROP_PARTS = {
     'moss_scale': {'name': '이끼 비늘', 'rarity': 'common', 'floor': 1, 'style': 'scale',

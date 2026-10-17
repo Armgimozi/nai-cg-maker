@@ -436,7 +436,7 @@
    ],
    "new_style": false,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "iron_ore": {
    "style": "ore_nugget",
@@ -449,7 +449,7 @@
    ],
    "new_style": false,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "silver_ore": {
    "style": "ore_flake",
@@ -462,7 +462,7 @@
    ],
    "new_style": false,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "gold_ore": {
    "style": "ore_star",
@@ -475,7 +475,7 @@
    ],
    "new_style": false,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "mithril_ore": {
    "style": "ore_crystal",
@@ -488,7 +488,7 @@
    ],
    "new_style": false,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "orichalcum_ore": {
    "style": "ore_ember",
@@ -501,7 +501,7 @@
    ],
    "new_style": true,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "copper_ingot": {
    "style": "ingot_patina",
@@ -514,7 +514,7 @@
    ],
    "new_style": false,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "iron_ingot": {
    "style": "ingot_bar",
@@ -527,7 +527,7 @@
    ],
    "new_style": false,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "silver_ingot": {
    "style": "ingot_shine",
@@ -540,7 +540,7 @@
    ],
    "new_style": false,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "gold_ingot": {
    "style": "ingot_bar",
@@ -553,7 +553,7 @@
    ],
    "new_style": false,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "mithril_ingot": {
    "style": "ingot_rune",
@@ -566,7 +566,7 @@
    ],
    "new_style": false,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "orichalcum_ingot": {
    "style": "ingot_star",
@@ -580,7 +580,7 @@
    ],
    "new_style": false,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "quartz": {
    "style": "gem_prism",
@@ -593,7 +593,7 @@
    ],
    "new_style": false,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "garnet": {
    "style": "gem_round",
@@ -606,7 +606,7 @@
    ],
    "new_style": false,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "moonstone": {
    "style": "gem_cabochon",
@@ -619,7 +619,7 @@
    ],
    "new_style": false,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "topaz": {
    "style": "gem_shard",
@@ -632,7 +632,7 @@
    ],
    "new_style": false,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "sapphire": {
    "style": "gem",
@@ -645,7 +645,7 @@
    ],
    "new_style": false,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "dragonblood_stone": {
    "style": "gem_drop",
@@ -658,7 +658,7 @@
    ],
    "new_style": true,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "ember_soul": {
    "style": "shard",
@@ -671,7 +671,7 @@
    ],
    "new_style": false,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "resonant_sinew": {
    "style": "sinew",
@@ -684,7 +684,7 @@
    ],
    "new_style": false,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "clock_oil": {
    "style": "oil_flask",
@@ -698,7 +698,7 @@
    ],
    "new_style": false,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "moss_scale": {
    "style": "scale",
@@ -710,7 +710,7 @@
    ],
    "new_style": false,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "tunnel_fang": {
    "style": "fang",
@@ -722,7 +722,7 @@
    ],
    "new_style": false,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "cinder_scale": {
    "style": "scale",
@@ -735,7 +735,7 @@
    ],
    "new_style": false,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "rime_talon": {
    "style": "fang",
@@ -747,7 +747,7 @@
    ],
    "new_style": false,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "chrono_dust": {
    "style": "dust",
@@ -760,7 +760,7 @@
    ],
    "new_style": false,
    "shape": "icon",
-   "size": 32
+   "size": 16
   },
   "abyss_scale": {
    "style": "scale",
@@ -772,7 +772,7 @@
    ],
    "new_style": false,
    "shape": "icon",
-   "size": 32
+   "size": 16
   }
  },
  "new_icon_styles": [
@@ -1051,6 +1051,7 @@
   "옛 8개 id 는 새 그림 별칭 두 판",
   "곡괭이 요소 예산 380/380/380/450/520/720",
   "blockstates 6개(보석 블록) + labyrinth models/block·textures/block mine/gem_* 6개씩, 그 밖 0개",
-  "메뉴 배경 gui_smelter·gui_mine_lift·gui_mine_office (glyphs.yml + ui.py)"
+  "메뉴 배경 gui_smelter·gui_mine_lift·gui_mine_office (glyphs.yml + ui.py)",
+  "평면 아이콘 16×16 손그림 (resourcepack/src/pixel_icons, 0.3.6.2) — 곡괭이는 3D 복셀 그대로"
  ]
 }

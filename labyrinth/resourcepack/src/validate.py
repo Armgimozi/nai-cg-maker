@@ -189,7 +189,70 @@ def validate(files: dict, content: dict, expect_frames: dict, fx_names=()) -> Re
     for name in fx_names:
         check_item_definition(files, f'assets/{NS}/items/fx/{name}.json', rep, expect_frames)
     validate_mobs_npcs_fx(files, content, rep, expect_frames)
+    validate_icons(files, content, rep)
     return rep
+
+
+def flat_icon_size(iid, it):
+    """평면 아이콘의 그림 크기 약속: 16 (src/pixel_icons 에 그림이 있음) | 32 (옛 src/icons 그림) | None (평면 아님)."""
+    from . import items as IT
+    from . import pixel_icons as PI
+    if IT.classify(it)[0] != 'icon':
+        return None
+    return PI.SIZE if PI.lookup(iid, (it.get('texture') or {}).get('style')) else 32
+
+
+def validate_icons(files, content, rep):
+    """0.3.6.2 평면 아이콘: 16px 손그림(pixel_icons)은 규칙 검사(크기·6~16색·반투명 0·검은 외곽선 0·speckle) 통과,
+    아직 옛 32px 인 것은 경고 (pixel_icons.REQUIRE_ALL_16 이면 오류). 도안은 layer1 봉인이 같은 크기·회색."""
+    from . import pixel_icons as PI
+    n16, legacy = 0, []
+    for iid, it in (content.get('items') or {}).items():
+        want = flat_icon_size(iid, it)
+        if want is None:
+            continue
+        rep.checked += 1
+        mpath = f'assets/{NS}/models/item/{iid}.json'
+        m = json.loads(files[mpath].decode('utf-8')) if mpath in files else None
+        if m is None:
+            rep.err(f'icon {iid}: missing {mpath}')
+            continue
+        imgs = {}
+        for k, ref in sorted((m.get('textures') or {}).items()):
+            img = _png(files, _tex_path(ref), rep)
+            if img is not None:
+                imgs[k] = img.convert('RGBA')
+        if 'layer0' not in imgs:
+            continue
+        w = imgs['layer0'].size[0]
+        if want == PI.SIZE:
+            n16 += 1
+            for k, img in imgs.items():
+                if img.size[0] != PI.SIZE:
+                    rep.err(f'icon {iid}: {k} is {img.size} (pixel icons are {PI.SIZE}x{PI.SIZE})')
+                    continue
+                if k == 'layer0':
+                    for prob in PI.check(img):
+                        rep.err(f'icon {iid}: {prob} (pixel icon rules, src/pixel_icons/__init__.py)')
+                    continue
+                # 덧층 (도안 봉인): 반투명 없이 회색만 — 아이템 정의 tint 가 희귀도 색을 곱한다
+                if {a for *_, a in img.getdata()} - {0, 255}:
+                    rep.err(f'icon {iid}: {k} has semi-transparent pixels')
+                if any(a and (r != g or g != b) for r, g, b, a in img.getdata()):
+                    rep.err(f'icon {iid}: {k} must be grey only (tinted by the item definition)')
+        else:
+            legacy.append(iid)
+            if w != 32:
+                rep.err(f'icon {iid}: legacy icon {imgs["layer0"].size} (want 32 wide)')
+    rep.stats['icons_16px'] = n16
+    rep.stats['icons_32px'] = len(legacy)
+    if legacy:
+        msg = f'{len(legacy)} flat icon(s) still use the old 32px drawing (src/icons.py): ' + ', '.join(sorted(legacy)[:12]) + \
+            (' …' if len(legacy) > 12 else '')
+        if PI.REQUIRE_ALL_16:
+            rep.err(msg + ' — pixel_icons.REQUIRE_ALL_16')
+        else:
+            rep.warnings.append(msg)
 
 
 def check_equipment_cover(sid, look, layers, rep):
@@ -570,9 +633,14 @@ def validate_mine(files, content, contract, rep, mine_ids=(), aliases=None):
         if want and have and have != want.get('style'):
             rep.warnings.append(f'mine item {iid}: items.yml style {have!r} ≠ contract {want.get("style")!r}')
         if (it.get('model') or {}).get('shape', 'icon') == 'icon':
+            # 계약 visual.json icons.size (0.3.6.2: 16) — 아직 옛 32px 그림인 아이템은 validate_icons 가 경고로 센다
             img = _png(files, f'assets/{NS}/textures/item/{iid}.png', rep)
-            if img is not None and img.size[0] != 32:
-                rep.err(f'mine icon {iid}: {img.size} (icons are 32 px wide)')
+            have_px = flat_icon_size(iid, it)
+            size = int((want or {}).get('size') or have_px or 16)
+            if img is not None and have_px == 16 and img.size[0] != size:
+                rep.err(f'mine icon {iid}: {img.size} (contract visual.json size {size})')
+            elif img is not None and have_px != 16 and img.size[0] != 32:
+                rep.err(f'mine icon {iid}: {img.size} (legacy icons are 32 px wide)')
     picks = vis.get('pickaxes') or {}
     worst = {}
     for iid, pk in picks.items():

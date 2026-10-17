@@ -50,6 +50,10 @@ labyrinth/
     (손에 든 모습/인벤토리/땅/액자/머리 display 변환 모두 지정). 텍스처는 그 모델의 UV 아틀라스.
     전설·신화 무기는 아틀라스 자체를 프레임 애니메이션(.mcmeta)해서 룬·불꽃·번개가 흐르게 한다.
     재료·소모품만 2D 아이콘 허용.
+  - **2D 아이콘은 16×16 손그림** (0.3.6.2, 주인 결정 C): `resourcepack/src/pixel_icons/` — 한 칸 = 한 픽셀, 6칸 색조 램프,
+    왼쪽 위 빛, 검은 외곽선 없음, 반투명 없음, 6~16색 (규칙·지도 문법은 그 `__init__.py` 머리말). 그룹 모듈
+    `mine · organic · arcane · crafted · consumable` 이 아이템 id 또는 `texture.style` 로 그림을 등록하고, 등록이 없는 아이템만
+    옛 32×32 SDF 그림(`src/icons.py`)으로 그린다. `validate.py` 가 16px 그림의 규칙을 검사한다. 곡괭이는 3D 복셀 그대로.
   - **투구는 3D 모델을 머리에 씌운다**: 투구는 `EQUIPPABLE(slot=head)` 에 `assetId` 를 **넣지 않는다**
     (그래야 아이템 모델이 머리 display 로 렌더링됨). 상의·하의·신발만 장비 에셋 레이어 사용.
   - 플러그인은 `DataComponentTypes.ITEM_MODEL = Key.key("labyrinth", id)` 로 지정. CustomModelData 안 씀.

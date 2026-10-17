@@ -24,6 +24,7 @@ errors, notes = [], []
 
 METALS = ['copper', 'iron', 'silver', 'gold', 'mithril', 'orichalcum']
 GEMS = ['quartz', 'garnet', 'moonstone', 'topaz', 'sapphire', 'dragonblood_stone']
+ICON_SIZE = 16                # 0.3.6.2 주인 결정 (아이콘 C): 평면 아이콘 16×16 (resourcepack/src/pixel_icons)
 REACH_ABOVE = 1               # 0.3.6.1 주인 결정 1: 곡괭이 tier t 는 tier ≤ t + 1 을 캔다 (한 단계 위는 느림)
 GOLD_WITH_SALE_MAX = 0.20     # 광산 G/분 ÷ 던전 G/분 (판매 포함, 그 단계 금속을 캘 수 있는 가장 낮은 곡괭이) — 0.3.6 과 같음
 GOLD_DROP_MAX = 0.25          # 드롭 골드만 — 0.3.6 과 같음 (곡괭이를 일찍 올린 사람은 표 E 참고 칸)
@@ -383,6 +384,7 @@ def main():
         key = (v['style'], tuple(v['palette']))
         need(key not in seen, f'{i} 아이콘이 다른 것과 같음')
         seen.add(key)
+        need(v.get('size') == ICON_SIZE, f"{i} 아이콘 크기 {v.get('size')} (0.3.6.2: {ICON_SIZE}×{ICON_SIZE} 손그림)")
     need(sorted(vis['pickaxes']) == sorted(picks), '곡괭이 3D 6개')
     budgets = [vis['pickaxes'][p]['element_budget'] for p in picks]
     need(budgets == sorted(budgets) and budgets[-1] <= 720, '곡괭이 요소 예산')
