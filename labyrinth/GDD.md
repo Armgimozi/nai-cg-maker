@@ -1128,7 +1128,8 @@ SLIME(덩어리), RAVAGER(넓은 체형), VINDICATOR(인간형 대형). 피글�
 ### 11.5 아우라 목록 (fx.yml `auras`, 30종) — 전설·신화 무기마다 하나씩, 겹치지 않음
 각 아우라는 링 모델 `<id>_ring` 과 무기 스킬 이펙트 3종 `<id>_slash`(검기) · `<id>_orb`(구체/탄) · `<id>_burst`(충격파·장판)를 가진다.
 `weapon_skills[].params.fx` 에 이 이름을 쓴다. 무색 기본 검기는 `slash_wave`. 무기 스킬 전용 추가 모델: 화살 `tide_arrow` `gale_arrow`
-`quicksilver_arrow` `tempest_arrow`, 광선 `rime_beam` `prism_beam` `void_beam` `seraph_beam` `aurora_beam`, 투척 비수 `venom_knife`.
+`quicksilver_arrow` `tempest_arrow` `comet_arrow`, 광선 `rime_beam` `prism_beam` `void_beam` `seraph_beam` `aurora_beam` `daybreak_beam`,
+투척 비수 `venom_knife`, 던지는 바위 `mountain_boulder` (0.3.7). 신화 아우라는 바깥 링 `<id>_ring_outer` 도 가진다.
 
 | 아우라 | 등급 | 테마 | 무기 (출처) | 텍스처 effect |
 |---|---|---|---|---|
@@ -1157,11 +1158,11 @@ SLIME(덩어리), RAVAGER(넓은 체형), VINDICATOR(인간형 대형). 피글�
 | `seraph` | 신화 | 치천 — 후광 + **등 뒤 날개 모델** | 치천사의 홀 (8·10층 보스·대장간) | `feather_glint` |
 | `eclipse` | 신화 | 일식 — 검은 태양 + 코로나 링 | 일식의 칼날 (8·10층 보스·대장간) | `eclipse_corona` |
 | `mountain` | 신화 | 태산 — 호박빛 결정 조각 링 + 결정면 링 (0.3.7) | 태산의 대망치 (8·10층 보스·대장간) | `geode_heart` |
-| `hightide` | 신화 | 만조 — 물결 링 + 물낯 링 (0.3.7) | 만조의 큰낫 (9·10층 보스·대장간) | `tide_surge` |
+| `hightide` | 신화 | 만조 — 물결 링 + 물방울 링 (0.3.7) | 만조의 큰낫 (9·10층 보스·대장간) | `tide_surge` |
 | `comet` | 신화 | 꼬리별 — 바람 줄 링 + 별점 링 (0.3.7) | 꼬리별 장궁 (8·10층 보스·대장간) | `comet_trail` |
-| `wisp` | 신화 | 도깨비불 — 반딧불 링 + 혼불 링 (0.3.7) | 도깨비불 등롱 (8·10층 보스·대장간) | `wisp_flicker` |
+| `wisp` | 신화 | 도깨비불 — 연두 혼불 링 + 반딧불 점 링 (0.3.7) | 도깨비불 등롱 (8·10층 보스·대장간) | `wisp_flicker` |
 | `daybreak` | 신화 | 새벽 — 햇살 링 + 후광 룬 링 (0.3.7) | 새벽의 종 (9·10층 보스·대장간) | `bell_toll` |
-| `waning` | 신화 | 그믐 — 초승달 링 + 쇠사슬 링 (0.3.7) | 그믐달 사슬낫 (9·10층 보스·대장간) | `moon_phase` |
+| `waning` | 신화 | 그믐 — 초승달 링 + 달빛 서리 링 (0.3.7) | 그믐달 사슬낫 (9·10층 보스·대장간) | `moon_phase` |
 
 **아우라 동작**(AuraService): 무기를 주손에 든 동안 `interval` 틱마다 `particles` 를 `pattern` 대로 생성 —
 `orbit`(radius 원 위를 돈다) · `spiral`(발→머리 나선) · `rise`(위로 떠오름) · `fall`(height 에서 떨어짐) · `swirl`(작은 소용돌이) ·
@@ -1842,6 +1843,11 @@ LOD: 보는 사람이 24칸 밖이면 입자 절반, 48칸 밖이면 링만. 같
 | 장신구 | `ring` · `amulet` · `bracelet` · `charm` · `emblem` · `relic_orb` | |
 | 2D 아이콘 | `icon` | 재료·소모품·열쇠 전용. 무늬는 `texture.style`(아이콘 목록) |
 
+**신화 6 표시 분기 (0.3.7, `voxel/weapons.py` `SIGNATURES`)**: 새 신화 6개는 틀(shape)을 그대로 쓰고 머리 장식만 바꾼다 —
+`mountainheart_maul`(great_maul · 봉우리 셋 + 호박빛 갈라짐) · `hightide_scythe`(war_scythe · 파도 머리처럼 말린 날끝 + 거품 줄) ·
+`comet_longbow`(longbow · 혜성 머리 + 팔을 따라 빛 줄) · `wisp_lantern`(lamp_crook · 큰 등롱 불 + 도는 도깨비불) ·
+`daybreak_bell`(bell_scepter · 장밋빛 청동 종 + 해 원반) · `waning_moon_sickle`(sickle · 가는 날 + 사슬 끝 초승달 추).
+
 `model.length`: 0.6~1.4 상대 크기(기본 1.0). 직업 문장(`type: key`)은 `emblem`. 묶음 이름은 모델링 편의일 뿐 게임의 무기 분류가 아니다 —
 모양과 공격 방식의 짝(활 모양 ⇔ 원거리, 시전 모양 ⇔ 시전)만 규칙이다(§11.2).
 
@@ -1856,7 +1862,9 @@ LOD: 보는 사람이 24칸 밖이면 입자 절반, 48칸 밖이면 링만. 같
   `coil`(감긴 태엽) · `pendulum`(진자 추) · `tendril`(촉수·덩굴).
 - `effect` (애니메이션 프리셋, animated 일 때): `sun_glow` · `ember_flicker` · `wind_streak` · `frost_shimmer` · `holy_pulse` · `shadow_smoke` ·
   `tide_ripple` · `prism_cycle` · `gear_tick` · `star_twinkle` · `blood_pulse` · `lightning_arc` · `void_swirl` · `feather_glint` · `eclipse_corona` · `rune_flow`(범용) ·
-  (아이템 단계 추가) `soul_flicker` · `crystal_glint` · `ink_bleed` · `sculk_pulse` · `spark_crackle` · `mercury_flow` · `aurora_wave` · `venom_drip`.
+  (아이템 단계 추가) `soul_flicker` · `crystal_glint` · `ink_bleed` · `sculk_pulse` · `spark_crackle` · `mercury_flow` · `aurora_wave` · `venom_drip` ·
+  (0.3.7 신화) `geode_heart` · `tide_surge` · `comet_trail` · `wisp_flicker` · `bell_toll` · `moon_phase`.
+  팩에 없는 effect 를 쓰면 팩 빌드가 멈춘다 (0.3.7 `validate_effects` — 전에는 경고 뒤 `rune_flow`).
 - `palette` 3~6색(어두움→밝음, items.yml 은 4~6색), `frames` 4~16, `frametime` 1~4.
 
 effect 프리셋 동작 (frames 동안 한 주기, 루프):
@@ -1887,6 +1895,12 @@ effect 프리셋 동작 (frames 동안 한 주기, 루프):
 | `mercury_flow` | 은빛 액체 하이라이트가 아래로 흘러내려 방울로 맺힘 |
 | `aurora_wave` | 초록→분홍 색 띠가 물결치며 이동 |
 | `venom_drip` | 독 방울이 날 끝에 맺혀 떨어지고 초록 광택이 일렁임 |
+| `geode_heart` | 호박빛이 자루에서 머리로 차오르고, 결정이 한 칸씩 흰빛으로 반짝 (0.3.7) |
+| `tide_surge` | 밝은 띠가 날 끝에서 자루로 밀려왔다 빠지고, 빠질 때 거품이 반짝 (0.3.7) |
+| `comet_trail` | 혜성 머리가 맥박치고, 빛 띠가 팔 끝으로 흐르며 주황에서 흰빛으로 식음 (0.3.7) |
+| `wisp_flicker` | 두 번 밝고 한 번 꺼질 듯 흔들리는 불, 도깨비불 자리가 바뀌며 반짝 (0.3.7) |
+| `bell_toll` | 종 입구에서 고리 빛이 위로 번짐 — 한 번 크게, 두 번 작게, 쉼 (0.3.7) |
+| `moon_phase` | 안쪽 날의 밝은 곳이 끝↔손잡이로 옮겨 가며 달이 차고 기울고, 사슬 고리가 한 칸씩 반짝 (0.3.7) |
 
 ### 14.3 몹·보스 모델 — `mobs.yml / bosses.yml model`
 **style.shape** (전체 실루엣·재질 감):

@@ -604,7 +604,7 @@ public final class CodexMenu extends LabMenu {
                 if (n++ > 0) sb.append(", ");
                 sb.append(md == null ? m.getKey() : Text.strip(md.name())).append(" ×").append(m.getValue());
             }
-            if (r.gold() > 0) sb.append(n > 0 ? ", " : "").append(r.gold()).append("G");
+            if (r.gold() > 0) sb.append(n > 0 ? ", " : "").append(Text.num(r.gold())).append("G");
             boolean smelter = kr.labyrinth.mine.MineNames.STATION_SMELTER.equals(r.station());
             add(src, r.result(), smelter ? "제련소" : "대장간", sb.toString());
         }
@@ -613,7 +613,7 @@ public final class CodexMenu extends LabMenu {
         for (String id : c.mine().gems().keySet()) for (String name : mineHomes(c, id, false)) add(src, id, "광산", name);
         for (NpcDef npc : c.npcs().values()) {
             if (npc.shop() == null) continue;
-            for (NpcDef.ShopEntry s : npc.shop()) add(src, s.item(), "상인", ItemTooltip.shortName(npc.name()) + " " + s.price() + "G");
+            for (NpcDef.ShopEntry s : npc.shop()) add(src, s.item(), "상인", ItemTooltip.shortName(npc.name()) + " " + Text.num(s.price()) + "G");
         }
         for (AchievementDef a : c.achievements().values()) {
             if (a.rewardItems() == null) continue;

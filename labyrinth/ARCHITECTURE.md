@@ -1064,6 +1064,12 @@ wild:                 # wild: false = 통째로 끔 (Settings.Wild.OFF)
   보스·특별 시련·금고·미믹 `{blueprint_of}` 줄 · recipes.yml 끝 '신화 무기' 칸 12 · 획득처 다시 셈. generate() 는 맨 처음 `MYTH037.strip()` 으로
   지난번 신화 단계가 넣은 것을 걷어 내 0.3.5 · 0.3.6 단계가 0.3.6.1 과 같은 입력을 보게 한다 (0.3.6 계약 검사도 걷어 낸 결과에서).
   `gen_enhance.py`: 신화는 레시피가 있어도 보스 장비 규칙 (새 6 은 같은 층 보스 장비 중 맨 뒤에 정해 기존 신화 6 의 강화 행이 그대로).
+  코드: `BlueprintRules.drawable`(= gated − 신화: 일반 뽑기·첫 접속 보호) · `candidatesOf`/`pickOf` (blueprint_of) · `gated`/`recipeFor` 는 신화 포함
+  (대장간 잠금·도감). `ContentValidator`: 없는 레시피·빈 목록·도안이 필요 없는 레시피 = 오류, 신화 레시피에 chance > 0 출처가 없으면 오류,
+  신화 무기 획득처는 {보스} 또는 {보스, 대장간}, 레벨 창은 단계 층부터 아래 3층 보스(`MYTHIC_BOSS_FLOORS`). 알림: 신화 도안 줍기 = 파티 알림
+  (`LabLootService.mythicBlueprintLine`), 대장간 신화 제작 = 서버 방송 (`LabCraftingService.mythicCraftLine`). 툴팁: 접기 5단계(스킬 설명 뺌) ·
+  대장간 목록은 일반 재료 5종 이상이면 둘씩 한 줄 (`BlacksmithMenu.PAIR_FROM`). 팩: 새 6 은 `voxel/weapons.py SIGNATURES` 로 틀 안에서 머리 장식만
+  바꾸고, `validate.py validate_effects` 가 items.yml 의 `texture.effect` 가 팩 프리셋에 없으면 빌드를 멈춘다.
 - recipes.yml `station: blacksmith|smelter` (없으면 대장간) · `category: tool`. 제련소 = `CraftingService.openSmelter(p[, tab])` (smelt·carve·pickaxe).
 - items.yml `sources` 에 `mine`·`smelt` (툴팁 "광산"·"제련소"). 도감 "광산" 탭 = 광산 재료 + 도구.
 - config `mine:` (MineConfig — 광맥 공유 regen_players_cap · 기력 없음) · `sell.mine` · `starter_kit` (+ copper_pickaxe, 0.3.5.1 기본 목록은 새 기본으로 읽음) · `blueprints:`.
