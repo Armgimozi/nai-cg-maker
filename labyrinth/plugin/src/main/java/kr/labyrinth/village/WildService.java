@@ -59,7 +59,8 @@ import org.bukkit.scheduler.BukkitTask;
  *   <li>스폰: 이벤트로 막는다 ({@link WildSpawns}) — 게임 규칙은 바꾸지 않아, 끄면 바로 바닐라. 성능을 위해 막는 분류의 자연 스폰 상한을
  *       실행 중에만 0 으로 묶는다 (끌 때·모드를 바꿀 때 되돌림, 저장되지 않음). 켤 때·청크를 불러올 때 바닐라 적대 몹을 치운다
  *       (동물은 그대로). 미궁 월드·네더·엔드·플러그인 엔티티는 건드리지 않는다.</li>
- *   <li>네더·엔드: 막지 않는다 (바닐라 그대로). 차원문·엔드 출구·리스폰으로 주 월드에 돌아올 때 경계 밖이면 광장으로만 옮긴다.</li>
+ *   <li>엔드: 막지 않는다 (바닐라 그대로). 네더: 0.3.7 부터 들어가기를 막는다 — 이 서비스가 아니라 {@code core.NetherLock}
+ *       (config wild.nether, 마을이 없어도). 차원문·엔드 출구·리스폰으로 주 월드에 돌아올 때 경계 밖이면 광장으로만 옮긴다.</li>
  * </ul>
  */
 final class WildService implements Listener {
@@ -140,8 +141,16 @@ final class WildService implements Listener {
 
     WildBorder.Square target() {
         if (!active()) return null;
-        if (target == null) target = village.borderTarget(cfg().borderMargin());
+        if (target == null) target = autoTarget(cfg().borderMargin());
         return target;
+    }
+
+    /**
+     * 저절로 정하는 경계 (0.3.7 — review R6): 마을 + 구역 상자 + margin 을 <b>지난번 우리 경계와 합친</b> 상자 — 구역을 지워도·나중에 지은
+     * 구역이 한쪽만 넓혀도 줄지 않는다 (그 띠의 건물이 경계 밖이 되지 않게). 줄이기는 {@code /labadmin wild border apply} 만.
+     */
+    WildBorder.Square autoTarget(int margin) {
+        return WildBorder.grow(village.borderTarget(margin), loadRecord());
     }
 
     WildBorder.Square current() {
@@ -180,7 +189,7 @@ final class WildService implements Listener {
             return;
         }
         Settings.Wild w = cfg();
-        target = village.borderTarget(w.borderMargin());
+        target = autoTarget(w.borderMargin());
         String border;
         try {
             border = applyBorder(w, false);
@@ -631,14 +640,14 @@ final class WildService implements Listener {
         int boxes = village.protectAll().size();
         int own = village.meta() == null ? boxes : village.meta().protect.size();
         s.sendMessage(Text.mm(" <gray>마을 경계: <white>" + Text.escape(WildBorder.describe(tgt)) + "</white> (마을 가장자리 + "
-                + w.borderMargin() + "칸, 보호 상자 " + boxes + "개 포함" + (boxes > own ? " — 광산 마을 포함" : "") + ")"));
+                + w.borderMargin() + "칸, 보호 상자 " + boxes + "개 포함" + (boxes > own ? " — 지은 구역 포함" : "") + ")"));
         s.sendMessage(Text.mm(" <gray>스폰 막기: <white>" + w.spawns().id() + "</white> " + switch (w.spawns()) {
             case ALL -> "(적대 몹 + 동물 — 있던 동물은 그대로)";
             case MONSTERS -> "(적대 몹만)";
             case NONE -> "(막지 않음" + (module.blockMobSpawns() ? " — village.block_mob_spawns 로 마을 둘레 적대만)" : ")");
         } + " · 막은 스폰 " + blockedSpawns + " · 막은 변신 " + blockedTransforms + " · 치운 적대 몹 " + removedExisting));
         if (!limits.isEmpty()) s.sendMessage(Text.mm(" <gray>자연 스폰 상한 0 (실행 중에만, 끄면 되돌림): <white>" + limits.size() + "분류</white>"));
-        s.sendMessage(Text.mm(" <gray>네더·엔드: <white>열림</white> (막지 않음) · 경계 밖이라 광장으로 옮긴 횟수 " + movedPlayers));
+        s.sendMessage(Text.mm(" <gray>" + Text.escape(kr.labyrinth.core.NetherLock.statusLine()) + " · 경계 밖이라 광장으로 옮긴 횟수 " + movedPlayers));
     }
 
     /** /labadmin wild border apply — 관리자 경계가 있어도 마을 경계로 덮어쓰기. */
@@ -647,7 +656,7 @@ final class WildService implements Listener {
             Text.error(s, "이 월드에는 마을이 없습니다.");
             return;
         }
-        target = village.borderTarget(cfg().borderMargin());
+        target = village.borderTarget(cfg().borderMargin()); // 관리자 명령: 지금 마을·구역에 딱 맞게 (줄일 수 있음)
         String r = applyBorder(cfg(), true);
         Log.info("[야생] 관리자 명령 — 경계 " + r);
         Text.send(s, "<green>월드 경계를 마을 경계로 정했습니다</green> <gray>(" + Text.escape(WildBorder.describe(target)) + ")"

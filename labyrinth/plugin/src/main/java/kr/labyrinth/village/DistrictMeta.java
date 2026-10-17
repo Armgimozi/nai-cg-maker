@@ -42,6 +42,13 @@ public final class DistrictMeta {
 
     public static String backupName(String id) { return "labyrinth-district-" + id + ".backup.gz"; }
 
+    /**
+     * 집터 하나 (0.3.7 집 구역 — {@code plots:}). 상자 x0..x1 · z0..z1 (블록, 양 끝 포함) · 바닥 floor · 짓기 높이 창 y0..y1 ·
+     * 앞 N/E/S/W · 대문 칸 (gate) · 표지판 칸 (sign) · 집 가기 자리 (home, 칸 가운데 + yaw).
+     */
+    public record PlotRec(String id, int x0, int z0, int x1, int z1, int floor, int y0, int y1, String front, int gateX, int gateY, int gateZ,
+                          int signX, int signY, int signZ, double homeX, double homeY, double homeZ, float homeYaw) {}
+
     public String id;
     public String name = "";
     public State state = State.BUILDING;
@@ -52,6 +59,8 @@ public final class DistrictMeta {
     /** terrain 격자 칸 비트 (구역 영역, 얼린 칸 제외). */
     public BitSet region = new BitSet();
     public VillageMeta meta = new VillageMeta();
+    /** 집터들 (집 구역만, 나머지 구역은 빈 목록). */
+    public List<PlotRec> plots = new java.util.ArrayList<>();
 
     public boolean built() { return state == State.BUILT; }
 
@@ -66,7 +75,7 @@ public final class DistrictMeta {
     public String toYaml() throws InvalidConfigurationException {
         YamlConfiguration y = new YamlConfiguration();
         y.loadFromString(meta.toYaml());
-        y.options().setHeader(List.of("미궁 라비린스 — 광산 마을 기록 (0.3.6.1, 플러그인이 씀 — 직접 고치지 마세요)",
+        y.options().setHeader(List.of("미궁 라비린스 — 구역 기록 (" + (name == null || name.isBlank() ? id : name) + " — 플러그인이 씀, 직접 고치지 마세요)",
                 "state: building(짓는 중) | built(다 지음) | removed(지움 — 자동으로 다시 짓지 않음)",
                 "되돌리기 백업: " + (backup.isBlank() ? backupName(id) : backup) + " (같은 폴더)"));
         y.set("district", id);
@@ -77,6 +86,22 @@ public final class DistrictMeta {
         y.set("backup", backup);
         y.set("safe_margin", safeMargin);
         y.set("region", Base64.getEncoder().encodeToString(region.toByteArray()));
+        if (!plots.isEmpty()) {
+            List<java.util.Map<String, Object>> ps = new java.util.ArrayList<>();
+            for (PlotRec p : plots) {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("id", p.id());
+                m.put("box", List.of(p.x0(), p.z0(), p.x1(), p.z1()));
+                m.put("floor", p.floor());
+                m.put("window", List.of(p.y0(), p.y1()));
+                m.put("front", p.front());
+                m.put("gate", List.of(p.gateX(), p.gateY(), p.gateZ()));
+                m.put("sign", List.of(p.signX(), p.signY(), p.signZ()));
+                m.put("home", List.of(p.homeX(), p.homeY(), p.homeZ(), (double) p.homeYaw()));
+                ps.add(m);
+            }
+            y.set("plots", ps);
+        }
         return y.saveToString();
     }
 
@@ -110,6 +135,28 @@ public final class DistrictMeta {
         d.safeMargin = y.getInt("safe_margin", 8);
         String rg = y.getString("region", "");
         d.region = rg.isBlank() ? new BitSet() : BitSet.valueOf(Base64.getDecoder().decode(rg));
+        for (java.util.Map<?, ?> m : y.getMapList("plots")) {
+            try {
+                List<?> box = (List<?>) m.get("box"), win = (List<?>) m.get("window"), gate = (List<?>) m.get("gate"), sign = (List<?>) m.get("sign"),
+                        home = (List<?>) m.get("home");
+                d.plots.add(new PlotRec(String.valueOf(m.get("id")), num(box.get(0)), num(box.get(1)), num(box.get(2)), num(box.get(3)),
+                        num(m.get("floor")), num(win.get(0)), num(win.get(1)), String.valueOf(m.get("front")), num(gate.get(0)), num(gate.get(1)),
+                        num(gate.get(2)), num(sign.get(0)), num(sign.get(1)), num(sign.get(2)), dbl(home.get(0)), dbl(home.get(1)), dbl(home.get(2)),
+                        (float) dbl(home.get(3))));
+            } catch (RuntimeException e) {
+                // 형식이 다른 집터 줄은 건너뜀 (자가 진단 plots=n/10 이 잡음)
+            }
+        }
         return d;
+    }
+
+    private static int num(Object o) {
+        if (o instanceof Number n) return n.intValue();
+        return Integer.parseInt(String.valueOf(o).trim());
+    }
+
+    private static double dbl(Object o) {
+        if (o instanceof Number n) return n.doubleValue();
+        return Double.parseDouble(String.valueOf(o).trim());
     }
 }

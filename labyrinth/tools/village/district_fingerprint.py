@@ -459,16 +459,17 @@ def encode(worlds, rect):
     return buf.getvalue()
 
 
-def has_district(path):
-    """이미 광산 마을이 지어진 월드인가 (0.3.6.1 새 world.zip) — 지문은 짓기 전 배포 월드의 것이어야 한다."""
+def has_district(path, did="mine"):
+    """이미 그 구역이 지어진 월드인가 (광산: 0.3.6.1 새 world.zip · 집: 0.3.7 새 world.zip) — 지문은 그 구역을 짓기 전 배포 월드의 것이어야 한다."""
+    name = "labyrinth-district-%s.yml" % did
     if path.endswith(".zip"):
         with zipfile.ZipFile(path) as z:
-            return any(n.endswith("overworld/labyrinth-district-mine.yml") for n in z.namelist())
-    return any(f == "labyrinth-district-mine.yml" for _, _, fs in os.walk(path) for f in fs)
+            return any(n.endswith("overworld/" + name) for n in z.namelist())
+    return any(f == name for _, _, fs in os.walk(path) for f in fs)
 
 
-def default_worlds():
-    """짓기 전 배포 월드들: dist/world.zip(0.3.0~0.3.6) 과 0.2.0 서버팩. 광산 마을이 이미 있는 world.zip(0.3.6.1~)은 뺀다."""
+def default_worlds(did="mine"):
+    """짓기 전 배포 월드들: dist/world.zip(0.3.0~0.3.6) 과 0.2.0 서버팩. 그 구역이 이미 있는 world.zip 은 뺀다."""
     import hashlib
     dist = os.path.join(ROOT, "dist")
     main_dist = os.path.normpath(os.path.join(ROOT, "..", "..", "nai-cg-maker", "labyrinth", "dist"))
@@ -477,7 +478,7 @@ def default_worlds():
         cands += [os.path.join(d, "world.zip"), os.path.join(d, "Labyrinth-Server-0.2.0.zip")]
     seen, out = set(), []
     for c in cands:
-        if not os.path.isfile(c) or has_district(c):
+        if not os.path.isfile(c) or has_district(c, did):
             continue
         h = hashlib.sha1(open(c, "rb").read()).hexdigest()
         if h in seen:
@@ -498,13 +499,13 @@ def main(argv=None):
     with open(os.path.join(RES, "districts", a.district + ".json"), encoding="utf-8") as f:
         district = json.load(f)
     out = a.out or os.path.join(RES, "districts", district.get("fingerprint", a.district + ".fp"))
-    paths = a.world or default_worlds()
-    skipped = [p for p in paths if has_district(p)]
+    paths = a.world or default_worlds(a.district)
+    skipped = [p for p in paths if has_district(p, a.district)]
     for p in skipped:
-        print("  뺌: %s — 이미 광산 마을이 지어진 월드 (지문은 짓기 전 배포 월드로)" % p)
+        print("  뺌: %s — 이미 그 구역(%s)이 지어진 월드 (지문은 짓기 전 배포 월드로)" % (p, a.district))
     paths = [p for p in paths if p not in skipped]
     if not paths:
-        raise SystemExit("짓기 전 배포 월드가 없습니다 — 광산 마을이 없는 예전 world.zip(0.3.0~0.3.6)과 0.2.0 서버팩을 --world 로 주세요")
+        raise SystemExit("짓기 전 배포 월드가 없습니다 — 그 구역이 없는 예전 world.zip 과 0.2.0 서버팩을 --world 로 주세요")
     boxes = coverage(district)
     rect = union(boxes)
     print("덮는 범위: x %d..%d · z %d..%d (%d열) — 자리 %s" % (rect[0], rect[2], rect[1], rect[3],

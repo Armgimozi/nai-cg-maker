@@ -17,7 +17,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-/** /미궁 — 메인 메뉴: 프로필 + 광산·입장·파티·PvP 규칙·스탯·직업·칭호·장신구·대장간·상점·기록·마을 바로가기. */
+/** /미궁 — 메인 메뉴: 프로필 + 광산·집·입장·파티·PvP 규칙·스탯·직업·칭호·장신구·대장간·상점·기록·마을 바로가기. */
 public final class MainMenu extends LabMenu {
 
     public MainMenu(Services services) {
@@ -59,6 +59,30 @@ public final class MainMenu extends LabMenu {
                     List.of("<gray>몬스터 없는 광산에서 광석을 캡니다.", "<gray>여섯 층 모두 열려 있고, 광맥은 모두가 함께 씁니다.",
                             "", "<#ffd36b>클릭: " + (inMine ? "승강기" : "광산으로") + " <dark_gray>(/미궁 광산)")),
                     ctx -> { click(ctx.player()); ctx.player().closeInventory(); services.mine().openMine(ctx.player()); });
+        }
+        // 0.3.7 집 (광산 13 옆 15) — 미궁 안에서는 숨김. 메뉴는 집 모듈이 연다 (npcs.yml 정의가 없어도 됨)
+        var homes = services.homes();
+        boolean inRun = services.dungeon().isInLabyrinth(p) || services.dungeon().currentInstance(p).isPresent();
+        if (homes.enabled() && !inRun) {
+            var home = homes.homeOf(p.getUniqueId());
+            List<String> hl = new ArrayList<>();
+            if (home != null) {
+                var info = homes.info(home);
+                hl.add("<gray>" + Text.escape(home.label()) + " · " + Text.escape(info.name().isBlank() ? p.getName() + "의 집" : info.name()));
+                hl.add("<gray>집 가기 · 초대 · 자재 · 맡긴 짐");
+            } else if (homes.plots().isEmpty()) {
+                hl.add("<dark_gray>아직 집터가 없습니다.");
+            } else {
+                hl.add("<gray>마을 남쪽 등불 골목에서");
+                hl.add("<gray>집터 한 채를 받습니다.");
+            }
+            hl.add("");
+            hl.add("<#ffd36b>클릭: 집 메뉴 <dark_gray>(/미궁 집)");
+            set(15, Button.icon(Material.OAK_DOOR, "<#ffd36b><b>집</b>", hl), ctx -> {
+                click(ctx.player());
+                ctx.player().closeInventory();
+                services.homes().openEstate(ctx.player());
+            });
         }
         set(20, model("labyrinth_essence", Material.ENDER_EYE, "<#7fd8ff><b>미궁 입장</b>",
                 List.of("<gray>층을 골라 미궁으로 내려갑니다.", "<gray>파티라면 파티장이 시작합니다.", "", "<#ffd36b>클릭: 입장 메뉴")),

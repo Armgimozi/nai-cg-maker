@@ -72,24 +72,49 @@ public final class VillageModule implements Module {
 
     public VillageLibrary library() { return library; }
 
-    /** 구역 청사진 (0.3.6.1 광산 마을). */
+    /** 구역 청사진 (0.3.6.1 광산 마을 · 0.3.7 집 구역 — order 차례). */
     public DistrictLibrary districts() { return districts; }
 
-    /** config mine.district (키가 없으면 기본값 — 0.3.6 이하 config.yml 에는 이 절이 없다). */
-    kr.labyrinth.mine.MineConfig.District districtConfig() {
-        try {
-            return kr.labyrinth.mine.MineConfig.fromRoot(plugin().getConfig()).district();
-        } catch (Throwable t) {
-            return kr.labyrinth.mine.MineConfig.DEFAULT_DISTRICT;
+    /**
+     * 구역 하나의 짓기 설정 (구역 기계가 씀). enabled = 그 구역을 저절로 지을 수 있는 모듈이 켜짐 (광산 mine.enabled · 집 homes.enabled).
+     * 관리자 명령(district build)은 enabled 와 상관없이 된다.
+     */
+    record DistrictConf(boolean enabled, boolean autoBuild, java.util.List<String> sites, int blocksPerTick, boolean notifyAdmins) {}
+
+    /**
+     * config 의 구역 절 (키가 없으면 기본값 — 0.3.6 이하 config.yml 에는 mine.district, 0.3.6.1 이하에는 homes 절이 없다):
+     * mine → {@code mine.district} · homes → {@code homes.district} (0.3.7, {@link kr.labyrinth.homes.HomesConfig#district()}).
+     */
+    DistrictConf districtConfig(String id) {
+        if ("homes".equals(id)) {
+            try {
+                kr.labyrinth.homes.HomesConfig h = kr.labyrinth.homes.HomesConfig.fromRoot(plugin().getConfig());
+                var d = h.district();
+                return new DistrictConf(h.enabled(), d.autoBuild(), d.sites(), d.blocksPerTick(), d.notifyAdmins());
+            } catch (Throwable t) {
+                var d = kr.labyrinth.homes.HomesConfig.DEFAULT_DISTRICT;
+                return new DistrictConf(true, d.autoBuild(), d.sites(), d.blocksPerTick(), d.notifyAdmins());
+            }
         }
+        boolean enabled = true;
+        kr.labyrinth.mine.MineConfig.District d;
+        try {
+            kr.labyrinth.mine.MineConfig m = kr.labyrinth.mine.MineConfig.fromRoot(plugin().getConfig());
+            enabled = m.enabled();
+            d = m.district();
+        } catch (Throwable t) {
+            d = kr.labyrinth.mine.MineConfig.DEFAULT_DISTRICT;
+        }
+        return new DistrictConf(enabled, d.autoBuild(), d.sites(), d.blocksPerTick(), d.notifyAdmins());
     }
 
-    /** config mine.enabled (광산이 꺼진 서버는 구역을 저절로 짓지 않는다). */
-    boolean mineEnabled() {
+    /** 집터 짓기 높이 창 [바닥 − below, 바닥 + above] 의 below·above (config homes.height — 구역 기록 plots: 에 남김). */
+    int[] homesHeight() {
         try {
-            return kr.labyrinth.mine.MineConfig.fromRoot(plugin().getConfig()).enabled();
+            kr.labyrinth.homes.HomesConfig h = kr.labyrinth.homes.HomesConfig.fromRoot(plugin().getConfig());
+            return new int[] {h.heightBelow(), h.heightAbove()};
         } catch (Throwable t) {
-            return true;
+            return new int[] {kr.labyrinth.homes.HomesConfig.DEFAULT.heightBelow(), kr.labyrinth.homes.HomesConfig.DEFAULT.heightAbove()};
         }
     }
 

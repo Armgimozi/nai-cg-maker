@@ -225,6 +225,7 @@ public final class NpcServiceImpl implements NpcService, Listener {
                 case "merchant" -> new ShopMenu(services, def).open(player);
                 case kr.labyrinth.mine.MineNames.ROLE_MINER -> services.mine().openOffice(player);
                 case kr.labyrinth.mine.MineNames.ROLE_SMELTER -> services.crafting().openSmelter(player);
+                case kr.labyrinth.homes.play.HomesNames.ROLE_ESTATE -> services.homes().openEstate(player); // 0.3.7 마을 관리인
                 default -> { }
             }
         } catch (Throwable t) {

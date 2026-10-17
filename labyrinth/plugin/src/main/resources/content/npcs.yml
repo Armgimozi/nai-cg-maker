@@ -2,7 +2,7 @@
 # npcs.yml — NPC (Mannequin + 자체 제작 64x64 스킨)
 #
 # 스키마: ARCHITECTURE.md §6 npcs.yml (+ 추가 필드는 §6 에 기록됨)
-#  role       : entrance | blacksmith | class_master | title_keeper | merchant | lore
+#  role       : entrance | blacksmith | class_master | title_keeper | merchant | lore | miner | smelter | estate (0.3.7 마을 관리인 → 집 메뉴)
 #               (lore = 층 안 휴식방에 서 있는 이야기 NPC, 우클릭 시 대사 순환. 공략은 수수께끼처럼 돌려 말한다 —
 #                파티가 그 층 보스에서 실패할수록 bosses.yml hints 단서를 첫 줄로 덧붙인다: GDD "보스 문구 규칙")
 #  skin       : textures/entity/npc/<skin>.png  (리소스팩 생성기가 skin_style 로 그림)
@@ -36,6 +36,7 @@ npcs:
       - "<gray>층의 주인을 쓰러뜨리면 다음 층으로 가는 계단이 열려요. 지하 10층까지… 끝을 본 사람은 아직 없답니다.</gray>"
       - "<gray>미궁의 <yellow>난이도</yellow>는 이 서버의 관리자님이 처음에 정해 두셨어요. 모두가 같은 난이도로 겨루니, 기록도 공평하죠.</gray>"
       - "<gray>층의 주인들은 저마다 고약한 버릇이 있어요. 아무도 가르쳐 주지 않지만… 쓰러질 때마다 조금씩 보이게 될 거예요.</gray>"
+      - "<gray>남쪽 골목으로 가면 집을 받을 수 있어요.</gray>"
 
   blacksmith:
     name: "대장장이 두르간"
@@ -115,6 +116,24 @@ npcs:
       - {item: wayfarer_sabre, price: 1500, level_req: 3}
       - {item: silk_antler_staff, price: 2000, level_req: 8}
       - {item: glowcap_twin_bow, price: 2500, level_req: 11}
+
+  # ═══════════════════════════ 집 구역 NPC (0.3.7 — 등불 골목 관리인 노점, 구역 기계가 세움) ═══════════════════════════
+
+  estate_keeper:
+    name: "마을 관리인 모아"
+    nameplate: "<gradient:#d9a066:#f3dfb0>[마을 관리인]</gradient>"
+    skin: estate_keeper
+    role: estate
+    placement: overworld
+    skin_style:
+      palette: ["#e8c0a0", "#4a3424", "#4f6a3a", "#d8c8a0", "#c8a060", "#3a5a2a"]
+      outfit: coat
+      hair: short_bob
+      accessories: [key_ring, round_glasses, satchel]
+    dialogue:
+      - "<gray>골목 집터는 한 사람에 한 채예요.</gray>"
+      - "<gray>집 안에서는 마음대로 짓고 부숴도 돼요. 밖은 안 되고요.</gray>"
+      - "<gray>블록이 모자라면 여기서 사 가요.</gray>"
 
   # ═══════════════════════════ 광산 마을 NPC (0.3.6 — 광부 브론 → 광산 관리소 메뉴 · 제련공 이그나 → 제련소) ═══════════════════════════
 

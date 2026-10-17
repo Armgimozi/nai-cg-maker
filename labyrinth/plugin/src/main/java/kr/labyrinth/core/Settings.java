@@ -40,6 +40,7 @@ public final class Settings {
     private final ArmorLooks armorLooks;
     private final Wild wild;
     private final List<String> wildWarnings;
+    private final boolean netherOpen;
     /** combat.bow_melee_mult (0.3.6.1) — 활을 든 채 친 근접 피해 배율, 0~1. 키가 없으면 0.5. */
     private final double bowMeleeMult;
 
@@ -144,7 +145,8 @@ public final class Settings {
      * @param border       마을 둘레에 바닐라 월드 경계 (마을 상자 + 보호 상자 ∪ → + borderMargin, 정사각형)
      * @param borderMargin 마을 가장자리에서 몇 칸 더 (0 ~ 1000)
      * @param spawns       마을 월드 자연 스폰 막기: ALL(적대+동물) · MONSTERS(적대만) · NONE
-     * 네더·엔드는 막지 않는다 (바닐라 그대로) — 돌아올 때 경계 밖이면 광장으로 옮기는 것은 경계가 맡는다.
+     * 엔드는 막지 않는다 (바닐라 그대로) — 돌아올 때 경계 밖이면 광장으로 옮기는 것은 경계가 맡는다.
+     * 네더는 0.3.7 부터 막는다 — 스위치는 같은 섹션의 {@code wild.nether} ({@link #netherOpen(Object, List)}, {@link NetherLock}).
      */
     public record Wild(boolean border, int borderMargin, Spawns spawns) {
         /** 마을 월드 자연 스폰을 어디까지 막나. */
@@ -287,6 +289,7 @@ public final class Settings {
         // getConfigurationSection 은 기본값(jar config)에만 있는 섹션을 서버 config 에 빈 'wild: {}' 로 만들어 저장되게 한다 — get 으로 읽음
         Object wv = c.get("wild");
         this.wild = Boolean.FALSE.equals(wv) ? Wild.OFF : wild(wv instanceof ConfigurationSection wsec ? wsec : null, ww);
+        this.netherOpen = netherOpen(wv, ww); // 0.3.7 네더 막기 — 키가 없으면 (wild: false 여도) 막음
         this.wildWarnings = List.copyOf(ww);
         // 0.3.6.1 사냥꾼 활: 활로 직접 치면 피해 × 이 값 (예전 config.yml 에는 키가 없다 → 0.5)
         this.bowMeleeMult = kr.labyrinth.combat.BowMelee.clamp(
@@ -314,6 +317,20 @@ public final class Settings {
             warnings.add("wild.border_margin " + margin + " 은(는) 0 ~ " + Wild.MAX_MARGIN + " 로 자릅니다");
         }
         return new Wild(w.getBoolean("border", d.border()), margin, spawns);
+    }
+
+    /**
+     * wild.nether (0.3.7, 서버장 결정 "네더 막아") — {@code true} 일 때만 네더 차원문이 열린다.
+     * 섹션이 없거나 {@code wild: false} 이거나 키가 없으면 false (막음). true·false 가 아닌 값은 false + warnings 한 줄.
+     * 마을이 없는 월드에도 쓰인다 (야생 막기의 다른 키와 달리) — {@link NetherLock}.
+     */
+    static boolean netherOpen(Object wildValue, List<String> warnings) {
+        if (!(wildValue instanceof ConfigurationSection w)) return false;
+        Object raw = w.get("nether");
+        if (raw == null) return false;
+        if (raw instanceof Boolean b) return b;
+        if (warnings != null) warnings.add("wild.nether '" + raw + "' 는 true · false 만 됩니다 — false (네더 막음) 로 읽습니다");
+        return false;
     }
 
     /**
@@ -458,8 +475,11 @@ public final class Settings {
     /** 방어구 겉모습 장단점 (판금·가죽·천 숨은 효과 · 4부위 효과). */
     public ArmorLooks armorLooks() { return armorLooks; }
 
-    /** 야생 막기 (월드 경계 · 마을 월드 스폰). 마을이 있는 주 월드에만 쓰인다. 네더·엔드는 막지 않는다. */
+    /** 야생 막기 (월드 경계 · 마을 월드 스폰). 마을이 있는 주 월드에만 쓰인다. 엔드는 막지 않는다. */
     public Wild wild() { return wild; }
+
+    /** 네더 차원문을 쓸 수 있나 (config wild.nether, 기본 false = 막음 — {@link NetherLock}). 모든 월드에 쓰인다. */
+    public boolean netherOpen() { return netherOpen; }
 
     /** config wild 를 읽다 생긴 경고 (켤 때·reload 때 서버 창에 한 줄씩). */
     public List<String> wildWarnings() { return wildWarnings; }

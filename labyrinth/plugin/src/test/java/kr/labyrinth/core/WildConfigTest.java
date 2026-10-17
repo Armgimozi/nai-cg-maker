@@ -44,7 +44,8 @@ class WildConfigTest {
         assertEquals(Wild.DEFAULT, s.wild());
         assertTrue(s.wildWarnings().isEmpty());
         YamlConfiguration raw = YamlConfiguration.loadConfiguration(new File("src/main/resources/config.yml"));
-        assertFalse(raw.contains("wild.nether_end"), "네더·엔드는 막지 않는다 (키 없음)");
+        assertFalse(raw.contains("wild.nether_end"), "엔드는 막지 않는다 (예전 키 없음)");
+        assertTrue(raw.isBoolean("wild.nether") && !raw.getBoolean("wild.nether"), "네더는 막는다 (0.3.7 wild.nether: false — NetherConfigTest)");
         assertTrue(raw.getBoolean("village.block_mob_spawns"), "예전 마을 둘레 막기 키는 그대로");
     }
 

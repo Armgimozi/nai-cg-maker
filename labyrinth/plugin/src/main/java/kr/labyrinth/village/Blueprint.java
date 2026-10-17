@@ -46,12 +46,22 @@ public final class Blueprint {
     public final boolean deco;
     /** 정문 앞 걸어 들어가기 검사 대상인가 (장식이 아니고 "door": false 가 아니면). */
     public final boolean door;
+    /**
+     * 0.3.7 집 구역 ("abut": true): 다른 abut 조각·길에 1칸 여유 없이 붙을 수 있다 (겹침만 안 됨). 길이 붙지 않고(attach 안 함),
+     * 둘레 여유 칸(margin)을 고정하지 않으며, 보호 상자는 발자국 그대로 (+1 칸 안 넓힘) — 울타리 줄·집터·노점.
+     */
+    public final boolean abut;
+    /**
+     * 0.3.7 집터 바닥 ("pad": true): 발자국 밑을 조각이 통째로 채우므로 동굴 검사를 하지 않고, 마을이 다듬은 칸(TRIM)은 높이가 바닥과
+     * 같을 때만 덮는다 (review R1). 보호 상자를 만들지 않는다 (주인이 짓는 칸).
+     */
+    public final boolean pad;
     private final int[] cells;
     private final boolean[] occupied;
 
     private Blueprint(String id, String name, int w, int h, int d, int floorY, String foundation, List<Weighted> mix,
                       int ax, int az, Map<Integer, String> palette, int[] cells, List<Marker> markers, Integer slack,
-                      boolean deco, boolean door) {
+                      boolean deco, boolean door, boolean abut, boolean pad) {
         this.id = id;
         this.name = name;
         this.w = w;
@@ -68,6 +78,8 @@ public final class Blueprint {
         this.slack = slack;
         this.deco = deco;
         this.door = door;
+        this.abut = abut || pad;
+        this.pad = pad;
         this.occupied = new boolean[w * d];
         for (int z = 0; z < d; z++) {
             for (int x = 0; x < w; x++) {
@@ -258,8 +270,11 @@ public final class Blueprint {
         Integer slack = o.has("slack") ? o.get("slack").getAsInt() : null;
         boolean deco = o.has("deco") ? o.get("deco").getAsBoolean() : isDecoId(id);
         boolean door = !deco && (!o.has("door") || o.get("door").getAsBoolean());
+        boolean abut = o.has("abut") && o.get("abut").getAsBoolean();
+        boolean pad = o.has("pad") && o.get("pad").getAsBoolean();
         if (!problems.isEmpty()) throw new IllegalArgumentException(id + ": " + String.join(" · ", problems));
-        return new Blueprint(id, str(o, "name", id), w, h, d, floorY, foundation, mix, ax, az, palette, cells, markers, slack, deco, door);
+        return new Blueprint(id, str(o, "name", id), w, h, d, floorY, foundation, mix, ax, az, palette, cells, markers, slack, deco, door,
+                abut, pad);
     }
 
     static List<Weighted> weighted(JsonArray a) {

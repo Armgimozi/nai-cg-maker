@@ -23,7 +23,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 /**
  * 미궁 라비린스 플러그인 진입점. onEnable: 설정·콘텐츠 로드 → 모듈 enable(순서대로) / onDisable: 역순 disable + 저장.
  * 모듈 순서: core(janitor·records·data·stats·levels·combat·pack) → 팀 모듈(items·classes·mobs·dungeon·bosses·titles·ui·pvp)
- * → death(인벤세이브) → village → mine(광산) → setup → commands(마지막: 다른 모듈이 붙인 하위 명령까지 등록).
+ * → death(인벤세이브) → nether(네더 막기) → village → mine(광산) → homes(집) → setup → commands(마지막: 다른 모듈이 붙인 하위 명령까지 등록).
  */
 public final class LabyrinthPlugin extends JavaPlugin {
 
@@ -60,10 +60,13 @@ public final class LabyrinthPlugin extends JavaPlugin {
         modules.add(new UiModule(services));
         modules.add(new PvpModule(services));
         modules.add(new kr.labyrinth.core.DeathKeep(services)); // 인벤세이브 (config death) — 미궁 밖 모든 월드
+        modules.add(new kr.labyrinth.core.NetherLock(services)); // 네더 막기 (0.3.7, config wild.nether) — 모든 월드
         // 미리 지은 마을 (주 월드에 labyrinth-village.yml 이 있을 때만 켜짐) — dungeon·ui 뒤, setup 앞
         modules.add(new VillageModule(services, dungeon::forgetSavedEntrance));
         // 광산 (0.3.6): 따로 된 광산 월드 + 승강기 · 함께 쓰는 광맥 — 마을 뒤 (마을로 나가는 자리), commands 앞
         modules.add(new kr.labyrinth.mine.MineModule(services));
+        // 집 구역 (0.3.7): 마을 남쪽 등불 골목 10채 + 주 월드 지형 잠금 — 마을·광산 뒤 (구역 기록은 마을 모듈이 먼저 읽음), commands 앞
+        modules.add(new kr.labyrinth.homes.HomesModule(services));
         // ──────────────────────────────────────────────────────────────────────────
         modules.add(new SetupListener(services));
         modules.add(services.commands());

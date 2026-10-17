@@ -10,11 +10,14 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import kr.labyrinth.command.CommandService;
 import kr.labyrinth.core.Log;
 import kr.labyrinth.core.Text;
+import kr.labyrinth.homes.HomesDistrict;
+import kr.labyrinth.homes.PlotGeom;
 import kr.labyrinth.mine.MineLinks;
 import kr.labyrinth.mine.MineNames;
 import org.bukkit.Bukkit;
@@ -32,10 +35,12 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.scheduler.BukkitTask;
 
 /**
- * 실행 중 구역 (0.3.6.1 광산 마을, CONTRACT §2.13): 주 월드 폴더의 {@code labyrinth-district-<id>.yml} 을 읽어
- * 마을 보호·우클릭·연출·스폰 막기·야생 경계에 더하고({@link VillageService#rebuildIndex}), 광산 승강장을 {@link MineLinks} 에 알린다.
+ * 실행 중 구역 (0.3.6.1 광산 마을 · 0.3.7 집 구역, CONTRACT §2.13): 주 월드 폴더의 {@code labyrinth-district-<id>.yml} 을 읽어
+ * 마을 보호·우클릭·연출·스폰 막기·야생 경계에 더하고({@link VillageService#rebuildIndex}), 광산 승강장을 {@link MineLinks} 에,
+ * 집 구역 상태·집터를 {@link HomesDistrict#publish} 로 집 모듈에 알린다.
  * <ul>
- *   <li>시작 5초 뒤 한 번 ({@link #scheduleStartup}, {@link DistrictPolicy#onStart}): 기록이 없으면 저절로 짓기, building 이면 백업으로 되돌린 뒤 처음부터.</li>
+ *   <li>시작 5초 뒤 ({@link #scheduleStartup}, {@link DistrictPolicy#plan}): 구역 차례(광산 → 집)대로 — 기록이 없으면 저절로 짓기, building 이면
+ *       백업으로 되돌린 뒤 처음부터. 한 구역 작업이 끝나면(지어짐·막힘) 곧바로 다음 구역 (review R8).</li>
  *   <li>NPC (광부 브론·제련공 이그나): 기존 NPC 체계({@code npcs().place})로 세운다. 적용 열쇠 = {@code village-applied.yml}
  *       {@code districts.<id>} (월드 UID + 구역 build_id). npcs.yml 을 고쳐 정의가 없으면 세우지 않고, 숙소 관리소 표지판·제련소
  *       우클릭 칸이 같은 메뉴를 연다.</li>
@@ -52,10 +57,12 @@ final class DistrictService implements Listener {
     private final Map<String, DistrictMeta> metas = new LinkedHashMap<>();
     private BukkitTask startupTask, guardTask;
     private int startupTries;
+    /** 이번 시작에 짓기·되돌리기를 해 본 구역 (같은 시작에서 다시 하지 않음 — 막혔으면 다음 시작 때 다시 살펴봄). */
+    private final Set<String> tried = new java.util.HashSet<>();
     /** 자리 검사를 통과한 뒤 블록을 쓰기 시작할 때까지 잠깐 켜 두는 보호 상자 (기록 파일 없이 — 짓기 직전 몇 초, 0.3.6.1). */
     private VillageMeta.Box pending;
 
-    /** 광산 마을을 짓지 못한 이유 (district-&lt;id&gt;-blocked.txt 의 '이유:' 줄 · 관리자 안내 글이 이것으로 갈린다). */
+    /** 구역을 짓지 못한 이유 (district-&lt;id&gt;-blocked.txt 의 '이유:' 줄 · 관리자 안내 글이 이것으로 갈린다). */
     enum Blocked {
         PLAYER_MADE("player_made", "그 자리에 사람이 만든 것이 있어 아무것도 바꾸지 않았습니다",
                 "방해물을 치웠으면 서버를 다시 켜면 다시 살펴봅니다 (또는 /labadmin village district build %s)."),
@@ -63,7 +70,7 @@ final class DistrictService implements Listener {
                 "이 월드는 켤 때 저절로 짓지 않습니다 — 위 미리 보기로 자리를 확인한 뒤 직접 지으세요."),
         BORDER("border", "그 자리가 월드 경계(/worldborder) 밖이라 아무것도 바꾸지 않았습니다",
                 "경계를 넓혔으면 서버를 다시 켜면 다시 살펴봅니다 (또는 /labadmin village district build %s)."),
-        BACKUP("backup", "짓다가 멈춘 광산 마을을 되돌릴 백업 파일이 없거나 깨졌습니다",
+        BACKUP("backup", "짓다가 멈춘 %s 되돌릴 백업 파일이 없거나 깨졌습니다",
                 "지은 블록을 그대로 두고 기록만 지우려면: /labadmin village district remove %s force");
 
         final String code, notice, last;
@@ -73,6 +80,9 @@ final class DistrictService implements Listener {
             this.notice = notice;
             this.last = last;
         }
+
+        /** 안내 글 (구역 이름을 넣어 — BACKUP 만 이름을 씀). */
+        String notice(String name) { return notice.contains("%s") ? String.format(notice, name + objectParticle(name)) : notice; }
 
         static Blocked parse(String code) {
             for (Blocked b : values()) if (b.code.equals(code)) return b;
@@ -109,6 +119,32 @@ final class DistrictService implements Listener {
 
     File blockedFile(String id) { return new File(new File(module.plugin().getDataFolder(), "village"), "district-" + id + "-blocked.txt"); }
 
+    /** 구역 이름 (청사진 name — 광산 마을 · 집 구역). */
+    String nameOf(String id) {
+        DistrictLibrary.Entry e = library() == null ? null : library().get(id);
+        if (e != null) return e.layout().name;
+        DistrictMeta d = metas.get(id);
+        return d != null && d.name != null && !d.name.isBlank() ? d.name : id;
+    }
+
+    /** 막혔을 때 덧붙이는 안내 한 줄 (MiniMessage) — 그 구역이 없어도 되는 것. */
+    static String hint(String id) {
+        return switch (id) {
+            case "mine" -> "광산은 <white>/미궁 광산</white> 으로 그대로 됩니다.";
+            case "homes" -> "지형 잠금은 꺼진 채입니다. 집터는 <white>/labadmin plot convert</white> 로 줄 수 있습니다.";
+            default -> "";
+        };
+    }
+
+    /** 막힘 파일에 쓰는 안내 (글자 그대로). */
+    static String hintFile(String id) {
+        return switch (id) {
+            case "mine" -> "광산은 그대로 쓸 수 있습니다: /미궁 광산 또는 메인 메뉴 '광산' → 얕은 갱도의 광산 관리소 (곡괭이·제련·팔기).";
+            case "homes" -> "지형 잠금은 꺼진 채입니다 (부수기·놓기를 막지 않음). 옛 건물을 그 주인 집터로 주려면: /labadmin plot convert <이름> <x1> <z1> <x2> <z2>"
+                    + " (집 구역 없이 잠그려면 /labadmin plot lock on).";
+            default -> "";
+        };
+    }
     // ── 기록 ─────────────────────────────────────────────────────────────
 
     /** 기록 다시 읽기 → 마을 색인(보호·우클릭) 다시 · refresh 면 야생 경계도. */
@@ -119,6 +155,7 @@ final class DistrictService implements Listener {
             Set<String> ids = new LinkedHashSet<>();
             if (library() != null) ids.addAll(library().ids());
             ids.add("mine");
+            ids.add("homes");
             for (String id : ids) {
                 File f = metaFile(w, id);
                 if (!f.isFile()) continue;
@@ -127,16 +164,122 @@ final class DistrictService implements Listener {
                     if (d.id == null || d.id.isBlank()) d.id = id;
                     metas.put(id, d);
                 } catch (Exception e) {
-                    Log.error("[광산 마을] " + f + " 읽기 실패 — 이 구역은 없는 것으로 봅니다", e);
+                    Log.error("[" + nameOf(id) + "] " + f + " 읽기 실패 — 이 구역은 없는 것으로 봅니다", e);
                 }
             }
         }
         village.rebuildIndex();
         for (DistrictMeta d : metas.values()) {
-            Log.info("[광산 마을] " + d.name + " — " + d.state.key() + " · 자리 " + d.site + " · 조각 " + d.meta.pieces.size() + " · 보호 상자 "
-                    + d.meta.protect.size());
+            Log.info("[" + d.name + "] " + d.state.key() + " · 자리 " + d.site + " · 조각 " + d.meta.pieces.size() + " · 보호 상자 "
+                    + d.meta.protect.size() + (d.plots.isEmpty() ? "" : " · 집터 " + d.plots.size()));
         }
-        if (refresh && village.wild() != null) village.wild().refresh("광산 마을");
+        refreshPlaced();
+        publishHomes();
+        if (refresh && village.wild() != null) village.wild().refresh("구역");
+    }
+
+    // ── 구역이 놓은 칸 (0.3.7 fix — 보호 상자 밖 옹벽·기초도 구역 것) ─────────
+
+    /** 지어진 구역의 DIFF 백업에서 놓은 블록이 공기가 아닌 칸 (pack, 정렬) — 이사 기간 부수기·옛 건물 조사에서 뺀다. */
+    private volatile long[] placed = new long[0];
+    private final Map<String, String> placedStamp = new java.util.HashMap<>();
+    private final Map<String, long[]> placedById = new java.util.HashMap<>();
+
+    private void refreshPlaced() {
+        World w = world();
+        Set<String> keep = new java.util.HashSet<>();
+        boolean changed = false;
+        if (w != null) for (DistrictMeta d : metas.values()) {
+            if (!d.built()) continue;
+            File bf = backupFile(w, d.id);
+            if (!bf.isFile()) continue;
+            keep.add(d.id);
+            String stamp = bf.length() + ":" + bf.lastModified();
+            if (stamp.equals(placedStamp.get(d.id))) continue;
+            long[] arr;
+            try {
+                arr = placedKeys(DistrictBackup.load(bf));
+            } catch (IOException | RuntimeException e) {
+                Log.warn("[" + d.name + "] 백업을 읽지 못해 구역이 놓은 칸을 모릅니다 (이사 기간에 옹벽을 부술 수 있음): " + e.getMessage());
+                arr = new long[0];
+            }
+            placedById.put(d.id, arr);
+            placedStamp.put(d.id, stamp);
+            changed = true;
+        }
+        if (placedById.keySet().retainAll(keep)) changed = true;
+        placedStamp.keySet().retainAll(keep);
+        if (!changed) return;
+        int n = 0;
+        for (long[] a : placedById.values()) n += a.length;
+        long[] all = new long[n];
+        int i = 0;
+        for (long[] a : placedById.values()) {
+            System.arraycopy(a, 0, all, i, a.length);
+            i += a.length;
+        }
+        java.util.Arrays.sort(all);
+        placed = all;
+    }
+
+    /** DIFF 백업 → 놓은 것이 공기가 아닌 칸 (정렬, 중복 없음). BEFORE 단계 (짓는 중) 는 빈 배열. */
+    static long[] placedKeys(DistrictBackup bk) {
+        if (bk == null || bk.phase != DistrictBackup.Phase.DIFF) return new long[0];
+        long[] out = new long[bk.entries.size()];
+        int n = 0;
+        for (DistrictBackup.Entry e : bk.entries) {
+            String a = e.after();
+            if (a == null || a.isBlank() || isAir(a)) continue;
+            out[n++] = e.key();
+        }
+        long[] arr = java.util.Arrays.copyOf(out, n);
+        java.util.Arrays.sort(arr);
+        return java.util.Arrays.stream(arr).distinct().toArray();
+    }
+
+    private static boolean isAir(String data) {
+        String k = data.trim().toLowerCase(Locale.ROOT);
+        int b = k.indexOf('[');
+        if (b >= 0) k = k.substring(0, b);
+        if (k.startsWith("minecraft:")) k = k.substring(10);
+        return k.equals("air") || k.equals("cave_air") || k.equals("void_air");
+    }
+
+    /** 정렬된 칸 목록에 (x, y, z) 가 있나. */
+    static boolean containsCell(long[] sorted, int x, int y, int z) {
+        return sorted != null && sorted.length > 0 && java.util.Arrays.binarySearch(sorted, DistrictBackup.pack(x, y, z)) >= 0;
+    }
+
+    boolean placed(int x, int y, int z) { return containsCell(placed, x, y, z); }
+
+    /** 비동기 조사용 (바꾸지 말 것). */
+    long[] placedCells() { return placed; }
+
+    /** 집 구역 상태·집터를 집 모듈에 알린다 (0.3.7 — 읽을 때마다, 지은 뒤·지운 뒤). */
+    void publishHomes() {
+        DistrictMeta d = metas.get("homes");
+        HomesDistrict.publish(homesDistrict(d));
+    }
+
+    /** 구역 기록 → 집 모듈이 보는 상태 (지어진 것만 집터가 있음). */
+    static HomesDistrict homesDistrict(DistrictMeta d) {
+        if (d == null) return HomesDistrict.NONE;
+        List<PlotGeom> plots = new ArrayList<>();
+        if (d.built()) {
+            int n = 0;
+            for (DistrictMeta.PlotRec r : d.plots) {
+                n++;
+                int key;
+                try {
+                    key = Integer.parseInt(r.id());
+                } catch (NumberFormatException e) {
+                    key = n;
+                }
+                plots.add(new PlotGeom(r.id(), Math.max(1, key), r.x0(), r.z0(), r.x1(), r.z1(), r.floor(), r.y0(), r.y1(), r.front(), r.gateX(),
+                        r.gateZ(), r.signX(), r.signY(), r.signZ(), r.homeX(), r.homeY(), r.homeZ(), r.homeYaw(), false));
+            }
+        }
+        return new HomesDistrict(d.state.key(), d.meta.buildId, d.site, plots);
     }
 
     DistrictMeta get(String id) { return metas.get(id); }
@@ -179,37 +322,54 @@ final class DistrictService implements Listener {
             if (startupTries++ < 20) startupTask = Bukkit.getScheduler().runTaskLater(module.plugin(), this::startup, 600L);
             return;
         }
-        var cfg = module.districtConfig();
+        // 구역 차례 (광산 → 집, review R8): 할 일 없는 구역은 지나가고, 짓기·되돌리기가 필요한 첫 구역을 한다 — 끝나면 다시 여기로 (다음 구역)
+        List<DistrictPolicy.Item> items = new ArrayList<>();
         for (DistrictLibrary.Entry e : lib.districts) {
             DistrictMeta d = metas.get(e.id());
-            boolean auto = cfg.autoBuild() && module.mineEnabled();
-            DistrictPolicy.Startup s = DistrictPolicy.onStart(d == null ? null : d.state, village.meta() != null, auto, shipped(e));
-            switch (s) {
+            var cfg = module.districtConfig(e.id());
+            items.add(new DistrictPolicy.Item(e.id(), d == null ? null : d.state, village.meta() != null, cfg.enabled() && cfg.autoBuild(), shipped(e),
+                    tried.contains(e.id())));
+        }
+        boolean npcs = false;
+        for (DistrictPolicy.Step st : DistrictPolicy.plan(items)) {
+            DistrictLibrary.Entry e = lib.get(st.id());
+            DistrictMeta d = metas.get(st.id());
+            var cfg = module.districtConfig(st.id());
+            String name = e.layout().name;
+            boolean auto = cfg.enabled() && cfg.autoBuild();
+            switch (st.action()) {
                 case RECOVER -> {
-                    Log.info("[광산 마을] 지난번에 짓다가 멈췄습니다 — 백업으로 되돌린 뒤 처음부터 다시 짓습니다");
-                    DistrictJob.recover(module, this, e, auto && shipped(e)).start();
-                    return; // 한 번에 하나
+                    tried.add(e.id());
+                    Log.info("[" + name + "] 지난번에 짓다가 멈췄습니다 — 백업으로 되돌린 뒤 처음부터 다시 짓습니다");
+                    DistrictJob j = DistrictJob.recover(module, this, e, auto && shipped(e));
+                    if (j.start()) j.then(this::startup);
+                    return; // 한 번에 하나 — 끝나면 다음 구역
                 }
                 case AUTO_BUILD -> {
+                    tried.add(e.id());
                     if (!e.ok()) {
-                        Log.warn("[광산 마을] 청사진 문제로 짓지 않습니다: " + String.join(" · ", e.problems()));
+                        Log.warn("[" + name + "] 청사진 문제로 짓지 않습니다: " + String.join(" · ", e.problems()));
                         continue;
                     }
-                    Log.info("[광산 마을] 처음 켰습니다 — 마을 옆에 광산 마을을 짓습니다 (자리 " + String.join(" → ", cfg.sites()) + ")");
-                    DistrictJob.auto(module, this, e, cfg.sites()).start();
+                    Log.info("[" + name + "] 처음 켰습니다 — 마을 옆에 " + name + objectParticle(name) + " 짓습니다 (자리 " + String.join(" → ", cfg.sites()) + ")");
+                    DistrictJob j = DistrictJob.auto(module, this, e, cfg.sites());
+                    if (j.start()) j.then(this::startup);
                     return;
                 }
                 case UNKNOWN_WORLD -> {
-                    String why = "이 월드는 서버팩 월드가 아니어서(마을이 다름) 광산 마을을 저절로 짓지 않았습니다. "
+                    tried.add(e.id());
+                    String why = "이 월드는 서버팩 월드가 아니어서(마을이 다름) " + name + objectParticle(name) + " 저절로 짓지 않았습니다. "
                             + "자리를 확인한 뒤 지으려면: /labadmin village district preview " + e.id() + " → build " + e.id();
-                    Log.info("[광산 마을] " + why);
+                    Log.info("[" + name + "] " + why);
                     writeBlocked(e.id(), Blocked.NOT_SHIPPED, List.of(why), List.of());
                 }
                 case NO_VILLAGE, NONE -> {
-                    if (d != null && d.built()) applyNpcs(false);
+                    tried.add(e.id());
+                    if (d != null && d.built()) npcs = true;
                 }
             }
         }
+        if (npcs) applyNpcs(false);
     }
 
     // ── NPC ──────────────────────────────────────────────────────────────
@@ -217,7 +377,10 @@ final class DistrictService implements Listener {
     private String applyKey(DistrictMeta d) { return world().getUID() + ":" + d.meta.buildId; }
 
     /** 지은 구역 NPC 세우기 (적용 열쇠가 다르거나 force). @return 세운 수 */
-    int applyNpcs(boolean force) {
+    int applyNpcs(boolean force) { return applyNpcs(force, null); }
+
+    /** @param only 이 구역만 (null = 지은 구역 모두) — 돌려주는 수도 그 구역 것만 */
+    int applyNpcs(boolean force, String only) {
         World w = world();
         if (w == null) return 0;
         File f = village.appliedFile();
@@ -225,7 +388,7 @@ final class DistrictService implements Listener {
         int placed = 0;
         boolean dirty = false;
         for (DistrictMeta d : metas.values()) {
-            if (!d.built()) continue;
+            if (!d.built() || (only != null && !only.equals(d.id))) continue;
             String key = applyKey(d);
             if (!force && key.equals(y.getString("districts." + d.id, ""))) continue;
             placed += placeNpcs(d);
@@ -237,7 +400,7 @@ final class DistrictService implements Listener {
                 module.plugin().getDataFolder().mkdirs();
                 y.save(f);
             } catch (IOException e) {
-                Log.warn("[광산 마을] village-applied.yml 저장 실패: " + e.getMessage());
+                Log.warn("[구역] village-applied.yml 저장 실패: " + e.getMessage());
             }
         }
         return placed;
@@ -249,17 +412,18 @@ final class DistrictService implements Listener {
         for (Map.Entry<String, VillageMeta.Pos> e : d.meta.npcs.entrySet()) {
             String id = e.getKey();
             if (!s.content().npcs().containsKey(id)) {
-                Log.warn("[광산 마을] NPC '" + id + "' 가 npcs.yml 에 없어 세우지 않았습니다 — 숙소 '광산 관리소' 표지판·제련소를 우클릭하면 같은 메뉴가 열립니다");
+                Log.warn("[" + d.name + "] NPC '" + id + "' 가 npcs.yml 에 없어 세우지 않았습니다 — "
+                        + ("homes".equals(d.id) ? "관리인 노점 계산대를 우클릭하면 같은 메뉴가 열립니다" : "숙소 '광산 관리소' 표지판·제련소를 우클릭하면 같은 메뉴가 열립니다"));
                 continue;
             }
             try {
                 s.npcs().place(id, village.loc(e.getValue())); // 청크가 안 불려 있으면 자리만 저장되고, 청크가 불릴 때 선다
                 n++;
             } catch (Throwable t) {
-                Log.error("[광산 마을] NPC 배치 실패 (" + id + ")", t);
+                Log.error("[" + d.name + "] NPC 배치 실패 (" + id + ")", t);
             }
         }
-        Log.info("[광산 마을] NPC " + n + "/" + d.meta.npcs.size() + " 세움");
+        Log.info("[" + d.name + "] NPC " + n + "/" + d.meta.npcs.size() + " 세움");
         return n;
     }
 
@@ -274,7 +438,7 @@ final class DistrictService implements Listener {
             try {
                 s.npcs().remove(e.getKey());
             } catch (Throwable t) {
-                Log.error("[광산 마을] NPC 치우기 실패 (" + e.getKey() + ")", t);
+                Log.error("[" + d.name + "] NPC 치우기 실패 (" + e.getKey() + ")", t);
             }
         }
         File f = village.appliedFile();
@@ -342,6 +506,14 @@ final class DistrictService implements Listener {
                 + " 중이라 광장으로 옮겼습니다. 잠시 뒤에 가 보세요.");
     }
 
+    /** 이/가 (마지막 글자 받침). */
+    static String subjectParticle(String word) {
+        if (word == null || word.isEmpty()) return "이";
+        char c = word.charAt(word.length() - 1);
+        if (c < 0xAC00 || c > 0xD7A3) return "이(가)";
+        return (c - 0xAC00) % 28 == 0 ? "가" : "이";
+    }
+
     /** 을/를 (마지막 글자 받침). */
     static String objectParticle(String word) {
         if (word == null || word.isEmpty()) return "을";
@@ -387,7 +559,7 @@ final class DistrictService implements Listener {
         }
         for (VillageMeta.Box b : m.protect) {
             if (!s.containsBlocks(b.x0(), b.z0(), b.x1(), b.z1())) {
-                return "월드 경계 밖 — 관리자가 정한 경계(" + WildBorder.describe(s) + ") 밖에 광산 마을 상자 (x " + b.x0() + "~" + b.x1() + ", z "
+                return "월드 경계 밖 — 관리자가 정한 경계(" + WildBorder.describe(s) + ") 밖에 구역 상자 (x " + b.x0() + "~" + b.x1() + ", z "
                         + b.z0() + "~" + b.z1() + ")";
             }
         }
@@ -414,7 +586,8 @@ final class DistrictService implements Listener {
             if (to == null) return;
             p.setFallDistance(0);
             kr.labyrinth.core.Teleports.to(p, to);
-            Text.send(p, "<#e8c58a>" + Text.escape(d.name) + "</#e8c58a><gray>이 생긴 자리에 끼어 있어 " + (lift ? "승강장 앞" : "광장") + "으로 옮겼습니다.");
+            Text.send(p, "<#e8c58a>" + Text.escape(d.name) + "</#e8c58a><gray>" + subjectParticle(d.name) + " 생긴 자리에 끼어 있어 " + (lift ? "승강장 앞" : "광장")
+                    + "으로 옮겼습니다.");
             return;
         }
     }
@@ -442,9 +615,10 @@ final class DistrictService implements Listener {
     /** district-<id>-blocked.txt (사람이 읽는 글). 둘째 줄 '이유: … [코드]' 로 관리자 안내 글이 갈린다. */
     void writeBlocked(String id, Blocked reason, List<String> head, List<String> lines) {
         File f = blockedFile(id);
+        String name = nameOf(id);
         List<String> out = new ArrayList<>();
-        out.add("미궁 라비린스 — 광산 마을을 짓지 않았습니다 (" + java.time.LocalDateTime.now().withNano(0) + ")");
-        out.add("이유: " + reason.notice + " [" + reason.code + "]");
+        out.add("미궁 라비린스 — " + name + objectParticle(name) + " 짓지 않았습니다 (" + java.time.LocalDateTime.now().withNano(0) + ")");
+        out.add("이유: " + reason.notice(name) + " [" + reason.code + "]");
         out.add("");
         out.addAll(head);
         if (!lines.isEmpty()) {
@@ -453,7 +627,7 @@ final class DistrictService implements Listener {
             out.addAll(lines);
         }
         out.add("");
-        out.add("광산은 그대로 쓸 수 있습니다: /미궁 광산 또는 메인 메뉴 '광산' → 얕은 갱도의 광산 관리소 (곡괭이·제련·팔기).");
+        if (!hintFile(id).isEmpty()) out.add(hintFile(id));
         if (reason != Blocked.BACKUP) {
             out.add("다른 자리에 지으려면: 게임 안에서 그 자리(큰길에서 이어질 곳)에 서서");
             out.add("  /labadmin village district preview " + id + " here [north|east|south|west]   (미리 보기 — 아무것도 바꾸지 않음)");
@@ -464,25 +638,25 @@ final class DistrictService implements Listener {
             f.getParentFile().mkdirs();
             Files.write(f.toPath(), out, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            Log.warn("[광산 마을] " + f + " 쓰기 실패: " + e.getMessage());
+            Log.warn("[" + name + "] " + f + " 쓰기 실패: " + e.getMessage());
         }
-        if (module.districtConfig().notifyAdmins()) {
+        if (module.districtConfig(id).notifyAdmins()) {
             for (Player p : Bukkit.getOnlinePlayers()) if (p.hasPermission(CommandService.PERM_ADMIN)) noticeAdmin(p, id, true);
         }
     }
 
     void clearBlocked(String id) {
         File f = blockedFile(id);
-        if (f.isFile() && !f.delete()) Log.warn("[광산 마을] " + f + " 를 지우지 못했습니다");
+        if (f.isFile() && !f.delete()) Log.warn("[" + nameOf(id) + "] " + f + " 를 지우지 못했습니다");
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onJoin(PlayerJoinEvent e) {
         Player p = e.getPlayer();
-        if (!p.hasPermission(CommandService.PERM_ADMIN) || !module.districtConfig().notifyAdmins()) return;
+        if (!p.hasPermission(CommandService.PERM_ADMIN)) return;
         Bukkit.getScheduler().runTaskLater(module.plugin(), () -> {
             if (!p.isOnline() || library() == null) return;
-            for (String id : library().ids()) noticeAdmin(p, id, false);
+            for (String id : library().ids()) if (module.districtConfig(id).notifyAdmins()) noticeAdmin(p, id, false);
         }, 60L);
     }
 
@@ -503,8 +677,9 @@ final class DistrictService implements Listener {
         } catch (IOException ignored) {
             // 안내는 다음에 다시
         }
-        Text.send(p, "<#e8c58a>[광산 마을]</#e8c58a> <gray>" + (reason == Blocked.BACKUP ? "" : "마을 옆에 짓지 못했습니다 — ")
-                + reason.notice + ". 광산은 <white>/미궁 광산</white> 으로 그대로 됩니다.");
+        String name = nameOf(id);
+        Text.send(p, "<#e8c58a>[" + Text.escape(name) + "]</#e8c58a> <gray>" + (reason == Blocked.BACKUP ? "" : "마을 옆에 짓지 못했습니다 — ")
+                + reason.notice(name) + ". " + hint(id));
         Text.send(p, "<gray>  자세히: <white>plugins/Labyrinth/village/" + f.getName() + "</white> · <white>/labadmin village district info</white>");
     }
 
@@ -532,7 +707,7 @@ final class DistrictService implements Listener {
             return;
         }
         if (VillageJob.running() instanceof DistrictJob) {
-            Text.error(s, "광산 마을 작업이 진행 중입니다 — 끝난 뒤에 하세요");
+            Text.error(s, "구역 작업이 진행 중입니다 — 끝난 뒤에 하세요");
             return;
         }
         removeNpcs(d);
@@ -545,9 +720,20 @@ final class DistrictService implements Listener {
         }
         load(true);
         clearBlocked(id);
-        Text.send(s, "<#7fe07f><b>광산 마을 기록을 지웠습니다</b></#7fe07f> <gray>(state: removed · 블록은 그대로 — 보호·NPC·승강장은 꺼짐)");
+        if ("homes".equals(id)) removedHomes();
+        Text.send(s, "<#7fe07f><b>" + Text.escape(d.name) + " 기록을 지웠습니다</b></#7fe07f> <gray>(state: removed · 블록은 그대로 — 보호·NPC"
+                + ("mine".equals(id) ? "·승강장" : "") + "은 꺼짐)");
         Text.send(s, "<gray>  남은 블록은 직접 치워야 합니다. 다 치운 뒤 다시 지으려면 <white>/labadmin village district build " + Text.escape(id) + "</white>");
-        Log.info("[광산 마을] 기록만 지움 (remove force) — 블록은 그대로");
+        Log.info("[" + d.name + "] 기록만 지움 (remove force) — 블록은 그대로");
+    }
+
+    /** 집 구역을 지운 뒤 (되돌리기·기록만 지우기): 집 모듈이 소유·색인을 지우고 잠금을 auto 로 (review R9). */
+    void removedHomes() {
+        try {
+            module.services().homes().districtRemoved();
+        } catch (Throwable t) {
+            Log.error("[집 구역] 집 모듈에 지운 것을 알리지 못했습니다", t);
+        }
     }
 
     // ── 정보 ─────────────────────────────────────────────────────────────
@@ -555,8 +741,8 @@ final class DistrictService implements Listener {
     void info(CommandSender s, String id) {
         DistrictLibrary.Entry e = library() == null ? null : library().get(id);
         DistrictMeta d = metas.get(id);
-        var cfg = module.districtConfig();
-        Text.send(s, "<gold>광산 마을</gold> <gray>(" + Text.escape(id) + ")");
+        var cfg = module.districtConfig(id);
+        Text.send(s, "<gold>" + Text.escape(nameOf(id)) + "</gold> <gray>(" + Text.escape(id) + ")");
         if (e == null) {
             s.sendMessage(Text.mm(" <gray>청사진: <#ff6b6b>없음"));
         } else {
@@ -565,7 +751,8 @@ final class DistrictService implements Listener {
                     + " · 이 월드 " + (shipped(e) ? "<#7fe07f>서버팩 월드" : "<#ff9a4d>서버팩 월드 아님")
                     + (e.ok() ? "" : " <#ff6b6b>· 문제 " + Text.escape(String.join(" · ", e.problems())))));
         }
-        s.sendMessage(Text.mm(" <gray>설정: 자동 짓기 <white>" + (cfg.autoBuild() ? "켬" : "끔") + "</white> · 자리 <white>" + String.join(" → ", cfg.sites())
+        s.sendMessage(Text.mm(" <gray>설정: 자동 짓기 <white>" + (cfg.autoBuild() ? "켬" : "끔") + (cfg.enabled() ? "" : " (모듈 꺼짐)") + "</white> · 자리 <white>"
+                + String.join(" → ", cfg.sites())
                 + "</white> · 틱당 블록 <white>" + DistrictJob.blocksPerTick(cfg.blocksPerTick()) + (DistrictJob.blocksPerTick(cfg.blocksPerTick()) != cfg.blocksPerTick() ? " (설정 " + cfg.blocksPerTick() + " → 최소 " + DistrictJob.MIN_BLOCKS_PER_TICK + ")" : "")
                 + "</white> · 관리자 안내 <white>" + (cfg.notifyAdmins() ? "켬" : "끔")));
         if (d == null) {
@@ -580,6 +767,16 @@ final class DistrictService implements Listener {
         } + "</white> · 자리 <white>" + Text.escape(d.site) + "</white> · 지은 때 " + Text.escape(d.meta.builtAt)));
         s.sendMessage(Text.mm(" <gray>중심 (" + d.meta.center[0] + ", " + d.meta.center[2] + ") · 조각 " + d.meta.pieces.size() + " · 길 " + d.meta.paths.size()
                 + " · 보호 상자 " + d.meta.protect.size() + " · 우클릭 " + d.meta.interact.size() + " · NPC " + d.meta.npcs.size()
+                + (d.plots.isEmpty() ? "" : " · 집터 " + d.plots.size())
                 + " · 백업 " + (backupFile(world(), id).isFile() ? "<white>" + DistrictMeta.backupName(id) + "</white>" : "<#ff9a4d>없음")));
+        if ("homes".equals(id) && d.built()) {
+            int owned = 0;
+            try {
+                owned = module.services().homes().ownedCount();
+            } catch (Throwable ignored) {
+                // 집 모듈 없음
+            }
+            s.sendMessage(Text.mm(" <gray>주인 있는 집 <white>" + owned + "</white> · 지우기는 주인이 있으면 <white>remove homes force</white> (모두 맡긴 짐으로 돌린 뒤)"));
+        }
     }
 }

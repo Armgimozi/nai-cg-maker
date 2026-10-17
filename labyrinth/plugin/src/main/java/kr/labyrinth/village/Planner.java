@@ -37,6 +37,8 @@ public final class Planner {
     public static final int ATTACH = 2;
     /** 길 높이가 직선 보간에서 지형을 따라 벗어날 수 있는 한도. */
     public static final int PATH_FOLLOW = 2;
+    /** 구역 json 길 follow 의 최대 (0.3.7 집 구역 거리 — 땅을 따라가고 대문 앞 칸에서만 그 집 바닥 ±1 로 묶음). */
+    public static final int PATH_FOLLOW_MAX = 8;
 
     public static String label(Fail f) {
         return switch (f) {
@@ -341,6 +343,7 @@ public final class Planner {
 
     private static Shape shape(Plan.Placed pl) {
         Shape s = new Shape();
+        boolean abut = pl.bp.abut; // 0.3.7: 붙는 조각은 둘레 여유 칸을 고정하지 않는다 (이웃 집터·길이 제 높이를 정함)
         List<Integer> occ = new ArrayList<>(), margin = new ArrayList<>();
         int[] a = Rot.inBox(pl.bp.anchorX, pl.bp.anchorZ, pl.bp.w, pl.bp.d, pl.turns);
         int[] f = Rot.inBox(pl.bp.anchorX, Plan.Placed.doorZ(pl.bp), pl.bp.w, pl.bp.d, pl.turns);
@@ -366,7 +369,7 @@ public final class Planner {
                         near = qx >= 0 && qz >= 0 && qx < pl.w2 && qz < pl.d2 && pl.occ[qz * pl.w2 + qx];
                     }
                 }
-                if (near || (rx == s.fx && rz == s.fz)) {
+                if (!abut && (near || (rx == s.fx && rz == s.fz))) {
                     margin.add(rx);
                     margin.add(rz);
                 }
@@ -397,6 +400,7 @@ public final class Planner {
             p.frozen = c.frozen;
             p.maskR = mask.r();
             p.maskB = mask.b();
+            p.smallWater = mask.smallWater();
         }
         if (c.fail != Fail.NONE) {
             p.fail = c.fail;
@@ -441,6 +445,8 @@ public final class Planner {
         }
         long cave = 0;
         boolean[] placed = new boolean[bps.length];
+        boolean[] abutIdx = new boolean[bps.length];
+        for (Plan.Placed q : p.pieces) abutIdx[q.index()] = q.bp.abut;
         List<Plan.Placed> dropped = new ArrayList<>();
         for (Plan.Placed pl : p.pieces) {
             Shape s = shapes[pl.index()];
@@ -458,7 +464,7 @@ public final class Planner {
                     y.cost() + 0.3 * (Math.abs(y.dx()) + Math.abs(y.dz()))));
             Option chosen = null;
             for (Option o : options) {
-                if (clear(c, p, pl, s, o.dx(), o.dz(), own, doorOwn, pathMask)) {
+                if (clear(c, p, pl, s, o.dx(), o.dz(), own, doorOwn, pathMask, abutIdx)) {
                     chosen = o;
                     break;
                 }
@@ -513,7 +519,9 @@ public final class Planner {
         // 4. 길 높이
         int[] pathH = new int[c.gn * c.gn];
         Arrays.fill(pathH, HeightField.NONE);
-        for (Plan.PathPlan pp : p.paths) pathHeights(c, p, pp, raw.get(pp.def.index()), pathH);
+        // 0.3.7: 붙는 문 조각(집 대문 줄)의 정문 앞 칸 = 거리 칸 → 그 칸 길 높이는 그 바닥 ±1 (대문에서 한 걸음)
+        Map<Long, Integer> pins = p.doorPins();
+        for (Plan.PathPlan pp : p.paths) pathHeights(c, p, pp, raw.get(pp.def.index()), pathH, pins);
         if (mask != null) {
             String why = frozenPaths(c, p, pathH);
             if (why != null) {
@@ -583,13 +591,19 @@ public final class Planner {
             Shape s = shapes[pl.index()];
             if (pl.bp.door) {
                 int fi = c.idx(pl.x0 + s.fx, pl.z0 + s.fz);
-                if (src[fi] < 5) {
+                // 붙는 문 조각(0.3.7 대문)의 정문 앞 칸이 길 칸이면 길 높이 그대로 (그 높이는 이미 바닥 ±1 로 묶임)
+                if (src[fi] < 5 && !(pl.bp.abut && pathH[fi] != HeightField.NONE)) {
                     fixedH[fi] = pl.floor;
                     src[fi] = 4;
                 }
             }
             for (int k = 0; k < s.occ.length; k += 2) {
                 int i = c.idx(pl.x0 + s.occ[k], pl.z0 + s.occ[k + 1]);
+                if (mask != null && c.frozen[i]) { // 0.3.7: 다듬은 칸(TRIM) 위 붙는 조각 — 그 칸 높이 그대로 (위만 씀)
+                    fixedH[i] = c.ground[i];
+                    src[i] = 6;
+                    continue;
+                }
                 fixedH[i] = pl.floor;
                 src[i] = 5;
             }
@@ -665,6 +679,7 @@ public final class Planner {
     private static int attach(List<Plan.Placed> pieces, int[] e) {
         int best = -1, bestD = Integer.MAX_VALUE;
         for (Plan.Placed pl : pieces) {
+            if (pl.bp.abut) continue; // 0.3.7: 붙는 조각에는 길이 붙지 않는다 (길 높이는 길이 정함 — 대문 앞은 아래 pins)
             int d = Integer.MAX_VALUE;
             for (int rz = 0; rz < pl.d2; rz++) {
                 for (int rx = 0; rx < pl.w2; rx++) {
@@ -743,7 +758,12 @@ public final class Planner {
         int bx = pl.x0 + dx, bz = pl.z0 + dz;
         int minG = Integer.MAX_VALUE, maxG = Integer.MIN_VALUE;
         double limit = c.reach - 1;
-        int padLimit = padLimit(), caveDepth = caveDepth();
+        Layout.Opts opts = pl.entry.opts();
+        int padLimit = opts.maxFill() != null ? Math.max(1, opts.maxFill()) : padLimit(), caveDepth = caveDepth();
+        // 0.3.7 집 구역 (abut 조각): 마을(·먼저 지은 구역)이 다듬은 칸(TRIM) 위에도 놓는다 — 겉 그대로, 그 칸은 그 높이 그대로 위만 씀.
+        // 집터 바닥(pad)은 그 칸 높이 = 바닥일 때만 (review R1 — 3번 z 48..49 의 68).
+        boolean trimOk = mask != null && pl.bp.abut;
+        List<Integer> trim = null;
         if (mask != null && pl.bp.door) {
             int fx = bx + s.fx, fz = bz + s.fz;
             if (!c.in(fx, fz) || c.frozenAt(fx, fz)) {
@@ -759,7 +779,12 @@ public final class Planner {
                         return new Option(dx, dz, 0, 0, 0, Fail.RANGE, pl.bp.id + ": 구역 영역 밖으로 나감");
                     }
                     if (c.frozen[c.idx(x, z)]) {
-                        return new Option(dx, dz, 0, 0, 0, Fail.RANGE, pl.bp.id + ": 마을(얼린 칸)에 닿음 (" + x + ", " + z + ")");
+                        if (trimOk && pass == 0 && mask.frozen().kind(x, z) == FrozenCells.Kind.TRIM) {
+                            if (trim == null) trim = new ArrayList<>();
+                            trim.add(c.g(x, z));
+                        } else {
+                            return new Option(dx, dz, 0, 0, 0, Fail.RANGE, pl.bp.id + ": 마을(얼린 칸)에 닿음 (" + x + ", " + z + ")");
+                        }
                     }
                 } else if (Math.hypot(x - c.cx, z - c.cz) > limit || !c.in(x, z)) {
                     return new Option(dx, dz, 0, 0, 0, Fail.RANGE, pl.bp.id + ": 마을 영역 밖으로 나감");
@@ -772,8 +797,14 @@ public final class Planner {
         int lo = maxG - padLimit, hi = minG + padLimit;
         int[] link = linkRange(p, placed, pl, dx, dz);
         int floor;
+        int refFloor = Integer.MIN_VALUE;
+        for (int r : opts.floorRef()) if (r >= 0 && r < placed.length && placed[r]) refFloor = Math.max(refFloor, p.piece(r).floor);
+        int nearFloor = opts.nearRef() >= 0 && opts.nearRef() < placed.length && placed[opts.nearRef()] ? p.piece(opts.nearRef()).floor : Integer.MIN_VALUE;
         if (pl.entry.dy() != null) {
             floor = c.h0 + pl.entry.dy();
+        } else if (refFloor != Integer.MIN_VALUE) {
+            // 울타리 줄: 붙은 집터 가운데 가장 높은 바닥 (낮은 쪽은 옹벽 — review R10)
+            floor = refFloor;
         } else {
             // 가중 중앙값 (높이 범위가 좁아 히스토그램)
             int span = maxG - minG + 1;
@@ -794,7 +825,21 @@ public final class Planner {
                 }
             }
             floor = Math.max(Math.max(lo, link[0]), Math.min(Math.min(hi, link[1]), med));
-            floor = Math.max(c.h0 - DY_CLAMP, Math.min(c.h0 + DY_CLAMP, floor));
+            if (!pl.bp.pad) floor = Math.max(c.h0 - DY_CLAMP, Math.min(c.h0 + DY_CLAMP, floor));
+            if (nearFloor != Integer.MIN_VALUE) floor = Math.max(nearFloor - opts.nearDelta(), Math.min(nearFloor + opts.nearDelta(), floor));
+            if (pl.bp.pad && trim != null) floor = trim.get(0);
+        }
+        if (pl.bp.pad && trim != null) {
+            for (int g : trim) {
+                if (g != floor) {
+                    return new Option(dx, dz, floor, 0, 0, Fail.LIMIT, pl.bp.id + ": 마을이 다듬은 칸(높이 " + g + ")이 바닥 " + floor
+                            + " 과 달라 덮을 수 없음");
+                }
+            }
+        }
+        if (nearFloor != Integer.MIN_VALUE && Math.abs(floor - nearFloor) > opts.nearDelta()) {
+            return new Option(dx, dz, floor, 0, 0, Fail.LIMIT, pl.bp.id + ": 마주 보는 조각 바닥 " + nearFloor + " 과 " + Math.abs(floor - nearFloor)
+                    + "칸 차 (" + opts.nearDelta() + " 까지)");
         }
         if (floor < lo || floor > hi) {
             String why = lo > hi
@@ -827,7 +872,7 @@ public final class Planner {
             }
         }
         int occCols = s.occ.length / 2;
-        if (caveCols * 3 > occCols) {
+        if (!pl.bp.abut && caveCols * 3 > occCols) { // 0.3.7 붙는 조각: 집터 바닥은 발자국 밑을 통째로, 울타리 줄은 짓기가 기초 깊이까지 빈칸을 채운다
             return new Option(dx, dz, floor, cost, caveVol, Fail.CAVE,
                     pl.bp.id + ": 발자국 아래 " + caveDepth + "칸 안에 동굴 (" + caveCols + "/" + occCols + "열)");
         }
@@ -835,7 +880,8 @@ public final class Planner {
     }
 
     /** 1칸 여유 검사: 놓인 조각, 붙지 않은 길, 그리고 이 조각에 붙은 길을 옮겼을 때 다른 조각. */
-    private boolean clear(Ctx c, Plan p, Plan.Placed pl, Shape s, int dx, int dz, int[] own, int[] doorOwn, long[] pathMask) {
+    private boolean clear(Ctx c, Plan p, Plan.Placed pl, Shape s, int dx, int dz, int[] own, int[] doorOwn, long[] pathMask, boolean[] abutIdx) {
+        if (pl.bp.abut) return clearAbut(c, pl, s, dx, dz, own, doorOwn, pathMask, abutIdx);
         long attachedMask = 0;
         for (Plan.PathPlan pp : p.paths) if (pp.attached(pl.index())) attachedMask |= 1L << pp.def.index();
         int bx = pl.x0 + dx, bz = pl.z0 + dz;
@@ -884,10 +930,48 @@ public final class Planner {
     }
 
     /**
+     * 붙는 조각 (0.3.7 abut — 집터·울타리 줄·노점): 다른 abut 조각·길과는 칸이 겹치지만 않으면 되고 (1칸 여유 없음, 길은 붙지 않음),
+     * abut 가 아닌 조각과는 지금처럼 1칸 여유. 다른 조각 정문 앞 칸에는 놓지 않는다.
+     */
+    private boolean clearAbut(Ctx c, Plan.Placed pl, Shape s, int dx, int dz, int[] own, int[] doorOwn, long[] pathMask, boolean[] abutIdx) {
+        int bx = pl.x0 + dx, bz = pl.z0 + dz, me = pl.index();
+        for (int k = 0; k < s.occ.length; k += 2) {
+            int x = bx + s.occ[k], z = bz + s.occ[k + 1];
+            if (!c.in(x, z)) return false;
+            int i = c.idx(x, z);
+            if (own[i] >= 0 && own[i] != me) return false;
+            if (doorOwn[i] >= 0 && doorOwn[i] != me) return false;
+            if (pathMask[i] != 0) return false;
+            for (int qz = -1; qz <= 1; qz++) {
+                for (int qx = -1; qx <= 1; qx++) {
+                    if (!c.in(x + qx, z + qz)) return false;
+                    int j = c.idx(x + qx, z + qz);
+                    if (own[j] >= 0 && own[j] != me && !abutIdx[own[j]]) return false;
+                    if (doorOwn[j] >= 0 && doorOwn[j] != me && !abutIdx[doorOwn[j]]) return false;
+                }
+            }
+        }
+        if (pl.bp.door) { // 이 조각 정문 앞 칸 (거리 칸): 다른 조각이 그 칸에 없고, 둘레에 abut 아닌 조각 없음
+            int fx = bx + s.fx, fz = bz + s.fz;
+            if (!c.in(fx, fz)) return false;
+            int f = own[c.idx(fx, fz)];
+            if (f >= 0 && f != me) return false;
+            for (int qz = -1; qz <= 1; qz++) {
+                for (int qx = -1; qx <= 1; qx++) {
+                    if (!c.in(fx + qx, fz + qz)) return false;
+                    int o = own[c.idx(fx + qx, fz + qz)];
+                    if (o >= 0 && o != me && !abutIdx[o]) return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
      * 길 높이: 양 끝 높이 사이 직선 보간을 기준으로 지형을 ±PATH_FOLLOW 안에서 따라가고, 중심선 1칸마다 차 ≤ 1.
      * 끝 높이는 조각 발자국 바로 밖 첫/마지막 길 칸에 고정한다 (발자국과 길 사이 턱이 생기지 않게).
      */
-    private void pathHeights(Ctx c, Plan p, Plan.PathPlan pp, List<PathRaster.Cell> cells, int[] pathH) {
+    private void pathHeights(Ctx c, Plan p, Plan.PathPlan pp, List<PathRaster.Cell> cells, int[] pathH, Map<Long, Integer> pins) {
         double len = PathRaster.length(pp.points);
         int hA = endHeight(c, p, pp, pp.points.get(0), pp.attachA, pathH);
         int hB = endHeight(c, p, pp, pp.points.get(pp.points.size() - 1), pp.attachB, pathH);
@@ -930,16 +1014,36 @@ public final class Planner {
             int li = (int) Math.floor(lin + 0.5);
             s[i] = Math.max(li - pp.def.follow(), Math.min(li + pp.def.follow(), g));
         }
-        for (int pass = 0; pass < 12; pass++) {
+        // 대문 앞 칸 묶음 (0.3.7): 그 칸이 지나는 중심선 자리의 길 높이 = 그 대문 바닥 ±1 (마주 보는 두 대문이면 둘 다)
+        int[] lo = null, hi = null;
+        if (pins != null && !pins.isEmpty()) {
+            for (PathRaster.Cell cell : out) {
+                Integer f = pins.get(PathRaster.key(cell.x(), cell.z()));
+                if (f == null) continue;
+                if (lo == null) {
+                    lo = new int[k + 1];
+                    hi = new int[k + 1];
+                    Arrays.fill(lo, Integer.MIN_VALUE);
+                    Arrays.fill(hi, Integer.MAX_VALUE);
+                }
+                int si = len <= 0 ? 0 : (int) Math.max(0, Math.min(k, Math.round(cell.t() / len * k)));
+                lo[si] = Math.max(lo[si], f - 1);
+                hi[si] = Math.min(hi[si], f + 1);
+            }
+            if (lo != null) for (int i = 0; i <= k; i++) if (!pin[i]) s[i] = Math.max(lo[i], Math.min(hi[i], s[i]));
+        }
+        for (int pass = 0; pass < (lo == null ? 12 : 48); pass++) {
             boolean any = false;
             for (int i = 1; i <= k; i++) {
                 if (pin[i]) continue;
                 int v = Math.max(s[i - 1] - 1, Math.min(s[i - 1] + 1, s[i]));
+                if (lo != null) v = Math.max(lo[i], Math.min(hi[i], v));
                 if (v != s[i]) { s[i] = v; any = true; }
             }
             for (int i = k - 1; i >= 0; i--) {
                 if (pin[i]) continue;
                 int v = Math.max(s[i + 1] - 1, Math.min(s[i + 1] + 1, s[i]));
+                if (lo != null) v = Math.max(lo[i], Math.min(hi[i], v));
                 if (v != s[i]) { s[i] = v; any = true; }
             }
             if (!any) break;
@@ -1000,6 +1104,10 @@ public final class Planner {
             for (int j = i + 1; j < pieces.size(); j++) {
                 Plan.Placed b = pieces.get(j);
                 if (a.x0 - 1 > b.x0 + b.w2 - 1 || b.x0 - 1 > a.x0 + a.w2 - 1 || a.z0 - 1 > b.z0 + b.d2 - 1 || b.z0 - 1 > a.z0 + a.d2 - 1) continue;
+                if (a.bp.abut && b.bp.abut) { // 0.3.7 붙는 조각끼리는 겹침만
+                    if (sharesCell(a, b)) out.add("조각 " + a.bp.id + " 와 " + b.bp.id + " 가 겹침");
+                    continue;
+                }
                 if (touches(a, b)) out.add("조각 " + a.bp.id + " 와 " + b.bp.id + " 가 겹치거나 붙음");
             }
         }
@@ -1008,8 +1116,10 @@ public final class Planner {
             int[] f = a.doorFront();
             for (Plan.Placed b : pieces) {
                 if (b == a) continue;
-                boolean hit = false;
-                for (int qz = -1; qz <= 1 && !hit; qz++) for (int qx = -1; qx <= 1 && !hit; qx++) hit = b.occupies(f[0] + qx, f[1] + qz);
+                boolean hit = a.bp.abut && b.bp.abut && b.occupies(f[0], f[1]);
+                if (!(a.bp.abut && b.bp.abut)) {
+                    for (int qz = -1; qz <= 1 && !hit; qz++) for (int qx = -1; qx <= 1 && !hit; qx++) hit = b.occupies(f[0] + qx, f[1] + qz);
+                }
                 if (hit) out.add("조각 " + a.bp.id + " 정문 앞 칸에 " + b.bp.id + " 가 닿음");
             }
         }
@@ -1018,9 +1128,10 @@ public final class Planner {
             for (Plan.Placed pl : pieces) {
                 if (pp.attached(pl.index())) continue;
                 boolean hit = false;
+                int ring = pl.bp.abut ? 0 : 1; // 붙는 조각은 길 칸과 겹치지만 않으면 됨
                 for (PathRaster.Cell cell : cells) {
-                    for (int qz = -1; qz <= 1 && !hit; qz++) {
-                        for (int qx = -1; qx <= 1 && !hit; qx++) hit = pl.occupies(cell.x() + qx, cell.z() + qz);
+                    for (int qz = -ring; qz <= ring && !hit; qz++) {
+                        for (int qx = -ring; qx <= ring && !hit; qx++) hit = pl.occupies(cell.x() + qx, cell.z() + qz);
                     }
                     if (hit) break;
                 }
@@ -1028,6 +1139,13 @@ public final class Planner {
             }
         }
         return out;
+    }
+
+    private static boolean sharesCell(Plan.Placed a, Plan.Placed b) {
+        for (int rz = 0; rz < a.d2; rz++) {
+            for (int rx = 0; rx < a.w2; rx++) if (a.occ[rz * a.w2 + rx] && b.occupies(a.x0 + rx, a.z0 + rz)) return true;
+        }
+        return false;
     }
 
     private static boolean touches(Plan.Placed a, Plan.Placed b) {

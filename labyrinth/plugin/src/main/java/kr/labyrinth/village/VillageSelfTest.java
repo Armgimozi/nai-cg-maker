@@ -30,6 +30,11 @@ import org.bukkit.entity.Entity;
  * <p>
  * 0.3.6.1 구역 모드 ({@code districtId} — 광산 마을): 같은 검사를 구역 기록(labyrinth-district-mine.yml)으로, 범위는 원 대신 구역 영역(region),
  * 스폰·입구·경계 대신 마을 길과의 이음(junction: 높이 차 ≤ 1) — 줄 머리 "[광산 마을 자가 진단]".
+ * <p>
+ * 0.3.7 집 구역 ({@code homes} — "[집 구역 자가 진단]"): 집터 바닥 조각과 집터 상자 열은 주인이 짓는 칸이라 조각 칸·뜬 지형·나무 검사에서 빼고,
+ * 집터마다 plots · pads(바닥) · under(바닥 아래 정리 — 빈 집 −1..−8, 주인 있는 집 −7..−8) · gates(울타리 문) · signs(표지판) ·
+ * homes_safe(집 가기 칸) · border(구역 상자가 월드 경계 안) · pvp_safe(집터 가운데가 보호 상자 + safe_margin 안) 를 본다.
+ * 마을 모드는 지은 구역(광산·집)의 보호 상자·영역·집터 열을 뜬 지형·나무 검사에서 뺀다 (review R1 — 3번 z 48..49 에 흙·원목을 쌓아도 통과).
  */
 final class VillageSelfTest extends VillageJob {
 
@@ -56,13 +61,28 @@ final class VillageSelfTest extends VillageJob {
     VillageSelfTest(VillageModule module, CommandSender sender, World world) { this(module, sender, world, null); }
 
     VillageSelfTest(VillageModule module, CommandSender sender, World world, String districtId) {
-        super(module, sender, districtId == null ? "마을 자가 진단" : "광산 마을 자가 진단");
+        super(module, sender, (districtId == null ? "마을" : districtName(module, districtId)) + " 자가 진단");
         this.world = world;
         this.lib = module.library();
         this.districtId = districtId;
     }
 
-    private String tag() { return districtId == null ? "[마을 자가 진단]" : "[광산 마을 자가 진단]"; }
+    private static String districtName(VillageModule module, String id) {
+        DistrictLibrary.Entry e = module.districts() == null ? null : module.districts().get(id);
+        return e != null ? e.layout().name : "mine".equals(id) ? "광산 마을" : "homes".equals(id) ? "집 구역" : id;
+    }
+
+    private String tag() { return "[" + title + "]"; }
+
+    private boolean homes() { return "homes".equals(districtId); }
+
+    /** 주인이 짓는 칸 (집터 상자 열, 0.3.7) — 조각 칸·뜬 지형·나무 검사에서 뺀다. 마을 모드는 지은 구역의 보호 상자·영역·집터 열도. */
+    private final Set<Long> skipCols = new HashSet<>();
+    /** 다른 지은 구역(+마을)이 다듬은 칸 (그 위 붙는 조각 열은 땅 높이에 맞춰 써서 청사진 높이와 다름 — 조각 칸 검사에서 뺌). */
+    private FrozenCells otherFrozen = FrozenCells.empty();
+    /** 주인이 있는 집 id (주 스레드에서 미리). */
+    private final Set<String> owned = new HashSet<>();
+    private Map<String, Integer> homesCounts = Map.of();
 
     /** 검사 범위: 마을 = 중심에서 reach 안 원, 구역 = 구역 영역 (얼린 칸 제외). */
     private boolean inArea(int x, int z) {
@@ -145,9 +165,51 @@ final class VillageSelfTest extends VillageJob {
             }
         }
         for (VillageMeta.PathRec r : meta.paths) paths.add(Markers.path(r));
+        try {
+            prepareSkips();
+        } catch (Throwable t) {
+            error("구역 열", t);
+        }
         snaps = new Scan.Snapshots(world);
         pump = new Scan.ChunkPump(world, module.plugin(), false, false, 16, snaps::add).area(bx0 - 16, bz0 - 16, bx1 + 16, bz1 + 16);
         say("<#c9a2ff>" + title + " 시작</#c9a2ff> <gray>— 조각 " + pieces.size() + " · 길 " + paths.size() + " · 청크 " + pump.total);
+    }
+
+    /** 빼는 열·다른 구역의 다듬은 칸·주인 있는 집 (주 스레드). */
+    private void prepareSkips() {
+        VillageService svc = module.service();
+        DistrictService ds = svc == null ? null : svc.districts();
+        if (district == null) {
+            // 마을 모드 (R1): 지은 구역의 보호 상자 열 · 구역 영역 열 · 집터 상자 열
+            if (ds == null) return;
+            for (DistrictMeta d : ds.active()) {
+                for (VillageMeta.Box b : d.meta.protect) {
+                    for (int z = b.z0(); z <= b.z1(); z++) for (int x = b.x0(); x <= b.x1(); x++) skipCols.add(PathRaster.key(x, z));
+                }
+                VillageMeta.TerrainRec t = d.meta.terrain;
+                if (t != null) {
+                    for (int z = t.z0(); z < t.z0() + t.n(); z++) for (int x = t.x0(); x < t.x0() + t.n(); x++) if (d.inRegion(x, z)) skipCols.add(PathRaster.key(x, z));
+                }
+                for (DistrictMeta.PlotRec r : d.plots) {
+                    for (int z = r.z0(); z <= r.z1(); z++) for (int x = r.x0(); x <= r.x1(); x++) skipCols.add(PathRaster.key(x, z));
+                }
+            }
+            return;
+        }
+        for (DistrictMeta.PlotRec r : district.plots) {
+            for (int z = r.z0(); z <= r.z1(); z++) for (int x = r.x0(); x <= r.x1(); x++) skipCols.add(PathRaster.key(x, z));
+        }
+        List<VillageMeta> others = new ArrayList<>();
+        if (ds != null) for (DistrictMeta d : ds.active()) if (!d.id.equals(districtId)) others.add(d.meta);
+        otherFrozen = FrozenCells.of(villageMeta, others);
+        if (homes()) {
+            try {
+                var api = module.services().homes();
+                for (kr.labyrinth.homes.PlotGeom g : api.plots()) if (!g.custom() && api.ownerOf(g) != null) owned.add(g.id());
+            } catch (Throwable t) {
+                error("집 주인", t);
+            }
+        }
     }
 
     @Override
@@ -160,7 +222,7 @@ final class VillageSelfTest extends VillageJob {
     @Override
     protected boolean tick(Budget b) throws Exception {
         if (meta == null) {
-            if (districtId != null) reportDistrict(Map.of(), 0, 0, 0, 0, false);
+            if (districtId != null) reportDistrict(Map.of(), 0, 0, 0, 0, false, Map.of());
             else report(Map.of(), 0, 0, 0, 0, false, false, false);
             return true;
         }
@@ -180,7 +242,7 @@ final class VillageSelfTest extends VillageJob {
         if (npc[0] < npc[1] && waitTicks++ < 60) return false;
         int[] inter = interacts();
         if (district != null) {
-            reportDistrict(counts, npc[0], npc[1], inter[0], inter[1], junction());
+            reportDistrict(counts, npc[0], npc[1], inter[0], inter[1], junction(), homes() ? homesMain() : Map.of());
             return true;
         }
         report(counts, npc[0], npc[1], inter[0], inter[1], spawnOk(), entranceOk(), borderInside());
@@ -245,18 +307,103 @@ final class VillageSelfTest extends VillageJob {
                 error("정문 길", t);
             }
         }
+        if (homes()) {
+            try {
+                homesCounts = plotChecks();
+            } catch (Throwable t) {
+                error("집터", t);
+            }
+        }
         return c;
+    }
+
+    // ── 집 구역 (0.3.7) ──────────────────────────────────────────────────
+
+    private boolean solidAt(int x, int y, int z) {
+        Material m = snaps.type(x, y, z);
+        return m != null && !emptyish(m) && m.isSolid();
+    }
+
+    /** 집터 검사 (스냅샷): plots · pads · under · gates · signs · homes_safe. 값 = 통과 수 (전체는 plots 기록 수). */
+    private Map<String, Integer> plotChecks() {
+        Map<String, Integer> out = new HashMap<>();
+        int pads = 0, under = 0, gates = 0, signs = 0, safe = 0;
+        for (DistrictMeta.PlotRec r : district.plots) {
+            int cxp = (r.x0() + r.x1()) / 2, czp = (r.z0() + r.z1()) / 2;
+            if (solidAt(cxp, r.floor(), czp)) pads++;
+            else sample(r.id() + "번지 바닥 (" + cxp + " " + r.floor() + " " + czp + ") 이 비어 있음");
+            // 바닥 아래 정리: 빈 집은 −1..−8, 주인 있는 집은 −7..−8 (짓기 높이 창 아래 — 지하실을 파도 남음)
+            int from = owned.contains(r.id()) ? Math.max(1, r.floor() - r.y0() + 1) : 1;
+            boolean ok = true;
+            for (int z = r.z0(); z <= r.z1() && ok; z++) {
+                for (int x = r.x0(); x <= r.x1() && ok; x++) {
+                    if (otherFrozen.frozen(x, z)) continue; // 마을이 다듬은 칸은 겉 그대로 (3번)
+                    for (int k = from; k <= 8 && ok; k++) {
+                        if (!solidAt(x, r.floor() - k, z)) {
+                            ok = false;
+                            sample(r.id() + "번지 바닥 아래 빈칸 (" + x + " " + (r.floor() - k) + " " + z + ")");
+                        }
+                    }
+                }
+            }
+            if (ok) under++;
+            Material g = snaps.type(r.gateX(), r.gateY(), r.gateZ());
+            if (g != null && g.name().endsWith("_FENCE_GATE")) gates++;
+            else sample(r.id() + "번지 대문 (" + r.gateX() + " " + r.gateY() + " " + r.gateZ() + ") 이 " + g);
+            Material sg = snaps.type(r.signX(), r.signY(), r.signZ());
+            if (sg != null && sg.name().endsWith("_SIGN")) signs++;
+            else sample(r.id() + "번지 표지판 (" + r.signX() + " " + r.signY() + " " + r.signZ() + ") 이 " + sg);
+            int hx = (int) Math.floor(r.homeX()), hy = (int) Math.floor(r.homeY()), hz = (int) Math.floor(r.homeZ());
+            if (passable(hx, hy, hz) && passable(hx, hy + 1, hz) && solid(hx, hy - 1, hz)) safe++;
+            else sample(r.id() + "번지 집 가기 칸 (" + hx + " " + hy + " " + hz + ") 에 설 수 없음");
+        }
+        out.put("pads", pads);
+        out.put("under", under);
+        out.put("gates", gates);
+        out.put("signs", signs);
+        out.put("homes_safe", safe);
+        return out;
+    }
+
+    /** 주 스레드 검사: border (구역 상자가 지금 월드 경계 안) · pvp_safe (집터 가운데가 보호 상자 + safe_margin 안 — pvp/VillageZone 규칙). */
+    private Map<String, Integer> homesMain() {
+        Map<String, Integer> out = new HashMap<>(homesCounts);
+        int out_ = 0;
+        org.bukkit.WorldBorder wb = world.getWorldBorder();
+        WildBorder.Square sq = new WildBorder.Square(wb.getCenter().getX(), wb.getCenter().getZ(), wb.getSize(), wb.getWarningDistance());
+        for (VillageMeta.Box b : meta.protect) {
+            if (!sq.containsBlocks(b.x0(), b.z0(), b.x1(), b.z1())) {
+                out_++;
+                if (out_ <= 3) sample("월드 경계 밖 구역 상자 (x " + b.x0() + "~" + b.x1() + ", z " + b.z0() + "~" + b.z1() + ")");
+            }
+        }
+        out.put("border_out", out_);
+        int m = Math.max(0, district.safeMargin), safe = 0;
+        for (DistrictMeta.PlotRec r : district.plots) {
+            double px = (r.x0() + r.x1() + 1) / 2.0, pz = (r.z0() + r.z1() + 1) / 2.0;
+            boolean in = false;
+            for (VillageMeta.Box b : meta.protect) {
+                if (px >= Math.min(b.x0(), b.x1()) - m && px <= Math.max(b.x0(), b.x1()) + 1 + m && pz >= Math.min(b.z0(), b.z1()) - m
+                        && pz <= Math.max(b.z0(), b.z1()) + 1 + m) in = true;
+            }
+            if (in) safe++;
+            else sample(r.id() + "번지 가운데가 PvP 안전지대 밖");
+        }
+        out.put("pvp_safe", safe);
+        return out;
     }
 
     private void pieceCells(int[] ck) {
         for (Plan.Placed pl : pieces) {
             Blueprint bp = pl.bp;
+            if (bp.pad) continue; // 0.3.7 집터 바닥 = 주인이 짓는 칸
             for (int y = 0; y < bp.h; y++) {
                 for (int z = 0; z < bp.d; z++) {
                     for (int x = 0; x < bp.w; x++) {
                         int cp = bp.cell(x, y, z);
                         if (cp == Blueprint.KEEP) continue;
                         int[] w = pl.world(x, z);
+                        if (district != null && otherFrozen.frozen(w[0], w[1])) continue; // 다듬은 칸 위 열 (땅 높이에 맞춰 씀)
                         int wy = pl.worldY(y);
                         BlockData actual = snaps.data(w[0], wy, w[1]);
                         if (actual == null) continue;
@@ -271,7 +418,7 @@ final class VillageSelfTest extends VillageJob {
                         }
                         BlockData exp = expected.get(pl.index() + ":" + cp);
                         if (exp == null) continue;
-                        if (!exp.matches(actual) && !naturalSoil(exp.getMaterial(), actual.getMaterial())) {
+                        if (!exp.matches(actual) && !naturalSoil(exp.getMaterial(), actual.getMaterial()) && !sameOpenable(exp, actual)) {
                             ck[1]++;
                             sample(bp.id + " (" + w[0] + " " + wy + " " + w[1] + ") 기대 " + exp.getAsString() + " / 실제 " + actual.getAsString());
                         }
@@ -285,6 +432,15 @@ final class VillageSelfTest extends VillageJob {
      * 풀 블록 ↔ 흙 은 어긋남으로 세지 않는다 — 사람이 놀면 그 둘레 청크에 무작위 틱이 돌아 덮인 풀은 흙이 되고 흙에는 풀이 번진다
      * (0.3.6.1 검증: 서버장 월드에서 놀고 나면 광장 풀 한 칸이 흙이 되어 '문제 있음'이 떴다). 눈 덮인 풀(snowy)도 같은 풀.
      */
+    /** 문·다락문·울타리 문은 열고 닫혀도 같은 것 (방향·모양은 같아야 함). */
+    static boolean sameOpenable(BlockData exp, BlockData actual) {
+        if (!(exp instanceof Openable eo) || !(actual instanceof Openable ao) || exp.getMaterial() != actual.getMaterial()) return false;
+        BlockData a = actual.clone();
+        ((Openable) a).setOpen(eo.isOpen());
+        if (a instanceof org.bukkit.block.data.Powerable pa && exp instanceof org.bukkit.block.data.Powerable pe) pa.setPowered(pe.isPowered());
+        return exp.matches(a);
+    }
+
     static boolean naturalSoil(Material expected, Material actual) {
         return (expected == Material.GRASS_BLOCK || expected == Material.DIRT) && (actual == Material.GRASS_BLOCK || actual == Material.DIRT);
     }
@@ -304,7 +460,7 @@ final class VillageSelfTest extends VillageJob {
             for (int x = tr.x0(); x < tr.x0() + tr.n(); x++) {
                 if (!tr.changed(x, z) || !inArea(x, z)) continue;
                 long k = PathRaster.key(x, z);
-                if (foot.contains(k)) continue;
+                if (foot.contains(k) || skipCols.contains(k)) continue;
                 int t = tr.height(x, z);
                 Material top = snaps.type(x, t, z);
                 if (top == null) continue;
@@ -329,7 +485,7 @@ final class VillageSelfTest extends VillageJob {
         VillageMeta.TerrainRec tr = meta.terrain;
         for (int z = bz0; z <= bz1; z++) {
             for (int x = bx0; x <= bx1; x++) {
-                if (!inArea(x, z) || foot.contains(PathRaster.key(x, z)) || !snaps.has(x, z)) continue;
+                if (!inArea(x, z) || foot.contains(PathRaster.key(x, z)) || skipCols.contains(PathRaster.key(x, z)) || !snaps.has(x, z)) continue;
                 int t = tr != null && tr.in(x, z) ? tr.height(x, z) : snaps.minY;
                 minT = Math.min(minT, t);
                 maxT = Math.max(maxT, t);
@@ -353,6 +509,7 @@ final class VillageSelfTest extends VillageJob {
         for (long k : orphan) {
             int x = Trees.ux(k), z = Trees.uz(k);
             if (district != null ? !district.inRegion(x, z) : Math.hypot(x - cx, z - cz) > r) continue;
+            if (skipCols.contains(PathRaster.key(x, z))) continue;
             leaves++;
             if (leaves <= 3) sample("원목 없는 잎 (" + x + " " + Trees.uy(k) + " " + z + ")");
         }
@@ -617,8 +774,8 @@ final class VillageSelfTest extends VillageJob {
         }
     }
 
-    private void reportDistrict(Map<String, Integer> c, int npcOk, int npcTotal, int interOk, int interTotal, boolean junction) {
-        String line = "[광산 마을 자가 진단] 결과: 예외 " + exceptions
+    private void reportDistrict(Map<String, Integer> c, int npcOk, int npcTotal, int interOk, int interTotal, boolean junction, Map<String, Integer> h) {
+        String line = tag() + " 결과: 예외 " + exceptions
                 + " · checked=" + c.getOrDefault("checked", 0)
                 + " mismatched=" + c.getOrDefault("mismatched", -1)
                 + " · overlaps=" + c.getOrDefault("overlaps", -1)
@@ -631,11 +788,28 @@ final class VillageSelfTest extends VillageJob {
                 + " · npcs=" + npcOk + "/" + npcTotal
                 + " · interact=" + interOk + "/" + interTotal
                 + " · rot_mismatch=" + rotMismatch;
+        boolean homesOk = true;
+        if (homes()) {
+            int n = district.plots.size(), pads = 0;
+            for (Plan.Placed pl : pieces) if (pl.bp.pad) pads++;
+            String all = "/" + n;
+            line += " · plots=" + n + "/" + pads
+                    + " · pads=" + h.getOrDefault("pads", -1) + all
+                    + " · under=" + h.getOrDefault("under", -1) + all
+                    + " · gates=" + h.getOrDefault("gates", -1) + all
+                    + " · signs=" + h.getOrDefault("signs", -1) + all
+                    + " · homes_safe=" + h.getOrDefault("homes_safe", -1) + all
+                    + " · border=" + (h.getOrDefault("border_out", 1) == 0 ? "ok" : "bad")
+                    + " · pvp_safe=" + (h.getOrDefault("pvp_safe", -1) == n ? "ok" : "bad");
+            homesOk = n > 0 && n == pads && h.getOrDefault("pads", -1) == n && h.getOrDefault("under", -1) == n && h.getOrDefault("gates", -1) == n
+                    && h.getOrDefault("signs", -1) == n && h.getOrDefault("homes_safe", -1) == n && h.getOrDefault("border_out", 1) == 0
+                    && h.getOrDefault("pvp_safe", -1) == n;
+        }
         boolean pass = exceptions == 0 && c.getOrDefault("mismatched", 1) == 0 && c.getOrDefault("overlaps", 1) == 0
                 && c.getOrDefault("floating", 1) == 0 && c.getOrDefault("tree_remnants", 1) == 0 && c.getOrDefault("blocked_doors", 1) == 0
                 && c.getOrDefault("path_steps", 1) == 0 && c.getOrDefault("door_paths", 1) == 0 && junction && npcOk == npcTotal && interOk == interTotal
-                && rotMismatch == 0;
-        Text.send(sender, (pass ? "<#7fe07f><b>광산 마을 자가 진단 통과</b></#7fe07f>" : "<#ff6b6b><b>광산 마을 자가 진단: 문제 있음</b></#ff6b6b>")
+                && rotMismatch == 0 && homesOk;
+        Text.send(sender, (pass ? "<#7fe07f><b>" + Text.escape(title) + " 통과</b></#7fe07f>" : "<#ff6b6b><b>" + Text.escape(title) + ": 문제 있음</b></#ff6b6b>")
                 + " <gray>(" + elapsedSec() + "초)");
         Text.send(sender, "<gray>" + Text.escape(line));
         synchronized (samples) {

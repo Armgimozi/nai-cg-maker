@@ -122,7 +122,24 @@ if not os.path.isfile(dm) or "\nstate: built" not in open(dm, encoding="utf-8").
     sys.exit("world.zip 에 지어진 광산 마을(labyrinth-district-mine.yml state: built)이 없습니다 — tools/build_world.sh --base <예전 world.zip>")
 if not os.path.isfile(os.path.join(dst, "world", "dimensions", "minecraft", "overworld", "labyrinth-district-mine.backup.gz")):
     sys.exit("world.zip 에 광산 마을 되돌리기 백업(labyrinth-district-mine.backup.gz)이 없습니다")
-print("  마을 월드 포함 (광산 마을 지어짐): 파일 %d개" % len(names))
+# 0.3.7: 집 구역도 미리 지어져 있어야 한다 (tools/build_world.sh --base <0.3.6.1 world.zip> --district homes)
+ow = os.path.join(dst, "world", "dimensions", "minecraft", "overworld")
+dh = os.path.join(ow, "labyrinth-district-homes.yml")
+if not os.path.isfile(dh) or "\nstate: built" not in open(dh, encoding="utf-8").read():
+    sys.exit("world.zip 에 지어진 집 구역(labyrinth-district-homes.yml state: built)이 없습니다 — tools/build_world.sh --base <0.3.6.1 world.zip> --district homes")
+if "\nplots:" not in open(dh, encoding="utf-8").read():
+    sys.exit("world.zip 의 집 구역 기록에 집터(plots:)가 없습니다")
+if not os.path.isfile(os.path.join(ow, "labyrinth-district-homes.backup.gz")):
+    sys.exit("world.zip 에 집 구역 되돌리기 백업(labyrinth-district-homes.backup.gz)이 없습니다")
+# 집 주인·맡긴 짐은 배포 월드에 있으면 안 된다 (빈 소유 파일은 괜찮음)
+pf = os.path.join(ow, "labyrinth-plots.yml")
+if os.path.isfile(pf):
+    import re
+    if re.search(r"^\s+owner:\s*['\"]?[0-9a-fA-F-]{36}", open(pf, encoding="utf-8").read(), re.M):
+        sys.exit("world.zip 의 labyrinth-plots.yml 에 집 주인이 있습니다 — 주인 없는 월드로 다시 만드세요")
+if os.path.exists(os.path.join(ow, "labyrinth-parcels")):
+    sys.exit("world.zip 에 맡긴 짐 폴더(labyrinth-parcels/)가 있으면 안 됩니다")
+print("  마을 월드 포함 (광산 마을·집 구역 지어짐): 파일 %d개" % len(names))
 PYEOF
 
 # 금지 파일 확인 (월드 잠금·UID·미궁 공허 월드는 서버가 새로 만든다)

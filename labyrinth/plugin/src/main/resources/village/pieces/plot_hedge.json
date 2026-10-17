@@ -1,0 +1,29 @@
+{
+  "format": 1,
+  "id": "plot_hedge",
+  "name": "생울타리",
+  "size": [14, 2, 1],
+  "floor_y": 0,
+  "foundation": "minecraft:stone_bricks",
+  "foundation_mix": [["minecraft:stone_bricks", 3], ["minecraft:mossy_stone_bricks", 1]],
+  "anchor": [7, 0],
+  "deco": false,
+  "door": false,
+  "slack": 0,
+  "abut": true,
+  "palette": {
+    "l": "minecraft:azalea_leaves[distance=7,persistent=true,waterlogged=false]",
+    "f": "minecraft:flowering_azalea_leaves[distance=7,persistent=true,waterlogged=false]",
+    "b": "minecraft:grass_block[snowy=false]"
+  },
+  "layers": [
+    [
+      "bbbbbbbbbbbbbb"
+    ],
+    [
+      "flllllllllllfl"
+    ]
+  ],
+  "markers": [
+  ]
+}

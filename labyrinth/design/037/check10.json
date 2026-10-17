@@ -1,0 +1,100 @@
+{
+ "problems": [],
+ "plots": 10,
+ "public_cells": 772,
+ "public_reached": 772,
+ "walk_spawn_to_gate": {
+  "1": 91,
+  "2": 76,
+  "3": 88,
+  "4": 95,
+  "5": 80,
+  "6": 77,
+  "7": 92,
+  "8": 112,
+  "9": 109,
+  "10": 124
+ },
+ "plots_vs_village": {},
+ "public_vs_village": 0,
+ "junction_touches_path1": true,
+ "mine_east": {
+  "seed_bbox": [
+   -105,
+   -3,
+   -57,
+   35
+  ],
+  "mask_xmin": -115,
+  "plots_hit": {},
+  "public_hit": 0,
+  "east_plot_gap_x": 0
+ },
+ "mine_south_east": {
+  "seed_bbox": [
+   -105,
+   14,
+   -57,
+   77
+  ],
+  "mask_xmin": -115,
+  "plots_hit": {},
+  "public_hit": 0,
+  "east_plot_gap_x": 0
+ },
+ "pvp_cover": {
+  "1": "196/196",
+  "2": "196/196",
+  "3": "196/196",
+  "4": "196/196",
+  "5": "196/196",
+  "6": "196/196",
+  "7": "196/196",
+  "8": "196/196",
+  "9": "196/196",
+  "10": "196/196"
+ },
+ "homes_protect_bbox": [
+  -179,
+  26,
+  -115,
+  103
+ ],
+ "border_east": {
+  "x": [
+   -210.0,
+   -25.0
+  ],
+  "z": [
+   -51.0,
+   134.0
+  ],
+  "size": 185.0,
+  "plots_inside": true
+ },
+ "border_south_east": {
+  "x": [
+   -210.0,
+   -25.0
+  ],
+  "z": [
+   -51.0,
+   134.0
+  ],
+  "size": 185.0,
+  "plots_inside": true
+ },
+ "border_no_mine": {
+  "x": [
+   -231.0,
+   -46.0
+  ],
+  "z": [
+   -51.0,
+   134.0
+  ],
+  "size": 185.0,
+  "plots_inside": true
+ },
+ "ok": true
+}

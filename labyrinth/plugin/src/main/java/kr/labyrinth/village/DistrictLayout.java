@@ -111,8 +111,28 @@ public final class DistrictLayout {
                 problems.add("pieces[" + pieces.size() + "] piece/at/front 오류");
                 continue;
             }
-            pieces.add(new Layout.Entry(pieces.size(), piece, at.get(0).getAsInt(), at.get(1).getAsInt(), front,
-                    p.has("dy") ? p.get("dy").getAsInt() : null, p.has("slack") ? p.get("slack").getAsInt() : null));
+            Layout.Opts opts = Layout.Opts.NONE;
+            Integer mf = p.has("max_fill") ? Integer.valueOf(p.get("max_fill").getAsInt()) : null;
+            List<Integer> fr = new ArrayList<>();
+            JsonArray fra = Blueprint.arr(p, "floor_ref");
+            if (fra != null) for (JsonElement fe : fra) fr.add(fe.getAsInt());
+            JsonArray fn = Blueprint.arr(p, "floor_near");
+            String tag = Blueprint.str(p, "tag", null);
+            int idx = pieces.size();
+            for (int fv : fr) if (fv < 0 || fv >= idx) problems.add("pieces[" + idx + "] floor_ref " + fv + " 는 앞 조각 순번이어야 함");
+            int nearRef = -1, nearDelta = 0;
+            if (fn != null) {
+                if (fn.size() != 2) problems.add("pieces[" + idx + "] floor_near 는 [조각, 차]");
+                else {
+                    nearRef = fn.get(0).getAsInt();
+                    nearDelta = fn.get(1).getAsInt();
+                    if (nearRef < 0 || nearRef >= idx || nearDelta < 0) problems.add("pieces[" + idx + "] floor_near " + fn + " 오류");
+                }
+            }
+            if (mf != null && (mf < 1 || mf > 16)) problems.add("pieces[" + idx + "] max_fill " + mf + " (1..16)");
+            if (mf != null || !fr.isEmpty() || nearRef >= 0 || tag != null) opts = new Layout.Opts(mf, fr, nearRef, nearDelta, tag);
+            pieces.add(new Layout.Entry(idx, piece, at.get(0).getAsInt(), at.get(1).getAsInt(), front,
+                    p.has("dy") ? p.get("dy").getAsInt() : null, p.has("slack") ? p.get("slack").getAsInt() : null, opts));
         }
         List<Layout.PathDef> paths = new ArrayList<>();
         JsonArray ps = Blueprint.arr(o, "paths");
@@ -124,7 +144,7 @@ public final class DistrictLayout {
                 continue;
             }
             int width = p.has("width") ? p.get("width").getAsInt() : 3;
-            int follow = p.has("follow") ? Math.max(0, Math.min(Planner.PATH_FOLLOW, p.get("follow").getAsInt())) : Planner.PATH_FOLLOW;
+            int follow = p.has("follow") ? Math.max(0, Math.min(Planner.PATH_FOLLOW_MAX, p.get("follow").getAsInt())) : Planner.PATH_FOLLOW;
             paths.add(new Layout.PathDef(paths.size(), pts, Math.max(1, Math.min(9, width)), Blueprint.str(p, "style", "main"), follow));
         }
         Map<String, List<Blueprint.Weighted>> styles = new LinkedHashMap<>();
@@ -232,9 +252,13 @@ public final class DistrictLayout {
             wpaths.add(out);
         }
         int ox = Math.floorDiv(bx0 + bx1, 2), oz = Math.floorDiv(bz0 + bz1, 2);
+        // 자리마다 뺀 조각이 있으면 순번이 당겨진다 → floor_ref·floor_near 도 새 순번으로 (없어진 조각은 뺌)
+        Map<Integer, Integer> renum = new java.util.HashMap<>();
+        for (int i = 0; i < ws.size(); i++) renum.put(ws.get(i).e().index(), i);
         List<Layout.Entry> le = new ArrayList<>();
         for (W w : ws) {
-            le.add(new Layout.Entry(le.size(), w.e().piece(), w.x0() - ox + w.w2() / 2, w.z0() - oz + w.d2() / 2, w.front(), w.e().dy(), w.e().slack()));
+            Layout.Opts o = w.e().opts().remap(r -> renum.getOrDefault(r, -1));
+            le.add(new Layout.Entry(le.size(), w.e().piece(), w.x0() - ox + w.w2() / 2, w.z0() - oz + w.d2() / 2, w.front(), w.e().dy(), w.e().slack(), o));
         }
         List<Layout.PathDef> lp = new ArrayList<>();
         for (int i = 0; i < wpaths.size(); i++) {

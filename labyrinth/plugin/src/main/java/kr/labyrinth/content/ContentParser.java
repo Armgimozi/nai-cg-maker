@@ -19,12 +19,13 @@ public final class ContentParser {
 
     /** 파일 이름 목록 (확장자 포함). glyphs.yml · enhance.yml · mine.yml 은 없어도 된다. */
     public static final List<String> FILES = List.of("classes.yml", "items.yml", "mobs.yml", "bosses.yml",
-            "floors.yml", "loot.yml", "recipes.yml", "titles.yml", "npcs.yml", "fx.yml", "glyphs.yml", "enhance.yml", "mine.yml");
+            "floors.yml", "loot.yml", "recipes.yml", "titles.yml", "npcs.yml", "fx.yml", "glyphs.yml", "enhance.yml", "mine.yml", "housing.yml");
     /**
      * 없어도 되는 파일 — enhance.yml 이 없으면 모든 장비가 강화석·골드만 든다(예전 서버 그대로).
      * mine.yml (0.3.6 광산, 계약 tools/data/036/mine.json) 이 없으면 {@link MineDef#EMPTY} — 광산이 꺼진다.
+     * housing.yml (0.3.7 관리인 자재 목록) 은 이 파서가 읽지 않고 집 모듈({@code homes/play/HousingCatalog})이 읽는다 — 없으면 자재 탭이 빈다.
      */
-    public static final List<String> OPTIONAL_FILES = List.of("glyphs.yml", "enhance.yml", "mine.yml");
+    public static final List<String> OPTIONAL_FILES = List.of("glyphs.yml", "enhance.yml", "mine.yml", "housing.yml");
     /** 예전 버전이 복사해 두었지만 이제 쓰지 않는 파일 (손대지 않았으면 시작할 때 지운다). arenas.yml = 없앤 파티 대전 투기장. */
     public static final List<String> RETIRED_FILES = List.of("arenas.yml");
 

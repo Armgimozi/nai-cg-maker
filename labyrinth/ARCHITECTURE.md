@@ -209,6 +209,7 @@ labyrinth/
 | `titles/` | **ui+titles** | `titles/TitlesModule` | `TitleService`(→`BasicTitleService`) |
 | `ui/` (위 프레임워크 제외: `menus/*`, HUD 구현) | **ui+titles** | `ui/UiModule` | `HudService`(→`BasicHudService`), `MenuService`(→`ChatMenuService`: 채팅 클릭 대체) |
 | `pvp/` | **pvp** | `pvp/PvpModule` | `TargetFilter`(→`DefaultTargetFilter`: PvP 꺼짐 — 모듈이 config `pvp` 를 따르는 것으로 교체) |
+| `homes/` (0.3.7 집 구역 · 지형 잠금, §6.13) | **homes** (`rules/`·`admin/` = 규칙, `play/` = 메뉴·명령·회복) | `homes/HomesModule` (마을·광산 뒤) | `HomesApi`(→`NoopHomesApi`: 집 기능 없음, 아무것도 막지 않음) · `HomesUi`(→`NoopHomesUi`) |
 
 - **자기 패키지 밖은 고치지 않는다.** 다른 서비스는 `services.xxx()` 로만 부른다 (필드에 저장 금지 — 나중에 교체됨).
   `LabyrinthPlugin`/`Services` 는 손대지 않아도 되게 되어 있다: 실제 구현은 자기 `XxxModule.enable()` 에서 setter 로 등록.
@@ -1020,10 +1021,11 @@ special_trial:
 
 ### 6.10 0.3.5.1 야생 막기 (config.yml `wild` — 키가 없어도 코드 기본값, GDD §2.8)
 ```yaml
-wild:                 # wild: false = 통째로 끔 (Settings.Wild.OFF)
+wild:                 # wild: false = 경계·스폰 끔 (Settings.Wild.OFF) — 네더는 막힌 채 (nether 는 섹션 안 키만 봄)
   border: true        # 마을 둘레 바닐라 월드 경계
   border_margin: 30   # 0 ~ 1000 (밖이면 자르고 경고 한 줄)
   spawns: all         # all | monsters | none (모르는 값 = all + 경고)
+  nether: false       # 0.3.7 네더 막기 (core.NetherLock) — true 일 때만 열림. 키 없음 · wild: false · 모르는 값 = 막음
 ```
 - **소유**: `village` 패키지. `VillageService` 가 `WildService`(리스너)를 만들고 켤 때·`village apply`·메타데이터 갱신·`/labadmin reload` 에 `refresh`.
   주 월드(`Bukkit.getWorlds().get(0)`)에 `labyrinth-village.yml` 이 있을 때만 동작 — 미궁 월드·네더·엔드에는 아무것도 하지 않는다.
@@ -1052,6 +1054,30 @@ wild:                 # wild: false = 통째로 끔 (Settings.Wild.OFF)
   (다음 틱) 에 `removeExisting`(보스·이름·길들임·끈·persistent·플러그인·플레이어와 탄 몹·플레이어 쪽 이유는 둠). 게임 규칙은 건드리지 않는다.
 - **예전 키** `village.block_mob_spawns` (마을 둘레 radius+8 적대 NATURAL·PATROL·REINFORCEMENTS) 는 그대로 — `spawns: none` 일 때만 따로 의미가 있다.
 - **설정 읽기**: `Settings.wild` 는 `c.get("wild")` 로 읽는다 — `getConfigurationSection` 은 jar 기본값에만 있는 섹션을 서버 config 에 빈 `wild: {}` 로 만든다.
+- **네더 막기 (0.3.7, 서버장 결정 "네더 막아")** — `WildService` 가 아니라 `core.NetherLock` (모듈 `nether`, death 다음 · village 앞, **모든 월드**,
+  마을이 없어도). 스위치 `Settings.netherOpen()` ← `wild.nether` (`Settings.netherOpen(Object, warnings)`: 섹션이 아니면 · 키가 없으면 ·
+  Boolean 이 아니면 false, 마지막은 경고 한 줄). 규칙 `core.NetherRule` (순수, `NetherRuleTest` · 자가 진단 표 `selfCheck`):
+  지나가기 = 네더 차원문 + 출발이 네더가 아님 + 도착이 네더(또는 모름) 일 때만 막음 · 만들기 = FIRE 는 네더가 아닌 월드, NETHER_PAIR 는 네더 안에서만 막음
+  (돌아오는 짝·네더 쪽 불·END_PLATFORM·엔드 차원문/관문은 그대로).
+  리스너 (전부 LOWEST·ignoreCancelled — 집터 `CrossZoneListener` LOW 보다 먼저라 글이 겹치지 않음): `PortalCreateEvent` ·
+  Paper `EntityPortalReadyEvent` (플레이어·몹·물건·탈것 모두 — 취소하면 차원문 기다림이 처음으로, 가장 먼저 막는 곳) · `PlayerPortalEvent` ·
+  `EntityPortalEvent` (한 번 더). 예외 = labyrinth.admin + 크리에이티브 (`Guard.bypass` 와 같음, 탈것이면 탄 사람이 **모두** 그럴 때만 —
+  친구가 같이 타면 막고 관리자에게 "같이 탄 사람이 있어 관리자도 막힙니다.") — 액션바로 "관리자라 지나갑니다".
+  막을 때 액션바 "네더는 닫혀 있습니다." 1초에 한 번 (탈것은 탄 사람 모두에게). 막힌 물건·몹은 한 번만 센다 — `Entity.handlePortal` 이
+  `getPortalDestination`(여기서 Ready 이벤트) 앞에서 `setPortalCooldown()` (사람 아닌 것 300틱) 을 부르고, 문 안에 있는 동안 `setAsInsidePortal` 이
+  쿨다운을 다시 채우므로 매 틱 다시 오지 않는다 (실서버: 4마리 +4).
+  리스폰: `PlayerRespawnEvent` HIGHEST (야생 경계 HIGH 뒤) — `NetherRule.blocksRespawn(open, 죽은 월드, 다시 태어날 월드)` = 네더 밖 → 네더
+  (리스폰 정박기 · Paper 는 엔드 출구도 `RespawnReason.END_PORTAL` 리스폰 이벤트) 이면 광장(없으면 주 월드 스폰)으로 `setRespawnLocation`,
+  2틱 뒤 한 줄. 정박기 자리는 지우지 않는다 (다시 열면 그대로). 네더에서 죽어 네더 정박기 = 그대로.
+  집터 규칙과 맞춤: `PlotRules.ignitable(block, portals)` — 흑요석은 `NetherLock.isOpen()` 일 때만 IGNITE (닫혀 있으면 FIRE, 글
+  "네더는 닫혀 있어 차원문이 열리지 않습니다."). `VillageService.teleport` 는 네더 안 + 닫힘이면 `village.teleport_command: false` 여도 된다.
+  나가기 보장: `PortalCreateEvent` MONITOR(ignoreCancelled=false) 에서 오버월드 쪽 NETHER_PAIR 가 (집터 규칙에) 취소됐고 지나가는 사람이 아직 네더면
+  다음 틱에 광장(`VillageService.spawn`, 없으면 그 월드 스폰)으로 `Teleports.to` — 그때 집터 규칙의 "/미궁 마을" 글은 쓰지 않는다 (`NetherLock.isOpen()`).
+  네더에서 접속 → 2초 뒤 한 줄 ("네더는 닫혔습니다. 네더 차원문으로 돌아갈 수 있습니다." + 마을이 있으면 /미궁 마을).
+  진단: `NetherLock.selfTestLine()` = `[네더 막기 자가 진단] 결과: 예외 0 · 네더=막음 · rules=ok(n/n) · live=ok(n/n) · listeners=ok(6/6) · 네더 월드=…`
+  (live = 이 리스너에 PortalCreateEvent·EntityPortalEvent·EntityPortalReadyEvent 를 직접 만들어 넣음 — 주 월드 스폰에 잠깐 만든 Marker 하나, 세지도 알리지도 않음).
+  `labadmin plot selftest` · `village selftest`(집 줄 끝) · `wild selftest`(맨 앞) 에 붙고, `labadmin wild` 에 상태 한 줄. 시험 `NetherLockTest`(가짜 World·Player
+  Proxy 로 실제 이벤트) · `NetherConfigTest`. 집 자재(`housing.yml`)에서 흑요석·부싯돌을 뺀 짝 (`HousingCatalog.banReason` 이 다시 막음).
 - **명령·진단**: `/labadmin wild [info]` · `wild reasons`(이유 표) · `wild border apply` · `wild selftest` → 한 줄
   `[야생 자가 진단] 결과: 예외 0 · inside=ok · border=ours|admin|off · spawns=188/188 ok · plugin_tag=ok · existing=ok · sweep=ok · dims=ok · limits=ok · transform=ok`
   (이유 47 × 좀비·소·갑옷 거치대·마네킹을 광장에 실제 소환, 네더·엔드 NATURAL 허용, 스폰 상한 0, 광장 40칸 위 돼지 번개 — 시험 동안 플러그인 청크 티켓을
@@ -1101,6 +1127,33 @@ wild:                 # wild: false = 통째로 끔 (Settings.Wild.OFF)
   (`pack-host/labyrinth-pack-<sha8>.zip`, `tools/check_pack_host.py`)이 배포 가지에 올라가야 예전 사본 주소가 이 판으로 바뀐다.
 - 죽음 페널티: 장비 안전 · 셜커·꾸러미 속 장비 아닌 것만 · 골드 5~25% (`death.penalty.gold_loss`, 키 없으면 기본값) ·
   싸우는 중 접속 끊김 = 쓰러짐 (§5 '죽음 페널티', GDD §2.6.1). 새 config 키는 `gold_loss` 하나 — 예전 config.yml 그대로 켜진다.
+### 6.13 0.3.7 집 구역 · 지형 잠금 (`kr.labyrinth.homes`, 계획 `design/037/PLAN.md`, GDD §2.9, VILLAGE.md §8)
+- 구역: 둘째 구역 `homes` (광산 다음 차례, R8) — 구역 기계 (§6.12) 그대로. 기록 `labyrinth-district-homes.yml` 에 `plots:` (id · box · floor · window ·
+  front · gate · sign · home) → `HomesDistrict.publish` → `services.homes().districtChanged`. 대문 표지판 우클릭 = interact `plot:<번지>`,
+  관리인 노점 계산대 = interact `estate` (둘 다 `VillageService.openMenu` 가 `services.homes()` 로 넘김).
+- 패키지: `homes/` 계약 (`HomesApi` · `PlotGeom` · `HomesDistrict` · `PlotInfo` · `PlotRole` · `HomesResult` · `HomesConfig` · `HomesLayout` · `HomesUi`) ·
+  `HomesService` (구현) · `homes/rules/` (PlotIndex · PlotStore · ParcelStore · PlotRules · TerrainLock · Grace · Limits · CrossZone · 리스너 3) ·
+  `homes/admin/` (`/labadmin plot …`) · `homes/play/` (PlayWiring · PlayUi = HomesUi 구현 · 메뉴 8 · HomesCommands · HomeCareListener · HomeTravel ·
+  StarterCottage/StarterGift · HousingCatalog · ClaimMap · PlotSigns · HomesNames).
+- `HomesApi` (`services.homes()`): 상태 (`enabled`·`districtBuilt`·`isTerrainLocked`) · 자리 (`plotAt`·`plot`·`plots`·`zone` — 집터 key / 0 보호 상자 / −1 그 밖) ·
+  사람 (`ownerOf`·`homeOf`·`roleIn`·`info`·`canBuild`·`canOpen`) · 일 (`claim`·`vacate`·`invite`·`kick`·`rename`·`setGuests`·`parcel`·`takeParcel`) ·
+  구역 (`districtChanged`·`ownedCount`·`reclaimAll`·`districtRemoved`) · 메뉴 (`openEstate`·`openPlotSign` → `HomesUi`) · `selfTestLines`. 바꿀 때는 더하기만 (default).
+- 데이터 (모두 주 월드 폴더 — 월드를 되돌리면 같이 맞음): `labyrinth-plots.yml` (주인·초대·손님·잠금·이사 기간, 원자 저장 · 못 읽으면 안전 모드 `broken` — 덮어쓰지 않음 ·
+  배포 world.zip 은 `fresh_world: true` → 첫 잠금에 이사 기간 없음, `tools/village/fresh_plots.py`) ·
+  `labyrinth-parcels/<uuid>.yml` (맡긴 짐 pending → 월드 저장 → ready) · 옛 건물 보고 `plugins/Labyrinth/homes/legacy.txt`.
+  PlayerData ext: `homes.starter_used` · `homes.starter` (kit | cottage_<나무>) · `homes.rest_at` (침대 쉬기, epoch ms) · `homes.grace_notice`.
+- 이벤트 차례: 지형 잠금 리스너 **LOW** (주 월드 아님 → 끝 · 집터 → PlotRules · 보호 상자 → 마을 HIGH 핸들러에 넘김 · 잠금 켜짐 → 막음) →
+  마을 보호 HIGH. 회복·침대·들어설 때 글은 `PlayerMoveEvent` 없이 2틱 작업 (주 월드 접속자만).
+- config `homes:` (`HomesConfig`, 키가 없으면 코드 기본값, `homes: false` = 받기·메뉴·회복·잠금 끔 — 규칙 리스너는 남아 집터만 지킴 (`rulesOn`·`guardOnly`), 틀린 값은 자름 R16) — enabled · terrain_lock · district ·
+  claim_cost · max_trusted · guests_default · height · reclaim/rename cooldown · inactive_days · legacy_grace_days · home_regen · bed_rest ·
+  home_teleport/visit (auto = village.teleport_command, R11) · starter · tick_parts · entity_caps · deny_place · deny_use · shop_price_multiplier · enter_actionbar.
+- 콘텐츠 `content/housing.yml` (생성물 `tools/gen_037_housing.py` ← `tools/data/037/housing_catalog.json`, ContentParser.FILES · OPTIONAL — 파서가 아니라
+  `homes/play/HousingCatalog` 가 읽음): `tabs[] {id, name, icon, items[] {id, bundle, price, note?}}` 385가지 (흑요석·부싯돌은 금지 — 네더 막음) · 금지 규칙 `HousingCatalog.banReason`
+  (생성기 `ban_reason` 과 같음 — 금속·녹이면 조각이 나오는 도구·갑옷·무기·폭발물·레드스톤 장치·엔더·셜커·알, 도구는 허용 목록만).
+- NPC: `npcs.yml estate_keeper` (role `estate` → `services.homes().openEstate`, `ContentValidator.NPC_ROLES`). 메뉴는 NPC 정의 없이도 열림 (R20).
+- 메인 메뉴 15번 "집" (미궁 안에서는 숨김). 명령 `/미궁 집` (`/lab 집`·`/lab home`) — 메뉴·가기·받기·초대·내보내기·이름·손님·방문·짐·비우기·여기 ·
+  관리자 `/labadmin plot …`.
+- 자가 진단: `[집 구역 자가 진단]` (구역 블록) · `[집터 자가 진단]` (규칙·색인·소유) · `[집 메뉴 자가 진단] … catalog · banned · npc_def · menus · home_tp`.
 
 ## 7. 성능·안정성 규칙
 
@@ -1125,6 +1178,9 @@ wild:                 # wild: false = 통째로 끔 (Settings.Wild.OFF)
 - 0.3.5 특별 시련: `SpecialTrialTest`(굴림 시드·확률·확정 카운터, 층마다 그 기믹이 쓸 수 있는 조건만, 조건 4종 판정, 깨져도 평소 상자는 그대로,
   dungeon.yml 기본값, special_trial_fNN 표, floors.yml 덮어쓰기 오타, 무결 기믹 = noteMistake 를 부르는 기믹).
 - `labadmin selftest` 는 층마다 기믹방 단서 3단계·보스 단서의 MiniMessage 읽기를 확인한다(`hints` 단계, `hint_gimmicks`/`hint_bosses` 개수).
+- 0.3.7 집: `HomesLayoutTest`·`HomesConfigDefaultsTest` · 규칙 `homes/rules/*Test` · 놀이 `HousingCatalogTest`(385 · 금지 0 · 흑요석·부싯돌 없음 · 값 규칙) ·
+  `HomeRegenTest` · `BedRestTest` · `HomeTeleportRuleTest`(R11·R12) · `StarterCottageTest`(26.3 블록 속성까지) · `ClaimMapTest` · `EstateRoleTest`.
+  자재를 고치면 `tools/gen_037_housing.py --check` 도.
 - `./gradlew build` 가 테스트 포함 통과해야 함.
 - `ContentValidator`: 모든 YAML 교차참조(아이템·몹·루팅·레시피·층·보스 id)가 유효한지 시작 시 + 테스트에서 검사.
 - 리소스팩 생성기는 끝에 자체 검증: content 의 모든 아이템/몹 파트/NPC/글리프/fx 에 대응 파일이 있는지, JSON 파싱, PNG 크기.

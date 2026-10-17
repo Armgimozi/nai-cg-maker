@@ -200,4 +200,42 @@ class WildBorderTest {
         assertTrue(VANILLA.vanillaDefault());
         assertFalse(TARGET.vanillaDefault());
     }
+    // ── 줄지 않는 경계 (0.3.7 review R6) ──
+
+    @Test
+    void growNeverShrinks() {
+        // 지난번 우리 경계 = 광산까지 넓힌 것 · 이번 계산(target)은 마을만 (광산 기록을 못 읽음 등) → 지난번 그대로
+        Square wide = WildBorder.compute(CENTER, 37, List.of(new VillageMeta.Box(-90, 10, -10, -20, 70, 30)), 30);
+        Record rec = new Record(wide, VANILLA);
+        Square g = WildBorder.grow(TARGET, rec);
+        assertTrue(g.same(wide));
+        assertTrue(g.containsBlocks(-173, -21, -99, 53));
+        assertEquals(Action.NONE, WildBorder.decide(true, wide, g, rec).action(), "줄이지 않으니 할 일 없음");
+        // 기록 없음 · 바닐라 기록 → target 그대로
+        assertTrue(WildBorder.grow(TARGET, null).same(TARGET));
+        assertTrue(WildBorder.grow(TARGET, new Record(VANILLA, VANILLA)).same(TARGET));
+        assertTrue(WildBorder.grow(TARGET, new Record(TARGET, VANILLA)).same(TARGET));
+        // 경고 거리는 target 것
+        assertEquals(3, WildBorder.grow(TARGET.withWarning(3), rec).warning());
+    }
+
+    @Test
+    void growUnionsNewDistrict() {
+        // 지난번 = 마을 + 광산(동쪽) · 이번 = 마을 + 집 구역(남서쪽 -178..-116 · 26..105) → 둘을 다 덮는 정사각형
+        VillageMeta.Box mine = new VillageMeta.Box(-90, 10, -10, -20, 70, 30);
+        VillageMeta.Box homes = new VillageMeta.Box(-178, 58, 26, -116, 110, 105);
+        Square last = WildBorder.compute(CENTER, 37, List.of(mine), 30);
+        Square now = WildBorder.compute(CENTER, 37, List.of(homes), 30);
+        Square g = WildBorder.grow(now, new Record(last, VANILLA));
+        assertTrue(g.size() >= last.size() && g.size() >= now.size());
+        for (Square s : new Square[] {last, now}) {
+            assertTrue(g.contains(s.minX(), s.minZ()) && g.contains(s.maxX(), s.maxZ()), "앞뒤 경계를 다 덮음");
+        }
+        assertTrue(g.containsBlocks(mine.x0(), mine.z0(), mine.x1(), mine.z1()));
+        assertTrue(g.containsBlocks(homes.x0(), homes.z0(), homes.x1(), homes.z1()));
+        // 관리자 apply = 이번 계산 그대로 (줄 수 있음 — WildService.forceBorder 는 grow 를 거치지 않음)
+        Decision f = WildBorder.force(last, now, new Record(last, VANILLA));
+        assertTrue(f.set().same(now));
+        assertTrue(f.record().previous().vanillaDefault());
+    }
 }

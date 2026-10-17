@@ -308,7 +308,9 @@ public final class VillageService implements Listener {
 
     /** /미궁 마을. */
     void teleport(Player p) {
-        if (!module.teleportCommand() && !p.hasPermission(CommandService.PERM_ADMIN)) {
+        // 네더를 막은 서버의 네더 안 = 나가는 길 (차원문이 없으면 네더에서는 흑요석을 만들 수 없다) — 마을 텔레포트를 꺼도 된다
+        boolean netherExit = p.getWorld().getEnvironment() == org.bukkit.World.Environment.NETHER && !kr.labyrinth.core.NetherLock.isOpen();
+        if (!module.teleportCommand() && !p.hasPermission(CommandService.PERM_ADMIN) && !netherExit) {
             Text.error(p, "이 서버에서는 마을 텔레포트를 쓰지 않습니다. (config village.teleport_command)");
             return;
         }
@@ -334,6 +336,16 @@ public final class VillageService implements Listener {
     public boolean isProtected(Block b) {
         return meta != null && b.getWorld().equals(world) && isProtected(b.getX(), b.getY(), b.getZ());
     }
+
+    /**
+     * 그 칸 블록을 지어진 구역(광산 마을·집 구역)이 놓았나 — 보호 상자 밖 옹벽·기초도 (0.3.7: 이사 기간에 사람 블록으로 보지 않게).
+     */
+    public boolean districtPlaced(Block b) {
+        return districts != null && b != null && world != null && b.getWorld().equals(world) && districts.placed(b.getX(), b.getY(), b.getZ());
+    }
+
+    /** 구역이 놓은 칸 목록 (DistrictBackup.pack 정렬 — 비동기 조사용, 바꾸지 말 것). */
+    public long[] districtPlacedCells() { return districts == null ? new long[0] : districts.placedCells(); }
 
     boolean isProtected(int x, int y, int z) {
         List<VillageMeta.Box> list = boxes.get(Scan.key(x >> 4, z >> 4));
@@ -540,15 +552,15 @@ public final class VillageService implements Listener {
         if (isProtected(en.getLocation().getBlock()) && !bypass(e.getPlayer())) e.setCancelled(true);
     }
 
-    /** 마을 안에서 그대로 쓸 수 있는 블록: 문·다락문·울타리 문·종·작업대·침대. */
-    static boolean allowedUse(Material m) {
+    /** 마을 안에서 그대로 쓸 수 있는 블록: 문·다락문·울타리 문·종·작업대·침대. (0.3.7 집 구역 지형 잠금도 씀) */
+    public static boolean allowedUse(Material m) {
         String n = m.name();
         return n.endsWith("_DOOR") || n.endsWith("_TRAPDOOR") || n.endsWith("_FENCE_GATE") || n.endsWith("_BED")
                 || m == Material.BELL || m == Material.CRAFTING_TABLE;
     }
 
-    /** 블록을 바꾸는 손 도구 (괭이·삽·도끼·가위·뼛가루·밀랍·부싯돌·양동이·염료 등). */
-    static boolean changesBlocks(Material m) {
+    /** 블록을 바꾸는 손 도구 (괭이·삽·도끼·가위·뼛가루·밀랍·부싯돌·양동이·염료 등). (0.3.7 집 구역 지형 잠금도 씀 — review R19) */
+    public static boolean changesBlocks(Material m) {
         String n = m.name();
         return n.endsWith("_HOE") || n.endsWith("_SHOVEL") || n.endsWith("_AXE") || n.endsWith("BUCKET") || n.endsWith("_DYE")
                 || m == Material.SHEARS || m == Material.BRUSH || m == Material.BONE_MEAL || m == Material.HONEYCOMB
@@ -573,7 +585,12 @@ public final class VillageService implements Listener {
                 case kr.labyrinth.mine.MineNames.INTERACT_OFFICE -> s.mine().openOffice(p);
                 case kr.labyrinth.mine.MineNames.INTERACT_SMELTER -> s.crafting().openSmelter(p);
                 case kr.labyrinth.mine.MineNames.INTERACT_INFO -> s.mine().openInfo(p);
-                default -> s.menus().openMain(p);
+                // 0.3.7 집 구역: 관리인 노점 · 대문 표지판 (plot:<번지>) — 메뉴는 집 모듈이 연다
+                case "estate" -> s.homes().openEstate(p);
+                default -> {
+                    if (action.regionMatches(true, 0, "plot:", 0, 5)) s.homes().openPlotSign(p, action.substring(5));
+                    else s.menus().openMain(p);
+                }
             }
             p.playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.6f, 1.4f);
         } catch (Throwable t) {

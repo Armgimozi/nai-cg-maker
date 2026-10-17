@@ -27,11 +27,15 @@ final class VillageTools {
         private Future<Integer> future;
         private int x0, z0, x1, z1, y0, y1;
         private File out;
+        private final String file;
 
-        Dump(VillageModule module, CommandSender sender, World world, VillageMeta meta) {
+        Dump(VillageModule module, CommandSender sender, World world, VillageMeta meta) { this(module, sender, world, meta, "dump.txt"); }
+
+        Dump(VillageModule module, CommandSender sender, World world, VillageMeta meta, String file) {
             super(module, sender, "마을 덤프");
             this.world = world;
             this.meta = meta;
+            this.file = file;
         }
 
         @Override
@@ -59,7 +63,7 @@ final class VillageTools {
             y1 = Math.min(world.getMaxHeight() - 1, y1 + 24);
             snaps = new Scan.Snapshots(world);
             pump = new Scan.ChunkPump(world, module.plugin(), false, false, 12, snaps::add).area(x0, z0, x1, z1);
-            out = new File(module.plugin().getDataFolder(), "village/dump.txt");
+            out = new File(module.plugin().getDataFolder(), "village/" + file);
             say("<gray>마을 덤프: x " + x0 + ".." + x1 + " · z " + z0 + ".." + z1 + " · y " + y0 + ".." + y1);
         }
 
