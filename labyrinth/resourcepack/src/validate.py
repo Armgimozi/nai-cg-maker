@@ -7,9 +7,11 @@ import re
 
 from PIL import Image
 
+from . import effects as FX
 from . import equipment as EQ
 from . import shapes_weapons as W2D
 from .materials import norm_style
+from .voxel import overlay as VO
 from .voxel import weapons as VW
 from .voxel.weapons import BOWS as VW_BOWS
 from .voxel.weapons import theme_of
@@ -186,6 +188,7 @@ def validate(files: dict, content: dict, expect_frames: dict, fx_names=()) -> Re
         if len(layers) == 2:
             check_equipment_cover(s, ((content.get('sets') or {}).get(s) or {}).get('look'), layers, rep)
     validate_shapes(items, rep)
+    validate_effects(items, content, rep)
     for name in fx_names:
         check_item_definition(files, f'assets/{NS}/items/fx/{name}.json', rep, expect_frames)
     validate_mobs_npcs_fx(files, content, rep, expect_frames)
@@ -240,6 +243,31 @@ def validate_shapes(items, rep):
     if no_theme:
         rep.warnings.append(f'{len(no_theme)} weapon id(s) carry no THEME_KEYS key (theme from texture.style): '
                             + ', '.join(sorted(no_theme)[:12]) + (' …' if len(no_theme) > 12 else ''))
+
+
+def validate_effects(items, content, rep):
+    """0.3.7 (myth-037): 효과 프리셋 표 (effects.py) ↔ 겉 오라 층 (voxel/overlay.py KIND) ↔ items.yml 이 서로 맞는지.
+    - 프리셋마다 겉 층 종류가 있어야 한다 (빠지면 조용히 'spark' 가 된다)
+    - 대체 프리셋(FALLBACK)은 있는 프리셋이어야 한다
+    - 움직이는 장비의 texture.effect 는 있는 프리셋이어야 한다 (없으면 팩이 rune_flow 로 바꾼다 — 데이터와 팩이 엇갈린 것)
+    - 신화 무기의 aura 는 fx.yml 에 tier mythic · 2번째 층(secondary_model)과 함께 있어야 한다"""
+    for eff in sorted(FX.KNOWN):
+        if eff not in VO.KIND:
+            rep.err(f'effects.KNOWN {eff!r}: no overlay kind in voxel/overlay.py KIND')
+    for eff, fb in FX.FALLBACK.items():
+        if eff not in FX.KNOWN or fb not in FX.KNOWN:
+            rep.err(f'effects.FALLBACK {eff!r} → {fb!r}: both must be known presets')
+    auras = ((content.get('fx') or {}).get('auras')) or {}
+    for iid, it in items.items():
+        tex = it.get('texture') or {}
+        if tex.get('animated') and tex.get('effect') and tex['effect'] not in FX.KNOWN:
+            rep.err(f'{iid}: texture.effect {tex["effect"]!r} is not a preset in effects.py (pack would use rune_flow)')
+        if it.get('type') == 'weapon' and it.get('rarity') == 'mythic' and it.get('aura'):
+            a = auras.get(it['aura'])
+            if a is None:
+                rep.err(f'{iid}: aura {it["aura"]!r} missing from fx.yml')
+            elif a.get('tier') != 'mythic' or not a.get('secondary_model'):
+                rep.err(f'{iid}: mythic aura {it["aura"]!r} needs tier mythic + secondary_model (2-layer aura)')
 
 
 def _fixed_ok(files, model_ref, rep):
