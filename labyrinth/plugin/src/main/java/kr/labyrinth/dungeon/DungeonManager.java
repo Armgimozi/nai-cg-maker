@@ -222,7 +222,11 @@ public final class DungeonManager implements DungeonService, Listener {
 
     public Run runOf(Player p) { return byPlayer.get(p.getUniqueId()); }
 
-    void unbind(UUID u) { byPlayer.remove(u); }
+    /** 공략에서 빠짐 (퇴장·귀환·공략 끝). 그 공략의 전투 기록도 지운다 — 다음 공략에서 '싸우는 중' 으로 보지 않게. */
+    void unbind(UUID u) {
+        byPlayer.remove(u);
+        forgetCombat(u);
+    }
 
     /** 쓰러짐 = 인스턴스의 사망자 목록 기준 (게임 모드만 보면 관전으로 구경하는 관리자도 쓰러진 것으로 보임). */
     @Override
@@ -436,7 +440,12 @@ public final class DungeonManager implements DungeonService, Listener {
     void finish(Run run, boolean sync) {
         if (!runs.containsKey(run.id())) return;
         runs.remove(run.id());
-        for (UUID u : run.members()) if (byPlayer.get(u) == run) byPlayer.remove(u);
+        for (UUID u : run.members()) {
+            if (byPlayer.get(u) == run) {
+                byPlayer.remove(u);
+                forgetCombat(u);
+            }
+        }
         run.destroyFloors(sync, () -> {
             allocator.release(run.slot());
             labWorld.markClean(run.slot());
@@ -577,6 +586,9 @@ public final class DungeonManager implements DungeonService, Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onJoin(PlayerJoinEvent e) {
         Player p = e.getPlayer();
+        // 지난 접속의 내보냄 표시가 (종료 이벤트 없이) 남아 있으면 이번 접속의 끊김 판정에 새지 않게
+        serverKicked.remove(p.getUniqueId());
+        quitDowned.remove(p.getUniqueId());
         // 0.3.6.2: 싸우는 중에 끊어 쓰러진 사람 — 합류(5틱)·입구 귀환(1틱) 안내 뒤에 까닭과 잃은 것을 한 번
         Bukkit.getScheduler().runTaskLater(services.plugin(), () -> {
             if (p.isOnline()) kr.labyrinth.core.DeathPenalty.showQuitNotice(services, p);

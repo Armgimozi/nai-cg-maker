@@ -35,6 +35,8 @@ public final class PlayerDataService implements Module, Listener {
     private final Services services;
     private final Path dir;
     private final Map<UUID, PlayerData> cache = new ConcurrentHashMap<>();
+    /** 나간·오프라인 사람의 아직 안 쓴 스냅샷 — 그 사이 다시 들어오면 파일 대신 읽는다 ({@link PendingWrites}). */
+    private final PendingWrites unwritten = new PendingWrites();
     private ExecutorService io;
     private BukkitTask autosave;
 
@@ -104,8 +106,19 @@ public final class PlayerDataService implements Module, Listener {
 
     public void saveOffline(PlayerData d) {
         if (cache.containsKey(d.uuid())) return; // 온라인이면 평소대로 저장됨
-        String yaml = d.toYaml();
-        io.execute(() -> write(d.uuid(), yaml));
+        writeLater(d.uuid(), d.toYaml());
+    }
+
+    /** 캐시 밖 사람의 스냅샷 쓰기: 다 쓸 때까지 {@link #unwritten} 에 두어 그 사이 읽기가 파일의 예전 값을 보지 않게. */
+    private void writeLater(UUID id, String yaml) {
+        unwritten.put(id, yaml);
+        io.execute(() -> {
+            try {
+                write(id, yaml);
+            } finally {
+                unwritten.done(id, yaml);
+            }
+        });
     }
 
     /** 즉시 비동기 저장 (중요한 진행 직후 — 층 클리어 등). */
@@ -133,6 +146,16 @@ public final class PlayerDataService implements Module, Listener {
 
     private PlayerData loadSync(UUID uuid, String name) {
         Path f = file(uuid);
+        String pending = unwritten.get(uuid);
+        if (pending != null) {
+            try {
+                PlayerData d = PlayerData.fromYaml(uuid, name, pending);
+                d.name(name);
+                return d;
+            } catch (Exception e) {
+                Log.error("플레이어 데이터 (아직 안 쓴 스냅샷) 읽기 실패(" + uuid + ") — 파일을 읽습니다", e);
+            }
+        }
         if (Files.exists(f)) {
             try {
                 PlayerData d = PlayerData.fromYaml(uuid, name, Files.readString(f, StandardCharsets.UTF_8));
@@ -188,6 +211,7 @@ public final class PlayerDataService implements Module, Listener {
         Bukkit.getScheduler().runTask(services.plugin(), () -> {
             if (Bukkit.getPlayer(id) == null) cache.remove(id);
         });
-        io.execute(() -> write(id, yaml));
+        // 빨리 다시 들어와 캐시에서 빠진 뒤 파일을 읽어도 (쓰기가 늦으면) 이 스냅샷을 읽는다
+        writeLater(id, yaml);
     }
 }

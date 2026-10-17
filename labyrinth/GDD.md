@@ -176,9 +176,13 @@
   · 살아 있는 사람이 없으면 전멸. 다시 들어오면 관전으로 합류(공략이 끝났으면 `recoverStranded` 로 입구) + 한 번
   "싸우는 중에 접속을 끊어 쓰러진 것으로 쳤습니다." 와 잃은 것 줄(ext `death.quit_notice`). 진짜 튕김도 같다(주인 결정).
   안 함: 싸우는 중 아님(그대로 합류) · 이미 DEAD · 공략이 끝나는 중 · 미궁 월드 밖 · 관리자 시험 입장 ·
-  서버 쪽 끊김(`Bukkit.isStopping` · 플러그인 끄는 중 · `/restart`(`RESTART_COMMAND` — 플러그인을 끄기 전에 모두 내보냄) · 관리자 `/kick`).
+  서버 쪽 끊김(`Bukkit.isStopping` · 플러그인 끄는 중 · `/restart`(`RESTART_COMMAND` — 메인 스레드 /restart 는 플러그인을 끄기 전에 모두 내보냄) ·
+  관리자가 내보냄 `/kick`(`KICKED`) · `/ban`(`BANNED`) · `/ban-ip`(`IP_BANNED`) · 명단(`WHITELIST`)).
   `/stop` 은 플러그인을 먼저 끄고(리스너가 내려감) 사람을 내보내 여기 오지 않는다(`MinecraftServer.stopServer`: disablePlugins → removeAll).
-  쓰러지면(끊김 포함) 마지막 피해 기록을 지워, 부활한 뒤 그 피해로 다시 '싸우는 중' 이 되지 않는다. 한 공략에서 여러 번 쓰러지는 것은 그대로(주인: 그대로 둠).
+  '싸우는 중' 기록(`dungeon.CombatClock`)은 공략 참가자가 미궁 월드 안에서 받은 피해만 세고(입장 준비 중 마을·야생은 아님),
+  쓰러지면(끊김 포함) · 공략을 떠나면(퇴장·귀환·공략 끝) 지운다 — 부활한 뒤나 다음 공략에서 앞의 피해로 다시 '싸우는 중' 이 되지 않게.
+  나갈 때 바꾼 값은 데이터 저장(MONITOR) 스냅샷에 들어가고, 쓰기가 끝나기 전에 다시 들어오면 파일 대신 그 스냅샷을 읽는다
+  (`data.PendingWrites` — 빨리 다시 접속해 잃은 골드·경험치가 되살아나지 않게). 한 공략에서 여러 번 쓰러지는 것은 그대로(주인: 그대로 둠).
 - config (`death.penalty`, 키가 없으면 코드 기본값 = jar config.yml — 0.3.6.1 config 에 `gold_loss` 가 없어도 켜짐):
   `xp_progress_reset` · `combat_exit_seconds` · `dungeon_item_loss: {enabled, slots_min, slots_max, safe_items}` (false = 물건 끔) ·
   `gold_loss: {enabled: true, min_percent: 5, max_percent: 25, max: 15000}` (false · max_percent 0 = 골드 끔; 비율은 0~100 으로 자르고 max_percent < min_percent 면 min,

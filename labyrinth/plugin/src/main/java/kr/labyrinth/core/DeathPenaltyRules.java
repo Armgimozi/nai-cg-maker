@@ -29,7 +29,7 @@ import org.bukkit.configuration.ConfigurationSection;
  *       ({@link #goldLost}). 골드는 플레이어 몸에만 있다 (은행·파티 금고·우편 없음).</li>
  *   <li>공략 중 살아 있고 전투 중(10초 안에 피해 — 귀환 주문서와 같은 판정)이면 /미궁 퇴장·입구 메뉴 '귀환' 도
  *       {@code combat_exit_seconds}초 시전, 맞으면 끊김 ({@link #exitCastSeconds}) — 죽기 직전 퇴장으로 페널티를 피하지 못하게.</li>
- *   <li>0.3.6.2: 같은 때(전투 중 · 시전 중)에 접속을 끊으면 쓰러진 것으로 친다 ({@link #combatQuit}) — 서버 종료·재시작·관리자 /kick 은 빼고.</li>
+ *   <li>0.3.6.2: 같은 때(전투 중 · 시전 중)에 접속을 끊으면 쓰러진 것으로 친다 ({@link #combatQuit}) — 서버 종료·재시작·관리자가 내보냄(/kick·/ban) 은 빼고.</li>
  * </ul>
  * config: {@code death.penalty} (키가 없으면 {@link Config#DEFAULT} — 예전 config.yml 도 jar 만 바꾸면 켜진다).
  */
@@ -325,7 +325,7 @@ public final class DeathPenaltyRules {
      * @param ending         공략이 끝나는 중 (전멸 · 정복 · 관리자 종료)
      * @param sinceHurtMs    마지막 피해에서 지난 ms (받은 적 없으면 음수)
      * @param casting        싸우는 중이라 시작한 퇴장 시전(/미궁 퇴장 5초) · 귀환 주문서 시전 중
-     * @param serverSide     서버 종료 · 재시작 · 플러그인 끄기 · 관리자 /kick 으로 끊김 (플레이어가 끊은 것이 아님)
+     * @param serverSide     서버 종료 · 재시작 · 플러그인 끄기 · 관리자가 내보냄(/kick · /ban) (플레이어가 끊은 것이 아님)
      */
     public record Quit(boolean inRun, boolean labyrinthWorld, boolean adminTest, boolean alive, boolean ending,
                        long sinceHurtMs, boolean casting, boolean serverSide) {}
@@ -345,12 +345,16 @@ public final class DeathPenaltyRules {
 
     /**
      * 서버 쪽에서 내보낸 것인가 ({@code PlayerKickEvent.Cause} 이름): {@code RESTART_COMMAND} = {@code /restart}(서버 재시작 —
-     * 플러그인을 끄기 전에 모두 내보냄) · {@code KICKED} = 관리자 {@code /kick} (Paper 26.3 KickCommand, 예전 이름 KICK_COMMAND 는 그 별칭).
+     * 플러그인을 끄기 전에 모두 내보냄) · 관리자가 내보냄 = {@code KICKED} {@code /kick} (Paper 26.3 KickCommand, 예전 이름
+     * KICK_COMMAND 는 그 별칭) · {@code BANNED} {@code /ban} · {@code IP_BANNED} {@code /ban-ip} · {@code WHITELIST}
+     * ({@code /whitelist on}·{@code remove} 로 명단 밖이 됨). 관리자 /kick 을 벌하지 않으므로 /ban 도 같게.
      * 도배·이상한 움직임·시간 초과·같은 계정 접속 같은 것은 플레이어 쪽이라 보통 끊김과 같다.
      */
     public static boolean serverKick(String cause) {
-        return "RESTART_COMMAND".equals(cause) || "KICKED".equals(cause) || "KICK_COMMAND".equals(cause);
+        return cause != null && SERVER_KICKS.contains(cause);
     }
+
+    private static final Set<String> SERVER_KICKS = Set.of("RESTART_COMMAND", "KICKED", "KICK_COMMAND", "BANNED", "IP_BANNED", "WHITELIST");
 
     /** 다시 접속했을 때 보여 줄 까닭 한 줄. */
     public static final String QUIT_DOWN_TEXT = "<#ff8a80>싸우는 중에 접속을 끊어 쓰러진 것으로 쳤습니다.</#ff8a80>";

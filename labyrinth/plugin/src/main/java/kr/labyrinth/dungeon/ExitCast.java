@@ -30,7 +30,8 @@ import org.bukkit.scheduler.BukkitTask;
 final class ExitCast implements Listener {
 
     private final DungeonManager manager;
-    private final Map<UUID, Long> lastHurt = new ConcurrentHashMap<>();
+    /** 마지막 피해 (공략 중 · 미궁 월드 안만, 공략을 떠나거나 쓰러지면 지움 — {@link CombatClock}). */
+    private final CombatClock clock = new CombatClock();
     private final Map<UUID, BukkitTask> casting = new ConcurrentHashMap<>();
     /** 0.3.6.2: 싸우는 중에 시작한 귀환 주문서 시전 (items.ConsumableListener 가 {@link DungeonService#combatReturnCast} 로 알림). */
     private final Set<UUID> scrollCasts = ConcurrentHashMap.newKeySet();
@@ -60,14 +61,11 @@ final class ExitCast implements Listener {
         casting.values().forEach(BukkitTask::cancel);
         casting.clear();
         scrollCasts.clear();
-        lastHurt.clear();
+        clock.clear();
     }
 
-    /** 마지막 피해에서 지난 ms (공략 중에 받은 적 없으면 -1). */
-    long sinceHurt(UUID u) {
-        long last = lastHurt.getOrDefault(u, -1L);
-        return last < 0 ? -1 : System.currentTimeMillis() - last;
-    }
+    /** 마지막 피해에서 지난 ms (이번 공략 중에 받은 적 없으면 -1). */
+    long sinceHurt(UUID u) { return clock.since(u, System.currentTimeMillis()); }
 
     /** 싸우는 중이라 시작한 퇴장 시전(이 클래스 — 시전은 전투 중에만 시작) 또는 귀환 주문서 시전 중인가. */
     boolean combatCasting(UUID u) { return casting.containsKey(u) || scrollCasts.contains(u); }
@@ -78,11 +76,11 @@ final class ExitCast implements Listener {
         else scrollCasts.remove(u);
     }
 
-    /** 쓰러짐(접속 끊김 포함)으로 전투가 끝남 — 부활한 뒤 그 마지막 피해로 다시 전투 중이 되지 않게. */
-    void forget(UUID u) { lastHurt.remove(u); }
+    /** 쓰러짐(접속 끊김 포함) · 공략을 떠남으로 전투가 끝남 — 부활한 뒤나 다음 공략에서 그 마지막 피해로 다시 전투 중이 되지 않게. */
+    void forget(UUID u) { clock.forget(u); }
 
     private void hurt(Player p) {
-        if (manager.runOf(p) != null) lastHurt.put(p.getUniqueId(), System.currentTimeMillis());
+        clock.hurt(p.getUniqueId(), manager.runOf(p) != null, manager.isLabyrinthWorld(p.getWorld()), System.currentTimeMillis());
     }
 
     /** 바닐라 피해 (낙하·불·용암·바닐라 몹 등). */
@@ -108,7 +106,7 @@ final class ExitCast implements Listener {
             Text.error(p, "이미 나가는 중입니다.");
             return true;
         }
-        long last = lastHurt.getOrDefault(u, -1L);
+        long last = clock.last(u);
         long since = sinceHurt(u);
         double secs = DeathPenaltyRules.exitCastSeconds(manager.services().settings().deathPenalty(), r.adminTest(),
                 r.isAlive(p) && !r.ending(), since);
@@ -129,7 +127,7 @@ final class ExitCast implements Listener {
                 cancel(p, null);
                 return;
             }
-            if (lastHurt.getOrDefault(u, -1L) > startHurt) {
+            if (clock.last(u) > startHurt) {
                 cancel(p, "피해를 받아 귀환이 끊겼습니다.");
                 return;
             }

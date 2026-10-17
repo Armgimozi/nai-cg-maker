@@ -96,6 +96,18 @@ class DeathPenaltyQuitTest {
         // 이름이 Paper API 의 원인 이름과 같아야 한다 (바뀌면 여기서 걸림)
         assertTrue(DeathPenaltyRules.serverKick(PlayerKickEvent.Cause.RESTART_COMMAND.name()));
         assertTrue(DeathPenaltyRules.serverKick(PlayerKickEvent.Cause.KICKED.name()), "KICK_COMMAND 는 KICKED 의 별칭");
+        // 관리자가 내보냄은 /kick 과 같게: /ban (BanPlayerCommands) · /ban-ip (BanIpCommands) · 명단 밖 (kickUnlistedPlayers)
+        for (PlayerKickEvent.Cause admin : List.of(PlayerKickEvent.Cause.BANNED, PlayerKickEvent.Cause.IP_BANNED,
+                PlayerKickEvent.Cause.WHITELIST)) {
+            assertTrue(DeathPenaltyRules.serverKick(admin.name()), admin + " = 관리자가 내보냄");
+        }
+        // 플레이어 쪽 (튕김 · 도배 · 이상한 움직임 · 같은 계정 · 팩 거절 · 다른 플러그인) 은 모두 보통 끊김
+        Set<PlayerKickEvent.Cause> server = Set.copyOf(List.of(PlayerKickEvent.Cause.RESTART_COMMAND, PlayerKickEvent.Cause.KICKED,
+                PlayerKickEvent.Cause.KICK_COMMAND, PlayerKickEvent.Cause.BANNED, PlayerKickEvent.Cause.IP_BANNED,
+                PlayerKickEvent.Cause.WHITELIST)); // KICK_COMMAND 는 KICKED 와 같은 값일 수 있음
+        for (PlayerKickEvent.Cause cause : PlayerKickEvent.Cause.values()) {
+            assertEquals(server.contains(cause), DeathPenaltyRules.serverKick(cause.name()), cause.name());
+        }
     }
 
     // ── 스위치 ────────────────────────────────────────────────────────────
