@@ -41,6 +41,7 @@ final class PlanWriter {
     private final Map<String, BlockData> dataCache = new HashMap<>();
     private final Map<String, BlockData> pieceCache = new HashMap<>();
     private Map<Long, Integer> pathIndex;
+    private Map<Long, Integer> doorPins;
 
     PlanWriter(World world, Plan plan, TerrainGrid grid, Map<String, List<Blueprint.Weighted>> styles, List<Blueprint.Weighted> foundationMix) {
         this.world = world;
@@ -271,6 +272,7 @@ final class PlanWriter {
             int h = pathHeight(x + d[0], z + d[1]);
             if (h == y + 1) higher = true;
         }
+        if (higher && !Plan.halfStepOk(doorPin(x, z), y)) higher = false; // 대문 앞 칸이 대문보다 높으면 반블록 없이 (한 칸 턱까지만)
         if (higher) {
             String slab = slabOf(block);
             if (slab == null && !style.isEmpty()) slab = slabOf(style.get(0).block());
@@ -285,6 +287,11 @@ final class PlanWriter {
         String id = Scan.id(m);
         for (List<Blueprint.Weighted> st : styles.values()) for (Blueprint.Weighted w : st) if (Nature.key(w.block()).equals(id)) return true;
         return false;
+    }
+
+    private Integer doorPin(int x, int z) {
+        if (doorPins == null) doorPins = plan.doorPins();
+        return doorPins.get(PathRaster.key(x, z));
     }
 
     private int pathHeight(int x, int z) {

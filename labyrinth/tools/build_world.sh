@@ -13,7 +13,7 @@
 #   있으면 멈춘다. 집 구역은 소유 파일(labyrinth-plots.yml)·맡긴 짐(labyrinth-parcels/)을 zip 에 넣지 않는다.
 # 환경 변수: TESTSERVER=/opt/testserver (paper.jar·libraries·cache 를 가져올 곳, 그 안의 world 는 건드리지 않음)
 #            WORK=/opt/worldbuild/build (작업 폴더, 매번 새로) · PORT=25631 · PREGEN=192 · KEEP=1 이면 작업 폴더 남김
-#            DIST=<결과 폴더> (기본 dist — 시험 빌드를 따로 모을 때)
+#            DIST=<결과 폴더> (기본 dist — 시험 빌드를 따로 모을 때) · XMX=4G (서버 최대 메모리)
 # 결과: dist/world.zip · dist/world.seed · dist/world-build.log (자가 진단 줄 포함) · dist/village-dump.txt (render.py --dump 용)
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -42,6 +42,7 @@ TESTSERVER=${TESTSERVER:-/opt/testserver}
 WORK=${WORK:-/opt/worldbuild/build}
 PORT=${PORT:-25631}
 PREGEN=${PREGEN:-192}
+XMX=${XMX:-4G}
 DIST=${DIST:-$ROOT/dist}
 JAVA=${JAVA:-$( [ -x /opt/jdk25/bin/java ] && echo /opt/jdk25/bin/java || echo java )}
 PY=${PYTHON:-$( [ -x /opt/packvenv/bin/python ] && echo /opt/packvenv/bin/python || echo python3 )}
@@ -175,7 +176,7 @@ LOG="$WORK/logs/latest.log"
     esac
   done < "$CMDS"
   sleep 3; echo stop
-) | (cd "$WORK" && timeout 7200 "$JAVA" -Xms1G -Xmx4G -Xshare:off -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -jar paper.jar --nogui > run.out 2>&1) || true
+) | (cd "$WORK" && timeout 7200 "$JAVA" -Xms1G -Xmx"$XMX" -Xshare:off -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -jar paper.jar --nogui > run.out 2>&1) || true
 
 mkdir -p "$DIST"
 grep -E "\[마을|\[광산 마을|\[집 구역|\[집터|\[집 메뉴|마을 짓기|마을을 지었|구역 짓기|계획:|지형|나무:|표지판|통과 —|막힘|짓기 시작|청크 미리 생성 완료|덤프 완료|자가 진단|Exception|ERROR.*Labyrinth" "$LOG" \

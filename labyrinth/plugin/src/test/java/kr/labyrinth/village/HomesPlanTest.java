@@ -160,6 +160,8 @@ class HomesPlanTest {
         for (Plan.PathPlan pp : p.paths) for (int[] c : pp.cells) ph.putIfAbsent(k(c[0], c[1]), c[2]);
         List<DistrictMeta.PlotRec> plots = Markers.plots(p, 6, 24);
         assertEquals(10, plots.size());
+        Map<Long, Integer> pins = p.doorPins();
+        assertEquals(10, pins.size(), "대문 앞 칸 10");
         VillageMeta m = Markers.meta(p, Layout.of("집 구역", 8, 4, List.of(), List.of(), Map.of()));
         for (HomesLayout.Spec s : HomesLayout.PLOTS) {
             DistrictMeta.PlotRec r = plots.get(s.id() - 1);
@@ -180,6 +182,12 @@ class HomesPlanTest {
             Integer street = ph.get(k(out[0], out[1]));
             assertNotNull(street, s.id() + "번 대문 앞 칸이 거리 칸");
             assertTrue(Math.abs(street - r.floor()) <= 1, s.id() + "번 대문 앞 거리 " + street + " / 바닥 " + r.floor());
+            // 짓는 칸 일과 같은 반 칸 계단 규칙: 이웃 길이 한 칸 높으면 반블록 — 대문보다 높은 대문 앞 칸에는 놓지 않음 (자가 진단 blocked_doors)
+            boolean higher = false;
+            for (int[] d : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) higher |= Integer.valueOf(street + 1).equals(ph.get(k(out[0] + d[0], out[1] + d[1])));
+            int top = street + (higher && Plan.halfStepOk(pins.get(k(out[0], out[1])), street) ? 1 : 0);
+            assertTrue(Math.abs(top - r.floor()) <= 1, s.id() + "번 대문 앞 겉 블록 " + top + " / 바닥 " + r.floor());
+            assertNotNull(pins.get(k(out[0], out[1])), s.id() + "번 대문 앞 칸이 묶임");
             assertEquals(street + 1, r.homeY(), 1e-9, s.id() + "번 집 가기 높이 = 거리 + 1");
             assertEquals("plot:" + s.id(), m.interact.get(VillageMeta.key(r.signX(), r.signY(), r.signZ())), s.id() + "번 표지판 우클릭");
         }
@@ -317,6 +325,14 @@ class HomesPlanTest {
         }
         for (Plan.PathPlan pp : p.paths) for (int[] c : pp.cells) assertFalse(fz.untouchable(c[0], c[1]), "길 #" + pp.def.index() + " (" + c[0] + ", " + c[1] + ")");
     }
+    @Test
+    void halfStepRuleAtGates() {
+        assertTrue(Plan.halfStepOk(null, 80), "대문 앞이 아니면 늘 됨");
+        assertTrue(Plan.halfStepOk(71, 70));
+        assertTrue(Plan.halfStepOk(71, 71), "바닥과 같은 높이 + 반블록 = 반 칸 위");
+        assertFalse(Plan.halfStepOk(71, 72), "한 칸 높은 길에 반블록 = 1.5 칸 — 못 오름");
+    }
+
     /** jar 의 homes.fp: 배포 월드 두 판 build_id · 계획 영역의 얼리지 않은 열을 모두 덮고 땅 높이 = 0.3.6.1 world.zip 지형 (광산 east 를 지은 뒤에도). */
     @Test
     void homesFingerprintMatchesShippedWorld() throws Exception {

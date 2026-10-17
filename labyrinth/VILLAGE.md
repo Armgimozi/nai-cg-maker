@@ -417,3 +417,45 @@ wild:                        # (0.3.5.1) 야생 막기 — ARCHITECTURE §6.10
 - 0.3.6.1 리뷰 반영 (놀이): 마당 길 `follow: 0` (양 끝 사이 곧게 — 숙소 앞 도랑 없음) + 숙소 문 앞 길(반블록 계단) · 자가 진단 `door_paths`
   (정문 앞 칸에서 한 걸음 안에 길) · 가로등 2개 더 (마당 서쪽 끝·하치장 골목) · south_east 자리 갈림길 길잡이 `signpost_mine_turn` + 남쪽 길 가로등 3개
   (east 는 drop) · mine_exit 는 승강기 문 쪽을 봄 · 광산 관리소 메뉴 가운데 줄 = 층 1~6 + 승강기 (승강장 12칸 안이면 바로 탐).
+
+## 8. 집 구역 '등불 골목' (구역, 0.3.7 — `design/037/PLAN.md` §1·§2 · `tools/village/district_homes.py`)
+
+광산 마을과 같은 구역 기계(마스크 계획기·얼린 칸·지문·백업·DistrictJob)로 짓는다. 마을 남서쪽 (배포 월드 x −179..−115 · z 26..105),
+자리 하나 `south_west` (마을 기준 shift 0 — 마을 좌표로 바뀌어 저장, 다른 시드 마을에서는 관리자 `here` 만).
+
+- 배치: 집터 10 (14×14, `HomesLayout.PLOTS` 와 같은 칸) → 앞 울타리 줄 10 → 생울타리 줄(옆·뒤, 같은 줄은 한 번) → 모서리 기둥 → 장식 순서.
+  조각 `pieces_homes.py`: `plot_pad` 14×33×14 (바닥 y 8 = 잔디, 아래 흙 3 + 돌 5) · `plot_front`/`plot_front_m` 14×3×1 (가문비 울타리 + 대문,
+  대문 옆 빛나는 표지판 `[n번지]` · 우클릭 `plot:<번지>` 는 표지판과 그 아래 울타리 둘 다) · `plot_hedge` 14×2×1 (철쭉 잎) ·
+  `hedge_post`·`fence_post_e/w` · `lamp_post_small(_e/_w/_ew)` (설계 등불 자리 9곳) · `keeper_stall` 3×5×3 (관리인 NPC `estate_keeper`,
+  우클릭 `estate` 계산대·통) · `signpost_home` (골목 어귀) · `well_home` + 벤치 · 골목 마당(옛 3번 자리, 땅 그대로) 벤치·화단·등불.
+  길: 0 이음 칸 + 골목 (폭 2, 마을 길 1 첫 칸 (−137, 26..27) 에 붙음) · 1 등불길 z 63..67 · 2 우물길 z 99..103 (폭 5, follow 8) · 3·4 가운데 골목 (폭 3).
+- 마스크 R 1 · B 2 (서쪽 개울 — 넓히면 물에 걸림) · 깎기·메우기 기본 4 · `foundation_depth 8` · `fill_small_water_max 8` (닫힌 작은 물 메움).
+  기초·옹벽 블록 = 돌벽돌 4 · 이끼 돌벽돌 2 · 금 간 돌벽돌 1 (조약돌은 구역에서 금지).
+- 조각 종류 (0.3.7 새로):
+  · `abut` — 다른 abut 조각·길과 맞닿아도 됨 (겹침만 안 됨). 둘레 여유 칸 없음 · 길이 붙지 않음 · 동굴 검사 없음 ·
+    보호 상자 = 발자국 그대로, 높이 = 낮은 바닥 − 8 .. 높은 바닥 + max(3, 높이 − 바닥) (옹벽 포함, review R10).
+  · `pad` (집터 바닥, abut 이기도 함) — 보호 상자 없음 (집 모듈이 집터로 지킴) · 자가 진단 조각 칸 검사 빠짐 ·
+    마을이 다듬은 칸은 땅 = 바닥일 때만 쓰고 바닥을 그 높이로 고정, 다르면 탈락 "마을이 다듬은 칸(높이 g)이 바닥 f 과 달라 덮을 수 없음" (review R1).
+- 조각 손잡이 (`districts/*.json` 조각 줄): `max_fill` (그 조각만 깎기·메우기 한도, 집터·울타리 12 — 8번 싱크홀 11칸) ·
+  `floor_ref [순번…]` (그 집터들 바닥 중 가장 높은 것을 바닥으로 — 낮은 쪽 집터 앞은 옹벽) · `floor_near [순번, 차]` (마주 보는 집:
+  4↔1 · 5↔2 · 7↔3, 차 ≤ 2) · `tag` (집터 번호 — 표지판 글 `{plot}` · 우클릭 `plot:{plot}` · 기록 `plots:`).
+- 대문 고정: abut 문 조각(앞 울타리)의 대문 앞 거리 칸 높이를 그 집 바닥 ±1 로 묶고 거리 높이를 계산 (48번 다듬기). 얼린 TRIM 칸 위
+  울타리 줄은 땅 높이 그대로 두고 조각을 (땅 − 바닥) 만큼 올려 씀 (`PlanWriter.frozenShift` · `Markers` 같은 이동).
+- 기록 `labyrinth-district-homes.yml` 에 `plots:` (id · box · floor · window(바닥 − homes.height.below .. 바닥 + above) · front · gate · sign · home).
+  읽거나 짓거나 지울 때마다 `HomesDistrict.publish` (built 일 때만 집터 목록). 집 주인·맡긴 짐은 집 모듈 파일 (`labyrinth-plots.yml`·`labyrinth-parcels/`).
+- 차례 (review R8): 시작할 때 `DistrictPolicy.plan` — 광산(order 10) → 집(order 20). 앞 구역이 지어짐·막힘·꺼짐이면 다음 구역.
+  짓기·되돌리기가 끝나면 다시 불러 다음으로. 설정 `homes.district` (auto_build · sites · blocks_per_tick · notify_admins), 모듈 `homes.enabled`.
+- 경계 (review R6): 자동 경계는 지난번 우리 경계와 합쳐서 줄지 않음 (`WildBorder.grow`). 관리자 `wild border apply` 만 줄일 수 있음.
+- 광산 south_east (review R7): 광산 다듬은 칸 위에 울타리 줄 16칸 — 높이 그대로 두고 조각만 올려 씀 (시험 `plansAfterMineSouthEast`).
+- 지우기 (review R9): `village district remove homes` — 주인 있는 집이 있으면 거절. `force` = 모든 집 회수(`reclaimAll`, 짐은 맡긴 짐으로) →
+  백업이 있으면 되돌리기, 없으면 기록만. 끝나면 `districtRemoved()`. 광산은 0.3.6.1 그대로 (force = 기록만).
+- 자가 진단 `[집 구역 자가 진단] 결과: 예외 0 · checked=N mismatched=0 · … · junction=ok · npcs=1/1 · interact=a/a · plots=10/10 · pads=10/10 ·
+  under=10/10 · gates=10/10 · signs=10/10 · homes_safe=10/10 · border=ok · pvp_safe=ok` + 집 모듈 줄. 마을 자가 진단은 구역 보호 상자·영역·집터
+  열을 뺀다 (R1 — 마을이 다듬은 칸 위 3번 집터). pads = 바닥 잔디 · under = 바닥 아래 8칸 흙·돌 · gates = 대문 · signs = 표지판 ·
+  homes_safe = 집 가기 칸 서 있을 수 있음 · border = 집터 전부 경계 안 · pvp_safe = PvP 안전 상자가 집터를 덮음.
+- 배포 월드(0.3.6.1, 광산 east 지어짐)에 지으면: 깎기 998 · 메우기 1,503 · 바꾼 블록 약 13,000 · 백업 약 124,000칸 · 블록 쓰기 2~3초.
+  집터 바닥 1:73 2:72 3:68 4:75 5:71 6:67 7:66 8:70 9:67 10:66. 마을·광산 자가 진단 그대로 mismatched=0.
+- 대문 앞 반 칸 계단: 길 칸 위 반블록(이웃 길이 한 칸 높을 때)은 대문 앞 칸이 대문 바닥보다 높으면 놓지 않는다 (`Plan.halfStepOk` — 1.5 칸 턱 방지).
+- 지문 `homes.fp` (`district_fingerprint.py --district homes`, 광산 짓기 전 배포 월드 두 판 — 열 8,100). 이미 집 구역이 있는 월드는 빼고 굽는다.
+- 새 world.zip: `tools/build_world.sh --base <0.3.6.1 world.zip> --district homes` (집 auto_build 끔 → 명령으로 south_west → 자가 진단 → 집 모듈 파일 빼고 zip).
+  `release.sh` 가 homes state built · plots: · 백업 · 주인 0 · `labyrinth-parcels/` 없음을 확인.

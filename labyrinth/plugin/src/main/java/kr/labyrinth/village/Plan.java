@@ -167,6 +167,26 @@ public final class Plan {
     /** 얼린 칸 (마스크 모드만 — 높이·지형을 바꾸지 않음). */
     public boolean isFrozen(int x, int z) { return frozen != null && inGrid(x, z) && frozen[idx(x, z)]; }
 
+    /**
+     * 붙는 문 조각(0.3.7 집 대문 줄)의 정문 앞 칸 → 그 조각 바닥 (xz 키 = {@link PathRaster#key}). 계획기는 이 칸 길 높이를 바닥 ±1 로 묶고,
+     * 짓는 칸 일은 길 높이가 바닥 + 1 이상이면 그 칸에 반 칸 계단(반블록)을 놓지 않는다 ({@link #halfStepOk}).
+     */
+    public java.util.Map<Long, Integer> doorPins() {
+        java.util.Map<Long, Integer> pins = new java.util.HashMap<>();
+        for (Placed pl : pieces) {
+            if (!pl.bp.abut || !pl.bp.door) continue;
+            int[] f = pl.doorFront();
+            pins.merge(PathRaster.key(f[0], f[1]), pl.floor, Math::min);
+        }
+        return pins;
+    }
+
+    /**
+     * 길 칸 (높이 y) 위에 반 칸 계단을 놓아도 되는가: 대문 앞 칸이 아니거나 (pinFloor null), 길이 대문 바닥보다 높지 않을 때만
+     * (대문에 서는 높이 바닥 + 1 → 반블록 위 y + 1.5 가 한 칸 넘게 높아지면 뛰어도 못 오른다).
+     */
+    public static boolean halfStepOk(Integer pinFloor, int y) { return pinFloor == null || y <= pinFloor; }
+
     public boolean masked() { return maskR >= 0; }
 
     /** 목표 높이 (full 계획). 격자 밖이면 NONE. */

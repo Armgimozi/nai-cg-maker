@@ -298,7 +298,10 @@ final class DistrictService implements Listener {
     private String applyKey(DistrictMeta d) { return world().getUID() + ":" + d.meta.buildId; }
 
     /** 지은 구역 NPC 세우기 (적용 열쇠가 다르거나 force). @return 세운 수 */
-    int applyNpcs(boolean force) {
+    int applyNpcs(boolean force) { return applyNpcs(force, null); }
+
+    /** @param only 이 구역만 (null = 지은 구역 모두) — 돌려주는 수도 그 구역 것만 */
+    int applyNpcs(boolean force, String only) {
         World w = world();
         if (w == null) return 0;
         File f = village.appliedFile();
@@ -306,7 +309,7 @@ final class DistrictService implements Listener {
         int placed = 0;
         boolean dirty = false;
         for (DistrictMeta d : metas.values()) {
-            if (!d.built()) continue;
+            if (!d.built() || (only != null && !only.equals(d.id))) continue;
             String key = applyKey(d);
             if (!force && key.equals(y.getString("districts." + d.id, ""))) continue;
             placed += placeNpcs(d);

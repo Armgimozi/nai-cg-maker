@@ -824,7 +824,7 @@ final class DistrictJob extends VillageJob {
         writing = false;
         done = true;
         svc.load(true);
-        int npcs = svc.applyNpcs(true);
+        int npcs = svc.applyNpcs(true, L.id);
         svc.clearBlocked(L.id);
         long secs = (System.currentTimeMillis() - writeStarted + 999) / 1000;
         String line = tag() + " 지었습니다 — 자리 " + site.label() + " · " + elapsedSec() + "초 (블록 쓰기 " + secs + "초) · 바꾼 블록 " + diff.size()

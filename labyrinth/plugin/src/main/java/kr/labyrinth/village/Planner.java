@@ -520,12 +520,7 @@ public final class Planner {
         int[] pathH = new int[c.gn * c.gn];
         Arrays.fill(pathH, HeightField.NONE);
         // 0.3.7: 붙는 문 조각(집 대문 줄)의 정문 앞 칸 = 거리 칸 → 그 칸 길 높이는 그 바닥 ±1 (대문에서 한 걸음)
-        Map<Long, Integer> pins = new java.util.HashMap<>();
-        for (Plan.Placed pl : p.pieces) {
-            if (!pl.bp.abut || !pl.bp.door) continue;
-            int[] f = pl.doorFront();
-            pins.put(PathRaster.key(f[0], f[1]), pl.floor);
-        }
+        Map<Long, Integer> pins = p.doorPins();
         for (Plan.PathPlan pp : p.paths) pathHeights(c, p, pp, raw.get(pp.def.index()), pathH, pins);
         if (mask != null) {
             String why = frozenPaths(c, p, pathH);
