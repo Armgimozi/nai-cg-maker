@@ -108,6 +108,12 @@ final class MineMenus {
         }
     }
 
+    /** 함께 캐기 글: 층마다 분이 같으면 "3분 뒤 다시 찹니다.", 다르면 "층마다 정해진 시간 뒤 다시 찹니다." */
+    static String regenLine(List<Integer> minutes) {
+        boolean same = minutes != null && !minutes.isEmpty() && minutes.stream().distinct().count() == 1;
+        return same ? minutes.get(0) + "분 뒤 다시 찹니다." : "층마다 정해진 시간 뒤 다시 찹니다.";
+    }
+
     private final class Info extends Menu {
         Info() { super(6, UiTheme.title("mine_info", 6, "<#e8c58a>광맥 현황")); }
 
@@ -117,7 +123,6 @@ final class MineMenus {
             int[] slots = {11, 13, 15, 29, 31, 33};
             List<MineLevel> levels = module.levels();
             int miners = module.veins().miners();
-            int f = MineMath.regrowFactor(miners, module.config().regenPlayersCap());
             for (int i = 0; i < levels.size() && i < slots.length; i++) {
                 MineLevel l = levels.get(i);
                 int[] st = module.veins().status(l);
@@ -126,7 +131,7 @@ final class MineMenus {
                 lore.add("<gray>나는 광석: <white>" + Text.escape(module.lift().ores(l)));
                 double next = module.veins().nextRefill(l);
                 if (next > 0) lore.add("<gray>다음 광맥까지 약 <white>" + UiTheme.clock(Math.round(next)));
-                lore.add("<gray>다시 차는 데 <white>" + Math.round(module.config().regenMinutes().get(l.n - 1) / (double) f) + "분</white> 쯤");
+                lore.add("<gray>다시 차는 데 <white>" + module.config().regenMinutes().get(l.n - 1) + "분</white>");
                 int here = module.minersAt(l);
                 if (here > 0) lore.add("<gray>지금 캐는 사람 <white>" + here + "명");
                 lore.add("");
@@ -135,8 +140,8 @@ final class MineMenus {
             }
             set(49, Button.icon(Material.CLOCK, "<#7fd8ff>함께 캐기",
                     List.of("<gray>광맥은 모두가 함께 씁니다.", "<gray>누가 캐면 모두에게 빈 광맥이 되고,",
-                            "<gray>광산에 사람이 많을수록 빨리 다시 찹니다.",
-                            "<gray>지금 광산에 <white>" + miners + "명</white> · 다시 차는 빠르기 <white>×" + f)),
+                            "<gray>" + regenLine(module.config().regenMinutes()), "<gray>사람 수와는 상관없어요.",
+                            "<gray>지금 광산에 <white>" + miners + "명")),
                     null);
             set(53, UiTheme.close(), ctx -> ctx.player().closeInventory());
         }

@@ -237,11 +237,14 @@ FORBIDDEN_BLOCKS = ['minecraft:redstone_ore', 'minecraft:deepslate_redstone_ore'
                     'minecraft:suspicious_gravel', 'minecraft:potent_sulfur', 'minecraft:budding_amethyst']
 
 # ───────────────────────── 광산 층 6 (같은 x,z 에 위아래로) ─────────────────────────
-# ore_w / gem_w = 섞임 무게 (합 100). veins = 광맥 블록 수 (무더기 3~5칸). regen = 개인 재생 분 (config 손잡이 기본값).
+# ore_w / gem_w = 섞임 무게 (합 100). veins = 광맥 블록 수 (무더기 3~5칸).
+# regen = 층마다 다시 차는 분 (config 손잡이 기본값). 0.3.7 주인: "광맥이 다시 생성되는 시간은 플레이어 유무와 관계 없이" —
+# 광산에 몇 명이 있든, 아무도 없든 같은 시간 (벽시계). 0.3.6.1 은 8~10분 ÷ 광산 사람 수(최대 4)였다.
+# 3분: 넷이 같은 층을 함께 돌아도 한 사람 몫이 혼자의 0.54~0.65, 층을 나누면 0.74~0.92 (economy.py 표 E 아래 함께 캐기).
 # 바이옴 띠 = 4칸 단위 경계를 층 상자 사이 틈에 둠. 상자 = [바닥 y − 4, 바닥 y + 15].
 LEVELS = [
     {'n': 1, 'id': 'shallow_drift', 'name': '얕은 갱도', 'depth_m': 40, 'floor_y': 135, 'biome': 'minecraft:dripstone_caves',
-     'biome_y': [128, 319], 'color': '#E8843F', 'depleted': 'minecraft:cobblestone', 'regen': 8, 'veins': 56,
+     'biome_y': [128, 319], 'color': '#E8843F', 'depleted': 'minecraft:cobblestone', 'regen': 3, 'veins': 56,
      'ore_w': {'copper': 62, 'iron': 30, 'silver': 8},
      'gem_nodes': 3, 'gem_w': {'quartz': 70, 'garnet': 30},
      'light': ['lantern', 'waxed_copper_lantern'], 'regen_fx': 'WAX_ON',
@@ -249,7 +252,7 @@ LEVELS = [
                  'beam': 'oak_log', 'decor': ['rail', 'barrel', 'oak_fence', 'iron_chain']},
      'mood': '나무 받침 갱도, 레일과 통, 따뜻한 등불. 가장 밝고 아늑하다.'},
     {'n': 2, 'id': 'dripstone_drift', 'name': '종유 갱도', 'depth_m': 90, 'floor_y': 110, 'biome': 'minecraft:dripstone_caves',
-     'biome_y': [104, 127], 'color': '#C9CED6', 'depleted': 'minecraft:mossy_cobblestone', 'regen': 9, 'veins': 58,
+     'biome_y': [104, 127], 'color': '#C9CED6', 'depleted': 'minecraft:mossy_cobblestone', 'regen': 3, 'veins': 58,
      'ore_w': {'copper': 34, 'iron': 46, 'silver': 15, 'gold': 5},
      'gem_nodes': 3, 'gem_w': {'quartz': 30, 'garnet': 55, 'moonstone': 15},
      'light': ['lantern'], 'regen_fx': 'ELECTRIC_SPARK',
@@ -257,7 +260,7 @@ LEVELS = [
                  'post': 'stripped_dark_oak_log', 'beam': 'dark_oak_log', 'decor': ['pointed_dripstone', 'iron_chain']},
      'mood': '돌과 심층암이 섞인 벽, 천장에 종유석, 쇠사슬에 매단 등불.'},
     {'n': 3, 'id': 'moss_vein', 'name': '이끼빛 수맥', 'depth_m': 140, 'floor_y': 85, 'biome': 'minecraft:lush_caves',
-     'biome_y': [80, 103], 'color': '#EEF3FF', 'depleted': 'minecraft:cobbled_deepslate', 'regen': 9, 'veins': 60,
+     'biome_y': [80, 103], 'color': '#EEF3FF', 'depleted': 'minecraft:cobbled_deepslate', 'regen': 3, 'veins': 60,
      'ore_w': {'copper': 14, 'iron': 30, 'silver': 41, 'gold': 12, 'mithril': 3},
      'gem_nodes': 3, 'gem_w': {'garnet': 25, 'moonstone': 55, 'topaz': 20},
      'light': ['soul_lantern', 'glow_lichen'], 'regen_fx': 'WAX_OFF',
@@ -265,7 +268,7 @@ LEVELS = [
                  'post': 'stripped_spruce_log', 'beam': 'spruce_log', 'decor': ['tuff_bricks', 'moss_carpet', 'glow_lichen']},
      'mood': '심층암과 응회암, 이끼와 발광 이끼, 차가운 영혼 등불. 조용하다.'},
     {'n': 4, 'id': 'ochre_fault', 'name': '황토 단층', 'depth_m': 200, 'floor_y': 60, 'biome': 'minecraft:badlands',
-     'biome_y': [52, 79], 'color': '#F2C14E', 'depleted': 'minecraft:cobblestone', 'regen': 10, 'veins': 60,
+     'biome_y': [52, 79], 'color': '#F2C14E', 'depleted': 'minecraft:cobblestone', 'regen': 3, 'veins': 60,
      'ore_w': {'copper': 9, 'iron': 14, 'silver': 23, 'gold': 39, 'mithril': 12, 'orichalcum': 3},
      'gem_nodes': 3, 'gem_w': {'moonstone': 25, 'topaz': 55, 'sapphire': 20},
      'light': ['ochre_froglight', 'lantern'], 'regen_fx': 'CRIT',
@@ -273,7 +276,7 @@ LEVELS = [
                  'post': 'stripped_acacia_log', 'beam': 'acacia_log', 'decor': ['brown_terracotta', 'iron_chain', 'barrel']},
      'mood': '붉고 노란 흙층이 비스듬히 갈라진 단층. 황토빛 개구리불이 따뜻하게 비춘다.'},
     {'n': 5, 'id': 'geode_hollow', 'name': '청록 정동', 'depth_m': 260, 'floor_y': 35, 'biome': 'minecraft:warped_forest',
-     'biome_y': [28, 51], 'color': '#7FF2FF', 'depleted': 'minecraft:cobbled_deepslate', 'regen': 10, 'veins': 62,
+     'biome_y': [28, 51], 'color': '#7FF2FF', 'depleted': 'minecraft:cobbled_deepslate', 'regen': 3, 'veins': 62,
      'ore_w': {'copper': 4, 'iron': 8, 'silver': 12, 'gold': 22, 'mithril': 41, 'orichalcum': 13},
      'gem_nodes': 3, 'gem_w': {'topaz': 25, 'sapphire': 55, 'dragonblood_stone': 20},
      'light': ['pearlescent_froglight', 'small_amethyst_bud', 'glow_lichen'], 'regen_fx': 'GLOW',
@@ -281,7 +284,7 @@ LEVELS = [
                  'post': 'polished_basalt', 'beam': 'polished_basalt', 'decor': ['amethyst_block', 'amethyst_cluster', 'small_amethyst_bud']},
      'mood': '둥근 정동, 자수정 군락(캐지 않음), 청록 포자가 떠다니는 푸른 빛.'},
     {'n': 6, 'id': 'dragon_abyss', 'name': '용의 심연', 'depth_m': 330, 'floor_y': 10, 'biome': 'minecraft:basalt_deltas',
-     'biome_y': [-64, 27], 'color': '#FF8A5C', 'depleted': 'minecraft:blackstone', 'regen': 10, 'veins': 66,
+     'biome_y': [-64, 27], 'color': '#FF8A5C', 'depleted': 'minecraft:blackstone', 'regen': 3, 'veins': 66,
      'ore_w': {'copper': 5, 'iron': 7, 'silver': 9, 'gold': 13, 'mithril': 23, 'orichalcum': 43},
      'gem_nodes': 3, 'gem_w': {'topaz': 15, 'sapphire': 30, 'dragonblood_stone': 55},
      'light': ['end_rod', 'verdant_froglight'], 'regen_fx': 'END_ROD',
@@ -306,6 +309,9 @@ LIFT_TRIP_S = 12.0             # 승강기 2초 + 내려서 걷기
 ING_SHARE = OWNER['ing_share']  # 장비 레시피 주괴 = 반올림(옛 일반 재료 합 × 0.20), 최소 2
 MIN_ING = 2
 INGOT_UNIT = 0.5               # 강화 S(주괴) 개수 배율
+# 강화 환산 기준 (gen_enhance · proto036): 주괴 '1회 공급량' = 이 값(그 금속 제 곡괭이로 그 금속만 노릴 때 1분당 광석) × 그 층 1회 클리어 분 ÷ 2.
+# 보스 장비 개수 검사의 환산 비교에만 쓴다. 0.3.6.1 표 B 값 그대로 둔다 — 0.3.7 에서 캐는 초·재생이 바뀌어도 강화 재료(enhance.yml)가 흔들리지 않게.
+ENHANCE_INGOT_RATE = {'copper': 8.71, 'iron': 8.61, 'silver': 7.28, 'gold': 6.54, 'mithril': 5.74, 'orichalcum': 4.51}
 # 금속 고르기 (주인 결정 4): 힘 P = 단계 + 희귀도 걸음 + 보스 장비 걸음 → 자리 pos = 1 + (P − 1)/2 (1..6)
 RARITY_STEP = {'common': 0.0, 'uncommon': 0.25, 'rare': 0.5, 'epic': 1.0, 'legendary': 1.5, 'mythic': 2.0}
 BOSS_STEP = 0.5

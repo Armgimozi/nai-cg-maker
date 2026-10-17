@@ -90,15 +90,4 @@ class MineMathTest {
         assertEquals(1, MineMath.baseYield(false, 0.0, 0.0));
         assertEquals(1, MineMath.baseYield(true, 1.0, 0.0), "보석 노드는 덤 없음");
     }
-
-    @Test
-    void regrowFactorByPlayers() {
-        assertEquals(1, MineMath.regrowFactor(0, 4), "아무도 없어도 한 사람 빠르기");
-        assertEquals(1, MineMath.regrowFactor(1, 4));
-        assertEquals(3, MineMath.regrowFactor(3, 4));
-        assertEquals(4, MineMath.regrowFactor(4, 4));
-        assertEquals(4, MineMath.regrowFactor(12, 4));
-        assertEquals(1, MineMath.regrowFactor(5, 1));
-        assertEquals(1, MineMath.regrowFactor(5, 0), "cap 0 = 1 로 읽음");
-    }
 }

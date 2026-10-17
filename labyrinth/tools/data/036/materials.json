@@ -1314,7 +1314,7 @@
     "ingot_s_scale": "0.5 × p_scale(재료 단계 뒤 그 층 몬스터 재료 1회 공급 중 큰 값)"
    },
    "ingot_unit": 0.5,
-   "ingot_supply": "주괴 1회 공급량(환산 비교·보스 장비 검사) = 그 금속 곡괭이로 그 금속만 노릴 때 1분당 광석 × 그 층 1회 클리어 분 ÷ 2"
+   "ingot_supply": "주괴 1회 공급량(환산 비교·보스 장비 검사) = mine.json economy.enhance_ingot_rate (그 금속 곡괭이로 그 금속만 노릴 때 1분당 광석, 0.3.6.1 값 고정) × 그 층 1회 클리어 분 ÷ 2"
   },
   "sources": {
    "kinds": {

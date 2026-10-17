@@ -55,9 +55,4 @@ public final class MineMath {
         if (gemNode) return 1;
         return roll < bonusChance ? 2 : 1;
     }
-
-    /** 다시 차는 빠르기: min(광산 월드 사람 수, cap), 아무도 없어도 1 (혼자일 때 속도로 흐름). */
-    public static int regrowFactor(int playersInMine, int cap) {
-        return Math.max(1, Math.min(Math.max(1, cap), playersInMine));
-    }
 }

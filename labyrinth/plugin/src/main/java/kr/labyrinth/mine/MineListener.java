@@ -124,7 +124,7 @@ final class MineListener implements Listener {
         if (v == null) return;
         String msg;
         if (module.veins().state().isDepleted(v.key())) {
-            double eta = module.veins().state().etaSeconds(v.key(), module.veins().miners());
+            double eta = module.veins().state().etaSeconds(v.key());
             msg = "<gray>빈 광맥 · 약 " + kr.labyrinth.ui.UiTheme.clock(Math.round(eta)) + " 뒤 다시 찹니다";
         } else {
             String m = TierRule.message(TierRule.check(heldTool(p), v.node().tier()));

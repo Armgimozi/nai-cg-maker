@@ -5,7 +5,7 @@
 # 층 6개는 모두 처음부터 열려 있다 — 레벨 조건이 어디에도 없다. 곡괭이 tier 는 캘 수 있는 광석(tier ≤ 곡괭이 + 1, 한 단계 위는 느림)과
 # 빠르기만 정한다 (0.3.6.1).
 # 층마다 광석·보석이 섞여 있다 (ore_weights · vein_blocks · gem_nodes). 광맥은 모두가 함께 쓴다: 누가 캐면 그 자리가 모두에게
-# 빈 광맥(depleted_block)이 되고, config.yml mine.regen_minutes 뒤 다시 찬다 (광산 월드 사람 수만큼 빨리, 최대 4배).
+# 빈 광맥(depleted_block)이 되고, config.yml mine.regen_minutes 뒤 다시 찬다 (광산에 몇 명이 있든 같은 시간 — 0.3.7).
 #
 # 블록(block)을 바꾸면 그 층을 다시 짓는다 (청사진은 @vein:<광석> · @gem:<보석> 글자라 그대로). 블록 12개는 서로 달라야 한다.
 # 보석 6종 블록(좀벌레 돌)은 리소스팩이 네모난 보석 광석 그림으로 바꿔 보여 준다 (0.3.6.1 — 튀어나온 결정은 없앰). 다른 블록으로 바꾸면
@@ -43,7 +43,7 @@ levels:
   vein_blocks: {copper_ore: 35, iron_ore: 17, silver_ore: 4}
   gem_weights: {quartz: 70, garnet: 30}
   gem_nodes: [quartz, quartz, garnet]
-  regen_minutes_default: 8
+  regen_minutes_default: 3
   gem_node_regen_minutes_default: 30
   lift: [0, 136, 0]
   landing: [0.5, 136, 3.5, 0.0]
@@ -77,7 +77,7 @@ levels:
   vein_blocks: {copper_ore: 20, iron_ore: 26, silver_ore: 9, gold_ore: 3}
   gem_weights: {quartz: 30, garnet: 55, moonstone: 15}
   gem_nodes: [quartz, garnet, garnet]
-  regen_minutes_default: 9
+  regen_minutes_default: 3
   gem_node_regen_minutes_default: 30
   lift: [0, 111, 0]
   landing: [0.5, 111, 3.5, 0.0]
@@ -111,7 +111,7 @@ levels:
   vein_blocks: {copper_ore: 8, iron_ore: 18, silver_ore: 25, gold_ore: 7, mithril_ore: 2}
   gem_weights: {garnet: 25, moonstone: 55, topaz: 20}
   gem_nodes: [garnet, moonstone, moonstone]
-  regen_minutes_default: 9
+  regen_minutes_default: 3
   gem_node_regen_minutes_default: 30
   lift: [0, 86, 0]
   landing: [0.5, 86, 3.5, 0.0]
@@ -145,7 +145,7 @@ levels:
   vein_blocks: {copper_ore: 6, iron_ore: 8, silver_ore: 14, gold_ore: 23, mithril_ore: 7, orichalcum_ore: 2}
   gem_weights: {moonstone: 25, topaz: 55, sapphire: 20}
   gem_nodes: [moonstone, topaz, topaz]
-  regen_minutes_default: 10
+  regen_minutes_default: 3
   gem_node_regen_minutes_default: 30
   lift: [0, 61, 0]
   landing: [0.5, 61, 3.5, 0.0]
@@ -179,7 +179,7 @@ levels:
   vein_blocks: {copper_ore: 3, iron_ore: 5, silver_ore: 7, gold_ore: 14, mithril_ore: 25, orichalcum_ore: 8}
   gem_weights: {topaz: 25, sapphire: 55, dragonblood_stone: 20}
   gem_nodes: [topaz, sapphire, sapphire]
-  regen_minutes_default: 10
+  regen_minutes_default: 3
   gem_node_regen_minutes_default: 30
   lift: [0, 36, 0]
   landing: [0.5, 36, 3.5, 0.0]
@@ -213,7 +213,7 @@ levels:
   vein_blocks: {copper_ore: 3, iron_ore: 5, silver_ore: 6, gold_ore: 9, mithril_ore: 15, orichalcum_ore: 28}
   gem_weights: {topaz: 15, sapphire: 30, dragonblood_stone: 55}
   gem_nodes: [sapphire, dragonblood_stone, dragonblood_stone]
-  regen_minutes_default: 10
+  regen_minutes_default: 3
   gem_node_regen_minutes_default: 30
   lift: [0, 11, 0]
   landing: [0.5, 11, 3.5, 0.0]

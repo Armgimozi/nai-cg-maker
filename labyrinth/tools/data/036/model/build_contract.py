@@ -121,7 +121,9 @@ def build_mine(lay, eco):
                         'rich': {'chance': P.RICH['chance'], 'multiplier': P.RICH['multiplier'], 'shown': '그 사람에게만 반짝임'},
                         'into_bag': '가방에 바로 — 가득 차면 캐지지도 비워지지도 않음 ("가방이 가득 찼습니다")', 'no_vanilla_drops': True, 'no_xp': True},
             'veins': {'shared': '진짜 블록이 모두에게 빈 광맥(depleted_block)이 되고 시간이 지나면 다시 찬다 (계약 §0-3)',
-                      'regen': '다시 차는 시간 = regen_minutes ÷ min(광산 월드 사람 수, regen_players_cap). 재시작 때는 다 찬 상태',
+                      'regen': '다시 차는 시간 = regen_minutes (층마다 정해진 분, 광산에 몇 명이 있든 같다 — 0.3.7 주인 결정). 벽시계로 센다 '
+                               '(광산 월드가 잠깐 없으면 돌아온 첫 틱에 지난 시간을 한 번에). 재시작 때는 다 찬 상태',
+                      'regen_players_cap': '0.3.7 에서 없앰 — config 에 남아 있으면 읽지 않고 켤 때 안내 한 줄',
                       'ids': '광맥 번호 = 청사진 마커를 (y, z, x) 순으로 정렬한 번호', 'reach_max': layout6.REACH_MAX,
                       'reach_metric': '발 = 바닥+1, 눈 = 바닥+2.62, 선 자리 아무 곳 (몸 폭 0.6), 눈 → 블록 상자 가장 가까운 점 ≤ 4.5 (R §2-8). '
                                       '밟고 설 수 있는 장식(통·울타리·계단 등) 위도 선 자리로 잰다',
@@ -146,7 +148,10 @@ def build_mine(lay, eco):
         'content_mine_yml': {'file': 'content/mine.yml', 'from': 'tools/mine/gen_mine.py (Q1) 가 이 파일의 levels·ores·gems 를 옮김',
                              'parser': 'ContentParser → Content.mine() (MineDef)', 'coupled_with': 'items.yml (mine_level·mine_kind·tool 은 Q3 생성기가 이 파일에서 채우고 ContentValidator 가 맞대어 봄)'},
         'names': names(),
-        'economy': {'focused_ore_per_min': eco_rates, 'source': 'tools/data/036/model/out/economy.json'},
+        'economy': {'focused_ore_per_min': eco_rates,
+                    'enhance_ingot_rate': {f"{m['rank']}:{m['key']}": P.ENHANCE_INGOT_RATE[m['key']] for m in P.METALS},
+                    'enhance_ingot_rate_note': 'gen_enhance 주괴 1회 공급 환산 (0.3.6.1 표 B 값 고정 — 0.3.7 캐는 초·재생이 바뀌어도 enhance.yml 그대로)',
+                    'source': 'tools/data/036/model/out/economy.json'},
     }
 
 
@@ -275,7 +280,8 @@ def build_materials(proto, eco):
                                         'hard': P.ENH_HARD, 'soft': P.ENH_SOFT,
                                         'ingot_s_scale': '0.5 × p_scale(재료 단계 뒤 그 층 몬스터 재료 1회 공급 중 큰 값)'},
                         'ingot_unit': P.INGOT_UNIT,
-                        'ingot_supply': '주괴 1회 공급량(환산 비교·보스 장비 검사) = 그 금속 곡괭이로 그 금속만 노릴 때 1분당 광석 × 그 층 1회 클리어 분 ÷ 2'},
+                        'ingot_supply': '주괴 1회 공급량(환산 비교·보스 장비 검사) = mine.json economy.enhance_ingot_rate (그 금속 곡괭이로 그 금속만 노릴 때 1분당 광석, '
+                            '0.3.6.1 값 고정) × 그 층 1회 클리어 분 ÷ 2'},
             'sources': {'kinds': {'mine': '광산', 'smelt': '제련소'}, 'source_order_after': 'hoard',
                         'compute': 'compute_sources 를 036 적용 뒤 최종 루팅으로 다시 돌림 (광석의 drop·elite·boss·chest 는 루팅에서)'},
             'items_yml': {'ore_ingot_gem': {'type': 'material', 'mine_level': '등급 1~6 (mine.json ores/gems tier 와 같아야 함)', 'mine_kind': 'ore | ingot | gem', 'floor': '비움'},

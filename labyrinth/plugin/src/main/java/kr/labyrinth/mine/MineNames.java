@@ -93,8 +93,6 @@ public final class MineNames {
     /** 곡괭이 구성요소를 쓴 블록 설정 지문 — 달라지면 접속 때 다시 쓴다. */
     public static final String PDC_TOOL_SIG = "mine_tool_sig";
 
-    /** 광맥이 다시 차는 시간 = 기본 ÷ min(광산 월드 사람 수, 이 값) (config mine.regen_players_cap 기본). */
-    public static final int REGEN_PLAYERS_CAP = 4;
     /** 광산 월드 메타 파일 (층마다 청사진 해시). */
     public static final String WORLD_META = "labyrinth-mine.yml";
     /** jar 안 청사진 경로 (n = 1..6). */

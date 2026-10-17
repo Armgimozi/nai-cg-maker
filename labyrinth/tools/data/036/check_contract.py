@@ -27,6 +27,7 @@ GEMS = ['quartz', 'garnet', 'moonstone', 'topaz', 'sapphire', 'dragonblood_stone
 REACH_ABOVE = 1               # 0.3.6.1 주인 결정 1: 곡괭이 tier t 는 tier ≤ t + 1 을 캔다 (한 단계 위는 느림)
 GOLD_WITH_SALE_MAX = 0.20     # 광산 G/분 ÷ 던전 G/분 (판매 포함, 그 단계 금속을 캘 수 있는 가장 낮은 곡괭이) — 0.3.6 과 같음
 GOLD_DROP_MAX = 0.25          # 드롭 골드만 — 0.3.6 과 같음 (곡괭이를 일찍 올린 사람은 표 E 참고 칸)
+REGEN_DEFAULT = [3, 3, 3, 3, 3, 3]   # 0.3.7: 층마다 3분 (사람 수와 관계 없음)
 MONSTER = ['ember_soul', 'resonant_sinew', 'clock_oil']          # §0 결정 4: 5층은 불씨 혼 (잿불 가죽 없음)
 DROP_PARTS = ['moss_scale', 'tunnel_fang', 'cinder_scale', 'rime_talon', 'chrono_dust', 'abyss_scale']   # §0 결정 4: 몹 몸에 맞는 새 부위
 PRE_RELEASE = {'cinder_hide': 'cinder_scale'}                  # 배포 전 시험 서버에만 있던 id
@@ -253,6 +254,12 @@ def main():
     need(set(mine['names']['interact']) == {'mine_lift', 'mine_office', 'smelter', 'mine_info'}, 'interact 이름')
     need(set(mine['names']['npc_roles']) == {'miner', 'smelter'}, 'NPC 역할 이름')
     need(len(mine['config_defaults']['mine']['regen_minutes']) == 6, 'config regen_minutes 6개')
+    # 0.3.7 주인: "광맥이 다시 생성되는 시간은 플레이어 유무와 관계 없이" — 층마다 정해진 분, 사람 수 손잡이 없음
+    need(mine['config_defaults']['mine']['regen_minutes'] == REGEN_DEFAULT, f"config regen_minutes ≠ {REGEN_DEFAULT}")
+    need('regen_players_cap' not in mine['config_defaults']['mine'], 'config regen_players_cap 이 남음 (0.3.7: 사람 수와 관계 없음)')
+    need('사람 수' not in mine['rules']['veins']['regen'] or '같다' in mine['rules']['veins']['regen'], '재생 규칙 글이 사람 수에 따라 빨라진다고 함')
+    for x in lv:
+        need(x['regen_minutes_default'] == REGEN_DEFAULT[x['n'] - 1], f"{x['n']} regen_minutes_default ≠ config 기본")
     need(mine['config_defaults']['mine']['fx']['pop'] is True, '광석 날아오기 켬 (주인 결정 5)')
 
     # ── 4. 블록 ──
