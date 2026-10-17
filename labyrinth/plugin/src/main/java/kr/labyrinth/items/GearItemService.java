@@ -109,6 +109,7 @@ public final class GearItemService implements ItemService {
             s.setData(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, false);
             tip.addHiddenComponents(DataComponentTypes.ENCHANTMENTS, DataComponentTypes.UNBREAKABLE);
         }
+        applySwingGate(s, def);
         if (def.type() == ItemType.ARMOR) applyEquippable(s, def);
         if (def.type() == ItemType.CONSUMABLE) applyConsumable(s, def);
         s.setData(DataComponentTypes.TOOLTIP_DISPLAY, tip.build());
@@ -237,8 +238,19 @@ public final class GearItemService implements ItemService {
         defOf(stack).ifPresent(def -> {
             migrate(stack, def);
             render(stack, def);
+            applySwingGate(stack, def);
             if (def.isTool()) applyTool(services, stack, def);   // 광산 블록 설정이 바뀌었을 수 있다 — 접속 때 다시 쓴다
         });
+    }
+
+    /**
+     * 미궁 근접·시전 무기 (0.3.7.1): 공격 게이지(= 무기 간격, StatService)가 다 차기 전에는 클라이언트가 휘두르지도 치지도 않는다
+     * (minimum_attack_charge 1). 맞은 것처럼 보이는데 서버가 너무 이른 클릭이라 버리던 것이 없어진다. 활은 그대로.
+     */
+    static void applySwingGate(ItemStack stack, ItemDef def) {
+        if (stack == null || def == null || !def.isWeapon() || isBow(def) || stack.getType() != Material.PAPER) return;
+        Float cur = stack.getData(DataComponentTypes.MINIMUM_ATTACK_CHARGE);
+        if (cur == null || cur < 1.0f) stack.setData(DataComponentTypes.MINIMUM_ATTACK_CHARGE, 1.0f);
     }
 
     /** 깃발이 35 보다 낮은 장비의 굴림을 0.3.5 범위로 옮겨 PDC 에 쓴다 (ItemMigration035). @return 바꿨으면 true */

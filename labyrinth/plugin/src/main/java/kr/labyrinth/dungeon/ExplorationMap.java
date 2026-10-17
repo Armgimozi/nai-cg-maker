@@ -103,6 +103,89 @@ public final class ExplorationMap {
         return out;
     }
 
+    /**
+     * 손에 드는 지도의 층 모양 (0.3.7.1 — 밝은 종이에 방 네모 · 통로 막대 · 화살표). 셀 n×n, 칸 번호 = plan.index.
+     * fill: -1 안 보임, -2 아직 안 가 본 곳(테두리만), 그 밖 = 방 색. east·south: 0 없음, 1 암시, 2 지나간 통로.
+     * me = 내가 선 셀 (-1 = 격자 밖), meX·meZ = 그 셀 안 위치 0~1. allies = 동료 [셀, 셀 안 x·z 천분율] 과 이름.
+     */
+    public record Shape(int n, int[] fill, byte[] east, byte[] south, int bossCell, int me, double meX, double meZ, float yaw,
+                        List<int[]> allies, List<String> allyNames) {}
+
+    static int mapColor(RoomType t, boolean cleared, boolean secret) {
+        if (secret) return 0xe07b20;
+        return switch (t) {
+            case START -> 0x3355cc;
+            case COMBAT -> cleared ? 0xb58c80 : 0xd9472b;
+            case ELITE -> cleared ? 0x9e7070 : 0x8e1b1b;
+            case TREASURE -> cleared ? 0xcdbb82 : 0xf0c419;
+            case GIMMICK -> cleared ? 0xb0a0c4 : 0x8a4fc8;
+            case REST -> 0x3fae3f;
+            default -> 0xbfae86;
+        };
+    }
+
+    /** 손에 드는 지도용 층 모양 (viewer null = 내 위치 없음). */
+    public static Shape shape(FloorState fs, Player viewer) {
+        MazePlan plan = fs.layout().plan();
+        Exploration ex = fs.exploration();
+        int n = plan.size();
+        Map<Integer, Room> roomByCell = new HashMap<>();
+        for (Room r : fs.rooms()) if (r.info().cell() >= 0) roomByCell.put(r.info().cell(), r);
+        Map<Integer, Boolean> secretOpen = new HashMap<>();
+        for (var s : fs.layout().secretRooms()) secretOpen.put(s.cell(), fs.secrets().isOpen(s.index()));
+        int[] fill = new int[n * n];
+        byte[] east = new byte[n * n], south = new byte[n * n];
+        for (int c = 0; c < n * n; c++) {
+            fill[c] = -1;
+            if (!plan.used(c)) continue;
+            if (ex.visited(c)) {
+                Room room = roomByCell.get(c);
+                fill[c] = mapColor(plan.type(c), room != null && room.cleared(), Boolean.TRUE.equals(secretOpen.get(c)));
+            } else {
+                for (int d = 0; d < 4; d++) {
+                    int o = plan.step(c, d);
+                    if (o >= 0 && plan.open(c, d) && ex.visited(o)) fill[c] = -2;
+                }
+            }
+            east[c] = linkState(plan, ex, c, MazePlan.EAST);
+            south[c] = linkState(plan, ex, c, MazePlan.SOUTH);
+        }
+        int boss = ex.bossDoorFound() ? plan.bossAttach() : -1;
+        int me = -1;
+        double mx = 0.5, mz = 0.5;
+        float yaw = 0;
+        if (viewer != null) {
+            me = cellOf(fs, viewer);
+            if (me >= 0) {
+                mx = within(fs.tileX(viewer.getLocation()) - fs.layout().cellMinX(me));
+                mz = within(fs.tileZ(viewer.getLocation()) - fs.layout().cellMinZ(me));
+                yaw = viewer.getLocation().getYaw();
+            }
+        }
+        List<int[]> allies = new ArrayList<>();
+        List<String> names = new ArrayList<>();
+        for (Player p : fs.alivePlayers()) {
+            if (viewer != null && p.getUniqueId().equals(viewer.getUniqueId())) continue;
+            int c = cellOf(fs, p);
+            if (c < 0) continue;
+            allies.add(new int[] {c, (int) Math.round(1000 * within(fs.tileX(p.getLocation()) - fs.layout().cellMinX(c))),
+                    (int) Math.round(1000 * within(fs.tileZ(p.getLocation()) - fs.layout().cellMinZ(c)))});
+            names.add(p.getName());
+        }
+        return new Shape(n, fill, east, south, boss, me, mx, mz, yaw, allies, names);
+    }
+
+    private static double within(int tiles) {
+        return Math.max(0.0, Math.min(1.0, (tiles + 0.5) / kr.labyrinth.dungeon.gen.FloorGenerator.PITCH));
+    }
+
+    private static byte linkState(MazePlan plan, Exploration ex, int c, int dir) {
+        int o = plan.step(c, dir);
+        if (o < 0 || !plan.open(c, dir)) return 0;
+        boolean a = ex.visited(c), b = ex.visited(o);
+        return (byte) (a && b ? 2 : a || b ? 1 : 0);
+    }
+
     /** 지도 줄 목록 (머리말 + 격자 + 범례). viewer 가 null 이면 현재 위치 표시 없음 (자가 진단). */
     public static List<Component> render(FloorState fs, Player viewer) {
         MazePlan plan = fs.layout().plan();

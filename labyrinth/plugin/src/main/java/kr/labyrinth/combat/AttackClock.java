@@ -75,6 +75,8 @@ final class AttackClock implements Listener {
     static final long WHOOSH_GAP_MS = 150;
     /** 활: 놓고 다시 메기는 시간 (ms) — 한 발 주기 = 당김 + 이것. */
     static final long NOCK_MS = Math.round(CombatMath.BOW_NOCK * 1000.0);
+    /** 허용 오차 하한 (ms). */
+    static final long TOLERANCE_FLOOR_MS = 100;
 
     private final Services services;
     private final Map<UUID, AttackTiming> clocks = new ConcurrentHashMap<>();
@@ -133,7 +135,7 @@ final class AttackClock implements Listener {
         Settings.Combat c = cfg();
         long now = System.currentTimeMillis();
         AttackTiming t = clock(p);
-        AttackTiming.Result r = t.click(now, ms(s.attackInterval()), c.clickToleranceMs(), ms(c.earlyClickBuffer()),
+        AttackTiming.Result r = t.click(now, ms(s.attackInterval()), tolerance(), ms(c.earlyClickBuffer()),
                 target.getUniqueId(), weaponKey(p));
         if (r == AttackTiming.Result.ACCEPT) return;
         e.setCancelled(true);
@@ -159,7 +161,7 @@ final class AttackClock implements Listener {
         long now = System.currentTimeMillis();
         AttackTiming t = clock(p);
         long buffer = target == null ? CasterBoltRules.airBufferMs(c.earlyClickBuffer()) : ms(c.earlyClickBuffer());
-        AttackTiming.Result r = t.click(now, ms(s.attackInterval()), c.clickToleranceMs(), buffer,
+        AttackTiming.Result r = t.click(now, ms(s.attackInterval()), tolerance(), buffer,
                 target == null ? AttackTiming.AIR : target.getUniqueId(), weaponKey(p));
         switch (r) {
             case ACCEPT -> bolts.fire(p, target);
@@ -172,12 +174,12 @@ final class AttackClock implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onHeld(PlayerItemHeldEvent e) {
-        swapped(e.getPlayer(), e.getPlayer().getInventory().getItem(e.getNewSlot()));
+        swapped(e.getPlayer(), e.getPlayer().getInventory().getItem(e.getPreviousSlot()), e.getPlayer().getInventory().getItem(e.getNewSlot()));
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onSwapHands(PlayerSwapHandItemsEvent e) {
-        swapped(e.getPlayer(), e.getMainHandItem());
+        swapped(e.getPlayer(), e.getOffHandItem(), e.getMainHandItem());
     }
 
     /** 칸은 그대로인데 손의 무기가 바뀜 (줍기·명령 지급 등). 같은 무기(설명만 다시 그림)면 무시. */
@@ -187,10 +189,10 @@ final class AttackClock implements Listener {
         if (e.getSlot() != p.getInventory().getHeldItemSlot()) return;
         String before = services.items().defOf(e.getOldItemStack()).map(ItemDef::id).orElse(e.getOldItemStack().getType().name());
         String after = services.items().defOf(e.getNewItemStack()).map(ItemDef::id).orElse(e.getNewItemStack().getType().name());
-        if (!Objects.equals(before, after)) swapped(p, e.getNewItemStack());
+        if (!Objects.equals(before, after)) swapped(p, e.getOldItemStack(), e.getNewItemStack());
     }
 
-    private void swapped(Player p, ItemStack newMain) {
+    private void swapped(Player p, ItemStack oldMain, ItemStack newMain) {
         AttackTiming t = clocks.get(p.getUniqueId());
         if (t == null) return;
         ItemDef def = services.items().defOf(newMain).filter(ItemDef::isWeapon).orElse(null);
@@ -199,10 +201,25 @@ final class AttackClock implements Listener {
         double min = cfg().attackIntervalMin();
         // 활의 첫 공격(화살)은 당김을 세기 시작하고 끝까지 당긴 뒤에 나간다 — 바꿈 대기에서 당김만큼 빼 준다 (0.3.6.1)
         long lead = a.ranged() ? ms(CombatMath.bowDraw(a.interval(), as, min)) : 0;
+        if (!a.ranged() && sameKind(oldMain, newMain)) {
+            // 0.3.7.1: 같은 종류 아이템이면 바닐라 게이지가 다시 차지 않는다 — 서버도 게이지와 같게 (AttackTiming.swapSameItem)
+            t.swapSameItem(ms(CombatMath.cycle(a, as, min)));
+            drawCued.remove(p.getUniqueId());
+            return;
+        }
         t.swap(System.currentTimeMillis(), ms(CombatMath.cycle(a, as, min)), SWAP_DELAY_FRACTION, lead);
         drawCued.remove(p.getUniqueId());
         gateBow(p, t, newMain); // 근접 간격이 남았으면 그동안 활을 못 당기게 (손맛 검토 1)
     }
+
+    /** 바닐라가 공격 게이지를 처음부터 다시 채우지 않는 바꿈인가 (아이템 종류가 같음 — 빈손끼리도). */
+    static boolean sameKind(ItemStack a, ItemStack b) {
+        Material ma = a == null ? Material.AIR : a.getType(), mb = b == null ? Material.AIR : b.getType();
+        return ma.isAir() && mb.isAir() || ma == mb;
+    }
+
+    /** 서버가 받는 허용 오차 (ms) — 게이지가 꽉 차서 친 클릭이 지연·틱 반올림으로 버려지지 않게 하한 100ms (0.3.7.1). */
+    private long tolerance() { return Math.max(TOLERANCE_FLOOR_MS, cfg().clickToleranceMs()); }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
@@ -233,7 +250,7 @@ final class AttackClock implements Listener {
                 t.clearBuffer();
                 continue;
             }
-            t.fireBuffered(now, ms(services.stats().get(p).attackInterval()), cfg().clickToleranceMs());
+            t.fireBuffered(now, ms(services.stats().get(p).attackInterval()), tolerance());
             release(p, target);
         }
         if (cfg().bowFullDrawCue()) drawCue();
@@ -249,7 +266,7 @@ final class AttackClock implements Listener {
         LivingEntity target = AttackTiming.AIR.equals(t.bufferedTarget()) ? null
                 : Bukkit.getEntity(t.bufferedTarget()) instanceof LivingEntity le ? le : null;
         if (target != null && !canRelease(p, target, t)) target = null;
-        t.fireBuffered(now, ms(services.stats().get(p).attackInterval()), cfg().clickToleranceMs());
+        t.fireBuffered(now, ms(services.stats().get(p).attackInterval()), tolerance());
         try {
             bolts.fire(p, target);
         } catch (Throwable ex) {

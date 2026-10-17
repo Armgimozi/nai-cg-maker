@@ -49,8 +49,6 @@ import org.bukkit.scheduler.BukkitTask;
 public final class StatService implements Module, Listener {
 
     public static final double VANILLA_MAX_HEALTH_CAP = 1024.0;
-    /** 서버 시계로 다스리는 손(미궁 무기·맨손)의 바닐라 공격 속도 — 게이지가 늘 꽉 차 화면에 보이지 않는다. */
-    public static final double CLOCKED_ATTACK_SPEED = 1024.0;
     private static final double BASE_MOVE_SPEED = 0.1;
     /** PlayerInventory 보조손 칸 번호. */
     private static final int OFFHAND_SLOT = 40;
@@ -193,12 +191,18 @@ public final class StatService implements Module, Listener {
             p.setHealthScale(20.0);
         }
         setBase(p, Attribute.MOVEMENT_SPEED, BASE_MOVE_SPEED * (1.0 + s.moveSpeed()));
-        // 미궁 무기·맨손: 바닐라 게이지를 늘 꽉 차게(1024) 두고 서버가 무기 간격을 지킨다 (combat.AttackClock).
-        // 바닐라 무기(칼·도끼 등)는 바닐라 속도·게이지 그대로.
-        double atkSpeed = attackClocked(p) ? CLOCKED_ATTACK_SPEED
+        // 미궁 무기·맨손 (0.3.7.1): 바닐라 게이지 = 무기 간격 (틱 반올림). 미궁 근접·시전 무기는 게이지가 차기 전에는 휘둘러지지 않는다
+        // (minimum_attack_charge — GearItemService). 서버도 같은 간격을 지킨다 (combat.AttackClock). 바닐라 무기는 바닐라 속도·게이지 그대로.
+        double atkSpeed = attackClocked(p) ? clockedAttackSpeed(s.attackInterval())
                 : Math.max(0.2, VanillaWeapon.PLAYER_BASE_SPEED * (1.0 + s.attackSpeed()));
         setBase(p, Attribute.ATTACK_SPEED, atkSpeed);
         setBase(p, Attribute.KNOCKBACK_RESISTANCE, s.knockbackResistance());
+    }
+
+    /** 무기 간격(초) → 바닐라 공격 속도: 게이지가 차는 틱 = 간격 × 20 반올림 (1 ~ 400틱). */
+    public static double clockedAttackSpeed(double intervalSeconds) {
+        long ticks = Math.max(1, Math.min(400, Math.round(intervalSeconds * 20.0)));
+        return 20.0 / ticks;
     }
 
     /** 맨손 방식 (config weapon_attack_speed.none — 초당 횟수의 역수). */

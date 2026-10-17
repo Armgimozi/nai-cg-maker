@@ -65,6 +65,8 @@ final class DistrictJob extends VillageJob {
     private final World world;
     private final List<SiteReq> sites;
     private boolean buildAfterRecover;
+    /** 관리자 force (0.3.7.1): 사람 손 검사(바뀐 땅·놓은 블록·영역 밖 나무)를 건너뛰고 짓는다 — 바뀌는 블록은 그대로 백업 (remove 로 되돌림). */
+    private boolean force;
 
     private Step step;
     private int siteIdx = -1;
@@ -146,7 +148,14 @@ final class DistrictJob extends VillageJob {
     }
 
     static DistrictJob command(VillageModule m, CommandSender s, DistrictService svc, DistrictLibrary.Entry e, Mode mode, List<SiteReq> sites) {
-        return new DistrictJob(m, s, svc, e, mode, false, sites);
+        return command(m, s, svc, e, mode, sites, false);
+    }
+
+    static DistrictJob command(VillageModule m, CommandSender s, DistrictService svc, DistrictLibrary.Entry e, Mode mode, List<SiteReq> sites,
+                               boolean force) {
+        DistrictJob j = new DistrictJob(m, s, svc, e, mode, false, sites);
+        j.force = force;
+        return j;
     }
 
     static List<SiteReq> configSites(DistrictLibrary.Entry e, List<String> ids) {
@@ -297,7 +306,11 @@ final class DistrictJob extends VillageJob {
             case CHECK -> {
                 if (!checkFuture.isDone()) return false;
                 check = checkFuture.get();
-                if (!check.ok()) {
+                if (!check.ok() && force) {
+                    List<DistrictCheck.Problem> ps = check.problems();
+                    say("<gray>  " + Text.escape(site.label()) + ": <#ffd36b>force — 사람 손 검사 건너뜀</#ffd36b> ("
+                            + Text.escape(ps.get(0).line()) + (ps.size() > 1 ? " 외 " + (ps.size() - 1) + "건" : "") + ") · 바뀌는 블록은 백업합니다");
+                } else if (!check.ok()) {
                     List<String> why = new ArrayList<>();
                     for (DistrictCheck.Problem p : check.problems()) why.add(p.line());
                     block(why);
@@ -651,7 +664,7 @@ final class DistrictJob extends VillageJob {
             if (regionDistance(x, z, LOG_REACH) > LOG_REACH) continue;
             regrass.add(c);
         }
-        if (!outside.isEmpty()) {
+        if (!outside.isEmpty() && !force) {
             DistrictCheck.Result r = DistrictCheck.check(fpw, fpUnder, fpAbove, live(), outside.values(), 20);
             if (!r.ok()) {
                 List<String> why = new ArrayList<>();

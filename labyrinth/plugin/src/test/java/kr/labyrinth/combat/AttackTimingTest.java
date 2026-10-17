@@ -235,4 +235,22 @@ class AttackTimingTest {
         assertEquals(2, AttackClock.distanceToBox(new org.bukkit.util.Vector(3, 1, 0.5), box), 1e-9);
         assertEquals(Math.sqrt(2), AttackClock.distanceToBox(new org.bukkit.util.Vector(2, 3, 0.5), box), 1e-9);
     }
+
+    @Test
+    void sameItemSwapFollowsTheVanillaGauge() {
+        AttackTiming t = new AttackTiming();
+        assertEquals(AttackTiming.Result.ACCEPT, t.click(1000, 1500, 100, 350, UUID.randomUUID(), "a"));
+        t.swapSameItem(400); // 큰 무기로 친 직후 단도로 — 게이지는 마지막 공격 + 0.4초에 찬다
+        assertEquals(AttackTiming.Result.ACCEPT, t.click(1400, 400, 100, 350, UUID.randomUUID(), "b"));
+        t.swapSameItem(1500); // 단도로 친 뒤 큰 무기로 — 마지막 공격 + 1.5초까지 기다린다
+        assertEquals(AttackTiming.Result.EARLY, t.click(1500, 1500, 100, 350, UUID.randomUUID(), "a"));
+        assertEquals(AttackTiming.Result.ACCEPT, t.click(2850, 1500, 100, 350, UUID.randomUUID(), "a"));
+    }
+
+    @Test
+    void gaugeTicksRoundToTheWeaponInterval() {
+        assertEquals(20.0 / 17, kr.labyrinth.stats.StatService.clockedAttackSpeed(0.83), 1e-9);
+        assertEquals(20.0, kr.labyrinth.stats.StatService.clockedAttackSpeed(0.01), 1e-9);
+        assertEquals(20.0 / 30, kr.labyrinth.stats.StatService.clockedAttackSpeed(1.5), 1e-9);
+    }
 }

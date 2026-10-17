@@ -32,6 +32,8 @@ public final class AttackTiming {
     public static final UUID AIR = new UUID(0L, 0L);
 
     private long nextReady = Long.MIN_VALUE / 4;
+    /** 마지막으로 통과한 근접·마법탄의 시각 (그 공격의 시계 시각) — 같은 종류 아이템으로 바꿀 때 바닐라 게이지와 맞춘다 ({@link #swapSameItem}). */
+    private long lastAttack = Long.MIN_VALUE / 4;
     private UUID bufferedTarget;
     private long bufferedAt;
     private String bufferedWeapon;
@@ -47,6 +49,7 @@ public final class AttackTiming {
     public Result click(long now, long intervalMs, long toleranceMs, long bufferMs, UUID target, String weaponKey) {
         if (now >= nextReady - Math.max(0, toleranceMs)) {
             long base = nextReady > now ? nextReady : now;
+            lastAttack = base;
             nextReady = base + Math.max(1, intervalMs);
             clearBuffer();
             return Result.ACCEPT;
@@ -79,7 +82,18 @@ public final class AttackTiming {
     /** 기억한 클릭을 넣었다: 다음 시각 = 그 시각 + 간격 (서버가 늦은 틱이면 지금 − 허용 오차 기준). */
     public void fireBuffered(long now, long intervalMs, long toleranceMs) {
         long base = Math.max(nextReady, now - Math.max(0, toleranceMs));
+        lastAttack = base;
         nextReady = base + Math.max(1, intervalMs);
+        clearBuffer();
+    }
+
+    /**
+     * 같은 종류 아이템끼리 바꿈 (0.3.7.1 — 미궁 근접·시전 무기는 모두 종이 아이템): 바닐라 게이지는 이때 처음부터 다시 차지 않고
+     * '마지막 공격 뒤 지난 시간 ÷ 새 간격' 으로 보인다. 서버도 같게 — 다음 시각 = 마지막 공격 + 새 간격 (기억 지움). 게이지가 꽉 찬 클릭을
+     * 서버가 버리지 않는다. 번갈아 써도 한 번 친 뒤 그 무기 간격을 다 기다리므로 두 무기 중 센 쪽보다 빨라지지 않는다.
+     */
+    public void swapSameItem(long newIntervalMs) {
+        if (lastAttack > Long.MIN_VALUE / 4) nextReady = lastAttack + Math.max(1, newIntervalMs);
         clearBuffer();
     }
 

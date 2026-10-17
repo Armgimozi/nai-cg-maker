@@ -131,7 +131,8 @@ final class DistrictService implements Listener {
     static String hint(String id) {
         return switch (id) {
             case "mine" -> "광산은 <white>/미궁 광산</white> 으로 그대로 됩니다.";
-            case "homes" -> "지형 잠금은 꺼진 채입니다. 집터는 <white>/labadmin plot convert</white> 로 줄 수 있습니다.";
+            case "homes" -> "지형 잠금은 꺼진 채입니다. 그래도 그 자리에 지으려면 <white>/labadmin village district build homes force</white>"
+                    + " (바뀌는 블록은 백업 · remove homes 로 되돌림).";
             default -> "";
         };
     }
@@ -140,7 +141,8 @@ final class DistrictService implements Listener {
     static String hintFile(String id) {
         return switch (id) {
             case "mine" -> "광산은 그대로 쓸 수 있습니다: /미궁 광산 또는 메인 메뉴 '광산' → 얕은 갱도의 광산 관리소 (곡괭이·제련·팔기).";
-            case "homes" -> "지형 잠금은 꺼진 채입니다 (부수기·놓기를 막지 않음). 옛 건물을 그 주인 집터로 주려면: /labadmin plot convert <이름> <x1> <z1> <x2> <z2>"
+            case "homes" -> "지형 잠금은 꺼진 채입니다 (부수기·놓기를 막지 않음). 그래도 그 자리에 지으려면: /labadmin village district build homes force"
+                    + " (위 칸들을 덮어 짓습니다 · 바뀌는 블록은 백업되어 /labadmin village district remove homes 로 되돌림). 옛 건물을 그 주인 집터로 주려면: /labadmin plot convert <이름> <x1> <z1> <x2> <z2>"
                     + " (집 구역 없이 잠그려면 /labadmin plot lock on).";
             default -> "";
         };

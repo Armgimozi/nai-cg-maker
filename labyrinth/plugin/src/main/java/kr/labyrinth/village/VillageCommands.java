@@ -136,6 +136,7 @@ final class VillageCommands {
                 {"village district info|preview|build|remove|selftest mine [자리]", "광산 마을: 상태 · 미리 보기(안 바꿈) · 짓기 · 되돌리기 · 점검 (자리 = east · south_east · here [방향])"},
                 {"village district remove mine force", "백업이 없을 때: 블록은 그대로 두고 광산 마을 기록만 지움"},
                 {"village district info|preview|build|remove|selftest homes [자리]", "집 구역 (등불 골목): 같은 명령 (자리 = south_west · here [방향])"},
+                {"village district build homes [자리] force", "사람 손 검사(메운 땅 등)를 건너뛰고 짓기 — 바뀌는 블록은 백업, remove homes 로 되돌림"},
                 {"village district remove homes force", "주인이 있는 집도: 모두 맡긴 짐으로 돌린 뒤 지움 (백업이 없으면 기록만)"},
         };
         for (String[] l : lines) s.sendMessage(Text.mm(" <white>/labadmin " + Text.escape(l[0]) + "</white> <dark_gray>—</dark_gray> <gray>" + l[1]));
@@ -362,7 +363,7 @@ final class VillageCommands {
                     .then(Commands.argument("args", StringArgumentType.greedyString())
                             .suggests((c, b) -> {
                                 for (String x : new String[] {"mine", "mine east", "mine south_east", "mine here", "mine here east", "homes", "homes south_west",
-                                        "homes here"}) b.suggest(x);
+                                        "homes here", "homes force"}) b.suggest(x);
                                 return b.buildFuture();
                             })
                             .executes(ctx -> run(ctx, () -> districtBuild(CommandService.sender(ctx), verb, StringArgumentType.getString(ctx, "args"))))));
@@ -419,6 +420,9 @@ final class VillageCommands {
     /** preview|build &lt;id&gt; [east|south_east|here [방향]] — 자리를 안 주면 config 차례 (east → south_east). */
     private void districtBuild(CommandSender s, String verb, String args) {
         String[] a = args.trim().isEmpty() ? new String[] {"mine"} : args.trim().split("\\s+");
+        // force (0.3.7.1, 끝에 붙임): 사람 손 검사를 건너뛰고 짓는다 — 바뀌는 블록은 백업 (remove 로 되돌림)
+        boolean force = a.length >= 2 && a[a.length - 1].equalsIgnoreCase("force");
+        if (force) a = java.util.Arrays.copyOf(a, a.length - 1);
         DistrictLibrary.Entry e = needDistrict(s, a[0].toLowerCase(Locale.ROOT));
         if (e == null) return;
         DistrictService ds = module.service().districts();
@@ -456,7 +460,7 @@ final class VillageCommands {
         } else {
             sites.addAll(DistrictJob.configSites(e, module.districtConfig(e.id()).sites()));
         }
-        DistrictJob.command(module, s, ds, e, preview ? DistrictJob.Mode.PREVIEW : DistrictJob.Mode.BUILD, sites).start();
+        DistrictJob.command(module, s, ds, e, preview ? DistrictJob.Mode.PREVIEW : DistrictJob.Mode.BUILD, sites, force).start();
     }
 
     /** 플레이어가 보는 방향 (구역이 펼쳐질 쪽). */
