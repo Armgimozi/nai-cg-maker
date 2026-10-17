@@ -30,8 +30,8 @@ def plot_pad():
     H = BELOW + 1 + ABOVE
     p = Piece("plot_pad", "집터 바닥", SIZE, H, SIZE, floor_y=BELOW, anchor=(SIZE // 2, SIZE // 2), door=False, deco=False,
               slack=0, abut=True, pad=True, foundation_mix=[("stone", 1)])
-    stone = mix(("stone", 8), ("andesite", 1), ("tuff", 1), seed=372)
-    p.fill(0, 0, 0, SIZE - 1, BELOW - 4, SIZE - 1, stone)
+    # 돌만 (묶음 B 비우기 틀 PlotResetPlan.template 와 같게 — 비운 뒤에도 구역 지우기가 '우리가 놓은 칸' 으로 알아봄)
+    p.fill(0, 0, 0, SIZE - 1, BELOW - 4, SIZE - 1, B("stone"))
     p.fill(0, BELOW - 3, 0, SIZE - 1, BELOW - 1, SIZE - 1, B("dirt"))
     p.fill(0, BELOW, 0, SIZE - 1, BELOW, SIZE - 1, B("grass_block", snowy=False))
     p.clear(0, BELOW + 1, 0, SIZE - 1, H - 1, SIZE - 1)
