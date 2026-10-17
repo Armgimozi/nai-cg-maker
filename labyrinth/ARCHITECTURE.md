@@ -460,7 +460,7 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 - **Boss 기반이 해 주는 것**: 자체 HP 풀(DamageService 경로·위협 표·도발), 페이즈(`phases`, 전환 시 진행 중 경고 정리 + 1.5초 무적 + 대사 +
   보스바 깜빡임), `PatternScheduler`(GDD §8.3: cooldown/interval/system, 가중치 `weight`, 직전과 다른 패턴 우선, 최소 1.2초 간격),
   광폭화 타이머, 보스바(이름·칭호·페이즈·광폭/기절) + 시전 바(`boss_cast` 키, 끊을 수 있는 시전은 파란색), 아레나 경계(이탈 시 복귀),
-  추격·기본 공격, `BossRig` 시전 애니메이션(`BossAnim`: SLAM·SWEEP·CHARGE·ROAR·THROW·CAST·POUR·LEAP·DROP·SPIN·STUN·DEATH — 팔·머리 파트 +
+  추격·기본 공격(GDD §8.6 — `BossReach` 맞대응 거리·시야, `ChaseGuard` 막힘 → 곧장 다가가기 → 도약/땅 울림), `BossRig` 시전 애니메이션(`BossAnim`: SLAM·SWEEP·CHARGE·ROAR·THROW·CAST·POUR·LEAP·DROP·SPIN·STUN·DEATH — 팔·머리 파트 +
   몸 전체 회전/이동 오버레이), 보상(경험치·골드·`loot.drop(…,"boss")`·`MobKillEvent(boss=true)`), 정리(쫄·오브젝트·디스플레이·설치 블록 복원).
 - **하위 클래스가 채우는 것**: `onSpawn()`(아레나 배치) · `startPattern(key)`(쿨다운 패턴 → 묶이는 틱 반환, 보통 `cast(...)` 의 반환값) ·
   `runInterval(key)` · `tickSystem(key)` · `onPhase(n)` · 필요 시 `canUse/onTick/onSneak/onPlayerVanillaDamage/knockbackImmune/outgoingMult/incomingReduction/onEnd`.
