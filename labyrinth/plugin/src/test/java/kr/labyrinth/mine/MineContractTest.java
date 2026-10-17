@@ -93,7 +93,7 @@ class MineContractTest {
             prevTier = t.tier();
             for (MineDef.Node n : mine.ores().values()) {
                 assertEquals(n.tier() <= t.tier() + 1, t.canMine(n.tier()), id + " → " + n.id());
-                if (t.canMine(n.tier())) assertTrue(t.seconds(n.baseSeconds(), n.tier()) >= 1.0, id + " " + n.id());
+                if (t.canMine(n.tier())) assertTrue(MineMath.seconds(n, t) >= MineMath.MIN_SECONDS, id + " " + n.id() + " (바닥 0.5초)");
             }
         }
         // 좋은 곡괭이일수록 모든 광석에서 빠르다

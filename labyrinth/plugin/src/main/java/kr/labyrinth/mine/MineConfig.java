@@ -10,11 +10,12 @@ import org.bukkit.configuration.ConfigurationSection;
  * 키가 없거나 config 에 {@code mine:} 절이 없으면 코드 기본값 ({@link #DEFAULT}) = 계약 mine.json {@code config_defaults}.
  * <p>
  * 주인 늦은 결정 (계약 §0): 기력·매크로 막기(1시간 알림 {@code alert_per_hour} 포함)는 없다. 광맥은 모두가 함께 쓰고,
- * 다시 차는 시간 = 기본 ÷ min(광산 월드 사람 수, {@link #regenPlayersCap}) — 여럿이 캐도 한 사람 몫이 혼자일 때와 비슷하다.
+ * 층마다 {@code regen_minutes} 분 뒤 다시 찬다 — 광산에 몇 명이 있든 같다 (0.3.7 주인 결정 "플레이어 유무와 관계 없이").
+ * 0.3.6.1 의 {@code regen_players_cap} 은 읽지 않는다 ({@link #legacyNotes} 가 켤 때 안내 한 줄).
  * 순수 (서버 없이 시험).
  */
 public record MineConfig(boolean enabled, String world, Teleport teleportCommand, double liftSeconds, List<Integer> regenMinutes,
-                         int gemNodeRegenMinutes, int regenPlayersCap, double gemChance, double richChance, int richMultiplier,
+                         int gemNodeRegenMinutes, double gemChance, double richChance, int richMultiplier,
                          boolean fxPop, boolean noHunger, boolean safe, District district) {
 
     /** {@code /미궁 광산} 을 켤지: auto = village.teleport_command 를 따름. */
@@ -47,9 +48,18 @@ public record MineConfig(boolean enabled, String world, Teleport teleportCommand
         }
     }
 
-    public static final List<Integer> DEFAULT_REGEN = List.of(8, 9, 9, 10, 10, 10);
+    /** 층마다 다시 차는 분 (0.3.7 — 사람 수와 관계 없음, 계약 mine.json config_defaults). */
+    public static final List<Integer> DEFAULT_REGEN = List.of(3, 3, 3, 3, 3, 3);
+    /**
+     * 0.3.6·0.3.6.1 기본값 (그때는 "혼자일 때 분 ÷ 광산 사람 수"). config 의 목록이 이것과 같으면 손대지 않은 것으로 보고 새 기본값으로 읽는다
+     * ({@code party.max_size} 10 → 5 와 같은 방식). 주인이 고친 값은 그대로 둔다.
+     */
+    public static final List<Integer> LEGACY_REGEN_0361 = List.of(8, 9, 9, 10, 10, 10);
+    /** 켤 때 로그 한 줄 — 0.3.6.1 config 에 남은 regen_players_cap. */
+    public static final String LEGACY_CAP_NOTE =
+            "mine.regen_players_cap 은 0.3.7 부터 쓰지 않습니다 — 광맥은 사람 수와 관계 없이 regen_minutes 뒤 다시 찹니다.";
     public static final District DEFAULT_DISTRICT = new District(true, List.of("east", "south_east"), 3000, true);
-    public static final MineConfig DEFAULT = new MineConfig(true, MineNames.WORLD, Teleport.AUTO, 2.0, DEFAULT_REGEN, 30, 4, 0.022,
+    public static final MineConfig DEFAULT = new MineConfig(true, MineNames.WORLD, Teleport.AUTO, 2.0, DEFAULT_REGEN, 30, 0.022,
             0.04, 3, true, true, true, DEFAULT_DISTRICT);
 
     public MineConfig {
@@ -64,7 +74,6 @@ public record MineConfig(boolean enabled, String world, Teleport teleportCommand
         }
         regenMinutes = List.copyOf(r);
         gemNodeRegenMinutes = Math.max(1, Math.min(24 * 60, gemNodeRegenMinutes));
-        regenPlayersCap = Math.max(1, Math.min(20, regenPlayersCap));
         gemChance = clamp(gemChance, 0, 1);
         richChance = clamp(richChance, 0, 1);
         richMultiplier = Math.max(1, Math.min(10, richMultiplier));
@@ -75,13 +84,18 @@ public record MineConfig(boolean enabled, String world, Teleport teleportCommand
         return Double.isNaN(v) ? lo : Math.max(lo, Math.min(hi, v));
     }
 
-    /** 층 n(1부터)의 광맥 기본 재생 초 (한 사람일 때). */
+    /** 층 n(1부터)의 광맥이 다시 차는 초 (사람 수와 관계 없음). */
     public double regenSeconds(int level) {
         int i = Math.max(1, Math.min(6, level)) - 1;
         return regenMinutes.get(i) * 60.0;
     }
 
     public double gemRegenSeconds() { return gemNodeRegenMinutes * 60.0; }
+
+    /** 광맥 현황 "함께 캐기" 글: 층마다 분이 같으면 "3분 뒤 다시 찹니다.", 다르면 "층마다 정해진 시간 뒤 다시 찹니다." */
+    public String refillLine() {
+        return regenMinutes.stream().distinct().count() == 1 ? regenMinutes.get(0) + "분 뒤 다시 찹니다." : "층마다 정해진 시간 뒤 다시 찹니다.";
+    }
 
     /** {@code /미궁 광산} 을 쓸 수 있나 (villageTeleport = config village.teleport_command). */
     public boolean teleportAllowed(boolean villageTeleport) {
@@ -101,7 +115,7 @@ public record MineConfig(boolean enabled, String world, Teleport teleportCommand
     }
 
     static MineConfig withEnabled(MineConfig c, boolean on) {
-        return new MineConfig(on, c.world, c.teleportCommand, c.liftSeconds, c.regenMinutes, c.gemNodeRegenMinutes, c.regenPlayersCap,
+        return new MineConfig(on, c.world, c.teleportCommand, c.liftSeconds, c.regenMinutes, c.gemNodeRegenMinutes,
                 c.gemChance, c.richChance, c.richMultiplier, c.fxPop, c.noHunger, c.safe, c.district);
     }
 
@@ -122,6 +136,7 @@ public record MineConfig(boolean enabled, String world, Teleport teleportCommand
             int all = (int) Math.round(s.getDouble("regen_minutes"));
             for (int i = 0; i < 6; i++) regen.add(all);
         }
+        if (regen.equals(LEGACY_REGEN_0361)) regen.clear();   // 0.3.6.1 기본값 그대로 → 새 기본값 (주인이 고친 값은 그대로)
         ConfigurationSection rich = s.getConfigurationSection("rich");
         ConfigurationSection fx = s.getConfigurationSection("fx");
         ConfigurationSection ds = s.getConfigurationSection("district");
@@ -138,7 +153,6 @@ public record MineConfig(boolean enabled, String world, Teleport teleportCommand
                 s.getDouble("lift_seconds", d.liftSeconds()),
                 regen.isEmpty() ? d.regenMinutes() : regen,
                 s.getInt("gem_node_regen_minutes", d.gemNodeRegenMinutes()),
-                s.getInt("regen_players_cap", d.regenPlayersCap()),
                 s.getDouble("gem_chance", d.gemChance()),
                 rich == null ? d.richChance() : rich.getDouble("chance", d.richChance()),
                 rich == null ? d.richMultiplier() : rich.getInt("multiplier", d.richMultiplier()),
@@ -146,6 +160,14 @@ public record MineConfig(boolean enabled, String world, Teleport teleportCommand
                 s.getBoolean("no_hunger", d.noHunger()),
                 s.getBoolean("safe", d.safe()),
                 dist);
+    }
+
+    /**
+     * 켤 때 로그에 남길 안내 (0.3.6.1 config 에 남은 키). 지금은 {@code regen_players_cap} 하나 — 있으면 {@link #LEGACY_CAP_NOTE} 한 줄.
+     */
+    public static List<String> legacyNotes(ConfigurationSection mine) {
+        if (mine == null || !mine.contains("regen_players_cap")) return List.of();
+        return List.of(LEGACY_CAP_NOTE);
     }
 
     /** 이 값을 config.yml 모양으로 (시험·/labadmin mine 이 비교). */
@@ -157,7 +179,6 @@ public record MineConfig(boolean enabled, String world, Teleport teleportCommand
         m.put("lift_seconds", liftSeconds);
         m.put("regen_minutes", regenMinutes);
         m.put("gem_node_regen_minutes", gemNodeRegenMinutes);
-        m.put("regen_players_cap", regenPlayersCap);
         m.put("gem_chance", gemChance);
         m.put("rich", java.util.Map.of("chance", richChance, "multiplier", richMultiplier));
         m.put("fx", java.util.Map.of("pop", fxPop));

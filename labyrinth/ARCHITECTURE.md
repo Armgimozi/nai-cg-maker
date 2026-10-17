@@ -1119,7 +1119,7 @@ wild:                 # wild: false = 경계·스폰 끔 (Settings.Wild.OFF) —
   바꾸고, `validate.py validate_effects` 가 items.yml 의 `texture.effect` 가 팩 프리셋에 없으면 빌드를 멈춘다.
 - recipes.yml `station: blacksmith|smelter` (없으면 대장간) · `category: tool`. 제련소 = `CraftingService.openSmelter(p[, tab])` (smelt·carve·pickaxe).
 - items.yml `sources` 에 `mine`·`smelt` (툴팁 "광산"·"제련소"). 도감 "광산" 탭 = 광산 재료 + 도구.
-- config `mine:` (MineConfig — 광맥 공유 regen_players_cap · 기력 없음) · `sell.mine` · `starter_kit` (+ copper_pickaxe, 0.3.5.1 기본 목록은 새 기본으로 읽음) · `blueprints:`.
+- config `mine:` (MineConfig — 광맥 공유 · 정해진 재생 regen_minutes (벽시계, 사람 수 무관 — 0.3.7) · 기력 없음) · `sell.mine` · `starter_kit` (+ copper_pickaxe, 0.3.5.1 기본 목록은 새 기본으로 읽음) · `blueprints:`.
 - `mine.MineApi` (Services.mine(), 광산이 꺼지면 Noop): openMine (메인 메뉴·/미궁 광산) · openLift · openOffice · openInfo · applyPickaxe · isMineWorld.
   0.3.6 은 마을 구역(MineLinks.district)이 없다 → 구역 없음 경로(얕은 갱도 승강장). 0.3.6.1 부터 아래 §6.12.
 - glyphs.yml 메뉴 `smelter`·`mine_lift`·`mine_office`·`setup_village` 는 소켓 배경 (UiTheme.SOCKET_LAYOUT) — 버튼 칸 = `menus.<id>.slots`.

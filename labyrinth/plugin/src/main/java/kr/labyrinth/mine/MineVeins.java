@@ -33,7 +33,7 @@ import org.bukkit.persistence.PersistentDataType;
 /**
  * 함께 쓰는 광맥 (계약 §0-3): 진짜 블록이 모두에게 빈 광맥 블록이 되고, 시간이 지나면 다시 찬다.
  * <ul>
- *   <li>다시 차는 시간 = 기본(config mine.regen_minutes[층]) ÷ min(광산 월드 사람 수, regen_players_cap) — {@link VeinState}</li>
+ *   <li>다시 차는 시간 = config mine.regen_minutes[층] 분 — 광산에 몇 명이 있든 같다 (0.3.7 주인 결정). 벽시계로 센다 — {@link VeinState}</li>
  *   <li>수확은 가방에 바로 (가득 차면 캐지지도 비워지지도 않음), 바닐라 드롭·경험치 없음</li>
  *   <li>광석 블록 = 광석 1 + 곡괭이 덤 확률로 +1 · gem_chance 로 같은 등급 보석 1 · 풍부한 광맥이면 ×rich.multiplier</li>
  *   <li>보석 노드 = 보석 1, gem_node_regen_minutes 뒤 다시 참 · 네모난 보석 광석 블록 하나 (0.3.6.1 — 튀어나온 결정 없음, 팩이 그림을 바꿈)</li>
@@ -53,19 +53,22 @@ final class MineVeins {
     private final Map<Long, MineLevel.Vein> index = new HashMap<>();
     private final Map<String, MineLevel.Vein> byKey = new HashMap<>();
     private VeinState state;
+    /** 지난 {@link #tick} 의 벽시계 (System.nanoTime). 서버가 느려도(TPS &lt; 20) 재생이 늦어지지 않는다. */
+    private long lastTick = System.nanoTime();
     final NamespacedKey nodeKey = new NamespacedKey(kr.labyrinth.core.Keys.NS, MineNames.PDC_NODE);
 
     MineVeins(MineModule module) {
         this.module = module;
-        this.state = new VeinState(MineNames.REGEN_PLAYERS_CAP);
+        this.state = new VeinState();
     }
 
     VeinState state() { return state; }
 
-    void reset(List<MineLevel> levels, int cap) {
+    void reset(List<MineLevel> levels) {
         index.clear();
         byKey.clear();
-        state = new VeinState(cap);
+        state = new VeinState();
+        lastTick = System.nanoTime();
         for (MineLevel l : levels) {
             for (MineLevel.Vein v : l.veins) put(v);
             for (MineLevel.Vein v : l.gems) put(v);
@@ -185,13 +188,23 @@ final class MineVeins {
 
     // ── 다시 차기 (1초마다) ─────────────────────────────────────────────
 
-    void tick() { tickWith(1.0, miners()); }
+    /**
+     * 1초마다 (주 스레드): 지난번부터 흐른 벽시계 초만큼 흘린다. 광산 월드가 없으면(꺼짐·내려감) 시계를 그대로 두고 —
+     * 돌아온 첫 틱에 그동안 지난 시간을 한 번에 센다. 사람 수와 관계 없음.
+     */
+    void tick() {
+        long now = System.nanoTime();
+        if (module.world() == null) return;
+        double dt = Math.max(0, (now - lastTick) / 1e9);
+        lastTick = now;
+        tickWith(dt);
+    }
 
-    /** dt 초를 사람 수 players 로 흘림 (시험 고리도 이 길). @return 다시 찬 수 */
-    int tickWith(double dt, int players) {
+    /** dt 초를 흘림 (시험 고리도 이 길로 시간을 앞당긴다). @return 다시 찬 수 */
+    int tickWith(double dt) {
         World w = module.world();
         if (w == null) return 0;
-        List<String> done = state.tick(dt, players);
+        List<String> done = state.tick(dt);
         MineConfig cfg = module.config();
         for (String key : done) {
             MineLevel.Vein v = byKey.get(key);
@@ -308,10 +321,9 @@ final class MineVeins {
 
     /** 층 n 에서 가장 먼저 다시 찰 광맥까지 초 (빈 광맥이 없으면 0). */
     double nextRefill(MineLevel l) {
-        int miners = miners();
         double best = 0;
         for (MineLevel.Vein v : l.veins) {
-            double s = state.etaSeconds(v.key(), miners);
+            double s = state.etaSeconds(v.key());
             if (s > 0 && (best == 0 || s < best)) best = s;
         }
         return best;

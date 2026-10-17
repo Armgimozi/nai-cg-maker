@@ -107,7 +107,7 @@
     "quartz",
     "garnet"
    ],
-   "regen_minutes_default": 8,
+   "regen_minutes_default": 3,
    "gem_node_regen_minutes_default": 30,
    "lift": [
     0,
@@ -202,7 +202,7 @@
     "garnet",
     "garnet"
    ],
-   "regen_minutes_default": 9,
+   "regen_minutes_default": 3,
    "gem_node_regen_minutes_default": 30,
    "lift": [
     0,
@@ -300,7 +300,7 @@
     "moonstone",
     "moonstone"
    ],
-   "regen_minutes_default": 9,
+   "regen_minutes_default": 3,
    "gem_node_regen_minutes_default": 30,
    "lift": [
     0,
@@ -402,7 +402,7 @@
     "topaz",
     "topaz"
    ],
-   "regen_minutes_default": 10,
+   "regen_minutes_default": 3,
    "gem_node_regen_minutes_default": 30,
    "lift": [
     0,
@@ -503,7 +503,7 @@
     "sapphire",
     "sapphire"
    ],
-   "regen_minutes_default": 10,
+   "regen_minutes_default": 3,
    "gem_node_regen_minutes_default": 30,
    "lift": [
     0,
@@ -602,7 +602,7 @@
     "dragonblood_stone",
     "dragonblood_stone"
    ],
-   "regen_minutes_default": 10,
+   "regen_minutes_default": 3,
    "gem_node_regen_minutes_default": 30,
    "lift": [
     0,
@@ -631,7 +631,7 @@
    "name": "구리 광석",
    "tier": 1,
    "block": "minecraft:copper_ore",
-   "base_seconds": 2.5,
+   "base_seconds": 2.0,
    "yield": 1,
    "gem": "quartz",
    "ingot": "copper_ingot",
@@ -642,7 +642,7 @@
    "name": "철 광석",
    "tier": 2,
    "block": "minecraft:iron_ore",
-   "base_seconds": 2.9,
+   "base_seconds": 3.6,
    "yield": 1,
    "gem": "garnet",
    "ingot": "iron_ingot",
@@ -653,7 +653,7 @@
    "name": "은 광석",
    "tier": 3,
    "block": "minecraft:calcite",
-   "base_seconds": 3.3,
+   "base_seconds": 6.25,
    "yield": 1,
    "gem": "moonstone",
    "ingot": "silver_ingot",
@@ -664,7 +664,7 @@
    "name": "금 광석",
    "tier": 4,
    "block": "minecraft:gold_ore",
-   "base_seconds": 3.7,
+   "base_seconds": 11.2,
    "yield": 1,
    "gem": "topaz",
    "ingot": "gold_ingot",
@@ -675,7 +675,7 @@
    "name": "미스릴 광석",
    "tier": 5,
    "block": "minecraft:deepslate_diamond_ore",
-   "base_seconds": 4.1,
+   "base_seconds": 19.8,
    "yield": 1,
    "gem": "sapphire",
    "ingot": "mithril_ingot",
@@ -686,7 +686,7 @@
    "name": "오리하르콘 광석",
    "tier": 6,
    "block": "minecraft:ancient_debris",
-   "base_seconds": 4.5,
+   "base_seconds": 35.0,
    "yield": 1,
    "gem": "dragonblood_stone",
    "ingot": "orichalcum_ingot",
@@ -698,7 +698,7 @@
    "name": "석영",
    "tier": 1,
    "block": "minecraft:infested_stone_bricks",
-   "base_seconds": 3.75,
+   "base_seconds": 3.0,
    "yield": 1,
    "color": "#F6F2EA"
   },
@@ -706,7 +706,7 @@
    "name": "석류석",
    "tier": 2,
    "block": "minecraft:infested_cobblestone",
-   "base_seconds": 4.35,
+   "base_seconds": 5.4,
    "yield": 1,
    "color": "#C8102E"
   },
@@ -714,7 +714,7 @@
    "name": "월장석",
    "tier": 3,
    "block": "minecraft:infested_mossy_stone_bricks",
-   "base_seconds": 4.95,
+   "base_seconds": 9.375,
    "yield": 1,
    "color": "#9CCAFF"
   },
@@ -722,7 +722,7 @@
    "name": "황옥",
    "tier": 4,
    "block": "minecraft:infested_deepslate",
-   "base_seconds": 5.55,
+   "base_seconds": 16.8,
    "yield": 1,
    "color": "#FFC23A"
   },
@@ -730,7 +730,7 @@
    "name": "청옥",
    "tier": 5,
    "block": "minecraft:infested_chiseled_stone_bricks",
-   "base_seconds": 6.15,
+   "base_seconds": 29.7,
    "yield": 1,
    "color": "#4A7CFF"
   },
@@ -738,7 +738,7 @@
    "name": "용혈석",
    "tier": 6,
    "block": "minecraft:infested_cracked_stone_bricks",
-   "base_seconds": 6.75,
+   "base_seconds": 52.5,
    "yield": 1,
    "color": "#FF3B2F"
   }
@@ -749,7 +749,7 @@
    "tier": 1,
    "speed": {
     "1": 1.0,
-    "2": 0.72
+    "2": 0.8
    },
    "bonus": 0.0,
    "mines": [
@@ -763,8 +763,8 @@
     "garnet"
    ],
    "seconds": {
-    "copper_ore": 2.5,
-    "iron_ore": 4.03
+    "copper_ore": 2.0,
+    "iron_ore": 4.5
    },
    "recipe": null,
    "obtain": [
@@ -778,9 +778,9 @@
    "name": "철 곡괭이",
    "tier": 2,
    "speed": {
-    "1": 1.2,
-    "2": 1.2,
-    "3": 0.84
+    "1": 1.6,
+    "2": 1.6,
+    "3": 1.25
    },
    "bonus": 0.02,
    "mines": [
@@ -796,9 +796,9 @@
     "moonstone"
    ],
    "seconds": {
-    "copper_ore": 2.08,
-    "iron_ore": 2.42,
-    "silver_ore": 3.93
+    "copper_ore": 1.25,
+    "iron_ore": 2.25,
+    "silver_ore": 5.0
    },
    "recipe": {
     "id": "iron_pickaxe",
@@ -821,10 +821,10 @@
    "name": "은 곡괭이",
    "tier": 3,
    "speed": {
-    "1": 1.4,
-    "2": 1.4,
-    "3": 1.4,
-    "4": 0.96
+    "1": 2.5,
+    "2": 2.5,
+    "3": 2.5,
+    "4": 2.0
    },
    "bonus": 0.04,
    "mines": [
@@ -842,10 +842,10 @@
     "topaz"
    ],
    "seconds": {
-    "copper_ore": 1.79,
-    "iron_ore": 2.07,
-    "silver_ore": 2.36,
-    "gold_ore": 3.85
+    "copper_ore": 0.8,
+    "iron_ore": 1.44,
+    "silver_ore": 2.5,
+    "gold_ore": 5.6
    },
    "recipe": {
     "id": "silver_pickaxe",
@@ -855,9 +855,15 @@
      "iron_pickaxe": 1,
      "silver_ingot": 16,
      "moonstone": 2,
-     "dim_essence": 4
+     "dim_essence": 4,
+     "verdigris_plate": 3
     },
-    "gold": 1000
+    "gold": 1000,
+    "gate": {
+     "item": "verdigris_plate",
+     "count": 3,
+     "floor": 4
+    }
    },
    "obtain": [
     "제련소·광산 관리소 곡괭이 탭 (앞 곡괭이를 재료로 넣어 다시 벼림)"
@@ -868,11 +874,11 @@
    "name": "금 곡괭이",
    "tier": 4,
    "speed": {
-    "1": 1.6,
-    "2": 1.6,
-    "3": 1.6,
-    "4": 1.6,
-    "5": 1.08
+    "1": 4.0,
+    "2": 4.0,
+    "3": 4.0,
+    "4": 4.0,
+    "5": 3.2
    },
    "bonus": 0.06,
    "mines": [
@@ -892,11 +898,11 @@
     "sapphire"
    ],
    "seconds": {
-    "copper_ore": 1.56,
-    "iron_ore": 1.81,
-    "silver_ore": 2.06,
-    "gold_ore": 2.31,
-    "mithril_ore": 3.8
+    "copper_ore": 0.5,
+    "iron_ore": 0.9,
+    "silver_ore": 1.56,
+    "gold_ore": 2.8,
+    "mithril_ore": 6.19
    },
    "recipe": {
     "id": "gold_pickaxe",
@@ -906,9 +912,15 @@
      "silver_pickaxe": 1,
      "gold_ingot": 20,
      "topaz": 3,
-     "labyrinth_essence": 2
+     "labyrinth_essence": 2,
+     "tuning_fork_core": 3
     },
-    "gold": 2500
+    "gold": 2500,
+    "gate": {
+     "item": "tuning_fork_core",
+     "count": 3,
+     "floor": 7
+    }
    },
    "obtain": [
     "제련소·광산 관리소 곡괭이 탭 (앞 곡괭이를 재료로 넣어 다시 벼림)"
@@ -919,12 +931,12 @@
    "name": "미스릴 곡괭이",
    "tier": 5,
    "speed": {
-    "1": 1.8,
-    "2": 1.8,
-    "3": 1.8,
-    "4": 1.8,
-    "5": 1.8,
-    "6": 1.2
+    "1": 6.4,
+    "2": 6.4,
+    "3": 6.4,
+    "4": 6.4,
+    "5": 6.4,
+    "6": 5.0
    },
    "bonus": 0.08,
    "mines": [
@@ -946,12 +958,12 @@
     "dragonblood_stone"
    ],
    "seconds": {
-    "copper_ore": 1.39,
-    "iron_ore": 1.61,
-    "silver_ore": 1.83,
-    "gold_ore": 2.06,
-    "mithril_ore": 2.28,
-    "orichalcum_ore": 3.75
+    "copper_ore": 0.5,
+    "iron_ore": 0.56,
+    "silver_ore": 0.98,
+    "gold_ore": 1.75,
+    "mithril_ore": 3.09,
+    "orichalcum_ore": 7.0
    },
    "recipe": {
     "id": "mithril_pickaxe",
@@ -961,9 +973,15 @@
      "gold_pickaxe": 1,
      "mithril_ingot": 24,
      "sapphire": 3,
-     "labyrinth_essence": 4
+     "labyrinth_essence": 4,
+     "regulator_pendulum": 3
     },
-    "gold": 5000
+    "gold": 5000,
+    "gate": {
+     "item": "regulator_pendulum",
+     "count": 3,
+     "floor": 9
+    }
    },
    "obtain": [
     "제련소·광산 관리소 곡괭이 탭 (앞 곡괭이를 재료로 넣어 다시 벼림)"
@@ -974,12 +992,12 @@
    "name": "오리하르콘 곡괭이",
    "tier": 6,
    "speed": {
-    "1": 2.0,
-    "2": 2.0,
-    "3": 2.0,
-    "4": 2.0,
-    "5": 2.0,
-    "6": 2.0
+    "1": 10.0,
+    "2": 10.0,
+    "3": 10.0,
+    "4": 10.0,
+    "5": 10.0,
+    "6": 10.0
    },
    "bonus": 0.1,
    "mines": [
@@ -998,12 +1016,12 @@
    ],
    "slow": [],
    "seconds": {
-    "copper_ore": 1.25,
-    "iron_ore": 1.45,
-    "silver_ore": 1.65,
-    "gold_ore": 1.85,
-    "mithril_ore": 2.05,
-    "orichalcum_ore": 2.25
+    "copper_ore": 0.5,
+    "iron_ore": 0.5,
+    "silver_ore": 0.62,
+    "gold_ore": 1.12,
+    "mithril_ore": 1.98,
+    "orichalcum_ore": 3.5
    },
    "recipe": {
     "id": "orichalcum_pickaxe",
@@ -1013,9 +1031,15 @@
      "mithril_pickaxe": 1,
      "orichalcum_ingot": 12,
      "dragonblood_stone": 2,
-     "radiant_essence": 3
+     "radiant_essence": 3,
+     "gatekeeper_rune": 3
     },
-    "gold": 10000
+    "gold": 10000,
+    "gate": {
+     "item": "gatekeeper_rune",
+     "count": 3,
+     "floor": 10
+    }
    },
    "obtain": [
     "제련소·광산 관리소 곡괭이 탭 (앞 곡괭이를 재료로 넣어 다시 벼림)"
@@ -1024,12 +1048,12 @@
   }
  },
  "rules": {
-  "tier": "광석·보석 tier ≤ 곡괭이 tier + 1 일 때만 캔다 (0.3.6.1 주인 결정 — 한 단계 위는 그 광석 제 곡괭이 빠르기 × 0.6). 아니면 진행 없음 + 액션바 한 줄 \"곡괭이가 약해 캘 수 없습니다\" (1초에 1번). 레벨 조건은 어디에도 없다",
+  "tier": "광석·보석 tier ≤ 곡괭이 tier + 1 일 때만 캔다 (0.3.6.1 주인 결정 — 한 단계 위는 그 광석 제 곡괭이 빠르기 × 0.5). 아니면 진행 없음 + 액션바 한 줄 \"곡괭이가 약해 캘 수 없습니다\" (1초에 1번). 레벨 조건은 어디에도 없다",
   "reach_above": 1,
-  "stretch_factor": 0.6,
+  "stretch_factor": 0.5,
   "too_weak_actionbar": "곡괭이가 약해 캘 수 없습니다",
-  "seconds": "base_seconds(광석 tier) ÷ 곡괭이 speed[광석 tier] (보석 노드는 gems.base_seconds). 서버가 Tool 규칙 speed = 30·단단함(Material#getHardness) ÷ (20·초) 로 바꿈, correct_for_drops = TRUE",
-  "min_seconds": 1.0,
+  "seconds": "max(min_seconds, base_seconds(광석 tier) ÷ 곡괭이 speed[광석 tier]) (보석 노드는 gems.base_seconds). 서버가 Tool 규칙 speed = 30·단단함(Material#getHardness) ÷ (20·초) 로 바꿈, correct_for_drops = TRUE",
+  "min_seconds": 0.5,
   "can_break": "곡괭이 CAN_BREAK = mines 의 블록들 (광산 블록 표에서). 블록 설정이 바뀌면 접속 때 곡괭이 구성요소를 다시 씀",
   "outside_mine": "광산 월드 밖(오버월드·네더·엔드·미궁 월드 모두)에서 그 곡괭이로 광산 블록 12종을 부수면 취소 + 안내 1초에 1번 (R §3-15). 미궁도 이 블록을 쓴다: 2층 벽 구리·철 광석 · 6·7층 방해석 (DungeonManager 가 이미 부수기를 막음 — 안내 글만 더함). 0.3.6.1 보석 블록 6개(좀벌레 돌)는 미궁·마을·구역 어디에도 없다",
   "server_recheck": "BlockBreakEvent 는 늘 취소하고 서버가 다시 본다: 광산 월드 · 곡괭이 tier + 1 ≥ 광석 tier · 그 사람에게 고갈 아님 · 눈 → 블록 상자 거리 ≤ 4.5 + 0.25 (바닐라 서버는 5.5 까지 받아 고친 클라이언트가 더 멀리 캠) · 가방 자리. 하나라도 아니면 수확 없음",
@@ -1051,7 +1075,8 @@
   },
   "veins": {
    "shared": "진짜 블록이 모두에게 빈 광맥(depleted_block)이 되고 시간이 지나면 다시 찬다 (계약 §0-3)",
-   "regen": "다시 차는 시간 = regen_minutes ÷ min(광산 월드 사람 수, regen_players_cap). 재시작 때는 다 찬 상태",
+   "regen": "다시 차는 시간 = regen_minutes (층마다 정해진 분, 광산에 몇 명이 있든 같다 — 0.3.7 주인 결정). 벽시계로 센다 (광산 월드가 잠깐 없으면 돌아온 첫 틱에 지난 시간을 한 번에). 재시작 때는 다 찬 상태",
+   "regen_players_cap": "0.3.7 에서 없앰 — config 에 남아 있으면 읽지 않고 켤 때 안내 한 줄",
    "ids": "광맥 번호 = 청사진 마커를 (y, z, x) 순으로 정렬한 번호",
    "reach_max": 12,
    "reach_metric": "발 = 바닥+1, 눈 = 바닥+2.62, 선 자리 아무 곳 (몸 폭 0.6), 눈 → 블록 상자 가장 가까운 점 ≤ 4.5 (R §2-8). 밟고 설 수 있는 장식(통·울타리·계단 등) 위도 선 자리로 잰다",
@@ -1088,12 +1113,12 @@
    "teleport_command": "auto",
    "lift_seconds": 2.0,
    "regen_minutes": [
-    8,
-    9,
-    9,
-    10,
-    10,
-    10
+    3,
+    3,
+    3,
+    3,
+    3,
+    3
    ],
    "gem_node_regen_minutes": 30,
    "gem_chance": 0.022,
@@ -1192,33 +1217,42 @@
  },
  "economy": {
   "focused_ore_per_min": {
+   "1:copper": 12.44,
+   "1:iron": 7.79,
+   "2:copper": 13.47,
+   "2:iron": 10.22,
+   "2:silver": 7.42,
+   "3:copper": 15.16,
+   "3:iron": 11.96,
+   "3:silver": 9.52,
+   "3:gold": 6.92,
+   "4:copper": 16.6,
+   "4:iron": 13.52,
+   "4:silver": 11.25,
+   "4:gold": 9.09,
+   "4:mithril": 6.79,
+   "5:copper": 16.93,
+   "5:iron": 14.78,
+   "5:silver": 12.72,
+   "5:gold": 10.83,
+   "5:mithril": 9.72,
+   "5:orichalcum": 6.55,
+   "6:copper": 17.25,
+   "6:iron": 15.27,
+   "6:silver": 13.86,
+   "6:gold": 12.26,
+   "6:mithril": 11.04,
+   "6:orichalcum": 9.99
+  },
+  "enhance_ingot_rate": {
    "1:copper": 8.71,
-   "1:iron": 7.46,
-   "2:copper": 8.91,
    "2:iron": 8.61,
-   "2:silver": 6.47,
-   "3:copper": 9.09,
-   "3:iron": 8.78,
    "3:silver": 7.28,
-   "3:gold": 6.08,
-   "4:copper": 9.54,
-   "4:iron": 9.18,
-   "4:silver": 7.42,
    "4:gold": 6.54,
-   "4:mithril": 5.63,
-   "5:copper": 9.78,
-   "5:iron": 9.55,
-   "5:silver": 7.56,
-   "5:gold": 6.66,
    "5:mithril": 5.74,
-   "5:orichalcum": 4.43,
-   "6:copper": 9.96,
-   "6:iron": 9.88,
-   "6:silver": 7.84,
-   "6:gold": 6.78,
-   "6:mithril": 5.85,
    "6:orichalcum": 4.51
   },
+  "enhance_ingot_rate_note": "gen_enhance 주괴 1회 공급 환산 (0.3.6.1 표 B 값 고정 — 0.3.7 캐는 초·재생이 바뀌어도 enhance.yml 그대로)",
   "source": "tools/data/036/model/out/economy.json"
  }
 }

@@ -68,9 +68,9 @@ def build_mine(lay, eco):
         rec = None
         if m['pickaxe'] in P.PICK_RECIPES:
             d = P.PICK_RECIPES[m['pickaxe']]
-            rec = {'id': m['pickaxe'], 'station': 'smelter', 'category': 'tool',
-                   'materials': {d['prev']: 1, d['ingot'][0]: d['ingot'][1], d['gem'][0]: d['gem'][1], d['essence'][0]: d['essence'][1]},
-                   'gold': d['gold']}
+            rec = {'id': m['pickaxe'], 'station': 'smelter', 'category': 'tool', 'materials': P.pick_materials(d), 'gold': d['gold']}
+            if d.get('gate'):   # 0.3.7: 은·금·미스릴·오리하르콘 곡괭이 = 그 층 정예 재료 3 (레벨 조건이 아닌 미궁 진행 문)
+                rec['gate'] = {'item': d['gate'][0], 'count': d['gate'][1], 'floor': P.PICK_GATE_FLOOR[m['pickaxe']]}
         picks[m['pickaxe']] = {
             'name': m['pick_name'], 'tier': r, 'speed': {str(o): v for o, v in P.pick_speed(r).items()},
             'bonus': P.PICK_BONUS[r],
@@ -107,7 +107,7 @@ def build_mine(lay, eco):
                     '아니면 진행 없음 + 액션바 한 줄 "' + P.OWNER['too_weak_actionbar'] + '" (1초에 1번). 레벨 조건은 어디에도 없다',
             'reach_above': P.REACH_ABOVE, 'stretch_factor': P.STRETCH_FACTOR,
             'too_weak_actionbar': P.OWNER['too_weak_actionbar'],
-            'seconds': 'base_seconds(광석 tier) ÷ 곡괭이 speed[광석 tier] (보석 노드는 gems.base_seconds). 서버가 Tool 규칙 speed = 30·단단함(Material#getHardness) ÷ (20·초) 로 바꿈, correct_for_drops = TRUE',
+            'seconds': 'max(min_seconds, base_seconds(광석 tier) ÷ 곡괭이 speed[광석 tier]) (보석 노드는 gems.base_seconds). 서버가 Tool 규칙 speed = 30·단단함(Material#getHardness) ÷ (20·초) 로 바꿈, correct_for_drops = TRUE',
             'min_seconds': P.MIN_SECONDS,
             'can_break': '곡괭이 CAN_BREAK = mines 의 블록들 (광산 블록 표에서). 블록 설정이 바뀌면 접속 때 곡괭이 구성요소를 다시 씀',
             'outside_mine': '광산 월드 밖(오버월드·네더·엔드·미궁 월드 모두)에서 그 곡괭이로 광산 블록 12종을 부수면 취소 + 안내 1초에 1번 (R §3-15). '
@@ -121,7 +121,9 @@ def build_mine(lay, eco):
                         'rich': {'chance': P.RICH['chance'], 'multiplier': P.RICH['multiplier'], 'shown': '그 사람에게만 반짝임'},
                         'into_bag': '가방에 바로 — 가득 차면 캐지지도 비워지지도 않음 ("가방이 가득 찼습니다")', 'no_vanilla_drops': True, 'no_xp': True},
             'veins': {'shared': '진짜 블록이 모두에게 빈 광맥(depleted_block)이 되고 시간이 지나면 다시 찬다 (계약 §0-3)',
-                      'regen': '다시 차는 시간 = regen_minutes ÷ min(광산 월드 사람 수, regen_players_cap). 재시작 때는 다 찬 상태',
+                      'regen': '다시 차는 시간 = regen_minutes (층마다 정해진 분, 광산에 몇 명이 있든 같다 — 0.3.7 주인 결정). 벽시계로 센다 '
+                               '(광산 월드가 잠깐 없으면 돌아온 첫 틱에 지난 시간을 한 번에). 재시작 때는 다 찬 상태',
+                      'regen_players_cap': '0.3.7 에서 없앰 — config 에 남아 있으면 읽지 않고 켤 때 안내 한 줄',
                       'ids': '광맥 번호 = 청사진 마커를 (y, z, x) 순으로 정렬한 번호', 'reach_max': layout6.REACH_MAX,
                       'reach_metric': '발 = 바닥+1, 눈 = 바닥+2.62, 선 자리 아무 곳 (몸 폭 0.6), 눈 → 블록 상자 가장 가까운 점 ≤ 4.5 (R §2-8). '
                                       '밟고 설 수 있는 장식(통·울타리·계단 등) 위도 선 자리로 잰다',
@@ -146,7 +148,10 @@ def build_mine(lay, eco):
         'content_mine_yml': {'file': 'content/mine.yml', 'from': 'tools/mine/gen_mine.py (Q1) 가 이 파일의 levels·ores·gems 를 옮김',
                              'parser': 'ContentParser → Content.mine() (MineDef)', 'coupled_with': 'items.yml (mine_level·mine_kind·tool 은 Q3 생성기가 이 파일에서 채우고 ContentValidator 가 맞대어 봄)'},
         'names': names(),
-        'economy': {'focused_ore_per_min': eco_rates, 'source': 'tools/data/036/model/out/economy.json'},
+        'economy': {'focused_ore_per_min': eco_rates,
+                    'enhance_ingot_rate': {f"{m['rank']}:{m['key']}": P.ENHANCE_INGOT_RATE[m['key']] for m in P.METALS},
+                    'enhance_ingot_rate_note': 'gen_enhance 주괴 1회 공급 환산 (0.3.6.1 표 B 값 고정 — 0.3.7 캐는 초·재생이 바뀌어도 enhance.yml 그대로)',
+                    'source': 'tools/data/036/model/out/economy.json'},
     }
 
 
@@ -214,8 +219,7 @@ def build_materials(proto, eco):
                 'materials': {s['gem']: 1, s['essence']: 1}, 'gold': s['gold'], 'amount': P.STONE_YIELD} for s in P.STONE_RECIPES]
     pick_rec = []
     for pid, d in P.PICK_RECIPES.items():
-        pick_rec.append({'id': pid, 'result': pid, 'station': 'smelter', 'category': 'tool',
-                         'materials': {d['prev']: 1, d['ingot'][0]: d['ingot'][1], d['gem'][0]: d['gem'][1], d['essence'][0]: d['essence'][1]},
+        pick_rec.append({'id': pid, 'result': pid, 'station': 'smelter', 'category': 'tool', 'materials': P.pick_materials(d),
                          'gold': d['gold'], 'consumes_previous_pickaxe': True})
     retired = {}
     for old, r in P.RETIRED.items():
@@ -275,7 +279,8 @@ def build_materials(proto, eco):
                                         'hard': P.ENH_HARD, 'soft': P.ENH_SOFT,
                                         'ingot_s_scale': '0.5 × p_scale(재료 단계 뒤 그 층 몬스터 재료 1회 공급 중 큰 값)'},
                         'ingot_unit': P.INGOT_UNIT,
-                        'ingot_supply': '주괴 1회 공급량(환산 비교·보스 장비 검사) = 그 금속 곡괭이로 그 금속만 노릴 때 1분당 광석 × 그 층 1회 클리어 분 ÷ 2'},
+                        'ingot_supply': '주괴 1회 공급량(환산 비교·보스 장비 검사) = mine.json economy.enhance_ingot_rate (그 금속 곡괭이로 그 금속만 노릴 때 1분당 광석, '
+                            '0.3.6.1 값 고정) × 그 층 1회 클리어 분 ÷ 2'},
             'sources': {'kinds': {'mine': '광산', 'smelt': '제련소'}, 'source_order_after': 'hoard',
                         'compute': 'compute_sources 를 036 적용 뒤 최종 루팅으로 다시 돌림 (광석의 drop·elite·boss·chest 는 루팅에서)'},
             'items_yml': {'ore_ingot_gem': {'type': 'material', 'mine_level': '등급 1~6 (mine.json ores/gems tier 와 같아야 함)', 'mine_kind': 'ore | ingot | gem', 'floor': '비움'},
@@ -283,11 +288,14 @@ def build_materials(proto, eco):
             'checks': ['NoRetiredIds', 'GearRecipeIngot (금속 = 힘 규칙, 이웃 두 금속까지)', 'MineLadder (제련 6 · 곡괭이 사다리 · 레벨 조건 없음)', 'SellMine',
                        'EnhanceIngot', 'DungeonOrePerRun (±10%)', 'NoLevelLabels (광석·주괴·곡괭이·광산 글에 Lv·층 번호·단계 없음)'],
             'verify_first': '0.3.5 verify 를 036 단계 앞에서 돌린다 (R §3-18)'},
-        'sell': {'config': {'sell': {'mine': dict(P.SELL_MINE)}},
-                 'formula': '값 = 반올림(base × (1 + rank_bonus × (mine_level − 1))), 최소 1 · mine_kind 로 종류 · 도구(type tool)는 못 팜 ("도구는 팔 수 없습니다.")',
+        'sell': {'config': {'sell': {'mine': {k: list(v) for k, v in P.SELL_MINE.items()}}},
+                 'formula': '0.3.7: 값 = sell.mine.<mine_kind>[mine_level − 1] (등급 1~6 목록) · 도구(type tool)는 못 팜 ("도구는 팔 수 없습니다.") · '
+                            '0.3.6 꼴 {ore: 1, ingot: 3, gem: 6, rank_bonus: 0.35} 이 그대로면 새 기본값, 고친 옛 꼴은 옛 식 '
+                            '반올림(base × (1 + rank_bonus × (등급 − 1))), 최소 1 로 6칸을 펼친다',
+                 'legacy_0361': dict(P.SELL_MINE_0361),
                  'table': {str(m['rank']): {'ore': P.sell_value('ore', m['rank']), 'ingot': P.sell_value('ingot', m['rank']),
                                              'gem': P.sell_value('gem', m['rank']), 'smelt_gold': m['smelt_gold']} for m in P.METALS},
-                 'rule': '녹여 팔면 언제나 손해: 주괴 값 < 광석 2개 값 + 제련 골드'},
+                 'rule': '녹여 팔면 언제나 손해: 주괴 값 = 광석 2개 값 + 제련 골드 − 1 (등급마다 1 G 손해). 상인은 광석·주괴·보석을 팔지 않는다'},
         'starter_kit': {'add': {'item': 'copper_pickaxe', 'amount': 1}, 'config': 'config.yml starter_kit (Q3)'},
         'codex': {'groups_order': ['보스', '정예', '몬스터·상자', '보물 상자', '시련방', '특별 시련', '금고·미믹', '광산', '제련소', '대장간', '상인', '칭호 보상', '시작 지급', '몬스터'],
                   'colors': {'광산': '#d9a066', '제련소': '#ff9a5a'},

@@ -359,7 +359,7 @@ def patched_enhance(proto_dir, recipes):
     rec_by_result = {r['result']: r for r in recipes.values()}
     orig_cand = GE.candidates
     orig_floor_init = GE.Floor.__init__
-    rate = {m['key']: mine6.focused_rate(m['rank'], m['key'])[0] for m in P.METALS}
+    rate = dict(P.ENHANCE_INGOT_RATE)   # 0.3.6.1 표 B 값 고정 (gen_enhance 와 같음 — mine.json economy.enhance_ingot_rate)
 
     def floor_init(self, f, items, supply, roots, tables):
         orig_floor_init(self, f, items, supply, roots, tables)

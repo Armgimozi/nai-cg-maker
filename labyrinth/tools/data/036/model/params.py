@@ -139,21 +139,23 @@ RETIRED = {
 # ingot 칸 옛 재료의 바꿀 광석 = 그 층 장비 레시피가 가장 많이 쓰는 금속의 광석 (proto036 이 계산해 계약에 고정)
 
 # ───────────────────────── 캐기 (곡괭이 × 광석 단단함) ─────────────────────────
-ORE_BASE_SECONDS = {1: 2.5, 2: 2.9, 3: 3.3, 4: 3.7, 5: 4.1, 6: 4.5}   # 곡괭이 속도 ×1.0 으로 한 블록 캐는 초
-PICK_SPEED = {1: 1.0, 2: 1.2, 3: 1.4, 4: 1.6, 5: 1.8, 6: 2.0}          # 곡괭이 등급 → 모든 광석에 같은 배율 (좋을수록 빠름)
+# 0.3.7 주인: "철 캐는 속도랑 구리 캐는 속도랑 별로 차이가 없어 보이는데" — 등급마다 확실히 다르게.
+# 같은 곡괭이로 한 등급 위 광석은 1.74배 이상 오래 걸리고, 곡괭이를 한 단계 올리면 같은 광석이 ×0.64 이하로 빨라진다 (최소 MIN_SECONDS).
+# 제 곡괭이로는 구리 2.0 · 철 2.25 · 은 2.5 · 금 2.8 · 미스릴 3.09 · 오리하르콘 3.5초로 조금씩 오른다.
+ORE_BASE_SECONDS = {1: 2.0, 2: 3.6, 3: 6.25, 4: 11.2, 5: 19.8, 6: 35.0}   # 곡괭이 속도 ×1.0 으로 한 블록 캐는 초
+PICK_SPEED = {1: 1.0, 2: 1.6, 3: 2.5, 4: 4.0, 5: 6.4, 6: 10.0}          # 곡괭이 등급 → 모든 광석에 같은 배율 (좋을수록 빠름)
 PICK_BONUS = {1: 0.0, 2: 0.02, 3: 0.04, 4: 0.06, 5: 0.08, 6: 0.10}     # 광석 1개 더 나올 확률
 # 한 단계 위 (0.3.6.1 주인 결정: "구리 곡괭이로 철을 캘 수 있고 철 괭이로 은을 캐는 식이었으면 좋겠어").
 # 곡괭이 tier t 는 tier ≤ t + REACH_ABOVE 인 광석·보석을 캔다 (t + 2 부터는 그대로 "곡괭이가 약해 캘 수 없습니다").
-# 한 단계 위 광석은 그 광석 제 곡괭이 빠르기 × STRETCH_FACTOR 로 캔다 — 구리 곡괭이로 철 광석 = 2.9 ÷ (1.2 × 0.6) = 4.0초,
-# 철 곡괭이로는 2.4초. 고른 까닭 (economy.py 표 G): 한 블록은 1.67배 느려 손에 느껴지지만, 광맥이 8~10분마다 다시 차서
-# 1분당 모으는 양은 2~15% 차이뿐이다 (0.3~1.0 어느 값이어도 오리하르콘은 ×1.02). 곡괭이를 올리는 까닭은 두 단계 위 광석을 여는 것.
-# 0.6 이면 한 단계 위 보석 노드가 5.6~6.0초, 0.5 면 6.8~7.3초로 길어진다. 0.7 이면 철·은도 1.08~1.13배로 줄어 느린 맛이 약하다.
+# 한 단계 위 광석은 그 광석 제 곡괭이 빠르기 × STRETCH_FACTOR 로 캔다 — 구리 곡괭이로 철 광석 = 3.6 ÷ (1.6 × 0.5) = 4.5초,
+# 철 곡괭이로는 2.25초 (딱 두 배). 0.3.7: 0.6 → 0.5 — 앞 곡괭이로는 확실히 느리고, 곡괭이를 올리면 그 금속만 노릴 때
+# 1분당 광석이 1.28~1.52배 는다 (economy.py 표 G — 0.3.6.1 은 1.02~1.15배라 올리는 맛이 거의 없었다).
 REACH_ABOVE = 1
-STRETCH_FACTOR = 0.6
+STRETCH_FACTOR = 0.5
 GEM_NODE_FACTOR = 1.5          # 보석 노드는 같은 등급 광석의 1.5배 시간
 GEM_CHANCE = 0.022             # 광석 블록마다 같은 등급 보석이 덤으로 나올 확률
 RICH = {'chance': 0.04, 'multiplier': 3}   # 다시 찰 때 그 사람에게만 풍부한 광맥 (×3)
-MIN_SECONDS = 1.0              # 어떤 조합도 이보다 빨리 캐지지 않는다 (검사)
+MIN_SECONDS = 0.5              # 어떤 조합도 이보다 빨리 캐지지 않는다 (바닥 — 낮은 광석을 좋은 곡괭이로 캐면 0.5초)
 # 서버 손 닿는 거리 (R §2-8 보강): 바닐라 서버는 블록 부수기를 눈 → 블록 상자 4.5 + 1.0 = 5.5 까지 받는다
 # (ServerPlayerGameMode.handleBlockBreakAction → isWithinBlockInteractionRange(pos, 1.0)). 고친 클라이언트는 5.5 로 캐서
 # 시안 청사진에서도 한 자리 광맥이 12~15 개가 된다. 그래서 광산 BlockBreakEvent 가 4.5 + 0.25 를 넘으면 수확하지 않는다.
@@ -164,13 +166,30 @@ REACH_SERVER_SLACK = 0.25
 # 0.3.6.1 주인 결정: "철 곡괭이로 업글하려면 철 주괴가 필요한게 정상 아닐까" → 그 곡괭이 제 금속 주괴 + 같은 등급 보석 + 앞 곡괭이
 # + 정수 + 골드. 제 금속·보석은 앞 곡괭이로 느리게 캔다 (한 단계 위). 개수는 economy.py 표 D 로 골랐다:
 # 새로 온 사람의 첫 철 곡괭이 = 던전 1회(정수·골드) + 광산 약 5~7분, 그 뒤 곡괭이마다 조금씩 길어짐.
+# 0.3.7 (주인 "광질로도 충분히 돈을 벌 수 있으면 좋을듯"): 광산이 돈이 되므로 은·금·미스릴·오리하르콘 곡괭이에 그 층 정예 재료 3개를
+# 더한다 (gate — 레벨 조건이 아니라 미궁 진행 문, 보통 그 층 한 번 돌면 3~5개). 그래야 일찍 올린 곡괭이로 던전보다 더 벌지 않는다
+# (표 E "혼자 만들 수 있는 가장 좋은 곡괭이" ≤ 80%). 철 곡괭이는 문 없음. 이미 만든 곡괭이는 그대로.
 PICK_RECIPES = {
     'iron_pickaxe': {'prev': 'copper_pickaxe', 'ingot': ('iron_ingot', 12), 'gem': ('garnet', 2), 'essence': ('dim_essence', 2), 'gold': 300},
-    'silver_pickaxe': {'prev': 'iron_pickaxe', 'ingot': ('silver_ingot', 16), 'gem': ('moonstone', 2), 'essence': ('dim_essence', 4), 'gold': 1000},
-    'gold_pickaxe': {'prev': 'silver_pickaxe', 'ingot': ('gold_ingot', 20), 'gem': ('topaz', 3), 'essence': ('labyrinth_essence', 2), 'gold': 2500},
-    'mithril_pickaxe': {'prev': 'gold_pickaxe', 'ingot': ('mithril_ingot', 24), 'gem': ('sapphire', 3), 'essence': ('labyrinth_essence', 4), 'gold': 5000},
-    'orichalcum_pickaxe': {'prev': 'mithril_pickaxe', 'ingot': ('orichalcum_ingot', 12), 'gem': ('dragonblood_stone', 2), 'essence': ('radiant_essence', 3), 'gold': 10000},
+    'silver_pickaxe': {'prev': 'iron_pickaxe', 'ingot': ('silver_ingot', 16), 'gem': ('moonstone', 2), 'essence': ('dim_essence', 4), 'gold': 1000,
+                       'gate': ('verdigris_plate', 3)},
+    'gold_pickaxe': {'prev': 'silver_pickaxe', 'ingot': ('gold_ingot', 20), 'gem': ('topaz', 3), 'essence': ('labyrinth_essence', 2), 'gold': 2500,
+                     'gate': ('tuning_fork_core', 3)},
+    'mithril_pickaxe': {'prev': 'gold_pickaxe', 'ingot': ('mithril_ingot', 24), 'gem': ('sapphire', 3), 'essence': ('labyrinth_essence', 4), 'gold': 5000,
+                        'gate': ('regulator_pendulum', 3)},
+    'orichalcum_pickaxe': {'prev': 'mithril_pickaxe', 'ingot': ('orichalcum_ingot', 12), 'gem': ('dragonblood_stone', 2), 'essence': ('radiant_essence', 3), 'gold': 10000,
+                           'gate': ('gatekeeper_rune', 3)},
 }
+# gate 재료가 나오는 미궁 층 = 혼자 그 곡괭이를 처음 만들 수 있는 단계 (표 E). 녹청 등판 4층 · 조율 소리굽쇠 7층 · 조속 진자 9층 · 문지기의 룬 10층 (모두 rare 정예 재료)
+PICK_GATE_FLOOR = {'silver_pickaxe': 4, 'gold_pickaxe': 7, 'mithril_pickaxe': 9, 'orichalcum_pickaxe': 10}
+
+
+def pick_materials(d):
+    """곡괭이 레시피 재료 (차례: 앞 곡괭이 · 주괴 · 보석 · 정수 · 정예 재료 문)."""
+    out = {d['prev']: 1, d['ingot'][0]: d['ingot'][1], d['gem'][0]: d['gem'][1], d['essence'][0]: d['essence'][1]}
+    if d.get('gate'):
+        out[d['gate'][0]] = d['gate'][1]
+    return out
 COPPER_PICKAXE_PRICE = 50      # 잃어버렸을 때 (광부·관리소). 첫 1개는 무료 (ext mine.free_pickaxe) + 시작 꾸러미
 
 # 강화석 새기기 (제련소, 결과 2개) — 정수가 들어가 광산만으로는 못 만든다
@@ -240,11 +259,14 @@ FORBIDDEN_BLOCKS = ['minecraft:redstone_ore', 'minecraft:deepslate_redstone_ore'
                     'minecraft:suspicious_gravel', 'minecraft:potent_sulfur', 'minecraft:budding_amethyst']
 
 # ───────────────────────── 광산 층 6 (같은 x,z 에 위아래로) ─────────────────────────
-# ore_w / gem_w = 섞임 무게 (합 100). veins = 광맥 블록 수 (무더기 3~5칸). regen = 개인 재생 분 (config 손잡이 기본값).
+# ore_w / gem_w = 섞임 무게 (합 100). veins = 광맥 블록 수 (무더기 3~5칸).
+# regen = 층마다 다시 차는 분 (config 손잡이 기본값). 0.3.7 주인: "광맥이 다시 생성되는 시간은 플레이어 유무와 관계 없이" —
+# 광산에 몇 명이 있든, 아무도 없든 같은 시간 (벽시계). 0.3.6.1 은 8~10분 ÷ 광산 사람 수(최대 4)였다.
+# 3분: 넷이 같은 층을 함께 돌아도 한 사람 몫이 혼자의 0.54~0.65, 층을 나누면 0.74~0.92 (economy.py 표 E 아래 함께 캐기).
 # 바이옴 띠 = 4칸 단위 경계를 층 상자 사이 틈에 둠. 상자 = [바닥 y − 4, 바닥 y + 15].
 LEVELS = [
     {'n': 1, 'id': 'shallow_drift', 'name': '얕은 갱도', 'depth_m': 40, 'floor_y': 135, 'biome': 'minecraft:dripstone_caves',
-     'biome_y': [128, 319], 'color': '#E8843F', 'depleted': 'minecraft:cobblestone', 'regen': 8, 'veins': 56,
+     'biome_y': [128, 319], 'color': '#E8843F', 'depleted': 'minecraft:cobblestone', 'regen': 3, 'veins': 56,
      'ore_w': {'copper': 62, 'iron': 30, 'silver': 8},
      'gem_nodes': 3, 'gem_w': {'quartz': 70, 'garnet': 30},
      'light': ['lantern', 'waxed_copper_lantern'], 'regen_fx': 'WAX_ON',
@@ -252,7 +274,7 @@ LEVELS = [
                  'beam': 'oak_log', 'decor': ['rail', 'barrel', 'oak_fence', 'iron_chain']},
      'mood': '나무 받침 갱도, 레일과 통, 따뜻한 등불. 가장 밝고 아늑하다.'},
     {'n': 2, 'id': 'dripstone_drift', 'name': '종유 갱도', 'depth_m': 90, 'floor_y': 110, 'biome': 'minecraft:dripstone_caves',
-     'biome_y': [104, 127], 'color': '#C9CED6', 'depleted': 'minecraft:mossy_cobblestone', 'regen': 9, 'veins': 58,
+     'biome_y': [104, 127], 'color': '#C9CED6', 'depleted': 'minecraft:mossy_cobblestone', 'regen': 3, 'veins': 58,
      'ore_w': {'copper': 34, 'iron': 46, 'silver': 15, 'gold': 5},
      'gem_nodes': 3, 'gem_w': {'quartz': 30, 'garnet': 55, 'moonstone': 15},
      'light': ['lantern'], 'regen_fx': 'ELECTRIC_SPARK',
@@ -260,7 +282,7 @@ LEVELS = [
                  'post': 'stripped_dark_oak_log', 'beam': 'dark_oak_log', 'decor': ['pointed_dripstone', 'iron_chain']},
      'mood': '돌과 심층암이 섞인 벽, 천장에 종유석, 쇠사슬에 매단 등불.'},
     {'n': 3, 'id': 'moss_vein', 'name': '이끼빛 수맥', 'depth_m': 140, 'floor_y': 85, 'biome': 'minecraft:lush_caves',
-     'biome_y': [80, 103], 'color': '#EEF3FF', 'depleted': 'minecraft:cobbled_deepslate', 'regen': 9, 'veins': 60,
+     'biome_y': [80, 103], 'color': '#EEF3FF', 'depleted': 'minecraft:cobbled_deepslate', 'regen': 3, 'veins': 60,
      'ore_w': {'copper': 14, 'iron': 30, 'silver': 41, 'gold': 12, 'mithril': 3},
      'gem_nodes': 3, 'gem_w': {'garnet': 25, 'moonstone': 55, 'topaz': 20},
      'light': ['soul_lantern', 'glow_lichen'], 'regen_fx': 'WAX_OFF',
@@ -268,7 +290,7 @@ LEVELS = [
                  'post': 'stripped_spruce_log', 'beam': 'spruce_log', 'decor': ['tuff_bricks', 'moss_carpet', 'glow_lichen']},
      'mood': '심층암과 응회암, 이끼와 발광 이끼, 차가운 영혼 등불. 조용하다.'},
     {'n': 4, 'id': 'ochre_fault', 'name': '황토 단층', 'depth_m': 200, 'floor_y': 60, 'biome': 'minecraft:badlands',
-     'biome_y': [52, 79], 'color': '#F2C14E', 'depleted': 'minecraft:cobblestone', 'regen': 10, 'veins': 60,
+     'biome_y': [52, 79], 'color': '#F2C14E', 'depleted': 'minecraft:cobblestone', 'regen': 3, 'veins': 60,
      'ore_w': {'copper': 9, 'iron': 14, 'silver': 23, 'gold': 39, 'mithril': 12, 'orichalcum': 3},
      'gem_nodes': 3, 'gem_w': {'moonstone': 25, 'topaz': 55, 'sapphire': 20},
      'light': ['ochre_froglight', 'lantern'], 'regen_fx': 'CRIT',
@@ -276,7 +298,7 @@ LEVELS = [
                  'post': 'stripped_acacia_log', 'beam': 'acacia_log', 'decor': ['brown_terracotta', 'iron_chain', 'barrel']},
      'mood': '붉고 노란 흙층이 비스듬히 갈라진 단층. 황토빛 개구리불이 따뜻하게 비춘다.'},
     {'n': 5, 'id': 'geode_hollow', 'name': '청록 정동', 'depth_m': 260, 'floor_y': 35, 'biome': 'minecraft:warped_forest',
-     'biome_y': [28, 51], 'color': '#7FF2FF', 'depleted': 'minecraft:cobbled_deepslate', 'regen': 10, 'veins': 62,
+     'biome_y': [28, 51], 'color': '#7FF2FF', 'depleted': 'minecraft:cobbled_deepslate', 'regen': 3, 'veins': 62,
      'ore_w': {'copper': 4, 'iron': 8, 'silver': 12, 'gold': 22, 'mithril': 41, 'orichalcum': 13},
      'gem_nodes': 3, 'gem_w': {'topaz': 25, 'sapphire': 55, 'dragonblood_stone': 20},
      'light': ['pearlescent_froglight', 'small_amethyst_bud', 'glow_lichen'], 'regen_fx': 'GLOW',
@@ -284,7 +306,7 @@ LEVELS = [
                  'post': 'polished_basalt', 'beam': 'polished_basalt', 'decor': ['amethyst_block', 'amethyst_cluster', 'small_amethyst_bud']},
      'mood': '둥근 정동, 자수정 군락(캐지 않음), 청록 포자가 떠다니는 푸른 빛.'},
     {'n': 6, 'id': 'dragon_abyss', 'name': '용의 심연', 'depth_m': 330, 'floor_y': 10, 'biome': 'minecraft:basalt_deltas',
-     'biome_y': [-64, 27], 'color': '#FF8A5C', 'depleted': 'minecraft:blackstone', 'regen': 10, 'veins': 66,
+     'biome_y': [-64, 27], 'color': '#FF8A5C', 'depleted': 'minecraft:blackstone', 'regen': 3, 'veins': 66,
      'ore_w': {'copper': 5, 'iron': 7, 'silver': 9, 'gold': 13, 'mithril': 23, 'orichalcum': 43},
      'gem_nodes': 3, 'gem_w': {'topaz': 15, 'sapphire': 30, 'dragonblood_stone': 55},
      'light': ['end_rod', 'verdant_froglight'], 'regen_fx': 'END_ROD',
@@ -309,6 +331,9 @@ LIFT_TRIP_S = 12.0             # 승강기 2초 + 내려서 걷기
 ING_SHARE = OWNER['ing_share']  # 장비 레시피 주괴 = 반올림(옛 일반 재료 합 × 0.20), 최소 2
 MIN_ING = 2
 INGOT_UNIT = 0.5               # 강화 S(주괴) 개수 배율
+# 강화 환산 기준 (gen_enhance · proto036): 주괴 '1회 공급량' = 이 값(그 금속 제 곡괭이로 그 금속만 노릴 때 1분당 광석) × 그 층 1회 클리어 분 ÷ 2.
+# 보스 장비 개수 검사의 환산 비교에만 쓴다. 0.3.6.1 표 B 값 그대로 둔다 — 0.3.7 에서 캐는 초·재생이 바뀌어도 강화 재료(enhance.yml)가 흔들리지 않게.
+ENHANCE_INGOT_RATE = {'copper': 8.71, 'iron': 8.61, 'silver': 7.28, 'gold': 6.54, 'mithril': 5.74, 'orichalcum': 4.51}
 # 금속 고르기 (주인 결정 4): 힘 P = 단계 + 희귀도 걸음 + 보스 장비 걸음 → 자리 pos = 1 + (P − 1)/2 (1..6)
 RARITY_STEP = {'common': 0.0, 'uncommon': 0.25, 'rare': 0.5, 'epic': 1.0, 'legendary': 1.5, 'mythic': 2.0}
 BOSS_STEP = 0.5
@@ -317,14 +342,22 @@ MIX_BAND = (0.375, 0.625)      # pos 의 소수부가 이 안(양끝 포함)이�
 DUNGEON_ORE_SPLIT = {'mob': 0.45, 'elite': 0.05, 'boss': 0.15, 'chest': 0.35}
 DUNGEON_ORE_SHARE = 0.25       # 목표 = 그 층 대표 한 벌 광석 수요 ÷ 던전 횟수 × 0.25 (proto036 이 계산, 계약에 고정)
 
-# 판매 (config sell.mine) — 값 = 반올림(base × (1 + rank_bonus × (등급 − 1))), 최소 1
-SELL_MINE = {'ore': 1, 'ingot': 3, 'gem': 6, 'rank_bonus': 0.35}
+# 판매 (config sell.mine) — 0.3.7: 등급 1~6 값 목록 (주인 "광질로도 충분히 돈을 벌 수 있으면 좋을듯").
+# 그 단계 곡괭이로 다 팔면 던전(드롭 골드 + 재료 판매)의 약 50~70% (표 E). 높은 등급일수록 1분에 적게 캐므로 하나가 비싸다.
+# 주괴 = 광석 2 + 제련 골드 − 1 → 녹여 팔면 늘 1 G 손해 (제련은 제작용). 보석은 가끔 조금 큰 것 (0.7~1.5분 벌이).
+# 0.3.6.1 값 (ore 1 · ingot 3 · gem 6 · rank_bonus 0.35 → 광석 1~3 · 주괴 3~8 · 보석 6~17 G) 은 SellPrices.Mine.LEGACY_0361.
+SELL_MINE = {'ore': [3, 4, 5, 15, 36, 46], 'ingot': [7, 11, 17, 41, 89, 116], 'gem': [25, 35, 45, 130, 400, 700]}
+SELL_MINE_0361 = {'ore': 1, 'ingot': 3, 'gem': 6, 'rank_bonus': 0.35}
 
 # 밸런스 가정 (T 와 같음 — 주인 서버 records.yml 로 맞추기 전까지)
 RUN_MINUTES = {1: 15, 2: 16, 3: 18, 4: 20, 5: 21, 6: 23, 7: 24, 8: 26, 9: 27, 10: 30}
 PARTY_TIME = 0.8
 PARTY_BONUS = 0.15
-GOLD_RATIO_MAX = 0.20          # 광산 G/분 ÷ 던전 G/분 (그 단계, 그 단계 곡괭이)
+# 광산 G/분 ÷ 던전 G/분 (드롭 골드 + 재료 판매, 판매 포함) 한도 — 0.3.7 (0.3.6.1 은 ≤ 0.20)
+GOLD_BAND_MAX = 0.70           # 그 단계 곡괭이 (그 단계 금속을 캘 수 있는 가장 낮은 곡괭이)
+GOLD_REACH_MIN = 0.45          # 혼자 만들 수 있는 가장 좋은 곡괭이 (PICK_GATE_FLOOR) — 광산이 돈이 될 만큼
+GOLD_REACH_MAX = 0.80          #   … 그래도 던전이 낫게 (죽으면 골드를 잃는 위험·장비가 있으니)
+GOLD_TOUR_MAX = 0.85           # 노드만 걷으러 다른 층까지 도는 사람도 넘지 않음
 
 
 def half_up(x):
@@ -332,7 +365,17 @@ def half_up(x):
 
 
 def sell_value(kind, rank):
-    return max(1, half_up(SELL_MINE[kind] * (1 + SELL_MINE['rank_bonus'] * (rank - 1))))
+    return SELL_MINE[kind][rank - 1]
+
+
+def sell_value_0361(kind, rank):
+    """0.3.6.1 판매가 (비교용): 반올림(base × (1 + rank_bonus × (등급 − 1))), 최소 1."""
+    return max(1, half_up(SELL_MINE_0361[kind] * (1 + SELL_MINE_0361['rank_bonus'] * (rank - 1))))
+
+
+def ore_sale(rank):
+    """광석 한 개를 파는 가장 좋은 길: 그대로 · 녹여서 (주괴 − 제련 골드) ÷ 2 — 주괴 = 광석 2 + 제련 − 1 이라 늘 그대로가 낫다."""
+    return max(sell_value('ore', rank), (sell_value('ingot', rank) - BY_RANK[rank]['smelt_gold']) / ORE_PER_INGOT)
 
 
 def pick_speed(pick_rank):
@@ -348,11 +391,11 @@ def can_mine(ore_rank, pick_rank):
 
 
 def mine_seconds(ore_rank, pick_rank, node=False):
-    """곡괭이 등급 p 로 등급 o 광석(또는 보석 노드) 한 블록 캐는 초. o > p + 1 이면 None (못 캠)."""
+    """곡괭이 등급 p 로 등급 o 광석(또는 보석 노드) 한 블록 캐는 초 (최소 MIN_SECONDS). o > p + 1 이면 None (못 캠)."""
     if not can_mine(ore_rank, pick_rank):
         return None
     s = ORE_BASE_SECONDS[ore_rank] / pick_speed(pick_rank)[ore_rank]
-    return s * (GEM_NODE_FACTOR if node else 1.0)
+    return max(MIN_SECONDS, s * (GEM_NODE_FACTOR if node else 1.0))
 
 
 def power_pos(tier, rarity, boss):

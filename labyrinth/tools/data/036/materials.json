@@ -9,7 +9,7 @@
    "kind": "ore",
    "mine_level": 1,
    "rarity": "common",
-   "sell": 1,
+   "sell": 3,
    "sources": [
     "mine",
     "drop",
@@ -26,7 +26,7 @@
    "kind": "ingot",
    "mine_level": 1,
    "rarity": "uncommon",
-   "sell": 3,
+   "sell": 7,
    "sources": [
     "smelt"
    ],
@@ -39,7 +39,7 @@
    "kind": "ore",
    "mine_level": 2,
    "rarity": "common",
-   "sell": 1,
+   "sell": 4,
    "sources": [
     "mine",
     "drop",
@@ -56,7 +56,7 @@
    "kind": "ingot",
    "mine_level": 2,
    "rarity": "uncommon",
-   "sell": 4,
+   "sell": 11,
    "sources": [
     "smelt"
    ],
@@ -69,7 +69,7 @@
    "kind": "ore",
    "mine_level": 3,
    "rarity": "common",
-   "sell": 2,
+   "sell": 5,
    "sources": [
     "mine",
     "drop",
@@ -86,7 +86,7 @@
    "kind": "ingot",
    "mine_level": 3,
    "rarity": "uncommon",
-   "sell": 5,
+   "sell": 17,
    "sources": [
     "smelt"
    ],
@@ -99,7 +99,7 @@
    "kind": "ore",
    "mine_level": 4,
    "rarity": "uncommon",
-   "sell": 2,
+   "sell": 15,
    "sources": [
     "mine",
     "drop",
@@ -116,7 +116,7 @@
    "kind": "ingot",
    "mine_level": 4,
    "rarity": "rare",
-   "sell": 6,
+   "sell": 41,
    "sources": [
     "smelt"
    ],
@@ -129,7 +129,7 @@
    "kind": "ore",
    "mine_level": 5,
    "rarity": "uncommon",
-   "sell": 2,
+   "sell": 36,
    "sources": [
     "mine",
     "drop",
@@ -146,7 +146,7 @@
    "kind": "ingot",
    "mine_level": 5,
    "rarity": "rare",
-   "sell": 7,
+   "sell": 89,
    "sources": [
     "smelt"
    ],
@@ -159,7 +159,7 @@
    "kind": "ore",
    "mine_level": 6,
    "rarity": "rare",
-   "sell": 3,
+   "sell": 46,
    "sources": [
     "mine",
     "drop",
@@ -176,7 +176,7 @@
    "kind": "ingot",
    "mine_level": 6,
    "rarity": "epic",
-   "sell": 8,
+   "sell": 116,
    "sources": [
     "smelt"
    ],
@@ -189,7 +189,7 @@
    "kind": "gem",
    "mine_level": 1,
    "rarity": "rare",
-   "sell": 6,
+   "sell": 25,
    "sources": [
     "mine"
    ],
@@ -202,7 +202,7 @@
    "kind": "gem",
    "mine_level": 2,
    "rarity": "rare",
-   "sell": 8,
+   "sell": 35,
    "sources": [
     "mine"
    ],
@@ -215,7 +215,7 @@
    "kind": "gem",
    "mine_level": 3,
    "rarity": "rare",
-   "sell": 10,
+   "sell": 45,
    "sources": [
     "mine"
    ],
@@ -228,7 +228,7 @@
    "kind": "gem",
    "mine_level": 4,
    "rarity": "epic",
-   "sell": 12,
+   "sell": 130,
    "sources": [
     "mine"
    ],
@@ -241,7 +241,7 @@
    "kind": "gem",
    "mine_level": 5,
    "rarity": "epic",
-   "sell": 14,
+   "sell": 400,
    "sources": [
     "mine"
    ],
@@ -254,7 +254,7 @@
    "kind": "gem",
    "mine_level": 6,
    "rarity": "legendary",
-   "sell": 17,
+   "sell": 700,
    "sources": [
     "mine"
    ],
@@ -468,7 +468,7 @@
     "tier": 1,
     "speed": {
      "1": 1.0,
-     "2": 0.72
+     "2": 0.8
     },
     "bonus": 0.0
    },
@@ -496,9 +496,9 @@
     "kind": "pickaxe",
     "tier": 2,
     "speed": {
-     "1": 1.2,
-     "2": 1.2,
-     "3": 0.84
+     "1": 1.6,
+     "2": 1.6,
+     "3": 1.25
     },
     "bonus": 0.02
    },
@@ -525,10 +525,10 @@
     "kind": "pickaxe",
     "tier": 3,
     "speed": {
-     "1": 1.4,
-     "2": 1.4,
-     "3": 1.4,
-     "4": 0.96
+     "1": 2.5,
+     "2": 2.5,
+     "3": 2.5,
+     "4": 2.0
     },
     "bonus": 0.04
    },
@@ -555,11 +555,11 @@
     "kind": "pickaxe",
     "tier": 4,
     "speed": {
-     "1": 1.6,
-     "2": 1.6,
-     "3": 1.6,
-     "4": 1.6,
-     "5": 1.08
+     "1": 4.0,
+     "2": 4.0,
+     "3": 4.0,
+     "4": 4.0,
+     "5": 3.2
     },
     "bonus": 0.06
    },
@@ -586,12 +586,12 @@
     "kind": "pickaxe",
     "tier": 5,
     "speed": {
-     "1": 1.8,
-     "2": 1.8,
-     "3": 1.8,
-     "4": 1.8,
-     "5": 1.8,
-     "6": 1.2
+     "1": 6.4,
+     "2": 6.4,
+     "3": 6.4,
+     "4": 6.4,
+     "5": 6.4,
+     "6": 5.0
     },
     "bonus": 0.08
    },
@@ -618,12 +618,12 @@
     "kind": "pickaxe",
     "tier": 6,
     "speed": {
-     "1": 2.0,
-     "2": 2.0,
-     "3": 2.0,
-     "4": 2.0,
-     "5": 2.0,
-     "6": 2.0
+     "1": 10.0,
+     "2": 10.0,
+     "3": 10.0,
+     "4": 10.0,
+     "5": 10.0,
+     "6": 10.0
     },
     "bonus": 0.1
    },
@@ -838,7 +838,8 @@
     "iron_pickaxe": 1,
     "silver_ingot": 16,
     "moonstone": 2,
-    "dim_essence": 4
+    "dim_essence": 4,
+    "verdigris_plate": 3
    },
    "gold": 1000,
    "consumes_previous_pickaxe": true
@@ -852,7 +853,8 @@
     "silver_pickaxe": 1,
     "gold_ingot": 20,
     "topaz": 3,
-    "labyrinth_essence": 2
+    "labyrinth_essence": 2,
+    "tuning_fork_core": 3
    },
    "gold": 2500,
    "consumes_previous_pickaxe": true
@@ -866,7 +868,8 @@
     "gold_pickaxe": 1,
     "mithril_ingot": 24,
     "sapphire": 3,
-    "labyrinth_essence": 4
+    "labyrinth_essence": 4,
+    "regulator_pendulum": 3
    },
    "gold": 5000,
    "consumes_previous_pickaxe": true
@@ -880,7 +883,8 @@
     "mithril_pickaxe": 1,
     "orichalcum_ingot": 12,
     "dragonblood_stone": 2,
-    "radiant_essence": 3
+    "radiant_essence": 3,
+    "gatekeeper_rune": 3
    },
    "gold": 10000,
    "consumes_previous_pickaxe": true
@@ -1314,7 +1318,7 @@
     "ingot_s_scale": "0.5 × p_scale(재료 단계 뒤 그 층 몬스터 재료 1회 공급 중 큰 값)"
    },
    "ingot_unit": 0.5,
-   "ingot_supply": "주괴 1회 공급량(환산 비교·보스 장비 검사) = 그 금속 곡괭이로 그 금속만 노릴 때 1분당 광석 × 그 층 1회 클리어 분 ÷ 2"
+   "ingot_supply": "주괴 1회 공급량(환산 비교·보스 장비 검사) = mine.json economy.enhance_ingot_rate (그 금속 곡괭이로 그 금속만 노릴 때 1분당 광석, 0.3.6.1 값 고정) × 그 층 1회 클리어 분 ÷ 2"
   },
   "sources": {
    "kinds": {
@@ -1352,53 +1356,79 @@
   "config": {
    "sell": {
     "mine": {
-     "ore": 1,
-     "ingot": 3,
-     "gem": 6,
-     "rank_bonus": 0.35
+     "ore": [
+      3,
+      4,
+      5,
+      15,
+      36,
+      46
+     ],
+     "ingot": [
+      7,
+      11,
+      17,
+      41,
+      89,
+      116
+     ],
+     "gem": [
+      25,
+      35,
+      45,
+      130,
+      400,
+      700
+     ]
     }
    }
   },
-  "formula": "값 = 반올림(base × (1 + rank_bonus × (mine_level − 1))), 최소 1 · mine_kind 로 종류 · 도구(type tool)는 못 팜 (\"도구는 팔 수 없습니다.\")",
+  "formula": "0.3.7: 값 = sell.mine.<mine_kind>[mine_level − 1] (등급 1~6 목록) · 도구(type tool)는 못 팜 (\"도구는 팔 수 없습니다.\") · 0.3.6 꼴 {ore: 1, ingot: 3, gem: 6, rank_bonus: 0.35} 이 그대로면 새 기본값, 고친 옛 꼴은 옛 식 반올림(base × (1 + rank_bonus × (등급 − 1))), 최소 1 로 6칸을 펼친다",
+  "legacy_0361": {
+   "ore": 1,
+   "ingot": 3,
+   "gem": 6,
+   "rank_bonus": 0.35
+  },
   "table": {
    "1": {
-    "ore": 1,
-    "ingot": 3,
-    "gem": 6,
+    "ore": 3,
+    "ingot": 7,
+    "gem": 25,
     "smelt_gold": 2
    },
    "2": {
-    "ore": 1,
-    "ingot": 4,
-    "gem": 8,
+    "ore": 4,
+    "ingot": 11,
+    "gem": 35,
     "smelt_gold": 4
    },
    "3": {
-    "ore": 2,
-    "ingot": 5,
-    "gem": 10,
+    "ore": 5,
+    "ingot": 17,
+    "gem": 45,
     "smelt_gold": 8
    },
    "4": {
-    "ore": 2,
-    "ingot": 6,
-    "gem": 12,
+    "ore": 15,
+    "ingot": 41,
+    "gem": 130,
     "smelt_gold": 12
    },
    "5": {
-    "ore": 2,
-    "ingot": 7,
-    "gem": 14,
+    "ore": 36,
+    "ingot": 89,
+    "gem": 400,
     "smelt_gold": 18
    },
    "6": {
-    "ore": 3,
-    "ingot": 8,
-    "gem": 17,
+    "ore": 46,
+    "ingot": 116,
+    "gem": 700,
     "smelt_gold": 25
    }
   },
-  "rule": "녹여 팔면 언제나 손해: 주괴 값 < 광석 2개 값 + 제련 골드"
+  "rule": "녹여 팔면 언제나 손해: 주괴 값 = 광석 2개 값 + 제련 골드 − 1 (등급마다 1 G 손해). 상인은 광석·주괴·보석을 팔지 않는다"
  },
  "starter_kit": {
   "add": {

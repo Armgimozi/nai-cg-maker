@@ -46,7 +46,8 @@ class Glue036Test {
             for (String l : lines) assertFalse(LABEL.matcher(l).find(), metal + ": " + l);
         }
         String copper = String.join(" ", ItemTooltip.toolLines(c, c.item("copper_pickaxe")).stream().map(Text::strip).toList());
-        assertTrue(copper.contains("구리·철") && copper.contains("철 광석 4초 (느림)"), "구리 곡괭이로 철을 느리게 (0.3.6.1): " + copper);
+        assertTrue(copper.contains("구리·철") && copper.contains("구리 광석 2초") && copper.contains("철 광석 4.5초 (느림)"),
+                "구리 곡괭이로 철을 느리게 (0.3.7: 구리 2초 · 철 4.5초): " + copper);
         assertFalse(copper.contains("은"), "구리 곡괭이로 은은 못 캔다: " + copper);
         String ori = String.join(" ", ItemTooltip.toolLines(c, c.item("orichalcum_pickaxe")).stream().map(Text::strip).toList());
         assertTrue(ori.contains("오리하르콘"), ori);

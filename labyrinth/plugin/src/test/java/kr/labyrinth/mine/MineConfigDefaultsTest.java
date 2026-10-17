@@ -12,8 +12,9 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.Test;
 
 /**
- * config.yml {@code mine:} 손잡이 = 계약 mine.json {@code config_defaults} (§0 뒤: 기력 {@code stamina}·매크로 알림 {@code alert_per_hour} 없음,
- * 광맥 공유 {@code regen_players_cap: 4} 더함). 키가 없으면 코드 기본값.
+ * config.yml {@code mine:} 손잡이 = 계약 mine.json {@code config_defaults} (§0 뒤: 기력 {@code stamina}·매크로 알림 {@code alert_per_hour} 없음).
+ * 0.3.7: 광맥은 층마다 정해진 분 뒤 다시 참 (사람 수와 관계 없음) — {@code regen_players_cap} 없음, 0.3.6.1 기본 목록은 새 기본으로 읽음.
+ * 키가 없으면 코드 기본값.
  */
 class MineConfigDefaultsTest {
 
@@ -23,7 +24,6 @@ class MineConfigDefaultsTest {
     static Map<String, Object> contractDefaults() {
         Map<String, Object> m = new LinkedHashMap<>(MineTestData.mineJson().sub("config_defaults").sub("mine").asMap());
         for (String k : REMOVED) m.remove(k);
-        m.put("regen_players_cap", MineNames.REGEN_PLAYERS_CAP);
         return m;
     }
 
@@ -50,6 +50,36 @@ class MineConfigDefaultsTest {
         assertTrue(y.isConfigurationSection("mine"));
         assertEquals(MineConfig.DEFAULT, MineConfig.fromRoot(y));
         for (String k : REMOVED) assertFalse(y.contains("mine." + k), "config.yml mine." + k + " 없음 (계약 §0)");
+        assertFalse(y.contains("mine.regen_players_cap"), "config.yml mine.regen_players_cap 없음 (0.3.7)");
+        assertTrue(MineConfig.legacyNotes(y.getConfigurationSection("mine")).isEmpty());
+    }
+
+    @Test
+    void defaultsAreFixedThreeMinutes() {
+        assertEquals(List.of(3, 3, 3, 3, 3, 3), MineConfig.DEFAULT.regenMinutes());
+        assertEquals(30, MineConfig.DEFAULT.gemNodeRegenMinutes());
+        assertEquals(180.0, MineConfig.DEFAULT.regenSeconds(1));
+        assertEquals(1800.0, MineConfig.DEFAULT.gemRegenSeconds());
+        assertFalse(MineConfig.DEFAULT.toMap().containsKey("regen_players_cap"), "toMap 에 사람 수 손잡이 없음");
+        assertEquals("3분 뒤 다시 찹니다.", MineConfig.DEFAULT.refillLine(), "광맥 현황 함께 캐기 글");
+    }
+
+    @Test
+    void ownerConfigFrom0361() throws Exception {
+        // 0.3.6·0.3.6.1 로 깐 서버의 config.yml 그대로: 옛 기본 목록 → 새 기본 · regen_players_cap 은 무시 + 안내 한 줄
+        YamlConfiguration y = new YamlConfiguration();
+        y.loadFromString("mine:\n  regen_minutes: [8, 9, 9, 10, 10, 10]\n  gem_node_regen_minutes: 30\n  regen_players_cap: 4\n");
+        MineConfig c = MineConfig.fromRoot(y);
+        assertEquals(MineConfig.DEFAULT_REGEN, c.regenMinutes());
+        assertEquals(MineConfig.DEFAULT, c);
+        assertEquals(List.of(MineConfig.LEGACY_CAP_NOTE), MineConfig.legacyNotes(y.getConfigurationSection("mine")));
+        // 주인이 고친 목록은 그대로
+        y = new YamlConfiguration();
+        y.loadFromString("mine:\n  regen_minutes: [8, 9, 9, 10, 10, 11]\n");
+        assertEquals(List.of(8, 9, 9, 10, 10, 11), MineConfig.fromRoot(y).regenMinutes());
+        assertEquals("층마다 정해진 시간 뒤 다시 찹니다.", MineConfig.fromRoot(y).refillLine());
+        assertTrue(MineConfig.legacyNotes(y.getConfigurationSection("mine")).isEmpty());
+        assertTrue(MineConfig.legacyNotes(null).isEmpty());
     }
 
     @Test
@@ -67,7 +97,6 @@ class MineConfigDefaultsTest {
         y.loadFromString("""
                 mine:
                   regen_minutes: [0, 99999, x]
-                  regen_players_cap: 0
                   gem_chance: 5
                   rich: {chance: -1, multiplier: 100}
                   lift_seconds: -3
@@ -75,8 +104,7 @@ class MineConfigDefaultsTest {
                   world: ''
                 """);
         MineConfig c = MineConfig.fromRoot(y);
-        assertEquals(List.of(1, 1440, 9, 10, 10, 10), c.regenMinutes());
-        assertEquals(1, c.regenPlayersCap());
+        assertEquals(List.of(1, 1440, 3, 3, 3, 3), c.regenMinutes());
         assertEquals(1.0, c.gemChance());
         assertEquals(0.0, c.richChance());
         assertEquals(10, c.richMultiplier());
@@ -84,7 +112,7 @@ class MineConfigDefaultsTest {
         assertEquals(MineConfig.Teleport.OFF, c.teleportCommand());
         assertEquals(MineNames.WORLD, c.world());
         assertEquals(60.0, c.regenSeconds(1));
-        assertEquals(600.0, c.regenSeconds(99), "범위 밖 층 = 마지막 층");
+        assertEquals(180.0, c.regenSeconds(99), "범위 밖 층 = 마지막 층");
     }
 
     @Test

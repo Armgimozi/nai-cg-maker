@@ -22,7 +22,7 @@ import org.bukkit.inventory.ItemStack;
 /**
  * {@code /labadmin mine test [층]} — 손님(클라이언트) 없이 콘솔에서 광산을 시험하는 고리. 실제 수확 길({@link MineVeins#harvest})을
  * 가상 가방·가상 곡괭이로 돌린다: 약한 곡괭이·곡괭이 없음 · 캐기 → 진짜 블록이 빈 광맥 (공유) · 다시 캐기 = 빈 광맥 ·
- * 사람 수에 따른 재생 (4명 = 4배) · 가방 가득 · 보석 노드 결정 · 곡괭이 구성요소 · 광산 밖 블록 표 · PvP 끔 · 몹 스폰 막기.
+ * 정해진 재생 (사람 수 무관) · 가방 가득 · 보석 노드 결정 · 곡괭이 구성요소 · 광산 밖 블록 표 · PvP 끔 · 몹 스폰 막기.
  * 끝나면 건드린 광맥을 다 찬 상태로 되돌린다. 줄마다 "[광산 시험] … 통과|실패", 끝에 "[광산 시험] 결과: 통과 a/b".
  */
 final class MineTestHook {
@@ -88,16 +88,15 @@ final class MineTestHook {
                     b.getType().getKey() + " = " + l.def.depletedBlock());
             MineVeins.Harvest again = veins.harvest(null, low, best, bag, rnd, true);
             check("빈 광맥 다시 캐기", again.result() == MineVeins.Result.DEPLETED, String.valueOf(again.result()));
-            // 3. 사람 수 재생
+            // 3. 정해진 재생 (사람 수 무관 — 0.3.7 주인 결정)
             double regen = cfg.regenSeconds(n);
-            double eta1 = st.etaSeconds(low.key(), 1), eta4 = st.etaSeconds(low.key(), 4), eta9 = st.etaSeconds(low.key(), 9);
-            check("재생 시간 ÷ 사람 수", Math.abs(eta1 - regen) < 1e-6 && Math.abs(eta4 - regen / 4) < 1e-6 && Math.abs(eta9 - regen / cfg.regenPlayersCap()) < 1e-6,
-                    "1명 " + Math.round(eta1) + "초 · 4명 " + Math.round(eta4) + "초 · 9명 " + Math.round(eta9) + "초 (최대 ÷" + cfg.regenPlayersCap() + ")");
-            int r1 = veins.tickWith(regen / 4 + 1, 1);
+            double eta = st.etaSeconds(low.key());
+            int r1 = veins.tickWith(regen - 1);
             boolean stillEmpty = st.isDepleted(low.key()) && b.getBlockData().equals(l.depleted);
-            int r4 = veins.tickWith(regen / 4 + 1, 4);
-            check("4명이면 4배 빨리 참", stillEmpty && r1 == 0 && r4 >= 1 && !st.isDepleted(low.key()) && b.getBlockData().equals(low.full()),
-                    "1명으로 " + Math.round(regen / 4 + 1) + "초 → 빈 채로 · 그 뒤 4명으로 " + Math.round(regen / 4 + 1) + "초 → 다시 참");
+            int r2 = veins.tickWith(2);
+            check("정해진 재생 (사람 수 무관)", Math.abs(eta - regen) < 1e-6 && stillEmpty && r1 == 0 && r2 >= 1 && !st.isDepleted(low.key())
+                            && b.getBlockData().equals(low.full()),
+                    "남은 " + Math.round(eta) + "초 = " + cfg.regenMinutes().get(n - 1) + "분 · " + Math.round(regen - 1) + "초 → 빈 채로 · 2초 더 → 다시 참");
             // 4. 가방 가득
             Inventory full = Bukkit.createInventory(null, 36);
             for (int i = 0; i < 36; i++) full.setItem(i, ItemStack.of(Material.COBBLESTONE, 64));
@@ -113,7 +112,7 @@ final class MineTestHook {
                 touched.add(g);
                 Block gb = w.getBlockAt(g.x(), g.y(), g.z());
                 boolean ok = gh.result() == MineVeins.Result.OK && gb.getBlockData().equals(l.depleted);
-                veins.tickWith(cfg.gemRegenSeconds() + 1, 1);
+                veins.tickWith(cfg.gemRegenSeconds() + 1);
                 int crystals = veins.leftoverCrystals();
                 check("보석 노드 (" + g.node().name() + ")", ok && gb.getBlockData().equals(g.full()) && veins.fullGemBlocks() == full0 && crystals == 0
                                 && MineNames.GEM_BLOCKS.get(g.node().id()).equals(g.node().block()),

@@ -8,14 +8,16 @@ import kr.labyrinth.content.ToolSpec;
  * <p>
  * 바닐라: 맞는 도구(correct_for_drops = TRUE)로 땅 위에서 캘 때 한 틱 진행 = speed ÷ 단단함 ÷ 30, 진행 1 이면 부서짐.
  * 그래서 초 s 를 원하면 speed = 30·단단함 ÷ (20·s). 블록을 바꿔도(단단함이 달라도) 초는 그대로다.
- * 초 = 광석(또는 보석 노드) base_seconds ÷ 곡괭이 speed[광석 tier]. 어떤 조합도 {@link #MIN_SECONDS} 보다 빠르지 않다.
+ * 초 = max({@link #MIN_SECONDS}, 광석(또는 보석 노드) base_seconds ÷ 곡괭이 speed[광석 tier]).
+ * 0.3.7 (주인 "철 캐는 속도랑 구리 캐는 속도랑 별로 차이가 없어 보이는데"): 등급마다 확실히 다르다 — 같은 곡괭이로 한 등급 위는 1.74배 이상,
+ * 곡괭이 한 단계마다 같은 광석이 ×0.64 이하. 낮은 광석을 좋은 곡괭이로 캐면 바닥 0.5초 (10틱).
  */
 public final class MineMath {
 
     private MineMath() {}
 
-    /** 가장 빠른 캐기 (계약 rules.min_seconds). */
-    public static final double MIN_SECONDS = 1.0;
+    /** 가장 빠른 캐기 (계약 rules.min_seconds, 0.3.7: 1.0 → 0.5). */
+    public static final double MIN_SECONDS = 0.5;
 
     /** 바닐라 진행 나눗수 (맞는 도구). */
     static final double CORRECT_DIVISOR = 30.0;
@@ -54,10 +56,5 @@ public final class MineMath {
     public static int baseYield(boolean gemNode, double bonusChance, double roll) {
         if (gemNode) return 1;
         return roll < bonusChance ? 2 : 1;
-    }
-
-    /** 다시 차는 빠르기: min(광산 월드 사람 수, cap), 아무도 없어도 1 (혼자일 때 속도로 흐름). */
-    public static int regrowFactor(int playersInMine, int cap) {
-        return Math.max(1, Math.min(Math.max(1, cap), playersInMine));
     }
 }

@@ -14,7 +14,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * 0.3.6.1 주인 결정 "구리 곡괭이로 철을 캘 수 있고 철 괭이로 은을 캐는 식": 곡괭이 tier t 는 tier ≤ t + 1 광석·보석을 캔다.
- * 한 단계 위는 그 광석 제 곡괭이 빠르기 × 0.6 (계약 rules.stretch_factor) 로 느리고, 두 단계 위는 그대로 "곡괭이가 약해 캘 수 없습니다".
+ * 한 단계 위는 그 광석 제 곡괭이 빠르기 × 0.5 (계약 rules.stretch_factor, 0.3.7 — 딱 두 배 시간) 로 느리고,
+ * 두 단계 위는 그대로 "곡괭이가 약해 캘 수 없습니다".
  */
 class StretchRuleTest {
 
@@ -47,8 +48,8 @@ class StretchRuleTest {
     @Test
     void oneTierAboveIsSlowerByTheContractFactor() {
         double factor = MineTestData.mineJson().sub("rules").dbl("stretch_factor", -1);
-        assertEquals(0.6, factor, 1e-9);
-        assertTrue(factor >= 0.55 && factor <= 0.7, "주인 결정의 '눈에 띄게 느림' 폭");
+        assertEquals(0.5, factor, 1e-9);
+        assertTrue(factor >= 0.5 - 1e-9 && factor <= 0.7, "주인 결정의 '눈에 띄게 느림' 폭 (0.3.7: 반 빠르기)");
         List<ToolSpec> l = ladder();
         MineDef mine = MineTestData.mine();
         for (int i = 0; i + 1 < l.size(); i++) {
@@ -63,10 +64,10 @@ class StretchRuleTest {
                 assertTrue(slow > MineMath.seconds(n, l.get(Math.min(l.size() - 1, i + 2))), "위 곡괭이일수록 빠름");
             }
         }
-        // 구리 곡괭이로 철 광석: 2.9 ÷ (1.2 × 0.6) ≈ 4.0초 · 철 곡괭이 2.4초
+        // 구리 곡괭이로 철 광석: 3.6 ÷ (1.6 × 0.5) = 4.5초 · 철 곡괭이 2.25초 (0.3.7)
         MineDef.Node ironOre = mine.ores().get("iron_ore");
-        assertEquals(4.03, MineMath.seconds(ironOre, l.get(0)), 0.01);
-        assertEquals(2.42, MineMath.seconds(ironOre, l.get(1)), 0.01);
+        assertEquals(4.50, MineMath.seconds(ironOre, l.get(0)), 0.01);
+        assertEquals(2.25, MineMath.seconds(ironOre, l.get(1)), 0.01);
     }
 
     @Test

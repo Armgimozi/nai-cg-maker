@@ -74,6 +74,7 @@ public final class MineModule implements Module, MineApi {
     @Override
     public void enable() {
         config = MineConfig.fromRoot(services.plugin().getConfig());
+        for (String note : MineConfig.legacyNotes(services.plugin().getConfig().getConfigurationSection("mine"))) Log.info("[광산] " + note);
         if (!commandsRegistered) {
             new MineCommands(this).register(services.commands());
             commandsRegistered = true;
@@ -97,7 +98,7 @@ public final class MineModule implements Module, MineApi {
             Log.warn("[광산] 광산 월드를 만들지 못했습니다.");
             return;
         }
-        veins.reset(levels, config.regenPlayersCap());
+        veins.reset(levels);
         listener = new MineListener(this);
         Bukkit.getPluginManager().registerEvents(listener, services.plugin());
         var plugin = services.plugin();
@@ -108,8 +109,8 @@ public final class MineModule implements Module, MineApi {
         active = true;
         services.setMine(this);
         startBuild(null, null);
-        Log.info("[광산] 켜짐: 층 " + levels.size() + " · 광맥 " + veins.total() + " (함께 씀, 다시 차는 시간 ÷ 광산 사람 수 최대 "
-                + config.regenPlayersCap() + ") · 월드 " + world.getName());
+        Log.info("[광산] 켜짐: 층 " + levels.size() + " · 광맥 " + veins.total() + " (함께 씀) · 재생 " + regenText(config)
+                + " (사람 수 무관) · 월드 " + world.getName());
     }
 
     @Override
@@ -142,9 +143,16 @@ public final class MineModule implements Module, MineApi {
         if (mine != null && !mine.isEmpty()) {
             veins.refillAll();
             loadLevels(mine);
-            veins.reset(levels, config.regenPlayersCap());
+            veins.reset(levels);
             startBuild(null, null);
         }
+    }
+
+    /** 로그 글: "3·3·3·3·3·3분 · 보석 30분". */
+    static String regenText(MineConfig c) {
+        StringBuilder sb = new StringBuilder();
+        for (int m : c.regenMinutes()) sb.append(sb.length() == 0 ? "" : "·").append(m);
+        return sb + "분 · 보석 " + c.gemNodeRegenMinutes() + "분";
     }
 
     private void loadLevels(MineDef mine) {

@@ -168,7 +168,8 @@ class Rules036:
         self.rarity_step, self.boss_step, self.mix_band = mc['rarity_step'], mc['boss_step'], mc['mix_band']
         self.metals = [o.replace('_ore', '') for o in mine['ores']]
         self.ingots = {f'{m}_ingot': k + 1 for k, m in enumerate(self.metals)}
-        rate = mine['economy']['focused_ore_per_min']
+        # 0.3.7: 환산 기준은 0.3.6.1 값 고정 (enhance_ingot_rate) — 캐는 초·재생이 바뀌어도 강화 재료가 흔들리지 않게
+        rate = mine['economy'].get('enhance_ingot_rate') or mine['economy']['focused_ore_per_min']
         run_min = json.loads((DATA036 / 'model/out/economy.json').read_text(encoding='utf-8'))['assumptions']['run_minutes']
         self.ingot_supply = {f: {f'{m}_ingot': rate[f'{k + 1}:{m}'] * run_min[str(f)] / 2 for k, m in enumerate(self.metals)}
                              for f in range(1, 11)}

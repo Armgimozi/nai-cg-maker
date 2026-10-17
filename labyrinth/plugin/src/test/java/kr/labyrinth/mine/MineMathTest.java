@@ -14,13 +14,13 @@ class MineMathTest {
 
     @Test
     void speedTicksRoundTrip() {
-        for (double hardness : new double[] {0.3, 0.5, 0.75, 3.0, 4.5, 30.0}) {
-            for (double secs = 1.0; secs <= 7.0; secs += 0.05) {
+        for (double hardness : new double[] {0.3, 0.5, 0.75, 1.0, 1.5, 3.0, 4.5, 30.0}) {
+            for (double secs = 0.5; secs <= 11.0; secs += 0.05) {
                 float speed = MineMath.toolSpeed(hardness, secs);
                 int ticks = MineMath.ticks(hardness, speed);
                 int want = (int) Math.ceil(secs * 20 - 1e-6);
                 assertTrue(Math.abs(ticks - want) <= 1, hardness + " · " + secs + "초 → " + ticks + "틱 (원함 " + want + ")");
-                assertTrue(ticks >= 20, "1초보다 빠르지 않음");
+                assertTrue(ticks >= 10, "0.5초보다 빠르지 않음");
             }
         }
         assertEquals(0f, MineMath.toolSpeed(0, 2.0));
@@ -28,10 +28,36 @@ class MineMathTest {
     }
 
     @Test
-    void neverFasterThanOneSecond() {
+    void neverFasterThanHalfSecond() {
+        assertEquals(0.5, MineMath.MIN_SECONDS, 1e-12, "0.3.7: 바닥 0.5초");
         float s = MineMath.toolSpeed(3.0, 0.2);
-        assertEquals(MineMath.toolSpeed(3.0, 1.0), s);
-        assertTrue(MineMath.ticks(3.0, s) >= 20);
+        assertEquals(MineMath.toolSpeed(3.0, 0.5), s);
+        assertEquals(10, MineMath.ticks(3.0, s));
+    }
+
+    @Test
+    void clientBreakTimeMatchesServerForEveryPair() {
+        // 곡괭이 6 × 캘 수 있는 광석·보석 (52쌍): 바닐라 진행(speed ÷ 단단함 ÷ 30 을 틱마다 float 로 더함)으로 부서지는 틱이
+        // ⌈20 · max(0.5, 초)⌉ 와 1틱 안에서 같다 — 클라이언트 금 가는 그림이 서버 시간과 맞는다. 바닥 쌍은 10틱
+        MineDef mine = MineTestData.mine();
+        int pairs = 0, floored = 0;
+        for (ToolSpec t : MineTestData.pickaxes().values()) {
+            for (MineDef.Node n : StretchRuleTest.allNodes(mine)) {
+                if (!t.canMine(n.tier())) continue;
+                double s = MineMath.seconds(n, t);
+                double h = MineTestData.hardness(n.block());
+                int ticks = MineMath.ticks(h, MineMath.toolSpeed(h, s));
+                int want = (int) Math.ceil(20 * Math.max(MineMath.MIN_SECONDS, s) - 1e-6);
+                assertTrue(Math.abs(ticks - want) <= 1, t.tier() + " × " + n.id() + ": " + ticks + "틱 vs " + want);
+                if (t.seconds(n.baseSeconds(), n.tier()) < MineMath.MIN_SECONDS) {
+                    assertEquals(10, ticks, t.tier() + " × " + n.id() + " 바닥");
+                    floored++;
+                }
+                pairs++;
+            }
+        }
+        assertEquals(52, pairs, "광석 26 + 보석 노드 26");
+        assertTrue(floored >= 3, "바닥 쌍 (미스릴→구리 · 오리하르콘→구리·철 …)");
     }
 
     @Test
@@ -62,11 +88,13 @@ class MineMathTest {
             if (prev != null) {
                 for (MineDef.Node n : mine.ores().values()) {
                     if (!prev.canMine(n.tier())) continue;
-                    assertTrue(MineMath.seconds(n, t) < MineMath.seconds(n, prev), t.tier() + " vs " + prev.tier() + " · " + n.id());
+                    double a = MineMath.seconds(n, t), b = MineMath.seconds(n, prev);
+                    assertTrue(a < b || a == MineMath.MIN_SECONDS, t.tier() + " vs " + prev.tier() + " · " + n.id() + " (바닥이면 같아도 됨)");
                 }
                 for (MineDef.Node n : mine.gems().values()) {
                     if (!prev.canMine(n.tier())) continue;
-                    assertTrue(MineMath.seconds(n, t) < MineMath.seconds(n, prev), "보석 " + n.id());
+                    double a = MineMath.seconds(n, t), b = MineMath.seconds(n, prev);
+                    assertTrue(a < b || a == MineMath.MIN_SECONDS, "보석 " + n.id());
                 }
             }
             prev = t;
@@ -89,16 +117,5 @@ class MineMathTest {
         assertEquals(1, MineMath.baseYield(false, 0.1, 0.5));
         assertEquals(1, MineMath.baseYield(false, 0.0, 0.0));
         assertEquals(1, MineMath.baseYield(true, 1.0, 0.0), "보석 노드는 덤 없음");
-    }
-
-    @Test
-    void regrowFactorByPlayers() {
-        assertEquals(1, MineMath.regrowFactor(0, 4), "아무도 없어도 한 사람 빠르기");
-        assertEquals(1, MineMath.regrowFactor(1, 4));
-        assertEquals(3, MineMath.regrowFactor(3, 4));
-        assertEquals(4, MineMath.regrowFactor(4, 4));
-        assertEquals(4, MineMath.regrowFactor(12, 4));
-        assertEquals(1, MineMath.regrowFactor(5, 1));
-        assertEquals(1, MineMath.regrowFactor(5, 0), "cap 0 = 1 로 읽음");
     }
 }

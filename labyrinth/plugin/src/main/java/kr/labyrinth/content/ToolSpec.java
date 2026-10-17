@@ -12,7 +12,7 @@ import java.util.TreeMap;
  *       "구리 곡괭이로 철을 캘 수 있고 철 괭이로 은을 캐는 식") — 그보다 단단하면 진행 없음 + 액션바 "곡괭이가 약해 캘 수 없습니다".
  *       플레이어 레벨 조건은 없다 (주인 결정 2).</li>
  *   <li>{@code speed}: 광석 등급 → 채굴 속도 배율. 블록 하나 = 광석 base_seconds ÷ 배율 (좋은 곡괭이일수록 모든 광석에서 빠름).
- *       한 단계 위(tier + 1) 배율은 그 광석 제 곡괭이보다 느리다 (생성기: 그 광석 제 곡괭이 빠르기 × 0.6). 손으로 고친 items.yml 에 그 칸이 없으면
+ *       한 단계 위(tier + 1) 배율은 그 광석 제 곡괭이보다 느리다 (생성기: 그 광석 제 곡괭이 빠르기 × 0.5 — 0.3.7, 딱 두 배 시간). 손으로 고친 items.yml 에 그 칸이 없으면
  *       파서가 {@link #withStretch} 로 같은 식(다음 곡괭이 빠르기 × {@link #STRETCH_FALLBACK})으로 채운다.</li>
  *   <li>{@code bonus}: 광석 1개 더 나올 확률.</li>
  * </ul>
@@ -25,7 +25,7 @@ public record ToolSpec(String kind, int tier, Map<Integer, Double> speed, double
     /** 곡괭이 tier 보다 몇 단계 단단한 것까지 캐나 (0.3.6.1 주인 결정: 한 단계 위까지, 느리게). */
     public static final int REACH_ABOVE = 1;
     /** items.yml speed 에 한 단계 위 배율이 없을 때 = 그 광석 제 곡괭이(다음 곡괭이) 빠르기 × 이 값 (손으로 고친 items.yml 대비, 생성기와 같은 식). */
-    public static final double STRETCH_FALLBACK = 0.6;
+    public static final double STRETCH_FALLBACK = 0.5;
 
     public ToolSpec {
         kind = kind == null || kind.isBlank() ? PICKAXE : kind;

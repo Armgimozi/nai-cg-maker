@@ -67,8 +67,7 @@ final class MineCommands {
         MineConfig c = module.config();
         Text.send(s, "<#e8c58a>광산</#e8c58a> <gray>월드 <white>" + c.world() + "</white> · 층 <white>" + module.levels().size()
                 + "</white> · 광맥 <white>" + module.veins().total() + "</white> · 지금 빈 광맥 <white>" + module.veins().state().count()
-                + "</white> · 광산 사람 <white>" + module.veins().miners() + "</white> · 다시 차는 빠르기 ×"
-                + MineMath.regrowFactor(module.veins().miners(), c.regenPlayersCap()) + " (최대 ×" + c.regenPlayersCap() + ")");
+                + "</white> · 광산 사람 <white>" + module.veins().miners() + "</white> · 재생은 사람 수와 관계 없음");
         for (MineLevel l : module.levels()) {
             int[] st = module.veins().status(l);
             Text.send(s, "<gray> " + l.coloredName() + " <gray>광맥 " + st[0] + "/" + st[1] + " · 보석 " + st[2] + "/" + st[3]

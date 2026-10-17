@@ -50,7 +50,7 @@ class PickaxeComponentTest {
         assertTrue(!copper.canBreak().contains(mine.ores().get("silver_ore").block()), "은 광석에 금도 안 감");
         PickaxePlan ori = PickaxePlan.of(MineTestData.pickaxes().get("orichalcum_pickaxe"), mine, MineTestData::hardness);
         assertEquals(12, ori.canBreak().size());
-        assertEquals(2.5, copper.rules().get(0).seconds(), 1e-9, "구리 곡괭이로 구리 2.5초");
+        assertEquals(2.0, copper.rules().get(0).seconds(), 1e-9, "구리 곡괭이로 구리 2.0초 (0.3.7)");
     }
 
     @Test
