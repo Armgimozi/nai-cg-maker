@@ -22,7 +22,7 @@
 #      집: 층 공용 무기 = 그 층 몬스터·상자 · 보스 고유 = 그 보스 ·
 #          시작 지급(수련생) = 1층 몬스터·상자 · 칭호 보상(악몽의 왕관) = 그 칭호를 주는 10층 보스 (핵 포함)
 #   → 어느 장비든 mid 까지는 일반 재료 2종, 정수·정예 재료는 high 의 R 에만 — 낮은 장비의 mid 가 보스 장비보다 귀해지지 않는다.
-#   ③ 보스 장비 (보스 고유 · 보스가 주는 칭호 보상) — 제작법이 있으면 ①, 없으면 ② 에 더해:
+#   ③ 보스 장비 (보스 고유 · 보스가 주는 칭호 보상) — 제작법이 있으면 ①, 없으면 ② 에 더해 (신화 무기는 레시피가 있어도 ②+③ — 0.3.7):
 #      +7·+8 의 R 은 정예 재료만 — 레시피의 정예 재료, 없으면 그 보스 드롭의 정예 재료 (보스 드롭마다 1회 0.5개). 정수로 내려가지 않는다.
 #      +9·+10 은 R 대신 그 보스의 핵.
 #      그리고 단계마다 같은 층·같은 분류(무기 / 방패 / 흉갑·하의 / 투구·신발) 일반 장비 중 가장 비싼 것보다 싸지 않게
@@ -31,8 +31,8 @@
 #      1단계 (원칙 재료 그대로) R 을 같은 원칙 안의 다른 귀한 재료로(환산해 싼 쪽부터) → P·S 순서 바꿈 → S +1 → S +2 → P +1 …
 #      2단계 (원칙 밖, 1단계로 안 될 때만) 나오는 곳의 다른 귀한 드롭·윗 등급 정수 → 3단계 그 정수를 대장간에서 정제한 윗 등급 정수
 #      일반 장비는 낮은 레벨·등급부터 원칙 그대로 받고 변형은 높은 장비가 받는다. S 를 먼저 늘리는 것은 S 가 mid·high 에만 들어 싸서.
-#   결과: 장비 364종 (제작 재료 165 · 드롭 재료 199) — 원칙 그대로 89종 · R 바꿈 0종 · P·S 순서 바꿈 100종 · 일반 장비 S +n 114종 · P +n 72종 · 원칙 밖 R 0종 (겹칠 수 있음)
-#         보스 장비 54종 중 개수를 더한 장비 50종. 같은 층에서 구성이 똑같은 장비 0쌍.
+#   결과: 장비 370종 (제작 재료 165 · 드롭 재료 205) — 원칙 그대로 89종 · R 바꿈 0종 · P·S 순서 바꿈 100종 · 일반 장비 S +n 114종 · P +n 72종 · 원칙 밖 R 0종 (겹칠 수 있음)
+#         보스 장비 60종 중 개수를 더한 장비 56종. 같은 층에서 구성이 똑같은 장비 0쌍.
 #   강화석(하급·상급·최상급)은 그대로 모든 장비에 공용으로 든다 — 장비 재료는 그 위에 더하는 몫.
 #   ⑤ 0.3.6 (광산 · 몹 몸에 맞는 드롭): 위 ①②의 보조 S 는 그 장비의 주 금속 주괴다 (레시피에서 가장 많이 드는 주괴, 같으면 윗 금속 ·
 #      드롭 장비는 장비 힘으로 고른 금속). 주괴 개수 = S 기본 × 층 상수 1층 0.5 · 2층 0.625 · 3층 0.625 · 4층 0.625 · 5층 0.75 · 6층 0.875 · 7층 0.875 · 8층 0.875 · 9층 1 · 10층 1.
@@ -50,7 +50,7 @@
 #
 # ── 근거: 1회 클리어 공급량 (보통·솔로·1인, LUK 0 — loot.yml 을 펼쳐 계산) ──────────
 #   가정: 몹 수 GDD §16.1 (1층 24 … 10층 60), 미로 상자 나무 4~6 · 철 2~3 · 금 3~4, 보물방 상자 3개 × 방 수, 기믹방 1, 정예 1~2, 보스 1.
-#   계산한 콘텐츠: content/ — 장비 364종 · 레시피 204개 · 루팅 테이블 254개
+#   계산한 콘텐츠: content/ — 장비 370종 · 레시피 216개 · 루팅 테이블 254개
 #    1층  돌갑충 껍질 18 · 이끼 섬유 36  | 정예 우두머리 이끼 볏 3.3  | 정수 희미한 미궁 정수 9.5 · 윗 정수 0.6  | 핵 파수꾼의 심재 1
 #    2층  갱도 송곳니 36 · 갱도 거미줄 25  | 정예 감독관의 휘장 3.3  | 정수 희미한 미궁 정수 9.6 · 윗 정수 0.6  | 핵 여왕의 방적돌기 1
 #    3층  포자 갓 47 · 균사 실 37  | 정예 군락체의 핵 3.3  | 정수 희미한 미궁 정수 9.4 · 윗 정수 0.6  | 핵 균사의 왕관 1
@@ -86,8 +86,8 @@
 #   1~3층 하급 강화석은 떠돌이 상인 핀에게서 살 수 있어 병목이 아니다.
 #
 # ── 검사: 보스 장비 vs 같은 층·같은 분류(무기 / 방패 / 흉갑·하의 / 투구·신발) 일반 장비 ─────────
-#   +7·+8 귀한 재료가 정예 재료인 보스 장비 54/54종 · 단계마다 재료 등급(일반 < 정수 < 정예 < 핵)이 같은 분류 일반 장비 최고 등급보다 낮은 경우 0건
-#   1회 공급량 환산(개수 ÷ 그 재료 1회 공급량, 윗 등급 정수는 정제분 포함)이 같은 분류 일반 장비 중 가장 비싼 것보다 싼 보스 장비 수 (비교 52종 — 그 층에 일반 방패가 없는 방패는 빠짐):
+#   +7·+8 귀한 재료가 정예 재료인 보스 장비 60/60종 · 단계마다 재료 등급(일반 < 정수 < 정예 < 핵)이 같은 분류 일반 장비 최고 등급보다 낮은 경우 0건
+#   1회 공급량 환산(개수 ÷ 그 재료 1회 공급량, 윗 등급 정수는 정제분 포함)이 같은 분류 일반 장비 중 가장 비싼 것보다 싼 보스 장비 수 (비교 58종 — 그 층에 일반 방패가 없는 방패는 빠짐):
 #     +1 0 · +2 0 · +3 0 · +4 0 · +5 0 · +6 0 · +7 0 · +8 0 · +9 0 · +10 0
 # ─────────────────────────────────────────────────────────────────────────────
 version: 1
@@ -1459,22 +1459,34 @@ items:
     low:  {abyss_scale: [4, 4, 5]}
     mid:  {abyss_scale: [5, 5, 6], orichalcum_ingot: [3, 3, 4]}
     high: {abyss_scale: [6, 7, 8, 9], orichalcum_ingot: [4, 4, 5, 6], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
-  bloodmoon_reaver:  # 혈월의 수확자 · 근접 무기 · 보스 고유 → 보스 드롭 (P +2, S +2 — 일반 장비 이상 · 겹침 피함)
+  bloodmoon_reaver:  # 혈월의 수확자 · 근접 무기 · 보스 고유 · 대장간 → 보스 드롭 (신화 — 레시피가 있어도 보스 장비 규칙) (P +2, S +2 — 일반 장비 이상 · 겹침 피함)
     low:  {abyss_scale: [4, 4, 5]}
     mid:  {abyss_scale: [5, 5, 6], orichalcum_ingot: [4, 4, 5]}
     high: {abyss_scale: [6, 7, 8, 9], orichalcum_ingot: [5, 5, 6, 7], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
-  celestial_oathkeeper:  # 천궁의 맹세수호검 · 근접 무기 · 보스 고유 → 보스 드롭 (P +3, S +1 — 일반 장비 이상 · 겹침 피함)
+  celestial_oathkeeper:  # 천궁의 맹세수호검 · 근접 무기 · 보스 고유 · 대장간 → 보스 드롭 (신화 — 레시피가 있어도 보스 장비 규칙) (P +3, S +1 — 일반 장비 이상 · 겹침 피함)
     low:  {abyss_scale: [5, 5, 6]}
     mid:  {abyss_scale: [6, 6, 7], orichalcum_ingot: [3, 3, 4]}
     high: {abyss_scale: [7, 8, 9, 10], orichalcum_ingot: [4, 4, 5, 6], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
-  eclipse_blade:  # 일식의 칼날 · 근접 무기 · 보스 고유 → 보스 드롭 (P·S 바꿈, P +3 — 일반 장비 이상 · 겹침 피함)
+  eclipse_blade:  # 일식의 칼날 · 근접 무기 · 보스 고유 · 대장간 → 보스 드롭 (신화 — 레시피가 있어도 보스 장비 규칙) (P·S 바꿈, P +3 — 일반 장비 이상 · 겹침 피함)
     low:  {sculk_tendril: [6, 6, 7]}
     mid:  {sculk_tendril: [7, 7, 8], orichalcum_ingot: [2, 2, 3]}
     high: {sculk_tendril: [8, 9, 11, 12], orichalcum_ingot: [3, 3, 4, 5], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
+  hightide_scythe:  # 만조의 큰낫 · 근접 무기 · 보스 고유 · 대장간 → 보스 드롭 (신화 — 레시피가 있어도 보스 장비 규칙) (P +4 — 일반 장비 이상 · 겹침 피함)
+    low:  {abyss_scale: [6, 6, 7]}
+    mid:  {abyss_scale: [7, 7, 8], orichalcum_ingot: [2, 2, 3]}
+    high: {abyss_scale: [8, 9, 10, 11], orichalcum_ingot: [3, 3, 4, 5], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
+  mountainheart_maul:  # 태산의 대망치 · 근접 무기 · 보스 고유 · 대장간 → 보스 드롭 (신화 — 레시피가 있어도 보스 장비 규칙) (P +2, S +3 — 일반 장비 이상 · 겹침 피함)
+    low:  {abyss_scale: [4, 4, 5]}
+    mid:  {abyss_scale: [5, 5, 6], orichalcum_ingot: [5, 5, 6]}
+    high: {abyss_scale: [6, 7, 8, 9], orichalcum_ingot: [6, 6, 7, 8], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
   viper_fang:  # 독사의 송곳니 · 근접 무기 · 보스 고유 → 보스 드롭 (P +3 — 일반 장비 이상 · 겹침 피함)
     low:  {abyss_scale: [5, 5, 6]}
     mid:  {abyss_scale: [6, 6, 7], orichalcum_ingot: [2, 2, 3]}
     high: {abyss_scale: [7, 8, 9, 10], orichalcum_ingot: [3, 3, 4, 5], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
+  waning_moon_sickle:  # 그믐달 사슬낫 · 근접 무기 · 보스 고유 · 대장간 → 보스 드롭 (신화 — 레시피가 있어도 보스 장비 규칙) (P +3, S +2 — 일반 장비 이상 · 겹침 피함)
+    low:  {abyss_scale: [5, 5, 6]}
+    mid:  {abyss_scale: [6, 6, 7], orichalcum_ingot: [4, 4, 5]}
+    high: {abyss_scale: [7, 8, 9, 10], orichalcum_ingot: [5, 5, 6, 7], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
   abyss_bladebow:  # 심연 날활 · 원거리 무기 · 대장간 → 제작 재료 (P·S 바꿈 — 겹침 피함)
     low:  {sculk_tendril: [3, 3, 4]}
     mid:  {sculk_tendril: [4, 4, 5], orichalcum_ingot: [2, 2, 3]}
@@ -1491,7 +1503,11 @@ items:
     low:  {sculk_tendril: [4, 4, 5]}
     mid:  {sculk_tendril: [5, 5, 6], orichalcum_ingot: [4, 4, 5]}
     high: {sculk_tendril: [6, 7, 9, 10], orichalcum_ingot: [5, 5, 6, 7], primordial_essence: [2, 3, 3, 4]}
-  tempest_bow:  # 폭풍의 눈 · 원거리 무기 · 보스 고유 → 보스 드롭 (P +2, S +2 — 일반 장비 이상 · 겹침 피함)
+  comet_longbow:  # 꼬리별 장궁 · 원거리 무기 · 보스 고유 · 대장간 → 보스 드롭 (신화 — 레시피가 있어도 보스 장비 규칙) (P +2, S +3 — 일반 장비 이상 · 겹침 피함)
+    low:  {sculk_tendril: [5, 5, 6]}
+    mid:  {sculk_tendril: [6, 6, 7], orichalcum_ingot: [5, 5, 6]}
+    high: {sculk_tendril: [7, 8, 10, 11], orichalcum_ingot: [6, 6, 7, 8], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
+  tempest_bow:  # 폭풍의 눈 · 원거리 무기 · 보스 고유 · 대장간 → 보스 드롭 (신화 — 레시피가 있어도 보스 장비 규칙) (P +2, S +2 — 일반 장비 이상 · 겹침 피함)
     low:  {sculk_tendril: [5, 5, 6]}
     mid:  {sculk_tendril: [6, 6, 7], orichalcum_ingot: [4, 4, 5]}
     high: {sculk_tendril: [7, 8, 10, 11], orichalcum_ingot: [5, 5, 6, 7], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
@@ -1527,14 +1543,22 @@ items:
     low:  {sculk_tendril: [5, 5, 6]}
     mid:  {sculk_tendril: [6, 6, 7], orichalcum_ingot: [3, 3, 4]}
     high: {sculk_tendril: [7, 8, 10, 11], orichalcum_ingot: [4, 4, 5, 6], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
-  seraph_scepter:  # 치천사의 홀 · 시전 무기 · 보스 고유 → 보스 드롭 (P +3, S +1 — 일반 장비 이상 · 겹침 피함)
+  daybreak_bell:  # 새벽의 종 · 시전 무기 · 보스 고유 · 대장간 → 보스 드롭 (신화 — 레시피가 있어도 보스 장비 규칙) (P +3, S +2 — 일반 장비 이상 · 겹침 피함)
+    low:  {sculk_tendril: [6, 6, 7]}
+    mid:  {sculk_tendril: [7, 7, 8], orichalcum_ingot: [4, 4, 5]}
+    high: {sculk_tendril: [8, 9, 11, 12], orichalcum_ingot: [5, 5, 6, 7], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
+  seraph_scepter:  # 치천사의 홀 · 시전 무기 · 보스 고유 · 대장간 → 보스 드롭 (신화 — 레시피가 있어도 보스 장비 규칙) (P +3, S +1 — 일반 장비 이상 · 겹침 피함)
     low:  {sculk_tendril: [6, 6, 7]}
     mid:  {sculk_tendril: [7, 7, 8], orichalcum_ingot: [3, 3, 4]}
     high: {sculk_tendril: [8, 9, 11, 12], orichalcum_ingot: [4, 4, 5, 6], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
-  voidheart_staff:  # 공허의 심장 지팡이 · 시전 무기 · 보스 고유 → 보스 드롭 (P +4 — 일반 장비 이상 · 겹침 피함)
+  voidheart_staff:  # 공허의 심장 지팡이 · 시전 무기 · 보스 고유 · 대장간 → 보스 드롭 (신화 — 레시피가 있어도 보스 장비 규칙) (P +4 — 일반 장비 이상 · 겹침 피함)
     low:  {sculk_tendril: [7, 7, 8]}
     mid:  {sculk_tendril: [8, 8, 9], orichalcum_ingot: [2, 2, 3]}
     high: {sculk_tendril: [9, 10, 12, 13], orichalcum_ingot: [3, 3, 4, 5], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
+  wisp_lantern:  # 도깨비불 등롱 · 시전 무기 · 보스 고유 · 대장간 → 보스 드롭 (신화 — 레시피가 있어도 보스 장비 규칙) (P +4, S +1 — 일반 장비 이상 · 겹침 피함)
+    low:  {sculk_tendril: [7, 7, 8]}
+    mid:  {sculk_tendril: [8, 8, 9], orichalcum_ingot: [3, 3, 4]}
+    high: {sculk_tendril: [9, 10, 12, 13], orichalcum_ingot: [4, 4, 5, 6], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
   abyss_walker_helm:  # 심연 보행자 두건 · 투구 · 정예 · 대장간 → 제작 재료
     low:  {sculk_tendril: [3, 3, 3]}
     mid:  {sculk_tendril: [3, 4, 4], orichalcum_ingot: [1, 2, 2]}

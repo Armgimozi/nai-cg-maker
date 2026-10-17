@@ -25,6 +25,7 @@ import kr.labyrinth.content.ItemType;
 import kr.labyrinth.content.LootTable;
 import kr.labyrinth.content.MobDef;
 import kr.labyrinth.content.RecipeDef;
+import kr.labyrinth.content.Rarity;
 import kr.labyrinth.core.ContentLoader;
 import kr.labyrinth.items.loot.LootRoller;
 import kr.labyrinth.stats.Stat;
@@ -313,9 +314,15 @@ class DropRateWindowTest {
         assertEquals(List.of(), off, "던전 광석 1회량");
     }
 
+    /** 대장간 기준 무기 — 대장간에서 만들 수 있는 무기 중 신화(보스 + 대장간, 긴 목표)를 뺀 것. */
+    static boolean forge(ItemDef w) {
+        return w.isWeapon() && w.sources().contains("craft") && w.rarity() != Rarity.MYTHIC;
+    }
+
     @Test
     void forgeBaselineRecipesTakeAFewRuns() {
         // 띠 대장간 기준 = 그 띠 가장 높은 레벨 대장간 무기 — 제작 회차 = max(재료 회차, 골드 회차) 0.3~2.5 (무기 레시피 골드 ×1.5 뒤)
+        // 0.3.7 신화 레시피(핵 50 — 넬카르 50번, 긴 목표)는 기준이 아니다 → MythicSetTest
         Map<String, RecipeDef> recipeOf = new HashMap<>();
         for (RecipeDef r : content.recipes().values()) recipeOf.putIfAbsent(r.result(), r);
         List<String> off = new ArrayList<>();
@@ -323,11 +330,11 @@ class DropRateWindowTest {
         for (int band = 1; band <= 10; band++) {
             int top = 0;
             for (ItemDef w : content.items().values()) {
-                if (w.isWeapon() && GearModel.band(w.levelReq()) == band && w.sources().contains("craft")) top = Math.max(top, w.levelReq());
+                if (forge(w) && GearModel.band(w.levelReq()) == band) top = Math.max(top, w.levelReq());
             }
             assertTrue(top > 0, "띠 " + band + " 대장간 무기 없음");
             for (ItemDef w : content.items().values()) {
-                if (!w.isWeapon() || w.levelReq() != top || !w.sources().contains("craft")) continue;
+                if (!forge(w) || w.levelReq() != top) continue;
                 RecipeDef r = recipeOf.get(w.id());
                 Map<String, Double> y = runYield(w.tier(), false);
                 double mat = 0;

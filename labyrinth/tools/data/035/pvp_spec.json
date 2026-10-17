@@ -162,7 +162,16 @@
   "tesla_coil_staff:SNEAK_LEFT": 0.35,
   "voidheart_staff:RIGHT": 0.55,
   "voidheart_staff:SNEAK_RIGHT": 0.35,
-  "eclipse_blade:SNEAK_RIGHT": 0.85
+  "eclipse_blade:SNEAK_RIGHT": 0.85,
+  "mountainheart_maul:RIGHT": 0.65,
+  "mountainheart_maul:SNEAK_RIGHT": 0.4,
+  "hightide_scythe:RIGHT": 0.85,
+  "hightide_scythe:SNEAK_LEFT": 0.85,
+  "hightide_scythe:SNEAK_RIGHT": 0.45,
+  "wisp_lantern:RIGHT": 0.85,
+  "wisp_lantern:SNEAK_RIGHT": 0.2,
+  "waning_moon_sickle:SNEAK_LEFT": 0.9,
+  "waning_moon_sickle:SNEAK_RIGHT": 0.45
  },
  "class_damage": {
   "hunter": 0.9,
@@ -2666,6 +2675,421 @@
     0.75,
     0.38
    ]
+  },
+  {
+   "src": "weapon",
+   "owner": "mountainheart_maul",
+   "owner_name": "태산의 대망치",
+   "skill": "RIGHT",
+   "name": "산 내려찍기",
+   "effect": "stun",
+   "seconds": 1.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "cone",
+   "pvp": [
+    0.8,
+    0.4,
+    0.2
+   ],
+   "pvp_heavy": [
+    0.48,
+    0.24,
+    0.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "mountainheart_maul",
+   "owner_name": "태산의 대망치",
+   "skill": "RIGHT",
+   "name": "산 내려찍기",
+   "effect": "taunt",
+   "seconds": 3.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "cone",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "mountainheart_maul",
+   "owner_name": "태산의 대망치",
+   "skill": "RIGHT",
+   "name": "산 내려찍기",
+   "effect": "slow",
+   "seconds": 2.0,
+   "potency": 0.35,
+   "repeats": 1.0,
+   "note": "nova (0.6초 뒤)",
+   "pvp": [
+    2.0,
+    2.0,
+    2.0
+   ],
+   "pvp_heavy": [
+    2.0,
+    2.0,
+    2.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "mountainheart_maul",
+   "owner_name": "태산의 대망치",
+   "skill": "SNEAK_LEFT",
+   "name": "바위 던지기",
+   "effect": "stun",
+   "seconds": 1.2,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "projectile → nova",
+   "pvp": [
+    0.96,
+    0.48,
+    0.24
+   ],
+   "pvp_heavy": [
+    0.58,
+    0.29,
+    0.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "mountainheart_maul",
+   "owner_name": "태산의 대망치",
+   "skill": "SNEAK_LEFT",
+   "name": "바위 던지기",
+   "effect": "taunt",
+   "seconds": 3.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "projectile → nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "mountainheart_maul",
+   "owner_name": "태산의 대망치",
+   "skill": "SNEAK_RIGHT",
+   "name": "태산 울림",
+   "effect": "slow",
+   "seconds": 1.5,
+   "potency": 0.35,
+   "repeats": 4.0,
+   "note": "repeat 4 × nova",
+   "pvp": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "pvp_heavy": [
+    1.5,
+    1.5,
+    1.5
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "mountainheart_maul",
+   "owner_name": "태산의 대망치",
+   "skill": "SNEAK_RIGHT",
+   "name": "태산 울림",
+   "effect": "vulnerable",
+   "seconds": 5.0,
+   "potency": 0.1,
+   "repeats": 4.0,
+   "note": "repeat 4 × nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "mountainheart_maul",
+   "owner_name": "태산의 대망치",
+   "skill": "SNEAK_RIGHT",
+   "name": "태산 울림",
+   "effect": "taunt",
+   "seconds": 2.0,
+   "potency": null,
+   "repeats": 4.0,
+   "note": "repeat 4 × nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "mountainheart_maul",
+   "owner_name": "태산의 대망치",
+   "skill": "SNEAK_RIGHT",
+   "name": "태산 울림",
+   "effect": "launch",
+   "seconds": null,
+   "potency": 0.7,
+   "repeats": 1.0,
+   "note": "nova (3초 뒤)",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "hightide_scythe",
+   "owner_name": "만조의 큰낫",
+   "skill": "RIGHT",
+   "name": "썰물 베기",
+   "effect": "pull",
+   "seconds": null,
+   "potency": 0.6,
+   "repeats": 1.0,
+   "note": "nova — 시간 없는 위치 이동 (PvP 상태이상 규칙 밖)",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "hightide_scythe",
+   "owner_name": "만조의 큰낫",
+   "skill": "SNEAK_RIGHT",
+   "name": "만조",
+   "effect": "pull",
+   "seconds": null,
+   "potency": 0.35,
+   "repeats": 5.0,
+   "note": "vortex 2.5초 — 시간 없는 위치 이동",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "hightide_scythe",
+   "owner_name": "만조의 큰낫",
+   "skill": "SNEAK_RIGHT",
+   "name": "만조",
+   "effect": "launch",
+   "seconds": null,
+   "potency": 0.8,
+   "repeats": 1.0,
+   "note": "vortex end → nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "comet_longbow",
+   "owner_name": "꼬리별 장궁",
+   "skill": "LEFT",
+   "name": "별똥 표식",
+   "effect": "mark",
+   "seconds": 6.0,
+   "potency": 0.1,
+   "repeats": 1.0,
+   "note": "projectile",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "comet_longbow",
+   "owner_name": "꼬리별 장궁",
+   "skill": "SNEAK_LEFT",
+   "name": "물러서며 쏘기",
+   "effect": "slow",
+   "seconds": 1.5,
+   "potency": 0.35,
+   "repeats": 1.0,
+   "note": "projectile ×3",
+   "pvp": [
+    1.5,
+    1.5,
+    1.5
+   ],
+   "pvp_heavy": [
+    1.5,
+    1.5,
+    1.5
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "wisp_lantern",
+   "owner_name": "도깨비불 등롱",
+   "skill": "SNEAK_LEFT",
+   "name": "홀림불",
+   "effect": "slow",
+   "seconds": 1.0,
+   "potency": 0.35,
+   "repeats": 10.0,
+   "note": "zone 5초",
+   "pvp": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "pvp_heavy": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "wisp_lantern",
+   "owner_name": "도깨비불 등롱",
+   "skill": "SNEAK_LEFT",
+   "name": "홀림불",
+   "effect": "mark",
+   "seconds": 3.0,
+   "potency": 0.1,
+   "repeats": 10.0,
+   "note": "zone 5초",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "wisp_lantern",
+   "owner_name": "도깨비불 등롱",
+   "skill": "SNEAK_RIGHT",
+   "name": "도깨비 잔치",
+   "effect": "knockback",
+   "seconds": null,
+   "potency": 0.8,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "daybreak_bell",
+   "owner_name": "새벽의 종",
+   "skill": "RIGHT",
+   "name": "새벽 종소리",
+   "effect": "knockback",
+   "seconds": null,
+   "potency": 0.4,
+   "repeats": 1.0,
+   "note": "nova",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "daybreak_bell",
+   "owner_name": "새벽의 종",
+   "skill": "SNEAK_LEFT",
+   "name": "울림 낙인",
+   "effect": "vulnerable",
+   "seconds": 6.0,
+   "potency": 0.15,
+   "repeats": 1.0,
+   "note": "strike",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "daybreak_bell",
+   "owner_name": "새벽의 종",
+   "skill": "SNEAK_RIGHT",
+   "name": "아침 성가",
+   "effect": "slow",
+   "seconds": 1.2,
+   "potency": 0.35,
+   "repeats": 8.0,
+   "note": "zone follow 8초",
+   "pvp": [
+    1.2,
+    1.2,
+    1.2
+   ],
+   "pvp_heavy": [
+    1.2,
+    1.2,
+    1.2
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "waning_moon_sickle",
+   "owner_name": "그믐달 사슬낫",
+   "skill": "RIGHT",
+   "name": "사슬 끌어오기",
+   "effect": "pull",
+   "seconds": null,
+   "potency": 1.1,
+   "repeats": 1.0,
+   "note": "chain — 시간 없는 위치 이동",
+   "pvp": null
+  },
+  {
+   "src": "weapon",
+   "owner": "waning_moon_sickle",
+   "owner_name": "그믐달 사슬낫",
+   "skill": "RIGHT",
+   "name": "사슬 끌어오기",
+   "effect": "root",
+   "seconds": 0.8,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "chain",
+   "pvp": [
+    0.64,
+    0.32,
+    0.0
+   ],
+   "pvp_heavy": [
+    0.38,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "waning_moon_sickle",
+   "owner_name": "그믐달 사슬낫",
+   "skill": "SNEAK_RIGHT",
+   "name": "그믐",
+   "effect": "root",
+   "seconds": 2.0,
+   "potency": null,
+   "repeats": 1.0,
+   "note": "target",
+   "pvp": [
+    1.5,
+    0.75,
+    0.38
+   ],
+   "pvp_heavy": [
+    0.96,
+    0.48,
+    0.24
+   ]
+  },
+  {
+   "src": "weapon",
+   "owner": "waning_moon_sickle",
+   "owner_name": "그믐달 사슬낫",
+   "skill": "SNEAK_RIGHT",
+   "name": "그믐",
+   "effect": "mark",
+   "seconds": 4.0,
+   "potency": 0.1,
+   "repeats": 1.0,
+   "note": "target",
+   "pvp": null
+  },
+  {
+   "src": "unique",
+   "owner": "mountainheart_maul",
+   "owner_name": "태산의 대망치",
+   "skill": "bash_stun",
+   "name": "산울림",
+   "effect": "stun",
+   "seconds": 0.6,
+   "potency": null,
+   "repeats": 1,
+   "note": "3번째 공격마다 · 같은 적 6초 면역",
+   "pvp": [
+    0.48,
+    0.24,
+    0.0
+   ],
+   "pvp_heavy": [
+    0.29,
+    0.0,
+    0.0
+   ]
   }
  ],
  "unique_rule_changes": [
@@ -2857,7 +3281,8 @@
   "damage_multiplier": "0.7(안 고침) → 1.0 (뜻: 기본 대비 배율), 고친 값 v → v/0.7",
   "new_keys": "없으면 코드 기본값 = config.pvp",
   "data": "classes.yml skills[].pvp_mult 7 · items.yml weapon_skills[].pvp_mult 31",
-  "docs": "GDD §18.3 다시 · §18.6 PvP 상태이상 · §18.7 PvP 회복 · §9.2 한 줄 · combat_spec §8.1 대체"
+  "docs": "GDD §18.3 다시 · §18.6 PvP 상태이상 · §18.7 PvP 회복 · §9.2 한 줄 · combat_spec §8.1 대체",
+  "data_037": "0.3.7 신화: items.yml weapon_skills[].pvp_mult +9 (무기 31 → 40, 모두 47)"
  },
  "_note": "설계 pvp_spec.json 사본 (sim 표 뺌). tools/gen_035_pvp.py · PvpSkillMultDataTest · PvpConfigTest 가 읽는다."
 }

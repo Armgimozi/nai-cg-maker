@@ -213,7 +213,8 @@ class EnhanceMaterialsTest {
             String p = t.costs(d.id(), 1).get(0).item(), s = t.costs(d.id(), 5).get(1).item();
             Set<String> home = homeMaterials(d);
             Set<String> allowed = new HashSet<>(home);
-            RecipeDef r = recipeOf.get(d.id());
+            // 0.3.7: 신화는 레시피(핵 50 · 용혈석)가 있어도 보스 장비 규칙 — 그 보스 드롭 재료로 강화 (gen_enhance 와 같음)
+            RecipeDef r = d.rarity() == Rarity.MYTHIC ? null : recipeOf.get(d.id());
             // 0.3.6 (계약 §2.9 + 몹 주제 드롭): S 는 그 장비의 주 금속 주괴(광산·제련소) — 어느 장비든 주괴는 허용 (EnhanceIngotTest 가 금속을 본다)
             Set<String> ingots = new HashSet<>();
             for (ItemDef x : content.items().values()) if (x.mineKind() == kr.labyrinth.content.MineKind.INGOT) ingots.add(x.id());

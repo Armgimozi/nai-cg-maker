@@ -36,6 +36,9 @@
   1회 클리어에 특별 시련 상자 special_trial_fNN (0.26번) · 금고·미믹 hoard_fNN (2.4~3.4번) 도 굴린다 ·
   획득처 이름에 시련방 · 특별 시련 · 금고·미믹.
 
+0.3.7: 신화 무기(rarity mythic)는 신화 레시피(신화 도안 · 핵 50)가 있어도 ① 을 쓰지 않고 보스 장비 규칙 ②+③ — 그 보스 드롭 재료,
+  +7·+8 정예 재료 · +9·+10 핵. 레시피 재료(핵 50 · 용혈석)는 제작 한 번 값이라 강화 단계마다 쓰면 강화가 제작보다 비싸진다.
+
 0.3.6 (Q3 — 계약 §2.9 + 몹 주제 드롭 drops_spec §8, content 에 주괴(mine_kind: ingot)가 있으면 저절로 켜짐 → Rules036):
   · P = 그 장비의 몬스터 재료 (레시피에서 가장 많이 드는 몬스터 재료 / 드롭 장비는 단단한 장비 HARD · 부드러운 장비 SOFT —
     방어구는 겉모습: 판금·방패 단단 · 천 부드러움 · 가죽은 슬롯)
@@ -139,6 +142,9 @@ def p_scale(supply):
 MODE036 = None
 RULES = None
 DATA036 = ROOT / 'tools/data/036'
+# 0.3.7 새 신화 6 — 같은 층 보스 장비 중 맨 뒤에 정한다 (겹침을 피하는 변형을 새 장비가 받아 기존 신화 6 의 강화 행이 그대로)
+MYTH037 = ROOT / 'tools/data/037/mythic_037.json'
+NEW037 = set(json.loads(MYTH037.read_text(encoding='utf-8'))['new']) if MYTH037.exists() else set()
 
 
 class Rules036:
@@ -627,6 +633,8 @@ def build(c, cfg):
     by_result = {}
     for r in recipes.values():
         if r.get('result') in items and items[r['result']].get('type') in ('weapon', 'armor'):
+            if items[r['result']].get('rarity') == 'mythic':
+                continue   # 0.3.7: 신화는 레시피가 있어도 보스 장비 규칙 ②+③ (보스 드롭 재료 · +9·+10 핵) — MYTHIC_NOTE
             by_result.setdefault(r['result'], r.get('materials') or {})
     gear = [i for i, v in items.items() if v.get('type') in ('weapon', 'armor')]
     out, meta = {}, {}
@@ -640,7 +648,7 @@ def build(c, cfg):
         # 정해진 뒤에야 그보다 싸지 않은 개수를 고를 수 있다. 일반 장비는 낮은 레벨·등급부터 — 겹침을 피하는 변형은 높은 장비가 받는다.
         # 같으면 레시피 장비 먼저(원칙 그대로 받을 차례), 종류에 맞는 재료가 주 재료인 장비 먼저.
         affinity = fls[gear_floor(v)].hard if KIND_HARD.get(cand['kind'], True) else fls[gear_floor(v)].soft
-        return (1 if cand['boss'] else 0, gear_floor(v), v.get('level_req', 1),
+        return (1 if cand['boss'] else 0, gear_floor(v), 1 if i in NEW037 else 0, v.get('level_req', 1),
                 RARITY_ORDER.index(v.get('rarity')) if v.get('rarity') in RARITY_ORDER else 0,
                 0 if cand['how'] == 'recipe' else 1, 0 if cand['bulk'][0] == affinity else 1,
                 KIND_ORDER.index(cand['kind']) if cand['kind'] in KIND_ORDER else 99, i)
@@ -921,7 +929,7 @@ def write_yaml(cfg, items, recipes_out, meta, fls, rows, collisions, fair, sourc
     w('#      집: 층 공용 무기 = 그 층 몬스터·상자 · 보스 고유 = 그 보스 ·')
     w('#          시작 지급(수련생) = 1층 몬스터·상자 · 칭호 보상(악몽의 왕관) = 그 칭호를 주는 10층 보스 (핵 포함)')
     w('#   → 어느 장비든 mid 까지는 일반 재료 2종, 정수·정예 재료는 high 의 R 에만 — 낮은 장비의 mid 가 보스 장비보다 귀해지지 않는다.')
-    w('#   ③ 보스 장비 (보스 고유 · 보스가 주는 칭호 보상) — 제작법이 있으면 ①, 없으면 ② 에 더해:')
+    w('#   ③ 보스 장비 (보스 고유 · 보스가 주는 칭호 보상) — 제작법이 있으면 ①, 없으면 ② 에 더해 (신화 무기는 레시피가 있어도 ②+③ — 0.3.7):')
     w('#      +7·+8 의 R 은 정예 재료만 — 레시피의 정예 재료, 없으면 그 보스 드롭의 정예 재료 (보스 드롭마다 1회 0.5개). 정수로 내려가지 않는다.')
     w('#      +9·+10 은 R 대신 그 보스의 핵.')
     w('#      그리고 단계마다 같은 층·같은 분류(무기 / 방패 / 흉갑·하의 / 투구·신발) 일반 장비 중 가장 비싼 것보다 싸지 않게')
@@ -1044,6 +1052,8 @@ def write_yaml(cfg, items, recipes_out, meta, fls, rows, collisions, fair, sourc
             notes.append(f"P +{m['dp']}")
         if m['ds']:
             notes.append(f"S +{m['ds']}")
+        if v.get('rarity') == 'mythic' and 'craft' in (v.get('sources') or []):
+            why += ' (신화 — 레시피가 있어도 보스 장비 규칙)'
         w(f"  {i}:  # {v.get('name', i)} · {KIND_NAME.get(m['kind'], m['kind'])} · {home_text(v, m['label'])} → {why}"
           + (f" ({', '.join(notes)} — {' · '.join(m['reasons'])})" if notes else ''))
         r = recipes_out[i]

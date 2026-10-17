@@ -44,6 +44,8 @@ ITEM_BLOCK = [
 LOOT_DOC_AFTER = "#      {pick: [{table: 하위테이블, weight: n}, …], chance}   chance 를 넘으면 무게대로 하위 테이블 하나를 골라 굴림 (0.3.5, 순환 금지)"
 LOOT_DOC = ("#      {blueprint: 단계, chance}                     도안 하나 (0.3.6) — 희귀 이상 장비 레시피 중 결과 단계가 그 단계 ±1 인 것,"
             " 이웃 단계 몫 2 : 7 : 1 (tools/gen_036_blueprints.py)")
+LOOT_DOC_OF = ("#      {blueprint_of: [레시피 id, …], chance}           정한 레시피 중 도안 하나 (0.3.7 신화 — 빌드 편향 own_build_bias 그대로,"
+               " 일반 {blueprint} 에서는 신화가 빠짐 · tools/gen_037_mythic.py)")
 BP_LINE = re.compile(r"^      - \{(.*, )?blueprint: ")  # 앞 단계(MAT036)가 표를 다시 쓰면 키 순서가 바뀔 수 있다
 TABLE_RE = re.compile(r"^  ([a-z0-9_]+):\s*(#.*)?$")
 
@@ -90,6 +92,8 @@ def apply_loot(text, tgt, changes):
     if LOOT_DOC not in lines and LOOT_DOC_AFTER in lines:
         k = lines.index(LOOT_DOC_AFTER)
         lines.insert(k + 1, LOOT_DOC)
+    if LOOT_DOC_OF not in lines and LOOT_DOC in lines:   # 0.3.7 — 글 줄만 (항목은 tools/gen_037_mythic.py 가 넣는다)
+        lines.insert(lines.index(LOOT_DOC) + 1, LOOT_DOC_OF)
     tb = _tables(lines)
     # 아래 표부터 고쳐 위쪽 줄 번호가 흔들리지 않게
     for tid, (a, b) in sorted(tb.items(), key=lambda kv: -kv[1][0]):
