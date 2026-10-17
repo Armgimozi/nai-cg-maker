@@ -163,7 +163,7 @@ public final class PackService implements Module, Listener {
                         Log.warn("[리소스팩] 예전 팩 주소도 받을 수 없어(" + state + ") 내장 서버로 보냅니다 — 사본이 올라오면 다음 시작부터 사본을 씁니다.");
                         return;
                     }
-                    Log.warn("[리소스팩] 예전 팩(" + fb.sha8() + ")을 config 주소로 보냅니다 — 새 보석 광석·구리 끌 날 그림만 예전처럼 보입니다."
+                    Log.warn("[리소스팩] 예전 팩(" + fb.sha8() + ")을 config 주소로 보냅니다 — 그 뒤 판에서 바뀐 그림(아이콘 · 보석 광석 · 구리 끌 날)은 예전처럼 보입니다."
                             + " 이 jar 팩 사본(" + jarSha8(pl) + ")이 올라오면 다음 시작부터 그 사본을 씁니다.");
                     boolean hadBuiltin = packBytes != null;
                     useExternal(PackUrlChoice.Mode.CUSTOM_URL, fb.url(), sha,

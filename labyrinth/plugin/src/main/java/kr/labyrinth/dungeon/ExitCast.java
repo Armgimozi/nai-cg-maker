@@ -70,11 +70,21 @@ final class ExitCast implements Listener {
     /** 싸우는 중이라 시작한 퇴장 시전(이 클래스 — 시전은 전투 중에만 시작) 또는 귀환 주문서 시전 중인가. */
     boolean combatCasting(UUID u) { return casting.containsKey(u) || scrollCasts.contains(u); }
 
-    /** 귀환 주문서 시전 (싸우는 중에 시작한 것) 시작 · 끝. */
-    void scrollCast(UUID u, boolean on) {
-        if (on) scrollCasts.add(u);
-        else scrollCasts.remove(u);
+    /**
+     * 귀환 주문서 시전 (싸우는 중에 시작한 것) 시작 · 끝. 시작은 이 시계로도 싸우는 중일 때만 적는다 — 주문서 쪽 전투 판정
+     * (items.ConsumableListener lastHurt)은 어느 월드 피해든 세서, 입장 직전 마을에서 맞고 바로 쓴 주문서 시전 중 끊김이
+     * 쓰러짐이 되면 안 된다 (마을·야생 피해는 미궁 전투가 아님 — {@link CombatClock}).
+     */
+    void scrollCast(UUID u, boolean on) { scrollCast(u, on, System.currentTimeMillis()); }
+
+    void scrollCast(UUID u, boolean on, long now) {
+        if (u == null) return;
+        if (!on) scrollCasts.remove(u);
+        else if (clock.inCombat(u, now)) scrollCasts.add(u);
     }
+
+    /** 시험용: 이 퇴장 판정이 쓰는 전투 시계. */
+    CombatClock clock() { return clock; }
 
     /** 쓰러짐(접속 끊김 포함) · 공략을 떠남으로 전투가 끝남 — 부활한 뒤나 다음 공략에서 그 마지막 피해로 다시 전투 중이 되지 않게. */
     void forget(UUID u) { clock.forget(u); }

@@ -304,10 +304,10 @@ class DeathPenaltyRulesTest {
     void menuLines() {
         assertEquals(List.of("쓰러지면 이번 레벨 경험치를 잃습니다.",
                 "미궁 안에서 쓰러지면 물건 2~3칸과 골드 5~25%(최대 15,000G)를 더 잃습니다.",
-                "장비·열쇠·곡괭이는 잃지 않습니다."), DeathPenaltyRules.menuLines(Config.DEFAULT));
+                "장비·열쇠·광산 곡괭이는 잃지 않습니다."), DeathPenaltyRules.menuLines(Config.DEFAULT));
         assertEquals(List.of("쓰러지면 이번 레벨 경험치를 잃습니다.", "미궁 안에서 쓰러지면 골드 5~25%(최대 15,000G)를 더 잃습니다."),
                 DeathPenaltyRules.menuLines(new Config(true, false, 2, 3, Set.of())), "물건 끔");
-        assertEquals(List.of("미궁 안에서 쓰러지면 물건 1칸을 잃습니다.", "장비·열쇠·곡괭이는 잃지 않습니다."),
+        assertEquals(List.of("미궁 안에서 쓰러지면 물건 1칸을 잃습니다.", "장비·열쇠·광산 곡괭이는 잃지 않습니다."),
                 DeathPenaltyRules.menuLines(new Config(false, true, 1, 1, Set.of()).withGold(DeathPenaltyRules.GoldLoss.OFF)));
         assertEquals(List.of("쓰러지면 이번 레벨 경험치를 잃습니다."),
                 DeathPenaltyRules.menuLines(new Config(true, false, 2, 3, Set.of()).withGold(DeathPenaltyRules.GoldLoss.OFF)));
@@ -320,19 +320,51 @@ class DeathPenaltyRulesTest {
         String n = DeathPenaltyRules.notice(Config.DEFAULT);
         assertNotNull(n);
         assertEquals("미궁 안에서 쓰러지면 가방 속 물건 2~3칸과 골드 5~25%(최대 15,000G)를 잃고, 이번 레벨 경험치도 처음으로 돌아갑니다. "
-                + "장비·열쇠·곡괭이와 손에 든 것(상자 속은 빼고)은 안전합니다.", Text.strip(n));
+                + "장비·열쇠·광산 곡괭이와 손에 든 물건은 안전합니다 (손에 든 상자 속 물건은 빼고)."
+                + " 싸우는 중에 접속을 끊어도 쓰러진 것으로 칩니다.", Text.strip(n));
         Config noGold = Config.DEFAULT.withGold(DeathPenaltyRules.GoldLoss.OFF);
         assertEquals("미궁 안에서 쓰러지면 가방 속 물건 2~3칸을 잃고, 이번 레벨 경험치도 처음으로 돌아갑니다. "
-                + "장비·열쇠·곡괭이와 손에 든 것(상자 속은 빼고)은 안전합니다.", Text.strip(DeathPenaltyRules.notice(noGold)));
-        assertEquals("미궁 안에서 쓰러지면 가방 속 물건 2칸을 잃습니다. 장비·열쇠·곡괭이와 손에 든 것(상자 속은 빼고)은 안전합니다.",
-                Text.strip(DeathPenaltyRules.notice(new Config(false, true, 2, 2, Set.of()).withGold(DeathPenaltyRules.GoldLoss.OFF))));
-        assertEquals("미궁 안에서 쓰러지면 골드 5~25%(최대 15,000G)를 잃고, 이번 레벨 경험치도 처음으로 돌아갑니다.",
+                + "장비·열쇠·광산 곡괭이와 손에 든 물건은 안전합니다 (손에 든 상자 속 물건은 빼고)."
+                + " 싸우는 중에 접속을 끊어도 쓰러진 것으로 칩니다.", Text.strip(DeathPenaltyRules.notice(noGold)));
+        String quit = " 싸우는 중에 접속을 끊어도 쓰러진 것으로 칩니다.";
+        assertEquals("미궁 안에서 쓰러지면 가방 속 물건 2칸을 잃습니다. 장비·열쇠·광산 곡괭이와 손에 든 물건은 안전합니다 (손에 든 상자 속 물건은 빼고)."
+                + quit, Text.strip(DeathPenaltyRules.notice(new Config(false, true, 2, 2, Set.of()).withGold(DeathPenaltyRules.GoldLoss.OFF))));
+        assertEquals("미궁 안에서 쓰러지면 골드 5~25%(최대 15,000G)를 잃고, 이번 레벨 경험치도 처음으로 돌아갑니다." + quit,
                 Text.strip(DeathPenaltyRules.notice(new Config(true, false, 2, 3, Set.of()))), "물건만 끔");
         assertNull(DeathPenaltyRules.notice(Config.OFF));
-        assertEquals("쓰러지면 이번 레벨 경험치가 처음으로 돌아갑니다. 미궁 밖에서도 같습니다.",
+        assertEquals("쓰러지면 이번 레벨 경험치가 처음으로 돌아갑니다. 미궁 밖에서도 같습니다." + quit,
                 Text.strip(DeathPenaltyRules.notice(new Config(true, false, 2, 3, Set.of()).withGold(DeathPenaltyRules.GoldLoss.OFF))),
                 "물건·골드를 꺼도 경험치 규칙은 알려 줌");
         assertNull(DeathPenaltyRules.notice(new Config(false, false, 2, 3, Set.of()).withGold(DeathPenaltyRules.GoldLoss.OFF)));
+    }
+
+    /** 0.3.6.2 마무리: 끊김 한 마디는 끊김 쓰러짐({@link DeathPenaltyRules#combatQuit})이 켜질 때만 — combat_exit_seconds 0 이면 없음. */
+    @Test
+    void noticeQuitSentenceFollowsCombatQuit() {
+        String quit = "싸우는 중에 접속을 끊어도 쓰러진 것으로 칩니다.";
+        Config noExit = new Config(true, true, 2, 3, Set.of(), 0);
+        assertEquals("미궁 안에서 쓰러지면 가방 속 물건 2~3칸과 골드 5~25%(최대 15,000G)를 잃고, 이번 레벨 경험치도 처음으로 돌아갑니다. "
+                + "장비·열쇠·광산 곡괭이와 손에 든 물건은 안전합니다 (손에 든 상자 속 물건은 빼고).", Text.strip(DeathPenaltyRules.notice(noExit)));
+        for (Config c : new Config[] {Config.DEFAULT, noExit, new Config(true, false, 2, 3, Set.of()), new Config(false, true, 1, 1, Set.of(), 3),
+                new Config(true, false, 2, 3, Set.of(), 0).withGold(DeathPenaltyRules.GoldLoss.OFF)}) {
+            boolean applies = DeathPenaltyRules.combatQuit(c, new DeathPenaltyRules.Quit(true, true, false, true, false, 1_000, false, false))
+                    == DeathPenaltyRules.QuitVerdict.APPLY;
+            String n = Text.strip(DeathPenaltyRules.notice(c));
+            assertEquals(applies, n.endsWith(quit), n);
+        }
+    }
+
+    /** 0.3.6.2 마무리: 안내·메뉴의 곡괭이는 광산 곡괭이 — 바닐라 곡괭이는 보통 물건이라 잃을 수 있다 (이름이 같아 '곡괭이' 만 쓰면 헷갈림). */
+    @Test
+    void safeTextNamesOnlyTheMinePickaxe() {
+        assertTrue(DeathPenaltyRules.alwaysSafe(ItemType.TOOL, "iron_pickaxe", false, Set.of()), "광산 곡괭이 (type tool)");
+        assertFalse(DeathPenaltyRules.alwaysSafe(null, "iron_pickaxe", false, Set.of()), "바닐라 철 곡괭이");
+        String n = Text.strip(DeathPenaltyRules.notice(Config.DEFAULT));
+        assertTrue(n.contains("광산 곡괭이"), n);
+        assertFalse(n.replace("광산 곡괭이", "").contains("곡괭이"), n);
+        for (String line : DeathPenaltyRules.menuLines(Config.DEFAULT)) {
+            assertFalse(line.replace("광산 곡괭이", "").contains("곡괭이"), line);
+        }
     }
 
     // ── 전투 중 퇴장 ─────────────────────────────────────────────────────

@@ -73,4 +73,30 @@ class CombatClockTest {
         c.clear();
         assertEquals(-1, c.last(VIC));
     }
+
+    /**
+     * 0.3.6.2 마무리: 귀환 주문서 시전 표시는 이 시계로 싸우는 중일 때만 — 주문서 쪽 판정은 마을 피해도 세므로,
+     * 입장 직전 마을에서 맞고 미궁에서 바로 쓴 주문서 시전 중에 끊어도 쓰러짐이 아니다.
+     */
+    @Test
+    void scrollCastCountsOnlyWhenTheDungeonClockSaysFighting() {
+        ExitCast x = new ExitCast(null);
+        x.clock().hurt(VIC, true, false, 1_000);            // 마을에서 맞음 (안 적힘)
+        x.scrollCast(VIC, true, 3_000);                     // 미궁에 들어와 2초 뒤 주문서 (주문서 쪽은 5초 시전)
+        assertEquals(false, x.combatCasting(VIC), "마을 피해로 시작한 주문서 시전은 끊김 쓰러짐이 아님");
+        assertEquals(QuitVerdict.NONE, DeathPenaltyRules.combatQuit(Config.DEFAULT,
+                new Quit(true, true, false, true, false, x.clock().since(VIC, 4_000), x.combatCasting(VIC), false)));
+
+        x.clock().hurt(VIC, true, true, 10_000);            // 미궁에서 맞음
+        x.scrollCast(VIC, true, 15_000);
+        assertEquals(true, x.combatCasting(VIC));
+        // 맞은 지 10초가 넘어도 시전 중이면 쓰러짐 (퇴장 시전과 같음)
+        assertEquals(QuitVerdict.APPLY, DeathPenaltyRules.combatQuit(Config.DEFAULT,
+                new Quit(true, true, false, true, false, x.clock().since(VIC, 21_000), x.combatCasting(VIC), false)));
+        x.scrollCast(VIC, false, 21_000);
+        assertEquals(false, x.combatCasting(VIC), "시전 끝");
+        x.scrollCast(VIC, true, 25_000);                    // 맞은 지 15초 — 싸우는 중 아님
+        assertEquals(false, x.combatCasting(VIC));
+        x.scrollCast(null, true, 25_000);
+    }
 }

@@ -229,7 +229,7 @@ public final class DeathPenaltyRules {
         /** 빈 칸인가 (null 포함). */
         boolean empty(S stack);
 
-        /** 언제나 안전한가 ({@link #alwaysSafe} — 장비·열쇠·곡괭이·무한 화살·safe_items). */
+        /** 언제나 안전한가 ({@link #alwaysSafe} — 장비·열쇠·광산 곡괭이·무한 화살·safe_items). */
         boolean keep(S stack);
 
         /** 셜커 상자·꾸러미처럼 담는 물건이면 안에 든 것 (자리 그대로, 빈 칸은 null 가능, 비었으면 빈 목록), 아니면 null. */
@@ -538,7 +538,7 @@ public final class DeathPenaltyRules {
         if (c.xpProgressReset()) out.add("쓰러지면 이번 레벨 경험치를 잃습니다.");
         String loss = dungeonLoss(c, "물건 ");
         if (loss != null) out.add("미궁 안에서 쓰러지면 " + loss + (c.xpProgressReset() ? " 더 잃습니다." : " 잃습니다."));
-        if (items(c)) out.add("장비·열쇠·곡괭이는 잃지 않습니다.");
+        if (items(c)) out.add("장비·열쇠·광산 곡괭이는 잃지 않습니다.");
         return out;
     }
 
@@ -547,11 +547,19 @@ public final class DeathPenaltyRules {
         if (c == null) return null;
         String loss = dungeonLoss(c, "가방 속 물건 ");
         if (loss == null) {
-            return c.xpProgressReset() ? "<#ffb27a>쓰러지면 이번 레벨 경험치가 처음으로 돌아갑니다.</#ffb27a> <gray>미궁 밖에서도 같습니다." : null;
+            return c.xpProgressReset() ? "<#ffb27a>쓰러지면 이번 레벨 경험치가 처음으로 돌아갑니다.</#ffb27a> <gray>미궁 밖에서도 같습니다."
+                    + quitText(c) : null;
         }
         String xp = c.xpProgressReset() ? " 잃고, 이번 레벨 경험치도 처음으로 돌아갑니다." : " 잃습니다.";
-        String safe = items(c) ? " <gray>장비·열쇠·곡괭이와 손에 든 것(상자 속은 빼고)은 안전합니다." : "";
-        return "<#ffb27a>미궁 안에서 쓰러지면 " + loss + xp + "</#ffb27a>" + safe;
+        // 곡괭이: 광산 곡괭이(type tool)만 안전 — 바닐라 곡괭이·삽 같은 도구는 보통 물건 ({@link #vanillaGear})
+        String safe = items(c) ? " <gray>장비·열쇠·광산 곡괭이와 손에 든 물건은 안전합니다 (손에 든 상자 속 물건은 빼고)." : "";
+        return "<#ffb27a>미궁 안에서 쓰러지면 " + loss + xp + "</#ffb27a>" + safe + quitText(c);
+    }
+
+    /** 안내 끝 한 마디: 싸우는 중 접속 끊김도 쓰러짐 ({@link #combatQuit} 이 켜질 때만 — 친구들은 README 를 읽지 않으므로). */
+    private static String quitText(Config c) {
+        return c.combatExitSeconds() > 0 && plan(c, Where.DUNGEON_RUN, false).any()
+                ? " <gray>싸우는 중에 접속을 끊어도 쓰러진 것으로 칩니다." : "";
     }
 
     /** 전투 중에 나가려 할 때 (시전 시작). */

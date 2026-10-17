@@ -48,7 +48,8 @@ echo "[3/5] 에셋 id 대조"
 # (출력을 파일로 받은 뒤 첫 줄만 — head 로 바로 자르면 경고가 많을 때 BrokenPipe 로 멈춘다)
 mkdir -p dist
 "$PY" tools/check_assets.py resourcepack/dist/labyrinth-pack.zip > dist/.check_assets.log 2>&1 || { cat dist/.check_assets.log; echo "에셋 id 불일치 — 위 목록을 고치세요"; exit 1; }
-head -n 1 dist/.check_assets.log
+# 결과 줄 ("검사 N건 · 오류 0건") — Pillow 경고 같은 줄이 앞에 와도 결과를 보여 준다
+grep -m1 '^검사 ' dist/.check_assets.log || head -n 1 dist/.check_assets.log
 
 echo "[4/5] 리소스팩 공개 사본 (config pack.public_copy 가 가리키는 파일)"
 # 팩과 jar 가 확정된 뒤. 없으면 만든다 (새로 만들어져도 배포는 계속 — 배포 가지에 커밋해 올리면 공개 주소로 받을 수 있다).

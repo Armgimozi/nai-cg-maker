@@ -33,6 +33,9 @@ final class CombatClock {
         return l < 0 ? -1 : now - l;
     }
 
+    /** 싸우는 중인가 (마지막 피해 10초 안 — {@link kr.labyrinth.core.DeathPenaltyRules#inCombat}). */
+    boolean inCombat(UUID u, long now) { return kr.labyrinth.core.DeathPenaltyRules.inCombat(since(u, now)); }
+
     void forget(UUID u) {
         if (u != null) last.remove(u);
     }
