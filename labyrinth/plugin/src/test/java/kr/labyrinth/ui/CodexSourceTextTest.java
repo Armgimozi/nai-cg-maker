@@ -114,10 +114,12 @@ class CodexSourceTextTest {
         }
         assertEquals(12, n, "신화 레시피");
         assertEquals(12, lines.size(), "신화가 아닌 레시피에는 줄이 없다");
-        // 공허의 심장은 10층에서만, 새벽의 종은 9층(테오라)과 10층
-        assertEquals("신화 도안 보스 " + nelkar + " · 특별 시련 · 금고·미믹", Text.strip(lines.get("voidheart_staff")));
+        // CR37: 12 모두 8·9·10층 보스 · 특별 시련 · 금고·미믹 (넬카르를 못 잡아도 도안이 나온다)
+        String orbel = kr.labyrinth.items.ItemTooltip.bossShortName(content.bossOfFloor(8));
         String theora = kr.labyrinth.items.ItemTooltip.bossShortName(content.bossOfFloor(9));
-        assertEquals("신화 도안 보스 " + theora + "·" + nelkar + " · 특별 시련 · 금고·미믹", Text.strip(lines.get("daybreak_bell")));
+        for (String id : List.of("voidheart_staff", "daybreak_bell")) {
+            assertEquals("신화 도안 보스 " + orbel + "·" + theora + "·" + nelkar + " · 특별 시련 · 금고·미믹", Text.strip(lines.get(id)), id);
+        }
     }
 
     /** 신화 도안 줄을 더해도 도감 툴팁은 20줄 안이고, 도안 줄 · 보스 줄 · 대장간 골드까지 다 보인다 (못 배운 사람 기준). */
@@ -135,7 +137,7 @@ class CodexSourceTextTest {
             String all = String.join("\n", lore);
             System.out.println("[도감 신화] " + d.id() + " " + lore.size() + "줄 · 획득처 " + src.size());
             assertTrue(lore.size() <= kr.labyrinth.items.ItemTooltip.MAX_LINES, d.id() + " " + lore.size());
-            assertTrue(all.contains("신화 도안 보스") && all.contains("400,000G") && !all.contains("외 더 있음"), d.id() + "\n" + all);
+            assertTrue(all.contains("신화 도안 보스") && all.contains("110,000G") && !all.contains("외 더 있음"), d.id() + "\n" + all);
         }
     }
 }

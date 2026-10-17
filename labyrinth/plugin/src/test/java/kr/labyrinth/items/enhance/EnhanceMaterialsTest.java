@@ -128,7 +128,8 @@ class EnhanceMaterialsTest {
                 }
             }
             // 보스 고유 장비(·보스가 주는 칭호 보상) = +9·+10 에만 그 층 보스의 핵. 나머지 장비는 보스 핵을 쓰지 않는다.
-            boolean bossGear = d.sources().contains("boss") || d.sources().contains("reward");
+            // CR37: 신화 무기는 대장간만(새 6)이어도 보스 장비 규칙 (gen_enhance homes_of 'mythic' 과 같음)
+            boolean bossGear = d.sources().contains("boss") || d.sources().contains("reward") || (d.isWeapon() && d.rarity() == Rarity.MYTHIC);
             String core = coreOf(d.floor());
             for (int tg = 1; tg <= 10; tg++) {
                 Set<String> at = asMap(t.costs(d.id(), tg)).keySet();
@@ -213,7 +214,7 @@ class EnhanceMaterialsTest {
             String p = t.costs(d.id(), 1).get(0).item(), s = t.costs(d.id(), 5).get(1).item();
             Set<String> home = homeMaterials(d);
             Set<String> allowed = new HashSet<>(home);
-            // 0.3.7: 신화는 레시피(핵 50 · 용혈석)가 있어도 보스 장비 규칙 — 그 보스 드롭 재료로 강화 (gen_enhance 와 같음)
+            // 0.3.7: 신화는 레시피(용혈석 등)가 있어도 보스 장비 규칙 — 그 보스(넬카르) 드롭 재료로 강화 (gen_enhance 와 같음)
             RecipeDef r = d.rarity() == Rarity.MYTHIC ? null : recipeOf.get(d.id());
             // 0.3.6 (계약 §2.9 + 몹 주제 드롭): S 는 그 장비의 주 금속 주괴(광산·제련소) — 어느 장비든 주괴는 허용 (EnhanceIngotTest 가 금속을 본다)
             Set<String> ingots = new HashSet<>();
@@ -363,6 +364,8 @@ class EnhanceMaterialsTest {
         List<String> homes = new ArrayList<>();
         for (String t : roots.keySet()) if (expand(t, new HashSet<>()).contains(d.id())) homes.add(t);
         if (homes.isEmpty() && d.sources().contains("reward")) homes.add(content.bossOfFloor(d.floor()).drops());
+        // CR37 새 신화 6 (대장간만) = 그 단계 층 보스(넬카르) 표 (gen_enhance 와 같음)
+        if (homes.isEmpty() && d.isWeapon() && d.rarity() == Rarity.MYTHIC) homes.add(content.bossOfFloor(d.floor()).drops());
         if (homes.isEmpty() && d.sources().contains("starter")) {
             for (var e : floorRoots(1).entrySet()) if (e.getValue().equals("common")) homes.add(e.getKey());
         }

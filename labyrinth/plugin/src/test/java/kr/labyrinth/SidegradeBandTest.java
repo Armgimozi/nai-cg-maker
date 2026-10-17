@@ -66,7 +66,7 @@ class SidegradeBandTest {
             for (ItemDef w : content.items().values()) {
                 if (DropRateWindowTest.forge(w) && GearModel.band(w.levelReq()) == band) top = Math.max(top, w.levelReq());
             }
-            List<Double> forge = new ArrayList<>();   // 0.3.7 신화(보스 + 대장간)는 대장간 기준이 아니다
+            List<Double> forge = new ArrayList<>();   // 0.3.7 신화(신화 도안 · 대장간)는 대장간 기준이 아니다
             for (ItemDef w : content.items().values()) {
                 if (DropRateWindowTest.forge(w) && w.levelReq() == top) forge.add(cv(w, 0));
             }

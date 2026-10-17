@@ -190,7 +190,7 @@ class BlueprintOfTest {
         es.add(new LootTable.Entry(LootTable.Kind.ITEM, myth, null, 0, List.of(), null, 0.01, IntRange.ONE, null));
         String w = String.join("\n", ContentValidator.validate(withTables(content,
                 Map.of(sp.id(), new LootTable(sp.id(), sp.rolls(), es, sp.guaranteed(), sp.gold())))).warnings());
-        assertTrue(w.contains("items." + myth + ": 신화 무기인데 획득처가 보스·특별 시련·대장간 — 보스, 또는 보스·대장간이어야 함"), w);
+        assertTrue(w.contains("items." + myth + ": 신화 무기인데 획득처가 보스·특별 시련·대장간 — 보스, 보스·대장간, 또는 대장간이어야 함"), w);
         // 7층 보스(창 밖 — 신화는 8·9·10층 보스만)
         LootTable b7 = content.lootTable("floor07_boss");
         List<LootTable.Entry> e7 = new ArrayList<>(b7.entries());

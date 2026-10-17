@@ -279,9 +279,10 @@ class TooltipFitTest {
         assertEquals(4, starter, "수련생 4종");
         assertEquals(ItemTooltip.SOURCE_PREFIX + "보스 테오라 · 대장간", ItemTooltip.sourceLine(content, content.item("clockwork_bastion")));
         assertEquals(ItemTooltip.SOURCE_PREFIX + "보스 테오라", ItemTooltip.sourceLine(content, content.item("doomclock_executioner")));
-        // 0.3.7 신화: 9·10층이 나눠 주면 "보스 · 대장간", 10층만 주는 공허의 심장은 "보스 넬카르 · 대장간"
-        assertEquals(ItemTooltip.SOURCE_PREFIX + "보스 · 대장간", ItemTooltip.sourceLine(content, content.item("tempest_bow")));
+        // 0.3.7 CR37 신화: 옛 6 은 넬카르만 → "보스 넬카르 · 대장간", 새 6 은 도안 제작만 → "대장간"
+        assertEquals(ItemTooltip.SOURCE_PREFIX + "보스 넬카르 · 대장간", ItemTooltip.sourceLine(content, content.item("tempest_bow")));
         assertEquals(ItemTooltip.SOURCE_PREFIX + "보스 넬카르 · 대장간", ItemTooltip.sourceLine(content, content.item("voidheart_staff")));
+        assertEquals(ItemTooltip.SOURCE_PREFIX + "대장간", ItemTooltip.sourceLine(content, content.item("comet_longbow")));
         // 상인이 하나면 이름 ("상인 핀")
         ItemDef sold = content.items().values().stream().filter(d -> d.isGear() && d.sources().equals(List.of("shop"))).findFirst().orElse(null);
         if (sold != null) assertEquals(ItemTooltip.SOURCE_PREFIX + "상인 핀", ItemTooltip.sourceLine(content, sold), sold.id());

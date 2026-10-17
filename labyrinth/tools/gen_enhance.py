@@ -36,8 +36,9 @@
   1회 클리어에 특별 시련 상자 special_trial_fNN (0.26번) · 금고·미믹 hoard_fNN (2.4~3.4번) 도 굴린다 ·
   획득처 이름에 시련방 · 특별 시련 · 금고·미믹.
 
-0.3.7: 신화 무기(rarity mythic)는 신화 레시피(신화 도안 · 핵 50)가 있어도 ① 을 쓰지 않고 보스 장비 규칙 ②+③ — 그 보스 드롭 재료,
-  +7·+8 정예 재료 · +9·+10 핵. 레시피 재료(핵 50 · 용혈석)는 제작 한 번 값이라 강화 단계마다 쓰면 강화가 제작보다 비싸진다.
+0.3.7: 신화 무기(rarity mythic)는 신화 레시피(신화 도안)가 있어도 ① 을 쓰지 않고 보스 장비 규칙 ②+③ — 그 보스 드롭 재료,
+  +7·+8 정예 재료 · +9·+10 핵. 레시피 재료(용혈석 등)는 제작 한 번 값이라 강화 단계마다 쓰면 강화가 제작보다 비싸진다.
+  CR37: 드롭 줄이 없는 새 신화 6 (대장간만)도 같다 — 집 = 그 단계 층 보스(넬카르) 표 (homes_of 의 'mythic').
 
 0.3.6 (Q3 — 계약 §2.9 + 몹 주제 드롭 drops_spec §8, content 에 주괴(mine_kind: ingot)가 있으면 저절로 켜짐 → Rules036):
   · P = 그 장비의 몬스터 재료 (레시피에서 가장 많이 드는 몬스터 재료 / 드롭 장비는 단단한 장비 HARD · 부드러운 장비 SOFT —
@@ -437,6 +438,9 @@ def homes_of(i, v, fl, tables):
         return [r for r in fl.roots if r[0] == fl.boss_root], 'reward'
     if 'starter' in src:
         return [r for r in fl.roots if r[2] in ('mob', 'chest')], 'starter'
+    if v.get('rarity') == 'mythic' and v.get('type') == 'weapon' and fl.boss_root:
+        # 0.3.7 CR37: 새 신화 6 은 제작만 (드롭 줄 없음) — 강화는 그대로 신화 규칙, 집 = 그 단계 층 보스(넬카르) 표
+        return [r for r in fl.roots if r[0] == fl.boss_root], 'mythic'
     if 'craft' in src:
         return [], 'craft'  # 대장간에서만 — 드롭 집 없음 (레시피 재료와 그 정제 정수만)
     return [r for r in fl.roots if r[2] in ('mob', 'chest')], 'none'
@@ -496,7 +500,7 @@ def candidates(i, v, fl, tables, recipe, refine):
     home_mats = [m for m, n in home_sup.items() if n > 0 and m not in NOT_FLOOR_MATERIAL
                  and (m in fl.commons or m in fl.elites or m in fl.cores or m in ESS_ORDER)]
     src = set(v.get('sources') or [])
-    boss = 'boss' in src or label == 'reward'
+    boss = 'boss' in src or label in ('reward', 'mythic')
     kind = kind_of(v)
     rare = lambda ms: sorted({m for m in ms if fl.cls(m) in ('elite', 'ess', 'next')}, key=fl.rank)
     home_rare = rare(home_mats)
@@ -1038,7 +1042,8 @@ def write_yaml(cfg, items, recipes_out, meta, fls, rows, collisions, fair, sourc
         v = items[i]
         why = '제작 재료' if m['how'] == 'recipe' else {'mob·chest': '몬스터·상자 드롭', 'mob': '몬스터 드롭', 'chest': '상자 드롭',
                                                         'elite': '정예 드롭', 'boss': '보스 드롭', 'reward': '칭호를 주는 보스 드롭',
-                                                        'starter': '1층 몬스터·상자 드롭'}.get(m['label'], '드롭 재료')
+                                                        'starter': '1층 몬스터·상자 드롭',
+                                                        'mythic': '그 층 보스(넬카르) 드롭'}.get(m['label'], '드롭 재료')
         if m['tier'] == 'RC':
             why += ' + 정제 정수'
         elif m['how'] == 'recipe' and m['Rm'] not in m['R_recipe']:
@@ -1053,7 +1058,7 @@ def write_yaml(cfg, items, recipes_out, meta, fls, rows, collisions, fair, sourc
         if m['ds']:
             notes.append(f"S +{m['ds']}")
         if v.get('rarity') == 'mythic' and 'craft' in (v.get('sources') or []):
-            why += ' (신화 — 레시피가 있어도 보스 장비 규칙)'
+            why += ' (신화 — 레시피가 있어도 보스 장비 규칙)' if 'boss' in (v.get('sources') or []) else ' (신화 — 제작만이어도 보스 장비 규칙)'
         w(f"  {i}:  # {v.get('name', i)} · {KIND_NAME.get(m['kind'], m['kind'])} · {home_text(v, m['label'])} → {why}"
           + (f" ({', '.join(notes)} — {' · '.join(m['reasons'])})" if notes else ''))
         r = recipes_out[i]

@@ -31,7 +31,7 @@
 #  sources     : 획득처 (툴팁·도감 표시용, tools/gen_035_content.py 가 loot/recipes/titles/npcs/시작 지급에서 계산해 적음)
 #                영웅·전설 무기는 획득처 종류 1개 — 보스 고유 = 그 보스만 (제작법 없음) · 대장간 = 대장간만 (드롭 없음) ·
 #                몬스터·상자 · 시련방 · 특별 시련 · 금고·미믹 · 정예 중 하나 (몬스터·상자 = drop+chest 한 종류)
-#                신화 무기(0.3.7, 직업마다 둘)만 둘 — boss(8·9·10층 보스) + craft(신화 도안을 배운 대장간)
+#                신화 무기(0.3.7, 직업마다 둘)만 따로 — 옛 6 = boss(넬카르) + craft(신화 도안을 배운 대장간) · 새 6 = craft 만
 #                drop·chest 몬스터·상자(mix_fNN_drop → 단계 풀 band_tNN_drop — 일반 몹·보물방·미로 상자) · elite 정예(band_tNN_elite) ·
 #                boss 보스 고유 · trial 시련방(band_tNN_trial) · special 특별 시련(band_tNN_special) · hoard 금고·미믹(band_tNN_hoard)
 #                craft 대장간 · reward 칭호 보상 · shop 상인 · starter 시작 지급(config starter_kit — 몹·상자·대장간에서 안 나옴)
@@ -664,7 +664,7 @@ items:
     stats: {damage: [246, 270], STR: [17, 23], VIT: [10, 14], hp: [233, 315], defense: [26, 36], crit_damage: [0.259, 0.35], cooldown_reduction: [0.079, 0.107]}
     aura: mountain
     pool: false
-    sources: [boss, craft]
+    sources: [craft]
     unique: {id: bash_stun, name: "산울림", n: 3, stun: 0.6, pct: 0.32, vuln: 0.05}
     weapon_skills:
       - id: mechanics
@@ -1299,7 +1299,7 @@ items:
     stats: {damage: [208, 229], STR: [17, 23], defense: [26, 36], crit_chance: [0.079, 0.107], hp: [233, 315], damage_reduction: [0.058, 0.078], move_speed: [0.051, 0.068]}
     aura: hightide
     pool: false
-    sources: [boss, craft]
+    sources: [craft]
     unique: {id: cleave, name: "물살 베기", pct: 0.24, radius: 3.5, targets: 4}
     weapon_skills:
       - id: mechanics
@@ -1863,7 +1863,7 @@ items:
     stats: {damage: [260, 286], DEX: [17, 23], STR: [10, 14], crit_chance: [0.079, 0.107], crit_damage: [0.259, 0.35], skill_damage: [0.137, 0.185], LUK: [10, 14]}
     aura: comet
     pool: false
-    sources: [boss, craft]
+    sources: [craft]
     unique: {id: longshot, name: "먼 별", dist: 12, pct: 0.16, pierce: 0}
     weapon_skills:
       - id: mechanics
@@ -2473,7 +2473,7 @@ items:
     stats: {damage: [157, 173], INT: [17, 23], mp: [117, 159], mana_regen: [1.2, 1.7], cooldown_reduction: [0.079, 0.107], skill_damage: [0.137, 0.185], move_speed: [0.051, 0.068]}
     aura: wisp
     pool: false
-    sources: [boss, craft]
+    sources: [craft]
     unique: {id: siphon, name: "불씨 거두기", mp: 0.04, cdr: 0.4}
     weapon_skills:
       - id: mechanics
@@ -3077,7 +3077,7 @@ items:
     stats: {damage: [138, 152], WIS: [17, 23], INT: [10, 14], skill_damage: [0.137, 0.185], heal_power: [44, 59], cooldown_reduction: [0.079, 0.107], mana_regen: [1.2, 1.7]}
     aura: daybreak
     pool: false
-    sources: [boss, craft]
+    sources: [craft]
     unique: {id: sanctify, name: "맑은 울림", pct: 0.095, radius: 8}
     weapon_skills:
       - id: mechanics
@@ -3672,7 +3672,7 @@ items:
     stats: {damage: [99, 109], DEX: [17, 23], LUK: [10, 14], crit_chance: [0.079, 0.107], crit_damage: [0.259, 0.35], skill_damage: [0.137, 0.185], move_speed: [0.051, 0.068]}
     aura: waning
     pool: false
-    sources: [boss, craft]
+    sources: [craft]
     unique: {id: hemorrhage, name: "달그림자", cc: 0.05, cd: 0.1}
     weapon_skills:
       - id: mechanics
@@ -8984,7 +8984,7 @@ items:
     sources: [boss]
     model: {shape: icon}
     texture: {style: heart, palette: ["#020306", "#08141a", "#123842", "#2fe0d0", "#b01a3a"]}
-    lore: "심연의 심장 넬카르에서 떨어져 나온 조각. 아직도 아주 느리게 박동한다. 대장장이 두르간에게 가져가면 신화 무기를 벼릴 수 있다."
+    lore: "심연의 심장 넬카르에서 떨어져 나온 조각. 아직도 아주 느리게 박동한다. 넬카르의 장비와 신화 무기를 끝까지 강화할 때 든다."
   dim_essence:
     name: "희미한 미궁 정수"
     type: material

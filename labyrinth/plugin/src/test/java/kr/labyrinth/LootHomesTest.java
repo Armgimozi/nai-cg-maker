@@ -159,8 +159,9 @@ class LootHomesTest {
             for (String x : t) kinds.add(kind(x));
             assertTrue(kinds.size() >= 1 && kinds.size() <= 2, d.id() + " 획득처 종류 " + kinds);
             if (d.isWeapon() && d.rarity() == Rarity.MYTHIC) {
-                // 0.3.7: 신화만 둘 — 8·9·10층 보스 + 대장간 (신화 도안)
-                assertEquals(new TreeSet<>(List.of("boss", "craft")), kinds, d.id() + " 신화 획득처 종류 " + kinds);
+                // 0.3.7 CR37: 옛 6 = 넬카르 + 대장간 (신화 도안), 새 6 = 대장간만 (도안 제작)
+                assertTrue(kinds.equals(new TreeSet<>(List.of("boss", "craft"))) || kinds.equals(new TreeSet<>(List.of("craft"))),
+                        d.id() + " 신화 획득처 종류 " + kinds);
             } else if (d.isWeapon() && d.rarity().atLeast(Rarity.EPIC)) {
                 assertEquals(1, kinds.size(), d.id() + " 영웅 이상 무기 획득처 종류 " + kinds);
             }

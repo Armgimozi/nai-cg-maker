@@ -294,6 +294,7 @@ class BlueprintLootTest {
         List<Stat> top = buildOf(d);
         for (LootTable.Entry e : t.entries()) {
             if (e.kind() == LootTable.Kind.ONE_OF && e.oneOf().contains(d.id())) p += Math.min(1, e.chance()) * gearPickP(c, e.oneOf(), d.id(), top);
+            if (e.kind() == LootTable.Kind.ITEM && d.id().equals(e.item())) p += Math.min(1, e.chance());   // CR37: 넬카르 옛 신화 한 자루마다 한 줄
         }
         return p;
     }
@@ -324,18 +325,19 @@ class BlueprintLootTest {
             n++;
             ItemDef d = c.item(r.result());
             double drop = mythicDropPerRun(c, 10, d), bp = mythicBlueprintPerRun(c, 10, r);
-            assertTrue(drop > 0 && bp > 0, r.id() + " 10층 드롭 " + drop + " · 도안 " + bp);
-            double dropRuns = 1 / drop, bpRuns = 1 / bp;
-            sb.append(String.format("%s 드롭 %.0f회 · 도안 %.0f회 · ", r.id(), dropRuns, bpRuns));
-            if (bpRuns < 0.6 * dropRuns) off.add(r.id() + String.format(" 도안 %.1f회 < 드롭 %.1f회 × 0.6", bpRuns, dropRuns));
-            // 8·9층은 곁가지 — 10층보다 빠르지 않다 (그 신화가 나오는 층에서)
+            // CR37: 옛 6 = 넬카르 드롭(0.2)이 도안보다 잦다 (넬카르를 잡는 조는 줍는 게 먼저) · 새 6 = 드롭 없이 도안만
+            boolean craftOnly = d.sources().equals(List.of("craft"));
+            assertTrue(bp > 0 && (craftOnly ? drop == 0 : drop > 0), r.id() + " 10층 드롭 " + drop + " · 도안 " + bp);
+            sb.append(String.format("%s 드롭 %s · 도안 %.1f회 · ", r.id(), craftOnly ? "없음" : String.format("%.1f회", 1 / drop), 1 / bp));
+            if (!craftOnly && bp >= drop) off.add(r.id() + String.format(" 10층 도안 %.3f ≥ 드롭 %.3f", bp, drop));
+            // 8·9층: 신화 아이템은 없고, 도안도 10층보다 잦지 않다 (넬카르를 잡는 쪽이 가장 빠르다)
             for (int f = 8; f <= 9; f++) {
                 double d8 = mythicDropPerRun(c, f, d), b8 = mythicBlueprintPerRun(c, f, r);
-                if (d8 > drop + 1e-12) off.add(r.id() + " " + f + "층 드롭이 10층보다 잦음");
+                if (d8 > 0) off.add(r.id() + " " + f + "층 신화 드롭 (넬카르만 준다)");
                 if (b8 > bp + 1e-12) off.add(r.id() + " " + f + "층 도안이 10층보다 잦음");
             }
         }
-        System.out.println("[신화 도안] " + (MythicFixture.isReal() ? "번들" : "명세 꼴") + " · " + sb);
+        System.out.println("[신화 도안] " + sb);
         assertTrue(n >= 6, "신화 레시피 " + n);
         assertEquals(List.of(), off);
     }

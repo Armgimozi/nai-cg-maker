@@ -149,11 +149,13 @@ class GearRequirementsDataTest {
         Set<String> recipeResults = new HashSet<>();
         for (RecipeDef r : content.recipes().values()) recipeResults.add(r.result());
         Map<String, Integer> byKind = new TreeMap<>();
+        int mythicCraftOnly = 0;
         for (ItemDef d : content.items().values()) {
             if (!top(d)) continue;
             if (d.rarity() == Rarity.MYTHIC) {
-                // 0.3.7: 신화만 획득처 종류가 둘 — 8·9·10층 보스 + 대장간(신화 도안). 따로 센다
-                assertEquals(List.of("boss", "craft"), d.sources(), d.id() + " 신화 획득처");
+                // 0.3.7 CR37: 신화는 따로 센다 — 옛 6 = 넬카르 + 대장간(신화 도안), 새 6 = 대장간(신화 도안)만
+                assertTrue(d.sources().equals(List.of("boss", "craft")) || d.sources().equals(List.of("craft")), d.id() + " 신화 획득처 " + d.sources());
+                if (d.sources().equals(List.of("craft"))) mythicCraftOnly++;
                 assertTrue(recipeResults.contains(d.id()), d.id() + " 신화에 레시피 없음");
                 byKind.merge("mythic", 1, Integer::sum);
                 continue;
@@ -167,16 +169,17 @@ class GearRequirementsDataTest {
         }
         // gear_spec §12 (보스 32 · 대장간 36 · 몬스터·상자 21 · 금고·미믹 16 · 특별 시련 15 · 시련방 11 · 정예 10)
         // + B2 영웅 7 (시련방 2 · 정예 3 · 금고·미믹 1 · 특별 시련 1) + 31~35 영웅 올림 8 (금고·미믹 2 · 특별 시련 2 · 시련방 2 · 정예 2)
-        // 0.3.7: 보스 32 = 영웅·전설 26 + 신화 6 → 신화 12 (보스 + 대장간) 를 따로
+        // 0.3.7: 보스 32 = 영웅·전설 26 + 신화 6 → 신화 12 (옛 6 넬카르 + 대장간 · 새 6 대장간만) 를 따로
         assertEquals(Map.of("boss", 26, "mythic", 12, "craft", 36, "common", 21, "hoard", 19, "special", 18, "trial", 15, "elite", 15),
                 byKind, "영웅 이상 무기 획득처 종류별 수");
+        assertEquals(6, mythicCraftOnly, "새 신화 6 = 대장간(도안 제작)만");
     }
 
     @Test
     void bossUniqueWeaponsDropOftenEnough() {
         // 보통·솔로·LUK 0 에서 처치 1번당 '그 무기 요구에 맞춘 빌드'(능력치 상위 2개 = 그 무기 요구 위 두 능력치) 확률
         // = chance × (편향 ÷ 빌드에 맞는 후보 수 + (1 − 편향) ÷ 묶음 수) — LootRoller.pick 과 같은 규칙. 제작으로 메울 수 없으니
-        // 영웅 30% 이상 · 전설 15% 이상 · 55% 이하 (신화는 8·9·10층 보스 + 대장간 — MythicSetTest)
+        // 영웅 30% 이상 · 전설 15% 이상 · 55% 이하 (신화는 넬카르 + 대장간 / 대장간만 — MythicSetTest)
         double bias = content.lootSettings().ownBuildBias();
         assertEquals(0.65, bias, 1e-9);
         int checked = 0;

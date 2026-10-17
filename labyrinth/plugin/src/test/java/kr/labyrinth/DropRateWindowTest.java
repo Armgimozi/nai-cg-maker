@@ -314,7 +314,7 @@ class DropRateWindowTest {
         assertEquals(List.of(), off, "던전 광석 1회량");
     }
 
-    /** 대장간 기준 무기 — 대장간에서 만들 수 있는 무기 중 신화(보스 + 대장간, 긴 목표)를 뺀 것. */
+    /** 대장간 기준 무기 — 대장간에서 만들 수 있는 무기 중 신화(신화 도안 + 큰 골드, 8~10회 목표)를 뺀 것. */
     static boolean forge(ItemDef w) {
         return w.isWeapon() && w.sources().contains("craft") && w.rarity() != Rarity.MYTHIC;
     }
@@ -322,7 +322,7 @@ class DropRateWindowTest {
     @Test
     void forgeBaselineRecipesTakeAFewRuns() {
         // 띠 대장간 기준 = 그 띠 가장 높은 레벨 대장간 무기 — 제작 회차 = max(재료 회차, 골드 회차) 0.3~2.5 (무기 레시피 골드 ×1.5 뒤)
-        // 0.3.7 신화 레시피(핵 50 — 넬카르 50번, 긴 목표)는 기준이 아니다 → MythicSetTest
+        // 0.3.7 신화 레시피(CR37 — 도안 + 10층 재료 + 110,000G, 8~10회 목표)는 기준이 아니다 → MythicSetTest · MythicNoNelkarGateTest
         Map<String, RecipeDef> recipeOf = new HashMap<>();
         for (RecipeDef r : content.recipes().values()) recipeOf.putIfAbsent(r.result(), r);
         List<String> off = new ArrayList<>();

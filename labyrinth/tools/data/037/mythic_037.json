@@ -1,7 +1,7 @@
 {
  "_meta": {
   "source": "myth-037 최종 명세 final_spec.json (myth-037 final v1) 사본 (한 번 만든 것). 그 뒤 고친 것은 _meta.fixes 에 적는다. tools/gen_037_mythic.py (MYTH037 단계, gen_035_content.generate() 의 BP036 뒤) 가 읽는다.",
-  "owner_decision": "신화 무기 6 → 12 (직업마다 둘, 짝과 다른 무기 종류) · 획득 = 보스(8·9·10층) + 대장간(신화 도안) · 모든 난이도",
+  "owner_decision": "신화 무기 6 → 12 (직업마다 둘, 짝과 다른 무기 종류) · 옛 6 = 넬카르 드롭(한 자루마다 20%) + 대장간(신화 도안) · 새 6 = 대장간(신화 도안)만 · 넬카르를 안 잡아도 만든다 · 모든 난이도",
   "band_median": {
    "now_30": 774.385,
    "after_36": 812.485,
@@ -12,7 +12,8 @@
    "FX37 PvP: 소환(summon)은 사거리 안 적에게 바로 맞으므로 맞을 확률 1.0 × 수, 따라오는 장판은 min(0.9, 0.45 + 0.1·반지름)으로 다시 셈 → 도깨비불 등롱 RIGHT 0.85 → 0.4 · SNEAK_RIGHT 0.2 → 0.1, 만조의 큰낫 SNEAK_LEFT 0.85 → 0.45, 새벽의 종 SNEAK_RIGHT 없음 → 0.45 (pvp_spec skill_mult 같음)",
    "FX37 홀림불: 장판 at aim → target (노린 적 발밑, 없으면 노린 곳 — 울림 낙인과 같은 방식)",
    "FX37 새벽의 종 고유 이름 새벽빛 → 맑은 울림 (전설 '여명의 빛' 과 겹침, unique_assign 같음)",
-   "FX37 새벽의 종 그림: 해 원반·햇살·후광을 빼고 종 꼭대기 고리·보석으로, 텍스처를 짙은 장밋빛 청동으로 (치천사의 홀 크림·금과 갈리게)"
+   "FX37 새벽의 종 그림: 해 원반·햇살·후광을 빼고 종 꼭대기 고리·보석으로, 텍스처를 짙은 장밋빛 청동으로 (치천사의 홀 크림·금과 갈리게)",
+   "CR37 (주인 결정: 노가다 줄이기 · 넬카르 없이도 제작 · 새 6 은 도안 제작만 · 옛 6 은 한 자루마다 20%): 레시피에서 심연 심장 파편을 뺌 · 문지기의 룬 16 · 태고 정수 40 · 체액 200 · 큰 부위 150 · 작은 부위 50 · 주괴 30 · 용혈석 2 · 110,000G · 새 6 은 모든 드롭 표에서 뺌 (sources [craft]) · 옛 6 은 넬카르 item 줄 여섯 (각 20%) · 8·9층 보스 신화 드롭 없앰 · 신화 도안: 새 6 은 한 줄(빌드 몫 같음), 옛 6 은 한 장씩 — 8·9·10층 보스 · 특별 시련 · 금고·미믹 (넬카르는 12 모두)"
   ]
  },
  "mythics": [
@@ -122,7 +123,6 @@
    "aura": "mountain",
    "pool": false,
    "sources": [
-    "boss",
     "craft"
    ],
    "unique": {
@@ -393,7 +393,6 @@
    "aura": "hightide",
    "pool": false,
    "sources": [
-    "boss",
     "craft"
    ],
    "unique": {
@@ -630,7 +629,6 @@
    "aura": "comet",
    "pool": false,
    "sources": [
-    "boss",
     "craft"
    ],
    "unique": {
@@ -812,7 +810,6 @@
    "aura": "wisp",
    "pool": false,
    "sources": [
-    "boss",
     "craft"
    ],
    "unique": {
@@ -1004,7 +1001,6 @@
    "aura": "daybreak",
    "pool": false,
    "sources": [
-    "boss",
     "craft"
    ],
    "unique": {
@@ -1250,7 +1246,6 @@
    "aura": "waning",
    "pool": false,
    "sources": [
-    "boss",
     "craft"
    ],
    "unique": {
@@ -1485,44 +1480,104 @@
      "chance": 0.04
     },
     "to": {
-     "one_of": [
-      "celestial_oathkeeper",
-      "mountainheart_maul",
-      "bloodmoon_reaver",
-      "hightide_scythe",
-      "tempest_bow",
-      "comet_longbow",
-      "voidheart_staff",
-      "wisp_lantern",
-      "seraph_scepter",
-      "daybreak_bell",
-      "eclipse_blade",
-      "waning_moon_sickle"
-     ],
-     "chance": 0.08
+     "item": "celestial_oathkeeper",
+     "chance": 0.2
     },
-    "note": "신화 12 (직업마다 둘) — 한 개당 처치당 약 0.67%, 모든 난이도"
+    "note": "옛 신화 — 한 자루마다 따로 20% (주인 결정), 모든 난이도"
    },
    "append": [
     {
      "entry": {
+      "item": "bloodmoon_reaver",
+      "chance": 0.2
+     }
+    },
+    {
+     "entry": {
+      "item": "tempest_bow",
+      "chance": 0.2
+     }
+    },
+    {
+     "entry": {
+      "item": "voidheart_staff",
+      "chance": 0.2
+     }
+    },
+    {
+     "entry": {
+      "item": "seraph_scepter",
+      "chance": 0.2
+     }
+    },
+    {
+     "entry": {
+      "item": "eclipse_blade",
+      "chance": 0.2
+     }
+    },
+    {
+     "entry": {
       "blueprint_of": [
-       "celestial_oathkeeper",
        "mountainheart_maul",
-       "bloodmoon_reaver",
        "hightide_scythe",
-       "tempest_bow",
        "comet_longbow",
-       "voidheart_staff",
        "wisp_lantern",
-       "seraph_scepter",
        "daybreak_bell",
-       "eclipse_blade",
        "waning_moon_sickle"
       ],
-      "chance": 0.05
+      "chance": 0.29
      },
-     "note": "신화 도안 — 대장간 신화 레시피를 배움 (빌드 편향 그대로)"
+     "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "celestial_oathkeeper"
+      ],
+      "chance": 0.1
+     },
+     "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "bloodmoon_reaver"
+      ],
+      "chance": 0.1
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "tempest_bow"
+      ],
+      "chance": 0.1
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "voidheart_staff"
+      ],
+      "chance": 0.1
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "seraph_scepter"
+      ],
+      "chance": 0.1
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "eclipse_blade"
+      ],
+      "chance": 0.1
+     }
     }
    ]
   },
@@ -1530,29 +1585,66 @@
    "append": [
     {
      "entry": {
-      "one_of": [
-       "celestial_oathkeeper",
+      "blueprint_of": [
+       "mountainheart_maul",
        "hightide_scythe",
-       "tempest_bow",
+       "comet_longbow",
+       "wisp_lantern",
        "daybreak_bell",
        "waning_moon_sickle"
       ],
-      "chance": 0.015
+      "chance": 0.2
      },
-     "note": "신화 5 (곁가지 — 넬카르가 가장 높음), 모든 난이도"
+     "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
     },
     {
      "entry": {
       "blueprint_of": [
-       "celestial_oathkeeper",
-       "hightide_scythe",
-       "tempest_bow",
-       "daybreak_bell",
-       "waning_moon_sickle"
+       "celestial_oathkeeper"
       ],
-      "chance": 0.006
+      "chance": 0.075
      },
-     "note": "신화 도안 — 대장간 신화 레시피를 배움 (빌드 편향 그대로)"
+     "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "bloodmoon_reaver"
+      ],
+      "chance": 0.075
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "tempest_bow"
+      ],
+      "chance": 0.075
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "voidheart_staff"
+      ],
+      "chance": 0.075
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "seraph_scepter"
+      ],
+      "chance": 0.075
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "eclipse_blade"
+      ],
+      "chance": 0.075
+     }
     }
    ]
   },
@@ -1560,31 +1652,66 @@
    "append": [
     {
      "entry": {
-      "one_of": [
+      "blueprint_of": [
        "mountainheart_maul",
-       "bloodmoon_reaver",
+       "hightide_scythe",
        "comet_longbow",
        "wisp_lantern",
-       "seraph_scepter",
-       "eclipse_blade"
+       "daybreak_bell",
+       "waning_moon_sickle"
       ],
-      "chance": 0.012
+      "chance": 0.1
      },
-     "note": "신화 6 (곁가지 — 넬카르가 가장 높음), 모든 난이도"
+     "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
     },
     {
      "entry": {
       "blueprint_of": [
-       "mountainheart_maul",
-       "bloodmoon_reaver",
-       "comet_longbow",
-       "wisp_lantern",
-       "seraph_scepter",
+       "celestial_oathkeeper"
+      ],
+      "chance": 0.04
+     },
+     "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "bloodmoon_reaver"
+      ],
+      "chance": 0.04
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "tempest_bow"
+      ],
+      "chance": 0.04
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "voidheart_staff"
+      ],
+      "chance": 0.04
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "seraph_scepter"
+      ],
+      "chance": 0.04
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
        "eclipse_blade"
       ],
-      "chance": 0.006
-     },
-     "note": "신화 도안 — 대장간 신화 레시피를 배움 (빌드 편향 그대로)"
+      "chance": 0.04
+     }
     }
    ]
   },
@@ -1593,22 +1720,65 @@
     {
      "entry": {
       "blueprint_of": [
-       "celestial_oathkeeper",
        "mountainheart_maul",
-       "bloodmoon_reaver",
        "hightide_scythe",
-       "tempest_bow",
        "comet_longbow",
-       "voidheart_staff",
        "wisp_lantern",
-       "seraph_scepter",
        "daybreak_bell",
-       "eclipse_blade",
        "waning_moon_sickle"
       ],
-      "chance": 0.1
+      "chance": 0.13
      },
-     "note": "신화 도안 — 대장간 신화 레시피를 배움 (빌드 편향 그대로)"
+     "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "celestial_oathkeeper"
+      ],
+      "chance": 0.05
+     },
+     "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "bloodmoon_reaver"
+      ],
+      "chance": 0.05
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "tempest_bow"
+      ],
+      "chance": 0.05
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "voidheart_staff"
+      ],
+      "chance": 0.05
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "seraph_scepter"
+      ],
+      "chance": 0.05
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "eclipse_blade"
+      ],
+      "chance": 0.05
+     }
     }
    ]
   },
@@ -1617,15 +1787,65 @@
     {
      "entry": {
       "blueprint_of": [
-       "celestial_oathkeeper",
+       "mountainheart_maul",
        "hightide_scythe",
-       "tempest_bow",
+       "comet_longbow",
+       "wisp_lantern",
        "daybreak_bell",
        "waning_moon_sickle"
       ],
-      "chance": 0.02
+      "chance": 0.13
      },
-     "note": "신화 도안 — 대장간 신화 레시피를 배움 (빌드 편향 그대로)"
+     "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "celestial_oathkeeper"
+      ],
+      "chance": 0.05
+     },
+     "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "bloodmoon_reaver"
+      ],
+      "chance": 0.05
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "tempest_bow"
+      ],
+      "chance": 0.05
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "voidheart_staff"
+      ],
+      "chance": 0.05
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "seraph_scepter"
+      ],
+      "chance": 0.05
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "eclipse_blade"
+      ],
+      "chance": 0.05
+     }
     }
    ]
   },
@@ -1635,15 +1855,64 @@
      "entry": {
       "blueprint_of": [
        "mountainheart_maul",
-       "bloodmoon_reaver",
+       "hightide_scythe",
        "comet_longbow",
        "wisp_lantern",
-       "seraph_scepter",
+       "daybreak_bell",
+       "waning_moon_sickle"
+      ],
+      "chance": 0.13
+     },
+     "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "celestial_oathkeeper"
+      ],
+      "chance": 0.05
+     },
+     "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "bloodmoon_reaver"
+      ],
+      "chance": 0.05
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "tempest_bow"
+      ],
+      "chance": 0.05
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "voidheart_staff"
+      ],
+      "chance": 0.05
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "seraph_scepter"
+      ],
+      "chance": 0.05
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
        "eclipse_blade"
       ],
-      "chance": 0.02
-     },
-     "note": "신화 도안 — 대장간 신화 레시피를 배움 (빌드 편향 그대로)"
+      "chance": 0.05
+     }
     }
    ]
   },
@@ -1652,22 +1921,65 @@
     {
      "entry": {
       "blueprint_of": [
-       "celestial_oathkeeper",
        "mountainheart_maul",
-       "bloodmoon_reaver",
        "hightide_scythe",
-       "tempest_bow",
        "comet_longbow",
-       "voidheart_staff",
        "wisp_lantern",
-       "seraph_scepter",
        "daybreak_bell",
-       "eclipse_blade",
        "waning_moon_sickle"
       ],
-      "chance": 0.008
+      "chance": 0.0065
      },
-     "note": "신화 도안 — 대장간 신화 레시피를 배움 (빌드 편향 그대로)"
+     "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "celestial_oathkeeper"
+      ],
+      "chance": 0.0025
+     },
+     "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "bloodmoon_reaver"
+      ],
+      "chance": 0.0025
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "tempest_bow"
+      ],
+      "chance": 0.0025
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "voidheart_staff"
+      ],
+      "chance": 0.0025
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "seraph_scepter"
+      ],
+      "chance": 0.0025
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "eclipse_blade"
+      ],
+      "chance": 0.0025
+     }
     }
    ]
   },
@@ -1676,15 +1988,65 @@
     {
      "entry": {
       "blueprint_of": [
-       "celestial_oathkeeper",
+       "mountainheart_maul",
        "hightide_scythe",
-       "tempest_bow",
+       "comet_longbow",
+       "wisp_lantern",
        "daybreak_bell",
        "waning_moon_sickle"
       ],
-      "chance": 0.001
+      "chance": 0.0065
      },
-     "note": "신화 도안 — 대장간 신화 레시피를 배움 (빌드 편향 그대로)"
+     "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "celestial_oathkeeper"
+      ],
+      "chance": 0.0025
+     },
+     "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "bloodmoon_reaver"
+      ],
+      "chance": 0.0025
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "tempest_bow"
+      ],
+      "chance": 0.0025
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "voidheart_staff"
+      ],
+      "chance": 0.0025
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "seraph_scepter"
+      ],
+      "chance": 0.0025
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "eclipse_blade"
+      ],
+      "chance": 0.0025
+     }
     }
    ]
   },
@@ -1694,15 +2056,64 @@
      "entry": {
       "blueprint_of": [
        "mountainheart_maul",
-       "bloodmoon_reaver",
+       "hightide_scythe",
        "comet_longbow",
        "wisp_lantern",
-       "seraph_scepter",
+       "daybreak_bell",
+       "waning_moon_sickle"
+      ],
+      "chance": 0.0065
+     },
+     "note": "새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "celestial_oathkeeper"
+      ],
+      "chance": 0.0025
+     },
+     "note": "옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)"
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "bloodmoon_reaver"
+      ],
+      "chance": 0.0025
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "tempest_bow"
+      ],
+      "chance": 0.0025
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "voidheart_staff"
+      ],
+      "chance": 0.0025
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
+       "seraph_scepter"
+      ],
+      "chance": 0.0025
+     }
+    },
+    {
+     "entry": {
+      "blueprint_of": [
        "eclipse_blade"
       ],
-      "chance": 0.001
-     },
-     "note": "신화 도안 — 대장간 신화 레시피를 배움 (빌드 편향 그대로)"
+      "chance": 0.0025
+     }
     }
    ]
   }
@@ -1714,15 +2125,15 @@
    "category": "weapon",
    "station": "blacksmith",
    "materials": {
-    "abyssal_heart_fragment": 50,
-    "gatekeeper_rune": 60,
-    "primordial_essence": 80,
+    "gatekeeper_rune": 16,
+    "primordial_essence": 40,
     "abyss_ichor": 200,
     "abyss_scale": 150,
-    "orichalcum_ingot": 60,
-    "dragonblood_stone": 10
+    "sculk_tendril": 50,
+    "orichalcum_ingot": 30,
+    "dragonblood_stone": 2
    },
-   "gold": 400000,
+   "gold": 110000,
    "level_req": 48
   },
   "mountainheart_maul": {
@@ -1730,15 +2141,15 @@
    "category": "weapon",
    "station": "blacksmith",
    "materials": {
-    "abyssal_heart_fragment": 50,
-    "gatekeeper_rune": 60,
-    "primordial_essence": 80,
+    "gatekeeper_rune": 16,
+    "primordial_essence": 40,
     "abyss_ichor": 200,
     "abyss_scale": 150,
-    "orichalcum_ingot": 60,
-    "dragonblood_stone": 10
+    "sculk_tendril": 50,
+    "orichalcum_ingot": 30,
+    "dragonblood_stone": 2
    },
-   "gold": 400000,
+   "gold": 110000,
    "level_req": 48
   },
   "bloodmoon_reaver": {
@@ -1746,15 +2157,15 @@
    "category": "weapon",
    "station": "blacksmith",
    "materials": {
-    "abyssal_heart_fragment": 50,
-    "gatekeeper_rune": 60,
-    "primordial_essence": 80,
+    "gatekeeper_rune": 16,
+    "primordial_essence": 40,
     "abyss_ichor": 200,
     "abyss_scale": 150,
-    "orichalcum_ingot": 60,
-    "dragonblood_stone": 10
+    "sculk_tendril": 50,
+    "orichalcum_ingot": 30,
+    "dragonblood_stone": 2
    },
-   "gold": 400000,
+   "gold": 110000,
    "level_req": 48
   },
   "hightide_scythe": {
@@ -1762,15 +2173,15 @@
    "category": "weapon",
    "station": "blacksmith",
    "materials": {
-    "abyssal_heart_fragment": 50,
-    "gatekeeper_rune": 60,
-    "primordial_essence": 80,
+    "gatekeeper_rune": 16,
+    "primordial_essence": 40,
     "abyss_ichor": 200,
     "abyss_scale": 150,
-    "orichalcum_ingot": 60,
-    "dragonblood_stone": 10
+    "sculk_tendril": 50,
+    "orichalcum_ingot": 30,
+    "dragonblood_stone": 2
    },
-   "gold": 400000,
+   "gold": 110000,
    "level_req": 48
   },
   "tempest_bow": {
@@ -1778,15 +2189,15 @@
    "category": "weapon",
    "station": "blacksmith",
    "materials": {
-    "abyssal_heart_fragment": 50,
-    "gatekeeper_rune": 60,
-    "primordial_essence": 80,
+    "gatekeeper_rune": 16,
+    "primordial_essence": 40,
     "abyss_ichor": 200,
     "sculk_tendril": 150,
-    "orichalcum_ingot": 60,
-    "dragonblood_stone": 10
+    "abyss_scale": 50,
+    "orichalcum_ingot": 30,
+    "dragonblood_stone": 2
    },
-   "gold": 400000,
+   "gold": 110000,
    "level_req": 48
   },
   "comet_longbow": {
@@ -1794,15 +2205,15 @@
    "category": "weapon",
    "station": "blacksmith",
    "materials": {
-    "abyssal_heart_fragment": 50,
-    "gatekeeper_rune": 60,
-    "primordial_essence": 80,
+    "gatekeeper_rune": 16,
+    "primordial_essence": 40,
     "abyss_ichor": 200,
     "sculk_tendril": 150,
-    "orichalcum_ingot": 60,
-    "dragonblood_stone": 10
+    "abyss_scale": 50,
+    "orichalcum_ingot": 30,
+    "dragonblood_stone": 2
    },
-   "gold": 400000,
+   "gold": 110000,
    "level_req": 48
   },
   "voidheart_staff": {
@@ -1810,15 +2221,15 @@
    "category": "weapon",
    "station": "blacksmith",
    "materials": {
-    "abyssal_heart_fragment": 50,
-    "gatekeeper_rune": 60,
-    "primordial_essence": 80,
+    "gatekeeper_rune": 16,
+    "primordial_essence": 40,
     "abyss_ichor": 200,
     "sculk_tendril": 150,
-    "orichalcum_ingot": 60,
-    "dragonblood_stone": 10
+    "abyss_scale": 50,
+    "orichalcum_ingot": 30,
+    "dragonblood_stone": 2
    },
-   "gold": 400000,
+   "gold": 110000,
    "level_req": 48
   },
   "wisp_lantern": {
@@ -1826,15 +2237,15 @@
    "category": "weapon",
    "station": "blacksmith",
    "materials": {
-    "abyssal_heart_fragment": 50,
-    "gatekeeper_rune": 60,
-    "primordial_essence": 80,
+    "gatekeeper_rune": 16,
+    "primordial_essence": 40,
     "abyss_ichor": 200,
     "sculk_tendril": 150,
-    "orichalcum_ingot": 60,
-    "dragonblood_stone": 10
+    "abyss_scale": 50,
+    "orichalcum_ingot": 30,
+    "dragonblood_stone": 2
    },
-   "gold": 400000,
+   "gold": 110000,
    "level_req": 48
   },
   "seraph_scepter": {
@@ -1842,15 +2253,15 @@
    "category": "weapon",
    "station": "blacksmith",
    "materials": {
-    "abyssal_heart_fragment": 50,
-    "gatekeeper_rune": 60,
-    "primordial_essence": 80,
+    "gatekeeper_rune": 16,
+    "primordial_essence": 40,
     "abyss_ichor": 200,
     "sculk_tendril": 150,
-    "orichalcum_ingot": 60,
-    "dragonblood_stone": 10
+    "abyss_scale": 50,
+    "orichalcum_ingot": 30,
+    "dragonblood_stone": 2
    },
-   "gold": 400000,
+   "gold": 110000,
    "level_req": 48
   },
   "daybreak_bell": {
@@ -1858,15 +2269,15 @@
    "category": "weapon",
    "station": "blacksmith",
    "materials": {
-    "abyssal_heart_fragment": 50,
-    "gatekeeper_rune": 60,
-    "primordial_essence": 80,
+    "gatekeeper_rune": 16,
+    "primordial_essence": 40,
     "abyss_ichor": 200,
     "sculk_tendril": 150,
-    "orichalcum_ingot": 60,
-    "dragonblood_stone": 10
+    "abyss_scale": 50,
+    "orichalcum_ingot": 30,
+    "dragonblood_stone": 2
    },
-   "gold": 400000,
+   "gold": 110000,
    "level_req": 48
   },
   "eclipse_blade": {
@@ -1874,15 +2285,15 @@
    "category": "weapon",
    "station": "blacksmith",
    "materials": {
-    "abyssal_heart_fragment": 50,
-    "gatekeeper_rune": 60,
-    "primordial_essence": 80,
+    "gatekeeper_rune": 16,
+    "primordial_essence": 40,
     "abyss_ichor": 200,
     "abyss_scale": 150,
-    "orichalcum_ingot": 60,
-    "dragonblood_stone": 10
+    "sculk_tendril": 50,
+    "orichalcum_ingot": 30,
+    "dragonblood_stone": 2
    },
-   "gold": 400000,
+   "gold": 110000,
    "level_req": 48
   },
   "waning_moon_sickle": {
@@ -1890,15 +2301,15 @@
    "category": "weapon",
    "station": "blacksmith",
    "materials": {
-    "abyssal_heart_fragment": 50,
-    "gatekeeper_rune": 60,
-    "primordial_essence": 80,
+    "gatekeeper_rune": 16,
+    "primordial_essence": 40,
     "abyss_ichor": 200,
     "abyss_scale": 150,
-    "orichalcum_ingot": 60,
-    "dragonblood_stone": 10
+    "sculk_tendril": 50,
+    "orichalcum_ingot": 30,
+    "dragonblood_stone": 2
    },
-   "gold": 400000,
+   "gold": 110000,
    "level_req": 48
   }
  },
@@ -1925,44 +2336,27 @@
   "waning_moon_sickle:SNEAK_RIGHT": "physical"
  },
  "economy": {
-  "cores": 50,
-  "gold": 400000,
-  "drop": {
-   "10": 0.08,
-   "9": 0.015,
-   "8": 0.012
+  "_note": "CR37 (craft2/final) 모델 값 — 코드는 읽지 않는다. 회당 굴림: 보스 1 · 특별 시련 0.257 · 금고·미믹 3.42/3.32/3.22 (10/9/8층)",
+  "cores": 0,
+  "gold": 110000,
+  "old_item_each_f10": 0.2,
+  "old_items_per_kill": 1.2,
+  "old_at_least_one_per_kill": 0.7379,
+  "new6_bp_list": {
+   "floor10_boss": 0.29,
+   "floor09_boss": 0.2,
+   "floor08_boss": 0.1,
+   "special": 0.13,
+   "hoard": 0.0065
   },
-  "bp": {
-   "10": {
-    "boss": 0.05,
-    "special": 0.1,
-    "hoard": 0.008
-   },
-   "9": {
-    "boss": 0.006,
-    "special": 0.02,
-    "hoard": 0.001
-   },
-   "8": {
-    "boss": 0.006,
-    "special": 0.02,
-    "hoard": 0.001
-   }
+  "old6_bp_each": {
+   "floor10_boss": 0.1,
+   "floor09_boss": 0.075,
+   "floor08_boss": 0.04,
+   "special": 0.05,
+   "hoard": 0.0025
   },
-  "any_mythic_per_run": {
-   "8": 0.012,
-   "9": 0.015,
-   "10": 0.08
-  },
-  "any_bp_per_run": {
-   "8": 0.0144,
-   "9": 0.0145,
-   "10": 0.1034
-  },
-  "now_reference": {
-   "f10_any": 0.04,
-   "pool": 6
-  }
+  "own_share_new6_list": 0.3833
  },
  "dps": {
   "mountainheart_maul": {

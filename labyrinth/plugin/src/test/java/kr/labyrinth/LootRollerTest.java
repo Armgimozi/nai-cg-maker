@@ -99,18 +99,19 @@ class LootRollerTest {
 
     @Test
     void mythicDropsOnEveryDifficulty() {
-        // 0.3.5.2: 신화는 난이도와 상관없이 (min_difficulty 없음) — 0.3.7: 8·9층 보스도 신화를 준다 (처치당 1.2% · 1.5%, 10층 8%)
+        // 0.3.5.2: 신화는 난이도와 상관없이 (min_difficulty 없음) — CR37: 신화 아이템은 넬카르(10층)만 준다 (옛 6 한 자루마다 20%)
         LootRoller roller = new LootRoller(content, new Random(5));
         for (String table : List.of("floor08_boss", "floor09_boss", "floor10_boss")) {
-            int tries = table.equals("floor10_boss") ? 400 : 3000;
+            boolean nelkar = table.equals("floor10_boss");
+            int tries = nelkar ? 400 : 3000;
             for (String diff : List.of("easy", "normal", "hard", "nightmare")) {
                 boolean mythic = false;
                 for (int i = 0; i < tries && !mythic; i++) {
                     for (LootRoller.Drop d : roller.roll(table, new LootRoller.Request(diff, 50.0, 0, null))) {
-                        if (d.itemId() != null && content.item(d.itemId()).rarity() == Rarity.MYTHIC) mythic = true;
+                        if (d.itemId() != null && d.recipe() == null && content.item(d.itemId()).rarity() == Rarity.MYTHIC) mythic = true;
                     }
                 }
-                assertTrue(mythic, table + " " + diff + " 난이도에서도 신화가 나와야 함");
+                assertEquals(nelkar, mythic, table + " " + diff + (nelkar ? " 난이도에서도 신화가 나와야 함" : " — 8·9층 보스는 신화 아이템을 주지 않는다"));
             }
             for (LootTable.Entry e : content.lootTable(table).entries()) assertNull(e.minDifficulty(), table + " 에 난이도 제한 없음");
         }

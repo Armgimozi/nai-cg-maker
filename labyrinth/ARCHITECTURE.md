@@ -705,10 +705,11 @@ tables:
       - {table: mix_f01_drop, chance: 0.0228}            # 장비는 이름으로만 (rarity_pool 은 쓰지 않음)
       - {table: enhance_mob_t1, chance: 1.0}
 
-  floor10_boss:               # 0.3.7: 신화 12 (한 개당 0.67%) + 신화 도안 — 둘 다 모든 난이도
+  floor10_boss:               # 0.3.7 CR37: 옛 신화 6 한 자루마다 20% + 신화 도안 — 모든 난이도
     entries:
-      - {one_of: [celestial_oathkeeper, mountainheart_maul, ...], chance: 0.08}
-      - {blueprint_of: [celestial_oathkeeper, mountainheart_maul, ...], chance: 0.05}
+      - {item: celestial_oathkeeper, chance: 0.2}                                 # … 옛 6 줄 여섯 (one_of 아님)
+      - {blueprint_of: [mountainheart_maul, hightide_scythe, ...], chance: 0.29}   # 새 6 한 줄
+      - {blueprint_of: [celestial_oathkeeper], chance: 0.1}                       # … 옛 6 한 장씩
 
 # recipes.yml
 recipes:
@@ -1059,15 +1060,18 @@ wild:                 # wild: false = 통째로 끔 (Settings.Wild.OFF)
   희귀 이상 장비 레시피 하나를 고름 · `gen_036_blueprints.py` 가 generate() 에서 MAT036 뒤에 넣음).
 - **0.3.7 신화 12** (GDD §11.15): loot.yml 항목 `{blueprint_of: [레시피 id, …], chance, amount?, min_difficulty?}` = 그 목록 중 도안 하나
   (`LootTable.Kind.BLUEPRINT_OF`, 빌드 편향 own_build_bias, 확률 식은 `{blueprint}` 와 같고 rarity_weight 없음). 일반 `{blueprint: N}` 뽑기는 결과가
-  신화인 레시피를 뺀다. 신화 무기만 `sources: [boss, craft]` (나머지 영웅 이상 무기는 종류 하나). 데이터는 `tools/gen_037_mythic.py`
-  (입력 `tools/data/037/mythic_037.json`) 가 generate() **마지막** 단계 MYTH037 로 넣는다 — 새 6 블록(짝 신화 뒤) · 8·9·10층 보스 `{one_of}` 신화 줄 ·
+  신화인 레시피를 뺀다. 신화 무기는 옛 6 `sources: [boss, craft]`, 새 6 `sources: [craft]` (나머지 영웅 이상 무기는 종류 하나). 데이터는 `tools/gen_037_mythic.py`
+  (입력 `tools/data/037/mythic_037.json`) 가 generate() **마지막** 단계 MYTH037 로 넣는다 — 새 6 블록(짝 신화 뒤) · 넬카르 `{item}` 옛 신화 줄 여섯 ·
   보스·특별 시련·금고·미믹 `{blueprint_of}` 줄 · recipes.yml 끝 '신화 무기' 칸 12 · 획득처 다시 셈. generate() 는 맨 처음 `MYTH037.strip()` 으로
   지난번 신화 단계가 넣은 것을 걷어 내 0.3.5 · 0.3.6 단계가 0.3.6.1 과 같은 입력을 보게 한다 (0.3.6 계약 검사도 걷어 낸 결과에서).
+  strip() 은 명세가 바뀌어도 걷히게 표마다 신화 줄(신화 item · 신화 one_of · blueprint_of)을 모두 걷는다. verify() 는 레시피에 보스만 주는
+  재료가 있거나 신화마다 넬카르 표 밖 도안 출처가 없으면 멈춘다 (CR37 — 넬카르를 못 잡아도 만든다, `MythicNoNelkarGateTest`).
   `gen_enhance.py`: 신화는 레시피가 있어도 보스 장비 규칙 (새 6 은 같은 층 보스 장비 중 맨 뒤에 정해 기존 신화 6 의 강화 행이 그대로).
+  드롭 줄이 없는 새 6 은 `homes_of` 가 그 단계 층 보스(넬카르) 표를 집으로 삼는다 (label `mythic`) — 강화 행은 그대로.
   코드: `BlueprintRules.drawable`(= gated − 신화: 일반 뽑기·첫 접속 보호) · `candidatesOf`/`pickOf` (blueprint_of) · `gated`/`recipeFor` 는 신화 포함
   (대장간 잠금·도감) · `blueprintOfSources` (레시피 → chance > 0 인 blueprint_of 표 — 검사기와 도감 `CodexMenu.mythicBlueprintLines` 가 같이 씀).
   `ContentValidator`: 없는 레시피·빈 목록·도안이 필요 없는 레시피 = 오류, 신화 레시피에 chance > 0 출처가 없으면 오류,
-  신화 무기 획득처는 {보스} 또는 {보스, 대장간}, 레벨 창은 단계 층부터 아래 3층 보스(`MYTHIC_BOSS_FLOORS`). 알림: 신화 도안 줍기 = 파티 알림
+  신화 무기 획득처는 {보스} · {보스, 대장간} · {대장간}, 레벨 창은 단계 층부터 아래 3층 보스(`MYTHIC_BOSS_FLOORS`). 알림: 신화 도안 줍기 = 파티 알림
   (`LabLootService.mythicBlueprintLine`), 대장간 신화 제작 = 서버 방송 (`LabCraftingService.mythicCraftLine`). 툴팁: 접기 5단계(스킬 설명 뺌) ·
   대장간 목록은 일반 재료 5종 이상이면 둘씩 한 줄 (`BlacksmithMenu.PAIR_FROM`). 팩: 새 6 은 `voxel/weapons.py SIGNATURES` 로 틀 안에서 머리 장식만
   바꾸고, `validate.py validate_effects` 가 items.yml 의 `texture.effect` 가 팩 프리셋에 없으면 빌드를 멈춘다.

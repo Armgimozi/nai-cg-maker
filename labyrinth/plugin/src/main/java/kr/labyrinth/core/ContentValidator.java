@@ -758,9 +758,9 @@ public final class ContentValidator {
                 tg.add("starter");
             }
             if (d.isWeapon() && d.rarity() == Rarity.MYTHIC) {
-                // 0.3.7: 신화 무기만 보스 + 대장간(신화 도안) 두 종류를 허용한다
+                // 0.3.7: 신화 무기만 보스 + 대장간(신화 도안) 두 종류를 허용한다 (CR37: 새 신화 6 은 대장간만)
                 if (!h.isEmpty() && !MYTHIC_HOMES.contains(h)) {
-                    warn(w, "신화 무기인데 획득처가 " + kindNames(h) + " — 보스, 또는 보스·대장간이어야 함");
+                    warn(w, "신화 무기인데 획득처가 " + kindNames(h) + " — 보스, 보스·대장간, 또는 대장간이어야 함");
                 }
             } else if (d.isWeapon() && d.rarity().atLeast(Rarity.EPIC) && h.size() > 1) {
                 warn(w, "영웅 이상 무기인데 획득처 종류가 " + h.size() + "개 (" + kindNames(h) + ") — 1개여야 함");
@@ -773,14 +773,14 @@ public final class ContentValidator {
         }
     }
 
-    /** 신화 무기가 가질 수 있는 획득처 종류 (0.3.7): 보스만, 또는 보스 + 대장간. */
-    static final Set<Set<String>> MYTHIC_HOMES = Set.of(Set.of("boss"), Set.of("boss", "craft"));
+    /** 신화 무기가 가질 수 있는 획득처 종류 (0.3.7): 보스만, 보스 + 대장간, 또는 대장간만 (CR37 새 신화 6 — 도안 제작만). */
+    static final Set<Set<String>> MYTHIC_HOMES = Set.of(Set.of("boss"), Set.of("boss", "craft"), Set.of("craft"));
     /** 신화 장비를 줄 수 있는 보스 층 수 (0.3.7): 그 단계 층과 아래 두 층 (단계 10 → 8·9·10층 보스). */
     public static final int MYTHIC_BOSS_FLOORS = 3;
 
     /**
      * 층 표가 그 장비의 레벨 창 안인가 — 보스 표는 그 단계 층만, 그 밖은 단계 ±1 층 (gear_spec §4.1).
-     * 신화는 그 단계 층부터 아래 {@value #MYTHIC_BOSS_FLOORS}개 층의 보스 표 (0.3.7 — 8·9층 보스도 신화를 나눠 준다).
+     * 신화는 그 단계 층부터 아래 {@value #MYTHIC_BOSS_FLOORS}개 층의 보스 표까지 허용 (0.3.7. CR37 데이터는 신화 아이템을 넬카르만 준다 — 8·9층 보스는 도안만).
      */
     private static boolean inWindow(ItemDef d, FloorTable ft) {
         if (ft.kinds().contains("boss")) {

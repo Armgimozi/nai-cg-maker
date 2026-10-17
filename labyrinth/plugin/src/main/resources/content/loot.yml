@@ -28,8 +28,9 @@
 #  금고·미믹 = hoard_fNN (금고 안 상자·길들인 미믹을 열 때 한 번 더) · 특별 시련 = special_trial_fNN (조건까지 지킨 시련방 성공 상자)
 #  보스 고유 장비는 그 보스 표에만 (이웃 층 없음). 두 번째 집은 대장간(recipes.yml)
 #  영웅·전설 무기는 획득처 종류 1개 (보스 · 대장간 · 몬스터·상자 · 시련방 · 특별 시련 · 금고·미믹 · 정예)
-#  신화 무기 12 (0.3.7)는 보스 + 대장간: 8·9·10층 보스 {one_of} (넬카르가 가장 높음, 모든 난이도) · 신화 도안 {blueprint_of} 은
-#    8·9·10층 보스 · 특별 시련 · 금고·미믹. 아이템 자체는 보스만 준다 (tools/gen_037_mythic.py)
+#  신화 무기 12 (0.3.7): 옛 6 은 넬카르가 한 자루마다 따로 20% (item 줄 여섯) + 대장간, 새 6 은 대장간만 (드롭 없음).
+#    신화 도안 {blueprint_of}: 8·9·10층 보스 · 특별 시련 · 금고·미믹 — 새 6 은 한 줄, 옛 6 은 한 장씩. 넬카르를 안 잡아도 모인다.
+#    모든 난이도. 신화 아이템은 넬카르만 준다 (tools/gen_037_mythic.py)
 #  드롭 편향 own_build_bias: one_of 로 장비를 고를 때 이 확률로 '요구치가 가장 큰 능력치가 줍는 사람 능력치 상위 2개 안'인 후보만 (없으면 전체)
 # ─────────────────────────────────────────────────────────────────────────────
 version: 1
@@ -1446,8 +1447,13 @@ tables:
       - {table: enhance_boss_t3, chance: 1.0}
       - {item: mithril_ore, chance: 0.55, amount: 3}
       - {blueprint: 8, chance: 0.4}
-      - {one_of: [mountainheart_maul, bloodmoon_reaver, comet_longbow, wisp_lantern, seraph_scepter, eclipse_blade], chance: 0.012}   # 신화 6 (곁가지 — 넬카르가 가장 높음), 모든 난이도
-      - {blueprint_of: [mountainheart_maul, bloodmoon_reaver, comet_longbow, wisp_lantern, seraph_scepter, eclipse_blade], chance: 0.006}   # 신화 도안 — 대장간 신화 레시피를 배움 (빌드 편향 그대로)
+      - {blueprint_of: [mountainheart_maul, hightide_scythe, comet_longbow, wisp_lantern, daybreak_bell, waning_moon_sickle], chance: 0.1}   # 새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)
+      - {blueprint_of: [celestial_oathkeeper], chance: 0.04}   # 옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)
+      - {blueprint_of: [bloodmoon_reaver], chance: 0.04}
+      - {blueprint_of: [tempest_bow], chance: 0.04}
+      - {blueprint_of: [voidheart_staff], chance: 0.04}
+      - {blueprint_of: [seraph_scepter], chance: 0.04}
+      - {blueprint_of: [eclipse_blade], chance: 0.04}
   treasure_floor_8:   # 8층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [380, 650]
@@ -1607,8 +1613,13 @@ tables:
       - {item: orichalcum_ore, chance: 0.518, amount: 3}
       - {item: mithril_ore, chance: 0.546}
       - {blueprint: 9, chance: 0.4}
-      - {one_of: [celestial_oathkeeper, hightide_scythe, tempest_bow, daybreak_bell, waning_moon_sickle], chance: 0.015}   # 신화 5 (곁가지 — 넬카르가 가장 높음), 모든 난이도
-      - {blueprint_of: [celestial_oathkeeper, hightide_scythe, tempest_bow, daybreak_bell, waning_moon_sickle], chance: 0.006}   # 신화 도안 — 대장간 신화 레시피를 배움 (빌드 편향 그대로)
+      - {blueprint_of: [mountainheart_maul, hightide_scythe, comet_longbow, wisp_lantern, daybreak_bell, waning_moon_sickle], chance: 0.2}   # 새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)
+      - {blueprint_of: [celestial_oathkeeper], chance: 0.075}   # 옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)
+      - {blueprint_of: [bloodmoon_reaver], chance: 0.075}
+      - {blueprint_of: [tempest_bow], chance: 0.075}
+      - {blueprint_of: [voidheart_staff], chance: 0.075}
+      - {blueprint_of: [seraph_scepter], chance: 0.075}
+      - {blueprint_of: [eclipse_blade], chance: 0.075}
   treasure_floor_9:   # 9층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [520, 900]
@@ -1752,7 +1763,7 @@ tables:
     entries:
       - {item: gatekeeper_rune, chance: 0.5}
       - {one_of: [abyss_sentinel_longsword, aurora_scepter, viper_fang], chance: 0.34}   # 고유 무기(전설, 보스만) — 그 무기 요구에 맞춘 빌드(own_build_bias) 처치당 15~26%
-      - {one_of: [celestial_oathkeeper, mountainheart_maul, bloodmoon_reaver, hightide_scythe, tempest_bow, comet_longbow, voidheart_staff, wisp_lantern, seraph_scepter, daybreak_bell, eclipse_blade, waning_moon_sickle], chance: 0.08}   # 신화 12 (직업마다 둘) — 한 개당 처치당 약 0.67%, 모든 난이도
+      - {item: celestial_oathkeeper, chance: 0.2}   # 옛 신화 — 한 자루마다 따로 20% (주인 결정), 모든 난이도
       - {item: heart_of_nelkar, chance: 0.025}
       - {table: potions_t3, chance: 0.5}
       - {table: tonics, chance: 0.2}
@@ -1760,7 +1771,18 @@ tables:
       - {table: enhance_boss_t3, chance: 1.0}
       - {item: orichalcum_ore, chance: 0.65, amount: 3}
       - {blueprint: 10, chance: 0.4}
-      - {blueprint_of: [celestial_oathkeeper, mountainheart_maul, bloodmoon_reaver, hightide_scythe, tempest_bow, comet_longbow, voidheart_staff, wisp_lantern, seraph_scepter, daybreak_bell, eclipse_blade, waning_moon_sickle], chance: 0.05}   # 신화 도안 — 대장간 신화 레시피를 배움 (빌드 편향 그대로)
+      - {item: bloodmoon_reaver, chance: 0.2}
+      - {item: tempest_bow, chance: 0.2}
+      - {item: voidheart_staff, chance: 0.2}
+      - {item: seraph_scepter, chance: 0.2}
+      - {item: eclipse_blade, chance: 0.2}
+      - {blueprint_of: [mountainheart_maul, hightide_scythe, comet_longbow, wisp_lantern, daybreak_bell, waning_moon_sickle], chance: 0.29}   # 새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)
+      - {blueprint_of: [celestial_oathkeeper], chance: 0.1}   # 옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)
+      - {blueprint_of: [bloodmoon_reaver], chance: 0.1}
+      - {blueprint_of: [tempest_bow], chance: 0.1}
+      - {blueprint_of: [voidheart_staff], chance: 0.1}
+      - {blueprint_of: [seraph_scepter], chance: 0.1}
+      - {blueprint_of: [eclipse_blade], chance: 0.1}
   treasure_floor_10:   # 10층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [700, 1200]
@@ -2164,19 +2186,37 @@ tables:
     entries:
       - {pick: [{table: band_t07_hoard, weight: 2}, {table: band_t08_hoard, weight: 7}, {table: band_t09_hoard, weight: 1}], chance: 0.115}
       - {blueprint: 8, chance: 0.1}
-      - {blueprint_of: [mountainheart_maul, bloodmoon_reaver, comet_longbow, wisp_lantern, seraph_scepter, eclipse_blade], chance: 0.001}   # 신화 도안 — 대장간 신화 레시피를 배움 (빌드 편향 그대로)
+      - {blueprint_of: [mountainheart_maul, hightide_scythe, comet_longbow, wisp_lantern, daybreak_bell, waning_moon_sickle], chance: 0.0065}   # 새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)
+      - {blueprint_of: [celestial_oathkeeper], chance: 0.0025}   # 옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)
+      - {blueprint_of: [bloodmoon_reaver], chance: 0.0025}
+      - {blueprint_of: [tempest_bow], chance: 0.0025}
+      - {blueprint_of: [voidheart_staff], chance: 0.0025}
+      - {blueprint_of: [seraph_scepter], chance: 0.0025}
+      - {blueprint_of: [eclipse_blade], chance: 0.0025}
   hoard_f09:
     rolls: 1
     entries:
       - {pick: [{table: band_t08_hoard, weight: 2}, {table: band_t09_hoard, weight: 7}, {table: band_t10_hoard, weight: 1}], chance: 0.112}
       - {blueprint: 9, chance: 0.1}
-      - {blueprint_of: [celestial_oathkeeper, hightide_scythe, tempest_bow, daybreak_bell, waning_moon_sickle], chance: 0.001}   # 신화 도안 — 대장간 신화 레시피를 배움 (빌드 편향 그대로)
+      - {blueprint_of: [mountainheart_maul, hightide_scythe, comet_longbow, wisp_lantern, daybreak_bell, waning_moon_sickle], chance: 0.0065}   # 새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)
+      - {blueprint_of: [celestial_oathkeeper], chance: 0.0025}   # 옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)
+      - {blueprint_of: [bloodmoon_reaver], chance: 0.0025}
+      - {blueprint_of: [tempest_bow], chance: 0.0025}
+      - {blueprint_of: [voidheart_staff], chance: 0.0025}
+      - {blueprint_of: [seraph_scepter], chance: 0.0025}
+      - {blueprint_of: [eclipse_blade], chance: 0.0025}
   hoard_f10:
     rolls: 1
     entries:
       - {pick: [{table: band_t09_hoard, weight: 2}, {table: band_t10_hoard, weight: 7}], chance: 0.17}
       - {blueprint: 10, chance: 0.1}
-      - {blueprint_of: [celestial_oathkeeper, mountainheart_maul, bloodmoon_reaver, hightide_scythe, tempest_bow, comet_longbow, voidheart_staff, wisp_lantern, seraph_scepter, daybreak_bell, eclipse_blade, waning_moon_sickle], chance: 0.008}   # 신화 도안 — 대장간 신화 레시피를 배움 (빌드 편향 그대로)
+      - {blueprint_of: [mountainheart_maul, hightide_scythe, comet_longbow, wisp_lantern, daybreak_bell, waning_moon_sickle], chance: 0.0065}   # 새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)
+      - {blueprint_of: [celestial_oathkeeper], chance: 0.0025}   # 옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)
+      - {blueprint_of: [bloodmoon_reaver], chance: 0.0025}
+      - {blueprint_of: [tempest_bow], chance: 0.0025}
+      - {blueprint_of: [voidheart_staff], chance: 0.0025}
+      - {blueprint_of: [seraph_scepter], chance: 0.0025}
+      - {blueprint_of: [eclipse_blade], chance: 0.0025}
 
   # ═════════ 특별 시련 상자 (special_trial_fNN — 특별 시련 성공 + 조건 지킴 때 시련방 상자에 더해 하나 더, 개인 루팅) ═════════
   special_trial_f01:
@@ -2243,7 +2283,13 @@ tables:
       - {item: radiant_essence, amount: 1}
     entries:
       - {blueprint: 8, chance: 0.4}
-      - {blueprint_of: [mountainheart_maul, bloodmoon_reaver, comet_longbow, wisp_lantern, seraph_scepter, eclipse_blade], chance: 0.02}   # 신화 도안 — 대장간 신화 레시피를 배움 (빌드 편향 그대로)
+      - {blueprint_of: [mountainheart_maul, hightide_scythe, comet_longbow, wisp_lantern, daybreak_bell, waning_moon_sickle], chance: 0.13}   # 새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)
+      - {blueprint_of: [celestial_oathkeeper], chance: 0.05}   # 옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)
+      - {blueprint_of: [bloodmoon_reaver], chance: 0.05}
+      - {blueprint_of: [tempest_bow], chance: 0.05}
+      - {blueprint_of: [voidheart_staff], chance: 0.05}
+      - {blueprint_of: [seraph_scepter], chance: 0.05}
+      - {blueprint_of: [eclipse_blade], chance: 0.05}
   special_trial_f09:
     rolls: 1
     gold: [568, 1136]
@@ -2252,7 +2298,13 @@ tables:
       - {item: primordial_essence, amount: 1}
     entries:
       - {blueprint: 9, chance: 0.4}
-      - {blueprint_of: [celestial_oathkeeper, hightide_scythe, tempest_bow, daybreak_bell, waning_moon_sickle], chance: 0.02}   # 신화 도안 — 대장간 신화 레시피를 배움 (빌드 편향 그대로)
+      - {blueprint_of: [mountainheart_maul, hightide_scythe, comet_longbow, wisp_lantern, daybreak_bell, waning_moon_sickle], chance: 0.13}   # 새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)
+      - {blueprint_of: [celestial_oathkeeper], chance: 0.05}   # 옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)
+      - {blueprint_of: [bloodmoon_reaver], chance: 0.05}
+      - {blueprint_of: [tempest_bow], chance: 0.05}
+      - {blueprint_of: [voidheart_staff], chance: 0.05}
+      - {blueprint_of: [seraph_scepter], chance: 0.05}
+      - {blueprint_of: [eclipse_blade], chance: 0.05}
   special_trial_f10:
     rolls: 1
     gold: [760, 1520]
@@ -2261,4 +2313,10 @@ tables:
       - {item: primordial_essence, amount: 1}
     entries:
       - {blueprint: 10, chance: 0.4}
-      - {blueprint_of: [celestial_oathkeeper, mountainheart_maul, bloodmoon_reaver, hightide_scythe, tempest_bow, comet_longbow, voidheart_staff, wisp_lantern, seraph_scepter, daybreak_bell, eclipse_blade, waning_moon_sickle], chance: 0.1}   # 신화 도안 — 대장간 신화 레시피를 배움 (빌드 편향 그대로)
+      - {blueprint_of: [mountainheart_maul, hightide_scythe, comet_longbow, wisp_lantern, daybreak_bell, waning_moon_sickle], chance: 0.13}   # 새 신화 도안 — 여섯 중 하나 (주 능력치가 모두 달라 어느 빌드든 내 몫 38%)
+      - {blueprint_of: [celestial_oathkeeper], chance: 0.05}   # 옛 신화 도안 — 한 장씩 따로 (STR 이 셋이라 묶으면 빌드마다 몫이 달라짐)
+      - {blueprint_of: [bloodmoon_reaver], chance: 0.05}
+      - {blueprint_of: [tempest_bow], chance: 0.05}
+      - {blueprint_of: [voidheart_staff], chance: 0.05}
+      - {blueprint_of: [seraph_scepter], chance: 0.05}
+      - {blueprint_of: [eclipse_blade], chance: 0.05}

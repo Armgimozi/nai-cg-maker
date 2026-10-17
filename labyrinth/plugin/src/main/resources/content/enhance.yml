@@ -1471,11 +1471,11 @@ items:
     low:  {sculk_tendril: [6, 6, 7]}
     mid:  {sculk_tendril: [7, 7, 8], orichalcum_ingot: [2, 2, 3]}
     high: {sculk_tendril: [8, 9, 11, 12], orichalcum_ingot: [3, 3, 4, 5], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
-  hightide_scythe:  # 만조의 큰낫 · 근접 무기 · 보스 고유 · 대장간 → 보스 드롭 (신화 — 레시피가 있어도 보스 장비 규칙) (P +4 — 일반 장비 이상 · 겹침 피함)
+  hightide_scythe:  # 만조의 큰낫 · 근접 무기 · 대장간 → 그 층 보스(넬카르) 드롭 (신화 — 제작만이어도 보스 장비 규칙) (P +4 — 일반 장비 이상 · 겹침 피함)
     low:  {abyss_scale: [6, 6, 7]}
     mid:  {abyss_scale: [7, 7, 8], orichalcum_ingot: [2, 2, 3]}
     high: {abyss_scale: [8, 9, 10, 11], orichalcum_ingot: [3, 3, 4, 5], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
-  mountainheart_maul:  # 태산의 대망치 · 근접 무기 · 보스 고유 · 대장간 → 보스 드롭 (신화 — 레시피가 있어도 보스 장비 규칙) (P +2, S +3 — 일반 장비 이상 · 겹침 피함)
+  mountainheart_maul:  # 태산의 대망치 · 근접 무기 · 대장간 → 그 층 보스(넬카르) 드롭 (신화 — 제작만이어도 보스 장비 규칙) (P +2, S +3 — 일반 장비 이상 · 겹침 피함)
     low:  {abyss_scale: [4, 4, 5]}
     mid:  {abyss_scale: [5, 5, 6], orichalcum_ingot: [5, 5, 6]}
     high: {abyss_scale: [6, 7, 8, 9], orichalcum_ingot: [6, 6, 7, 8], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
@@ -1483,7 +1483,7 @@ items:
     low:  {abyss_scale: [5, 5, 6]}
     mid:  {abyss_scale: [6, 6, 7], orichalcum_ingot: [2, 2, 3]}
     high: {abyss_scale: [7, 8, 9, 10], orichalcum_ingot: [3, 3, 4, 5], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
-  waning_moon_sickle:  # 그믐달 사슬낫 · 근접 무기 · 보스 고유 · 대장간 → 보스 드롭 (신화 — 레시피가 있어도 보스 장비 규칙) (P +3, S +2 — 일반 장비 이상 · 겹침 피함)
+  waning_moon_sickle:  # 그믐달 사슬낫 · 근접 무기 · 대장간 → 그 층 보스(넬카르) 드롭 (신화 — 제작만이어도 보스 장비 규칙) (P +3, S +2 — 일반 장비 이상 · 겹침 피함)
     low:  {abyss_scale: [5, 5, 6]}
     mid:  {abyss_scale: [6, 6, 7], orichalcum_ingot: [4, 4, 5]}
     high: {abyss_scale: [7, 8, 9, 10], orichalcum_ingot: [5, 5, 6, 7], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
@@ -1503,7 +1503,7 @@ items:
     low:  {sculk_tendril: [4, 4, 5]}
     mid:  {sculk_tendril: [5, 5, 6], orichalcum_ingot: [4, 4, 5]}
     high: {sculk_tendril: [6, 7, 9, 10], orichalcum_ingot: [5, 5, 6, 7], primordial_essence: [2, 3, 3, 4]}
-  comet_longbow:  # 꼬리별 장궁 · 원거리 무기 · 보스 고유 · 대장간 → 보스 드롭 (신화 — 레시피가 있어도 보스 장비 규칙) (P +2, S +3 — 일반 장비 이상 · 겹침 피함)
+  comet_longbow:  # 꼬리별 장궁 · 원거리 무기 · 대장간 → 그 층 보스(넬카르) 드롭 (신화 — 제작만이어도 보스 장비 규칙) (P +2, S +3 — 일반 장비 이상 · 겹침 피함)
     low:  {sculk_tendril: [5, 5, 6]}
     mid:  {sculk_tendril: [6, 6, 7], orichalcum_ingot: [5, 5, 6]}
     high: {sculk_tendril: [7, 8, 10, 11], orichalcum_ingot: [6, 6, 7, 8], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
@@ -1543,7 +1543,7 @@ items:
     low:  {sculk_tendril: [5, 5, 6]}
     mid:  {sculk_tendril: [6, 6, 7], orichalcum_ingot: [3, 3, 4]}
     high: {sculk_tendril: [7, 8, 10, 11], orichalcum_ingot: [4, 4, 5, 6], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
-  daybreak_bell:  # 새벽의 종 · 시전 무기 · 보스 고유 · 대장간 → 보스 드롭 (신화 — 레시피가 있어도 보스 장비 규칙) (P +3, S +2 — 일반 장비 이상 · 겹침 피함)
+  daybreak_bell:  # 새벽의 종 · 시전 무기 · 대장간 → 그 층 보스(넬카르) 드롭 (신화 — 제작만이어도 보스 장비 규칙) (P +3, S +2 — 일반 장비 이상 · 겹침 피함)
     low:  {sculk_tendril: [6, 6, 7]}
     mid:  {sculk_tendril: [7, 7, 8], orichalcum_ingot: [4, 4, 5]}
     high: {sculk_tendril: [8, 9, 11, 12], orichalcum_ingot: [5, 5, 6, 7], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
@@ -1555,7 +1555,7 @@ items:
     low:  {sculk_tendril: [7, 7, 8]}
     mid:  {sculk_tendril: [8, 8, 9], orichalcum_ingot: [2, 2, 3]}
     high: {sculk_tendril: [9, 10, 12, 13], orichalcum_ingot: [3, 3, 4, 5], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
-  wisp_lantern:  # 도깨비불 등롱 · 시전 무기 · 보스 고유 · 대장간 → 보스 드롭 (신화 — 레시피가 있어도 보스 장비 규칙) (P +4, S +1 — 일반 장비 이상 · 겹침 피함)
+  wisp_lantern:  # 도깨비불 등롱 · 시전 무기 · 대장간 → 그 층 보스(넬카르) 드롭 (신화 — 제작만이어도 보스 장비 규칙) (P +4, S +1 — 일반 장비 이상 · 겹침 피함)
     low:  {sculk_tendril: [7, 7, 8]}
     mid:  {sculk_tendril: [8, 8, 9], orichalcum_ingot: [3, 3, 4]}
     high: {sculk_tendril: [9, 10, 12, 13], orichalcum_ingot: [4, 4, 5, 6], gatekeeper_rune: [1, 2, 0, 0], abyssal_heart_fragment: [0, 0, 1, 2]}
