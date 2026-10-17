@@ -11,6 +11,7 @@ import java.util.SplittableRandom;
 import java.util.random.RandomGenerator;
 import kr.labyrinth.content.Content;
 import kr.labyrinth.content.ItemDef;
+import kr.labyrinth.content.LootTable;
 import kr.labyrinth.content.Rarity;
 import kr.labyrinth.content.RecipeDef;
 import kr.labyrinth.content.StatRequirement;
@@ -25,6 +26,8 @@ import kr.labyrinth.stats.Stat;
  *   <li>빌드 편향 (loot.yml own_build_bias): 그 확률로 '요구치 1위 능력치가 줍는 사람 능력치 상위 2개 안' 인 장비의 도안만.
  *       요구치가 없는 장비(장신구)는 누구에게나 맞는 것으로 친다.</li>
  *   <li>상인 핀: 날마다 바뀌는 희귀 도안 몇 개 (영웅 이상은 팔지 않는다). 날짜만으로 정해서 모두 같은 목록을 본다.</li>
+ *   <li>신화 (0.3.7): 신화 장비 레시피도 도안이 필요하지만 일반 {@code {blueprint: 단계}} 뽑기에는 나오지 않는다 — 루팅
+ *       {@code {blueprint_of: [레시피 id…], chance}} ({@link #pickOf}) 로만 나온다. 상인도 팔지 않고, 첫 접속 보호도 주지 않는다.</li>
  * </ul>
  */
 public final class BlueprintRules {
@@ -49,6 +52,12 @@ public final class BlueprintRules {
         return r != null && c != null && needsBlueprint(c.item(r.result()));
     }
 
+    /** 결과가 신화 장비인 레시피인가 (0.3.7 — 도안은 blueprint_of 로만). */
+    public static boolean isMythic(Content c, RecipeDef r) {
+        ItemDef d = r == null || c == null ? null : c.item(r.result());
+        return d != null && d.isGear() && d.rarity() == Rarity.MYTHIC;
+    }
+
     /**
      * 만들 수 있는가 (도안 기준만 — 재료·골드는 RecipeCheck).
      * @param enabled config blueprints.enabled (false 면 도안 없이 모두 만든다)
@@ -58,21 +67,33 @@ public final class BlueprintRules {
         return learned != null && learned.contains(r.id());
     }
 
-    /** 도안이 쓰일 수 있는 콘텐츠인가: blueprint 아이템이 있고 loot.yml 에 도안 항목이 하나라도 있다. */
+    /** 도안이 쓰일 수 있는 콘텐츠인가: blueprint 아이템이 있고 loot.yml 에 도안 항목(blueprint · blueprint_of)이 하나라도 있다. */
     public static boolean active(Content c) {
         if (c == null || c.item(ITEM_ID) == null) return false;
-        for (kr.labyrinth.content.LootTable t : c.lootTables().values()) {
-            for (kr.labyrinth.content.LootTable.Entry e : t.entries()) if (e.kind() == kr.labyrinth.content.LootTable.Kind.BLUEPRINT) return true;
-            for (kr.labyrinth.content.LootTable.Entry e : t.guaranteed()) if (e.kind() == kr.labyrinth.content.LootTable.Kind.BLUEPRINT) return true;
+        for (LootTable t : c.lootTables().values()) {
+            for (LootTable.Entry e : t.entries()) if (isBlueprintEntry(e)) return true;
+            for (LootTable.Entry e : t.guaranteed()) if (isBlueprintEntry(e)) return true;
         }
         return false;
     }
 
-    /** 도안이 필요한 레시피 모두 (id 순). */
+    /** 도안을 주는 루팅 항목 (blueprint · blueprint_of). */
+    public static boolean isBlueprintEntry(LootTable.Entry e) {
+        return e != null && (e.kind() == LootTable.Kind.BLUEPRINT || e.kind() == LootTable.Kind.BLUEPRINT_OF);
+    }
+
+    /** 도안이 필요한 레시피 모두 (신화 포함, id 순). */
     public static List<RecipeDef> gated(Content c) {
         List<RecipeDef> out = new ArrayList<>();
         for (RecipeDef r : c.recipes().values()) if (needsBlueprint(c, r)) out.add(r);
         out.sort(Comparator.comparing(RecipeDef::id));
+        return out;
+    }
+
+    /** 일반 {@code {blueprint: 단계}} 뽑기에 나올 수 있는 레시피 = 도안이 필요한 레시피 중 신화가 아닌 것 (id 순). */
+    public static List<RecipeDef> drawable(Content c) {
+        List<RecipeDef> out = new ArrayList<>();
+        for (RecipeDef r : gated(c)) if (!isMythic(c, r)) out.add(r);
         return out;
     }
 
@@ -85,10 +106,10 @@ public final class BlueprintRules {
     /** 단계 t 의 도안 뽑기 후보 하나 (레시피 · 결과 장비 · 무게). */
     public record Candidate(RecipeDef recipe, ItemDef result, int weight) {}
 
-    /** 단계 t 루팅의 후보 (무게 0 은 뺌). */
+    /** 단계 t 루팅의 후보 (무게 0 은 뺌, 신화는 뺌 — {@link #drawable}). */
     public static List<Candidate> candidates(Content c, int tier) {
         List<Candidate> out = new ArrayList<>();
-        for (RecipeDef r : gated(c)) {
+        for (RecipeDef r : drawable(c)) {
             ItemDef d = c.item(r.result());
             int w = weight(tier, d.tier());
             if (w > 0) out.add(new Candidate(r, d, w));
@@ -134,6 +155,62 @@ public final class BlueprintRules {
         return pool.get(pool.size() - 1).recipe().id();
     }
 
+    /**
+     * blueprint_of 목록 후보 = 적힌 레시피 중 있는 것·도안이 필요한 것 (겹치면 하나, 적힌 순서). 없는 id 는 검사기가 오류로 알린다.
+     */
+    public static List<Candidate> candidatesOf(Content c, List<String> ids) {
+        List<Candidate> out = new ArrayList<>();
+        if (c == null || ids == null) return out;
+        for (String id : new LinkedHashSet<>(ids)) {
+            RecipeDef r = c.recipes().get(id);
+            if (!needsBlueprint(c, r)) continue;
+            out.add(new Candidate(r, c.item(r.result()), 1));
+        }
+        return out;
+    }
+
+    /**
+     * blueprint_of 도안 하나 (0.3.7): 목록에서 똑같은 몫으로. 빌드 편향 = {@link #pick} 와 같다 — bias 확률로 줍는 사람 빌드에 맞는
+     * 레시피만 ({@link #fits}, 맞는 것이 없으면 전체). @return 레시피 id (후보가 없으면 null)
+     * @param stats 줍는 사람 요구치 판정 능력치 (null = 편향 없음)
+     */
+    public static String pickOf(Content c, List<String> ids, Map<Stat, Integer> stats, double bias, RandomGenerator rng) {
+        List<Candidate> all = candidatesOf(c, ids);
+        if (all.isEmpty()) return null;
+        List<Candidate> pool = all;
+        if (stats != null && rng.nextDouble() < bias) {
+            List<Stat> top = StatRequirement.top(stats, BUILD_TOP);
+            if (!top.isEmpty()) {
+                List<Candidate> own = new ArrayList<>();
+                for (Candidate x : all) if (fits(x.result(), top)) own.add(x);
+                if (!own.isEmpty()) pool = own;
+            }
+        }
+        return pool.get(rng.nextInt(pool.size())).recipe().id();
+    }
+
+    /**
+     * blueprint_of 도안 한 장이 그 레시피일 확률 — top = 줍는 사람 능력치 상위 (빈 목록 = 편향 없음).
+     * 빌드에 맞는 후보가 있으면 bias × (맞는 것 중 하나) + (1 − bias) × (전체 중 하나).
+     */
+    public static double chanceOf(Content c, List<String> ids, String recipeId, List<Stat> top, double bias) {
+        List<Candidate> all = candidatesOf(c, ids);
+        boolean in = all.stream().anyMatch(x -> x.recipe().id().equals(recipeId));
+        if (!in) return 0;
+        double plain = 1.0 / all.size();
+        if (top == null || top.isEmpty()) return plain;
+        int fit = 0;
+        boolean mine = false;
+        for (Candidate x : all) {
+            if (fits(x.result(), top)) {
+                fit++;
+                if (x.recipe().id().equals(recipeId)) mine = true;
+            }
+        }
+        if (fit == 0) return plain;
+        return bias * (mine ? 1.0 / fit : 0) + (1 - bias) * plain;
+    }
+
     /** 편향 없이 단계 t 도안 하나가 그 레시피일 확률. */
     public static double chanceOf(Content c, int tier, String recipeId) {
         int total = 0, mine = 0;
@@ -155,6 +232,7 @@ public final class BlueprintRules {
 
     /**
      * 0.3.6 첫 접속 (옛 플레이어 보호): 이미 가진 희귀 이상 장비의 도안은 배운 것으로 친다.
+     * 신화는 빼고 (0.3.7 — 신화 도안은 거래·제작 목표라 공짜로 주지 않는다).
      * @param owned 가방·엔더 상자·장신구 칸의 미궁 아이템 id
      * @return 배울 레시피 id (id 순)
      */
@@ -163,7 +241,7 @@ public final class BlueprintRules {
         if (owned == null) return out;
         for (String id : new LinkedHashSet<>(owned)) {
             RecipeDef r = recipeFor(c, id);
-            if (r != null) out.add(r.id());
+            if (r != null && !isMythic(c, r)) out.add(r.id());
         }
         return out;
     }

@@ -1,6 +1,7 @@
 package kr.labyrinth.items.blueprint;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -35,7 +36,10 @@ import org.junit.jupiter.api.Test;
  *   <li>굴림: 이웃 단계 2 : 7 : 1, Drop.recipe 에 레시피, 빌드 편향.</li>
  *   <li>기대 회차 (DropRateWindowTest 와 같은 1회 모형 — 보통·솔로·LUK 0·층 끝까지): 빌드에 맞는 원하는 도안 하나를 그 단계 층에서
  *       얻기까지. 장비 드롭 창(몬스터·상자 1~5.5 · 정예·시련·금고 2.5~9)과 비슷하게 12회 이하, 가운데값 4~8회
- *       (지금 6.2회 — 희귀 7.0 · 영웅 5.8 · 전설 4.4, tools/gen_036_blueprints.py CHANCE).</li>
+ *       (지금 6.2회 — 희귀 7.0 · 영웅 5.8 · 전설 4.4, tools/gen_036_blueprints.py CHANCE). 신화는 이 창에서 뺀다.</li>
+ *   <li>신화 (0.3.7): 도안은 blueprint_of 로만 (보스 · 특별 시련 · 금고). 나오는 곳 2종류 이상 · 10층에서 원하는 신화 도안의
+ *       기대 회차는 그 신화 드롭 기대 회차의 0.6배 이상 (도안이 드롭보다 훨씬 빠른 지름길이 되지 않게).
+ *       신화 시험은 {@link MythicFixture} 로 — D 데이터 전에도 명세 꼴로 돈다.</li>
  * </ul>
  */
 class BlueprintLootTest {
@@ -51,7 +55,9 @@ class BlueprintLootTest {
     static void load() { content = ContentLoader.load(Path.of("src/main/resources/content")).content(); }
 
     /** 층 f 에서 도안 항목을 가져야 하는 표 → 종류. */
-    static Map<String, String> homes(int f) {
+    static Map<String, String> homes(int f) { return homes(content, f); }
+
+    static Map<String, String> homes(Content content, int f) {
         Map<String, String> out = new TreeMap<>();
         for (MobDef m : content.mobs().values()) if (m.floor() == f && m.isElite() && m.drops() != null) out.put(m.drops(), "elite");
         for (BossDef b : content.bosses().values()) if (b.floor() == f && b.drops() != null) out.put(b.drops(), "boss");
@@ -86,23 +92,52 @@ class BlueprintLootTest {
 
     @Test
     void everyLockedRecipeHasTwoKindsOfSources() {
+        assertEquals(List.of(), poorSources(content), "나오는 곳이 2종류보다 적은 도안");
+        Content myth = MythicFixture.content();
+        assertEquals(List.of(), poorSources(myth), "나오는 곳이 2종류보다 적은 도안 (신화 포함)");
+        for (RecipeDef r : BlueprintRules.gated(myth)) {
+            if (BlueprintRules.isMythic(myth, r)) assertTrue(sources(myth).getOrDefault(r.id(), Set.of()).contains("boss"), r.id());
+        }
+    }
+
+    /** 레시피 id → 그 도안이 나오는 곳 종류 (blueprint 단계 후보 · blueprint_of 목록 · 상인). */
+    static Map<String, Set<String>> sources(Content content) {
         Map<String, Set<String>> kinds = new HashMap<>();
         for (LootTable t : content.lootTables().values()) {
             String kind = null;
-            for (int f : content.floors().keySet()) if (homes(f).containsKey(t.id())) kind = homes(f).get(t.id());
+            for (int f : content.floors().keySet()) if (homes(content, f).containsKey(t.id())) kind = homes(content, f).get(t.id());
+            String k0 = kind == null ? t.id() : kind;
             for (LootTable.Entry e : bpEntries(t)) {
                 for (BlueprintRules.Candidate c : BlueprintRules.candidates(content, e.floor())) {
-                    kinds.computeIfAbsent(c.recipe().id(), k -> new TreeSet<>()).add(kind == null ? t.id() : kind);
+                    kinds.computeIfAbsent(c.recipe().id(), k -> new TreeSet<>()).add(k0);
+                }
+            }
+            for (LootTable.Entry e : ofEntries(t)) {
+                if (e.chance() <= 0) continue;
+                for (BlueprintRules.Candidate c : BlueprintRules.candidatesOf(content, e.oneOf())) {
+                    kinds.computeIfAbsent(c.recipe().id(), k -> new TreeSet<>()).add(k0);
                 }
             }
         }
         for (RecipeDef r : BlueprintRules.shopPool(content)) kinds.computeIfAbsent(r.id(), k -> new TreeSet<>()).add("shop");
+        return kinds;
+    }
+
+    static List<String> poorSources(Content content) {
+        Map<String, Set<String>> kinds = sources(content);
         List<String> poor = new ArrayList<>();
         for (RecipeDef r : BlueprintRules.gated(content)) {
             Set<String> k = kinds.getOrDefault(r.id(), Set.of());
             if (k.size() < 2) poor.add(r.id() + " " + k);
         }
-        assertEquals(List.of(), poor, "나오는 곳이 2종류보다 적은 도안");
+        return poor;
+    }
+
+    static List<LootTable.Entry> ofEntries(LootTable t) {
+        List<LootTable.Entry> out = new ArrayList<>();
+        for (LootTable.Entry e : t.entries()) if (e.kind() == LootTable.Kind.BLUEPRINT_OF) out.add(e);
+        for (LootTable.Entry e : t.guaranteed()) if (e.kind() == LootTable.Kind.BLUEPRINT_OF) out.add(e);
+        return out;
     }
 
     @Test
@@ -117,6 +152,7 @@ class BlueprintLootTest {
                 RecipeDef r = content.recipes().get(d.recipe());
                 assertNotNull(r, d.recipe());
                 assertTrue(BlueprintRules.needsBlueprint(content, r), d.recipe());
+                assertFalse(BlueprintRules.isMythic(content, r), "일반 도안에 신화 " + d.recipe());
                 byTier.merge(BlueprintRules.tierOf(content, r), 1, Integer::sum);
                 n++;
             }
@@ -151,7 +187,7 @@ class BlueprintLootTest {
 
     static int count(int tier) {
         int n = 0;
-        for (RecipeDef r : BlueprintRules.gated(content)) if (BlueprintRules.tierOf(content, r) == tier) n++;
+        for (RecipeDef r : BlueprintRules.drawable(content)) if (BlueprintRules.tierOf(content, r) == tier) n++;
         return n;
     }
 
@@ -213,7 +249,7 @@ class BlueprintLootTest {
             table.append(String.format("층 %d: 1회 도안 %.2f장%n", f, per));
             assertTrue(per >= 1.5 && per <= 4.0, f + "층 1회 도안 " + per);
         }
-        for (RecipeDef r : BlueprintRules.gated(content)) {
+        for (RecipeDef r : BlueprintRules.drawable(content)) { // 신화는 아래 mythicBlueprint… 에서 따로
             int t = BlueprintRules.tierOf(content, r);
             double p = blueprintsPerRun(t) * pickP(t, r);
             double runs = 1 / Math.min(0.999, p);
@@ -227,6 +263,81 @@ class BlueprintLootTest {
                 + "회 · 가장 긴 것 " + String.format("%.2f", all.stream().mapToDouble(Double::doubleValue).max().orElse(0))
                 + "회 · 희귀도별 " + medians(byRarity));
         assertTrue(med >= 4 && med <= 8, "가운데값 " + med);
+    }
+
+    // ── 신화 도안 (0.3.7) ─────────────────────────────────────
+
+    /** 줍는 사람 상위 2개 = 그 장비 요구 위 두 능력치 (pickP 와 같은 모형). */
+    static List<Stat> buildOf(ItemDef d) {
+        List<Stat> top = new ArrayList<>();
+        for (var e : d.requirement().ordered()) if (top.size() < BlueprintRules.BUILD_TOP) top.add(e.getKey());
+        return top;
+    }
+
+    /** one_of 장비 한 개가 그 장비일 확률 (LootRoller.pick 과 같은 편향). */
+    static double gearPickP(Content c, List<String> ids, String id, List<Stat> top) {
+        List<ItemDef> all = new ArrayList<>();
+        for (String x : ids) if (c.item(x) != null) all.add(c.item(x));
+        if (all.stream().noneMatch(d -> d.id().equals(id))) return 0;
+        List<ItemDef> fit = all.stream().filter(d -> LootRoller.fitsBuild(d, top)).toList();
+        double plain = 1.0 / all.size();
+        if (fit.isEmpty()) return plain;
+        boolean mine = fit.stream().anyMatch(d -> d.id().equals(id));
+        return BIAS * (mine ? 1.0 / fit.size() : 0) + (1 - BIAS) * plain;
+    }
+
+    /** 층 f 1회에 그 신화 장비가 보스에게서 나올 확률. */
+    static double mythicDropPerRun(Content c, int f, ItemDef d) {
+        LootTable t = c.lootTable(c.bossOfFloor(f) == null ? null : c.bossOfFloor(f).drops());
+        if (t == null) return 0;
+        double p = 0;
+        List<Stat> top = buildOf(d);
+        for (LootTable.Entry e : t.entries()) {
+            if (e.kind() == LootTable.Kind.ONE_OF && e.oneOf().contains(d.id())) p += Math.min(1, e.chance()) * gearPickP(c, e.oneOf(), d.id(), top);
+        }
+        return p;
+    }
+
+    /** 층 f 1회에 그 신화 도안이 나올 기대 장 수 (보스 · 특별 시련 · 금고 — 굴림 수는 runs 와 같음). */
+    static double mythicBlueprintPerRun(Content c, int f, RecipeDef r) {
+        List<Stat> top = buildOf(c.item(r.result()));
+        double p = 0;
+        for (var h : homes(c, f).entrySet()) {
+            LootTable t = c.lootTable(h.getKey());
+            if (t == null) continue;
+            double n = h.getValue().equals("elite") ? 1.0 : runs(f, h.getValue());
+            for (LootTable.Entry e : ofEntries(t)) {
+                p += n * Math.max(1, t.rolls()) * Math.min(1, e.chance()) * BlueprintRules.chanceOf(c, e.oneOf(), r.id(), top, BIAS);
+            }
+        }
+        return p;
+    }
+
+    @Test
+    void mythicBlueprintIsNotAShortcutPastTheDrop() {
+        Content c = MythicFixture.content();
+        List<String> off = new ArrayList<>();
+        StringBuilder sb = new StringBuilder();
+        int n = 0;
+        for (RecipeDef r : BlueprintRules.gated(c)) {
+            if (!BlueprintRules.isMythic(c, r)) continue;
+            n++;
+            ItemDef d = c.item(r.result());
+            double drop = mythicDropPerRun(c, 10, d), bp = mythicBlueprintPerRun(c, 10, r);
+            assertTrue(drop > 0 && bp > 0, r.id() + " 10층 드롭 " + drop + " · 도안 " + bp);
+            double dropRuns = 1 / drop, bpRuns = 1 / bp;
+            sb.append(String.format("%s 드롭 %.0f회 · 도안 %.0f회 · ", r.id(), dropRuns, bpRuns));
+            if (bpRuns < 0.6 * dropRuns) off.add(r.id() + String.format(" 도안 %.1f회 < 드롭 %.1f회 × 0.6", bpRuns, dropRuns));
+            // 8·9층은 곁가지 — 10층보다 빠르지 않다 (그 신화가 나오는 층에서)
+            for (int f = 8; f <= 9; f++) {
+                double d8 = mythicDropPerRun(c, f, d), b8 = mythicBlueprintPerRun(c, f, r);
+                if (d8 > drop + 1e-12) off.add(r.id() + " " + f + "층 드롭이 10층보다 잦음");
+                if (b8 > bp + 1e-12) off.add(r.id() + " " + f + "층 도안이 10층보다 잦음");
+            }
+        }
+        System.out.println("[신화 도안] " + (MythicFixture.isReal() ? "번들" : "명세 꼴") + " · " + sb);
+        assertTrue(n >= 6, "신화 레시피 " + n);
+        assertEquals(List.of(), off);
     }
 
     static String medians(Map<Rarity, List<Double>> m) {

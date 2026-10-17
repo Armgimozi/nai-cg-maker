@@ -582,6 +582,7 @@ public final class ContentValidator {
                     warn(w, "blueprint 단계 " + e.floor() + " 근처에 도안이 필요한 레시피가 없음");
                 }
             }
+            case BLUEPRINT_OF -> blueprintOf(w, e);
             case RARITY_POOL -> {
                 if (c.poolCandidates(e.floor(), e.rarityPool()).isEmpty()) {
                     warn(w, "rarity_pool " + e.rarityPool().id() + " floor " + e.floor() + " 후보 장비가 없음");
@@ -590,6 +591,47 @@ public final class ContentValidator {
         }
         if (e.chance() < 0 || e.chance() > 1.0 + 1e-9) err(w, "chance 는 0~1: " + e.chance());
         if (e.minDifficulty() != null && !DIFFICULTIES.contains(e.minDifficulty())) err(w, "min_difficulty 가 올바르지 않음: " + e.minDifficulty());
+    }
+
+    /**
+     * 0.3.7 {@code {blueprint_of: [레시피 id…], chance}}: 목록이 비면 오류 · 레시피는 있어야 하고 도안이 필요해야 함(희귀 이상 장비) ·
+     * 결과가 신화가 아니면 경고 (일반 도안은 {@code {blueprint: 단계}}) · 같은 id 가 두 번이면 경고.
+     */
+    private void blueprintOf(String w, LootTable.Entry e) {
+        String wb = w + ".blueprint_of";
+        if (e.oneOf().isEmpty()) {
+            err(w, "blueprint_of 비어 있음");
+            return;
+        }
+        if (c.item(kr.labyrinth.items.blueprint.BlueprintRules.ITEM_ID) == null) {
+            warn(w, "items.yml 에 도안 아이템 '" + kr.labyrinth.items.blueprint.BlueprintRules.ITEM_ID + "' 이 없어 blueprint_of 가 아무것도 주지 않음");
+        }
+        Set<String> seen = new HashSet<>();
+        for (String id : e.oneOf()) {
+            if (!seen.add(id)) warn(wb, "같은 레시피가 두 번: " + id);
+            RecipeDef r = c.recipes().get(id);
+            if (r == null) {
+                err(wb, "없는 레시피 '" + id + "'");
+            } else if (!kr.labyrinth.items.blueprint.BlueprintRules.needsBlueprint(c, r)) {
+                err(wb, "도안이 필요 없는 레시피 '" + id + "' (도안은 희귀 이상 장비만)");
+            } else if (!kr.labyrinth.items.blueprint.BlueprintRules.isMythic(c, r)) {
+                warn(wb, "신화가 아닌 레시피 '" + id + "' — 일반 도안은 {blueprint: 단계} 로");
+            }
+        }
+    }
+
+    /** blueprint_of 가 가리키는 레시피 id → 그 항목이 있는 루팅 테이블 (0.3.7 — 신화 레시피의 도안 출처). */
+    private Map<String, Set<String>> blueprintOfSources() {
+        Map<String, Set<String>> out = new HashMap<>();
+        for (LootTable t : c.lootTables().values()) {
+            List<LootTable.Entry> all = new ArrayList<>(t.entries());
+            all.addAll(t.guaranteed());
+            for (LootTable.Entry e : all) {
+                if (e.kind() != LootTable.Kind.BLUEPRINT_OF || e.chance() <= 0) continue;
+                for (String id : e.oneOf()) out.computeIfAbsent(id, k -> new TreeSet<>()).add(t.id());
+            }
+        }
+        return out;
     }
 
     private void loot() {
@@ -729,7 +771,12 @@ public final class ContentValidator {
                 h.add("starter");
                 tg.add("starter");
             }
-            if (d.isWeapon() && d.rarity().atLeast(Rarity.EPIC) && h.size() > 1) {
+            if (d.isWeapon() && d.rarity() == Rarity.MYTHIC) {
+                // 0.3.7: 신화 무기만 보스 + 대장간(신화 도안) 두 종류를 허용한다
+                if (!h.isEmpty() && !MYTHIC_HOMES.contains(h)) {
+                    warn(w, "신화 무기인데 획득처가 " + kindNames(h) + " — 보스, 또는 보스·대장간이어야 함");
+                }
+            } else if (d.isWeapon() && d.rarity().atLeast(Rarity.EPIC) && h.size() > 1) {
                 warn(w, "영웅 이상 무기인데 획득처 종류가 " + h.size() + "개 (" + kindNames(h) + ") — 1개여야 함");
             } else if (h.size() > 2) {
                 warn(w, "획득처 종류가 " + h.size() + "개 (" + kindNames(h) + ") — 장비는 최대 2개 권장");
@@ -740,9 +787,22 @@ public final class ContentValidator {
         }
     }
 
-    /** 층 표가 그 장비의 레벨 창 안인가 — 보스 표는 그 단계 층만, 그 밖은 단계 ±1 층 (gear_spec §4.1). */
+    /** 신화 무기가 가질 수 있는 획득처 종류 (0.3.7): 보스만, 또는 보스 + 대장간. */
+    static final Set<Set<String>> MYTHIC_HOMES = Set.of(Set.of("boss"), Set.of("boss", "craft"));
+    /** 신화 장비를 줄 수 있는 보스 층 수 (0.3.7): 그 단계 층과 아래 두 층 (단계 10 → 8·9·10층 보스). */
+    public static final int MYTHIC_BOSS_FLOORS = 3;
+
+    /**
+     * 층 표가 그 장비의 레벨 창 안인가 — 보스 표는 그 단계 층만, 그 밖은 단계 ±1 층 (gear_spec §4.1).
+     * 신화는 그 단계 층부터 아래 {@value #MYTHIC_BOSS_FLOORS}개 층의 보스 표 (0.3.7 — 8·9층 보스도 신화를 나눠 준다).
+     */
     private static boolean inWindow(ItemDef d, FloorTable ft) {
-        if (ft.kinds().contains("boss")) return d.tier() == ft.floor();
+        if (ft.kinds().contains("boss")) {
+            if (d.rarity() == Rarity.MYTHIC && ft.kinds().equals(Set.of("boss"))) {
+                return ft.floor() <= d.tier() && ft.floor() > d.tier() - MYTHIC_BOSS_FLOORS;
+            }
+            return d.tier() == ft.floor();
+        }
         return Math.abs(d.tier() - ft.floor()) <= 1;
     }
 
@@ -778,9 +838,14 @@ public final class ContentValidator {
     }
 
     private void recipes() {
+        Map<String, Set<String>> bpOf = blueprintOfSources();
         for (RecipeDef r : c.recipes().values()) {
             String w = "recipes." + r.id();
             requireItem(w + ".result", r.result());
+            // 0.3.7 신화 레시피: 일반 도안 뽑기에 나오지 않으므로 loot.yml blueprint_of 출처가 하나 이상 있어야 만들 수 있다
+            if (kr.labyrinth.items.blueprint.BlueprintRules.isMythic(c, r) && bpOf.getOrDefault(r.id(), Set.of()).isEmpty()) {
+                err(w, "신화 레시피인데 loot.yml blueprint_of 출처가 없음 — 도안을 얻을 곳이 없어 만들 수 없다");
+            }
             if (r.materials().isEmpty()) err(w, "materials 비어 있음");
             r.materials().forEach((id, n) -> {
                 requireItem(w + ".materials", id);
