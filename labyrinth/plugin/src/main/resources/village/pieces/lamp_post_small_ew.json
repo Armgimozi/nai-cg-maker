@@ -1,0 +1,37 @@
+{
+  "format": 1,
+  "id": "lamp_post_small_ew",
+  "name": "울타리 등불",
+  "size": [1, 4, 1],
+  "floor_y": 0,
+  "foundation": "minecraft:stone_bricks",
+  "foundation_mix": [["minecraft:stone_bricks", 3], ["minecraft:mossy_stone_bricks", 1]],
+  "anchor": [0, 0],
+  "deco": true,
+  "door": false,
+  "slack": 0,
+  "abut": true,
+  "palette": {
+    "b": "minecraft:chiseled_stone_bricks",
+    "l": "minecraft:lantern[hanging=false,waterlogged=false]",
+    "f": "minecraft:spruce_fence[east=false,north=false,south=false,waterlogged=false,west=false]",
+    "s": "minecraft:spruce_fence[east=true,north=false,south=false,waterlogged=false,west=true]"
+  },
+  "layers": [
+    [
+      "b"
+    ],
+    [
+      "s"
+    ],
+    [
+      "f"
+    ],
+    [
+      "l"
+    ]
+  ],
+  "markers": [
+    {"type": "light", "pos": [0, 3, 0]}
+  ]
+}

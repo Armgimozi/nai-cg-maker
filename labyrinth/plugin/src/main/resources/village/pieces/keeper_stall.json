@@ -1,0 +1,58 @@
+{
+  "format": 1,
+  "id": "keeper_stall",
+  "name": "관리인 노점",
+  "size": [3, 5, 3],
+  "floor_y": 0,
+  "foundation": "minecraft:stone_bricks",
+  "foundation_mix": [["minecraft:stone_bricks", 3], ["minecraft:mossy_stone_bricks", 1]],
+  "anchor": [1, 1],
+  "deco": false,
+  "door": false,
+  "slack": 0,
+  "abut": true,
+  "palette": {
+    "b": "minecraft:barrel[facing=north,open=false]",
+    "L": "minecraft:lantern[hanging=false,waterlogged=false]",
+    "B": "minecraft:potted_flowering_azalea_bush",
+    "w": "minecraft:red_wool",
+    "p": "minecraft:spruce_planks",
+    "s": "minecraft:spruce_slab[type=top,waterlogged=false]",
+    "t": "minecraft:spruce_trapdoor[facing=east,half=bottom,open=true,powered=false,waterlogged=false]",
+    "T": "minecraft:spruce_trapdoor[facing=west,half=bottom,open=true,powered=false,waterlogged=false]",
+    "l": "minecraft:stripped_spruce_log[axis=y]",
+    "W": "minecraft:white_wool"
+  },
+  "layers": [
+    [
+      "ppp",
+      "ppp",
+      "ppp"
+    ],
+    [
+      "lsl",
+      "T.t",
+      "lbl"
+    ],
+    [
+      "l.l",
+      "...",
+      "lBl"
+    ],
+    [
+      "wWw",
+      "WwW",
+      "wWw"
+    ],
+    [
+      "   ",
+      " L ",
+      "   "
+    ]
+  ],
+  "markers": [
+    {"type": "light", "pos": [1, 4, 1]},
+    {"type": "npc", "id": "estate_keeper", "pos": [1, 1, 1], "face": "front"},
+    {"type": "interact", "action": "estate", "pos": [[1, 1, 0], [1, 1, 2]]}
+  ]
+}

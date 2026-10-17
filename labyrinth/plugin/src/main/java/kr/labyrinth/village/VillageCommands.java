@@ -8,6 +8,7 @@ import com.mojang.brigadier.context.CommandContext;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import java.io.File;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import kr.labyrinth.command.CommandService;
@@ -24,6 +25,7 @@ import org.bukkit.entity.Player;
  * survey [반경] · pregen &lt;반경&gt; · selftest · apply · cancel  (VILLAGE.md §4.1 · §4.4)
  * · /labadmin wild [info] · selftest · reasons · border apply  (야생 막기, 0.3.5.1)
  * · /labadmin village district [info|preview|build|remove|selftest] mine [east|south_east|here [방향]]  (광산 마을, 0.3.6.1)
+ * · /labadmin village district [info|preview|build|remove|selftest] homes [south_west|here [방향]] · remove homes force  (집 구역, 0.3.7)
  */
 final class VillageCommands {
 
@@ -53,7 +55,9 @@ final class VillageCommands {
                         })
                         .executes(ctx -> run(ctx, () -> build(CommandService.sender(ctx), StringArgumentType.getString(ctx, "args"))))));
         v.then(Commands.literal("info").executes(ctx -> run(ctx, () -> info(ctx.getSource().getSender()))));
-        v.then(Commands.literal("dump").executes(ctx -> run(ctx, () -> dump(ctx.getSource().getSender()))));
+        v.then(Commands.literal("dump").executes(ctx -> run(ctx, () -> dump(ctx.getSource().getSender(), null)))
+                .then(Commands.argument("id", StringArgumentType.word()).suggests((c, b) -> suggestIds(b))
+                        .executes(ctx -> run(ctx, () -> dump(ctx.getSource().getSender(), StringArgumentType.getString(ctx, "id"))))));
         v.then(Commands.literal("survey")
                 .executes(ctx -> run(ctx, () -> survey(ctx.getSource().getSender(), 160)))
                 .then(Commands.argument("radius", IntegerArgumentType.integer(16, 1024))
@@ -128,6 +132,8 @@ final class VillageCommands {
                 {"wild [info] · wild selftest · wild reasons · wild border apply", "야생 막기: 경계·스폰 상태 · 점검 · 스폰 이유 표 · 마을 경계로 덮어쓰기"},
                 {"village district info|preview|build|remove|selftest mine [자리]", "광산 마을: 상태 · 미리 보기(안 바꿈) · 짓기 · 되돌리기 · 점검 (자리 = east · south_east · here [방향])"},
                 {"village district remove mine force", "백업이 없을 때: 블록은 그대로 두고 광산 마을 기록만 지움"},
+                {"village district info|preview|build|remove|selftest homes [자리]", "집 구역 (등불 골목): 같은 명령 (자리 = south_west · here [방향])"},
+                {"village district remove homes force", "주인이 있는 집도: 모두 맡긴 짐으로 돌린 뒤 지움 (백업이 없으면 기록만)"},
         };
         for (String[] l : lines) s.sendMessage(Text.mm(" <white>/labadmin " + Text.escape(l[0]) + "</white> <dark_gray>—</dark_gray> <gray>" + l[1]));
     }
@@ -252,13 +258,25 @@ final class VillageCommands {
 
     // ── 그 밖 ────────────────────────────────────────────────────────────
 
-    private void dump(CommandSender s) {
+    /** village dump [구역 id] — 마을(또는 지은 구역) 상자 둘레 블록 → village/dump.txt (구역: dump-&lt;id&gt;.txt, 미리 보기 그림용). */
+    private void dump(CommandSender s, String id) {
         VillageMeta m = module.service().meta();
         if (m == null) {
             Text.error(s, "이 월드에는 마을이 없습니다.");
             return;
         }
-        new VillageTools.Dump(module, s, mainWorld(), m).start();
+        String file = "dump.txt";
+        if (id != null) {
+            DistrictService ds = module.service().districts();
+            DistrictMeta d = ds == null ? null : ds.get(id.toLowerCase(Locale.ROOT));
+            if (d == null || !d.active()) {
+                Text.error(s, "지은 구역이 없습니다: " + Text.escape(id));
+                return;
+            }
+            m = d.meta;
+            file = "dump-" + d.id + ".txt";
+        }
+        new VillageTools.Dump(module, s, mainWorld(), m, file).start();
     }
 
     private void survey(CommandSender s, int radius) {
@@ -282,17 +300,47 @@ final class VillageCommands {
             return;
         }
         VillageSelfTest t = new VillageSelfTest(module, s, w);
-        // 0.3.6.1: 광산 마을이 지어져 있으면 이어서 그 자가 진단도 (두 줄)
+        // 0.3.6.1: 지어진 구역마다 이어서 그 자가 진단 (광산 마을 → 집 구역), 끝에 집 모듈 줄 (0.3.7 — [집터 자가 진단] · [집 메뉴 자가 진단])
+        List<String> ids = new java.util.ArrayList<>();
         DistrictService ds = module.service().districts();
-        if (ds != null) {
-            for (DistrictMeta d : ds.active()) {
-                if (!d.built()) continue;
-                String id = d.id;
-                t.then(() -> new VillageSelfTest(module, s, w, id).start());
-                break;
+        if (ds != null && module.districts() != null) {
+            for (String id : module.districts().ids()) {
+                DistrictMeta d = ds.get(id);
+                if (d != null && d.built()) ids.add(id);
             }
         }
+        t.then(() -> chain(s, w, ids, 0, true));
         t.start();
+    }
+
+    /** 구역 자가 진단 차례대로 → 끝에 집 모듈 줄 (homesLines). */
+    private void chain(CommandSender s, World w, List<String> ids, int i, boolean homesLines) {
+        if (i >= ids.size()) {
+            if (homesLines) homesLines(s, ids.contains("homes"));
+            return;
+        }
+        VillageSelfTest t = new VillageSelfTest(module, s, w, ids.get(i));
+        t.then(() -> chain(s, w, ids, i + 1, homesLines));
+        if (!t.start() && homesLines) homesLines(s, ids.contains("homes"));
+    }
+
+    /** 집 모듈 자가 진단 줄 (B: [집터 자가 진단] · C: [집 메뉴 자가 진단]). 집 구역이 없으면 그 줄 앞에 "아직 없음" 한 줄. */
+    private void homesLines(CommandSender s, boolean built) {
+        try {
+            if (!built) {
+                DistrictMeta d = module.service().districts() == null ? null : module.service().districts().get("homes");
+                String line = "[집 구역 자가 진단] 아직 없음 (state " + (d == null ? "none" : d.state.key()) + ")";
+                Text.send(s, "<gray>" + Text.escape(line));
+                kr.labyrinth.core.Log.info(line);
+            }
+            for (String line : module.services().homes().selfTestLines()) {
+                if (line == null || line.isBlank()) continue;
+                Text.send(s, "<gray>" + Text.escape(line));
+                kr.labyrinth.core.Log.info(line);
+            }
+        } catch (Throwable t) {
+            Text.error(s, "집 모듈 자가 진단 줄을 받지 못했습니다: " + Text.escape(String.valueOf(t)));
+        }
     }
 
     // ── 광산 마을 (구역, 0.3.6.1) ────────────────────────────────────────
@@ -308,17 +356,18 @@ final class VillageCommands {
                     .executes(ctx -> run(ctx, () -> districtBuild(CommandService.sender(ctx), verb, "mine")))
                     .then(Commands.argument("args", StringArgumentType.greedyString())
                             .suggests((c, b) -> {
-                                for (String x : new String[] {"mine", "mine east", "mine south_east", "mine here", "mine here east"}) b.suggest(x);
+                                for (String x : new String[] {"mine", "mine east", "mine south_east", "mine here", "mine here east", "homes", "homes south_west",
+                                        "homes here"}) b.suggest(x);
                                 return b.buildFuture();
                             })
                             .executes(ctx -> run(ctx, () -> districtBuild(CommandService.sender(ctx), verb, StringArgumentType.getString(ctx, "args"))))));
         }
         d.then(Commands.literal("remove")
                 .then(Commands.argument("id", StringArgumentType.word()).suggests((c, b) -> suggestIds(b))
-                        .executes(ctx -> run(ctx, () -> districtRemove(ctx.getSource().getSender(), StringArgumentType.getString(ctx, "id"))))
-                        // force: 백업이 없거나 깨졌을 때 — 블록은 그대로 두고 기록만 지움
+                        .executes(ctx -> run(ctx, () -> districtRemove(ctx.getSource().getSender(), StringArgumentType.getString(ctx, "id"), false)))
+                        // force: 광산 — 백업이 없거나 깨졌을 때 블록은 그대로 두고 기록만 지움 · 집 — 주인이 있어도 (모두 맡긴 짐으로 돌린 뒤)
                         .then(Commands.literal("force")
-                                .executes(ctx -> run(ctx, () -> districtForget(ctx.getSource().getSender(), StringArgumentType.getString(ctx, "id")))))));
+                                .executes(ctx -> run(ctx, () -> districtRemove(ctx.getSource().getSender(), StringArgumentType.getString(ctx, "id"), true))))));
         d.then(Commands.literal("selftest")
                 .executes(ctx -> run(ctx, () -> districtSelftest(ctx.getSource().getSender(), "mine")))
                 .then(Commands.argument("id", StringArgumentType.word()).suggests((c, b) -> suggestIds(b))
@@ -344,7 +393,7 @@ final class VillageCommands {
             return null;
         }
         if (module.service().districts() == null || module.service().meta() == null) {
-            Text.error(s, "이 월드에는 마을이 없습니다 — 광산 마을은 마을 큰길 끝에 붙여 짓습니다. 광산은 /미궁 광산 으로 그대로 됩니다.");
+            Text.error(s, "이 월드에는 마을이 없습니다 — 구역은 마을 길에 붙여 짓습니다. " + DistrictService.hint(e.id()));
             return null;
         }
         return e;
@@ -357,7 +406,9 @@ final class VillageCommands {
             return;
         }
         ds.info(s, id);
-        s.sendMessage(Text.mm(" <dark_gray>/labadmin village district preview|build|remove|selftest " + Text.escape(id) + " [east|south_east|here [방향]]"));
+        DistrictLibrary.Entry e = module.districts() == null ? null : module.districts().get(id);
+        String sites = e == null ? "here [방향]" : String.join("|", e.layout().siteIds()) + "|here [방향]";
+        s.sendMessage(Text.mm(" <dark_gray>/labadmin village district preview|build|remove|selftest " + Text.escape(id) + " [" + Text.escape(sites) + "]"));
     }
 
     /** preview|build &lt;id&gt; [east|south_east|here [방향]] — 자리를 안 주면 config 차례 (east → south_east). */
@@ -398,7 +449,7 @@ final class VillageCommands {
                 sites.add(DistrictJob.SiteReq.of(site));
             }
         } else {
-            sites.addAll(DistrictJob.configSites(e, module.districtConfig().sites()));
+            sites.addAll(DistrictJob.configSites(e, module.districtConfig(e.id()).sites()));
         }
         DistrictJob.command(module, s, ds, e, preview ? DistrictJob.Mode.PREVIEW : DistrictJob.Mode.BUILD, sites).start();
     }
@@ -412,33 +463,61 @@ final class VillageCommands {
         return Dir.EAST;
     }
 
-    private void districtRemove(CommandSender s, String id) {
+    /** remove &lt;id&gt; [force] (review R9 — 집 구역은 주인이 있으면 force 로만, 그때는 모두 맡긴 짐으로 돌린 뒤). */
+    private void districtRemove(CommandSender s, String id, boolean force) {
         DistrictLibrary.Entry e = needDistrict(s, id.toLowerCase(Locale.ROOT));
         if (e == null) return;
         DistrictService ds = module.service().districts();
         DistrictMeta cur = ds.get(e.id());
-        String why = DistrictPolicy.canRemove(cur == null ? null : cur.state, DistrictService.backupFile(mainWorld(), e.id()).isFile());
-        if (why != null) {
-            Text.error(s, why);
-            return;
+        boolean backup = DistrictService.backupFile(mainWorld(), e.id()).isFile();
+        int owners = 0;
+        if ("homes".equals(e.id())) {
+            try {
+                owners = module.services().homes().ownedCount();
+            } catch (Throwable t) {
+                owners = 0;
+            }
         }
-        DistrictJob.command(module, s, ds, e, DistrictJob.Mode.REMOVE, java.util.List.of()).start();
-    }
-
-    private void districtForget(CommandSender s, String id) {
-        DistrictLibrary.Entry e = needDistrict(s, id.toLowerCase(Locale.ROOT));
-        if (e == null) return;
-        DistrictService ds = module.service().districts();
-        DistrictMeta cur = ds.get(e.id());
-        if (cur != null && cur.state == DistrictMeta.State.REMOVED) {
-            Text.error(s, "이미 지웠습니다");
-            return;
+        DistrictPolicy.Remove act = DistrictPolicy.removeAction(e.id(), cur == null ? null : cur.state, backup, owners, force);
+        switch (act) {
+            case REFUSE -> {
+                String why = DistrictPolicy.canRemove(cur == null ? null : cur.state, backup);
+                Text.error(s, why != null ? why : "지울 수 없습니다");
+            }
+            case REFUSE_OWNERS -> Text.error(s, "주인이 있는 집이 " + owners + "채 있습니다 — 지우지 않았습니다. 모두 맡긴 짐으로 돌린 뒤 지우려면 <white>/labadmin village district remove "
+                    + Text.escape(e.id()) + " force</white>");
+            case RESTORE -> DistrictJob.command(module, s, ds, e, DistrictJob.Mode.REMOVE, java.util.List.of()).start();
+            case FORGET -> {
+                if (backup && !"homes".equals(e.id())) {
+                    Text.send(s, "<gray>백업 파일이 있습니다 — 보통은 <white>/labadmin village district remove " + Text.escape(e.id())
+                            + "</white> 로 원래 땅으로 되돌리세요. force 는 블록을 그대로 두고 기록만 지웁니다.");
+                }
+                ds.forget(s, e.id());
+            }
+            case RECLAIM_THEN_RESTORE, RECLAIM_THEN_FORGET -> {
+                if (VillageJob.running() != null) {
+                    Text.error(s, "다른 마을 작업이 진행 중입니다 — 끝난 뒤에 하세요");
+                    return;
+                }
+                Text.send(s, "<gray>주인이 있는 집 " + owners + "채를 모두 맡긴 짐으로 돌립니다 (상자·블록 → 맡긴 짐) — 끝나면 구역을 지웁니다.");
+                int n = owners;
+                module.services().homes().reclaimAll(s, "집 구역 지우기").whenComplete((done, err) -> Bukkit.getScheduler().runTask(module.plugin(), () -> {
+                    if (err != null) {
+                        Text.error(s, "집 회수가 끝나지 않았습니다 — 구역은 지우지 않았습니다: " + Text.escape(String.valueOf(err)));
+                        kr.labyrinth.core.Log.error("[집 구역] 회수 실패 — 지우지 않음", err);
+                        return;
+                    }
+                    int left = module.services().homes().ownedCount();
+                    if (left > 0) {
+                        Text.error(s, "회수한 뒤에도 주인이 있는 집이 " + left + "채 남았습니다 — 구역은 지우지 않았습니다.");
+                        return;
+                    }
+                    Text.send(s, "<gray>집 " + (done == null ? n : done) + "채를 맡긴 짐으로 돌렸습니다.");
+                    if (act == DistrictPolicy.Remove.RECLAIM_THEN_RESTORE) DistrictJob.command(module, s, ds, e, DistrictJob.Mode.REMOVE, java.util.List.of()).start();
+                    else ds.forget(s, e.id());
+                }));
+            }
         }
-        if (DistrictService.backupFile(mainWorld(), e.id()).isFile()) {
-            Text.send(s, "<gray>백업 파일이 있습니다 — 보통은 <white>/labadmin village district remove " + Text.escape(e.id())
-                    + "</white> 로 원래 땅으로 되돌리세요. force 는 블록을 그대로 두고 기록만 지웁니다.");
-        }
-        ds.forget(s, e.id());
     }
 
     private void districtSelftest(CommandSender s, String id) {
@@ -446,10 +525,16 @@ final class VillageCommands {
         if (e == null) return;
         DistrictMeta cur = module.service().districts().get(e.id());
         if (cur == null || !cur.built()) {
-            Text.error(s, "광산 마을이 지어져 있지 않습니다 — 자가 진단할 것이 없습니다.");
+            if ("homes".equals(e.id())) {
+                homesLines(s, false);
+                return;
+            }
+            Text.error(s, e.layout().name + DistrictService.subjectParticle(e.layout().name) + " 지어져 있지 않습니다 — 자가 진단할 것이 없습니다.");
             return;
         }
-        new VillageSelfTest(module, s, mainWorld(), e.id()).start();
+        VillageSelfTest t = new VillageSelfTest(module, s, mainWorld(), e.id());
+        if ("homes".equals(e.id())) t.then(() -> homesLines(s, true));
+        t.start();
     }
 
     private void apply(CommandSender s) {

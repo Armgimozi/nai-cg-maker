@@ -88,6 +88,20 @@ public final class WildBorder {
         return compute(m.center, m.radius, all, margin);
     }
 
+    /**
+     * 줄지 않는 경계 (0.3.7 — review R6): target 과 지난번 우리 경계(rec.ours)를 함께 감싸는 정사각형. 기록이 없거나 바닐라 기본이면 target 그대로.
+     * 정사각형 둘의 모서리 상자를 합쳐 가운데를 중심으로 긴 쪽에 맞춘다 (compute 와 같은 모양). 경고 거리는 target 것.
+     */
+    public static Square grow(Square target, Record rec) {
+        if (target == null || rec == null || rec.ours() == null || rec.ours().vanillaDefault()) return target;
+        Square o = rec.ours();
+        double minX = Math.min(target.minX(), o.minX()), maxX = Math.max(target.maxX(), o.maxX());
+        double minZ = Math.min(target.minZ(), o.minZ()), maxZ = Math.max(target.maxZ(), o.maxZ());
+        double size = Math.max(maxX - minX, maxZ - minZ);
+        Square g = new Square((minX + maxX) / 2, (minZ + maxZ) / 2, size, target.warning());
+        return g.same(o) ? o.withWarning(target.warning()) : g.same(target) ? target : g;
+    }
+
     /** 우리가 정한 경계 기록: 우리가 놓은 것(ours)과 그 전에 있던 것(previous — 끌 때 되돌림). */
     public record Record(Square ours, Square previous) {}
 

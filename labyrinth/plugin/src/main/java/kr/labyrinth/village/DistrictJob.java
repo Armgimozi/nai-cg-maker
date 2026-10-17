@@ -29,7 +29,8 @@ import org.bukkit.entity.Tameable;
 import org.bukkit.util.BoundingBox;
 
 /**
- * 구역 짓기·미리 보기·되돌리기 (0.3.6.1 광산 마을, CONTRACT §2.13). 틱 분할 (VillageJob — 한 번에 하나).
+ * 구역 짓기·미리 보기·되돌리기 (0.3.6.1 광산 마을 · 0.3.7 집 구역, CONTRACT §2.13). 틱 분할 (VillageJob — 한 번에 하나).
+ * 글·설정은 구역마다 (이름 = 청사진 name, 설정 = mine.district · homes.district).
  * <p>
  * 짓기 순서: 자리 후보마다 [펼치기 → 청크 불러오기·지형 조사(비동기 스냅샷) → 마스크 계획 → 지문·비자연 검사 → 엔티티 검사]
  * → 처음 통과한 자리에서 [나무 계산 → <b>바꿀 수 있는 모든 칸의 원래 블록을 백업 파일에 먼저</b> → 기록 state: building (보호 켬)
@@ -116,11 +117,11 @@ final class DistrictJob extends VillageJob {
 
     private DistrictJob(VillageModule module, CommandSender sender, DistrictService svc, DistrictLibrary.Entry entry, Mode mode, boolean auto,
                         List<SiteReq> sites) {
-        super(module, sender, switch (mode) {
-            case BUILD -> "광산 마을 짓기";
-            case PREVIEW -> "광산 마을 미리 보기";
-            case REMOVE -> "광산 마을 되돌리기";
-            case RECOVER -> "광산 마을 되돌린 뒤 다시 짓기";
+        super(module, sender, entry.layout().name + switch (mode) {
+            case BUILD -> " 짓기";
+            case PREVIEW -> " 미리 보기";
+            case REMOVE -> " 되돌리기";
+            case RECOVER -> " 되돌린 뒤 다시 짓기";
         });
         this.svc = svc;
         this.entry = entry;
@@ -139,7 +140,7 @@ final class DistrictJob extends VillageJob {
     /** 짓다가 꺼진 구역: 백업으로 되돌린 뒤 (thenBuild 면) 저절로 다시. */
     static DistrictJob recover(VillageModule m, DistrictService svc, DistrictLibrary.Entry e, boolean thenBuild) {
         DistrictJob j = new DistrictJob(m, Bukkit.getConsoleSender(), svc, e, Mode.RECOVER, true,
-                configSites(e, m.districtConfig().sites()));
+                configSites(e, m.districtConfig(e.id()).sites()));
         j.buildAfterRecover = thenBuild;
         return j;
     }
@@ -153,7 +154,7 @@ final class DistrictJob extends VillageJob {
         for (String id : ids) {
             DistrictLayout.Site s = e.layout().site(id);
             if (s != null) out.add(SiteReq.of(s));
-            else Log.warn("[광산 마을] config mine.district.sites 의 '" + id + "' 는 없는 자리입니다 (" + String.join("·", e.layout().siteIds()) + ")");
+            else Log.warn("[" + e.layout().name + "] config " + e.id() + ".district.sites 의 '" + id + "' 는 없는 자리입니다 (" + String.join("·", e.layout().siteIds()) + ")");
         }
         if (out.isEmpty()) for (DistrictLayout.Site s : e.layout().sites) out.add(SiteReq.of(s));
         return out;
@@ -162,7 +163,9 @@ final class DistrictJob extends VillageJob {
     static int blocksPerTick(int configured) { return Math.max(MIN_BLOCKS_PER_TICK, configured); }
 
     @Override
-    protected int blocksPerTick() { return blocksPerTick(module.districtConfig().blocksPerTick()); }
+    protected int blocksPerTick() { return blocksPerTick(module.districtConfig(L.id).blocksPerTick()); }
+
+    private String tag() { return "[" + L.name + "]"; }
 
     /** 이 구역의 블록을 지금 쓰거나 되돌리는 중인가 (짓는 동안 사람 밀어내기). */
     boolean busy(String id) { return L.id.equals(id) && (writing || restoring); }
@@ -217,9 +220,9 @@ final class DistrictJob extends VillageJob {
                     String why = ex.getCause() instanceof java.nio.file.NoSuchFileException ? "백업 파일이 없습니다" : "백업을 읽지 못했습니다: " + ex.getCause();
                     Text.error(sender, Text.escape(why) + " — 아무것도 바꾸지 않았습니다. 블록을 그대로 두고 기록만 지우려면 <white>/labadmin village district remove "
                             + L.id + " force</white>");
-                    Log.error("[광산 마을] 백업 읽기 실패 (" + why + ")", ex.getCause() instanceof java.nio.file.NoSuchFileException ? null : ex.getCause());
+                    Log.error(tag() + " 백업 읽기 실패 (" + why + ")", ex.getCause() instanceof java.nio.file.NoSuchFileException ? null : ex.getCause());
                     if (mode == Mode.RECOVER) {
-                        svc.writeBlocked(L.id, DistrictService.Blocked.BACKUP, List.of("짓다가 멈춘 광산 마을 기록(state: building)이 있는데 " + why
+                        svc.writeBlocked(L.id, DistrictService.Blocked.BACKUP, List.of("짓다가 멈춘 " + L.name + " 기록(state: building)이 있는데 " + why
                                 + " — 반쯤 지은 블록을 되돌리지 못했습니다. 그 자리는 보호만 켜져 있습니다 (놓기·부수기 막힘)."), List.of());
                     }
                     return true;
@@ -361,7 +364,7 @@ final class DistrictJob extends VillageJob {
                     ioFuture.get();
                 } catch (java.util.concurrent.ExecutionException ex) {
                     Text.error(sender, "백업을 쓰지 못해 짓지 않았습니다: " + Text.escape(String.valueOf(ex.getCause())) + " (아무것도 바꾸지 않았습니다)");
-                    Log.error("[광산 마을] 백업 저장 실패 — 짓지 않음", ex.getCause());
+                    Log.error(tag() + " 백업 저장 실패 — 짓지 않음", ex.getCause());
                     return true;
                 }
                 startWriting();
@@ -452,7 +455,7 @@ final class DistrictJob extends VillageJob {
                     ioFuture.get();
                 } catch (java.util.concurrent.ExecutionException ex) {
                     // 짓기 전 백업(BEFORE)이 그대로 남아 있으니 되돌리기는 된다 — 지은 것은 그대로 둔다
-                    Log.error("[광산 마을] 바뀐 칸 백업 저장 실패 (짓기 전 백업으로 되돌릴 수 있음)", ex.getCause());
+                    Log.error(tag() + " 바뀐 칸 백업 저장 실패 (짓기 전 백업으로 되돌릴 수 있음)", ex.getCause());
                 }
                 step = Step.FINISH;
             }
@@ -530,14 +533,14 @@ final class DistrictJob extends VillageJob {
         String head = reason == DistrictService.Blocked.BORDER ? "모든 자리 (" + where + ") 가 월드 경계 밖이라 블록을 하나도 바꾸지 않았습니다."
                 : "모든 자리 (" + where + ") 에 사람이 만든 것으로 보이는 것이 있거나 지을 수 없어 블록을 하나도 바꾸지 않았습니다.";
         svc.writeBlocked(L.id, reason, List.of(head), lines);
-        Text.send(sender, "<#ff9a4d><b>[광산 마을] 짓지 않았습니다</b></#ff9a4d> <gray>— " + Text.escape(head));
-        Text.send(sender, "<gray>  자세히: plugins/Labyrinth/village/" + svc.blockedFile(L.id).getName() + " · 광산은 /미궁 광산 으로 그대로 됩니다");
-        if (!(sender instanceof org.bukkit.command.ConsoleCommandSender)) Log.info("[광산 마을] 짓지 않았습니다 — " + head);
+        Text.send(sender, "<#ff9a4d><b>" + Text.escape(tag()) + " 짓지 않았습니다</b></#ff9a4d> <gray>— " + Text.escape(head));
+        Text.send(sender, "<gray>  자세히: plugins/Labyrinth/village/" + svc.blockedFile(L.id).getName() + " · " + DistrictService.hint(L.id));
+        if (!(sender instanceof org.bukkit.command.ConsoleCommandSender)) Log.info(tag() + " 짓지 않았습니다 — " + head);
         return true;
     }
 
     private void report() {
-        Text.send(sender, "<#e8c58a><b>광산 마을 미리 보기</b></#e8c58a> <gray>(" + elapsedSec() + "초 · 블록을 바꾸지 않았습니다)");
+        Text.send(sender, "<#e8c58a><b>" + Text.escape(L.name) + " 미리 보기</b></#e8c58a> <gray>(" + elapsedSec() + "초 · 블록을 바꾸지 않았습니다)");
         for (String p : previews) Text.send(sender, "<gray>  " + p);
         if (!sites.isEmpty() && entry.fp() != null && entry.fp().forBuild(svc.villageBuildId()) == null) {
             Text.send(sender, "<gray>  이 월드는 서버팩 월드가 아니어서 지문 없이 '사람이 놓은 블록'만 살폈습니다 — 짓기 전에 그 자리를 직접 둘러보세요.");
@@ -743,6 +746,8 @@ final class DistrictJob extends VillageJob {
         meta.backup = DistrictMeta.backupName(L.id);
         meta.safeMargin = L.safeMargin;
         meta.meta = pmeta != null ? pmeta : Markers.meta(plan, placement.layout());
+        int[] hh = module.homesHeight();
+        meta.plots = new ArrayList<>(Markers.plots(plan, hh[0], hh[1])); // 0.3.7 집 구역만 (집터 바닥 조각이 없으면 빈 목록)
         meta.meta.name = L.name;
         meta.meta.buildId = UUID.randomUUID().toString();
         meta.meta.builtAt = java.time.Instant.now().toString();
@@ -808,6 +813,11 @@ final class DistrictJob extends VillageJob {
     private void finishBuild() throws Exception {
         meta.meta.npcs.replaceAll((k, p) -> PlanWriter.standable(world, p));
         meta.meta.points.replaceAll((k, p) -> PlanWriter.standable(world, p));
+        meta.plots.replaceAll(r -> {
+            VillageMeta.Pos h = PlanWriter.standable(world, new VillageMeta.Pos(r.homeX(), r.homeY(), r.homeZ(), r.homeYaw()));
+            return new DistrictMeta.PlotRec(r.id(), r.x0(), r.z0(), r.x1(), r.z1(), r.floor(), r.y0(), r.y1(), r.front(), r.gateX(), r.gateY(), r.gateZ(),
+                    r.signX(), r.signY(), r.signZ(), r.homeX(), h.y(), r.homeZ(), r.homeYaw());
+        });
         flush("짓기");
         meta.state = DistrictMeta.State.BUILT;
         meta.save(DistrictService.metaFile(world, L.id));
@@ -817,16 +827,25 @@ final class DistrictJob extends VillageJob {
         int npcs = svc.applyNpcs(true);
         svc.clearBlocked(L.id);
         long secs = (System.currentTimeMillis() - writeStarted + 999) / 1000;
-        String line = "[광산 마을] 지었습니다 — 자리 " + site.label() + " · " + elapsedSec() + "초 (블록 쓰기 " + secs + "초) · 바꾼 블록 " + diff.size()
-                + " · NPC " + npcs + "/" + meta.meta.npcs.size() + (writer.errors > 0 ? " · 문제 " + writer.errors + "건" : "");
+        String line = tag() + " 지었습니다 — 자리 " + site.label() + " · " + elapsedSec() + "초 (블록 쓰기 " + secs + "초) · 바꾼 블록 " + diff.size()
+                + " · NPC " + npcs + "/" + meta.meta.npcs.size() + (meta.plots.isEmpty() ? "" : " · 집터 " + meta.plots.size())
+                + (writer.errors > 0 ? " · 문제 " + writer.errors + "건" : "");
         Text.send(sender, "<#7fe07f><b>" + Text.escape(line) + "</b></#7fe07f>");
         if (!(sender instanceof org.bukkit.command.ConsoleCommandSender)) Log.info(line);
         Text.send(sender, "<gray>  되돌리기: <white>/labadmin village district remove " + L.id + "</white> (백업 " + DistrictMeta.backupName(L.id)
                 + ") · 확인: <white>/labadmin village selftest</white>");
-        String where = site.site() == null ? "마을 옆에" : site.id().equals("east") ? "마을 큰길 끝에" : "마을 큰길 끝에서 갈라진 길 끝에";
+        String news = builtNews();
         for (Player p : Bukkit.getOnlinePlayers()) {
-            if (p.getWorld().equals(world)) Text.send(p, "<#e8c58a>[광산 마을]</#e8c58a> <gray>" + where + " 광산 마을이 생겼습니다. 승강장에서 광산으로 내려갈 수 있습니다.");
+            if (p.getWorld().equals(world)) Text.send(p, "<#e8c58a>" + Text.escape(tag()) + "</#e8c58a> <gray>" + news);
         }
+    }
+
+    /** 지은 뒤 모두에게 한 줄. */
+    private String builtNews() {
+        if ("homes".equals(L.id)) return "마을 남쪽에 등불 골목이 생겼습니다. 골목의 관리인에게 집을 받을 수 있습니다.";
+        String where = site.site() == null ? "마을 옆에" : site.id().equals("east") ? "마을 큰길 끝에" : "마을 큰길 끝에서 갈라진 길 끝에";
+        if ("mine".equals(L.id)) return where + " 광산 마을이 생겼습니다. 승강장에서 광산으로 내려갈 수 있습니다.";
+        return where + " " + L.name + DistrictService.subjectParticle(L.name) + " 생겼습니다.";
     }
 
     // ── 되돌리기 ─────────────────────────────────────────────────────────
@@ -873,18 +892,20 @@ final class DistrictJob extends VillageJob {
                 d.save(DistrictService.metaFile(world, L.id));
             }
             svc.load(true);
-            Text.send(sender, "<#7fe07f><b>광산 마을을 지웠습니다</b></#7fe07f> <gray>(" + counts + " · " + elapsedSec() + "초)");
+            if ("homes".equals(L.id)) svc.removedHomes();
+            Text.send(sender, "<#7fe07f><b>" + Text.escape(L.name) + DistrictService.objectParticle(L.name) + " 지웠습니다</b></#7fe07f> <gray>(" + counts + " · "
+                    + elapsedSec() + "초)");
             Text.send(sender, "<gray>  기록은 state: removed 로 남아 저절로 다시 짓지 않습니다. 다시 지으려면 <white>/labadmin village district build " + L.id + "</white>");
-            Log.info("[광산 마을] 지웠습니다 — " + counts);
+            Log.info(tag() + " 지웠습니다 — " + counts);
             return true;
         }
         // RECOVER: 기록·백업을 버리고 처음부터
         if (d != null) svc.removeNpcs(d);
         File mf = DistrictService.metaFile(world, L.id), bf = DistrictService.backupFile(world, L.id);
-        if (mf.isFile() && !mf.delete()) Log.warn("[광산 마을] " + mf + " 를 지우지 못했습니다");
-        if (bf.isFile() && !bf.delete()) Log.warn("[광산 마을] " + bf + " 를 지우지 못했습니다");
+        if (mf.isFile() && !mf.delete()) Log.warn(tag() + " " + mf + " 를 지우지 못했습니다");
+        if (bf.isFile() && !bf.delete()) Log.warn(tag() + " " + bf + " 를 지우지 못했습니다");
         svc.load(true);
-        Log.info("[광산 마을] 짓다가 멈춘 것을 되돌렸습니다 — " + counts);
+        Log.info(tag() + " 짓다가 멈춘 것을 되돌렸습니다 — " + counts);
         if (!buildAfterRecover) return true;
         backup = null;
         before.clear();
@@ -902,7 +923,7 @@ final class DistrictJob extends VillageJob {
             world.save(true);
             say("<gray>  월드 저장 (" + what + ", " + (System.currentTimeMillis() - t0) + "ms)");
         } catch (Throwable t) {
-            Log.error("[광산 마을] 월드 저장 실패 (" + what + ") — 다음 자동 저장 때 저장됩니다", t);
+            Log.error(tag() + " 월드 저장 실패 (" + what + ") — 다음 자동 저장 때 저장됩니다", t);
         }
     }
 
@@ -921,11 +942,11 @@ final class DistrictJob extends VillageJob {
             // 짓다가 멈춤 (취소·오류): 반쯤 지은 채 두지 않고 곧바로 백업으로 되돌린다. 서버를 끄는 중이면 다음 시작 때 (state building).
             writing = false;
             if (!live) return;
-            Text.send(sender, "<#ff9a4d>[광산 마을] 짓기가 멈췄습니다 — 백업으로 되돌립니다</#ff9a4d>");
-            Log.warn("[광산 마을] 짓기가 멈췄습니다 — 백업으로 되돌립니다");
+            Text.send(sender, "<#ff9a4d>" + Text.escape(tag()) + " 짓기가 멈췄습니다 — 백업으로 되돌립니다</#ff9a4d>");
+            Log.warn(tag() + " 짓기가 멈췄습니다 — 백업으로 되돌립니다");
             Bukkit.getScheduler().runTaskLater(module.plugin(), () -> {
                 if (VillageJob.running() != null) {
-                    Log.warn("[광산 마을] 다른 마을 작업 중이라 되돌리지 못했습니다 — 다음 시작 때 되돌립니다 (state building)");
+                    Log.warn(tag() + " 다른 마을 작업 중이라 되돌리지 못했습니다 — 다음 시작 때 되돌립니다 (state building)");
                     return;
                 }
                 DistrictJob.recover(module, svc, entry, false).start();
@@ -933,7 +954,7 @@ final class DistrictJob extends VillageJob {
             return;
         }
         if (restoring && !done && mode == Mode.REMOVE && live) {
-            Text.send(sender, "<#ff9a4d>[광산 마을] 되돌리기를 멈췄습니다</#ff9a4d> <gray>— 다시 <white>/labadmin village district remove " + L.id
+            Text.send(sender, "<#ff9a4d>" + Text.escape(tag()) + " 되돌리기를 멈췄습니다</#ff9a4d> <gray>— 다시 <white>/labadmin village district remove " + L.id
                     + "</white> 하면 이어서 됩니다");
         }
         restoring = false;

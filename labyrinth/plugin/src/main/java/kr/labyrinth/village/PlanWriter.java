@@ -146,10 +146,11 @@ final class PlanWriter {
             //    옹벽 칸: 드러난 높이만큼 기초 블록(foundation_mix + 이끼)
             int lo = t < g ? t - 2 : t > g ? g : t;
             if (exposed > 0) lo = Math.min(lo, t - exposed + 1);
+            boolean fillWater = plan.smallWater > 0 && t > g; // 0.3.7: 닫힌 작은 물(우물길 2×2)은 메움 (구역 fill_small_water_max)
             for (int y = lo; y <= t; y++) {
                 String want = exposed > 0 && y > t - exposed ? foundation(x, y, z) : y == t ? top : sub;
                 Block blk = world.getBlockAt(x, y, z);
-                if (!replaceableTerrain(blk.getType())) continue;
+                if (!replaceableTerrain(blk.getType()) && !(fillWater && Scan.kind(blk.getType()) == Nature.Kind.LIQUID)) continue;
                 set(blk, want, b);
             }
         } else if (!footprint) {
@@ -207,13 +208,24 @@ final class PlanWriter {
         });
     }
 
+    /**
+     * 얼린 칸(마을·먼저 지은 구역이 다듬은 칸) 위 붙는 조각 열 (0.3.7 집 구역 — 3번 z 48..49 · 울타리 줄 z 47 · 광산 south_east 띠 x −115):
+     * 겉 블록과 그 아래는 그대로, 바닥 층 위만 그 칸 땅 높이에 맞춰 쓴다. @return 높이 차 (그 칸 땅 − 조각 바닥), 얼린 칸이 아니면 null
+     */
+    Integer frozenShift(Plan.Placed pl, int wx, int wz) {
+        if (!plan.isFrozen(wx, wz)) return null;
+        return plan.ground[plan.idx(wx, wz)] - pl.floor;
+    }
+
     void pieceCell(Plan.Placed pl, int k, VillageJob.Budget b) {
         Blueprint bp = pl.bp;
         int x = k % bp.w, z = (k / bp.w) % bp.d, y = k / (bp.w * bp.d);
         int cp = bp.cell(x, y, z);
         if (cp == Blueprint.KEEP) return;
         int[] w = pl.world(x, z);
-        Block blk = world.getBlockAt(w[0], pl.worldY(y), w[1]);
+        Integer shift = frozenShift(pl, w[0], w[1]);
+        if (shift != null && y <= bp.floorY) return;
+        Block blk = world.getBlockAt(w[0], pl.worldY(y) + (shift == null ? 0 : shift), w[1]);
         if (cp == Blueprint.AIR) {
             if (!blk.getType().isAir()) {
                 blk.setBlockData(data("minecraft:air"), false);
@@ -300,8 +312,9 @@ final class PlanWriter {
                         errors++;
                         continue;
                     }
-                    writeSide(sign.getSide(Side.FRONT), mk.marker().lines(), mk.marker().glow());
-                    if (!mk.marker().back().isEmpty()) writeSide(sign.getSide(Side.BACK), mk.marker().back(), mk.marker().glow());
+                    String tag = mk.piece().entry.opts().tag();
+                    writeSide(sign.getSide(Side.FRONT), Markers.withTag(mk.marker().lines(), tag), mk.marker().glow());
+                    if (!mk.marker().back().isEmpty()) writeSide(sign.getSide(Side.BACK), Markers.withTag(mk.marker().back(), tag), mk.marker().glow());
                     sign.setWaxed(true);
                     sign.update(true, false);
                     signs++;
@@ -366,7 +379,9 @@ final class PlanWriter {
             for (int y = 0; y < bp.h; y++) for (int z = 0; z < bp.d; z++) for (int x = 0; x < bp.w; x++) {
                 if (bp.cell(x, y, z) == Blueprint.KEEP) continue;
                 int[] w = pl.world(x, z);
-                out.accept(Trees.pack(w[0], pl.worldY(y), w[1]));
+                Integer shift = frozenShift(pl, w[0], w[1]);
+                if (shift != null && y <= bp.floorY) continue;
+                out.accept(Trees.pack(w[0], pl.worldY(y) + (shift == null ? 0 : shift), w[1]));
             }
         }
         for (Plan.PathPlan pp : plan.paths) for (int[] c : pp.cells) for (int dy = 0; dy <= 2; dy++) out.accept(Trees.pack(c[0], c[2] + dy, c[1]));

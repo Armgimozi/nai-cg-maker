@@ -1,0 +1,38 @@
+{
+  "format": 1,
+  "id": "plot_front",
+  "name": "앞 울타리",
+  "size": [14, 3, 1],
+  "floor_y": 0,
+  "foundation": "minecraft:stone_bricks",
+  "foundation_mix": [["minecraft:stone_bricks", 3], ["minecraft:mossy_stone_bricks", 1]],
+  "anchor": [6, 0],
+  "deco": false,
+  "door": true,
+  "slack": 0,
+  "abut": true,
+  "palette": {
+    "p": "minecraft:dirt_path",
+    "b": "minecraft:grass_block[snowy=false]",
+    "l": "minecraft:lantern[hanging=false,waterlogged=false]",
+    "f": "minecraft:spruce_fence[east=true,north=false,south=false,waterlogged=false,west=true]",
+    "g": "minecraft:spruce_fence_gate[facing=north,in_wall=false,open=false,powered=false]",
+    "s": "minecraft:spruce_sign[rotation=8,waterlogged=false]"
+  },
+  "layers": [
+    [
+      "bbbbbbpbbbbbbb"
+    ],
+    [
+      "ffffffgfffffff"
+    ],
+    [
+      "     l  s     "
+    ]
+  ],
+  "markers": [
+    {"type": "sign", "pos": [8, 2, 0], "lines": ["<b>[{plot}번지]</b>", "비어 있음", "", "<gray>/미궁 집</gray>"], "glow": true},
+    {"type": "interact", "action": "plot:{plot}", "pos": [[8, 2, 0], [8, 1, 0]]},
+    {"type": "light", "pos": [5, 2, 0]}
+  ]
+}

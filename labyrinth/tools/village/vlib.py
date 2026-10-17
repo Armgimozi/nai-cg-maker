@@ -552,7 +552,8 @@ GRAVITY = {"sand", "red_sand", "gravel", "suspicious_sand", "suspicious_gravel",
            "damaged_anvil", "dragon_egg", "scaffolding"}
 AMBIENT_FX = ("portal", "embers", "fountain", "magic", "smoke", "dust")
 # 0.3.6 광산 마을: mine_lift(승강장) · smelter(제련소) · mine_info(숙소 게시판) · mine_office(광산 관리소 — 광산 청사진 쪽)
-INTERACT_ACTIONS = ("entrance", "blacksmith", "class", "titles", "merchant", "main", "mine_lift", "mine_office", "smelter", "mine_info")
+INTERACT_ACTIONS = ("entrance", "blacksmith", "class", "titles", "merchant", "main", "mine_lift", "mine_office", "smelter", "mine_info",
+                    "estate", "plot:{plot}")   # 0.3.7 집 구역: 관리인 메뉴 · 대문 표지판 ({plot} = 계획기가 집터 번호로 바꿈)
 # 이름 붙은 서 있을 자리 마커 (spawn·entrance 처럼 발 칸 + face) — 0.3.6 mine_exit = 광산에서 마을로 나오는 자리
 POINT_MARKERS = ("mine_exit",)
 MARKER_FACES = ("front", "back", "left", "right")
@@ -570,9 +571,12 @@ class Piece:
     """정방향 조각 캔버스. 좌표는 0 ≤ x < W, 0 ≤ y < H, 0 ≤ z < D. 기본값은 ' ' (건드리지 않음)."""
 
     def __init__(self, id, name, W, H, D, floor_y=1, anchor=None, foundation_mix=None, foundation=None,
-                 deco=None, door=None, slack=None):
+                 deco=None, door=None, slack=None, abut=None, pad=None):
         """deco = 장식 조각(slack 3, 정문 검사 생략; 비우면 id 접두어로 판단 — lamp_post·bench·tree_ …),
-        door = False 면 정문 앞 걸어 들어가기 검사 생략 (문 없는 조각), slack = layout 기본 slack 대신 이 값."""
+        door = False 면 정문 앞 걸어 들어가기 검사 생략 (문 없는 조각), slack = layout 기본 slack 대신 이 값.
+        abut = True 면 다른 abut 조각·길에 1칸 여유 없이 붙을 수 있음 (겹침만 안 됨 — 0.3.7 집 구역 울타리 줄·집터·노점),
+        보호 상자는 발자국 그대로 (+1 칸 안 넓힘). pad = True 면 집터 바닥 (발자국 밑을 통째로 채움 — 동굴 검사 생략,
+        마을이 다듬은 칸은 높이가 바닥과 같을 때만, 보호 상자 없음)."""
         if not ID_RE.match(id):
             raise VillageError("조각 id 는 소문자·숫자·_ 만: %r" % id)
         if min(W, H, D) < 1:
@@ -585,6 +589,7 @@ class Piece:
         self.foundation_mix = [(check_block(B(b)), int(w)) for b, w in mixl]
         self.foundation = check_block(B(foundation)) if foundation else self.foundation_mix[0][0]
         self.deco, self.has_door, self.slack = deco, door, slack
+        self.abut, self.pad = abut, pad
         self.g = [[[" "] * W for _ in range(D)] for _ in range(H)]
         self.markers = []
         self.clip = False          # True 면 크기 밖 set 을 조용히 무시 (기본: 예외)
@@ -1518,7 +1523,8 @@ class Piece:
             ("foundation", self.foundation),
             ("foundation_mix", [[b, w] for b, w in self.foundation_mix]),
             ("anchor", list(self.anchor)),
-        ] + [(k, v) for k, v in (("deco", self.deco), ("door", self.has_door), ("slack", self.slack)) if v is not None] + [
+        ] + [(k, v) for k, v in (("deco", self.deco), ("door", self.has_door), ("slack", self.slack), ("abut", self.abut),
+                                  ("pad", self.pad)) if v is not None] + [
             ("palette", collections.OrderedDict(sorted(palette.items(), key=lambda kv: kv[1]))),
             ("layers", layers),
             ("markers", self.markers),
@@ -1529,7 +1535,7 @@ class Piece:
         d = self.to_dict()
         dump = lambda v: json.dumps(v, ensure_ascii=False)
         out = ["{"]
-        for k in ("format", "id", "name", "size", "floor_y", "foundation", "foundation_mix", "anchor", "deco", "door", "slack"):
+        for k in ("format", "id", "name", "size", "floor_y", "foundation", "foundation_mix", "anchor", "deco", "door", "slack", "abut", "pad"):
             if k in d:
                 out.append('  %s: %s,' % (dump(k), dump(d[k])))
         out.append('  "palette": {')
@@ -1619,6 +1625,8 @@ class Blueprint:
         self.slack = d.get("slack")
         self.deco = d["deco"] if "deco" in d else is_deco_id(self.id)
         self.door = (not self.deco) and d.get("door", True)
+        self.abut = bool(d.get("abut", False))
+        self.pad = bool(d.get("pad", False))
         pal = d["palette"]
         self.cells = {}
         for y, layer in enumerate(d["layers"]):

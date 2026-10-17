@@ -124,6 +124,8 @@ public final class Plan {
     public int maskR = -1, maskB;
     /** 발자국 아래 기초·동굴 깊이 (마을 Planner.CAVE_DEPTH, 구역 options.foundation_depth). */
     public int caveDepth = Planner.CAVE_DEPTH;
+    /** 메워도 되는 닫힌 작은 물 칸 수 (구역 options.fill_small_water_max — 0 보다 크면 짓기가 그 물을 흙으로 메움, 0.3.7). */
+    public int smallWater;
     /** 구역 길이 마을 길에 닿는 칸 수 (이음 검사). */
     public int junctions;
     /** 지형·자리가 안 맞아 뺀 장식 조각 ("id (이유)"). */

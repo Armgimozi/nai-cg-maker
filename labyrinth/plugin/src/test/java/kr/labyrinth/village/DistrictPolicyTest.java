@@ -7,6 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.BitSet;
+import java.util.List;
+import kr.labyrinth.village.DistrictPolicy.Item;
+import kr.labyrinth.village.DistrictPolicy.Step;
 import kr.labyrinth.village.DistrictMeta.State;
 import kr.labyrinth.village.DistrictPolicy.Startup;
 import org.junit.jupiter.api.Test;
@@ -111,5 +114,86 @@ class DistrictPolicyTest {
         assertEquals(State.REMOVED, removed.state);
         assertFalse(removed.active(), "지운 구역은 보호·우클릭·NPC 없음");
         assertEquals("labyrinth-district-mine.yml", DistrictMeta.fileName("mine"));
+    }
+    // ── 여러 구역 차례 (0.3.7 review R8) ──
+
+    private static Item mine(State st, boolean auto, boolean tried) { return new Item("mine", st, true, auto, true, tried); }
+    private static Item homes(State st, boolean auto, boolean tried) { return new Item("homes", st, true, auto, true, tried); }
+
+    private static String ids(List<Step> steps) {
+        StringBuilder b = new StringBuilder();
+        for (Step s : steps) b.append(b.length() == 0 ? "" : " ").append(s.id()).append('=').append(s.action());
+        return b.toString();
+    }
+
+    @Test
+    void mineFirstThenHomes() {
+        // 둘 다 기록 없음 → 광산부터 (집은 이번 차례에 보지 않음)
+        assertEquals("mine=AUTO_BUILD", ids(DistrictPolicy.plan(List.of(mine(null, true, false), homes(null, true, false)))));
+        // 광산을 지어 봄(끝남·막힘 — tried) → 다음 부름에 집
+        assertEquals("homes=AUTO_BUILD", ids(DistrictPolicy.plan(List.of(mine(State.BUILT, true, true), homes(null, true, false)))));
+        assertEquals("homes=AUTO_BUILD", ids(DistrictPolicy.plan(List.of(mine(null, true, true), homes(null, true, false)))),
+                "광산 짓기가 막혀(기록 없음 그대로) 끝나도 집은 짓는다");
+    }
+
+    @Test
+    void homesBuildsWhenMineDoneOrOff() {
+        // 0.3.6.1 월드 (광산 지어짐) → 광산 할 일 없음, 집 짓기
+        assertEquals("mine=NONE homes=AUTO_BUILD", ids(DistrictPolicy.plan(List.of(mine(State.BUILT, true, false), homes(null, true, false)))));
+        // 광산을 지웠음 → 다시 짓지 않고 집으로
+        assertEquals("mine=NONE homes=AUTO_BUILD", ids(DistrictPolicy.plan(List.of(mine(State.REMOVED, true, false), homes(null, true, false)))));
+        // 광산 꺼짐 (mine.enabled false · auto_build false) → 집으로
+        assertEquals("mine=NONE homes=AUTO_BUILD", ids(DistrictPolicy.plan(List.of(mine(null, false, false), homes(null, true, false)))));
+        // 집 자동 짓기 끔 → 아무것도
+        assertEquals("mine=NONE homes=NONE", ids(DistrictPolicy.plan(List.of(mine(State.BUILT, true, false), homes(null, false, false)))));
+        // 둘 다 지어짐
+        assertEquals("mine=NONE homes=NONE", ids(DistrictPolicy.plan(List.of(mine(State.BUILT, true, false), homes(State.BUILT, true, false)))));
+    }
+
+    @Test
+    void interruptedBuildIsRecoveredFirst() {
+        // 집을 짓다 꺼짐 → 되돌리기 (자동 짓기를 꺼 두었어도)
+        assertEquals("mine=NONE homes=RECOVER", ids(DistrictPolicy.plan(List.of(mine(State.BUILT, true, false), homes(State.BUILDING, false, false)))));
+        // 광산을 짓다 꺼짐 → 광산 되돌리기에서 멈춤 (끝나면 다시 불러 광산 처음부터 → 그다음 집)
+        assertEquals("mine=RECOVER", ids(DistrictPolicy.plan(List.of(mine(State.BUILDING, true, false), homes(null, true, false)))));
+        // 마을 없음 · 배포 월드 아님 → 둘 다 안내만
+        assertEquals("mine=NO_VILLAGE homes=NO_VILLAGE", ids(DistrictPolicy.plan(List.of(new Item("mine", null, false, true, true, false),
+                new Item("homes", null, false, true, true, false)))));
+        assertEquals("mine=UNKNOWN_WORLD homes=UNKNOWN_WORLD", ids(DistrictPolicy.plan(List.of(new Item("mine", null, true, true, false, false),
+                new Item("homes", null, true, true, false, false)))));
+        // 다 해 봄 → 빈 차례
+        assertTrue(DistrictPolicy.plan(List.of(mine(State.BUILT, true, true), homes(State.BUILT, true, true))).isEmpty());
+    }
+
+    @Test
+    void plotsRoundTrip() throws Exception {
+        DistrictMeta d = new DistrictMeta();
+        d.id = "homes";
+        d.name = "집 구역";
+        d.state = State.BUILT;
+        d.site = "south_west";
+        d.plots.add(new DistrictMeta.PlotRec("1", -178, 48, -165, 61, 73, 65, 105, "south", -172, 74, 62, -170, 75, 62, -171.5, 73, 63.5, 0f));
+        d.plots.add(new DistrictMeta.PlotRec("10", -129, 84, -116, 97, 66, 58, 98, "south", -123, 67, 98, -121, 68, 98, -122.5, 66, 99.5, 0f));
+        DistrictMeta back = DistrictMeta.fromYaml(d.toYaml());
+        assertEquals(2, back.plots.size());
+        DistrictMeta.PlotRec p = back.plots.get(0);
+        assertEquals("1", p.id());
+        assertEquals(-178, p.x0());
+        assertEquals(61, p.z1());
+        assertEquals(73, p.floor());
+        assertEquals(65, p.y0());
+        assertEquals(105, p.y1());
+        assertEquals("south", p.front());
+        assertEquals(-172, p.gateX());
+        assertEquals(75, p.signY());
+        assertEquals(-171.5, p.homeX(), 1e-9);
+        assertEquals(63.5, p.homeZ(), 1e-9);
+        assertEquals("10", back.plots.get(1).id());
+        assertEquals(66, back.plots.get(1).floor());
+        // 광산 기록에는 plots: 없음
+        DistrictMeta m = new DistrictMeta();
+        m.id = "mine";
+        m.state = State.BUILT;
+        assertTrue(DistrictMeta.fromYaml(m.toYaml()).plots.isEmpty());
     }
 }

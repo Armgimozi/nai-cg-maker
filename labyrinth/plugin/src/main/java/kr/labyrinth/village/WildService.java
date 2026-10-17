@@ -140,8 +140,16 @@ final class WildService implements Listener {
 
     WildBorder.Square target() {
         if (!active()) return null;
-        if (target == null) target = village.borderTarget(cfg().borderMargin());
+        if (target == null) target = autoTarget(cfg().borderMargin());
         return target;
+    }
+
+    /**
+     * 저절로 정하는 경계 (0.3.7 — review R6): 마을 + 구역 상자 + margin 을 <b>지난번 우리 경계와 합친</b> 상자 — 구역을 지워도·나중에 지은
+     * 구역이 한쪽만 넓혀도 줄지 않는다 (그 띠의 건물이 경계 밖이 되지 않게). 줄이기는 {@code /labadmin wild border apply} 만.
+     */
+    WildBorder.Square autoTarget(int margin) {
+        return WildBorder.grow(village.borderTarget(margin), loadRecord());
     }
 
     WildBorder.Square current() {
@@ -180,7 +188,7 @@ final class WildService implements Listener {
             return;
         }
         Settings.Wild w = cfg();
-        target = village.borderTarget(w.borderMargin());
+        target = autoTarget(w.borderMargin());
         String border;
         try {
             border = applyBorder(w, false);
@@ -631,7 +639,7 @@ final class WildService implements Listener {
         int boxes = village.protectAll().size();
         int own = village.meta() == null ? boxes : village.meta().protect.size();
         s.sendMessage(Text.mm(" <gray>마을 경계: <white>" + Text.escape(WildBorder.describe(tgt)) + "</white> (마을 가장자리 + "
-                + w.borderMargin() + "칸, 보호 상자 " + boxes + "개 포함" + (boxes > own ? " — 광산 마을 포함" : "") + ")"));
+                + w.borderMargin() + "칸, 보호 상자 " + boxes + "개 포함" + (boxes > own ? " — 지은 구역 포함" : "") + ")"));
         s.sendMessage(Text.mm(" <gray>스폰 막기: <white>" + w.spawns().id() + "</white> " + switch (w.spawns()) {
             case ALL -> "(적대 몹 + 동물 — 있던 동물은 그대로)";
             case MONSTERS -> "(적대 몹만)";
@@ -647,7 +655,7 @@ final class WildService implements Listener {
             Text.error(s, "이 월드에는 마을이 없습니다.");
             return;
         }
-        target = village.borderTarget(cfg().borderMargin());
+        target = village.borderTarget(cfg().borderMargin()); // 관리자 명령: 지금 마을·구역에 딱 맞게 (줄일 수 있음)
         String r = applyBorder(cfg(), true);
         Log.info("[야생] 관리자 명령 — 경계 " + r);
         Text.send(s, "<green>월드 경계를 마을 경계로 정했습니다</green> <gray>(" + Text.escape(WildBorder.describe(target)) + ")"

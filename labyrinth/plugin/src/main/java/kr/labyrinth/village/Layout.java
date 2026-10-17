@@ -16,8 +16,44 @@ import java.util.Map;
  */
 public final class Layout {
 
-    /** 조각 배치 한 줄. dy/slack 은 없으면 null. */
-    public record Entry(int index, String piece, int atX, int atZ, Dir front, Integer dy, Integer slack) {}
+    /** 조각 배치 한 줄. dy/slack 은 없으면 null. opts = 0.3.7 구역 조각 손잡이 (없으면 {@link Opts#NONE}). */
+    public record Entry(int index, String piece, int atX, int atZ, Dir front, Integer dy, Integer slack, Opts opts) {
+        public Entry {
+            opts = opts == null ? Opts.NONE : opts;
+        }
+
+        public Entry(int index, String piece, int atX, int atZ, Dir front, Integer dy, Integer slack) {
+            this(index, piece, atX, atZ, front, dy, slack, Opts.NONE);
+        }
+    }
+
+    /**
+     * 구역 조각 손잡이 (0.3.7 집 구역 — district json pieces[]).
+     * @param maxFill   이 조각 깎기·메우기 한도 (null = 구역 options.max_fill) — 집터 바닥 12 (구덩이 메움)
+     * @param floorRef  이 조각들(layout 순번, 앞에 놓인 것) 바닥 가운데 가장 높은 것을 바닥으로 — 울타리 줄 (낮은 쪽 집터 앞은 옹벽)
+     * @param nearRef   이 조각(순번, 앞에 놓인 것) 바닥에서 {@code nearDelta} 칸 안으로 (−1 = 없음) — 거리 건너 마주 보는 집
+     * @param tag       집터 번호 (표지판 글·우클릭의 {plot} · 구역 기록 plots:) — null 이면 없음
+     */
+    public record Opts(Integer maxFill, List<Integer> floorRef, int nearRef, int nearDelta, String tag) {
+        public static final Opts NONE = new Opts(null, List.of(), -1, 0, null);
+
+        public Opts {
+            floorRef = floorRef == null ? List.of() : List.copyOf(floorRef);
+        }
+
+        public boolean none() { return maxFill == null && floorRef.isEmpty() && nearRef < 0 && tag == null; }
+
+        /** 순번 바꾸기 (자리마다 뺀 조각이 있으면 layout 순번이 당겨진다 — 없어진 조각은 뺌). */
+        public Opts remap(java.util.function.IntUnaryOperator to) {
+            List<Integer> fr = new ArrayList<>();
+            for (int r : floorRef) {
+                int n = to.applyAsInt(r);
+                if (n >= 0) fr.add(n);
+            }
+            int nr = nearRef < 0 ? -1 : to.applyAsInt(nearRef);
+            return new Opts(maxFill, fr, nr, nr < 0 ? 0 : nearDelta, tag);
+        }
+    }
 
     /**
      * 길: 꺾은선 점들(마을 좌표), 폭, 스타일, follow = 길 높이가 양 끝 직선에서 지형을 따라 벗어날 수 있는 칸

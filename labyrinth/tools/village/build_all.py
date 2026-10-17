@@ -120,9 +120,12 @@ def _ring(cells):
 
 
 def _attach(placed, end):
-    """길 끝 → 붙은 조각 순번 (Java Planner.attach: 체비셰프 거리 ≤ 2, 가까운 것, 같으면 장식 아닌 것)."""
+    """길 끝 → 붙은 조각 순번 (Java Planner.attach: 체비셰프 거리 ≤ 2, 가까운 것, 같으면 장식 아닌 것).
+    abut 조각(0.3.7 집 구역 울타리 줄·집터·노점)에는 길이 붙지 않는다 — 길 높이는 길이 정한다."""
     best, best_score = None, None
     for i, (tag, e, p, bp, r, b, cols) in enumerate(placed):
+        if getattr(bp, "abut", False):
+            continue
         d = min(max(abs(x - end[0]), abs(z - end[1])) for (x, z) in cols) if cols else 10 ** 9
         score = d * 2 + (1 if bp.deco else 0)
         if d <= vlib.PATH_ATTACH and (best_score is None or score < best_score):
@@ -361,7 +364,9 @@ def validate_site(tag, ps, paths, pieces, styles, errors, warnings):
         ta, ring_a = placed[i][0], _ring(placed[i][6])
         for j in range(i + 1, len(placed)):
             tb, cols_b = placed[j][0], placed[j][6]
-            hit = ring_a & cols_b
+            # abut 끼리(0.3.7 집 구역 울타리 줄·집터)는 붙어도 됨 — 겹침만 안 됨 (Java Planner.overlaps 와 같게)
+            both = placed[i][3].abut and placed[j][3].abut
+            hit = (placed[i][6] & cols_b) if both else (ring_a & cols_b)
             if hit:
                 errors.append("%s 와 %s %s (예: %s)" % (ta, tb, "겹침" if placed[i][6] & cols_b else "1칸 여유 없음", sorted(hit)[0]))
     for t, e, p, bp, r, b, cols in placed:
@@ -373,19 +378,23 @@ def validate_site(tag, ps, paths, pieces, styles, errors, warnings):
         dx, dz = vlib.DXZ[vlib.rot_dir("north", r)]
         while (wx, wz) in cols:
             wx, wz = wx + dx, wz + dz
-        for t2, _, _, _, _, _, cols2 in placed:
-            if t2 != t and (wx, wz) in _ring(cols2):
+        for t2, _, _, bp2, _, _, cols2 in placed:
+            if t2 == t:
+                continue
+            near = (wx, wz) in cols2 if (bp.abut and bp2.abut) else (wx, wz) in _ring(cols2)
+            if near:
                 errors.append("%s: 정문 앞 칸 (%d,%d) 이 %s 에 막힘" % (t, wx, wz, t2))
     for i, pth in paths:
         pts, wdt = pth["points"], pth.get("width", 3)
         if pth.get("style", "main") not in styles:
             errors.append("%s paths[%d]: style '%s' 없음" % (tag, i, pth.get("style")))
         att = {_attach(placed, pts[0]), _attach(placed, pts[-1])} - {None}
-        ring = _ring(vlib.path_cells(pts, wdt))
-        for k, (t2, _, _, _, _, _, cols2) in enumerate(placed):
+        cells = vlib.path_cells(pts, wdt)
+        ring = _ring(cells)
+        for k, (t2, _, _, bp2, _, _, cols2) in enumerate(placed):
             if k in att:
                 continue
-            hit = ring & cols2
+            hit = (cells & cols2) if bp2.abut else (ring & cols2)
             if hit:
                 errors.append("%s paths[%d]: 길이 %s 를 지나가거나 1칸 여유 없이 붙음 (예: %s)" % (tag, i, t2, sorted(hit)[0]))
     return placed
@@ -411,7 +420,8 @@ def district_json(D, pieces):
         vw, vd = vlib.rotated_size(p.W, p.D, vlib.front_rotation(fv))
         assert (abs(a[0] - b[0]) + 1, abs(a[1] - b[1]) + 1) == (vw, vd), (e, a, b, vw, vd)
         q = {"piece": e["piece"], "at": [vx0 + vw // 2, vz0 + vd // 2], "front": fv}
-        for k in ("dy", "slack"):
+        # 0.3.7: max_fill (조각별 깎기·메우기 한도) · floor_ref (그 조각들 바닥 중 가장 높은 것) · floor_near [조각, 차] · tag (집터 번호)
+        for k in ("dy", "slack", "max_fill", "floor_ref", "floor_near", "tag"):
             if k in e:
                 q[k] = e[k]
         out_p.append(q)
@@ -469,6 +479,29 @@ def validate_districts(districts, pieces, layout, npcs, errors, warnings):
             for m in pieces[pid].markers:
                 if m["type"] == "npc" and m["id"] not in npcs:
                     warnings.append("구역 %s: npc '%s' 가 아직 npcs.yml 에 없음 (Q3 가 넣음 — 없으면 그 NPC 만 안 섬)" % (did, m["id"]))
+        # 0.3.7 조각 손잡이: floor_ref·floor_near 는 앞에 놓인 조각만 (계획기가 차례대로 놓는다), max_fill 1..16, tag 글
+        for i, e in enumerate(D["pieces"]):
+            for r in e.get("floor_ref", []):
+                if not isinstance(r, int) or not 0 <= r < i:
+                    errors.append("구역 %s pieces[%d] %s: floor_ref %r 는 앞 조각 순번이어야 함" % (did, i, e["piece"], r))
+            fn = e.get("floor_near")
+            if fn is not None and not (isinstance(fn, list) and len(fn) == 2 and isinstance(fn[0], int) and 0 <= fn[0] < i
+                                       and isinstance(fn[1], int) and 0 <= fn[1] <= 8):
+                errors.append("구역 %s pieces[%d] %s: floor_near 는 [앞 조각 순번, 0..8]: %r" % (did, i, e["piece"], fn))
+            mf = e.get("max_fill")
+            if mf is not None and not (isinstance(mf, int) and 1 <= mf <= 16):
+                errors.append("구역 %s pieces[%d] %s: max_fill 은 1..16: %r" % (did, i, e["piece"], mf))
+            if "tag" in e and not (isinstance(e["tag"], str) and re.match(r"^[a-z0-9_]+$", e["tag"])):
+                errors.append("구역 %s pieces[%d] %s: tag 는 소문자·숫자·_: %r" % (did, i, e["piece"], e["tag"]))
+        # 집터 바닥(pad)마다 같은 tag 의 앞 울타리(대문·표지판 plot:{plot})가 하나
+        pad_tags = [e.get("tag") for e in D["pieces"] if getattr(pieces.get(e["piece"]), "pad", False)]
+        for t in pad_tags:
+            fronts = [e for e in D["pieces"] if e.get("tag") == t and any(
+                m["type"] == "interact" and m.get("action") == "plot:{plot}" for m in getattr(pieces.get(e["piece"]), "markers", []))]
+            if t is None or len(fronts) != 1:
+                errors.append("구역 %s: 집터 tag %r 의 앞 울타리(plot:{plot} 표지판) %d개 (1개여야 함)" % (did, t, len(fronts)))
+        if len(set(pad_tags)) != len(pad_tags):
+            errors.append("구역 %s: 집터 tag 가 겹침 %r" % (did, pad_tags))
         if not D.get("sites"):
             errors.append("구역 %s: sites 가 없음" % did)
         for site in D.get("sites", []):

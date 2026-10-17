@@ -12,7 +12,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 /**
  * 마을 안전지대 (PvP 금지). 마을 기능(VILLAGE.md §4.2)이 주 월드 폴더에 남기는 {@code labyrinth-village.yml} 의
  * {@code center: [x, y, z]} · {@code radius} 만 읽는다 — 마을 코드에 의존하지 않는 느슨한 연결이라 파일이 없으면 안전지대도 없다.
- * 0.3.6.1: 같은 폴더의 구역 기록 {@code labyrinth-district-*.yml} (광산 마을) 이 {@code state: built|building} 이면 그 보호 상자
+ * 0.3.6.1: 같은 폴더의 구역 기록 {@code labyrinth-district-*.yml} (광산 마을 · 0.3.7 집 구역) 이 {@code state: built|building} 이면 그 보호 상자
  * (+ {@code safe_margin}, 기본 8칸) 도 안전지대다 — 승강장·제련소 앞에서도 싸울 수 없다 (CONTRACT §2.13).
  * 마을을 서버가 켜진 중에 지어도 반영되도록 10초마다 파일 수정 시각을 확인한다.
  */
@@ -127,7 +127,7 @@ final class VillageZone {
             }
             if (zone != null) {
                 Log.info("PvP 안전지대: 마을 중심 (" + Math.round(zone.x()) + ", " + Math.round(zone.z()) + ") 반경 "
-                        + Math.round(zone.radius()) + "칸" + (zone.rects().isEmpty() ? "" : " + 광산 마을 상자 " + zone.rects().size() + "개")
+                        + Math.round(zone.radius()) + "칸" + (zone.rects().isEmpty() ? "" : " + 구역 상자 " + zone.rects().size() + "개")
                         + " — 이 안에서는 플레이어끼리 싸울 수 없습니다.");
             } else {
                 Log.warn(FILE + " 에 center/radius 가 없어 마을 PvP 안전지대를 쓰지 않습니다.");
